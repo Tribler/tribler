@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.i18n import tr
 from tribler_gui.utilities import connect, get_ui_file_path
 from tribler_gui.widgets.ellipsebutton import EllipseButton
 
@@ -50,7 +51,7 @@ class ConfirmationDialog(DialogContainer):
 
     @classmethod
     def show_error(cls, window, title, error_text):
-        error_dialog = ConfirmationDialog(window, title, error_text, [('CLOSE', BUTTON_TYPE_NORMAL)])
+        error_dialog = ConfirmationDialog(window, title, error_text, [(tr("CLOSE"), BUTTON_TYPE_NORMAL)])
 
         def on_close(checked):
             error_dialog.close_dialog()

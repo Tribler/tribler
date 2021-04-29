@@ -26,7 +26,7 @@
    <cursorShape>ArrowCursor</cursorShape>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">Form</string>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -120,7 +120,7 @@
          <string notr="true">border: none;</string>
         </property>
         <property name="text">
-         <string>BACK</string>
+         <string notr="true">BACK</string>
         </property>
         <property name="icon">
          <iconset>
@@ -171,7 +171,7 @@ font-size: 20px;
 font-weight: bold;</string>
         </property>
         <property name="text">
-         <string>Some fancy channel</string>
+         <string notr="true">Some fancy channel</string>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse</set>
@@ -239,7 +239,7 @@ font-weight: bold;</string>
 color: #B5B5B5;</string>
         </property>
         <property name="text">
-         <string>99/100 torrents</string>
+         <string notr="true">99/100 torrents</string>
         </property>
        </widget>
       </item>
@@ -283,7 +283,7 @@ background-color: transparent;
 }</string>
         </property>
         <property name="text">
-         <string>REFRESH</string>
+         <string notr="true">REFRESH</string>
         </property>
         <property name="icon">
          <iconset>
@@ -491,6 +491,12 @@ QToolButton{border:none;margin-left:16px;}</string>
              <height>0</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string notr="true"/>
+           </property>
+           <property name="accessibleDescription">
+            <string notr="true"/>
+           </property>
           </widget>
          </item>
          <item>
@@ -512,7 +518,7 @@ QToolButton{border:none;margin-left:16px;}</string>
          <item>
           <widget class="QLabel" name="channel_rating_label">
            <property name="text">
-            <string>|||||</string>
+            <string notr="true">|||||</string>
            </property>
           </widget>
          </item>
@@ -553,7 +559,7 @@ QToolButton{border:none;margin-left:16px;}</string>
          <string notr="true">color: #eee; font-size: 15px; font-style: italic;</string>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string notr="true">explanation text for channel</string>
         </property>
        </widget>
       </item>

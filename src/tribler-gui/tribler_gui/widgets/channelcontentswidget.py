@@ -15,6 +15,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path
@@ -52,7 +53,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
         self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
-        self.channel_preview_button.setToolTip('Click to load preview contents')
+        self.channel_preview_button.setToolTip(tr("Click to load preview contents"))
 
         self.default_channel_model = ChannelContentModel
 
@@ -278,7 +279,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         with self.freeze_controls():
             self.controller.table_view.horizontalHeader().setSortIndicator(-1, Qt.DescendingOrder)
         self.model.sort_by = (
-            self.model.columns[self.model.default_sort_column] if self.model.default_sort_column >= 0 else None
+            self.model.columns[self.model.default_sort_column].dict_key if self.model.default_sort_column >= 0 else None
         )
         self.model.sort_desc = True
         self.model.reset()
@@ -427,7 +428,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             breadcrumb_text = breadcrumb_text[len(slash_separator) :]
 
         self.edit_channel_contents_top_bar.setHidden(not personal)
-        self.new_channel_button.setText("NEW CHANNEL" if not is_a_channel and not folder else "NEW FOLDER")
+        self.new_channel_button.setText(tr("NEW CHANNEL") if not is_a_channel and not folder else tr("NEW FOLDER"))
 
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
@@ -465,9 +466,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     # ==============================
 
     def create_channel_options_menu(self):
-        browse_files_action = QAction('Add .torrent file', self)
-        browse_dir_action = QAction('Add torrent(s) directory', self)
-        add_url_action = QAction('Add URL/magnet links', self)
+        browse_files_action = QAction(tr("Add .torrent file"), self)
+        browse_dir_action = QAction(tr("Add torrent(s) directory"), self)
+        add_url_action = QAction(tr("Add URL/magnet links"), self)
 
         connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
         connect(browse_dir_action.triggered, self.on_add_torrents_browse_dir)
@@ -482,7 +483,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     # Torrent addition-related methods
     def on_add_torrents_browse_dir(self, checked):  # pylint: disable=W0613
         chosen_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
+            self,
+            tr("Please select the directory containing the .torrent files"),
+            QDir.homePath(),
+            QFileDialog.ShowDirsOnly,
         )
         if not chosen_dir:
             return
@@ -490,10 +494,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.chosen_dir = chosen_dir
         self.dialog = ConfirmationDialog(
             self,
-            "Add torrents from directory",
-            f"Add all torrent files from the following directory to your Tribler channel:\n\n{chosen_dir}",
+            tr("Add torrents from directory"),
+            tr("Add all torrent files from the following directory to your Tribler channel: \n\n %s") % chosen_dir,
             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-            checkbox_text="Include subdirectories (recursive mode)",
+            checkbox_text=tr("Include subdirectories (recursive mode)"),
         )
         connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
         self.dialog.show()
@@ -509,7 +513,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def on_add_torrent_browse_file(self, checked):  # pylint: disable=W0613
         filenames = QFileDialog.getOpenFileNames(
-            self, "Please select the .torrent file", "", "Torrent files (*.torrent)"
+            self, tr("Please select the .torrent file"), filter=(tr("Torrent files %s") % '(*.torrent)')
         )
         if not filenames[0]:
             return
@@ -520,12 +524,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_add_torrent_from_url(self, checked):  # pylint: disable=W0613
         self.dialog = ConfirmationDialog(
             self,
-            "Add torrent from URL/magnet link",
-            "Please enter the URL/magnet link in the field below:",
-            [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+            tr("Add torrent from URL/magnet link"),
+            tr("Please enter the URL/magnet link in the field below:"),
+            [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
             show_input=True,
         )
-        self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+        self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
         connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
         self.dialog.show()
 

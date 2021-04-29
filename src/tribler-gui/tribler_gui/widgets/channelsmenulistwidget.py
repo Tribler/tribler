@@ -8,6 +8,7 @@ from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_image_path
@@ -71,18 +72,18 @@ class ChannelsMenuListWidget(QListWidget):
 
     def create_foreign_menu(self):
         menu = TriblerActionMenu(self)
-        unsubscribe_action = QAction('Unsubscribe', self)
+        unsubscribe_action = QAction(tr("Unsubscribe"), self)
         connect(unsubscribe_action.triggered, self._on_unsubscribe_action)
         menu.addAction(unsubscribe_action)
         return menu
 
     def create_personal_menu(self):
         menu = TriblerActionMenu(self)
-        delete_action = QAction('Delete channel', self)
+        delete_action = QAction(tr("Delete channel"), self)
         connect(delete_action.triggered, self._on_delete_action)
         menu.addAction(delete_action)
 
-        rename_action = QAction('Rename channel', self)
+        rename_action = QAction(tr("Rename channel"), self)
         connect(rename_action.triggered, self._trigger_name_editor)
         menu.addAction(rename_action)
         return menu

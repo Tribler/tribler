@@ -22,11 +22,11 @@ from tribler_gui.i18n import tr
 NUM_VOTES_BARS = 8
 
 VOTES_RATING_DESCRIPTIONS = (
-    "Zero popularity",
-    "Very low popularity",
-    "3rd tier popularity",
-    "2nd tier popularity",
-    "1st tier popularity",
+    tr("Zero popularity"),
+    tr("Very low popularity"),
+    tr("3rd tier popularity"),
+    tr("2nd tier popularity"),
+    tr("1st tier popularity"),
 )
 
 
@@ -70,16 +70,6 @@ def string_to_seconds(time_str):
     hours = float(parts[0])
     minutes = float(parts[1])
     return hours * 3600 + minutes * 60
-
-
-def timestamp_to_time(timestamp):
-    today = datetime.today()
-    discovered = datetime.fromtimestamp(timestamp)
-
-    diff = today - discovered
-    if diff.days > 0 or today.day != discovered.day:
-        return discovered.strftime('%d-%m-%Y %H:%M')
-    return discovered.strftime('Today %H:%M')
 
 
 def get_color(name):
@@ -171,18 +161,18 @@ def duration_to_string(seconds):
     seconds = int(seconds)
 
     if years >= 100:
-        return "Forever"
+        return tr("Forever")
     if years > 0:
-        return f"{years}y {weeks}w"
+        return tr("%iy %iw") % (years, weeks)
     if weeks > 0:
-        return f"{weeks}w {days}d"
+        return tr("%iw %id") % (weeks, days)
     if days > 0:
-        return f"{days}d {hours}h"
+        return tr("%id %ih") % (days, hours)
     if hours > 0:
-        return f"{hours}h {minutes}m"
+        return tr("%ih %im") % (hours, minutes)
     if minutes > 0:
-        return f"{minutes}m {seconds}s"
-    return f"{seconds}s"
+        return tr("%im %is") % (minutes, seconds)
+    return tr("%is") % seconds
 
 
 def split_into_keywords(query):

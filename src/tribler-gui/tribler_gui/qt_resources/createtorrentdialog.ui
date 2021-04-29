@@ -241,12 +241,12 @@ padding:4px;</string>
           </property>
           <item>
            <property name="text">
-            <string>/a/b/c/d/e</string>
+            <string notr="true">/a/b/c/d/e</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>/d/e/f/g/h</string>
+            <string notr="true">/d/e/f/g/h</string>
            </property>
           </item>
          </widget>
@@ -447,7 +447,7 @@ padding:4px;</string>
               <string notr="true">margin-right: 10px;</string>
              </property>
              <property name="text">
-              <string>/home/tribler</string>
+              <string notr="true">/home/tribler</string>
              </property>
              <property name="placeholderText">
               <string>Save to directory</string>

@@ -19,6 +19,7 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_SEEDING,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
 from tribler_gui.utilities import (
     connect,
@@ -127,7 +128,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_choose_log_dir_clicked(self, checked):
         previous_log_dir = self.window().log_location_input.text() or ""
         log_dir = QFileDialog.getExistingDirectory(
-            self.window(), "Please select the log directory", previous_log_dir, QFileDialog.ShowDirsOnly
+            self.window(), tr("Please select the log directory"), previous_log_dir, QFileDialog.ShowDirsOnly
         )
 
         if not log_dir or log_dir == previous_log_dir:
@@ -136,7 +137,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         is_writable, error = is_dir_writable(log_dir)
         if not is_writable:
             gui_error_message = f"<i>{log_dir}</i> is not writable. [{error}]"
-            ConfirmationDialog.show_message(self.window(), "Insufficient Permissions", gui_error_message, "OK")
+            ConfirmationDialog.show_message(self.window(), tr("Insufficient Permissions"), gui_error_message, "OK")
         else:
             self.window().log_location_input.setText(log_dir)
 
@@ -294,18 +295,17 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         if selected_versions:
             version_dirs_str = "\n- ".join(selected_versions)
-            versions_info = f"Versions: \n- {version_dirs_str}"
+            versions_info = tr("Versions: \n- %s") % version_dirs_str
 
-            title = "Confirm delete older versions?"
+            title = tr("Confirm delete older versions?")
             message_body = (
-                f"Are you sure to remove the selected versions? "
-                f"\nYou can not undo this action."
-                f"\n\n {versions_info}"
+                tr("Are you sure to remove the selected versions? " "\nYou can not undo this action." "\n\n ")
+                % versions_info
             )
             message_buttons = QMessageBox.No | QMessageBox.Yes
         else:
-            title = "No versions selected"
-            message_body = "Select a version to delete."
+            title = tr("No versions selected")
+            message_body = tr("Select a version to delete.")
             message_buttons = QMessageBox.Close
 
         message_box.setWindowTitle(title)
@@ -316,17 +316,18 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         return user_choice == QMessageBox.Yes
 
     def update_anonymity_cost_label(self, value):
-        html_text = """<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. 
-        When you download a file of 200 Megabyte, you will pay roughly <b>%d</b>
-        Megabyte of bandwidth tokens.</p></body></html>
-        """ % (
+        html_text = tr(
+            "<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. "
+            "When you download a file of 200 Megabyte, you will pay roughly <b>%d</b>"
+            "Megabyte of bandwidth tokens.</p></body></html>"
+        ) % (
             value,
             400 * (value - 1) + 200,
         )
         self.window().anonymity_costs_label.setText(html_text)
 
     def show_updated_cpu_priority(self, value):
-        self.window().cpu_priority_value.setText(f"Current Priority = {value}")
+        self.window().cpu_priority_value.setText(tr("Current Priority = %s") % value)
 
     def load_settings(self):
         self.window().settings_stacked_widget.hide()
@@ -402,8 +403,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             except ValueError:
                 ConfirmationDialog.show_error(
                     self.window(),
-                    "Invalid proxy port number",
-                    "You've entered an invalid format for the proxy port number. " "Please enter a whole number.",
+                    tr("Invalid proxy port number"),
+                    tr("You've entered an invalid format for the proxy port number. Please enter a whole number."),
                 )
                 return
         else:
@@ -424,9 +425,11 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                "Invalid number of connections",
-                "You've entered an invalid format for the maximum number of connections. "
-                "Please enter a whole number.",
+                tr("Invalid number of connections"),
+                tr(
+                    "You've entered an invalid format for the maximum number of connections. "
+                    "Please enter a whole number."
+                ),
             )
             return
         if max_conn_download == 0:
@@ -449,10 +452,13 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                "Invalid value for bandwidth limit",
-                "You've entered an invalid value for the maximum upload/download rate. \n"
-                "The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.\n"
-                "Note that the decimal values are truncated." % (MAX_LIBTORRENT_RATE_LIMIT / 1024),
+                tr("Invalid value for bandwidth limit"),
+                tr(
+                    "You've entered an invalid value for the maximum upload/download rate. \n"
+                    "The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.\n"
+                    "Note that the decimal values are truncated."
+                )
+                % (MAX_LIBTORRENT_RATE_LIMIT / 1024),
             )
             return
 
@@ -465,8 +471,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                "Invalid value for api port",
-                "Please enter a valid port for the api (between 0 and 65536)",
+                tr("Invalid value for api port"),
+                tr("Please enter a valid port for the api (between 0 and 65536)"),
             )
             return
 
@@ -486,8 +492,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                "Invalid seeding time",
-                "You've entered an invalid format for the seeding time (expected HH:MM)",
+                tr("Invalid seeding time"),
+                tr("You've entered an invalid format for the seeding time (expected HH:MM)"),
             )
             return
 
@@ -536,9 +542,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         self.saved_dialog = ConfirmationDialog(
             TriblerRequestManager.window,
-            "Settings saved",
-            "Your settings have been saved.",
-            [('CLOSE', BUTTON_TYPE_NORMAL)],
+            tr("Settings saved"),
+            tr("Your settings have been saved."),
+            [(tr("CLOSE"), BUTTON_TYPE_NORMAL)],
         )
         connect(self.saved_dialog.button_clicked, self.on_dialog_cancel_clicked)
         self.saved_dialog.show()

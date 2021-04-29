@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string notr="true">MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -25,7 +25,7 @@
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>General</string>
+        <string notr="true">General</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -53,12 +53,12 @@
           </attribute>
           <column>
            <property name="text">
-            <string>Key</string>
+            <string notr="true">Key</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Value</string>
+            <string notr="true">Value</string>
            </property>
           </column>
          </widget>
@@ -67,7 +67,7 @@
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
-        <string>Requests</string>
+        <string notr="true">Requests</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -95,17 +95,17 @@
           </attribute>
           <column>
            <property name="text">
-            <string>Path</string>
+            <string notr="true">Path</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Status code</string>
+            <string notr="true">Status code</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Time</string>
+            <string notr="true">Time</string>
            </property>
           </column>
          </widget>
@@ -114,7 +114,7 @@
       </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
-        <string>Bandwidth Accounting</string>
+        <string notr="true">Bandwidth Accounting</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <property name="spacing">
@@ -142,12 +142,12 @@
           </attribute>
           <column>
            <property name="text">
-            <string>Key</string>
+            <string notr="true">Key</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Value</string>
+            <string notr="true">Value</string>
            </property>
           </column>
          </widget>
@@ -156,7 +156,7 @@
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
-        <string>IPv8</string>
+        <string notr="true">IPv8</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -181,7 +181,7 @@
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
-            <string>General</string>
+            <string notr="true">General</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -209,12 +209,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Key</string>
+                <string notr="true">Key</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Value</string>
+                <string notr="true">Value</string>
                </property>
               </column>
              </widget>
@@ -223,7 +223,7 @@
           </widget>
           <widget class="QWidget" name="tab_7">
            <attribute name="title">
-            <string>Overlays</string>
+            <string notr="true">Overlays</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -248,47 +248,47 @@
               </property>
               <column>
                <property name="text">
-                <string>Name</string>
+                <string notr="true">Name</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Community ID</string>
+                <string notr="true">Community ID</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>My peer</string>
+                <string notr="true">My peer</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Peers</string>
+                <string notr="true">Peers</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Upload(MB)</string>
+                <string notr="true">Upload(MB)</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Download(MB)</string>
+                <string notr="true">Download(MB)</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Msg sent</string>
+                <string notr="true">Msg sent</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Msg received</string>
+                <string notr="true">Msg received</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Diff(sec)</string>
+                <string notr="true">Diff(sec)</string>
                </property>
               </column>
              </widget>
@@ -297,7 +297,7 @@
           </widget>
           <widget class="QWidget" name="tab_8">
            <attribute name="title">
-            <string>Details</string>
+            <string notr="true">Details</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -324,7 +324,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>
+               <string notr="true">
                   The details are not available because the statistics measurement is not enabled.
                   To enable the statistics measurement, go to:
 
@@ -349,27 +349,27 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Name</string>
+                <string notr="true">Name</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Upload(MB)</string>
+                <string notr="true">Upload(MB)</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Download(MB)</string>
+                <string notr="true">Download(MB)</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Msg sent</string>
+                <string notr="true">Msg sent</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Msg received</string>
+                <string notr="true">Msg received</string>
                </property>
               </column>
              </widget>
@@ -384,7 +384,7 @@
             </string>
            </property>
            <attribute name="title">
-            <string>Health</string>
+            <string notr="true">Health</string>
            </attribute>
           </widget>
          </widget>
@@ -393,7 +393,7 @@
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
-        <string>Tunnels</string>
+        <string notr="true">Tunnels</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -418,7 +418,7 @@
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
-            <string>Circuits</string>
+            <string notr="true">Circuits</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -443,42 +443,42 @@
               </property>
               <column>
                <property name="text">
-                <string>Circuit ID</string>
+                <string notr="true">Circuit ID</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Hops</string>
+                <string notr="true">Hops</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Type</string>
+                <string notr="true">Type</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>State</string>
+                <string notr="true">State</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Up</string>
+                <string notr="true">Up</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Down</string>
+                <string notr="true">Down</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Uptime</string>
+                <string notr="true">Uptime</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Exit flags</string>
+                <string notr="true">Exit flags</string>
                </property>
               </column>
              </widget>
@@ -487,7 +487,7 @@
           </widget>
           <widget class="QWidget" name="tab_7">
            <attribute name="title">
-            <string>Relays</string>
+            <string notr="true">Relays</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -512,32 +512,32 @@
               </property>
               <column>
                <property name="text">
-                <string>From circuit</string>
+                <string notr="true">From circuit</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>To circuit</string>
+                <string notr="true">To circuit</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Rendezvous?</string>
+                <string notr="true">Rendezvous?</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Up</string>
+                <string notr="true">Up</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Down</string>
+                <string notr="true">Down</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Uptime</string>
+                <string notr="true">Uptime</string>
                </property>
               </column>
              </widget>
@@ -546,7 +546,7 @@
           </widget>
           <widget class="QWidget" name="tab_8">
            <attribute name="title">
-            <string>Exit sockets</string>
+            <string notr="true">Exit sockets</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -571,27 +571,27 @@
               </property>
               <column>
                <property name="text">
-                <string>From circuit</string>
+                <string notr="true">From circuit</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Enabled?</string>
+                <string notr="true">Enabled?</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Up</string>
+                <string notr="true">Up</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Down</string>
+                <string notr="true">Down</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Uptime</string>
+                <string notr="true">Uptime</string>
                </property>
               </column>
              </widget>
@@ -600,7 +600,7 @@
           </widget>
           <widget class="QWidget" name="tab_9">
            <attribute name="title">
-            <string>Hidden swarms</string>
+            <string notr="true">Hidden swarms</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -625,42 +625,42 @@
               </property>
               <column>
                <property name="text">
-                <string>Infohash</string>
+                <string notr="true">Infohash</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string># Seeders</string>
+                <string notr="true"># Seeders</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string># Connections</string>
+                <string notr="true"># Connections</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string># Pending</string>
+                <string notr="true"># Pending</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Seeding?</string>
+                <string notr="true">Seeding?</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Last lookup</string>
+                <string notr="true">Last lookup</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Up</string>
+                <string notr="true">Up</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Down</string>
+                <string notr="true">Down</string>
                </property>
               </column>
              </widget>
@@ -669,7 +669,7 @@
           </widget>
           <widget class="QWidget" name="tab_10">
            <attribute name="title">
-            <string>Peers</string>
+            <string notr="true">Peers</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -694,27 +694,27 @@
               </property>
               <column>
                <property name="text">
-                <string>Ip</string>
+                <string notr="true">Ip</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Port</string>
+                <string notr="true">Port</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Mid</string>
+                <string notr="true">Mid</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Key compatible?</string>
+                <string notr="true">Key compatible?</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Flags</string>
+                <string notr="true">Flags</string>
                </property>
               </column>
              </widget>
@@ -727,7 +727,7 @@
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
-        <string>DHT</string>
+        <string notr="true">DHT</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -752,7 +752,7 @@
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
-            <string>Statistics</string>
+            <string notr="true">Statistics</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <property name="spacing">
@@ -780,12 +780,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Key</string>
+                <string notr="true">Key</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Value</string>
+                <string notr="true">Value</string>
                </property>
               </column>
              </widget>
@@ -794,7 +794,7 @@
           </widget>
           <widget class="QWidget" name="tab_10">
            <attribute name="title">
-            <string>Buckets</string>
+            <string notr="true">Buckets</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -819,17 +819,17 @@
               </property>
               <column>
                <property name="text">
-                <string>Prefix</string>
+                <string notr="true">Prefix</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Last changed</string>
+                <string notr="true">Last changed</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>#Peers</string>
+                <string notr="true">#Peers</string>
                </property>
               </column>
              </widget>
@@ -842,7 +842,7 @@
       </widget>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
-        <string>Events</string>
+        <string notr="true">Events</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="leftMargin">
@@ -861,12 +861,12 @@
          <widget class="QTreeWidget" name="events_tree_widget">
           <column>
            <property name="text">
-            <string>Type</string>
+            <string notr="true">Type</string>
            </property>
           </column>
           <column>
            <property name="text">
-            <string>Time</string>
+            <string notr="true">Time</string>
            </property>
           </column>
          </widget>
@@ -900,7 +900,7 @@
       </widget>
       <widget class="QWidget" name="tab_8">
        <attribute name="title">
-        <string>System</string>
+        <string notr="true">System</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -925,7 +925,7 @@
           </property>
           <widget class="QWidget" name="tab_9">
            <attribute name="title">
-            <string>Open files</string>
+            <string notr="true">Open files</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -967,7 +967,7 @@
                <string notr="true">font-weight: bold;</string>
               </property>
               <property name="text">
-               <string>Files opened by GUI and core:</string>
+               <string notr="true">Files opened by GUI and core:</string>
               </property>
              </widget>
             </item>
@@ -987,12 +987,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Path</string>
+                <string notr="true">Path</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>File descriptor index</string>
+                <string notr="true">File descriptor index</string>
                </property>
               </column>
              </widget>
@@ -1001,7 +1001,7 @@
           </widget>
           <widget class="QWidget" name="tab_10">
            <attribute name="title">
-            <string>Sockets</string>
+            <string notr="true">Sockets</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1043,7 +1043,7 @@
                <string notr="true">font-weight: bold;</string>
               </property>
               <property name="text">
-               <string>Open sockets by core:</string>
+               <string notr="true">Open sockets by core:</string>
               </property>
              </widget>
             </item>
@@ -1057,27 +1057,27 @@
               </attribute>
               <column>
                <property name="text">
-                <string>local address</string>
+                <string notr="true">local address</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>remote address</string>
+                <string notr="true">remote address</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>family</string>
+                <string notr="true">family</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>type</string>
+                <string notr="true">type</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>status</string>
+                <string notr="true">status</string>
                </property>
               </column>
              </widget>
@@ -1086,7 +1086,7 @@
           </widget>
           <widget class="QWidget" name="tab_13">
            <attribute name="title">
-            <string>Threads</string>
+            <string notr="true">Threads</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1128,7 +1128,7 @@
                <string notr="true">font-weight: bold;</string>
               </property>
               <property name="text">
-               <string>Threads in the core process:</string>
+               <string notr="true">Threads in the core process:</string>
               </property>
              </widget>
             </item>
@@ -1136,17 +1136,17 @@
              <widget class="QTreeWidget" name="threads_tree_widget">
               <column>
                <property name="text">
-                <string>Thread ID</string>
+                <string notr="true">Thread ID</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Thread name</string>
+                <string notr="true">Thread name</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Frame</string>
+                <string notr="true">Frame</string>
                </property>
               </column>
              </widget>
@@ -1155,7 +1155,7 @@
           </widget>
           <widget class="QWidget" name="tab_system_cpu">
            <attribute name="title">
-            <string>CPU</string>
+            <string notr="true">CPU</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1180,7 +1180,7 @@
           </widget>
           <widget class="QWidget" name="tab_system_memory">
            <attribute name="title">
-            <string>Memory</string>
+            <string notr="true">Memory</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1205,7 +1205,7 @@
           </widget>
           <widget class="QWidget" name="tab_12">
            <attribute name="title">
-            <string>Profiler</string>
+            <string notr="true">Profiler</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1232,7 +1232,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>Start profiler</string>
+               <string notr="true">Start profiler</string>
               </property>
              </widget>
             </item>
@@ -1245,7 +1245,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>Warning: enabling the profiler might decrease the performance of Tribler!</string>
+               <string notr="true">Warning: enabling the profiler might decrease the performance of Tribler!</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -1260,7 +1260,7 @@
       </widget>
       <widget class="QWidget" name="tab_libtorrent">
        <attribute name="title">
-        <string>LibTorrent</string>
+        <string notr="true">LibTorrent</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -1338,7 +1338,7 @@
                <string notr="true">margin:0 10px 0 4px</string>
               </property>
               <property name="text">
-               <string>Hops</string>
+               <string notr="true">Hops</string>
               </property>
               <property name="margin">
                <number>0</number>
@@ -1354,35 +1354,35 @@
                </font>
               </property>
               <property name="text">
-               <string>Zero</string>
+               <string notr="true">Zero</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QRadioButton" name="lt_one_hop_btn">
               <property name="text">
-               <string>One</string>
+               <string notr="true">One</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QRadioButton" name="lt_two_hop_btn">
               <property name="text">
-               <string>Two</string>
+               <string notr="true">Two</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QRadioButton" name="lt_three_hop_btn">
               <property name="text">
-               <string>Three</string>
+               <string notr="true">Three</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QPushButton" name="lt_export_btn">
               <property name="text">
-               <string>Export to file</string>
+               <string notr="true">Export to file</string>
               </property>
              </widget>
             </item>
@@ -1397,7 +1397,7 @@
           </property>
           <widget class="QWidget" name="lt_settings_tab">
            <attribute name="title">
-            <string>Settings</string>
+            <string notr="true">Settings</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1428,12 +1428,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Key</string>
+                <string notr="true">Key</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Value</string>
+                <string notr="true">Value</string>
                </property>
               </column>
              </widget>
@@ -1442,7 +1442,7 @@
           </widget>
           <widget class="QWidget" name="lt_sessions_tab">
            <attribute name="title">
-            <string>Session</string>
+            <string notr="true">Session</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1473,12 +1473,12 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Key</string>
+                <string notr="true">Key</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Value</string>
+                <string notr="true">Value</string>
                </property>
               </column>
              </widget>
@@ -1491,7 +1491,7 @@
       </widget>
       <widget class="QWidget" name="tab_logs">
        <attribute name="title">
-        <string>Logs</string>
+        <string notr="true">Logs</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="leftMargin">
@@ -1523,7 +1523,7 @@
              <string notr="true">font-weight: bold;</string>
             </property>
             <property name="text">
-             <string>Tribler Logs</string>
+             <string notr="true">Tribler Logs</string>
             </property>
            </widget>
           </item>
@@ -1552,7 +1552,7 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Max Lines (default:100)</string>
+             <string notr="true">Max Lines (default:100)</string>
             </property>
            </widget>
           </item>
@@ -1565,14 +1565,14 @@
              </size>
             </property>
             <property name="toolTip">
-             <string>Max Lines</string>
+             <string notr="true">Max Lines</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="log_refresh_button">
             <property name="text">
-             <string>Refresh</string>
+             <string notr="true">Refresh</string>
             </property>
            </widget>
           </item>
@@ -1585,7 +1585,7 @@
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
-            <string>Core</string>
+            <string notr="true">Core</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1641,7 +1641,7 @@
           </widget>
           <widget class="QWidget" name="tab_7">
            <attribute name="title">
-            <string>GUI</string>
+            <string notr="true">GUI</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">
@@ -1701,7 +1701,7 @@
       </widget>
       <widget class="QWidget" name="tab_channels">
        <attribute name="title">
-        <string>Channels</string>
+        <string notr="true">Channels</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="spacing">
@@ -1726,7 +1726,7 @@
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
-            <string>Channels peers</string>
+            <string notr="true">Channels peers</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout_2">
             <property name="spacing">
@@ -1754,27 +1754,27 @@
               </attribute>
               <column>
                <property name="text">
-                <string>Channel name</string>
+                <string notr="true">Channel name</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Public key</string>
+                <string notr="true">Public key</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Id</string>
+                <string notr="true">Id</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Peer count</string>
+                <string notr="true">Peer count</string>
                </property>
               </column>
               <column>
                <property name="text">
-                <string>Peer age (seconds)</string>
+                <string notr="true">Peer age (seconds)</string>
                </property>
               </column>
              </widget>
@@ -1783,7 +1783,7 @@
           </widget>
           <widget class="QWidget" name="tab_10">
            <attribute name="title">
-            <string>Stub</string>
+            <string notr="true">Stub</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
             <property name="spacing">

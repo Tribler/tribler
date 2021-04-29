@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QFileDialog, QPushButton
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_image_path, get_ui_file_path
 
@@ -20,7 +21,7 @@ EDIT_BUTTON_NUM = 0
 PREVIEW_BUTTON_NUM = 1
 
 DEFAULT_THUMBNAIL_PIXMAP = QPixmap(get_image_path('chan_thumb.png'))
-CREATE_THUMBNAIL_TEXT = "Click this to add \n channel thumbnail \n (max. 1MB JPG/PNG)"
+CREATE_THUMBNAIL_TEXT = tr("Click this to add \n channel thumbnail \n (max. 1MB JPG/PNG)")
 
 
 PREVIEW_PAGE = 0
@@ -178,7 +179,10 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         if not (self.edit_enabled and self.edit_mode_tab.get_selected_index() == EDIT_BUTTON_NUM):
             return
         filename = QFileDialog.getOpenFileName(
-            self, "Please select a thumbnail file", QDir.homePath(), "Images (*.png *.xpm *.jpg)"
+            self,
+            tr("Please select a thumbnail file"),
+            QDir.homePath(),
+            filter=(tr("PNG/XPM/JPG images %s") % '(*.png *.xpm *.jpg)'),
         )[0]
 
         if not filename:
@@ -192,8 +196,8 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         if len(data) > 1024 ** 2:
             self.dialog = ConfirmationDialog.show_error(
                 self,
-                "Image too large error",
-                "Image file you're trying to upload is too large.",
+                tr(tr("Image too large error")),
+                tr(tr("Image file you're trying to upload is too large.")),
             )
             return
 
