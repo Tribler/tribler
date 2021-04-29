@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1058</width>
-    <height>880</height>
+    <height>882</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string notr="true">MainWindow</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget{
@@ -251,7 +251,7 @@ border: 2px solid white;
 </string>
          </property>
          <property name="text">
-          <string/>
+          <string notr="true"/>
          </property>
         </widget>
        </item>
@@ -280,7 +280,7 @@ font-weight: bold;
 font-family: &quot;Arial&quot;;</string>
          </property>
          <property name="text">
-          <string>Tribler</string>
+          <string notr="true">Tribler</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -404,7 +404,7 @@ color: black;
              <string notr="true">color: #ddd; font-weight: bold; font-size: 14px; border: none;</string>
             </property>
             <property name="text">
-             <string>-</string>
+             <string notr="true">-</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -460,12 +460,15 @@ color: black;
          <property name="cursor">
           <cursorShape>PointingHandCursor</cursorShape>
          </property>
+         <property name="toolTip">
+          <string>Settings</string>
+         </property>
          <property name="styleSheet">
           <string notr="true">border: none;
 background: none;</string>
          </property>
          <property name="text">
-          <string/>
+          <string notr="true"/>
          </property>
          <property name="icon">
           <iconset>
@@ -1043,7 +1046,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="ChannelContentsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
@@ -1115,13 +1118,13 @@ margin: 10px;</string>
              </item>
              <item>
               <widget class="EllipseButton" name="settings_save_button">
-               <property name="minimumSize">
-                <size>
-                 <width>42</width>
-                 <height>24</height>
-                </size>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
-               <property name="maximumSize">
+               <property name="minimumSize">
                 <size>
                  <width>42</width>
                  <height>24</height>
@@ -1478,8 +1481,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>498</height>
+               <width>854</width>
+               <height>712</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -1533,6 +1536,9 @@ border: 0px;
 QStackedWidget {
 background-color: #202020;
 }</string>
+                </property>
+                <property name="currentIndex">
+                 <number>0</number>
                 </property>
                 <widget class="QWidget" name="settings_general_tab">
                  <property name="sizePolicy">
@@ -1662,7 +1668,7 @@ color: white;</string>
                         <string>Browse download location</string>
                        </property>
                        <property name="text">
-                        <string>Browse</string>
+                        <string notr="true">Browse</string>
                        </property>
                        <property name="icon">
                         <iconset>
@@ -1875,7 +1881,7 @@ color: white;</string>
                         <string>Browse watch folder</string>
                        </property>
                        <property name="text">
-                        <string>Browse</string>
+                        <string notr="true">Browse</string>
                        </property>
                        <property name="icon">
                         <iconset>
@@ -2561,37 +2567,37 @@ color: white;</string>
                     </property>
                     <item>
                      <property name="text">
-                      <string>0.5</string>
+                      <string notr="true">0.5</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>0.75</string>
+                      <string notr="true">0.75</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>1.0</string>
+                      <string notr="true">1.0</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>1.5</string>
+                      <string notr="true">1.5</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>2.0</string>
+                      <string notr="true">2.0</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>3.0</string>
+                      <string notr="true">3.0</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
-                      <string>5.0</string>
+                      <string notr="true">5.0</string>
                      </property>
                     </item>
                    </widget>
@@ -2806,7 +2812,7 @@ High anonymity</string>
                   <item>
                    <widget class="QLabel" name="anonymity_costs_label">
                     <property name="text">
-                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;span style=&quot; font-weight:600;&quot;&gt;1&lt;/span&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay &lt;span style=&quot; font-weight:600;&quot;&gt;200&lt;/span&gt; Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;span style=&quot; font-weight:600;&quot;&gt;1&lt;/span&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay &lt;span style=&quot; font-weight:600;&quot;&gt;200&lt;/span&gt; Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                     </property>
                     <property name="textFormat">
                      <enum>Qt::RichText</enum>
@@ -2842,7 +2848,6 @@ High anonymity</string>
                   <property name="formAlignment">
                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                   </property>
-
                   <item row="0" column="0">
                    <widget class="QLabel" name="tribler_data_setting_heading">
                     <property name="styleSheet">
@@ -2853,7 +2858,6 @@ High anonymity</string>
                     </property>
                    </widget>
                   </item>
-
                   <item row="1" column="0" colspan="2">
                    <widget class="QLabel" name="tribler_data_setting_brief">
                     <property name="styleSheet">
@@ -2864,91 +2868,87 @@ High anonymity</string>
                     </property>
                    </widget>
                   </item>
-
                   <item row="2" column="0" colspan="2">
-                    <widget class="QWidget" native="true" name="state_dir_current">
-                        <layout class="QVBoxLayout" name="state_dir_current_layout">
-                            <item>
-                                <widget class="QLabel" name="sd_current_version">
-                                 <property name="styleSheet">
-                                  <string notr="true">font-weight: bold; color: white;</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Current version</string>
-                                 </property>
-                                </widget>
-                            </item>
-                        </layout>
-                    </widget>
+                   <widget class="QWidget" name="state_dir_current" native="true">
+                    <layout class="QVBoxLayout" name="state_dir_current_layout">
+                     <item>
+                      <widget class="QLabel" name="sd_current_version">
+                       <property name="styleSheet">
+                        <string notr="true">font-weight: bold; color: white;</string>
+                       </property>
+                       <property name="text">
+                        <string>Current version</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
                   </item>
-
                   <item row="3" column="0" colspan="2">
-                    <widget class="QWidget" native="true" name="state_dir_list">
-                        <layout class="QVBoxLayout" name="state_dir_list_layout">
-                            <item>
-                                <widget class="QLabel" name="sd_old_version">
-                                 <property name="styleSheet">
-                                  <string notr="true">font-weight: bold; color: white;</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Older versions</string>
-                                 </property>
-                                </widget>
-                            </item>
-                        </layout>
-                    </widget>
+                   <widget class="QWidget" name="state_dir_list" native="true">
+                    <layout class="QVBoxLayout" name="state_dir_list_layout">
+                     <item>
+                      <widget class="QLabel" name="sd_old_version">
+                       <property name="styleSheet">
+                        <string notr="true">font-weight: bold; color: white;</string>
+                       </property>
+                       <property name="text">
+                        <string>Older versions</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
                   </item>
-
                   <item row="4" column="0" colspan="2">
-                     <widget class="QPushButton" name="btn_remove_old_state_dir">
-                      <property name="enabled">
-                       <bool>true</bool>
-                      </property>
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="minimumSize">
-                       <size>
-                        <width>250</width>
-                        <height>32</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>250</width>
-                        <height>32</height>
-                       </size>
-                      </property>
-                      <property name="layoutDirection">
-                       <enum>Qt::LeftToRight</enum>
-                      </property>
-                      <property name="autoFillBackground">
-                       <bool>false</bool>
-                      </property>
-                      <property name="cursor">
-                       <cursorShape>PointingHandCursor</cursorShape>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">border-radius:16px; margin-left:16px; background-color:#e67300; color:#fff;</string>
-                      </property>
-                      <property name="text">
-                       <string>Remove selected versions</string>
-                      </property>
-                      <property name="autoDefault">
-                       <bool>false</bool>
-                      </property>
-                      <property name="default">
-                       <bool>false</bool>
-                      </property>
-                      <property name="flat">
-                       <bool>false</bool>
-                      </property>
-                     </widget>
-                 </item>
-
+                   <widget class="QPushButton" name="btn_remove_old_state_dir">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>250</width>
+                      <height>32</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>250</width>
+                      <height>32</height>
+                     </size>
+                    </property>
+                    <property name="cursor">
+                     <cursorShape>PointingHandCursor</cursorShape>
+                    </property>
+                    <property name="layoutDirection">
+                     <enum>Qt::LeftToRight</enum>
+                    </property>
+                    <property name="autoFillBackground">
+                     <bool>false</bool>
+                    </property>
+                    <property name="styleSheet">
+                     <string notr="true">border-radius:16px; margin-left:16px; background-color:#e67300; color:#fff;</string>
+                    </property>
+                    <property name="text">
+                     <string>Remove selected versions</string>
+                    </property>
+                    <property name="autoDefault">
+                     <bool>false</bool>
+                    </property>
+                    <property name="default">
+                     <bool>false</bool>
+                    </property>
+                    <property name="flat">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                 <widget class="QWidget" name="settings_debug_tab">
@@ -3980,8 +3980,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>856</width>
+                       <height>388</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -4148,7 +4148,7 @@ margin-right: 10px;</string>
                         <item row="0" column="0">
                          <widget class="QLabel" name="download_detail_infohash_label">
                           <property name="text">
-                           <string>00000000000000000000</string>
+                           <string notr="true">00000000000000000000</string>
                           </property>
                          </widget>
                         </item>
@@ -4904,7 +4904,7 @@ border-radius: 10px;
 </string>
                </property>
                <property name="text">
-                <string>i</string>
+                <string notr="true">i</string>
                </property>
               </widget>
              </item>
@@ -5055,7 +5055,7 @@ border: none;
                    <string notr="true">font-size: 18px;</string>
                   </property>
                   <property name="text">
-                   <string>-</string>
+                   <string notr="true">-</string>
                   </property>
                  </widget>
                 </item>
@@ -5160,7 +5160,7 @@ border: none;
                    <string notr="true">font-size: 18px;</string>
                   </property>
                   <property name="text">
-                   <string>-</string>
+                   <string notr="true">-</string>
                   </property>
                  </widget>
                 </item>
@@ -5389,7 +5389,7 @@ margin: 10px 4px 2px 10px;</string>
                 <string notr="true">margin-right:16px</string>
                </property>
                <property name="text">
-                <string>REFRESH</string>
+                <string notr="true">REFRESH</string>
                </property>
                <property name="icon">
                 <iconset>

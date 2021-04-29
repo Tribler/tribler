@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import QAction, QTabWidget, QTreeWidgetItem
 
 from tribler_common.simpledefs import dlstatus_strings
 
-from tribler_gui.defs import *
+from tribler_gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed
@@ -103,10 +104,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
             self.window().download_detail_status_label.setText(status_string)
 
         self.window().download_detail_filesize_label.setText(
-            "%s in %d files" % (format_size(float(self.current_download["size"])), len(self.current_download["files"]))
+            tr("%s in %d files")
+            % (format_size(float(self.current_download["size"])), len(self.current_download["files"]))
         )
         self.window().download_detail_health_label.setText(
-            "%d seeders, %d leechers" % (self.current_download["num_seeds"], self.current_download["num_peers"])
+            tr("%d seeders, %d leechers") % (self.current_download["num_seeds"], self.current_download["num_peers"])
         )
         self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
         self.window().download_detail_destination_label.setText(self.current_download["destination"])
@@ -178,8 +180,8 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
         menu = TriblerActionMenu(self)
 
-        include_action = QAction('Include file' + ('(s)' if num_selected > 1 else ''), self)
-        exclude_action = QAction('Exclude file' + ('(s)' if num_selected > 1 else ''), self)
+        include_action = QAction(tr("Include files") if num_selected > 1 else tr("Include file"), self)
+        exclude_action = QAction(tr("Exclude files") if num_selected > 1 else tr("Exclude file"), self)
 
         connect(include_action.triggered, self.on_files_included)
         include_action.setEnabled(True)
@@ -218,10 +220,10 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def on_copy_magnet_clicked(self, checked):
         trackers = [
-            tr['url'] for tr in self.current_download['trackers'] if 'url' in tr and tr['url'] not in ['[DHT]', '[PeX]']
+            tk['url'] for tk in self.current_download['trackers'] if 'url' in tk and tk['url'] not in ['[DHT]', '[PeX]']
         ]
         magnet_link = compose_magnetlink(
             self.current_download['infohash'], name=self.current_download.get('name', None), trackers=trackers
         )
         copy_to_clipboard(magnet_link)
-        self.window().tray_show_message("Copying magnet link", magnet_link)
+        self.window().tray_show_message(tr("Copying magnet link"), magnet_link)

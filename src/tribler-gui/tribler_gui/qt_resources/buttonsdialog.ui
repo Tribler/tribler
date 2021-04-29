@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>180</height>
+    <height>201</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -112,7 +112,7 @@ border-radius: 2px;</string>
 color: white;</string>
         </property>
         <property name="text">
-         <string>Title of the dialog</string>
+         <string notr="true">Title of the dialog</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -131,7 +131,7 @@ color: white;</string>
          <string notr="true">color: #B5B5B5;</string>
         </property>
         <property name="text">
-         <string>Here comes the main text of the dialog.</string>
+         <string notr="true">Here comes the main text of the dialog.</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -187,7 +187,7 @@ padding: 4px;</string>
            <string notr="true">color: #B5B5B5;</string>
           </property>
           <property name="text">
-           <string>CheckBox</string>
+           <string notr="true">CheckBox</string>
           </property>
          </widget>
         </item>

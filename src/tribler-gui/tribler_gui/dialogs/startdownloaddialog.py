@@ -11,6 +11,7 @@ import tribler_core.utilities.json_util as json
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
     connect,
@@ -97,7 +98,7 @@ class StartDownloadDialog(DialogContainer):
 
         if self.window().tribler_settings:
             # Set the most recent download locations in the QComboBox
-            current_settings = get_gui_setting(self.window().gui_settings, "recent_download_locations", "")
+            current_settings = get_gui_setting(self.window().gui_settings, tr("recent_download_locations"), "")
             if len(current_settings) > 0:
                 recent_locations = [unhexlify(url).decode('utf-8') for url in current_settings.split(",")]
                 self.dialog_widget.destination_input.addItems(recent_locations)
@@ -168,10 +169,12 @@ class StartDownloadDialog(DialogContainer):
         self.rest_request = TriblerNetworkRequest(request, self.on_received_metainfo, capture_core_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
-            fetch_mode = 'directly' if direct else 'anonymously'
-            loading_message = f"Loading torrent files {fetch_mode}..."
-            timeout_message = (
-                f"Timeout in fetching files {fetch_mode}. Retrying ({self.metainfo_retries}/{METAINFO_MAX_RETRIES})"
+            fetch_mode = tr("directly") if direct else tr("anonymously")
+            loading_message = tr("Loading torrent files %s...") % fetch_mode
+            timeout_message = tr("Timeout in fetching files %s. Retrying  %i/%i") % (
+                fetch_mode,
+                self.metainfo_retries,
+                METAINFO_MAX_RETRIES,
             )
 
             self.dialog_widget.loading_files_label.setText(
@@ -193,14 +196,14 @@ class StartDownloadDialog(DialogContainer):
                 # If it failed to load metainfo for max number of times, show an error message in red.
                 if self.metainfo_retries > METAINFO_MAX_RETRIES:
                     self.dialog_widget.loading_files_label.setStyleSheet("color:#ff0000;")
-                    self.dialog_widget.loading_files_label.setText("Failed to load files. Click to retry again.")
+                    self.dialog_widget.loading_files_label.setText(tr("Failed to load files. Click to retry again."))
                     return
                 self.perform_files_request()
 
             elif 'code' in response['error'] and response['error']['code'] == 'IOError':
-                self.dialog_widget.loading_files_label.setText("Unable to read torrent file data")
+                self.dialog_widget.loading_files_label.setText(tr("Unable to read torrent file data"))
             else:
-                self.dialog_widget.loading_files_label.setText(f"Error: {response['error']}")
+                self.dialog_widget.loading_files_label.setText(tr("Error: %s") % response['error'])
             return
 
         metainfo = json.loads(unhexlify(response['metainfo']))
@@ -212,7 +215,7 @@ class StartDownloadDialog(DialogContainer):
         # Show if the torrent already exists in the downloads
         if response.get('download_exists'):
             self.dialog_widget.existing_download_info_label.setText(
-                "Note: this torrent already exists in the Downloads"
+                tr("Note: this torrent already exists in the Downloads")
             )
         else:
             self.dialog_widget.existing_download_info_label.setText("")
@@ -246,7 +249,7 @@ class StartDownloadDialog(DialogContainer):
 
     def on_browse_dir_clicked(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
-            self.window(), "Please select the destination directory of your download", "", QFileDialog.ShowDirsOnly
+            self.window(), tr("Please select the destination directory of your download"), "", QFileDialog.ShowDirsOnly
         )
 
         if len(chosen_dir) != 0:
@@ -254,11 +257,13 @@ class StartDownloadDialog(DialogContainer):
 
             is_writable, error = is_dir_writable(chosen_dir)
             if not is_writable:
-                gui_error_message = (
+                gui_error_message = tr(
                     "Tribler cannot download to <i>%s</i> directory. Please add proper write "
-                    "permissions to the directory or choose another download directory. [%s]" % (chosen_dir, error)
+                    "permissions to the directory or choose another download directory. [%s]"
+                ) % (chosen_dir, error)
+                ConfirmationDialog.show_message(
+                    self.dialog_widget, tr("Insufficient Permissions"), gui_error_message, "OK"
                 )
-                ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions", gui_error_message, "OK")
 
     def on_anon_download_state_changed(self, _):
         if self.dialog_widget.anon_download_checkbox.isChecked():
@@ -268,18 +273,20 @@ class StartDownloadDialog(DialogContainer):
     def on_download_clicked(self, checked):
         if self.has_metainfo and len(self.get_selected_files()) == 0:  # User deselected all torrents
             ConfirmationDialog.show_error(
-                self.window(), "No files selected", "Please select at least one file to download."
+                self.window(), tr("No files selected"), tr("Please select at least one file to download.")
             )
         else:
             download_dir = self.dialog_widget.destination_input.currentText()
             is_writable, error = is_dir_writable(download_dir)
             if not is_writable:
-                gui_error_message = (
+                gui_error_message = tr(
                     "Tribler cannot download to <i>%s</i> directory. Please add proper write "
                     "permissions to the directory or choose another download directory and try "
-                    "to download again. [%s]" % (download_dir, error)
+                    "to download again. [%s]"
+                ) % (download_dir, error)
+                ConfirmationDialog.show_message(
+                    self.dialog_widget, tr("Insufficient Permissions"), gui_error_message, "OK"
                 )
-                ConfirmationDialog.show_message(self.dialog_widget, "Insufficient Permissions", gui_error_message, "OK")
             else:
                 self.button_clicked.emit(1)
 
