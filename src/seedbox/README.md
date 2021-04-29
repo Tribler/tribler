@@ -19,7 +19,7 @@ The seedbox consists of two parts:
     ```
 1. Add necessary folders to `PYTHONPATH` (below the bash example)
     ```shell
-    export PYTHONPATH=${PYTHONPATH}:`echo .. ../src/{pyipv8,tribler-common,tribler-core} | tr " " :`
+    export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../{pyipv8,tribler-common,tribler-core} | tr " " :`
     ```
    
 ## Torrent seeding
