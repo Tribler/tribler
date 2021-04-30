@@ -9,6 +9,7 @@ from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
     BUTTON_TYPE_NORMAL,
+    DARWIN,
     DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
@@ -44,6 +45,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.version_history = VersionHistory(get_root_state_directory())
 
     def initialize_settings_page(self):
+        if DARWIN:
+            self.window().minimize_to_tray_checkbox.setHidden(True)
+            self.window().label_3.setHidden(True)
         self.window().settings_tab.initialize()
         connect(self.window().settings_tab.clicked_tab_button, self.clicked_tab_button)
         connect(self.window().settings_save_button.clicked, self.save_settings)
@@ -55,6 +59,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().family_filter_checkbox.stateChanged, self.on_family_filter_checkbox_changed)
         connect(self.window().developer_mode_enabled_checkbox.stateChanged, self.on_developer_mode_checkbox_changed)
         connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
+        connect(self.window().minimize_to_tray_checkbox.stateChanged, self.on_minimize_to_tray_changed)
         connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
         connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
         connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
@@ -94,6 +99,10 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         use_monochrome_icon = self.window().use_monochrome_icon_checkbox.isChecked()
         self.window().gui_settings.setValue("use_monochrome_icon", use_monochrome_icon)
         self.window().update_tray_icon(use_monochrome_icon)
+
+    def on_minimize_to_tray_changed(self, _):
+        minimize_to_tray = self.window().minimize_to_tray_checkbox.isChecked()
+        self.window().gui_settings.setValue("minimize_to_tray", minimize_to_tray)
 
     def on_anon_download_state_changed(self, _):
         if self.window().download_settings_anon_checkbox.isChecked():
@@ -157,6 +166,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         )
         self.window().use_monochrome_icon_checkbox.setChecked(
             get_gui_setting(gui_settings, "use_monochrome_icon", False, is_bool=True)
+        )
+        self.window().minimize_to_tray_checkbox.setChecked(
+            get_gui_setting(gui_settings, "minimize_to_tray", False, is_bool=True)
         )
         self.window().download_location_input.setText(settings['download_defaults']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
@@ -539,6 +551,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().gui_settings.setValue(
             "use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked()
         )
+        self.window().gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
 
         self.saved_dialog = ConfirmationDialog(
             TriblerRequestManager.window,

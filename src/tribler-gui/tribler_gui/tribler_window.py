@@ -8,7 +8,7 @@ import time
 from base64 import b64encode
 from urllib.parse import quote, unquote, urlparse
 
-from PyQt5 import uic
+from PyQt5 import QtCore, uic
 from PyQt5.QtCore import (
     QCoreApplication,
     QDir,
@@ -49,6 +49,7 @@ from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
+    DARWIN,
     DEFAULT_API_PORT,
     PAGE_CHANNEL_CONTENTS,
     PAGE_DISCOVERED,
@@ -203,27 +204,25 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
         # Create the system tray icon
+        self.tray_icon = None
+        # System tray doesn't make sense on Mac
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray_icon = QSystemTrayIcon()
+            if not DARWIN:
+                connect(self.tray_icon.activated, self.on_system_tray_icon_activated)
             use_monochrome_icon = get_gui_setting(self.gui_settings, "use_monochrome_icon", False, is_bool=True)
             self.update_tray_icon(use_monochrome_icon)
 
             # Create the tray icon menu
-            menu = self.create_add_torrent_menu()
-            show_downloads_action = QAction('Show downloads', self)
-            connect(show_downloads_action.triggered, self.clicked_menu_button_downloads)
-            token_balance_action = QAction('Show token balance', self)
-            connect(token_balance_action.triggered, lambda _: self.on_token_balance_click(None))
-            quit_action = QAction('Quit Tribler', self)
-            connect(quit_action.triggered, self.close_tribler)
+            menu = TriblerActionMenu(self)
+            menu.addAction(tr('Show Tribler window'), self.raise_window)
             menu.addSeparator()
-            menu.addAction(show_downloads_action)
-            menu.addAction(token_balance_action)
+            self.create_add_torrent_menu(menu)
             menu.addSeparator()
-            menu.addAction(quit_action)
+            menu.addAction(tr('Show downloads'), self.clicked_menu_button_downloads)
+            menu.addSeparator()
+            menu.addAction(tr('Quit Tribler'), self.close_tribler)
             self.tray_icon.setContextMenu(menu)
-        else:
-            self.tray_icon = None
 
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
@@ -732,16 +731,26 @@ class TriblerWindow(QMainWindow):
             balance /= 1024.0 ** 2
             self.token_balance_label.setText("%d MB" % balance)
 
+    def on_system_tray_icon_activated(self, reason):
+        if reason != QSystemTrayIcon.DoubleClick:
+            return
+
+        if self.isMinimized():
+            self.raise_window()
+        else:
+            self.setWindowState(self.windowState() | Qt.WindowMinimized)
+
     def raise_window(self):
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.show()
         self.raise_()
         self.activateWindow()
 
-    def create_add_torrent_menu(self):
+    def create_add_torrent_menu(self, menu=None):
         """
         Create a menu to add new torrents. Shows when users click on the tray icon or the big plus button.
         """
-        menu = TriblerActionMenu(self)
+        menu = menu if menu is not None else TriblerActionMenu(self)
 
         browse_files_action = QAction(tr("Import torrent from file"), self)
         browse_directory_action = QAction(tr("Import torrent(s) from directory"), self)
@@ -762,6 +771,7 @@ class TriblerWindow(QMainWindow):
         return menu
 
     def on_create_torrent(self, checked):
+        self.raise_window()  # For the case when the action is triggered by tray icon
         if self.create_dialog:
             self.create_dialog.close_dialog()
 
@@ -773,6 +783,7 @@ class TriblerWindow(QMainWindow):
         self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
 
     def on_add_torrent_browse_file(self, index):
+        self.raise_window()  # For the case when the action is triggered by tray icon
         filenames = QFileDialog.getOpenFileNames(
             self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
         )
@@ -854,6 +865,7 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def on_add_torrent_browse_dir(self, checked):
+        self.raise_window()  # For the case when the action is triggered by tray icon
         chosen_dir = QFileDialog.getExistingDirectory(
             self,
             tr("Please select the directory containing the .torrent files"),
@@ -998,7 +1010,7 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
 
-    def clicked_menu_button_downloads(self, checked):
+    def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.raise_window()
         self.left_menu_button_downloads.setChecked(True)
@@ -1020,6 +1032,7 @@ class TriblerWindow(QMainWindow):
         def show_force_shutdown():
             self.window().force_shutdown_btn.show()
 
+        self.raise_window()
         self.delete_tray_icon()
         self.show_loading_screen()
         self.hide_status_bar()
@@ -1050,6 +1063,18 @@ class TriblerWindow(QMainWindow):
     def closeEvent(self, close_event):
         self.close_tribler()
         close_event.ignore()
+
+    def event(self, event):
+        # Minimize to tray
+        if (
+            not DARWIN
+            and event.type() == QtCore.QEvent.WindowStateChange
+            and self.window().isMinimized()
+            and get_gui_setting(self.gui_settings, "minimize_to_tray", False, is_bool=True)
+        ):
+            self.window().hide()
+            return True
+        return super().event(event)
 
     def dragEnterEvent(self, e):
         file_urls = [_qurl_to_path(url) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []

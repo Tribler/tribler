@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1058</width>
-    <height>882</height>
+    <height>867</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1482,7 +1482,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>854</width>
-               <height>712</height>
+               <height>697</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -1908,28 +1908,28 @@ color: white;</string>
 color: white;</string>
                     </property>
                     <property name="text">
-                     <string>Monochrome tray icon</string>
+                     <string>Tray Icon</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="13" column="0">
+                  <item row="14" column="0">
                    <widget class="QLabel" name="label_32">
                     <property name="text">
                      <string>Use monochrome icon?</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="13" column="1">
+                  <item row="14" column="1">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
                     <property name="styleSheet">
                      <string notr="true">margin-top: 2px;</string>
                     </property>
                     <property name="text">
-                     <string/>
+                     <string notr="true"/>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="0">
+                  <item row="15" column="0">
                    <widget class="QLabel" name="label_42">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
@@ -1940,7 +1940,7 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="15" column="0">
+                  <item row="16" column="0">
                    <widget class="QLabel" name="label_43">
                     <property name="text">
                      <string>Commit changes automatically
@@ -1948,10 +1948,27 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="15" column="1">
+                  <item row="16" column="1">
                    <widget class="QCheckBox" name="channel_autocommit_checkbox">
                     <property name="text">
                      <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="0">
+                   <widget class="QLabel" name="label_3">
+                    <property name="text">
+                     <string>Minimize to system tray?</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="13" column="1">
+                   <widget class="QCheckBox" name="minimize_to_tray_checkbox">
+                    <property name="styleSheet">
+                     <string notr="true">margin-top: 2px;</string>
+                    </property>
+                    <property name="text">
+                     <string notr="true"/>
                     </property>
                    </widget>
                   </item>
@@ -3980,8 +3997,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>856</width>
-                       <height>388</height>
+                       <width>321</width>
+                       <height>259</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
