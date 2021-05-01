@@ -25,7 +25,6 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRe
 from tribler_gui.utilities import (
     connect,
     format_size,
-    get_checkbox_style,
     get_gui_setting,
     is_dir_writable,
     seconds_to_hhmm_string,
@@ -63,25 +62,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
         connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
         connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
-
-        checkbox_style = get_checkbox_style()
-        for checkbox in [
-            self.window().family_filter_checkbox,
-            self.window().channel_autocommit_checkbox,
-            self.window().always_ask_location_checkbox,
-            self.window().developer_mode_enabled_checkbox,
-            self.window().use_monochrome_icon_checkbox,
-            self.window().download_settings_anon_checkbox,
-            self.window().download_settings_anon_seeding_checkbox,
-            self.window().lt_utp_checkbox,
-            self.window().watchfolder_enabled_checkbox,
-            self.window().allow_exit_node_checkbox,
-            self.window().developer_mode_enabled_checkbox,
-            self.window().checkbox_enable_network_statistics,
-            self.window().checkbox_enable_resource_log,
-            self.window().download_settings_add_to_channel_checkbox,
-        ]:
-            checkbox.setStyleSheet(checkbox_style)
 
         self.update_stacked_widget_height()
 

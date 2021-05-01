@@ -99,7 +99,10 @@ qproperty-defaultAlignment: AlignLeft;
 }
 QListView {
 color:#B5B5B5;
-}</string>
+}
+
+QCheckBox { color:#B5B5B5; }
+QCheckBox::indicator:unchecked {border: 1px solid #555;}</string>
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
