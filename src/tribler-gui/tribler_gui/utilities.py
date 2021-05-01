@@ -306,15 +306,6 @@ def html_label(text, background="#e4e4e4", color="#222222", bold=True):
     return f"<label style='{style}'>&nbsp;{text}&nbsp;</label>"
 
 
-def get_checkbox_style(color="#B5B5B5"):
-    return (
-        """QCheckBox { color: %s; }
-                QCheckBox::indicator:unchecked {border: 1px solid #555;}
-                """
-        % color
-    )
-
-
 def votes_count(votes=0.0):
     votes = float(votes)
     # FIXME: this is a temp fix to cap the normalized value to 1.
