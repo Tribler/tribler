@@ -1538,7 +1538,10 @@ border: 0px;
 }
 QStackedWidget {
 background-color: #202020;
-}</string>
+}
+
+QCheckBox{margin-left: 10px;}
+</string>
                 </property>
                 <property name="currentIndex">
                  <number>0</number>
@@ -1572,17 +1575,9 @@ color: white;</string>
                    </widget>
                   </item>
                   <item row="1" column="0">
-                   <widget class="QLabel" name="label_37">
-                    <property name="text">
-                     <string>Family filter enabled?
-(requires Tribler restart)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="1">
                    <widget class="QCheckBox" name="family_filter_checkbox">
                     <property name="text">
-                     <string/>
+                     <string>Family filter enabled? (requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>
@@ -1590,7 +1585,7 @@ color: white;</string>
                    <widget class="QLabel" name="label_4">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Download location</string>
@@ -1598,16 +1593,6 @@ color: white;</string>
                    </widget>
                   </item>
                   <item row="3" column="0">
-                   <widget class="QLabel" name="label_5">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Save files to:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="1">
                    <widget class="QWidget" name="settings_download_location_widget" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_8">
                      <property name="spacing">
@@ -1625,6 +1610,26 @@ color: white;</string>
                      <property name="bottomMargin">
                       <number>0</number>
                      </property>
+                     <item>
+                      <widget class="QLabel" name="label_5">
+                       <property name="text">
+                        <string>Save files to:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>15</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
                      <item>
                       <widget class="QLineEdit" name="download_location_input">
                        <property name="sizePolicy">
@@ -1692,23 +1697,9 @@ color: white;</string>
                    </widget>
                   </item>
                   <item row="4" column="0">
-                   <widget class="QLabel" name="label_6">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Always ask download
-settings?</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="4" column="1">
                    <widget class="QCheckBox" name="always_ask_location_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
                     <property name="text">
-                     <string/>
+                     <string>Always ask download settings?</string>
                     </property>
                    </widget>
                   </item>
@@ -1716,7 +1707,7 @@ settings?</string>
                    <widget class="QLabel" name="default_download_settings_header">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Default download settings</string>
@@ -1724,58 +1715,23 @@ color: white;</string>
                    </widget>
                   </item>
                   <item row="6" column="0">
-                   <widget class="QLabel" name="download_settings_anon_label">
-                    <property name="text">
-                     <string>Download anonymously
-using proxies</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="6" column="1">
                    <widget class="QCheckBox" name="download_settings_anon_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
                     <property name="text">
-                     <string/>
+                     <string>Download anonymously using proxies</string>
                     </property>
                    </widget>
                   </item>
                   <item row="7" column="0">
-                   <widget class="QLabel" name="download_settings_anon_seeding_label">
-                    <property name="text">
-                     <string>Encrypted anonymous
-seeding using proxies</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="7" column="1">
                    <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
                     <property name="text">
-                     <string/>
+                     <string>Encrypted anonymous seeding using proxies</string>
                     </property>
                    </widget>
                   </item>
                   <item row="8" column="0">
-                   <widget class="QLabel" name="download_settings_add_to_channel_label">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
+                   <widget class="QCheckBox" name="download_settings_add_to_channel_checkbox">
                     <property name="text">
                      <string>Add torrent to My channel</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="8" column="1">
-                   <widget class="QCheckBox" name="download_settings_add_to_channel_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
                     </property>
                    </widget>
                   </item>
@@ -1783,7 +1739,7 @@ seeding using proxies</string>
                    <widget class="QLabel" name="label_22">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Watch Folder</string>
@@ -1791,36 +1747,6 @@ color: white;</string>
                    </widget>
                   </item>
                   <item row="10" column="0">
-                   <widget class="QLabel" name="label_23">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Enable watch folder?</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="10" column="1">
-                   <widget class="QCheckBox" name="watchfolder_enabled_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 2px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="11" column="0">
-                   <widget class="QLabel" name="label_24">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Location:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="11" column="1">
                    <widget class="QWidget" name="settings_watch_folder_widget" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_watchfolder">
                      <property name="spacing">
@@ -1838,6 +1764,26 @@ color: white;</string>
                      <property name="bottomMargin">
                       <number>0</number>
                      </property>
+                     <item>
+                      <widget class="QCheckBox" name="watchfolder_enabled_checkbox">
+                       <property name="text">
+                        <string>Torrent watch folder</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_5">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>15</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
                      <item>
                       <widget class="QLineEdit" name="watchfolder_location_input">
                        <property name="sizePolicy">
@@ -1904,74 +1850,52 @@ color: white;</string>
                     </layout>
                    </widget>
                   </item>
-                  <item row="12" column="0">
+                  <item row="11" column="0">
                    <widget class="QLabel" name="label_31">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px</string>
                     </property>
                     <property name="text">
                      <string>Tray Icon</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="0">
-                   <widget class="QLabel" name="label_32">
+                  <item row="12" column="0">
+                   <widget class="QCheckBox" name="minimize_to_tray_checkbox">
+                    <property name="styleSheet">
+                     <string notr="true">margin-top: 10px;</string>
+                    </property>
                     <property name="text">
-                     <string>Use monochrome icon?</string>
+                     <string notr="true">Minimize to system tray?</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="1">
+                  <item row="13" column="0">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
                     <property name="styleSheet">
-                     <string notr="true">margin-top: 2px;</string>
+                     <string notr="true">margin-top: 10px;</string>
                     </property>
                     <property name="text">
-                     <string notr="true"/>
+                     <string notr="true">Use monochrome icon?</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="15" column="0">
+                  <item row="14" column="0">
                    <widget class="QLabel" name="label_42">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Personal channel settings</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="16" column="0">
-                   <widget class="QLabel" name="label_43">
-                    <property name="text">
-                     <string>Commit changes automatically
-(requires Tribler restart)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="16" column="1">
+                  <item row="15" column="0">
                    <widget class="QCheckBox" name="channel_autocommit_checkbox">
                     <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="0">
-                   <widget class="QLabel" name="label_3">
-                    <property name="text">
-                     <string>Minimize to system tray?</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="1">
-                   <widget class="QCheckBox" name="minimize_to_tray_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 2px;</string>
-                    </property>
-                    <property name="text">
-                     <string notr="true"/>
+                     <string>Commit changes automatically (requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>
