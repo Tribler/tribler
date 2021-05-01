@@ -594,7 +594,7 @@ class DebugWindow(QMainWindow):
                 ["prefix", "last_changed", "num_peers"],
             )
 
-    def on_event_clicked(self, item):
+    def on_event_clicked(self, item, _):
         event_dict = item.data(0, Qt.UserRole)
         self.window().event_text_box.setPlainText(json.dumps(event_dict))
 
