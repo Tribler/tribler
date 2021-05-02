@@ -3,22 +3,22 @@
 <context>
     <name>@default</name>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="57"/>
+        <location filename="../widgets/tablecontentmodel.py" line="58"/>
         <source>Popularity</source>
         <translation>Popularidade</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="53"/>
+        <location filename="../widgets/tablecontentmodel.py" line="54"/>
         <source>Name</source>
         <translation>Nome</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="60"/>
+        <location filename="../widgets/tablecontentmodel.py" line="61"/>
         <source>Torrents</source>
         <translation>Torrents</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="56"/>
+        <location filename="../widgets/tablecontentmodel.py" line="57"/>
         <source>Updated</source>
         <translation>Atualizado</translation>
     </message>
@@ -28,12 +28,12 @@
         <translation type="obsolete">Categoria</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="54"/>
+        <location filename="../widgets/tablecontentmodel.py" line="55"/>
         <source>Size</source>
         <translation>Tamanho</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="55"/>
+        <location filename="../widgets/tablecontentmodel.py" line="56"/>
         <source>Health</source>
         <translation>Saúde</translation>
     </message>
@@ -113,121 +113,123 @@
         <translation>anos</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="61"/>
+        <location filename="../widgets/tablecontentmodel.py" line="62"/>
         <source>Subscribed</source>
-        <translation type="unfinished"></translation>
+        <translation>Inscrito</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="445"/>
+        <location filename="../tribler_window.py" line="447"/>
         <source>Discovered channels</source>
-        <translation type="unfinished"></translation>
+        <translation>Canais descobertos</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="455"/>
+        <location filename="../tribler_window.py" line="457"/>
         <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
-        <translation type="unfinished"></translation>
+        <translation>Essa página mostra uma lista de torrents populares coletados no Tibler nas últimas 24 horas.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="571"/>
+        <location filename="../tribler_window.py" line="575"/>
         <source>Channel update</source>
-        <translation type="unfinished"></translation>
+        <translation>Atualizar canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="571"/>
+        <location filename="../tribler_window.py" line="575"/>
         <source>Torrent(s) added to your channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Torrent(s) adicionados ao seu canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>New version available</source>
-        <translation type="unfinished"></translation>
+        <translation>Nova versão disponível</translation>
     </message>
     <message>
         <location filename="../widgets/channelcontentswidget.py" line="56"/>
         <source>Click to load preview contents</source>
-        <translation type="unfinished"></translation>
+        <translation>Clique para carregar uma amostra do conteúdo</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="420"/>
+        <location filename="../widgets/channelcontentswidget.py" line="431"/>
         <source>NEW CHANNEL</source>
-        <translation type="unfinished">NOVO CANAL</translation>
+        <translation>NOVO CANAL</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="420"/>
+        <location filename="../widgets/channelcontentswidget.py" line="431"/>
         <source>NEW FOLDER</source>
-        <translation type="unfinished"></translation>
+        <translation>NOVA PASTA</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="458"/>
+        <location filename="../widgets/channelcontentswidget.py" line="469"/>
         <source>Add .torrent file</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar arquivo .torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="459"/>
+        <location filename="../widgets/channelcontentswidget.py" line="470"/>
         <source>Add torrent(s) directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar diretório torrent(s)</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="460"/>
+        <location filename="../widgets/channelcontentswidget.py" line="471"/>
         <source>Add URL/magnet links</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../tribler_window.py" line="851"/>
-        <source>Please select the directory containing the .torrent files</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar link URL/magnet</translation>
     </message>
     <message>
         <location filename="../tribler_window.py" line="857"/>
-        <source>Add torrents from directory</source>
-        <translation type="unfinished"></translation>
+        <source>Please select the directory containing the .torrent files</source>
+        <translation>Selecione um diretório que contenha arquivos .torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="481"/>
+        <location filename="../tribler_window.py" line="866"/>
+        <source>Add torrents from directory</source>
+        <translation>Adicionar torrents do diretório</translation>
+    </message>
+    <message>
+        <location filename="../widgets/channelcontentswidget.py" line="495"/>
         <source>Add all torrent files from the following directory to your Tribler channel: 
 
  %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar todos os arquivos torrent do diretório ao seu canal do Tribler: 
+
+        %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="481"/>
+        <location filename="../widgets/channelcontentswidget.py" line="495"/>
         <source>Include subdirectories (recursive mode)</source>
-        <translation type="unfinished"></translation>
+        <translation>Incluir sub-diretórios (modo recursivo)</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="772"/>
+        <location filename="../tribler_window.py" line="776"/>
         <source>Please select the .torrent file</source>
-        <translation type="unfinished"></translation>
+        <translation>Por favor selecione o arquivo .torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="501"/>
+        <location filename="../widgets/channelcontentswidget.py" line="515"/>
         <source>Torrent files %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Arquivos torrent %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="903"/>
+        <location filename="../tribler_window.py" line="913"/>
         <source>Add torrent from URL/magnet link</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar torrent de um link URL/magnet</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="903"/>
+        <location filename="../tribler_window.py" line="913"/>
         <source>Please enter the URL/magnet link in the field below:</source>
-        <translation type="unfinished"></translation>
+        <translation>Por favor adicione o link URL/magnet no campo abaixo:</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="903"/>
+        <location filename="../tribler_window.py" line="913"/>
         <source>ADD</source>
-        <translation type="unfinished"></translation>
+        <translation>ADICIONAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1147"/>
         <source>CANCEL</source>
-        <translation type="unfinished">CANCELAR</translation>
+        <translation>CANCELAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="910"/>
+        <location filename="../tribler_window.py" line="920"/>
         <source>URL/magnet link</source>
-        <translation type="unfinished"></translation>
+        <translation>link URL/magnet</translation>
     </message>
     <message>
         <location filename="../widgets/channeldescriptionwidget.py" line="24"/>
@@ -239,193 +241,194 @@
     <message>
         <location filename="../widgets/channeldescriptionwidget.py" line="181"/>
         <source>Please select a thumbnail file</source>
-        <translation type="unfinished"></translation>
+        <translation>Por favor selectione uma image de amostra</translation>
     </message>
     <message>
         <location filename="../widgets/channeldescriptionwidget.py" line="181"/>
         <source>PNG/XPM/JPG images %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Imagens PNG/XPM/JPG  %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="195"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="197"/>
         <source>Image too large error</source>
-        <translation type="unfinished"></translation>
+        <translation>Erro: Imagem muito grande</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="195"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="197"/>
         <source>Image file you&apos;re trying to upload is too large.</source>
-        <translation type="unfinished"></translation>
+        <translation>A imagem que você está tendando enviar é muito grande.</translation>
     </message>
     <message>
         <location filename="../widgets/channelsmenulistwidget.py" line="75"/>
         <source>Unsubscribe</source>
-        <translation type="unfinished"></translation>
+        <translation>Cancelar Inscriçõe</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1147"/>
         <source>Delete channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Deletar canal</translation>
     </message>
     <message>
         <location filename="../widgets/channelsmenulistwidget.py" line="86"/>
         <source>Rename channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Renomear canal</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="489"/>
+        <location filename="../widgets/downloadspage.py" line="497"/>
         <source>Remove download</source>
-        <translation type="unfinished"></translation>
+        <translation>Remover download</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="320"/>
         <source>Are you sure you want to remove this download?</source>
-        <translation type="unfinished"></translation>
+        <translation>Tem certeza que quer remover este download?</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="320"/>
         <source>remove download</source>
-        <translation type="unfinished"></translation>
+        <translation>remover download</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="320"/>
         <source>remove download + data</source>
-        <translation type="unfinished"></translation>
+        <translation>remover download + dados</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="320"/>
         <source>cancel</source>
-        <translation type="unfinished"></translation>
+        <translation>cancelar</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="413"/>
+        <location filename="../widgets/downloadspage.py" line="419"/>
         <source>Please select the destination directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Por favor selecione o diretório de destino</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="421"/>
+        <location filename="../widgets/downloadspage.py" line="427"/>
         <source>Export torrent file</source>
-        <translation type="unfinished"></translation>
+        <translation>Exportar arquivo torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="421"/>
+        <location filename="../widgets/downloadspage.py" line="427"/>
         <source>Please enter the name of the torrent file:</source>
-        <translation type="unfinished"></translation>
+        <translation>Selecione o nome do arquivo torrent:</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="421"/>
+        <location filename="../widgets/downloadspage.py" line="427"/>
         <source>SAVE</source>
-        <translation type="unfinished">SALVAR</translation>
+        <translation>SALVAR</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="428"/>
+        <location filename="../widgets/downloadspage.py" line="434"/>
         <source>Torrent file name</source>
-        <translation type="unfinished"></translation>
+        <translation>Nome do arquivo torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="453"/>
+        <location filename="../widgets/downloadspage.py" line="459"/>
         <source>Error when exporting file</source>
-        <translation type="unfinished"></translation>
+        <translation>Erro ao exportar arquivo</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="453"/>
+        <location filename="../widgets/downloadspage.py" line="459"/>
         <source>An error occurred when exporting the torrent file: %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Um erro ocorreu ao exportar o arquivo torrent: %s</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="459"/>
+        <location filename="../widgets/downloadspage.py" line="465"/>
         <source>Torrent file exported</source>
-        <translation type="unfinished"></translation>
+        <translation>Arquivo torrent exportado</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="459"/>
+        <location filename="../widgets/downloadspage.py" line="465"/>
         <source>Torrent file exported to %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Arquivo torrent exportado para: %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="881"/>
+        <location filename="../tribler_window.py" line="891"/>
         <source>Add torrent(s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar torrent(s)</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="487"/>
+        <location filename="../widgets/downloadspage.py" line="495"/>
         <source>Start</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="488"/>
-        <source>Stop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="490"/>
-        <source>Add to my channel</source>
-        <translation type="unfinished">Adicionar ao meu canal</translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="491"/>
-        <source>Force recheck</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="492"/>
-        <source>Export .torrent file</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="493"/>
-        <source>Explore files</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="494"/>
-        <source>Move file storage</source>
-        <translation type="unfinished"></translation>
+        <translation>Iniciar</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="496"/>
-        <source>No anonymity</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadspage.py" line="497"/>
-        <source>One hop</source>
-        <translation type="unfinished"></translation>
+        <source>Stop</source>
+        <translation>Parar</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="498"/>
-        <source>Two hops</source>
-        <translation type="unfinished"></translation>
+        <source>Add to my channel</source>
+        <translation>Adicionar ao meu canal</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="499"/>
-        <source>Three hops</source>
-        <translation type="unfinished"></translation>
+        <source>Force recheck</source>
+        <translation>Forçar nova verificação</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="543"/>
+        <location filename="../widgets/downloadspage.py" line="500"/>
+        <source>Export .torrent file</source>
+        <translation>Exportar arquivo .torrent</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="501"/>
+        <source>Explore files</source>
+        <translation>Visualizar arquivos</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="502"/>
+        <source>Move file storage</source>
+        <translation>Mover armazenamento de arquivo</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="504"/>
+        <source>No anonymity</source>
+        <translation>Sem anonimidade</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="505"/>
+        <source>One hop</source>
+        <translation>Um pulo</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="506"/>
+        <source>Two hops</source>
+        <translation>Dois pulos</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="507"/>
+        <source>Three hops</source>
+        <translation>Três pulos</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadspage.py" line="551"/>
         <source>Change Anonymity </source>
-        <translation type="unfinished"></translation>
+        <translation>Mudar anonimidade</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="130"/>
         <source>Please select the log directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Selecione o diretório de registro</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="140"/>
         <source>Insufficient Permissions</source>
-        <translation type="unfinished"></translation>
+        <translation>Permissões insuficiente</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="298"/>
         <source>Versions: 
 - %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Versões:
+- %s</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="300"/>
         <source>Confirm delete older versions?</source>
-        <translation type="unfinished"></translation>
+        <translation>Tem certeza que deseja deletar versões antigas?</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="301"/>
@@ -436,109 +439,101 @@ You can not undo this action.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="308"/>
+        <location filename="../widgets/settingspage.py" line="307"/>
         <source>No versions selected</source>
-        <translation type="unfinished"></translation>
+        <translation>Nenhuma versão selectionada</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="309"/>
+        <location filename="../widgets/settingspage.py" line="308"/>
         <source>Select a version to delete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/settingspage.py" line="323"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. 
-        When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;
-        Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-        </source>
-        <translation type="unfinished"></translation>
+        <translation>Selecione uma versão para deletar</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="330"/>
         <source>Current Priority = %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Prioridate atual = %s</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="404"/>
         <source>Invalid proxy port number</source>
-        <translation type="unfinished"></translation>
+        <translation>Número de porta do proxy inválido</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="404"/>
         <source>You&apos;ve entered an invalid format for the proxy port number. Please enter a whole number.</source>
-        <translation type="unfinished"></translation>
+        <translation>Você inseriu um formato inválido para o número da porta do proxy. Por favor, insira um número inteiro</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="426"/>
         <source>Invalid number of connections</source>
-        <translation type="unfinished"></translation>
+        <translation>Número de conexões inválido </translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="426"/>
         <source>You&apos;ve entered an invalid format for the maximum number of connections. Please enter a whole number.</source>
-        <translation type="unfinished"></translation>
+        <translation>Você inseriu um formato inválido para o número máximo de conexões. Por favor, insira um número inteiro</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="451"/>
+        <location filename="../widgets/settingspage.py" line="453"/>
         <source>Invalid value for bandwidth limit</source>
-        <translation type="unfinished"></translation>
+        <translation>Valor inválido para limite de largura de banda</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="451"/>
+        <location filename="../widgets/settingspage.py" line="453"/>
         <source>You&apos;ve entered an invalid value for the maximum upload/download rate. 
 The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.
 Note that the decimal values are truncated.</source>
-        <translation type="unfinished"></translation>
+        <translation>Valor inválido para porta api</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="467"/>
+        <location filename="../widgets/settingspage.py" line="472"/>
         <source>Invalid value for api port</source>
-        <translation type="unfinished"></translation>
+        <translation>Valor inválido para porta api</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="467"/>
+        <location filename="../widgets/settingspage.py" line="472"/>
         <source>Please enter a valid port for the api (between 0 and 65536)</source>
-        <translation type="unfinished"></translation>
+        <translation>Insira uma porta válida para a api (entre 0 e 65536</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="488"/>
+        <location filename="../widgets/settingspage.py" line="493"/>
         <source>Invalid seeding time</source>
-        <translation type="unfinished"></translation>
+        <translation>Tempo de semeadura inválido</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="488"/>
+        <location filename="../widgets/settingspage.py" line="493"/>
         <source>You&apos;ve entered an invalid format for the seeding time (expected HH:MM)</source>
-        <translation type="unfinished"></translation>
+        <translation>Você inseriu um formato inválido para o tempo de seed (esperado HH: mm)</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="538"/>
+        <location filename="../widgets/settingspage.py" line="543"/>
         <source>Settings saved</source>
-        <translation type="unfinished"></translation>
+        <translation>Configurações salvas</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="538"/>
+        <location filename="../widgets/settingspage.py" line="543"/>
         <source>Your settings have been saved.</source>
-        <translation type="unfinished"></translation>
+        <translation>Suas configurações foram salvas.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="538"/>
+        <location filename="../widgets/settingspage.py" line="543"/>
         <source>CLOSE</source>
         <translation type="unfinished">FECHAR</translation>
     </message>
     <message>
         <location filename="../widgets/subscriptionswidget.py" line="35"/>
         <source>Click to subscribe/unsubscribe</source>
-        <translation type="unfinished"></translation>
+        <translation>Clique para se inscrever/cancelar a inscrição</translation>
     </message>
     <message>
         <location filename="../widgets/subscriptionswidget.py" line="40"/>
         <source>Subscribed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Inscrito</translation>
     </message>
     <message>
         <location filename="../widgets/subscriptionswidget.py" line="40"/>
         <source>Not subscribed.</source>
-        <translation type="unfinished"></translation>
+        <translation>Não inscrito</translation>
     </message>
     <message>
         <location filename="../widgets/subscriptionswidget.py" line="40"/>
@@ -547,13 +542,13 @@ Note that the decimal values are truncated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="418"/>
+        <location filename="../widgets/tablecontentmodel.py" line="410"/>
         <source>Subscribed.%s
 (Click to unsubscribe)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="418"/>
+        <location filename="../widgets/tablecontentmodel.py" line="410"/>
         <source>Not subscribed.
 (Click to subscribe)</source>
         <translation type="unfinished"></translation>
@@ -561,60 +556,60 @@ Note that the decimal values are truncated.</source>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="276"/>
         <source> Download </source>
-        <translation type="unfinished"></translation>
+        <translation> Download </translation>
     </message>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="278"/>
         <source> Recheck health</source>
-        <translation type="unfinished"></translation>
+        <translation> Verifique novamente a saúde</translation>
     </message>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="287"/>
         <source>Unsubscribe channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Cancelar inscrição do canal</translation>
     </message>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="287"/>
         <source>Subscribe channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Inscrever canal</translation>
     </message>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="310"/>
         <source>Copy</source>
-        <translation type="unfinished"></translation>
+        <translation>Copiar</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="319"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="321"/>
         <source>Move</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="323"/>
-        <source> Copy into personal channel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="325"/>
-        <source> Move </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="326"/>
-        <source> Rename </source>
-        <translation type="unfinished"></translation>
+        <translation>Mover</translation>
     </message>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="327"/>
-        <source> Change category </source>
-        <translation type="unfinished"></translation>
+        <source> Copy into personal channel</source>
+        <translation>Copiar para canal pessoal</translation>
     </message>
     <message>
         <location filename="../widgets/triblertablecontrollers.py" line="329"/>
-        <source> Remove from channel</source>
-        <translation type="unfinished"></translation>
+        <source> Move </source>
+        <translation> Mover </translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="230"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="330"/>
+        <source> Rename </source>
+        <translation> Renomear </translation>
+    </message>
+    <message>
+        <location filename="../widgets/triblertablecontrollers.py" line="331"/>
+        <source> Change category </source>
+        <translation> Mudar categoria </translation>
+    </message>
+    <message>
+        <location filename="../widgets/triblertablecontrollers.py" line="333"/>
+        <source> Remove from channel</source>
+        <translation> Remover do canal</translation>
+    </message>
+    <message>
+        <location filename="../widgets/trustgraphpage.py" line="234"/>
         <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%s&lt;/strong&gt; interactions made by &lt;strong&gt;%s&lt;/strong&gt; users.&lt;br/&gt;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -633,229 +628,219 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../tribler_window.py" line="369"/>
         <source>You are running low on disk space (&lt;100MB). Please make sure to have sufficient free space available and restart Tribler again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Você está ficando com pouco espaço em disco (&lt;100MB).Por favor, certifique-se que tenha espaço livre suficiente e reinicie o Tribler</translation>
     </message>
     <message>
         <location filename="../tribler_window.py" line="369"/>
         <source>Close Tribler</source>
-        <translation type="unfinished"></translation>
+        <translation>Fechar Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="381"/>
+        <location filename="../tribler_window.py" line="383"/>
         <source>Download finished</source>
-        <translation type="unfinished"></translation>
+        <translation>Download completo</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="381"/>
+        <location filename="../tribler_window.py" line="383"/>
         <source>Download of %s has finished.</source>
-        <translation type="unfinished"></translation>
+        <translation>Download de %s completo.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="534"/>
+        <location filename="../tribler_window.py" line="539"/>
         <source>Insufficient write permissions to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions on the directory and add the torrent again. %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="538"/>
+        <location filename="../tribler_window.py" line="540"/>
         <source>Download error &lt;i&gt;%s&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>Version %s of Tribler is available.Do you want to visit the website to download the newest version?</source>
-        <translation type="unfinished"></translation>
+        <translation>Versão %s disponível. Quer visitar o site para baixar a versão mais recente?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>IGNORE</source>
-        <translation type="unfinished"></translation>
+        <translation>IGNORAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>LATER</source>
-        <translation type="unfinished"></translation>
+        <translation>DEPOIS</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>OK</source>
-        <translation type="unfinished"></translation>
+        <translation>OK</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="673"/>
-        <source>Search results for </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../tribler_window.py" line="742"/>
+        <location filename="../tribler_window.py" line="746"/>
         <source>Import torrent from file</source>
-        <translation type="unfinished"></translation>
+        <translation>Importar torrent do um arquivo</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="743"/>
+        <location filename="../tribler_window.py" line="747"/>
         <source>Import torrent(s) from directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Importar torrent(s) de um diretório</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="744"/>
+        <location filename="../tribler_window.py" line="748"/>
         <source>Import torrent from magnet/URL</source>
-        <translation type="unfinished"></translation>
+        <translation>Importar torrent de magnet/URL</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="745"/>
+        <location filename="../tribler_window.py" line="749"/>
         <source>Create torrent from file(s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Criar torrent de um arquivo(s)</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="769"/>
+        <location filename="../tribler_window.py" line="773"/>
         <source>Torrent updates</source>
-        <translation type="unfinished"></translation>
+        <translation>Atualizações de torrent</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="772"/>
-        <source>Torrent files (*.torrent)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../tribler_window.py" line="789"/>
+        <location filename="../tribler_window.py" line="793"/>
         <source>Download Error</source>
-        <translation type="unfinished"></translation>
+        <translation>Erro de download</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="789"/>
+        <location filename="../tribler_window.py" line="793"/>
         <source>Tribler settings is not available yet. Fetching it now. Please try again later.</source>
-        <translation type="unfinished"></translation>
+        <translation>Configurações de tribler ainda não estão disponíveis. Buscando agora. Por favor, tente novamente mais tarde</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="839"/>
+        <location filename="../tribler_window.py" line="843"/>
         <source>Tribler UI Error</source>
-        <translation type="unfinished"></translation>
+        <translation>Erro de UI Tribler.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="839"/>
+        <location filename="../tribler_window.py" line="843"/>
         <source>Something went wrong. Please try again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Algo deu errado.Por favor, tente novamente.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="857"/>
+        <location filename="../tribler_window.py" line="866"/>
         <source>Add %s torrent files from the following directory to your Tribler channel: 
 
 %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="857"/>
+        <location filename="../tribler_window.py" line="866"/>
         <source>Add torrents to My Channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicione torrents ao meu canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="872"/>
+        <location filename="../tribler_window.py" line="882"/>
         <source>Channels update</source>
-        <translation type="unfinished"></translation>
+        <translation>Atualização de canais</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="872"/>
+        <location filename="../tribler_window.py" line="882"/>
         <source>%s added to your channel</source>
-        <translation type="unfinished"></translation>
+        <translation>% s adicionado ao seu canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1016"/>
+        <location filename="../tribler_window.py" line="1026"/>
         <source>Shutting down...</source>
-        <translation type="unfinished"></translation>
+        <translation>Desligando...</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1082"/>
         <source>Abort the conversion of Channels database</source>
-        <translation type="unfinished"></translation>
+        <translation>Cancelar a conversão do banco de dados de canais</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1082"/>
         <source>The upgrade procedure is now &lt;b&gt;converting your personal channel&lt;/b&gt; and channels collected by the previous installation of Tribler.&lt;br&gt;Are you sure you want to abort the conversion process?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! WARNING !!! &lt;br&gt;You will lose your personal channel and subscribed channels if you ABORT now! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1082"/>
         <source>ABORT</source>
-        <translation type="unfinished"></translation>
+        <translation>ABORTAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1082"/>
         <source>CONTINUE</source>
-        <translation type="unfinished"></translation>
+        <translation>CONTINUAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1120"/>
         <source>Unsubscribe from channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Cancelar a inscrição do canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1120"/>
         <source>Are you sure you want to &lt;b&gt;unsubscribe&lt;/b&gt; from channel&lt;br/&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1120"/>
         <source>&lt;br/&gt;and remove its contents?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1120"/>
         <source>UNSUBSCRIBE</source>
-        <translation type="unfinished"></translation>
+        <translation>CANCELAR INSCRIÇÃO</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1147"/>
         <source>Are you sure you want to &lt;b&gt;delete&lt;/b&gt; your personal channel&lt;br/&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1147"/>
         <source>&lt;br/&gt;and all its contents?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1147"/>
         <source>DELETE</source>
-        <translation type="unfinished"></translation>
+        <translation>EXCLUIR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1161"/>
+        <location filename="../tribler_window.py" line="1173"/>
         <source>Tribler recovered from a corrupted config. Please check your settings and update if necessary.</source>
-        <translation type="unfinished"></translation>
+        <translation>Tribler se recuperou de uma configuração corrompida. Por favor, verifique suas configurações e atualize se necessário</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1162"/>
+        <location filename="../tribler_window.py" line="1176"/>
         <source>Tribler config error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../utilities.py" line="24"/>
         <source>Zero popularity</source>
-        <translation type="unfinished"></translation>
+        <translation>Popularidade zero</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="24"/>
         <source>Very low popularity</source>
-        <translation type="unfinished"></translation>
+        <translation>Popularidade muito baixa.</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="24"/>
         <source>3rd tier popularity</source>
-        <translation type="unfinished"></translation>
+        <translation>3º Nível de Popularidade.</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="24"/>
         <source>2nd tier popularity</source>
-        <translation type="unfinished"></translation>
+        <translation>2º Nível de Popularidade.</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="24"/>
         <source>1st tier popularity</source>
-        <translation type="unfinished"></translation>
+        <translation>1ª Nível de popularidade</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="164"/>
         <source>Forever</source>
-        <translation type="unfinished"></translation>
+        <translation>Para sempre</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="166"/>
@@ -893,34 +878,49 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="109"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="110"/>
         <source>%d seeders, %d leechers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="182"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="183"/>
         <source>Include files</source>
-        <translation type="unfinished"></translation>
+        <translation>Incluir arquivos</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="182"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="183"/>
         <source>Include file</source>
-        <translation type="unfinished"></translation>
+        <translation>Incluir arquivo</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="183"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="184"/>
         <source>Exclude file</source>
-        <translation type="unfinished"></translation>
+        <translation>Excluir arquivo</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="228"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="229"/>
         <source>Copying magnet link</source>
+        <translation>Copiando o link magnet.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="184"/>
+        <source>Exclude files</source>
+        <translation>Excluir arquivos</translation>
+    </message>
+    <message>
+        <location filename="../widgets/settingspage.py" line="323"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="183"/>
-        <source>Exclude files</source>
-        <translation type="unfinished"></translation>
+        <location filename="../tribler_window.py" line="677"/>
+        <source>Search results for %s</source>
+        <translation>Resultados da pesquisa por %s</translation>
+    </message>
+    <message>
+        <location filename="../tribler_window.py" line="776"/>
+        <source>Torrent files%s</source>
+        <translation>Arquivos torrent%s</translation>
     </message>
 </context>
 <context>
@@ -938,7 +938,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/addtochanneldialog.ui" line="140"/>
         <source>CANCEL (X)</source>
-        <translation type="unfinished">CANCELAR (X)</translation>
+        <translation>CANCELAR (X)</translation>
     </message>
     <message>
         <location filename="../qt_resources/addtochanneldialog.ui" line="227"/>
@@ -1128,7 +1128,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/startdownloaddialog.ui" line="430"/>
         <source>Included?</source>
-        <translation type="unfinished"></translation>
+        <translation>Incluída?</translation>
     </message>
     <message>
         <location filename="../qt_resources/startdownloaddialog.ui" line="459"/>
@@ -1143,7 +1143,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/startdownloaddialog.ui" line="503"/>
         <source>Seed encrypted using proxies</source>
-        <translation type="unfinished"></translation>
+        <translation>Compartilhar com criptografia usando proxies</translation>
     </message>
     <message>
         <location filename="../qt_resources/startdownloaddialog.ui" line="525"/>
@@ -1173,7 +1173,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/feedback_dialog.ui" line="253"/>
         <source>Additional information:</source>
-        <translation type="unfinished"></translation>
+        <translation>Informação adicional</translation>
     </message>
 </context>
 <context>
@@ -1211,7 +1211,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4136"/>
         <source>Infohash</source>
-        <translation type="unfinished"></translation>
+        <translation>Infohash</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2286"/>
@@ -1241,7 +1241,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="550"/>
         <source>Transaction in progress, Please don&apos;t close Tribler.</source>
-        <translation type="unfinished"></translation>
+        <translation>Transação em andamento. Por favor, não feche Tibler;</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="709"/>
@@ -1296,7 +1296,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1242"/>
         <source>GENERAL</source>
-        <translation type="unfinished"></translation>
+        <translation>GERAL</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1279"/>
@@ -1321,7 +1321,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1443"/>
         <source>DEBUG</source>
-        <translation type="unfinished"></translation>
+        <translation>DEPURAR</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1567"/>
@@ -1417,7 +1417,7 @@ seeding using proxies</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1862"/>
         <source>Location</source>
-        <translation type="unfinished"></translation>
+        <translation>Localização</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1881"/>
@@ -1449,42 +1449,42 @@ seeding using proxies</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1978"/>
         <source>Torrent proxy settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Configurações de proxy torrent</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2008"/>
         <source>None</source>
-        <translation type="unfinished"></translation>
+        <translation>Nenhum</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2013"/>
         <source>Socks4</source>
-        <translation type="unfinished"></translation>
+        <translation>Socks4</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2018"/>
         <source>Socks5</source>
-        <translation type="unfinished"></translation>
+        <translation>Socks5</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2023"/>
         <source>Socks5 with authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>Socks5 com autenticação</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2028"/>
         <source>HTTP</source>
-        <translation type="unfinished"></translation>
+        <translation>HTTP</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2033"/>
         <source>HTTP with authentication</source>
-        <translation type="unfinished"></translation>
+        <translation>HTTP com autenticação</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2072"/>
         <source>Server</source>
-        <translation type="unfinished"></translation>
+        <translation>Servidor</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2136"/>
@@ -1526,7 +1526,7 @@ per download</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2254"/>
         <source>GUI/Core connection</source>
-        <translation type="unfinished"></translation>
+        <translation>Conexão GUI/Core</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2261"/>
@@ -1536,7 +1536,7 @@ per download</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2299"/>
         <source>You can adjust the port that the interface uses to communicate with the Tribler core. Applied after restarting Tribler. Change this at your own risk!</source>
-        <translation type="unfinished"></translation>
+        <translation>Você pode ajustar a porta que a interface usa para se comunicar com o Tibler. Aplicado depois de reiniciar o tribler. Mudar isso por sua conta e risco</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2326"/>
@@ -1621,7 +1621,7 @@ per download</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2710"/>
         <source>By allowing Tribler to be an exit node, your computer will act as a proxy for other Tribler users&apos; bittorrent traffic, be it seeding or downloading. Check your local laws and make sure you are aware of the implications of enabling this checkbox.</source>
-        <translation type="unfinished"></translation>
+        <translation>Ao permitir que o Tribler seja um nó de saída, seu computador atuará como um proxy para outros usuários do Tribler; Tráfego BitTorrent, seja semeando ou baixando. Verifique suas leis locais e verifique se você está ciente das implicações de ativar esta caixa de seleção</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2743"/>
@@ -1653,67 +1653,67 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2972"/>
         <source>Developer mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Modo de desenvolvedor</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2979"/>
         <source>Enable developer mode </source>
-        <translation type="unfinished"></translation>
+        <translation>Ativar o modo de desenvolvedor</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2990"/>
         <source>Log Directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Diretório de registro</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3000"/>
         <source>Log directory </source>
-        <translation type="unfinished"></translation>
+        <translation>Diretório de registro </translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3046"/>
         <source>Log directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Diretório de registro</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3065"/>
         <source>Browse directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Abrir Diretório</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3094"/>
         <source>Resource Monitoring</source>
-        <translation type="unfinished"></translation>
+        <translation>Monitoramento de recursos</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3101"/>
         <source>Enable resource monitoring</source>
-        <translation type="unfinished"></translation>
+        <translation>Ativar monitoramento de recursos</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3111"/>
         <source>CPU Priority [0-5]</source>
-        <translation type="unfinished"></translation>
+        <translation>Prioridade da CPU [0-5]</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3134"/>
         <source>Current priority = 1</source>
-        <translation type="unfinished"></translation>
+        <translation>Prioridade atual = 1</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3144"/>
         <source>Network (IPv8) Statistics</source>
-        <translation type="unfinished"></translation>
+        <translation>Estatísticas de rede (IPv8)</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3151"/>
         <source>Enable network statistics (requires restart)</source>
-        <translation type="unfinished"></translation>
+        <translation>Ativar estatísticas de rede (requer reinicialização)</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3158"/>
         <source>Note: Enabling statistics slightly slows down Tribler</source>
-        <translation type="unfinished"></translation>
+        <translation>Nota: Ativar estatísticas afeta performance do Tibler</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="3239"/>
@@ -1848,7 +1848,7 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4218"/>
         <source>Ratio</source>
-        <translation type="unfinished"></translation>
+        <translation>Razão</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4228"/>
@@ -1933,7 +1933,7 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5111"/>
         <source>- MBytes</source>
-        <translation type="unfinished"></translation>
+        <translation> - Mbytes.</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5032"/>
@@ -2143,7 +2143,7 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5452"/>
         <source>The graph below is based on your historical interactions with other users in the network.</source>
-        <translation type="unfinished"></translation>
+        <translation>O gráfico abaixo é baseado em suas interações históricas com outros usuários da rede</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5508"/>
@@ -2153,57 +2153,57 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5645"/>
         <source>Peer            : </source>
-        <translation type="unfinished"></translation>
+        <translation>Par            :</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5669"/>
         <source>Balance      Given: XX Taken: YY</source>
-        <translation type="unfinished"></translation>
+        <translation>Saldo      Enviado: XX Recebido: YY</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="671"/>
         <source>Add torrent</source>
-        <translation type="unfinished"></translation>
+        <translation>Adicionar torrent</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="786"/>
         <source> Popular</source>
-        <translation type="unfinished"></translation>
+        <translation> Popular</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1029"/>
         <source>New channel</source>
-        <translation type="unfinished">Novo Canal</translation>
+        <translation>Novo Canal</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1409"/>
         <source>DATA</source>
-        <translation type="unfinished"></translation>
+        <translation>DADOS</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2857"/>
         <source>Tribler state directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Diretório de estado do Tribler.</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2867"/>
         <source>This is where Tribler stores housekeeping data which includes databases and config files. Note that, your torrent data is not stored here.</source>
-        <translation type="unfinished"></translation>
+        <translation>É aqui que Tribler armazena seus dados internos que inclui bancos de dados e arquivos de configuração. Note que seus dados de torrent não são armazenados aqui.</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2880"/>
         <source>Current version</source>
-        <translation type="unfinished"></translation>
+        <translation>Versão Atual</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2896"/>
         <source>Older versions</source>
-        <translation type="unfinished"></translation>
+        <translation>Versões mais antigas</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2939"/>
         <source>Remove selected versions</source>
-        <translation type="unfinished"></translation>
+        <translation>Remover versões selecionadas</translation>
     </message>
 </context>
 <context>
@@ -2211,32 +2211,32 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/channel_description.ui" line="102"/>
         <source>EDIT</source>
-        <translation type="unfinished"></translation>
+        <translation>EDITAR</translation>
     </message>
     <message>
         <location filename="../qt_resources/channel_description.ui" line="139"/>
         <source>PREVIEW</source>
-        <translation type="unfinished"></translation>
+        <translation>AMOSTRA</translation>
     </message>
     <message>
         <location filename="../qt_resources/channel_description.ui" line="261"/>
         <source>Save</source>
-        <translation type="unfinished"></translation>
+        <translation>Salvar</translation>
     </message>
     <message>
         <location filename="../qt_resources/channel_description.ui" line="284"/>
         <source>Cancel</source>
-        <translation type="unfinished"></translation>
+        <translation>Cancelar</translation>
     </message>
     <message>
         <location filename="../qt_resources/channel_description.ui" line="335"/>
         <source>You can create a description for your channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Você pode criar uma descrição para seu canal</translation>
     </message>
     <message>
         <location filename="../qt_resources/channel_description.ui" line="353"/>
         <source>Create</source>
-        <translation type="unfinished"></translation>
+        <translation>Criar</translation>
     </message>
 </context>
 <context>
@@ -2289,7 +2289,7 @@ High anonymity</source>
     <message encoding="UTF-8">
         <location filename="../qt_resources/torrents_list.ui" line="628"/>
         <source>🔍 Filter</source>
-        <translation type="unfinished"></translation>
+        <translation>🔍 Filtro</translation>
     </message>
 </context>
 </TS>
