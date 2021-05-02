@@ -15,10 +15,9 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path
+from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     DiscoveredChannelsModel,

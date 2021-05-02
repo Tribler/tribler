@@ -27,10 +27,9 @@ from tribler_gui.defs import (
     DOWNLOADS_FILTER_INACTIVE,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, connect, format_speed
+from tribler_gui.utilities import compose_magnetlink, connect, format_speed, tr
 from tribler_gui.widgets.downloadwidgetitem import DownloadWidgetItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 

@@ -5,6 +5,8 @@ import signal
 import sys
 from asyncio import ensure_future, get_event_loop
 
+from PyQt5.QtCore import QSettings
+
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
@@ -16,6 +18,7 @@ from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 
 import tribler_gui
+from tribler_gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +188,12 @@ if __name__ == "__main__":
 
             app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
             app = TriblerApplication(app_name, sys.argv)
-            app.installTranslator(app.translator)
+            # ACHTUNG! translator MUST BE created and assigned to a separate variable
+            # BEFORE calling installTranslator on app. Otherwise, it won't work for some reason
+
+            settings = QSettings('nl.tudelft.tribler')
+            translator = get_translator(settings.value('translation', None))
+            app.installTranslator(translator)
 
             if app.is_running():
                 logger.info('Application is running')
@@ -198,7 +206,7 @@ if __name__ == "__main__":
                 sys.exit(1)
 
             logger.info('Start Tribler Window')
-            window = TriblerWindow()
+            window = TriblerWindow(settings)
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)

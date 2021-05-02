@@ -11,7 +11,6 @@ import tribler_core.utilities.json_util as json
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
     connect,
@@ -20,7 +19,7 @@ from tribler_gui.utilities import (
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
-    quote_plus_unicode,
+    quote_plus_unicode, tr,
 )
 
 

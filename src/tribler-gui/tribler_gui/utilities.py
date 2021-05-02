@@ -8,18 +8,23 @@ import sys
 import traceback
 import types
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Callable
 from urllib.parse import quote_plus
 from uuid import uuid4
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QLocale, QTranslator, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
-from tribler_gui.i18n import tr
 
 NUM_VOTES_BARS = 8
+
+
+def tr(key):
+    return f"{QCoreApplication.translate('@default', key)}"
+
 
 VOTES_RATING_DESCRIPTIONS = (
     tr("Zero popularity"),
@@ -188,6 +193,25 @@ def get_base_path():
     except Exception:
         base_path = os.path.dirname(tribler_gui.__file__)
     return base_path
+
+
+TRANSLATIONS_DIR = os.path.join(get_base_path(), "i18n")
+
+
+def get_available_translations():
+    # Returns a list of tuples: (lanugage_name, language_code) for each available translation
+    translations_list = [str(p.stem) for p in Path(TRANSLATIONS_DIR).glob('*.qm')]
+    translations_list.append("en_US")
+
+    result = {}
+    for lang_code in translations_list:
+        loc = QLocale(lang_code)
+        lang_name = loc.languageToString(loc.language())
+        result[lang_name] = lang_code
+    return result
+
+
+AVAILABLE_TRANSLATIONS = get_available_translations()
 
 
 def get_ui_file_path(filename):
@@ -417,3 +441,23 @@ def dict_item_is_any_of(d, key, values):
     if not d or not key or not values:
         return False
     return key in d and d[key] in values
+
+
+def translate(context, key):
+    return f'{QCoreApplication.translate(context, key)}'
+
+
+def get_translator(language=None):
+    system_locale = QLocale.system()
+    # Remapping the language from uiLanguages is a workaround for an annoying bug in Qt,
+    # which makes QTranslator use the system language (e.g. the language the OS was installed in),
+    # instead of the user-display language the user installed later.
+    locale = QLocale(language) if language is not None else QLocale(system_locale.uiLanguages()[0])
+    tribler_gui.logger.info("Available Tribler translations %s", AVAILABLE_TRANSLATIONS)
+    tribler_gui.logger.info(
+        "System language: %s, Tribler language: %s", system_locale.uiLanguages(), locale.uiLanguages()
+    )
+    translator = QTranslator()
+    filename = ""
+    translator.load(locale, filename, directory=TRANSLATIONS_DIR)
+    return translator
