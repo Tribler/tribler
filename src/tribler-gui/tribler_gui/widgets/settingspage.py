@@ -23,12 +23,14 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
 from tribler_gui.utilities import (
+    AVAILABLE_TRANSLATIONS,
     connect,
     format_size,
     get_gui_setting,
     is_dir_writable,
     seconds_to_hhmm_string,
     string_to_seconds,
+    tr,
 )
 
 
@@ -40,13 +42,13 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.settings = None
-        self.saved_dialog = None
         self.version_history = VersionHistory(get_root_state_directory())
+        self.lang_list = sorted([lang_name for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items()])
+        self.lang_list.insert(0, tr("System default"))
 
     def initialize_settings_page(self):
         if DARWIN:
             self.window().minimize_to_tray_checkbox.setHidden(True)
-            self.window().label_3.setHidden(True)
         self.window().settings_tab.initialize()
         connect(self.window().settings_tab.clicked_tab_button, self.clicked_tab_button)
         connect(self.window().settings_save_button.clicked, self.save_settings)
@@ -63,6 +65,16 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
         connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
 
+        self.window().language_selector.addItems(self.lang_list)
+
+        selected_lang_code = self.window().gui_settings.value('translation', None)
+        if selected_lang_code is not None:
+            for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items():
+                if selected_lang_code == lang_code:
+                    self.window().language_selector.setCurrentIndex(self.lang_list.index(lang_name))
+                    break
+
+        # connect(self.window().language_selector.currentIndexChanged, self.on_language_selector_changed)
         self.update_stacked_widget_height()
 
     def on_channel_autocommit_checkbox_changed(self, _):
@@ -519,6 +531,16 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         TriblerNetworkRequest("settings", self.on_settings_saved, method='POST', raw_data=json.dumps(settings_data))
 
+    def save_language_selection(self):
+        ind = self.window().language_selector.currentIndex()
+        if ind < 0:
+            return
+        lang = self.lang_list[ind] if ind else None
+        selected_lang = AVAILABLE_TRANSLATIONS.get(lang)
+        if lang is None:
+            self.window().gui_settings.remove('translation')
+        self.window().gui_settings.setValue('translation', selected_lang)
+
     def on_settings_saved(self, data):
         if not data:
             return
@@ -532,6 +554,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             "use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked()
         )
         self.window().gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
+        self.save_language_selection()
 
         self.saved_dialog = ConfirmationDialog(
             TriblerRequestManager.window,

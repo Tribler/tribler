@@ -15,10 +15,9 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, dict_item_is_any_of, get_health
+from tribler_gui.utilities import connect, dict_item_is_any_of, get_health, tr
 from tribler_gui.widgets.tablecontentmodel import Column
 
 HEALTHCHECK_DELAY_MS = 500

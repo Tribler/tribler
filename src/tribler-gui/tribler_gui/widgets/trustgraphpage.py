@@ -21,9 +21,8 @@ from tribler_gui.defs import (
     TB,
     TRUST_GRAPH_PEER_LEGENDS,
 )
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, html_label
+from tribler_gui.utilities import connect, format_size, html_label, tr
 
 
 class TrustGraph(pg.GraphItem):

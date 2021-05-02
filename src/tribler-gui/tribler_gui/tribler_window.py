@@ -14,7 +14,6 @@ from PyQt5.QtCore import (
     QDir,
     QObject,
     QPoint,
-    QSettings,
     QStringListModel,
     QTimer,
     QUrl,
@@ -69,7 +68,6 @@ from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.error_handler import ErrorHandler
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import (
@@ -78,7 +76,7 @@ from tribler_gui.utilities import (
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
-    is_dir_writable,
+    is_dir_writable, tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel, SearchResultsModel
@@ -107,7 +105,7 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
+    def __init__(self, settings, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -117,7 +115,7 @@ class TriblerWindow(QMainWindow):
 
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
-        self.gui_settings = QSettings('nl.tudelft.tribler')
+        self.gui_settings = settings
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
         self.gui_settings.setValue("api_key", api_key)

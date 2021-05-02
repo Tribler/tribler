@@ -4,10 +4,9 @@ from PyQt5.QtWidgets import QAction, QTabWidget, QTreeWidgetItem
 from tribler_common.simpledefs import dlstatus_strings
 
 from tribler_gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed
+from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 from tribler_gui.widgets.downloadfilewidgetitem import DownloadFileWidgetItem
 
 

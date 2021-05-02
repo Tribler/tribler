@@ -1,7 +1,6 @@
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.i18n import tr
-from tribler_gui.utilities import connect
+from tribler_gui.utilities import connect, tr
 
 
 class NewChannelDialog(ConfirmationDialog):
