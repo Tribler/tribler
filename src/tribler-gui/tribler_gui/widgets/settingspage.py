@@ -8,7 +8,6 @@ import tribler_core.utilities.json_util as json
 from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
-    BUTTON_TYPE_NORMAL,
     DARWIN,
     DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
@@ -20,8 +19,7 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_SEEDING,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.i18n import tr
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
     AVAILABLE_TRANSLATIONS,
     connect,
@@ -555,18 +553,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         )
         self.window().gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
         self.save_language_selection()
+        self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
 
-        self.saved_dialog = ConfirmationDialog(
-            TriblerRequestManager.window,
-            tr("Settings saved"),
-            tr("Your settings have been saved."),
-            [(tr("CLOSE"), BUTTON_TYPE_NORMAL)],
-        )
-        connect(self.saved_dialog.button_clicked, self.on_dialog_cancel_clicked)
-        self.saved_dialog.show()
         self.window().fetch_settings()
-
-    def on_dialog_cancel_clicked(self, _):
-        self.window().settings_save_button.setEnabled(True)
-        self.saved_dialog.close_dialog()
-        self.saved_dialog = None
