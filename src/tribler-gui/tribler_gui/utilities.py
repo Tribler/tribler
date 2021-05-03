@@ -443,10 +443,6 @@ def dict_item_is_any_of(d, key, values):
     return key in d and d[key] in values
 
 
-def translate(context, key):
-    return f'{QCoreApplication.translate(context, key)}'
-
-
 def get_translator(language=None):
     system_locale = QLocale.system()
     # Remapping the language from uiLanguages is a workaround for an annoying bug in Qt,
