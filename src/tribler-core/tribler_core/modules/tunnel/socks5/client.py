@@ -3,6 +3,7 @@ import socket
 from asyncio import DatagramProtocol, Protocol, Queue, get_event_loop
 
 from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
+from ipv8.messaging.serialization import PackError
 
 from tribler_core.modules.tunnel.socks5.conversion import (
     CommandRequest,
@@ -28,13 +29,18 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         self.callback = callback
         self.transport = None
         self.proxy_udp_addr = None
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def connection_made(self, transport):
         self.transport = transport
 
     def datagram_received(self, data, _):
-        request, _ = socks5_serializer.unpack_serializable(UdpPacket, data)
-        self.callback(request.data, request.destination)
+        try:
+            request, _ = socks5_serializer.unpack_serializable(UdpPacket, data)
+        except PackError:
+            self.logger.warning("Error while decoding packet", exc_info=True)
+        else:
+            self.callback(request.data, request.destination)
 
     def sendto(self, data, target_addr):
         packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, target_addr, data))
@@ -47,7 +53,6 @@ class Socks5Client(Protocol):
     """
 
     def __init__(self, proxy_addr, callback):
-        self._logger = logging.getLogger(self.__class__.__name__)
         self.proxy_addr = proxy_addr
         self.callback = callback
         self.transport = None
