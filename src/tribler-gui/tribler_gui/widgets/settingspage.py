@@ -72,7 +72,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
                     self.window().language_selector.setCurrentIndex(self.lang_list.index(lang_name))
                     break
 
-        # connect(self.window().language_selector.currentIndexChanged, self.on_language_selector_changed)
         self.update_stacked_widget_height()
 
     def on_channel_autocommit_checkbox_changed(self, _):
