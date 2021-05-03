@@ -72,7 +72,7 @@ class Socks5Address:
             return struct.pack('>BB', ADDRESS_TYPE_DOMAIN_NAME, len(host)) + host + struct.pack('>H', data[1])
         if isinstance(data, tuple):
             return struct.pack('>B4sH', ADDRESS_TYPE_IPV4, socket.inet_aton(data[0]), data[1])
-        raise InvalidAddressException('Invalid address type')
+        raise InvalidAddressException(f'Could not pack address {data}')
 
     def unpack(self, data, offset, unpack_list):
         address_type, = struct.unpack_from('>B', data, offset)
@@ -90,14 +90,14 @@ class Socks5Address:
                 host = data[offset:offset + domain_length]
                 host = host.decode()
             except UnicodeDecodeError as e:
-                raise InvalidAddressException(f'Invalid address: {host}') from e
+                raise InvalidAddressException(f'Could not decode host {host}') from e
             port, = struct.unpack_from('>H', data, offset + domain_length)
             offset += domain_length + 2
             address = DomainAddress(host, port)
         elif address_type == ADDRESS_TYPE_IPV6:
-            raise IPV6AddrError()
+            raise IPv6AddressError()
         else:
-            raise InvalidAddressException('Invalid address type')
+            raise InvalidAddressException(f'Could not unpack address type {address_type}')
 
         unpack_list.append(address)
         return offset
@@ -107,7 +107,7 @@ class InvalidAddressException(Exception):
     pass
 
 
-class IPV6AddrError(NotImplementedError):
+class IPv6AddressError(NotImplementedError):
     def __str__(self):
         return "IPV6 support not implemented"
 
