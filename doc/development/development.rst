@@ -18,3 +18,10 @@ Linux
 =====
 
 .. include:: development_on_linux.rst
+
+
+======================
+Development guidelines
+======================
+
+.. include:: qt.rst
