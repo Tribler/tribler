@@ -147,7 +147,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         self.window().settings_stacked_widget.show()
         self.window().settings_tab.show()
-        self.window().settings_save_button.show()
 
         # General settings
         self.window().family_filter_checkbox.setChecked(
@@ -333,7 +332,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def load_settings(self):
         self.window().settings_stacked_widget.hide()
         self.window().settings_tab.hide()
-        self.window().settings_save_button.hide()
 
         TriblerNetworkRequest("settings", self.initialize_with_settings)
 
@@ -515,8 +513,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         # network statistics
         settings_data['ipv8']['statistics'] = self.window().checkbox_enable_network_statistics.isChecked()
-
-        self.window().settings_save_button.setEnabled(False)
 
         # TODO: do it in RESTful style, on the REST return JSON instead
         # In case the default save dir has changed, add it to the top of the list of last download locations.
