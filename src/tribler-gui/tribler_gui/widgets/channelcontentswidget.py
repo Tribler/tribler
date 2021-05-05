@@ -52,8 +52,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # detecting paths to external resources used in .ui files. Therefore,
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
-        self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
-        self.channel_preview_button.setToolTip(tr("Click to load preview contents"))
 
         self.default_channel_model = ChannelContentModel
 
@@ -97,7 +95,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def hide_all_labels(self):
         self.edit_channel_contents_top_bar.setHidden(True)
         self.subscription_widget.setHidden(True)
-        self.channel_preview_button.setHidden(True)
         self.channel_num_torrents_label.setHidden(True)
         self.channel_state_label.setHidden(True)
 
@@ -143,9 +140,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.commit_control_bar.setHidden(True)
 
         self.controller = controller_class(self.content_table, filter_input=self.channel_torrents_filter_input)
-
-        # To reload the preview
-        connect(self.channel_preview_button.clicked, self.preview_clicked)
 
         # Hide channel description on scroll
         connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
@@ -382,8 +376,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
         root = len(self.channels_stack) == 1
         legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
-        complete = self.model.channel_info.get("state", None) == CHANNEL_STATE.COMPLETE.value
-        search = isinstance(self.model, SearchResultsModel)
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
@@ -446,9 +438,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        self.channel_preview_button.setHidden(
-            (root and not search and not is_a_channel) or personal or legacy or complete
-        )
         self.channel_state_label.setHidden((root and not is_a_channel) or personal)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
