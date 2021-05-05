@@ -20,6 +20,7 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
+    ChannelPreviewModel,
     DiscoveredChannelsModel,
     PersonalChannelsModel,
     SearchResultsModel,
@@ -366,7 +367,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
         self.hide_all_labels()
         # Turn off sorting by default to speed up SQL queries
-        self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
+        if channel_info.get("state") == CHANNEL_STATE.PREVIEW.value:
+            self.push_channels_stack(ChannelPreviewModel(channel_info=channel_info))
+        else:
+            self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
         self.controller.table_view.resizeEvent(None)
 
@@ -375,10 +379,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def update_labels(self, dirty=False):
 
         folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
-        personal = self.model.channel_info.get("state", None) == "Personal"
+        personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
         root = len(self.channels_stack) == 1
-        legacy = self.model.channel_info.get("state", None) == "Legacy"
-        complete = self.model.channel_info.get("state", None) == "Complete"
+        legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
+        complete = self.model.channel_info.get("state", None) == CHANNEL_STATE.COMPLETE.value
         search = isinstance(self.model, SearchResultsModel)
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)

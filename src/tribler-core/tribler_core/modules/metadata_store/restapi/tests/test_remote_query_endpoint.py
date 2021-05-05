@@ -48,7 +48,7 @@ async def test_create_remote_search_request(enable_chant, enable_api, session):
     await do_request(
         session, f'remote_query?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
     )
-    assert sent['channel_pk'] == channel_pk
+    assert hexlify(sent['channel_pk']) == channel_pk
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,6 @@
 import base64
 import codecs
+from asyncio import CancelledError
 from binascii import unhexlify
 
 from aiohttp import ClientSession, ContentTypeError, web
@@ -20,6 +21,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
@@ -86,7 +88,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             }
         },
     )
-    # TODO: DRY it with SpecificChannel endpoint?
     async def get_channels(self, request):
         sanitized = self.sanitize_parameters(request.query)
         sanitized['subscribed'] = None if 'subscribed' not in request.query else bool(int(request.query['subscribed']))
@@ -156,10 +157,22 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         include_total = request.query.get('include_total', '')
         channel_pk, channel_id = self.get_channel_from_request(request)
         sanitized.update({"channel_pk": channel_pk, "origin_id": channel_id})
-        with db_session:
-            contents = self.session.mds.get_entries(**sanitized)
-            contents_list = [c.to_simple_dict() for c in contents]
-            total = self.session.mds.get_total_count(**sanitized) if include_total else None
+        remote = sanitized.pop("remote", None)
+
+        total = None
+
+        remote_failed = False
+        if remote:
+            try:
+                contents_list = await self.session.gigachannel_community.remote_select_channel_contents(**sanitized)
+            except (RequestTimeoutException, NoChannelSourcesException, CancelledError):
+                remote_failed = True
+
+        if not remote or remote_failed:
+            with db_session:
+                contents = self.session.mds.get_entries(**sanitized)
+                contents_list = [c.to_simple_dict() for c in contents]
+                total = self.session.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
