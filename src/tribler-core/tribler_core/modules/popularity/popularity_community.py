@@ -103,7 +103,7 @@ class PopularityCommunity(RemoteQueryCommunity):
 
         for infohash in await self.mds.run_threaded(self.process_torrents_health, torrents):
             # Get a single result per infohash to avoid duplicates
-            self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)
+            self.send_remote_select(peer=peer, infohash=infohash, last=1)
 
     @db_session
     def process_torrents_health(self, torrent_healths):

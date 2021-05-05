@@ -18,6 +18,7 @@ from tribler_core.modules.metadata_store.community.remote_query_community import
 )
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.modules.metadata_store.store import ObjState
+from tribler_core.modules.metadata_store.utils import NoChannelSourcesException
 from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200
@@ -159,6 +160,17 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         }
         self.send_remote_select(peer, **request_dict, processing_callback=on_packet_callback)
 
+    async def remote_select_channel_contents(self, **kwargs):
+
+        peers_to_query = self.get_known_subscribed_peers_for_node(kwargs["channel_pk"], kwargs["origin_id"], 1)
+        if not peers_to_query:
+            raise NoChannelSourcesException()
+
+        result = await self.send_remote_select(peers_to_query[0], force_eva_response=True, **kwargs).processing_results
+        request_results = [r.md_obj.to_simple_dict() for r in result]
+
+        return request_results
+
     def send_search_request(self, **kwargs):
         # Send a remote query request to multiple random peers to search for some terms
         request_uuid = uuid.uuid4()
@@ -178,7 +190,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         # Try sending the request to at least some peers that we know have it
         if "channel_pk" in kwargs and "origin_id" in kwargs:
             peers_to_query = self.get_known_subscribed_peers_for_node(
-                unhexlify(kwargs["channel_pk"]), kwargs["origin_id"], self.settings.max_mapped_query_peers
+                kwargs["channel_pk"], kwargs["origin_id"], self.settings.max_mapped_query_peers
             )
         else:
             peers_to_query = self.get_random_peers(self.settings.max_query_peers)

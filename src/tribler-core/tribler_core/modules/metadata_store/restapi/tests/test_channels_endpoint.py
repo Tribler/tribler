@@ -15,6 +15,8 @@ import pytest
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.community.gigachannel_community import NoChannelSourcesException
+from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
@@ -135,6 +137,75 @@ async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_
     with db_session:
         chan = session.mds.ChannelMetadata.select().first()
     json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123', expected_code=200)
+    assert len(json_dict['results']) == 5
+    assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_contents_remote(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
+    """
+    Test whether we can query torrents from a channel from a remote peer
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+
+    async def mock_select(**kwargs):
+        with db_session:
+            return [r.to_simple_dict() for r in session.mds.get_entries(**kwargs)]
+
+    session.gigachannel_community = Mock()
+    session.gigachannel_community.remote_select_channel_contents = mock_select
+    with db_session:
+        chan = session.mds.ChannelMetadata.select().first()
+    json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123?remote=1', expected_code=200)
+    assert len(json_dict['results']) == 5
+    assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_contents_remote_request_timeout(
+    enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session
+):
+    """
+    Test whether we can query torrents from a channel from a remote peer.
+    In case of remote query timeout, the results should still be served from the local DB
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+
+    async def mock_select(**kwargs):
+        raise RequestTimeoutException()
+
+    session.gigachannel_community = Mock()
+    session.gigachannel_community.remote_select_channel_contents = mock_select
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.select().first()
+    json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123?remote=1', expected_code=200)
+    assert len(json_dict['results']) == 5
+    assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_contents_remote_request_no_peers(
+    enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session
+):
+    """
+    Test whether we can query torrents from a channel from a remote peer.
+    In case of zero available remote sources for the channel, the results should still be served from the local DB
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+
+    async def mock_select(**kwargs):
+        raise NoChannelSourcesException()
+
+    session.gigachannel_community = Mock()
+    session.gigachannel_community.remote_select_channel_contents = mock_select
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.select().first()
+    json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123?remote=1', expected_code=200)
     assert len(json_dict['results']) == 5
     assert 'status' in json_dict['results'][0]
     assert json_dict['results'][0]['progress'] == 0.5

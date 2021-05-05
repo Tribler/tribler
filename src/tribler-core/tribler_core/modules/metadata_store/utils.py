@@ -6,6 +6,14 @@ from tribler_core.tests.tools.common import PNG_FILE
 from tribler_core.utilities.random_utils import random_infohash, random_utf8_string
 
 
+class RequestTimeoutException(Exception):
+    pass
+
+
+class NoChannelSourcesException(Exception):
+    pass
+
+
 @db_session
 def generate_torrent(metadata_store, parent):
     metadata_store.TorrentMetadata(title=random_utf8_string(50), infohash=random_infohash(), origin_id=parent.id_)

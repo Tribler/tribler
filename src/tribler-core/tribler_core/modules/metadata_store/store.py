@@ -662,7 +662,7 @@ class MetadataStore:
                 ).first()
                 request_dict = {
                     "metadata_type": [dep_type],
-                    "channel_pk": hexlify(node.public_key),
+                    "channel_pk": node.public_key,
                     "origin_id": node.id_,
                     "first": 0,
                     "last": 1,
