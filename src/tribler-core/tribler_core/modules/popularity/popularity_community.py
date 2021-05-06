@@ -2,6 +2,8 @@ import heapq
 import random
 from binascii import unhexlify
 
+from ipv8.peerdiscovery.network import Network
+
 from ipv8.lazy_community import lazy_wrapper
 
 from pony.orm import db_session
@@ -26,10 +28,11 @@ class PopularityCommunity(RemoteQueryCommunity):
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, my_peer, endpoint, network, **kwargs):
         self.torrent_checker = kwargs.pop('torrent_checker', None)
 
-        super().__init__(*args, **kwargs)
+        # Creating a separate instance of Network for this community to find more peers
+        super().__init__(my_peer, endpoint, Network(), **kwargs)
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
