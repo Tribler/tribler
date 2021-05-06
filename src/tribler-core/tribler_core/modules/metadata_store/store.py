@@ -8,7 +8,7 @@ from time import sleep, time
 
 from ipv8.database import database_blob
 
-import lz4.frame
+from lz4.frame import LZ4FrameDecompressor
 
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
@@ -45,6 +45,7 @@ from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
     DELETED,
+    HealthItemsPayload,
     JSON_NODE,
     METADATA_NODE,
     NULL_KEY,
@@ -465,13 +466,42 @@ class MetadataStore:
 
     def process_compressed_mdblob(self, compressed_data, **kwargs):
         try:
-            decompressed_data = lz4.frame.decompress(compressed_data)
-        except RuntimeError:
-            self._logger.warning("Unable to decompress mdblob")
+            with LZ4FrameDecompressor() as decompressor:
+                decompressed_data = decompressor.decompress(compressed_data)
+                unused_data = decompressor.unused_data
+        except RuntimeError as e:
+            self._logger.warning(f"Unable to decompress mdblob: {str(e)}")
             return []
-        return self.process_squashed_mdblob(decompressed_data, **kwargs)
 
-    def process_squashed_mdblob(self, chunk_data, external_thread=False, **kwargs):
+        health_info = None
+        if unused_data:
+            try:
+                health_info = HealthItemsPayload.unpack(unused_data)
+            except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
+                self._logger.warning(f"Unable to parse health information: {type(e).__name__}: {str(e)}")
+
+        return self.process_squashed_mdblob(decompressed_data, health_info=health_info, **kwargs)
+
+    def process_torrent_health(self, infohash: bytes, seeders: int, leechers: int, last_check: int) -> bool:
+        """
+        Adds or updates information about a torrent health for the torrent with the specified infohash value
+        :param infohash: the infohash of the torrent
+        :param seeders: a number of seeders
+        :param leechers: a number of leechers
+        :param last_check: a timestamp when the seeders/leechers count was checked
+        :return: True if a new TorrentState object was added
+        """
+        health = self.TorrentState.get_for_update(infohash=infohash)
+        if health and last_check > health.last_check:
+            health.set(seeders=seeders, leechers=leechers, last_check=last_check)
+            self._logger.info(f"Update health info for {hexlify(infohash)}: ({seeders},{leechers})")
+        elif not health:
+            self.TorrentState(infohash=infohash, seeders=seeders, leechers=leechers, last_check=last_check)
+            self._logger.info(f"Add health info for {hexlify(infohash)}: ({seeders},{leechers})")
+            return True
+        return False
+
+    def process_squashed_mdblob(self, chunk_data, external_thread=False, health_info=None, **kwargs):
         """
         Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
         It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
@@ -489,6 +519,12 @@ class MetadataStore:
         while offset < len(chunk_data):
             payload, offset = read_payload_with_offset(chunk_data, offset)
             payload_list.append(payload)
+
+        if health_info and len(health_info) == len(payload_list):
+            with db_session:
+                for payload, (seeders, leechers, last_check) in zip(payload_list, health_info):
+                    if hasattr(payload, 'infohash'):
+                        self.process_torrent_health(payload.infohash, seeders, leechers, last_check)
 
         result = []
         total_size = len(payload_list)
@@ -888,7 +924,12 @@ class MetadataStore:
         :return: A list of class members
         """
         pony_query = self.get_entries_query(**kwargs)
-        return pony_query[(first or 1) - 1 : last]
+        result = pony_query[(first or 1) - 1 : last]
+        for entry in result:
+            # ACHTUNG! This is necessary in order to load entry.health inside db_session,
+            # to be able to perform successfully `entry.to_simple_dict()` later
+            entry.to_simple_dict()
+        return result
 
     @db_session
     def get_total_count(self, **kwargs):

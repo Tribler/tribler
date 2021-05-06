@@ -215,7 +215,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
             transfer_size = (
                 self.eva_protocol.binary_size_limit if force_eva_response else self.settings.maximum_payload_size
             )
-            data, index = entries_to_chunk(db_results, transfer_size, start_index=index)
+            data, index = entries_to_chunk(db_results, transfer_size, start_index=index, include_health=True)
             payload = SelectResponsePayload(request_payload_id, data)
             if force_eva_response or (len(data) > self.settings.maximum_payload_size):
                 self.eva_send_binary(

@@ -107,19 +107,9 @@ class PopularityCommunity(RemoteQueryCommunity):
 
     @db_session
     def process_torrents_health(self, torrent_healths):
-        infohashes_to_resolve = []
-        with db_session:
-            for infohash, seeders, leechers, last_check in torrent_healths:
-                torrent_state = self.mds.TorrentState.get_for_update(infohash=infohash)
-                if torrent_state and last_check > torrent_state.last_check:
-                    # Replace current information
-                    torrent_state.seeders = seeders
-                    torrent_state.leechers = leechers
-                    torrent_state.last_check = last_check
-                    self.logger.info(f"{hexlify(infohash)} updated ({seeders},{leechers})")
-                elif not torrent_state:
-                    self.mds.TorrentState(infohash=infohash, seeders=seeders,
-                                          leechers=leechers, last_check=last_check)
-                    self.logger.info(f"{hexlify(infohash)} added ({seeders},{leechers})")
-                    infohashes_to_resolve.append(infohash)
+        infohashes_to_resolve = set()
+        for infohash, seeders, leechers, last_check in torrent_healths:
+            added = self.mds.process_torrent_health(infohash, seeders, leechers, last_check)
+            if added:
+                infohashes_to_resolve.add(infohash)
         return infohashes_to_resolve
