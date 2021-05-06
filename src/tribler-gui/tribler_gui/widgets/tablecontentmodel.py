@@ -511,6 +511,12 @@ class ChannelContentModel(RemoteTableModel):
         self.on_query_results(response, remote=True)
 
 
+class ChannelPreviewModel(ChannelContentModel):
+    def perform_query(self, **kwargs):
+        kwargs["remote"] = True
+        super().perform_query(**kwargs)
+
+
 class SearchResultsModel(ChannelContentModel):
     pass
 

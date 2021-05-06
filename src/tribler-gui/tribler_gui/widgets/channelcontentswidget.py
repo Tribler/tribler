@@ -20,6 +20,7 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
+    ChannelPreviewModel,
     DiscoveredChannelsModel,
     PersonalChannelsModel,
     SearchResultsModel,
@@ -51,8 +52,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # detecting paths to external resources used in .ui files. Therefore,
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
-        self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
-        self.channel_preview_button.setToolTip(tr("Click to load preview contents"))
 
         self.default_channel_model = ChannelContentModel
 
@@ -96,7 +95,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def hide_all_labels(self):
         self.edit_channel_contents_top_bar.setHidden(True)
         self.subscription_widget.setHidden(True)
-        self.channel_preview_button.setHidden(True)
         self.channel_num_torrents_label.setHidden(True)
         self.channel_state_label.setHidden(True)
 
@@ -142,9 +140,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.commit_control_bar.setHidden(True)
 
         self.controller = controller_class(self.content_table, filter_input=self.channel_torrents_filter_input)
-
-        # To reload the preview
-        connect(self.channel_preview_button.clicked, self.preview_clicked)
 
         # Hide channel description on scroll
         connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
@@ -366,7 +361,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
         self.hide_all_labels()
         # Turn off sorting by default to speed up SQL queries
-        self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
+        if channel_info.get("state") == CHANNEL_STATE.PREVIEW.value:
+            self.push_channels_stack(ChannelPreviewModel(channel_info=channel_info))
+        else:
+            self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
         self.controller.table_view.resizeEvent(None)
 
@@ -375,11 +373,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def update_labels(self, dirty=False):
 
         folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
-        personal = self.model.channel_info.get("state", None) == "Personal"
+        personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
         root = len(self.channels_stack) == 1
-        legacy = self.model.channel_info.get("state", None) == "Legacy"
-        complete = self.model.channel_info.get("state", None) == "Complete"
-        search = isinstance(self.model, SearchResultsModel)
+        legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
@@ -442,9 +438,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        self.channel_preview_button.setHidden(
-            (root and not search and not is_a_channel) or personal or legacy or complete
-        )
         self.channel_state_label.setHidden((root and not is_a_channel) or personal)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)

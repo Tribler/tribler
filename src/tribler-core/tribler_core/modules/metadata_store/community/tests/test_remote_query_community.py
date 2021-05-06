@@ -207,7 +207,7 @@ class TestRemoteQueryCommunity(TestBase):
             processing_results.extend(results)
 
         self.nodes[1].overlay.send_remote_select(
-            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+            peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
         )
         await self.deliver_messages()
 
@@ -225,7 +225,7 @@ class TestRemoteQueryCommunity(TestBase):
 
         processing_results = []
         self.nodes[1].overlay.send_remote_select(
-            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+            peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
         )
         await self.deliver_messages()
 
@@ -293,7 +293,7 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.1)
 
         # mixed: the old and a new attribute
-        rqc_node2.send_remote_select(rqc_node1.my_peer, **{'infohash': hexlify(b'0' * 20), 'foo': 'bar'})
+        rqc_node2.send_remote_select(rqc_node1.my_peer, **{'infohash': b'0' * 20, 'foo': 'bar'})
         await self.deliver_messages(timeout=0.1)
 
     async def test_process_rpc_query_match_many(self):

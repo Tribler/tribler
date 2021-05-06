@@ -1,4 +1,5 @@
 import time
+from binascii import unhexlify
 
 from aiohttp import web
 
@@ -28,11 +29,8 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     def sanitize_parameters(self, parameters):
         sanitized = super().sanitize_parameters(parameters)
 
-        # Convert frozenset to string
-        if "metadata_type" in sanitized:
-            sanitized["metadata_type"] = [str(mt) for mt in sanitized["metadata_type"] if mt]
         if "channel_pk" in parameters:
-            sanitized["channel_pk"] = parameters["channel_pk"]
+            sanitized["channel_pk"] = unhexlify(parameters["channel_pk"])
         if "origin_id" in parameters:
             sanitized["origin_id"] = int(parameters["origin_id"])
 
