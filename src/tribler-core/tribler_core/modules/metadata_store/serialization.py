@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.payload import Payload
 from ipv8.messaging.serialization import default_serializer
 
@@ -565,24 +566,14 @@ DISCRIMINATOR_TO_PAYLOAD_CLASS = {
 }
 
 
-class HealthItemsPayload(Payload):
+@vp_compile
+class HealthItemsPayload(VariablePayload):
     """
     Payload for health item information. See the details of binary format in MetadataCompressor class description.
     """
 
     format_list = ['varlenI']
     names = ['data']
-
-    def __init__(self, data):
-        super().__init__()
-        self.data = data
-
-    def to_pack_list(self):
-        return [('varlenI', self.data)]
-
-    @classmethod
-    def from_unpack_list(cls, *args) -> HealthItemsPayload:
-        return cls(*args)
 
     def serialize(self):
         return default_serializer.pack_serializable(self)
