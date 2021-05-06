@@ -102,36 +102,40 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0, include_health=Fa
 
 class MetadataCompressor:
     """
-    Puts serialized data of one or more metadata entries into a single binary chunk. Data can be added incrementally
-    until it stops fitting into the chunk size. The first entry is always added successfully, even if the resulted
-    binary data size is bigger than the specified chunk size.
+    This class provides methods to put serialized data of one or more metadata entries into a single binary chunk.
 
-    A binary chunk format is:
+    The data is added incrementally until it stops fitting into the designated chunk size. The first entry is added
+    regardless of violating the chunk size limit.
+
+    The chunk format is:
 
         <LZ4-compressed sequence of serialized metadata entries>
         [<optional HealthItemsPayload>]
 
-    The optional health information is serialized separately as it was not originally included in the serialized
-    metadata format. If it presents, it contains the same number of items as in the serialized list of metadata
-    entries, and the N-th health info item corresponds to the N-th metadata entry.
+    The optional health information is serialized separately, as it was not originally included in the serialized
+    metadata format. If present, it contains the same number of items as the serialized list of metadata
+    entries. The N-th health info item in the health block corresponds to the N-th metadata entry.
 
-    The custom binary format for health info has the following properties:
+    The health info format has the following properties:
     - Binary data for items can be added in an incremental way (unlike, for example, JSON). This is convenient when
-      we are trying to put multiple entries into a single IPv8 packet of limited size until it have available space.
+      trying to fit as many entries as possible into a limited-size IPv8 packet.
     - It is forward-compatible (unlike some binary formats): in the future, it is possible to extend it with new fields.
-    - It is compact: (most entries has a length of 1 byte).
+    - It is compact: (most entries are 1 byte).
     - It is simple and human-readable.
 
-    Each individual health info item keeps a number of seeders, a number of leechers, and a last_check timestamp.
-
-    The binary format of a health item is the following:
-    - The data encoded as a text in utf-8 format.
-    - Each item ends with a semicolon `;` and cannot contain semicolons inside.
-    - An item consists of fields separated by comma `,`. Only the first three fields are currently parsed,
-      and the rest fields are ignored. In the future, it is possible to add more fields to this list.
-    - The first three fields are parsed as int values: number of seeders, number of leechers, last_check timestamp.
-    - A shortcut form of a health item exists, which consists of a single semicolon, that means
-      seeders=0, leechers=0, last_check=0.
+    Health item format:
+    - Data format: utf-8 encoded text.
+    - Items separator: each item ends with a semicolon `;`. Items MUST NOT contain semicolons inside.
+    - Fields separator: an item consists of fields separated by comma `,`. Only the first three fields are currently
+      parsed, and the rest are ignored. In the future, it is possible to add more fields to this list.
+    - Fields interpretaion: the first three fields are parsed as int values:
+      - number of seeders,
+      - number of leechers,
+      - last_check timestamp.
+    - Empty item: an empty item (i.e. a single semicolon `;`) means a default item with default field values, namely
+      - seeders=0,
+      - leechers=0,
+      - last_check=0.
 
     Examples:
 
@@ -152,12 +156,12 @@ class MetadataCompressor:
 
         A single health info item with seeders=10, leechers=20, last_check=1234567. The "foo,bar" part is ignored.
 
-    While it was possible to put the health info items into the second LZ4-compressed frame, it was decided to serialize
-    them without any compression. The reason for this is that the typical health info item has a 1-byte length (about
-    17 bytes if a torrent has actual health information), and the number of items is few for a single chunk (usually
-    less then 10 items). If we use LZ4 compressor, we want to use it incrementally in order to detect when items stop
-    fitting into a chunk. LZ4 algorithm cannot compress such small items efficiently in an incremental fashion, and the
-    resulting "compressed" size can be significantly bigger than the original data size.
+    While it is possible to put the health info items into the second LZ4-compressed frame, it is more efficient to
+    serialize them without any compression. The reason for this is that the typical health info item has a 1-byte
+    length (about 17 bytes if a torrent has actual health information), and the number of items is few for a single
+    chunk (usually less then 10 items). If we use LZ4 compressor, we want to use it incrementally in order to detect
+    when items stop fitting into a chunk. LZ4 algorithm cannot compress such small items efficiently in an incremental
+    fashion, and the resulting "compressed" size can be significantly bigger than the original data size.
     """
 
     def __init__(self, chunk_size: int, include_health: bool = False):
