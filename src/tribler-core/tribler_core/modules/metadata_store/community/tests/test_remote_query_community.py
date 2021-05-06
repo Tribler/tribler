@@ -1,9 +1,9 @@
+import random
 from binascii import unhexlify
 from datetime import datetime
 from json import dumps
 from operator import attrgetter
 from os import urandom
-import random
 from time import time
 from unittest.mock import Mock, PropertyMock, patch
 
