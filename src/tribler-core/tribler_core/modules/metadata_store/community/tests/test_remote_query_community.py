@@ -1,9 +1,9 @@
 from binascii import unhexlify
 from datetime import datetime
-from hashlib import sha256
 from json import dumps
 from operator import attrgetter
 from os import urandom
+import random
 from time import time
 from unittest.mock import Mock, PropertyMock, patch
 
@@ -49,7 +49,12 @@ class TestRemoteQueryCommunity(TestBase):
     Unit tests for the base RemoteQueryCommunity which do not need a real Session.
     """
 
+    def __init__(self, methodName='runTest'):
+        random.seed(123)
+        super().__init__(methodName)
+
     def setUp(self):
+        random.seed(456)
         super().setUp()
         self.count = 0
         self.initialize(BasicRemoteQueryCommunity, 2)
@@ -267,20 +272,9 @@ class TestRemoteQueryCommunity(TestBase):
         # We do not want the query back mechanism to interfere with this test
         self.nodes[1].overlay.settings.max_channel_query_back = 0
 
-        def pseudorandom_title(seed: int, length: int = 100):
-            seed = str(seed)
-            result = []
-            result_length = 0
-            while result_length < length:
-                s = sha256(seed.encode('ascii')).hexdigest()
-                result.append(s)
-                result_length += len(s)
-                seed = s
-            return ''.join(result)[:length]
-
         with db_session:
-            for i in range(0, 100):
-                mds0.ChannelMetadata.create_channel(pseudorandom_title(i), "")
+            for _ in range(0, 100):
+                mds0.ChannelMetadata.create_channel(random_string(100), "")
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
@@ -291,9 +285,12 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.5)
 
         with db_session:
-            received_channels = mds1.ChannelMetadata.select()
+            received_channels = list(mds1.ChannelMetadata.select())
             # We should receive less that 6 packets, so all the channels should not fit there.
-            assert 40 < received_channels.count() < 60
+            received_channels_count = len(received_channels)
+            assert self.nodes[0].overlay.settings.maximum_payload_size == 1300
+            assert self.nodes[1].overlay.settings.maximum_payload_size == 1300
+            assert 40 < received_channels_count < 60
 
             # The list of outstanding requests should be empty
             self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
