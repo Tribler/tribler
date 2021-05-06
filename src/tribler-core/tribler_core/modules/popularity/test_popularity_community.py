@@ -49,7 +49,7 @@ class TestPopularityCommunity(TestBase):
         self.nodes[0].overlay.torrent_checker.torrents_checked.add(checked_torrent_info)
         await self.introduce_nodes()
 
-        self.nodes[0].overlay.gossip_torrents_health()
+        self.nodes[0].overlay.gossip_random_torrents_health()
 
         await self.deliver_messages(timeout=deliver_timeout)
 
@@ -74,6 +74,63 @@ class TestPopularityCommunity(TestBase):
             assert torrent.seeders == checked_torrent_info[1]
             assert torrent.leechers == checked_torrent_info[2]
             assert torrent.last_check == checked_torrent_info[3]
+
+    async def test_torrents_health_gossip_multiple(self):
+        """
+        Test whether torrent health information is correctly gossiped around
+        """
+        # torrent structure is (infohash, seeders, leechers, last_check)
+        dead_torrents = {(random_infohash(), 0, randint(1, 10), int(time.time()))
+                         for _ in range(10)}
+        alive_torrents = {(random_infohash(), randint(1, 10), randint(1, 10), int(time.time()))
+                          for _ in range(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT)}
+        top_popular_torrents = {(random_infohash(), randint(11, 100), randint(1, 10), int(time.time()))
+                                for _ in range(PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT)}
+
+        all_checked_torrents = dead_torrents | alive_torrents | top_popular_torrents
+
+        node0_db = self.nodes[0].overlay.mds.TorrentState
+        node1_db = self.nodes[1].overlay.mds.TorrentState
+
+        with db_session:
+            assert node0_db.select().count() == 0
+            assert node1_db.select().count() == 0
+
+        for torrent_info in all_checked_torrents:
+            self.nodes[0].overlay.torrent_checker.torrents_checked.add(torrent_info)
+
+        await self.introduce_nodes()
+
+        # Node 0 gossips a message with random torrents health information.
+        # Random torrents can include popular torrents as well.
+        self.nodes[0].overlay.gossip_random_torrents_health()
+        await self.deliver_messages(timeout=0.1)
+
+        # Check whether node 1 has received all random torrent health information
+        with db_session:
+            assert node1_db.select().count() == PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT
+
+        # Node 0 now gossips a message with popular torrents health information
+        # This gossipping happens at a different interval than random torrent.
+        # That is not checked here.
+        self.nodes[0].overlay.gossip_popular_torrents_health()
+        await self.deliver_messages(timeout=0.1)
+
+        # Check whether node 1 has received all popular torrent health information.
+        # This is checked by checking the existence of all popular torrents infohashes.
+        with db_session:
+            # Check that gossipped popular torrents exist in the database
+            for infohash, _, _, _ in top_popular_torrents:
+                assert node1_db.get(infohash=infohash) is not None
+
+            # Since the first message of random torrent health information could
+            # include popular torrents, the total number of torrents might not be
+            # the sum of all torrents shared.
+            count = node1_db.select().count()
+            assert count >= max(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT,
+                                PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT)
+            assert count <= PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT \
+                   + PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
 
     async def test_torrents_health_update(self):
         """
@@ -168,9 +225,6 @@ async def test_gossip_torrents_health_returns():
             self.torrent_checker = None
             self.logger = logging.getLogger()
 
-        def gossip_torrents_health(self):
-            PopularityCommunity.gossip_torrents_health(self)
-
         def ez_send(self, peer, *payloads, **kwargs):
             self.is_ez_send_has_been_called = True
 
@@ -179,22 +233,22 @@ async def test_gossip_torrents_health_returns():
 
     community = MockPopularityCommunity()
 
-    community.gossip_torrents_health()
+    community.gossip_random_torrents_health()
     assert not community.torrent_checker
     assert not community.is_ez_send_has_been_called
 
     community.torrent_checker = SimpleNamespace()
     community.torrent_checker.torrents_checked = None
-    community.gossip_torrents_health()
+    community.gossip_random_torrents_health()
     assert not community.is_ez_send_has_been_called
 
     community.torrent_checker.torrents_checked = {(b'0' * 20, 0, 0, None),
                                                   (b'1' * 20, 0, 0, None)}
 
-    community.gossip_torrents_health()
+    community.gossip_random_torrents_health()
     assert not community.is_ez_send_has_been_called
 
     community.torrent_checker.torrents_checked = {(b'0' * 20, 1, 0, None),
                                                   (b'1' * 20, 1, 0, None)}
-    community.gossip_torrents_health()
+    community.gossip_random_torrents_health()
     assert community.is_ez_send_has_been_called
