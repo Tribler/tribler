@@ -602,7 +602,7 @@ class HealthItemsPayload(Payload):
         # and later it is possible to add more fields without breaking old clients
         try:
             seeders, leechers, last_check = map(int, item.split(b',')[:3])
-        except:  # pylint: disable=broad-except
+        except:  # pylint: disable=bare-except
             return 0, 0, 0
 
         # Safety check: seelders, leechers and last_check values cannot be negative

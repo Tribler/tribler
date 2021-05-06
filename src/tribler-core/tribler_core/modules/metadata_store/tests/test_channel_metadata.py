@@ -947,7 +947,7 @@ def test_get_parent_ids(metadata_store):
 def test_metadata_compressor():
     SERIALIZED_METADATA = f"<{'S' * 1000}>".encode('ascii')
     SERIALIZED_DELETE = f"<{'D' * 100}>".encode('ascii')
-    SERIALIZED_HEALTH = f"1,2,1234567890;".encode('ascii')
+    SERIALIZED_HEALTH = "1,2,1234567890;".encode('ascii')
 
     metadata = Mock()
     metadata.status = NEW
@@ -975,7 +975,7 @@ def test_metadata_compressor():
         assert not mc.closed
         result = mc.close()
         assert mc.closed
-        assert type(result) is bytes
+        assert isinstance(result, bytes)
         assert len(result) == prev_size
         assert len(result) < len(SERIALIZED_METADATA) * expected_items_count  # our test data should be easy to compress
 

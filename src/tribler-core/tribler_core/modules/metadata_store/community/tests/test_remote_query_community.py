@@ -1,5 +1,6 @@
 from binascii import unhexlify
 from datetime import datetime
+from hashlib import sha256
 from json import dumps
 from operator import attrgetter
 from os import urandom
@@ -266,9 +267,20 @@ class TestRemoteQueryCommunity(TestBase):
         # We do not want the query back mechanism to interfere with this test
         self.nodes[1].overlay.settings.max_channel_query_back = 0
 
+        def pseudorandom_title(seed: int, length: int = 100):
+            seed = str(seed)
+            result = []
+            result_length = 0
+            while result_length < length:
+                s = sha256(seed.encode('ascii')).hexdigest()
+                result.append(s)
+                result_length += len(s)
+                seed = s
+            return ''.join(result)[:length]
+
         with db_session:
-            for _ in range(0, 100):
-                mds0.ChannelMetadata.create_channel(random_string(100), "")
+            for i in range(0, 100):
+                mds0.ChannelMetadata.create_channel(pseudorandom_title(i), "")
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}

@@ -477,7 +477,7 @@ class MetadataStore:
         if unused_data:
             try:
                 health_info = HealthItemsPayload.unpack(unused_data)
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
                 self._logger.warning(f"Unable to parse health information: {type(e).__name__}: {str(e)}")
 
         return self.process_squashed_mdblob(decompressed_data, health_info=health_info, **kwargs)
