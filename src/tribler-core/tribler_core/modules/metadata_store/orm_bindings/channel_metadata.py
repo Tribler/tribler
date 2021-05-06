@@ -116,48 +116,10 @@ class MetadataCompressor:
     metadata format. If present, it contains the same number of items as the serialized list of metadata
     entries. The N-th health info item in the health block corresponds to the N-th metadata entry.
 
-    The health info format has the following properties:
-    - Binary data for items can be added in an incremental way (unlike, for example, JSON). This is convenient when
-      trying to fit as many entries as possible into a limited-size IPv8 packet.
-    - It is forward-compatible (unlike some binary formats): in the future, it is possible to extend it with new fields.
-    - It is compact: (most entries are 1 byte).
-    - It is simple and human-readable.
-
-    Health item format:
-    - Data format: utf-8 encoded text.
-    - Items separator: each item ends with a semicolon `;`. Items MUST NOT contain semicolons inside.
-    - Fields separator: an item consists of fields separated by comma `,`. Only the first three fields are currently
-      parsed, and the rest are ignored. In the future, it is possible to add more fields to this list.
-    - Fields interpretaion: the first three fields are parsed as int values:
-      - number of seeders,
-      - number of leechers,
-      - last_check timestamp.
-    - Empty item: an empty item (i.e. a single semicolon `;`) means a default item with default field values, namely
-      - seeders=0,
-      - leechers=0,
-      - last_check=0.
-
-    Examples:
-
-        ;;;;;
-
-        Five health info entries, each with seeders=0, leechers=0, last_check=0
-
-        1,2,1234567;
-
-        A single health info entry with seeders=1, leechers=2, last_check=1234567
-
-        ;10,0,1234567;0,5,1234568;
-
-        Three health info items: (seeders=0,leechers=0,last_check=0), (seeders=10,leechers=0,last_check=1234567),
-        (seeders=0,leechers=5,last_check=1234568)
-
-        10,20,1234567,foo,bar;
-
-        A single health info item with seeders=10, leechers=20, last_check=1234567. The "foo,bar" part is ignored.
+    For the details of the health info format see the documentation: doc/metadata_store/serialization_format.rst
 
     While it is possible to put the health info items into the second LZ4-compressed frame, it is more efficient to
-    serialize them without any compression. The reason for this is that the typical health info item has a 1-byte
+    serialize them without any compression. The reason for this is that a typical health info item has a 1-byte
     length (about 17 bytes if a torrent has actual health information), and the number of items is few for a single
     chunk (usually less then 10 items). If we use LZ4 compressor, we want to use it incrementally in order to detect
     when items stop fitting into a chunk. LZ4 algorithm cannot compress such small items efficiently in an incremental

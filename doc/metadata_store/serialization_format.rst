@@ -148,3 +148,68 @@ The entry to delete is pointed by its signature.
 +---------------+------------------+------------+------------------+-----------+
 |       H       |         H        |     64s    |    64s           |    64s    |
 +---------------+------------------+------------+------------------+-----------+
+
+
+HealthItemsPayload
+------------------
+
++---------+
+| Data    |
++=========+
+| varlenI |
++---------+
+
+The optional health information is serialized separately, as it was not originally included in the serialized
+metadata format. The payload consists of a single field with ascii-encoded string which encodes zero or many items.
+If present, it should contain the same number of items as the serialized list of metadata entries.
+The N-th health info item in the health block corresponds to the N-th metadata entry.
+
+The health info string format has the following properties:
+
+- Binary data for items can be added in an incremental way (unlike, for example, JSON). This is convenient when
+  trying to fit as many entries as possible into a limited-size IPv8 packet.
+- It is forward-compatible (unlike some binary formats): in the future, it is possible to extend it with new fields.
+- It is compact: most entries are 1 byte.
+- It is simple and human-readable.
+
+Health item format description:
+
+- Data format: utf-8 encoded text.
+- Items separator: each item ends with a semicolon ``;``. Items MUST NOT contain semicolons inside.
+- Fields separator: an item consists of fields separated by comma ``,``. Only the first three fields are currently
+  parsed, and the rest are ignored. In the future, it is possible to add more fields to this list.
+- Fields interpretaion: the first three fields are parsed as int values:
+
+  - number of seeders,
+  - number of leechers,
+  - last_check timestamp.
+
+- Empty item: an empty item (i.e. a single semicolon ``;``) means a default item with default field values, namely:
+
+  - ``seeders=0``,
+  - ``leechers=0``,
+  - ``last_check=0``.
+
+
+Examples
+~~~~~~~~
+
+- ``;;;;;``
+
+  Five health info entries, each with seeders=0, leechers=0, last_check=0
+
+- ``1,2,1234567;``
+
+  A single health info entry with seeders=1, leechers=2, last_check=1234567
+
+- ``;10,0,1234567;0,5,1234568;``
+
+  Three health info items:
+
+  - ``(seeders=0,leechers=0,last_check=0)``,
+  - ``(seeders=10,leechers=0,last_check=1234567)``,
+  - ``(seeders=0,leechers=5,last_check=1234568)``.
+
+- ``10,20,1234567,foo,bar;``
+
+  A single health info item ``(seeders=10, leechers=20, last_check=1234567)``. The ``"foo,bar"`` part is ignored.
