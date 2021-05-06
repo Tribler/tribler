@@ -282,14 +282,12 @@ class TestRemoteQueryCommunity(TestBase):
         # There should be an outstanding request in the list
         self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
 
-        await self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=1.5)
 
         with db_session:
             received_channels = list(mds1.ChannelMetadata.select())
             # We should receive less that 6 packets, so all the channels should not fit there.
             received_channels_count = len(received_channels)
-            assert self.nodes[0].overlay.settings.maximum_payload_size == 1300
-            assert self.nodes[1].overlay.settings.maximum_payload_size == 1300
             assert 40 < received_channels_count < 60
 
             # The list of outstanding requests should be empty
