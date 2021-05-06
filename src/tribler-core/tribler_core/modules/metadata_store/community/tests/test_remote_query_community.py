@@ -284,6 +284,10 @@ class TestRemoteQueryCommunity(TestBase):
         self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
 
         await self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=0.5)
 
         with db_session:
             received_channels = list(mds1.ChannelMetadata.select())
