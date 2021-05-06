@@ -148,6 +148,7 @@ class MetadataCompressor:
             self.size += HEALTH_ITEM_HEADER_SIZE
         else:
             self.health_buffer = None
+        print (chunk_size, self.size)
 
         self.closed = False
 
@@ -204,6 +205,7 @@ class MetadataCompressor:
         if self.include_health:
             result += HealthItemsPayload(b''.join(self.health_buffer)).serialize()
 
+        print (result)
         return result
 
 
