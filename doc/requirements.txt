@@ -3,3 +3,6 @@ sphinxcontrib.openapi
 cryptography
 aiohttp
 aiohttp_apispec
+mock
+sphinx_rtd_theme
+configobj
