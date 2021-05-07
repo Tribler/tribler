@@ -58,18 +58,18 @@ class TestPopularityCommunity(TestBase):
         Test whether torrent health information is correctly gossiped around
         """
         checked_torrent_info = (b'a' * 20, 200, 0, int(time.time()))
-        db1 = self.nodes[0].overlay.mds.TorrentState
-        db2 = self.nodes[1].overlay.mds.TorrentState
+        node0_db = self.nodes[0].overlay.mds.TorrentState
+        node1_db2 = self.nodes[1].overlay.mds.TorrentState
 
         with db_session:
-            assert db1.select().count() == 0
-            assert db2.select().count() == 0
+            assert node0_db.select().count() == 0
+            assert node1_db2.select().count() == 0
 
         await self.init_first_node_and_gossip(checked_torrent_info)
 
         # Check whether node 1 has new torrent health information
         with db_session:
-            torrent = db2.select().first()
+            torrent = node1_db2.select().first()
             assert torrent.infohash == checked_torrent_info[0]
             assert torrent.seeders == checked_torrent_info[1]
             assert torrent.leechers == checked_torrent_info[2]
