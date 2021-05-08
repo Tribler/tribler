@@ -414,11 +414,10 @@ def define_binding(db):
                 new_parent = CollectionNode.get(public_key=self.public_key, id_=new_origin_id)
                 if not new_parent:
                     raise ValueError("Target collection does not exists")
-                root_path = new_parent.get_parents_ids()
-                if new_origin_id == self.id_ or self.id_ in root_path:
+                root_path = new_parent.get_parent_nodes()
+                if new_origin_id == self.id_ or self in root_path[:-1]:
                     raise ValueError("Can't move collection into itself or its descendants!")
-                if 0 not in root_path:
-                    # Remark: maybe add orphan-cleaning hook here?
+                if root_path[0].origin_id != 0:
                     raise ValueError("Tried to move collection into an orphaned hierarchy!")
             updated_self = super().update_properties(update_dict)
             if updated_self.origin_id == 0 and self.metadata_type == COLLECTION_NODE:

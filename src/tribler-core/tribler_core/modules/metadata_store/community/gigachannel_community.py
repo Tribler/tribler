@@ -16,8 +16,8 @@ from tribler_core.modules.metadata_store.community.remote_query_community import
     RemoteQueryCommunity,
     RemoteQueryCommunitySettings,
 )
+from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
-from tribler_core.modules.metadata_store.store import ObjState
 from tribler_core.modules.metadata_store.utils import NoChannelSourcesException
 from tribler_core.utilities.unicode import hexlify
 
@@ -144,7 +144,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                 r.md_obj.to_simple_dict()
                 for r in processing_results
                 if (
-                    r.obj_state == ObjState.UNKNOWN_OBJECT
+                    r.obj_state == ObjState.NEW_OBJECT
                     and r.md_obj.metadata_type == CHANNEL_TORRENT
                     and r.md_obj.origin_id == 0
                 )
@@ -179,7 +179,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             results = [
                 r.md_obj.to_simple_dict()
                 for r in processing_results
-                if r.obj_state in (ObjState.UNKNOWN_OBJECT, ObjState.UPDATED_OUR_VERSION)
+                if r.obj_state in (ObjState.NEW_OBJECT, ObjState.UPDATED_LOCAL_VERSION)
             ]
             if self.notifier:
                 self.notifier.notify(
@@ -202,9 +202,11 @@ class GigaChannelCommunity(RemoteQueryCommunity):
 
     def get_known_subscribed_peers_for_node(self, node_pk, node_id, limit=None):
         # Determine the toplevel parent channel
+        root_id = node_id
         with db_session:
             node = self.mds.ChannelNode.get(public_key=node_pk, id_=node_id)
-            root_id = next((value for value in node.get_parents_ids() if value != 0), node_id) if node else node_id
+            if node:
+                root_id = next((node.id_ for node in node.get_parent_nodes() if node.origin_id == 0), node.origin_id)
 
         return self.channels_peers.get_last_seen_peers_for_channel(node_pk, root_id, limit)
 
