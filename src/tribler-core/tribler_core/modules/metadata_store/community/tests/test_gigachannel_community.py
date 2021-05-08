@@ -255,6 +255,22 @@ class TestGigaChannelUnits(TestBase):
         assert len(mapping._peers_channels) == 0
         assert len(mapping._channels_dict) == 0
 
+    async def test_get_known_subscribed_peers_for_node(self):
+        key = default_eccrypto.generate_key("curve25519")
+        with db_session:
+            channel = self.overlay(0).mds.ChannelMetadata(origin_id=0, infohash=random_infohash(), sign_with=key)
+            folder1 = self.overlay(0).mds.CollectionNode(origin_id=channel.id_, sign_with=key)
+            folder2 = self.overlay(0).mds.CollectionNode(origin_id=folder1.id_, sign_with=key)
+
+            orphan = self.overlay(0).mds.CollectionNode(origin_id=123123, sign_with=key)
+
+        source_peer = self.nodes[1].my_peer
+        self.overlay(0).channels_peers.add(source_peer, channel.public_key, channel.id_)
+        assert [source_peer] == self.overlay(0).get_known_subscribed_peers_for_node(channel.public_key, channel.id_)
+        assert [source_peer] == self.overlay(0).get_known_subscribed_peers_for_node(folder1.public_key, folder1.id_)
+        assert [source_peer] == self.overlay(0).get_known_subscribed_peers_for_node(folder2.public_key, folder2.id_)
+        assert [] == self.overlay(0).get_known_subscribed_peers_for_node(orphan.public_key, orphan.id_)
+
     async def test_remote_search_mapped_peers(self):
         """
         Test using mapped peers for channel queries.

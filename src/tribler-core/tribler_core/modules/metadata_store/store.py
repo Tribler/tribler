@@ -1,8 +1,6 @@
-import enum
 import logging
 import threading
 from asyncio import get_event_loop
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from time import sleep, time
 
@@ -16,7 +14,6 @@ from pony.orm import db_session, desc, left_join, raw_sql, select
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.exceptions import InvalidSignatureException
-from tribler_core.modules.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings import (
     binary_node,
     channel_description,
@@ -37,6 +34,7 @@ from tribler_core.modules.metadata_store.orm_bindings import (
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import NULL_KEY_SUBST
+from tribler_core.modules.metadata_store.payload_checker import process_payload
 from tribler_core.modules.metadata_store.serialization import (
     BINARY_NODE,
     CHANNEL_DESCRIPTION,
@@ -44,11 +42,9 @@ from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_THUMBNAIL,
     CHANNEL_TORRENT,
     COLLECTION_NODE,
-    DELETED,
     HealthItemsPayload,
     JSON_NODE,
     METADATA_NODE,
-    NULL_KEY,
     REGULAR_TORRENT,
     read_payload_with_offset,
 )
@@ -135,24 +131,6 @@ sql_create_partial_index_torrentstate_last_check = """
     ON TorrentState (last_check, seeders, leechers, self_checked)
     WHERE has_data = 1;
 """
-
-
-class ObjState(enum.Enum):
-    UPDATED_OUR_VERSION = enum.auto()  # We updated the local version of the ORM object with the received one
-    GOT_NEWER_VERSION = enum.auto()  # Our local version of the ORM object is newer than the received one
-    GOT_SAME_VERSION = enum.auto()  # Our local version of the ORM object is the same as the received one
-    UNKNOWN_OBJECT = enum.auto()  # The received object is unknown to us and thus added to ORM
-
-
-@dataclass
-class ProcessingResult:
-    # This class is used to return results of processing of a payload by process_payload.
-    # It includes the ORM object created as a result of processing, the state of the object
-    # as indicated by ObjState enum, and missing dependencies list that includes a list of query
-    # arguments for get_entries to query the sender back through Remote Query Community
-    md_obj: object = None
-    obj_state: object = None
-    missing_deps: list = field(default_factory=list)
 
 
 class MetadataStore:
@@ -567,183 +545,8 @@ class MetadataStore:
         return result
 
     @db_session
-    def process_payload(self, payload, skip_personal_metadata_payload=True, channel_public_key=None):
-        """
-        This routine decides what to do with a given payload and executes the necessary actions.
-        To do so, it looks into the database, compares version numbers, etc.
-        It returns a list of tuples each of which contain the corresponding new/old object and the actions
-        that were performed on that object.
-        :param payload: payload to work on
-        :param skip_personal_metadata_payload: if this is set to True, personal torrent metadata payload received
-                through gossip will be ignored. The default value is True.
-        :param channel_public_key: rejects payloads that do not belong to this key.
-               Enabling this allows to skip some costly checks during e.g. channel processing.
-
-        :return: a list of tuples of (<metadata or payload>, <action type>)
-        """
-
-        # In case we're processing a channel, we allow only payloads with the channel's public_key
-        if channel_public_key is not None and payload.public_key != channel_public_key:
-            self._logger.warning(
-                "Tried to push metadata entry with foreign public key.\
-             Expected public key: %s, entry public key / id: %s / %i",
-                hexlify(channel_public_key),
-                payload.public_key,
-                payload.id_,
-            )
-            return []
-
-        if payload.metadata_type == DELETED:
-            if payload.public_key == self.my_public_key_bin and skip_personal_metadata_payload:
-                return []
-            # We only allow people to delete their own entries, thus PKs must match
-            node = self.ChannelNode.get_for_update(signature=payload.delete_signature, public_key=payload.public_key)
-            if node:
-                node.delete()
-                return []
-
-        if payload.metadata_type not in [
-            CHANNEL_TORRENT,
-            REGULAR_TORRENT,
-            COLLECTION_NODE,
-            CHANNEL_DESCRIPTION,
-            CHANNEL_THUMBNAIL,
-        ]:
-            return []
-
-        # Check for offending words stop-list
-        if is_forbidden(
-            " ".join([getattr(payload, attr) for attr in ("title", "tags", "text") if hasattr(payload, attr)])
-        ):
-            return []
-
-        # FFA payloads get special treatment:
-        if payload.public_key == NULL_KEY:
-            if payload.metadata_type == REGULAR_TORRENT:
-                node = self.TorrentMetadata.add_ffa_from_dict(payload.to_dict())
-                if node:
-                    return [ProcessingResult(md_obj=node, obj_state=ObjState.UNKNOWN_OBJECT)]
-            return []
-
-        if channel_public_key is None and payload.metadata_type in [
-            COLLECTION_NODE,
-            REGULAR_TORRENT,
-            CHANNEL_DESCRIPTION,
-            CHANNEL_THUMBNAIL,
-        ]:
-            # Check if the received payload is from a channel that we already have and send update if necessary
-
-            # Get the toplevel parent
-            parent = self.ChannelNode.get(public_key=payload.public_key, id_=payload.origin_id)
-            if parent:
-                parent_channel = None
-                if parent.origin_id == 0:
-                    parent_channel = parent
-                else:
-                    parents_ids = parent.get_parents_ids()
-                    if 0 in parents_ids:
-                        parent_channel = self.ChannelNode.get(public_key=payload.public_key, id_=parents_ids[1])
-                if parent_channel and parent_channel.local_version > payload.timestamp:
-                    # Remark: add check_for_missing_dependencies here when collections are allowed descriptions
-                    return []
-
-        # Check for the older version of the added node
-        node = self.ChannelNode.get_for_update(public_key=database_blob(payload.public_key), id_=payload.id_)
-        if node:
-            node.to_simple_dict()  # Force loading of related objects (like TorrentMetadata.health) in db_session
-            update_results = self.update_channel_node(node, payload, skip_personal_metadata_payload)
-            for r in update_results:
-                r.missing_deps = self.check_for_missing_dependencies(r.md_obj, include_newer=True)
-            return update_results
-
-        if payload.public_key == self.my_public_key_bin and skip_personal_metadata_payload:
-            return []
-        for orm_class in (
-            self.TorrentMetadata,
-            self.ChannelMetadata,
-            self.CollectionNode,
-            self.ChannelThumbnail,
-            self.ChannelDescription,
-        ):
-            if orm_class._discriminator_ == payload.metadata_type:  # pylint: disable=W0212
-                obj = orm_class.from_payload(payload)
-                missing_deps = self.check_for_missing_dependencies(obj)
-                return [ProcessingResult(md_obj=obj, obj_state=ObjState.UNKNOWN_OBJECT, missing_deps=missing_deps)]
-        return []
-
-    @db_session
-    def check_for_missing_dependencies(self, node, include_newer=False):
-        """
-        This method checks the given ORM node (object) for missing dependencies, such as thumbnails and/or
-        descriptions. To do so, it checks for existence of special dependency flags in the object's
-        "reserved_flags" field and checks for existence of the corresponding dependencies in the local database.
-        For each missing dependency it will generate a query in the "get_entry" format that should be addressed to the
-        peer that sent the original payload/node/object.
-        If include_newer argument is true, it will generate a query even if the dependencies exist in the local
-        database. However, this query will limit the selection to dependencies with a higher timestamp than that
-        of the local versions. Effectively, this query asks the remote peer for updates on dependencies. Thus,
-        it should only be issued when it is known that the parent object was updated.
-        """
-        if node.metadata_type not in (CHANNEL_TORRENT, COLLECTION_NODE):
-            return []
-
-        result = []
-        for flag, dep_type in ((node.description_flag, CHANNEL_DESCRIPTION), (node.thumbnail_flag, CHANNEL_THUMBNAIL)):
-            if flag:
-                dep_node = self.ChannelNode.select(
-                    lambda g: g.origin_id == node.id_
-                    and g.public_key == node.public_key
-                    # pylint: disable=cell-var-from-loop
-                    and g.metadata_type == dep_type
-                ).first()
-                request_dict = {
-                    "metadata_type": [dep_type],
-                    "channel_pk": node.public_key,
-                    "origin_id": node.id_,
-                    "first": 0,
-                    "last": 1,
-                }
-                if not dep_node:
-                    result.append(request_dict)
-                elif include_newer:
-                    request_dict["attribute_ranges"] = (("timestamp", dep_node.timestamp + 1, None),)
-                    result.append(request_dict)
-        return result
-
-    @db_session
-    def update_channel_node(self, node, payload, skip_personal_metadata_payload=True):
-        # The received metadata has newer version than the stuff we got, so we have to update our version.
-        if node.timestamp < payload.timestamp:
-            # If we received a metadata payload signed by ourselves we simply ignore it since we are the only
-            # authoritative source of information about our own channel.
-            if payload.public_key == self.my_public_key_bin and skip_personal_metadata_payload:
-                return []
-
-            # Update local metadata entry
-            if node.metadata_type == payload.metadata_type:
-                node.set(**payload.to_dict())
-                return [ProcessingResult(md_obj=node, obj_state=ObjState.UPDATED_OUR_VERSION)]
-            # Workaround for the corner case of remote change of md type.
-            # We delete the original node and replace it with the updated one.
-            for orm_class in (self.ChannelMetadata, self.CollectionNode):
-                if orm_class._discriminator_ == payload.metadata_type:  # pylint: disable=W0212
-                    node.delete()
-                    obj = orm_class.from_payload(payload)
-                    return [ProcessingResult(md_obj=obj, obj_state=ObjState.UPDATED_OUR_VERSION)]
-            self._logger.warning(
-                f"Tried to update channel node to illegal type: "
-                f" original type: {node.metadata_type}"
-                f" updated type: {payload.metadata_type}"
-                f" {hexlify(payload.public_key)}, {payload.id_} "
-            )
-            return []
-
-        if node.timestamp > payload.timestamp:
-            return [ProcessingResult(md_obj=node, obj_state=ObjState.GOT_NEWER_VERSION)]
-        # Otherwise, we got the same version locally and do nothing.
-        # Nevertheless, it is important to indicate to upper levels that we recognised
-        # the entry, for e.g. channel votes bumping
-        return [ProcessingResult(md_obj=node, obj_state=ObjState.GOT_SAME_VERSION)]
+    def process_payload(self, payload, **kwargs):
+        return process_payload(self, payload, **kwargs)
 
     @db_session
     def get_num_channels(self):

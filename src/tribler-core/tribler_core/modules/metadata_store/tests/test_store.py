@@ -16,6 +16,7 @@ import pytest
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
+from tribler_core.modules.metadata_store.payload_checker import ObjState, ProcessingResult
 from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_TORRENT,
     ChannelMetadataPayload,
@@ -23,7 +24,6 @@ from tribler_core.modules.metadata_store.serialization import (
     SignedPayload,
     UnknownBlobTypeException,
 )
-from tribler_core.modules.metadata_store.store import ObjState, ProcessingResult
 from tribler_core.modules.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import str_path
@@ -78,9 +78,12 @@ def test_process_channel_dir_file(tmpdir, metadata_store):
 
     # Test whether we delete existing metadata when loading a DeletedMetadata blob
     metadata = metadata_store.TorrentMetadata(infohash=b'1' * 20)
+    public_key = metadata.public_key
     metadata.to_delete_file(metadata_path)
     metadata_sig = metadata.signature
-    loaded_metadata = metadata_store.process_mdblob_file(metadata_path, skip_personal_metadata_payload=False)
+    loaded_metadata = metadata_store.process_mdblob_file(
+        metadata_path, skip_personal_metadata_payload=False, channel_public_key=public_key
+    )
     assert loaded_metadata == []
     # Make sure the original metadata is deleted
     assert metadata_store.TorrentMetadata.get(signature=metadata_sig) is None
@@ -281,11 +284,11 @@ def test_process_payload(metadata_store):
         # Check if node metadata object is properly created on payload processing
         result = metadata_store.process_payload(node_payload)[0]
 
-        assert result.obj_state == ObjState.UNKNOWN_OBJECT
+        assert result.obj_state == ObjState.NEW_OBJECT
         assert node_dict['metadata_type'] == result.md_obj.to_dict()['metadata_type']
 
         # Check that nothing happens in case in case we already know about the local node
-        assert metadata_store.process_payload(node_payload)[0].obj_state == ObjState.GOT_SAME_VERSION
+        assert metadata_store.process_payload(node_payload)[0].obj_state == ObjState.LOCAL_VERSION_SAME
 
 
 @db_session
@@ -305,19 +308,11 @@ def test_process_payload_ffa(metadata_store):
 
     # Add an FFA from the payload
     result = metadata_store.process_payload(ffa_payload)[0]
-    assert result.obj_state == ObjState.UNKNOWN_OBJECT
+    assert result.obj_state == ObjState.NEW_OBJECT
     assert metadata_store.TorrentMetadata.get(title=ffa_title)
 
     # Assert that older FFAs are never replaced by newer ones with the same infohash
     assert metadata_store.process_payload(ffa_payload) == []
-
-
-@db_session
-def test_get_parents_ids(metadata_store):
-    channel = metadata_store.ChannelMetadata(infohash=database_blob(random_infohash()))
-    folder = metadata_store.CollectionNode(origin_id=channel.id_)
-    torrent = metadata_store.TorrentMetadata(origin_id=folder.id_, infohash=database_blob(random_infohash()))
-    assert (0, channel.id_, folder.id_) == torrent.get_parents_ids()
 
 
 @db_session
@@ -337,7 +332,7 @@ def test_process_payload_with_known_channel_public_key(metadata_store):
     # Check accepting a payload with matching public key
     assert (
         metadata_store.process_payload(payload, channel_public_key=key1.pub().key_to_bin()[10:])[0].obj_state
-        == ObjState.UNKNOWN_OBJECT
+        == ObjState.NEW_OBJECT
     )
     assert metadata_store.TorrentMetadata.get()
 
@@ -383,14 +378,14 @@ def test_process_payload_reject_older(metadata_store):
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
-    assert metadata_store.process_payload(payload)[0].obj_state == ObjState.UNKNOWN_OBJECT
+    assert metadata_store.process_payload(payload)[0].obj_state == ObjState.NEW_OBJECT
     assert metadata_store.TorrentMetadata.get(title='blabla')
 
 
 @db_session
 def test_process_payload_reject_older_entry(metadata_store):
     """
-    Test rejecting and returning GOT_NEWER_VERSION upon receiving an older version
+    Test rejecting and returning LOCAL_VERSION_NEWER upon receiving an older version
     of an already known metadata entry
     """
     key = default_eccrypto.generate_key("curve25519")
@@ -405,7 +400,7 @@ def test_process_payload_reject_older_entry(metadata_store):
     )
     # Test rejecting older version of the same entry
     assert metadata_store.process_payload(payload_old, skip_personal_metadata_payload=False)[0] == ProcessingResult(
-        md_obj=torrent_updated, obj_state=ObjState.GOT_NEWER_VERSION
+        md_obj=torrent_updated, obj_state=ObjState.LOCAL_VERSION_NEWER
     )
 
 

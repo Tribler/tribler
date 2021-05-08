@@ -931,16 +931,18 @@ def test_delete_recursive(metadata_store):
 
 
 @db_session
-def test_get_parent_ids(metadata_store):
+def test_get_parents(metadata_store):
     """
     Test the routine that gets the full set (path) of a node's predecessors in the channels tree
     """
-    src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
+    key = default_eccrypto.generate_key("curve25519")
+    src_chan = create_ext_chan(metadata_store, key)
     coll1 = metadata_store.CollectionNode.select(lambda g: g.origin_id == src_chan.id_).first()
-    assert (0, src_chan.id_, coll1.id_) == coll1.contents.first().get_parents_ids()
+    torr1 = coll1.contents.first()
+    assert (src_chan, coll1, torr1) == torr1.get_parent_nodes()
 
     loop = metadata_store.CollectionNode(id_=777, origin_id=777)
-    assert 0 not in loop.get_parents_ids()
+    assert loop.get_parent_nodes() == (loop,)
 
 
 @db_session

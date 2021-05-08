@@ -13,8 +13,9 @@ from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
+from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.modules.metadata_store.store import MetadataStore, ObjState
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.utilities.unicode import hexlify
 
@@ -273,7 +274,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
 
         # If we know about updated versions of the received stuff, push the updates back
         if isinstance(request, SelectRequest) and self.settings.push_updates_back_enabled:
-            newer_entities = [r.md_obj for r in processing_results if r.obj_state == ObjState.GOT_NEWER_VERSION]
+            newer_entities = [r.md_obj for r in processing_results if r.obj_state == ObjState.LOCAL_VERSION_NEWER]
             self.send_db_results(peer, response_payload.id, newer_entities)
 
         if self.settings.channel_query_back_enabled:
@@ -281,7 +282,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
                 # Query back the sender for preview contents for the new channels
                 # The fact that the object is previously unknown is indicated by process_payload in the
                 # .obj_state property of returned ProcessingResults objects.
-                if result.obj_state == ObjState.UNKNOWN_OBJECT and result.md_obj.metadata_type in (
+                if result.obj_state == ObjState.NEW_OBJECT and result.md_obj.metadata_type in (
                     CHANNEL_TORRENT,
                     COLLECTION_NODE,
                 ):
