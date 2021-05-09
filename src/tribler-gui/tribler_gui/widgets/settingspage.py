@@ -298,10 +298,10 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             versions_info = tr("Versions: \n- %s") % version_dirs_str
 
             title = tr("Confirm delete older versions?")
-            message_body = (
-                tr("Are you sure to remove the selected versions? " "\nYou can not undo this action." "\n\n ")
-                % versions_info
+            message_body = tr("Are you sure to remove the selected versions? " "\nYou can not undo this action.") + (
+                "\n\n %s" % versions_info
             )
+
             message_buttons = QMessageBox.No | QMessageBox.Yes
         else:
             title = tr("No versions selected")
