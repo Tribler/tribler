@@ -8,7 +8,7 @@ import tribler_core.utilities.json_util as json
 from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
-    BUTTON_TYPE_NORMAL,
+    DARWIN,
     DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
@@ -19,16 +19,16 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_SEEDING,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.i18n import tr
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
+    AVAILABLE_TRANSLATIONS,
     connect,
     format_size,
-    get_checkbox_style,
     get_gui_setting,
     is_dir_writable,
     seconds_to_hhmm_string,
     string_to_seconds,
+    tr,
 )
 
 
@@ -40,10 +40,13 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.settings = None
-        self.saved_dialog = None
         self.version_history = VersionHistory(get_root_state_directory())
+        self.lang_list = sorted([lang_name for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items()])
+        self.lang_list.insert(0, tr("System default"))
 
     def initialize_settings_page(self):
+        if DARWIN:
+            self.window().minimize_to_tray_checkbox.setHidden(True)
         self.window().settings_tab.initialize()
         connect(self.window().settings_tab.clicked_tab_button, self.clicked_tab_button)
         connect(self.window().settings_save_button.clicked, self.save_settings)
@@ -55,28 +58,19 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().family_filter_checkbox.stateChanged, self.on_family_filter_checkbox_changed)
         connect(self.window().developer_mode_enabled_checkbox.stateChanged, self.on_developer_mode_checkbox_changed)
         connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
+        connect(self.window().minimize_to_tray_checkbox.stateChanged, self.on_minimize_to_tray_changed)
         connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
         connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
         connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
 
-        checkbox_style = get_checkbox_style()
-        for checkbox in [
-            self.window().family_filter_checkbox,
-            self.window().channel_autocommit_checkbox,
-            self.window().always_ask_location_checkbox,
-            self.window().developer_mode_enabled_checkbox,
-            self.window().use_monochrome_icon_checkbox,
-            self.window().download_settings_anon_checkbox,
-            self.window().download_settings_anon_seeding_checkbox,
-            self.window().lt_utp_checkbox,
-            self.window().watchfolder_enabled_checkbox,
-            self.window().allow_exit_node_checkbox,
-            self.window().developer_mode_enabled_checkbox,
-            self.window().checkbox_enable_network_statistics,
-            self.window().checkbox_enable_resource_log,
-            self.window().download_settings_add_to_channel_checkbox,
-        ]:
-            checkbox.setStyleSheet(checkbox_style)
+        self.window().language_selector.addItems(self.lang_list)
+
+        selected_lang_code = self.window().gui_settings.value('translation', None)
+        if selected_lang_code is not None:
+            for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items():
+                if selected_lang_code == lang_code:
+                    self.window().language_selector.setCurrentIndex(self.lang_list.index(lang_name))
+                    break
 
         self.update_stacked_widget_height()
 
@@ -94,6 +88,10 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         use_monochrome_icon = self.window().use_monochrome_icon_checkbox.isChecked()
         self.window().gui_settings.setValue("use_monochrome_icon", use_monochrome_icon)
         self.window().update_tray_icon(use_monochrome_icon)
+
+    def on_minimize_to_tray_changed(self, _):
+        minimize_to_tray = self.window().minimize_to_tray_checkbox.isChecked()
+        self.window().gui_settings.setValue("minimize_to_tray", minimize_to_tray)
 
     def on_anon_download_state_changed(self, _):
         if self.window().download_settings_anon_checkbox.isChecked():
@@ -149,7 +147,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         self.window().settings_stacked_widget.show()
         self.window().settings_tab.show()
-        self.window().settings_save_button.show()
 
         # General settings
         self.window().family_filter_checkbox.setChecked(
@@ -157,6 +154,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         )
         self.window().use_monochrome_icon_checkbox.setChecked(
             get_gui_setting(gui_settings, "use_monochrome_icon", False, is_bool=True)
+        )
+        self.window().minimize_to_tray_checkbox.setChecked(
+            get_gui_setting(gui_settings, "minimize_to_tray", False, is_bool=True)
         )
         self.window().download_location_input.setText(settings['download_defaults']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
@@ -332,7 +332,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def load_settings(self):
         self.window().settings_stacked_widget.hide()
         self.window().settings_tab.hide()
-        self.window().settings_save_button.hide()
 
         TriblerNetworkRequest("settings", self.initialize_with_settings)
 
@@ -515,8 +514,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         # network statistics
         settings_data['ipv8']['statistics'] = self.window().checkbox_enable_network_statistics.isChecked()
 
-        self.window().settings_save_button.setEnabled(False)
-
         # TODO: do it in RESTful style, on the REST return JSON instead
         # In case the default save dir has changed, add it to the top of the list of last download locations.
         # Otherwise, the user could absentmindedly click through the download dialog and start downloading into
@@ -526,6 +523,16 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.settings = settings_data
 
         TriblerNetworkRequest("settings", self.on_settings_saved, method='POST', raw_data=json.dumps(settings_data))
+
+    def save_language_selection(self):
+        ind = self.window().language_selector.currentIndex()
+        if ind < 0:
+            return
+        lang = self.lang_list[ind] if ind else None
+        selected_lang = AVAILABLE_TRANSLATIONS.get(lang)
+        if lang is None:
+            self.window().gui_settings.remove('translation')
+        self.window().gui_settings.setValue('translation', selected_lang)
 
     def on_settings_saved(self, data):
         if not data:
@@ -539,18 +546,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().gui_settings.setValue(
             "use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked()
         )
+        self.window().gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
+        self.save_language_selection()
+        self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
 
-        self.saved_dialog = ConfirmationDialog(
-            TriblerRequestManager.window,
-            tr("Settings saved"),
-            tr("Your settings have been saved."),
-            [(tr("CLOSE"), BUTTON_TYPE_NORMAL)],
-        )
-        connect(self.saved_dialog.button_clicked, self.on_dialog_cancel_clicked)
-        self.saved_dialog.show()
         self.window().fetch_settings()
-
-    def on_dialog_cancel_clicked(self, _):
-        self.window().settings_save_button.setEnabled(True)
-        self.saved_dialog.close_dialog()
-        self.saved_dialog = None

@@ -12,9 +12,8 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date
+from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
 
@@ -510,6 +509,12 @@ class ChannelContentModel(RemoteTableModel):
 
     def on_new_entry_received(self, response):
         self.on_query_results(response, remote=True)
+
+
+class ChannelPreviewModel(ChannelContentModel):
+    def perform_query(self, **kwargs):
+        kwargs["remote"] = True
+        super().perform_query(**kwargs)
 
 
 class SearchResultsModel(ChannelContentModel):

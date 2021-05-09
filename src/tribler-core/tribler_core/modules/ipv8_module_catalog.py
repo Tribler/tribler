@@ -178,7 +178,8 @@ class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunity
 @set_in_session('popularity_community')
 @overlay(popularity_community)
 @kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker')
-@walk_strategy(random_walk)
+@walk_strategy(random_walk, target_peers=30)
+@walk_strategy(remove_peers, target_peers=INFINITE)
 class PopularityCommunityLauncher(IPv8CommunityLauncher):
     pass
 

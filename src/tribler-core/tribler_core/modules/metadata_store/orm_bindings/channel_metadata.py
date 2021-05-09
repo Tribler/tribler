@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ipv8.database import database_blob
 
-import lz4.frame
+from lz4.frame import LZ4FrameCompressor
 
 from pony import orm
 from pony.orm import db_session, desc, raw_sql, select
@@ -23,7 +23,11 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     TODELETE,
     UPDATED,
 )
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, ChannelMetadataPayload
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    ChannelMetadataPayload,
+    HealthItemsPayload,
+)
 from tribler_core.utilities import path_util
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import str_path
@@ -35,6 +39,7 @@ CHANNEL_DIR_NAME_ID_LENGTH = 16  # Zero-padded long int in hex form
 CHANNEL_DIR_NAME_LENGTH = CHANNEL_DIR_NAME_PK_LENGTH + CHANNEL_DIR_NAME_ID_LENGTH
 BLOB_EXTENSION = '.mdblob'
 LZ4_END_MARK_SIZE = 4  # in bytes, from original specification. We don't use CRC
+HEALTH_ITEM_HEADER_SIZE = 4  # in bytes, len of varlenI header
 
 LZ4_EMPTY_ARCHIVE = unhexlify("04224d184040c000000000")
 
@@ -69,43 +74,137 @@ def get_mdblob_sequence_number(filename):
     return None
 
 
-def entries_to_chunk(metadata_list, chunk_size, start_index=0):
+def entries_to_chunk(metadata_list, chunk_size, start_index=0, include_health=False):
     """
-    For efficiency reasons, this is deliberately written in C style
     :param metadata_list: the list of metadata to process.
-    :param chunk_size: the desired chunk size limit, in bytes. The produced chunk's size will never exceed this value.
+    :param chunk_size: the desired chunk size limit, in bytes.
     :param start_index: the index of the element of metadata_list from which the processing should start.
+    :param include_health: if True, put metadata health information into the chunk.
     :return: (chunk, last_entry_index) tuple, where chunk is the resulting chunk in string form and
         last_entry_index is the index of the element of the input list that was put into the chunk the last.
     """
     # Try to fit as many blobs into this chunk as permitted by chunk_size and
     # calculate their ends' offsets in the blob
+    if start_index >= len(metadata_list):
+        raise Exception('Could not serialize chunk: incorrect start_index', metadata_list, chunk_size, start_index)
 
-    last_entry_index = start_index - 1
-    with lz4.frame.LZ4FrameCompressor(auto_flush=True) as c:
-        header = c.begin()
-        offset = len(header)
-        out_list = [header]  # LZ4 header
-        for index, metadata in enumerate(metadata_list[start_index:], start_index):
-            blob = c.compress(metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized())
-            # Chunk size limit reached?
-            if offset + len(blob) > (chunk_size - LZ4_END_MARK_SIZE):
-                # Special case: if the blob size is bigger than the chunk size, put the blob into a separate chunk.
-                # This lets higher levels to decide what to do in this case, e.g. send it through EVA protocol.
-                if last_entry_index == start_index - 1:
-                    last_entry_index = index
-                    out_list.append(blob)
-                break
-            # Now that we know it will fit in, we can safely append it
-            offset += len(blob)
-            last_entry_index = index
-            out_list.append(blob)
-        out_list.append(c.flush())  # LZ4 end mark
+    compressor = MetadataCompressor(chunk_size, include_health)
+    index = start_index
+    while index < len(metadata_list):
+        metadata = metadata_list[index]
+        was_able_to_add = compressor.put(metadata)
+        if not was_able_to_add:
+            break
+        index += 1
 
-    chunk = b''.join(out_list)
-    if last_entry_index + 1 <= start_index:
-        raise Exception('Could not serialize chunk!', metadata_list, chunk_size, start_index)
-    return chunk, last_entry_index + 1
+    return compressor.close(), index
+
+
+class MetadataCompressor:
+    """
+    This class provides methods to put serialized data of one or more metadata entries into a single binary chunk.
+
+    The data is added incrementally until it stops fitting into the designated chunk size. The first entry is added
+    regardless of violating the chunk size limit.
+
+    The chunk format is:
+
+        <LZ4-compressed sequence of serialized metadata entries>
+        [<optional HealthItemsPayload>]
+
+    The optional health information is serialized separately, as it was not originally included in the serialized
+    metadata format. If present, it contains the same number of items as the serialized list of metadata
+    entries. The N-th health info item in the health block corresponds to the N-th metadata entry.
+
+    For the details of the health info format see the documentation: doc/metadata_store/serialization_format.rst
+
+    While it is possible to put the health info items into the second LZ4-compressed frame, it is more efficient to
+    serialize them without any compression. The reason for this is that a typical health info item has a 1-byte
+    length (about 17 bytes if a torrent has actual health information), and the number of items is few for a single
+    chunk (usually less then 10 items). If we use LZ4 compressor, we want to use it incrementally in order to detect
+    when items stop fitting into a chunk. LZ4 algorithm cannot compress such small items efficiently in an incremental
+    fashion, and the resulting "compressed" size can be significantly bigger than the original data size.
+    """
+
+    def __init__(self, chunk_size: int, include_health: bool = False):
+        """
+        :param chunk_size: the desired chunk size limit, in bytes.
+        :param include_health: if True, put metadata health information into the chunk.
+        """
+        self.chunk_size = chunk_size
+        self.include_health = include_health
+        self.compressor = LZ4FrameCompressor(auto_flush=True)
+        # The next line is not necessary, added just to be safe
+        # in case of possible future changes of LZ4FrameCompressor
+        assert self.compressor.__enter__() is self.compressor
+
+        metadata_header: bytes = self.compressor.begin()
+        self.count = 0
+        self.size = len(metadata_header) + LZ4_END_MARK_SIZE
+        self.metadata_buffer = [metadata_header]
+
+        if include_health:
+            self.health_buffer = []
+            self.size += HEALTH_ITEM_HEADER_SIZE
+        else:
+            self.health_buffer = None
+
+        self.closed = False
+
+    def put(self, metadata) -> bool:
+        """
+        Tries to add a metadata entry to chunk. The first entry is always added successfully. Then next entries are
+        added only if it possible to fit data into the chunk.
+
+        :param metadata: a metadata entry to process.
+        :return: False if it was not possible to fit data into the chunk
+        """
+        if self.closed:
+            raise TypeError('Compressor is already closed')
+
+        metadata_bytes = metadata.serialized_delete() if metadata.status == TODELETE else metadata.serialized()
+        compressed_metadata_bytes = self.compressor.compress(metadata_bytes)
+        new_size = self.size + len(compressed_metadata_bytes)
+        health_bytes = b''  # To satisfy linter
+        if self.include_health:
+            health_bytes = metadata.serialized_health()
+            new_size += len(health_bytes)
+
+        if new_size > self.chunk_size and self.count > 0:
+            # The first entry is always added even if the resulted size exceeds the chunk size.
+            # This lets higher levels to decide what to do in this case, e.g. send it through EVA protocol.
+            return False
+
+        self.count += 1
+        self.size = new_size
+        self.metadata_buffer.append(compressed_metadata_bytes)
+        if self.include_health:
+            self.health_buffer.append(health_bytes)
+
+        return True
+
+    def close(self) -> bytes:
+        """
+        Closes compressor object and returns packed data.
+
+        :return: serialized binary data
+        """
+        if self.closed:
+            raise TypeError('Compressor is already closed')
+        self.closed = True
+
+        end_mark = self.compressor.flush()
+        self.metadata_buffer.append(end_mark)
+        result = b''.join(self.metadata_buffer)
+
+        # The next lines aren't necessary, added just to be safe
+        # in case of possible future changes of LZ4FrameCompressor
+        self.compressor.__exit__(None, None, None)
+
+        if self.include_health:
+            result += HealthItemsPayload(b''.join(self.health_buffer)).serialize()
+
+        return result
 
 
 def define_binding(db):  # pylint: disable=R0915

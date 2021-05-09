@@ -9,10 +9,9 @@ from tribler_core.utilities.unicode import ensure_unicode
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path, is_dir_writable
+from tribler_gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):

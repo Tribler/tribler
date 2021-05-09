@@ -208,6 +208,9 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             """
             return b''.join(self._serialized_delete())
 
+        def serialized_health(self) -> bytes:
+            return b';'
+
         def to_file(self, filename, key=None):
             with open(str_path(filename), 'wb') as output_file:
                 output_file.write(self.serialized(key))

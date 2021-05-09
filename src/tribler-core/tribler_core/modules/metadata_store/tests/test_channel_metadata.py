@@ -8,15 +8,22 @@ from unittest.mock import Mock, patch
 from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
+from lz4.frame import LZ4FrameDecompressor
+
 from pony.orm import ObjectNotFound, db_session
 
 import pytest
 
 from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
+from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
+    CHANNEL_DIR_NAME_LENGTH,
+    MetadataCompressor,
+    entries_to_chunk,
+)
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.store import HealthItemsPayload
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.utilities import path_util
 from tribler_core.utilities.random_utils import random_infohash
@@ -934,3 +941,152 @@ def test_get_parent_ids(metadata_store):
 
     loop = metadata_store.CollectionNode(id_=777, origin_id=777)
     assert 0 not in loop.get_parents_ids()
+
+
+@db_session
+def test_metadata_compressor():
+    SERIALIZED_METADATA = f"<{'S' * 1000}>".encode('ascii')
+    SERIALIZED_DELETE = f"<{'D' * 100}>".encode('ascii')
+    SERIALIZED_HEALTH = "1,2,1234567890;".encode('ascii')
+
+    metadata = Mock()
+    metadata.status = NEW
+    metadata.serialized = Mock(return_value=SERIALIZED_METADATA)
+    metadata.serialized_delete = Mock(return_value=SERIALIZED_DELETE)
+    metadata.serialized_health = Mock(return_value=SERIALIZED_HEALTH)
+
+    def add_items(mc: MetadataCompressor, expected_items_count: int):
+        prev_size = 0
+        for i in range(1, 1000):
+            item_was_added = mc.put(metadata)
+            if not item_was_added:
+                assert mc.count == i - 1  # last item was not added
+                assert mc.count == expected_items_count  # compressor was able to add 10 items only
+                break
+
+            assert mc.count == i  # after the element was successfully added, the count should increase
+            assert mc.size > prev_size  # with each item the total size should become bigger
+            prev_size = mc.size
+        else:
+            assert False  # too many items was added, something is wrong
+
+        assert prev_size < mc.chunk_size  # total size should fit into the chunk
+
+        assert not mc.closed
+        result = mc.close()
+        assert mc.closed
+        assert isinstance(result, bytes)
+        assert len(result) == prev_size
+        assert len(result) < len(SERIALIZED_METADATA) * expected_items_count  # our test data should be easy to compress
+
+        return result
+
+    # compressing a normal data without a health info
+
+    mc = MetadataCompressor(200)
+    assert mc.chunk_size == 200
+    assert not mc.include_health  # include_health is False by default
+    assert mc.count == 0  # no items added yet
+
+    expected_items_count = 10  # chunk of size 200 should be enough to put 10 test items
+    data = add_items(mc, expected_items_count)
+
+    d = LZ4FrameDecompressor()
+    decompressed = d.decompress(data)
+    assert decompressed == SERIALIZED_METADATA * expected_items_count  # check the correctness of the decompressed data
+    unused_data = d.unused_data
+    assert not unused_data  # if health info is not included, no unused_data should be placed after the LZ4 frame
+
+    assert metadata.serialized_health.assert_not_called
+    assert metadata.serialized_delete.assert_not_called
+
+    # cannot operate on closed MetadataCompressor
+
+    with pytest.raises(TypeError, match='^Compressor is already closed$'):
+        mc.put(metadata)
+
+    with pytest.raises(TypeError, match='^Compressor is already closed$'):
+        mc.close()
+
+    # chunk size is not enough even for a single item
+
+    mc = MetadataCompressor(10)
+    added = mc.put(metadata)
+    # first item should be added successfully even if the size of compressed item is bigger than the chunk size
+    assert added
+    size = mc.size
+    assert size > mc.chunk_size
+
+    added = mc.put(metadata)
+    assert not added  # second item was not added
+    assert mc.count == 1
+    assert mc.size == size  # size was not changed
+
+    data = mc.close()
+    d = LZ4FrameDecompressor()
+    decompressed = d.decompress(data)
+    assert decompressed == SERIALIZED_METADATA
+
+    # include health info
+
+    mc = MetadataCompressor(200, True)
+    assert mc.include_health
+
+    expected_items_count = 5  # with health info we can put at most 10 test items into the chunk of size 200
+    data = add_items(mc, expected_items_count)
+
+    d = LZ4FrameDecompressor()
+    decompressed = d.decompress(data)
+    assert decompressed == SERIALIZED_METADATA * expected_items_count  # check the correctness of the decompressed data
+    unused_data = d.unused_data
+
+    assert metadata.serialized_health.assert_called
+    assert metadata.serialized_delete.assert_not_called
+
+    health_items = HealthItemsPayload.unpack(unused_data)
+    assert len(health_items) == expected_items_count
+    for health_item in health_items:
+        assert health_item == (1, 2, 1234567890)
+
+
+def test_unpack_health_items():
+    data = HealthItemsPayload(b';;1,2,3;;4,5,6,foo,bar;7,8,9,baz;;ignored data').serialize()
+    items = HealthItemsPayload.unpack(data)
+    assert items == [
+        (0, 0, 0),
+        (0, 0, 0),
+        (1, 2, 3),
+        (0, 0, 0),
+        (4, 5, 6),
+        (7, 8, 9),
+        (0, 0, 0),
+    ]
+
+
+def test_parse_health_data_item():
+    item = HealthItemsPayload.parse_health_data_item(b'')
+    assert item == (0, 0, 0)
+
+    item = HealthItemsPayload.parse_health_data_item(b'invalid item')
+    assert item == (0, 0, 0)
+
+    item = HealthItemsPayload.parse_health_data_item(b'1,2,3')
+    assert item == (1, 2, 3)
+
+    item = HealthItemsPayload.parse_health_data_item(b'-1,2,3')
+    assert item == (0, 0, 0)
+
+    item = HealthItemsPayload.parse_health_data_item(b'1,-2,3')
+    assert item == (0, 0, 0)
+
+    item = HealthItemsPayload.parse_health_data_item(b'1,2,-3')
+    assert item == (0, 0, 0)
+
+    item = HealthItemsPayload.parse_health_data_item(b'100,200,300')
+    assert item == (100, 200, 300)
+
+    item = HealthItemsPayload.parse_health_data_item(b'2,3,4,5,6,7')
+    assert item == (2, 3, 4)
+
+    item = HealthItemsPayload.parse_health_data_item(b'3,4,5,some arbitrary,data,foo,,bar')
+    assert item == (3, 4, 5)

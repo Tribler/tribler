@@ -11,17 +11,15 @@ import tribler_core.utilities.json_util as json
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
     connect,
     format_size,
-    get_checkbox_style,
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
-    quote_plus_unicode,
+    quote_plus_unicode, tr,
 )
 
 
@@ -86,15 +84,6 @@ class StartDownloadDialog(DialogContainer):
         """
             % get_image_path('down_arrow_input.png')
         )
-
-        # self.dialog_widget.add_to_channel_checkbox.setStyleSheet(get_checkbox_style())
-        checkbox_style = get_checkbox_style()
-        for checkbox in [
-            self.dialog_widget.add_to_channel_checkbox,
-            self.dialog_widget.safe_seed_checkbox,
-            self.dialog_widget.anon_download_checkbox,
-        ]:
-            checkbox.setStyleSheet(checkbox_style)
 
         if self.window().tribler_settings:
             # Set the most recent download locations in the QComboBox

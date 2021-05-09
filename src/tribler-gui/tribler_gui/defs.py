@@ -1,6 +1,7 @@
 """
 This file contains various definitions used by the Tribler GUI.
 """
+import sys
 from collections import namedtuple
 
 DEFAULT_API_PROTOCOL = "http"
@@ -222,3 +223,6 @@ MB = 1024 * KB
 GB = 1024 * MB
 TB = 1024 * GB
 PB = 1024 * TB
+
+DARWIN = sys.platform == 'darwin'
+WINDOWS = sys.platform == 'win32'

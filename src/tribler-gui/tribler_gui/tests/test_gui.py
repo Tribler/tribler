@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt5.QtCore import QPoint, QProcess, QProcessEnvironment, QTimer, Qt
+from PyQt5.QtCore import QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
@@ -36,7 +36,7 @@ def window(api_port):
     tribler_gui.defs.DEFAULT_API_PORT = api_port
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
-    window = TriblerWindow(api_port=api_port)
+    window = TriblerWindow(settings=QSettings(), api_port=api_port)  # pylint: disable=W0621
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 
@@ -358,8 +358,16 @@ def test_search_suggestions(tribler_api, window):
 def test_search(tribler_api, window):
     window.top_search_bar.setText("trib")
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
+    wait_for_variable(window, "search_results_page.search_request")
+    screenshot(window, name="search_loading_page")
+    QTest.mouseClick(window.search_results_page.show_results_button, Qt.LeftButton)
     tst_channels_widget(
-        window, window.search_results_page, "search_results", sort_column=2, test_filter=False, test_subscribe=False
+        window,
+        window.search_results_page.results_page,
+        "search_results",
+        sort_column=2,
+        test_filter=False,
+        test_subscribe=False,
     )
 
 

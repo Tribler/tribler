@@ -9,9 +9,8 @@ from PyQt5.QtWidgets import QFileDialog, QPushButton
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_image_path, get_ui_file_path
+from tribler_gui.utilities import connect, get_image_path, get_ui_file_path, tr
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('channel_description.ui'))
 

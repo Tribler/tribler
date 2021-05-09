@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1058</width>
-    <height>882</height>
+    <height>867</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -99,7 +99,10 @@ qproperty-defaultAlignment: AlignLeft;
 }
 QListView {
 color:#B5B5B5;
-}</string>
+}
+
+QCheckBox { color:#B5B5B5; }
+QCheckBox::indicator:unchecked {border: 1px solid #555;}</string>
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
@@ -957,6 +960,19 @@ QPushButton::menu-indicator{width:0px;}</string>
           </spacer>
          </item>
          <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
             <widget class="ChannelsMenuListWidget" name="channels_menu_list">
@@ -1048,7 +1064,7 @@ QListWidget::item:disabled
         <property name="currentIndex">
          <number>1</number>
         </property>
-        <widget class="ChannelContentsWidget" name="search_results_page"/>
+        <widget class="SearchResultsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
@@ -1185,9 +1201,6 @@ margin: 10px;</string>
               <number>0</number>
              </property>
              <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
               <number>0</number>
              </property>
              <property name="bottomMargin">
@@ -1482,7 +1495,7 @@ border-top: 1px solid #555;
                <x>0</x>
                <y>0</y>
                <width>854</width>
-               <height>712</height>
+               <height>697</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -1535,7 +1548,10 @@ border: 0px;
 }
 QStackedWidget {
 background-color: #202020;
-}</string>
+}
+
+QCheckBox{margin-left: 10px;}
+</string>
                 </property>
                 <property name="currentIndex">
                  <number>0</number>
@@ -1557,7 +1573,7 @@ background-color: #202020;
                   <property name="formAlignment">
                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                   </property>
-                  <item row="0" column="0">
+                  <item row="1" column="0">
                    <widget class="QLabel" name="label_35">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
@@ -1568,43 +1584,25 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="1" column="0">
-                   <widget class="QLabel" name="label_37">
-                    <property name="text">
-                     <string>Family filter enabled?
-(requires Tribler restart)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="1">
+                  <item row="2" column="0">
                    <widget class="QCheckBox" name="family_filter_checkbox">
                     <property name="text">
-                     <string/>
+                     <string>Family filter enabled? (requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="2" column="0">
+                  <item row="3" column="0">
                    <widget class="QLabel" name="label_4">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Download location</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="0">
-                   <widget class="QLabel" name="label_5">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Save files to:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="1">
+                  <item row="4" column="0">
                    <widget class="QWidget" name="settings_download_location_widget" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_8">
                      <property name="spacing">
@@ -1622,6 +1620,26 @@ color: white;</string>
                      <property name="bottomMargin">
                       <number>0</number>
                      </property>
+                     <item>
+                      <widget class="QLabel" name="label_5">
+                       <property name="text">
+                        <string>Save files to:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>15</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
                      <item>
                       <widget class="QLineEdit" name="download_location_input">
                        <property name="sizePolicy">
@@ -1688,136 +1706,57 @@ color: white;</string>
                     </layout>
                    </widget>
                   </item>
-                  <item row="4" column="0">
-                   <widget class="QLabel" name="label_6">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Always ask download
-settings?</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="4" column="1">
-                   <widget class="QCheckBox" name="always_ask_location_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="5" column="0">
+                   <widget class="QCheckBox" name="always_ask_location_checkbox">
+                    <property name="text">
+                     <string>Always ask download settings?</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="6" column="0">
                    <widget class="QLabel" name="default_download_settings_header">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Default download settings</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="6" column="0">
-                   <widget class="QLabel" name="download_settings_anon_label">
-                    <property name="text">
-                     <string>Download anonymously
-using proxies</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="6" column="1">
-                   <widget class="QCheckBox" name="download_settings_anon_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="7" column="0">
-                   <widget class="QLabel" name="download_settings_anon_seeding_label">
+                   <widget class="QCheckBox" name="download_settings_anon_checkbox">
                     <property name="text">
-                     <string>Encrypted anonymous
-seeding using proxies</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="7" column="1">
-                   <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
+                     <string>Download anonymously using proxies</string>
                     </property>
                    </widget>
                   </item>
                   <item row="8" column="0">
-                   <widget class="QLabel" name="download_settings_add_to_channel_label">
-                    <property name="styleSheet">
-                     <string notr="true"/>
+                   <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
+                    <property name="text">
+                     <string>Encrypted anonymous seeding using proxies</string>
                     </property>
+                   </widget>
+                  </item>
+                  <item row="9" column="0">
+                   <widget class="QCheckBox" name="download_settings_add_to_channel_checkbox">
                     <property name="text">
                      <string>Add torrent to My channel</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="8" column="1">
-                   <widget class="QCheckBox" name="download_settings_add_to_channel_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 10px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="9" column="0">
+                  <item row="10" column="0">
                    <widget class="QLabel" name="label_22">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Watch Folder</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="10" column="0">
-                   <widget class="QLabel" name="label_23">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Enable watch folder?</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="10" column="1">
-                   <widget class="QCheckBox" name="watchfolder_enabled_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 2px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="11" column="0">
-                   <widget class="QLabel" name="label_24">
-                    <property name="styleSheet">
-                     <string notr="true"/>
-                    </property>
-                    <property name="text">
-                     <string>Location:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="11" column="1">
                    <widget class="QWidget" name="settings_watch_folder_widget" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_watchfolder">
                      <property name="spacing">
@@ -1835,6 +1774,26 @@ color: white;</string>
                      <property name="bottomMargin">
                       <number>0</number>
                      </property>
+                     <item>
+                      <widget class="QCheckBox" name="watchfolder_enabled_checkbox">
+                       <property name="text">
+                        <string>Torrent watch folder</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_5">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>15</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
                      <item>
                       <widget class="QLineEdit" name="watchfolder_location_input">
                        <property name="sizePolicy">
@@ -1905,55 +1864,75 @@ color: white;</string>
                    <widget class="QLabel" name="label_31">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px</string>
                     </property>
                     <property name="text">
-                     <string>Monochrome tray icon</string>
+                     <string>Tray Icon</string>
                     </property>
                    </widget>
                   </item>
                   <item row="13" column="0">
-                   <widget class="QLabel" name="label_32">
+                   <widget class="QCheckBox" name="minimize_to_tray_checkbox">
                     <property name="text">
-                     <string>Use monochrome icon?</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="13" column="1">
-                   <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
-                    <property name="styleSheet">
-                     <string notr="true">margin-top: 2px;</string>
-                    </property>
-                    <property name="text">
-                     <string/>
+                     <string notr="true">Minimize to system tray?</string>
                     </property>
                    </widget>
                   </item>
                   <item row="14" column="0">
+                   <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
+                    <property name="text">
+                     <string notr="true">Use monochrome icon?</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="15" column="0">
                    <widget class="QLabel" name="label_42">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
-color: white;</string>
+color: white;margin-top:10px;</string>
                     </property>
                     <property name="text">
                      <string>Personal channel settings</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="15" column="0">
-                   <widget class="QLabel" name="label_43">
+                  <item row="16" column="0">
+                   <widget class="QCheckBox" name="channel_autocommit_checkbox">
                     <property name="text">
-                     <string>Commit changes automatically
-(requires Tribler restart)</string>
+                     <string>Commit changes automatically (requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="15" column="1">
-                   <widget class="QCheckBox" name="channel_autocommit_checkbox">
-                    <property name="text">
-                     <string/>
+                  <item row="0" column="0">
+                   <layout class="QFormLayout" name="formLayout_2">
+                    <property name="formAlignment">
+                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                     </property>
-                   </widget>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="language_selector_label">
+                      <property name="text">
+                       <string>Select interface language
+(requires Tribler restart)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QComboBox" name="language_selector">
+                      <property name="minimumSize">
+                       <size>
+                        <width>200</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </item>
                  </layout>
                 </widget>
@@ -3980,8 +3959,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>856</width>
-                       <height>388</height>
+                       <width>321</width>
+                       <height>259</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -5776,6 +5755,11 @@ margin: 10px 4px 2px 10px;</string>
    <extends>QListWidget</extends>
    <header>tribler_gui.widgets.channelsmenulistwidget.h</header>
   </customwidget>
+  <customwidget>
+   <class>SearchResultsWidget</class>
+   <extends>QWidget</extends>
+   <header>tribler_gui.widgets.searchresultswidget.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
@@ -5784,22 +5768,6 @@ margin: 10px 4px 2px 10px;</string>
    <signal>textChanged(QString)</signal>
    <receiver>MainWindow</receiver>
    <slot>on_search_text_change()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>308</x>
-     <y>24</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>427</x>
-     <y>317</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>top_search_bar</sender>
-   <signal>returnPressed()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_top_search_button_click()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>308</x>

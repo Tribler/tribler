@@ -5,8 +5,7 @@ from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.i18n import tr
-from tribler_gui.utilities import connect, get_ui_file_path
+from tribler_gui.utilities import connect, get_ui_file_path, tr
 from tribler_gui.widgets.ellipsebutton import EllipseButton
 
 

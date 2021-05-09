@@ -1,4 +1,3 @@
-import sys
 from math import floor
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
@@ -15,12 +14,14 @@ from tribler_gui.defs import (
     COMMIT_STATUS_TODELETE,
     COMMIT_STATUS_UPDATED,
     ContentCategories,
+    DARWIN,
     HEALTH_CHECKING,
     HEALTH_DEAD,
     HEALTH_ERROR,
     HEALTH_GOOD,
     HEALTH_MOOT,
     HEALTH_UNCHECKED,
+    WINDOWS,
 )
 from tribler_gui.utilities import format_votes, get_health, get_image_path
 from tribler_gui.widgets.tablecontentmodel import Column
@@ -32,9 +33,6 @@ TRIBLER_NEUTRAL = QColor("#B5B5B5")
 TRIBLER_ORANGE = QColor("#e67300")
 TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
-
-DARWIN = sys.platform == 'darwin'
-WINDOWS = sys.platform == 'win32'
 
 
 def draw_text(

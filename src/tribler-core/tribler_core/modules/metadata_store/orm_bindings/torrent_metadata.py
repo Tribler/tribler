@@ -78,9 +78,9 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             if "health" not in kwargs and "infohash" in kwargs:
-                kwargs["health"] = db.TorrentState.get_for_update(infohash=kwargs["infohash"]) or db.TorrentState(
-                    infohash=kwargs["infohash"]
-                )
+                infohash = kwargs["infohash"]
+                health = db.TorrentState.get_for_update(infohash=infohash) or db.TorrentState(infohash=infohash)
+                kwargs["health"] = health
             if 'xxx' not in kwargs:
                 kwargs["xxx"] = default_xxx_filter.isXXXTorrentMetadataDict(kwargs)
 
@@ -159,5 +159,11 @@ def define_binding(db):
         def get_torrent_title(cls, infohash):
             md = cls.get_with_infohash(infohash)
             return md.title if md else None
+
+        def serialized_health(self) -> bytes:
+            health = self.health
+            if not health or (not health.seeders and not health.leechers and not health.last_check):
+                return b';'
+            return b'%d,%d,%d;' % (health.seeders or 0, health.leechers or 0, health.last_check or 0)
 
     return TorrentMetadata

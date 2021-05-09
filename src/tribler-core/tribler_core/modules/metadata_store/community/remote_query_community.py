@@ -1,5 +1,6 @@
 import json
 import struct
+from asyncio import Future
 from binascii import unhexlify
 from dataclasses import dataclass
 
@@ -14,6 +15,7 @@ from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtoc
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore, ObjState
+from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -37,6 +39,23 @@ def sanitize_query(query_dict, cap=100):
             sanitized_dict[field] = unhexlify(value)
 
     return sanitized_dict
+
+
+def convert_to_json(parameters):
+    sanitized = dict(parameters)
+    # Convert frozenset to string
+    if "metadata_type" in sanitized:
+        sanitized["metadata_type"] = [int(mt) for mt in sanitized["metadata_type"] if mt]
+
+    for field in BINARY_FIELDS:
+        value = parameters.get(field)
+        if value is not None:
+            sanitized[field] = hexlify(value)
+
+    if "origin_id" in parameters:
+        sanitized["origin_id"] = int(parameters["origin_id"])
+
+    return json.dumps(sanitized)
 
 
 @vp_compile
@@ -77,6 +96,17 @@ class SelectRequest(RandomNumberCache):
     def on_timeout(self):
         if self.timeout_callback is not None:
             self.timeout_callback(self)
+
+
+class EvaSelectRequest(SelectRequest):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # For EVA transfer it is meaningless to send more than one message
+        self.packets_limit = 1
+
+        self.processing_results = Future()
+        self.register_future(self.processing_results, on_timeout=RequestTimeoutException())
 
 
 class PushbackWindow(NumberCache):
@@ -144,7 +174,8 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
 
     def send_remote_select(self, peer, processing_callback=None, force_eva_response=False, **kwargs):
-        request = SelectRequest(
+        request_class = EvaSelectRequest if force_eva_response else SelectRequest
+        request = request_class(
             self.request_cache,
             hexlify(peer.mid),
             kwargs,
@@ -155,11 +186,12 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         self.request_cache.add(request)
 
         self.logger.info(f"Select to {hexlify(peer.mid)} with ({kwargs})")
-        args = (request.number, json.dumps(kwargs).encode('utf8'))
+        args = (request.number, convert_to_json(kwargs).encode('utf8'))
         if force_eva_response:
             self.ez_send(peer, RemoteSelectPayloadEva(*args))
         else:
             self.ez_send(peer, RemoteSelectPayload(*args))
+        return request
 
     async def process_rpc_query(self, json_bytes: bytes):
         """
@@ -183,7 +215,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
             transfer_size = (
                 self.eva_protocol.binary_size_limit if force_eva_response else self.settings.maximum_payload_size
             )
-            data, index = entries_to_chunk(db_results, transfer_size, start_index=index)
+            data, index = entries_to_chunk(db_results, transfer_size, start_index=index, include_health=True)
             payload = SelectResponsePayload(request_payload_id, data)
             if force_eva_response or (len(data) > self.settings.maximum_payload_size):
                 self.eva_send_binary(
@@ -227,10 +259,6 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         if request is None:
             return
 
-        # Remember that at least a single packet was received was received from the queried peer.
-        if isinstance(request, SelectRequest):
-            request.peer_responded = True
-
         # Check for limit on the number of packets per request
         if request.packets_limit > 1:
             request.packets_limit -= 1
@@ -239,6 +267,9 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
 
         processing_results = await self.mds.process_compressed_mdblob_threaded(response_payload.raw_blob)
         self.logger.info(f"Response result: {processing_results}")
+
+        if isinstance(request, EvaSelectRequest) and not request.processing_results.done():
+            request.processing_results.set_result(processing_results)
 
         # If we know about updated versions of the received stuff, push the updates back
         if isinstance(request, SelectRequest) and self.settings.push_updates_back_enabled:
@@ -256,7 +287,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
                 ):
                     request_dict = {
                         "metadata_type": [COLLECTION_NODE, REGULAR_TORRENT],
-                        "channel_pk": hexlify(result.md_obj.public_key),
+                        "channel_pk": result.md_obj.public_key,
                         "origin_id": result.md_obj.id_,
                         "first": 0,
                         "last": self.settings.max_channel_query_back,
@@ -272,6 +303,10 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
 
         if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)
+
+        # Remember that at least a single packet was received was received from the queried peer.
+        if isinstance(request, SelectRequest):
+            request.peer_responded = True
 
     def _on_query_timeout(self, request_cache):
         if not request_cache.peer_responded:

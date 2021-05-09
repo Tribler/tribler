@@ -8,13 +8,12 @@ import time
 from base64 import b64encode
 from urllib.parse import quote, unquote, urlparse
 
-from PyQt5 import uic
+from PyQt5 import QtCore, uic
 from PyQt5.QtCore import (
     QCoreApplication,
     QDir,
     QObject,
     QPoint,
-    QSettings,
     QStringListModel,
     QTimer,
     QUrl,
@@ -39,7 +38,6 @@ from PyQt5.QtWidgets import (
 
 from tribler_common.network_utils import get_first_free_port
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -49,6 +47,7 @@ from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
+    DARWIN,
     DEFAULT_API_PORT,
     PAGE_CHANNEL_CONTENTS,
     PAGE_DISCOVERED,
@@ -68,7 +67,6 @@ from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.error_handler import ErrorHandler
-from tribler_gui.i18n import tr
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler_gui.utilities import (
@@ -77,15 +75,11 @@ from tribler_gui.utilities import (
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
-    is_dir_writable,
+    is_dir_writable, tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
-from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel, SearchResultsModel
-from tribler_gui.widgets.triblertablecontrollers import (
-    PopularContentTableViewController,
-    sanitize_for_fts,
-    to_fts_query,
-)
+from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
+from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController, sanitize_for_fts
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -106,7 +100,7 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def __init__(self, core_args=None, core_env=None, api_port=None, api_key=None):
+    def __init__(self, settings, core_args=None, core_env=None, api_port=None, api_key=None):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -116,7 +110,7 @@ class TriblerWindow(QMainWindow):
 
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
-        self.gui_settings = QSettings('nl.tudelft.tribler')
+        self.gui_settings = settings
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
         self.gui_settings.setValue("api_key", api_key)
@@ -141,7 +135,6 @@ class TriblerWindow(QMainWindow):
         self.new_version_dialog = None
         self.start_download_dialog_active = False
         self.selected_torrent_files = []
-        self.has_search_results = False
         self.last_search_query = None
         self.last_search_time = None
         self.start_time = time.time()
@@ -173,6 +166,7 @@ class TriblerWindow(QMainWindow):
         connect(self.add_torrent_url_shortcut.activated, self.on_add_torrent_from_url)
 
         connect(self.top_search_bar.clicked, self.clicked_search_bar)
+        connect(self.top_search_bar.returnPressed, self.on_top_search_bar_return_pressed)
 
         # Remove the focus rect on OS X
         for widget in self.findChildren(QLineEdit) + self.findChildren(QListWidget) + self.findChildren(QTreeWidget):
@@ -184,18 +178,22 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_trust_graph,
             self.left_menu_button_popular,
         ]
-        hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
-        self.search_results_page.initialize_content_page(hide_xxx=hide_xxx)
-        self.search_results_page.channel_torrents_filter_input.setHidden(True)
 
+        self.search_results_page.initialize(hide_xxx=self.hide_xxx)
+        connect(
+            self.core_manager.events_manager.received_remote_query_results,
+            self.search_results_page.received_remote_results.emit,
+        )
         self.settings_page.initialize_settings_page()
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
 
-        self.discovered_page.initialize_content_page(hide_xxx=hide_xxx)
+        self.discovered_page.initialize_content_page(hide_xxx=self.hide_xxx)
 
-        self.popular_page.initialize_content_page(hide_xxx=hide_xxx, controller_class=PopularContentTableViewController)
+        self.popular_page.initialize_content_page(
+            hide_xxx=self.hide_xxx, controller_class=PopularContentTableViewController
+        )
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -203,27 +201,25 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
         # Create the system tray icon
+        self.tray_icon = None
+        # System tray doesn't make sense on Mac
         if QSystemTrayIcon.isSystemTrayAvailable():
             self.tray_icon = QSystemTrayIcon()
+            if not DARWIN:
+                connect(self.tray_icon.activated, self.on_system_tray_icon_activated)
             use_monochrome_icon = get_gui_setting(self.gui_settings, "use_monochrome_icon", False, is_bool=True)
             self.update_tray_icon(use_monochrome_icon)
 
             # Create the tray icon menu
-            menu = self.create_add_torrent_menu()
-            show_downloads_action = QAction('Show downloads', self)
-            connect(show_downloads_action.triggered, self.clicked_menu_button_downloads)
-            token_balance_action = QAction('Show token balance', self)
-            connect(token_balance_action.triggered, lambda _: self.on_token_balance_click(None))
-            quit_action = QAction('Quit Tribler', self)
-            connect(quit_action.triggered, self.close_tribler)
+            menu = TriblerActionMenu(self)
+            menu.addAction(tr('Show Tribler window'), self.raise_window)
             menu.addSeparator()
-            menu.addAction(show_downloads_action)
-            menu.addAction(token_balance_action)
+            self.create_add_torrent_menu(menu)
             menu.addSeparator()
-            menu.addAction(quit_action)
+            menu.addAction(tr('Show downloads'), self.clicked_menu_button_downloads)
+            menu.addSeparator()
+            menu.addAction(tr('Quit Tribler'), self.close_tribler)
             self.tray_icon.setContextMenu(menu)
-        else:
-            self.tray_icon = None
 
         self.left_menu_button_debug.setHidden(True)
         self.top_menu_button.setHidden(True)
@@ -443,16 +439,15 @@ class TriblerWindow(QMainWindow):
         )
         self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
 
-        hide_xxx = get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
         self.discovered_page.initialize_root_model(
             DiscoveredChannelsModel(
-                channel_info={"name": tr("Discovered channels")}, endpoint_url="channels", hide_xxx=hide_xxx
+                channel_info={"name": tr("Discovered channels")}, endpoint_url="channels", hide_xxx=self.hide_xxx
             )
         )
         connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
 
         self.popular_page.initialize_root_model(
-            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=hide_xxx)
+            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=self.hide_xxx)
         )
         self.popular_page.explanation_text.setText(
             tr("This page show the list of popular torrents collected by Tribler during the last 24 hours.")
@@ -471,6 +466,10 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_discovered.setChecked(True)
 
         self.channels_menu_list.load_channels()
+
+    @property
+    def hide_xxx(self):
+        return get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
 
     def stop_discovering(self, response):
         if not self.discovering_page.is_discovering:
@@ -657,41 +656,6 @@ class TriblerWindow(QMainWindow):
 
         self.load_token_balance()
 
-    def on_top_search_button_click(self):
-        current_ts = time.time()
-        query = self.top_search_bar.text()
-
-        if (
-            self.last_search_query
-            and self.last_search_time
-            and self.last_search_query == self.top_search_bar.text()
-            and current_ts - self.last_search_time < 1
-        ):
-            logging.info("Same search query already sent within 500ms so dropping this one")
-            return
-
-        if not query:
-            return
-
-        self.has_search_results = True
-        self.search_results_page.initialize_root_model(
-            SearchResultsModel(
-                channel_info={"name": (tr("Search results for %s") % query) if len(query) < 50 else f"{query[:50]}..."},
-                endpoint_url="search",
-                hide_xxx=get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True),
-                text_filter=to_fts_query(query),
-                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
-            )
-        )
-
-        self.clicked_search_bar()
-
-        # Trigger remote search
-        self.search_results_page.preview_clicked()
-
-        self.last_search_query = query
-        self.last_search_time = current_ts
-
     def on_settings_button_click(self):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
@@ -732,16 +696,26 @@ class TriblerWindow(QMainWindow):
             balance /= 1024.0 ** 2
             self.token_balance_label.setText("%d MB" % balance)
 
+    def on_system_tray_icon_activated(self, reason):
+        if reason != QSystemTrayIcon.DoubleClick:
+            return
+
+        if self.isMinimized():
+            self.raise_window()
+        else:
+            self.setWindowState(self.windowState() | Qt.WindowMinimized)
+
     def raise_window(self):
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.show()
         self.raise_()
         self.activateWindow()
 
-    def create_add_torrent_menu(self):
+    def create_add_torrent_menu(self, menu=None):
         """
         Create a menu to add new torrents. Shows when users click on the tray icon or the big plus button.
         """
-        menu = TriblerActionMenu(self)
+        menu = menu if menu is not None else TriblerActionMenu(self)
 
         browse_files_action = QAction(tr("Import torrent from file"), self)
         browse_directory_action = QAction(tr("Import torrent(s) from directory"), self)
@@ -762,6 +736,7 @@ class TriblerWindow(QMainWindow):
         return menu
 
     def on_create_torrent(self, checked):
+        self.raise_window()  # For the case when the action is triggered by tray icon
         if self.create_dialog:
             self.create_dialog.close_dialog()
 
@@ -773,6 +748,7 @@ class TriblerWindow(QMainWindow):
         self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
 
     def on_add_torrent_browse_file(self, index):
+        self.raise_window()  # For the case when the action is triggered by tray icon
         filenames = QFileDialog.getOpenFileNames(
             self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
         )
@@ -854,6 +830,7 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def on_add_torrent_browse_dir(self, checked):
+        self.raise_window()  # For the case when the action is triggered by tray icon
         chosen_dir = QFileDialog.getExistingDirectory(
             self,
             tr("Please select the directory containing the .torrent files"),
@@ -970,10 +947,18 @@ class TriblerWindow(QMainWindow):
 
     def clicked_search_bar(self, checked=False):
         query = self.top_search_bar.text()
-        if query and self.has_search_results:
+        if query and self.search_results_page.has_results:
             self.deselect_all_menu_buttons()
             if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
-                self.search_results_page.go_back_to_level(0)
+                self.search_results_page.reset()
+            self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
+
+    def on_top_search_bar_return_pressed(self):
+        # Initiate a new search query and switch to search loading/results page
+        query = self.top_search_bar.text()
+        if query:
+            self.search_results_page.search(query)
+            self.deselect_all_menu_buttons()
             self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 
     def clicked_menu_button_discovered(self):
@@ -998,7 +983,7 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
 
-    def clicked_menu_button_downloads(self, checked):
+    def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.raise_window()
         self.left_menu_button_downloads.setChecked(True)
@@ -1020,6 +1005,7 @@ class TriblerWindow(QMainWindow):
         def show_force_shutdown():
             self.window().force_shutdown_btn.show()
 
+        self.raise_window()
         self.delete_tray_icon()
         self.show_loading_screen()
         self.hide_status_bar()
@@ -1050,6 +1036,18 @@ class TriblerWindow(QMainWindow):
     def closeEvent(self, close_event):
         self.close_tribler()
         close_event.ignore()
+
+    def event(self, event):
+        # Minimize to tray
+        if (
+            not DARWIN
+            and event.type() == QtCore.QEvent.WindowStateChange
+            and self.window().isMinimized()
+            and get_gui_setting(self.gui_settings, "minimize_to_tray", False, is_bool=True)
+        ):
+            self.window().hide()
+            return True
+        return super().event(event)
 
     def dragEnterEvent(self, e):
         file_urls = [_qurl_to_path(url) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
