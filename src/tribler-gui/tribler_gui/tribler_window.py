@@ -75,7 +75,8 @@ from tribler_gui.utilities import (
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
-    is_dir_writable, tr,
+    is_dir_writable,
+    tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
@@ -159,7 +160,7 @@ class TriblerWindow(QMainWindow):
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
-        connect(self.debug_pane_shortcut.activated, self.clicked_menu_button_debug)
+        connect(self.debug_pane_shortcut.activated, self.clicked_debug_panel_button)
         self.import_torrent_shortcut = QShortcut(QKeySequence("Ctrl+o"), self)
         connect(self.import_torrent_shortcut.activated, self.on_add_torrent_browse_file)
         self.add_torrent_url_shortcut = QShortcut(QKeySequence("Ctrl+i"), self)
@@ -175,7 +176,6 @@ class TriblerWindow(QMainWindow):
         self.menu_buttons = [
             self.left_menu_button_downloads,
             self.left_menu_button_discovered,
-            self.left_menu_button_trust_graph,
             self.left_menu_button_popular,
         ]
 
@@ -221,7 +221,7 @@ class TriblerWindow(QMainWindow):
             menu.addAction(tr('Quit Tribler'), self.close_tribler)
             self.tray_icon.setContextMenu(menu)
 
-        self.left_menu_button_debug.setHidden(True)
+        self.debug_panel_button.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
         self.token_balance_widget.setHidden(True)
@@ -256,11 +256,6 @@ class TriblerWindow(QMainWindow):
         """
         )
         self.top_search_bar.setCompleter(completer)
-
-        # Toggle debug if developer mode is enabled
-        self.window().left_menu_button_debug.setHidden(
-            not get_gui_setting(self.gui_settings, "debug", False, is_bool=True)
-        )
 
         # Start Tribler
         self.core_manager.start(core_args=core_args, core_env=core_env)
@@ -304,6 +299,8 @@ class TriblerWindow(QMainWindow):
             lambda data: self.channels_menu_list.reload_if_necessary([data]),
         )
         connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
+        connect(self.debug_panel_button.clicked, self.clicked_debug_panel_button)
+        connect(self.trust_graph_button.clicked, self.clicked_trust_graph_page_button)
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
@@ -382,6 +379,7 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
         self.token_balance_widget.setHidden(True)
+        self.debug_panel_button.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -466,6 +464,9 @@ class TriblerWindow(QMainWindow):
             self.left_menu_button_discovered.setChecked(True)
 
         self.channels_menu_list.load_channels()
+
+        # Toggle debug if developer mode is enabled
+        self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
     @property
     def hide_xxx(self):
@@ -979,8 +980,8 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
 
-    def clicked_menu_button_trust_graph(self):
-        self.deselect_all_menu_buttons(self.left_menu_button_trust_graph)
+    def clicked_trust_graph_page_button(self, _):
+        self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
 
     def clicked_menu_button_downloads(self):
@@ -989,7 +990,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_menu_button_debug(self, index=False):
+    def clicked_debug_panel_button(self, _):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
