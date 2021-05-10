@@ -107,8 +107,7 @@ QCheckBox::indicator:unchecked {border: 1px solid #555;}</string>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
     <string notr="true">QWidget {
-background-color: #202020;
-}
+background-color: #282828;}
 
 TabButtonPanel UnderlineTabButton{
 color: #B5B5B5;
@@ -268,7 +267,7 @@ color: #eee;</string>
         </property>
         <property name="styleSheet">
          <string notr="true">QWidget {
-background-color: #282828;
+background-color: #202020;
 }
 
 QPushButton {
@@ -585,7 +584,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>6</number>
+         <number>4</number>
         </property>
         <widget class="SearchResultsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
@@ -1017,8 +1016,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>300</width>
-               <height>506</height>
+               <width>854</width>
+               <height>697</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -1068,9 +1067,6 @@ color: white;
 }
 QComboBox::drop-down {
 border: 0px;
-}
-QStackedWidget {
-background-color: #202020;
 }
 
 QCheckBox{margin-left: 10px;}
@@ -2672,11 +2668,6 @@ color: white;</string>
          </layout>
         </widget>
         <widget class="DownloadsPage" name="downloads_page">
-         <property name="styleSheet">
-          <string notr="true">QTreeWidget {
-background-color: #202020;
-}</string>
-         </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
            <number>0</number>
@@ -3442,7 +3433,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>3</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -3470,9 +3461,7 @@ QTabBar::tab:selected {
                   <item>
                    <widget class="QScrollArea" name="scrollArea_2">
                     <property name="styleSheet">
-                     <string notr="true">border: none;
-background-color: #202020;
-color: white</string>
+                     <string notr="true"/>
                     </property>
                     <property name="widgetResizable">
                      <bool>true</bool>
@@ -3482,8 +3471,8 @@ color: white</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>321</width>
-                       <height>259</height>
+                       <width>854</width>
+                       <height>377</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -5258,7 +5247,7 @@ margin: 10px 4px 2px 10px;</string>
       </property>
       <property name="styleSheet">
        <string notr="true">QWidget {
-background-color: #282828;
+background-color: #202020;
 border-bottom: 1px solid #242424;
 }
 
