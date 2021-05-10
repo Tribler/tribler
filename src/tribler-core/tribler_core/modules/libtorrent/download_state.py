@@ -118,8 +118,8 @@ class DownloadState:
         return self.lt_status.total_download
 
     def get_seeding_ratio(self):
-        if self.lt_status and self.lt_status.all_time_download > 0:
-            return self.lt_status.all_time_upload / float(self.lt_status.all_time_download)
+        if self.lt_status and self.lt_status.total_done > 0:
+            return self.lt_status.all_time_upload / float(self.lt_status.total_done)
         return 0
 
     def get_seeding_time(self):
