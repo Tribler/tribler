@@ -82,7 +82,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
-        self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
+        self.window().debug_panel_button.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
 
     def on_use_monochrome_icon_checkbox_changed(self, _):
         use_monochrome_icon = self.window().use_monochrome_icon_checkbox.isChecked()

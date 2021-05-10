@@ -430,7 +430,7 @@ def test_debug_pane(tribler_api, window):
     if not window.developer_mode_enabled_checkbox.isChecked():
         QTest.mouseClick(window.developer_mode_enabled_checkbox, Qt.LeftButton)
 
-    QTest.mouseClick(window.left_menu_button_debug, Qt.LeftButton)
+    QTest.mouseClick(window.debug_panel_button, Qt.LeftButton)
     screenshot(window.debug_window, name="debug_panel_just_opened")
     wait_for_list_populated(window.debug_window.general_tree_widget)
     screenshot(window.debug_window, name="debug_panel_general_tab")
