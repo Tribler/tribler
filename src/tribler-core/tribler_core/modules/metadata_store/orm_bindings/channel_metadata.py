@@ -443,6 +443,11 @@ def define_binding(db):  # pylint: disable=R0915
 
         @classmethod
         @db_session
+        def get_channels_by_title(cls, title):
+            return cls.select(lambda g: g.title == title)
+
+        @classmethod
+        @db_session
         def get_channel_with_infohash(cls, infohash):
             return cls.get(infohash=database_blob(infohash))
 

@@ -14,7 +14,7 @@ from pony.orm import count, db_session
 
 import sentry_sdk
 
-from experiment.tool.tiny_tribler_service import TinyTriblerService
+from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
 
