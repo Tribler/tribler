@@ -89,7 +89,7 @@ def get_folders_with_files(source):
     result = {}
 
     for file in Path(source).rglob('*'):
-        ignore = any([file.match(a) for a in _ignore_glob])
+        ignore = any(file.match(a) for a in _ignore_glob)
         if file.is_file() and not ignore:
             result.setdefault(file.parent, set()).add(file)
 
