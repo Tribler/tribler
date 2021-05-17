@@ -82,8 +82,11 @@ class GigaChannelManager(TaskManager):
             if channel is None:
                 self._logger.warning("Tried to regenerate non-existing channel %s %i", hexlify(channel_pk), channel_id)
                 return None
-            for d in self.session.dlmgr.get_downloads_by_name(channel.dirname):
-                await self.session.dlmgr.remove_download(d, remove_content=True)
+            channel_dirname = channel.dirname
+        for d in self.session.dlmgr.get_downloads_by_name(channel_dirname):
+            await self.session.dlmgr.remove_download(d, remove_content=True)
+        with db_session:
+            channel = self.session.mds.ChannelMetadata.get_for_update(public_key=channel_pk, id_=channel_id)
             regenerated = channel.consolidate_channel_torrent()
             # If the user created their channel, but added no torrents to it,
             # the channel torrent will not be created.
