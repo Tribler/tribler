@@ -295,9 +295,6 @@ color: #B5B5B5;
 }
 </string>
         </property>
-        <property name="locale">
-         <locale language="Dutch" country="Netherlands"/>
-        </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <property name="spacing">
           <number>10</number>
@@ -393,7 +390,7 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer">
+          <spacer name="torrents_buttons_spacer">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
            </property>
@@ -505,6 +502,73 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
+          <spacer name="mychannels_spacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>MY CHANNELS</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="ChannelsMenuListWidget" name="channels_menu_list">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="cursor" stdset="0">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QListWidget::item:hover {color:white;}
+QListWidget {
+    margin-left: 19px;
+}
+QListWidget::item:disabled
+{
+    color: grey;
+}</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+           <property name="horizontalScrollBarPolicy">
+            <enum>Qt::ScrollBarAlwaysOff</enum>
+           </property>
+           <property name="editTriggers">
+            <set>QAbstractItemView::NoEditTriggers</set>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>16</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="itemAlignment">
+            <set>Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="left_menu_button_new_channel">
            <property name="minimumSize">
             <size>
@@ -531,52 +595,20 @@ QPushButton::menu-indicator{width:0px;}</string>
           </widget>
          </item>
          <item>
-          <layout class="QVBoxLayout" name="verticalLayout_5">
-           <item>
-            <widget class="ChannelsMenuListWidget" name="channels_menu_list">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="cursor" stdset="0">
-              <cursorShape>PointingHandCursor</cursorShape>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">QListWidget::item:hover {color:white;}
-QListWidget {
-    margin-left: 19px;
-}
-QListWidget::item:disabled
-{
-    color: grey;
-}</string>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <property name="frameShadow">
-              <enum>QFrame::Sunken</enum>
-             </property>
-             <property name="horizontalScrollBarPolicy">
-              <enum>Qt::ScrollBarAlwaysOff</enum>
-             </property>
-             <property name="editTriggers">
-              <set>QAbstractItemView::NoEditTriggers</set>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>16</width>
-               <height>16</height>
-              </size>
-             </property>
-             <property name="itemAlignment">
-              <set>Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Expanding</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>
@@ -584,7 +616,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>1</number>
         </property>
         <widget class="SearchResultsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
@@ -3471,8 +3503,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>854</width>
-                       <height>377</height>
+                       <width>321</width>
+                       <height>259</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
