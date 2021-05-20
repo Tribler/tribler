@@ -116,8 +116,7 @@ class TableLoadingAnimationMixin:
             self.model.query_complete.disconnect()
             self.model.query_started.disconnect()
 
-        if self.model.loaded:
-            self.table_view.hide_loading_animation()
+        self.table_view.hide_loading_animation()
         super().unset_model()
 
 
