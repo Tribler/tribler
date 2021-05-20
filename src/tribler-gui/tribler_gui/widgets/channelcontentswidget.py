@@ -366,33 +366,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         else:
             self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
+        self.update_navigation_breadcrumbs()
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
 
-    def update_labels(self, dirty=False):
-
-        folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
-        personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
-        root = len(self.channels_stack) == 1
-        legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
-        discovered = isinstance(self.model, DiscoveredChannelsModel)
-        personal_model = isinstance(self.model, PersonalChannelsModel)
-        is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
-        description_flag = self.model.channel_info.get("description_flag")
-        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
-
-        info = self.model.channel_info
-        container = self.channel_description_container
-        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
-            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
-        else:
-            container.initialized = False
-            container.setHidden(True)
-
-        self.category_selector.setHidden(root and (discovered or personal_model))
-        # initialize the channel page
-
+    def update_navigation_breadcrumbs(self):
         # Assemble the channels navigation breadcrumb by utilising RichText links feature
         self.channel_name_label.setTextFormat(Qt.RichText)
         # We build the breadcrumb text backwards, by performing lookahead on each step.
@@ -422,13 +401,39 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if len(breadcrumb_text) >= len(slash_separator):
             breadcrumb_text = breadcrumb_text[len(slash_separator) :]
 
-        self.edit_channel_contents_top_bar.setHidden(not personal)
-        self.new_channel_button.setText(tr("NEW CHANNEL") if not is_a_channel and not folder else tr("NEW FOLDER"))
-
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
+        root = len(self.channels_stack) == 1
         self.channel_back_button.setHidden(root)
+
+    def update_labels(self, dirty=False):
+
+        folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
+        personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
+        root = len(self.channels_stack) == 1
+        legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
+        discovered = isinstance(self.model, DiscoveredChannelsModel)
+        personal_model = isinstance(self.model, PersonalChannelsModel)
+        is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
+        description_flag = self.model.channel_info.get("description_flag")
+        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
+
+        self.update_navigation_breadcrumbs()
+
+        info = self.model.channel_info
+        container = self.channel_description_container
+        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
+            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
+        else:
+            container.initialized = False
+            container.setHidden(True)
+
+        self.category_selector.setHidden(root and (discovered or personal_model))
+        # initialize the channel page
+
+        self.edit_channel_contents_top_bar.setHidden(not personal)
+        self.new_channel_button.setText(tr("NEW CHANNEL") if not is_a_channel and not folder else tr("NEW FOLDER"))
         self.channel_options_button.setHidden(not personal_model or not personal or (root and not is_a_channel))
         self.new_channel_button.setHidden(not personal_model or not personal)
 
