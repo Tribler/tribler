@@ -103,8 +103,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
             self.window().download_detail_status_label.setText(status_string)
 
         self.window().download_detail_filesize_label.setText(
-            tr("%s in %d files")
-            % (format_size(float(self.current_download["size"])), len(self.current_download["files"]))
+            tr("%(num_bytes)s in %(num_files)d files")
+            % {
+                'num_bytes': format_size(float(self.current_download["size"])),
+                'num_files': len(self.current_download["files"]),
+            }
         )
         self.window().download_detail_health_label.setText(
             tr("%d seeders, %d leechers") % (self.current_download["num_seeds"], self.current_download["num_peers"])

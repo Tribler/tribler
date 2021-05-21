@@ -19,13 +19,18 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('search_results.ui')
 
 
 def format_search_loading_label(search_request):
-    total_peers = len(search_request.peers)
-    num_complete_peers = len(search_request.peers_complete)
-    num_remote_results = len(search_request.remote_results)
+    data = {
+        "total_peers": len(search_request.peers),
+        "num_complete_peers": len(search_request.peers_complete),
+        "num_remote_results": len(search_request.remote_results),
+    }
 
     return (
-        f"Remote responses: {num_complete_peers} / {total_peers}"
-        + f"\nNew remote results received: {num_remote_results}"
+        tr(
+            "Remote responses: %(num_complete_peers)i / %(total_peers)i"
+            "\nNew remote results received: %(num_remote_results)i"
+        )
+        % data
     )
 
 

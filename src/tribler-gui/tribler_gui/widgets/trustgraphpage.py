@@ -228,8 +228,9 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
     def update_gui_labels(self, data):
         header_message = tr(
             "The graph below is based on your historical interactions with other users in the "
-            "network. It shows <strong>%s</strong> interactions made by <strong>%s</strong> users."
+            "network. It shows <strong>%(num_interactions)s</strong> interactions "
+            "made by <strong>%(num_users)s</strong> users."
             "<br/>"
-        ) % (data['num_tx'], len(data['graph']['node']))
+        ) % {'num_interactions': data['num_tx'], 'num_users': len(data['graph']['node'])}
         self.window().trust_graph_explanation_label.setText(header_message)
         self.window().trust_graph_status_bar.setText(TRUST_GRAPH_PEER_LEGENDS)

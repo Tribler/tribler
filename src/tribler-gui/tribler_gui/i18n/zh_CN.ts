@@ -38,376 +38,371 @@
         <translation>流行度</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="121"/>
+        <location filename="../utilities.py" line="126"/>
         <source>just now</source>
         <translation>刚刚</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="123"/>
+        <location filename="../utilities.py" line="128"/>
         <source> seconds ago</source>
         <translation> 秒前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="125"/>
+        <location filename="../utilities.py" line="130"/>
         <source>a minute ago</source>
         <translation>一分钟前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="127"/>
+        <location filename="../utilities.py" line="132"/>
         <source> minutes ago</source>
         <translation> 分钟前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="129"/>
+        <location filename="../utilities.py" line="134"/>
         <source>an hour ago</source>
         <translation>一小时前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="131"/>
+        <location filename="../utilities.py" line="136"/>
         <source> hours ago</source>
         <translation> 小时前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="133"/>
+        <location filename="../utilities.py" line="138"/>
         <source>yesterday</source>
         <translation>昨天</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="135"/>
+        <location filename="../utilities.py" line="140"/>
         <source> days ago</source>
         <translation> 天前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="138"/>
+        <location filename="../utilities.py" line="143"/>
         <source>week</source>
         <translation>周</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="138"/>
+        <location filename="../utilities.py" line="143"/>
         <source>weeks</source>
         <translation>周</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="147"/>
+        <location filename="../utilities.py" line="152"/>
         <source> ago</source>
         <translation>前</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="142"/>
+        <location filename="../utilities.py" line="147"/>
         <source>month</source>
         <translation>月</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="142"/>
+        <location filename="../utilities.py" line="147"/>
         <source>months</source>
         <translation>月</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="146"/>
+        <location filename="../utilities.py" line="151"/>
         <source>year</source>
         <translation>年</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="146"/>
+        <location filename="../utilities.py" line="151"/>
         <source>years</source>
         <translation>年</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="445"/>
+        <location filename="../tribler_window.py" line="440"/>
         <source>Discovered channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="455"/>
+        <location filename="../tribler_window.py" line="450"/>
         <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="571"/>
+        <location filename="../tribler_window.py" line="575"/>
         <source>Channel update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="571"/>
+        <location filename="../tribler_window.py" line="575"/>
         <source>Torrent(s) added to your channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>New version available</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="56"/>
-        <source>Click to load preview contents</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/channelcontentswidget.py" line="420"/>
+        <location filename="../widgets/channelcontentswidget.py" line="436"/>
         <source>NEW CHANNEL</source>
         <translation type="unfinished">新建频道</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="420"/>
+        <location filename="../widgets/channelcontentswidget.py" line="436"/>
         <source>NEW FOLDER</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="458"/>
+        <location filename="../widgets/channelcontentswidget.py" line="464"/>
         <source>Add .torrent file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="459"/>
+        <location filename="../widgets/channelcontentswidget.py" line="465"/>
         <source>Add torrent(s) directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="460"/>
+        <location filename="../widgets/channelcontentswidget.py" line="466"/>
         <source>Add URL/magnet links</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="851"/>
+        <location filename="../tribler_window.py" line="835"/>
         <source>Please select the directory containing the .torrent files</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="857"/>
+        <location filename="../tribler_window.py" line="844"/>
         <source>Add torrents from directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="481"/>
+        <location filename="../widgets/channelcontentswidget.py" line="490"/>
         <source>Add all torrent files from the following directory to your Tribler channel: 
 
  %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="481"/>
+        <location filename="../widgets/channelcontentswidget.py" line="490"/>
         <source>Include subdirectories (recursive mode)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="772"/>
+        <location filename="../tribler_window.py" line="753"/>
         <source>Please select the .torrent file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="501"/>
+        <location filename="../widgets/channelcontentswidget.py" line="510"/>
         <source>Torrent files %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="903"/>
+        <location filename="../tribler_window.py" line="891"/>
         <source>Add torrent from URL/magnet link</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="903"/>
+        <location filename="../tribler_window.py" line="891"/>
         <source>Please enter the URL/magnet link in the field below:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="903"/>
+        <location filename="../tribler_window.py" line="891"/>
         <source>ADD</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1146"/>
         <source>CANCEL</source>
         <translation type="unfinished">取消</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="910"/>
+        <location filename="../tribler_window.py" line="898"/>
         <source>URL/magnet link</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="24"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="23"/>
         <source>Click this to add 
  channel thumbnail 
  (max. 1MB JPG/PNG)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="181"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="180"/>
         <source>Please select a thumbnail file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="181"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="180"/>
         <source>PNG/XPM/JPG images %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="195"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="196"/>
         <source>Image too large error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="195"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="196"/>
         <source>Image file you&apos;re trying to upload is too large.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelsmenulistwidget.py" line="75"/>
+        <location filename="../widgets/channelsmenulistwidget.py" line="89"/>
         <source>Unsubscribe</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1146"/>
         <source>Delete channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/channelsmenulistwidget.py" line="86"/>
+        <location filename="../widgets/channelsmenulistwidget.py" line="100"/>
         <source>Rename channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="489"/>
+        <location filename="../widgets/downloadspage.py" line="496"/>
         <source>Remove download</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="320"/>
+        <location filename="../widgets/downloadspage.py" line="319"/>
         <source>Are you sure you want to remove this download?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="320"/>
+        <location filename="../widgets/downloadspage.py" line="319"/>
         <source>remove download</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="320"/>
+        <location filename="../widgets/downloadspage.py" line="319"/>
         <source>remove download + data</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="320"/>
+        <location filename="../widgets/downloadspage.py" line="319"/>
         <source>cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="413"/>
+        <location filename="../widgets/downloadspage.py" line="418"/>
         <source>Please select the destination directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="421"/>
+        <location filename="../widgets/downloadspage.py" line="426"/>
         <source>Export torrent file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="421"/>
+        <location filename="../widgets/downloadspage.py" line="426"/>
         <source>Please enter the name of the torrent file:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="421"/>
+        <location filename="../widgets/downloadspage.py" line="426"/>
         <source>SAVE</source>
         <translation type="unfinished">保存</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="428"/>
+        <location filename="../widgets/downloadspage.py" line="433"/>
         <source>Torrent file name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="453"/>
+        <location filename="../widgets/downloadspage.py" line="458"/>
         <source>Error when exporting file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="453"/>
+        <location filename="../widgets/downloadspage.py" line="458"/>
         <source>An error occurred when exporting the torrent file: %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="459"/>
+        <location filename="../widgets/downloadspage.py" line="464"/>
         <source>Torrent file exported</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="459"/>
+        <location filename="../widgets/downloadspage.py" line="464"/>
         <source>Torrent file exported to %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="881"/>
+        <location filename="../tribler_window.py" line="869"/>
         <source>Add torrent(s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="487"/>
+        <location filename="../widgets/downloadspage.py" line="494"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="488"/>
+        <location filename="../widgets/downloadspage.py" line="495"/>
         <source>Stop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="490"/>
+        <location filename="../widgets/downloadspage.py" line="497"/>
         <source>Add to my channel</source>
         <translation type="unfinished">添加到我的频道</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="491"/>
+        <location filename="../widgets/downloadspage.py" line="498"/>
         <source>Force recheck</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="492"/>
+        <location filename="../widgets/downloadspage.py" line="499"/>
         <source>Export .torrent file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="493"/>
+        <location filename="../widgets/downloadspage.py" line="500"/>
         <source>Explore files</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="494"/>
+        <location filename="../widgets/downloadspage.py" line="501"/>
         <source>Move file storage</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="496"/>
+        <location filename="../widgets/downloadspage.py" line="503"/>
         <source>No anonymity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="497"/>
+        <location filename="../widgets/downloadspage.py" line="504"/>
         <source>One hop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="498"/>
+        <location filename="../widgets/downloadspage.py" line="505"/>
         <source>Two hops</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="499"/>
+        <location filename="../widgets/downloadspage.py" line="506"/>
         <source>Three hops</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="543"/>
+        <location filename="../widgets/downloadspage.py" line="550"/>
         <source>Change Anonymity </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="130"/>
+        <location filename="../widgets/settingspage.py" line="128"/>
         <source>Please select the log directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="140"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="276"/>
         <source>Insufficient Permissions</source>
         <translation type="unfinished"></translation>
     </message>
@@ -423,29 +418,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="301"/>
-        <source>Are you sure to remove the selected versions? 
-You can not undo this action.
-
- </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/settingspage.py" line="308"/>
+        <location filename="../widgets/settingspage.py" line="307"/>
         <source>No versions selected</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="309"/>
+        <location filename="../widgets/settingspage.py" line="308"/>
         <source>Select a version to delete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/settingspage.py" line="323"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. 
-        When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;
-        Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-        </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -454,127 +433,122 @@ You can not undo this action.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="404"/>
+        <location filename="../widgets/settingspage.py" line="403"/>
         <source>Invalid proxy port number</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="404"/>
+        <location filename="../widgets/settingspage.py" line="403"/>
         <source>You&apos;ve entered an invalid format for the proxy port number. Please enter a whole number.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="426"/>
+        <location filename="../widgets/settingspage.py" line="425"/>
         <source>Invalid number of connections</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="426"/>
+        <location filename="../widgets/settingspage.py" line="425"/>
         <source>You&apos;ve entered an invalid format for the maximum number of connections. Please enter a whole number.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="451"/>
+        <location filename="../widgets/settingspage.py" line="452"/>
         <source>Invalid value for bandwidth limit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="451"/>
+        <location filename="../widgets/settingspage.py" line="452"/>
         <source>You&apos;ve entered an invalid value for the maximum upload/download rate. 
 The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.
 Note that the decimal values are truncated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="467"/>
+        <location filename="../widgets/settingspage.py" line="471"/>
         <source>Invalid value for api port</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="467"/>
+        <location filename="../widgets/settingspage.py" line="471"/>
         <source>Please enter a valid port for the api (between 0 and 65536)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="488"/>
+        <location filename="../widgets/settingspage.py" line="492"/>
         <source>Invalid seeding time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="488"/>
+        <location filename="../widgets/settingspage.py" line="492"/>
         <source>You&apos;ve entered an invalid format for the seeding time (expected HH:MM)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="538"/>
+        <location filename="../widgets/settingspage.py" line="551"/>
         <source>Settings saved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="538"/>
-        <source>Your settings have been saved.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/settingspage.py" line="538"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="82"/>
         <source>CLOSE</source>
         <translation type="unfinished">关闭</translation>
     </message>
     <message>
-        <location filename="../widgets/subscriptionswidget.py" line="35"/>
+        <location filename="../widgets/subscriptionswidget.py" line="34"/>
         <source>Click to subscribe/unsubscribe</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subscriptionswidget.py" line="40"/>
+        <location filename="../widgets/subscriptionswidget.py" line="39"/>
         <source>Subscribed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subscriptionswidget.py" line="40"/>
+        <location filename="../widgets/subscriptionswidget.py" line="39"/>
         <source>Not subscribed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/subscriptionswidget.py" line="40"/>
+        <location filename="../widgets/subscriptionswidget.py" line="39"/>
         <source>
 (Click to unsubscribe)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="418"/>
+        <location filename="../widgets/tablecontentmodel.py" line="409"/>
         <source>Subscribed.%s
 (Click to unsubscribe)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="418"/>
+        <location filename="../widgets/tablecontentmodel.py" line="409"/>
         <source>Not subscribed.
 (Click to subscribe)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="276"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="274"/>
         <source> Download </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="278"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="276"/>
         <source> Recheck health</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="287"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="285"/>
         <source>Unsubscribe channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="287"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="285"/>
         <source>Subscribe channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="310"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="308"/>
         <source>Copy</source>
         <translation type="unfinished"></translation>
     </message>
@@ -584,337 +558,584 @@ Note that the decimal values are truncated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="323"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="325"/>
         <source> Copy into personal channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="325"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="327"/>
         <source> Move </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="326"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="328"/>
         <source> Rename </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="327"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="329"/>
         <source> Change category </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="329"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="331"/>
         <source> Remove from channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="230"/>
-        <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%s&lt;/strong&gt; interactions made by &lt;strong&gt;%s&lt;/strong&gt; users.&lt;br/&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../core_manager.py" line="137"/>
+        <location filename="../core_manager.py" line="136"/>
         <source>Press &apos;Yes&apos; to remove state directories for older versions of Tribler and reclaim %s of storage space. Tribler used those directories during upgrades from previous versions. Now those directories can be safely deleted. 
 
 If unsure, press &apos;No&apos;. You will be able to remove those directories from the Settings-&gt;Data page later.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="369"/>
+        <location filename="../tribler_window.py" line="362"/>
         <source>&lt;b&gt;CRITICAL ERROR&lt;/b&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="369"/>
+        <location filename="../tribler_window.py" line="362"/>
         <source>You are running low on disk space (&lt;100MB). Please make sure to have sufficient free space available and restart Tribler again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="369"/>
+        <location filename="../tribler_window.py" line="362"/>
         <source>Close Tribler</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="381"/>
+        <location filename="../tribler_window.py" line="376"/>
         <source>Download finished</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="381"/>
+        <location filename="../tribler_window.py" line="376"/>
         <source>Download of %s has finished.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="534"/>
+        <location filename="../tribler_window.py" line="539"/>
         <source>Insufficient write permissions to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions on the directory and add the torrent again. %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="538"/>
+        <location filename="../tribler_window.py" line="540"/>
         <source>Download error &lt;i&gt;%s&lt;/i&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>Version %s of Tribler is available.Do you want to visit the website to download the newest version?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>IGNORE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>LATER</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="590"/>
+        <location filename="../tribler_window.py" line="594"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="673"/>
-        <source>Search results for </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../tribler_window.py" line="742"/>
+        <location filename="../tribler_window.py" line="721"/>
         <source>Import torrent from file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="743"/>
+        <location filename="../tribler_window.py" line="722"/>
         <source>Import torrent(s) from directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="744"/>
+        <location filename="../tribler_window.py" line="723"/>
         <source>Import torrent from magnet/URL</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="745"/>
+        <location filename="../tribler_window.py" line="724"/>
         <source>Create torrent from file(s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="769"/>
+        <location filename="../tribler_window.py" line="749"/>
         <source>Torrent updates</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="772"/>
-        <source>Torrent files (*.torrent)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../tribler_window.py" line="789"/>
+        <location filename="../tribler_window.py" line="770"/>
         <source>Download Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="789"/>
+        <location filename="../tribler_window.py" line="770"/>
         <source>Tribler settings is not available yet. Fetching it now. Please try again later.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="839"/>
+        <location filename="../tribler_window.py" line="820"/>
         <source>Tribler UI Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="839"/>
+        <location filename="../tribler_window.py" line="820"/>
         <source>Something went wrong. Please try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="857"/>
+        <location filename="../tribler_window.py" line="844"/>
         <source>Add %s torrent files from the following directory to your Tribler channel: 
 
 %s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="857"/>
+        <location filename="../tribler_window.py" line="844"/>
         <source>Add torrents to My Channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="872"/>
+        <location filename="../tribler_window.py" line="860"/>
         <source>Channels update</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="872"/>
+        <location filename="../tribler_window.py" line="860"/>
         <source>%s added to your channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1016"/>
+        <location filename="../tribler_window.py" line="1013"/>
         <source>Shutting down...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1081"/>
         <source>Abort the conversion of Channels database</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1081"/>
         <source>The upgrade procedure is now &lt;b&gt;converting your personal channel&lt;/b&gt; and channels collected by the previous installation of Tribler.&lt;br&gt;Are you sure you want to abort the conversion process?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! WARNING !!! &lt;br&gt;You will lose your personal channel and subscribed channels if you ABORT now! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1081"/>
         <source>ABORT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1072"/>
+        <location filename="../tribler_window.py" line="1081"/>
         <source>CONTINUE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1119"/>
         <source>Unsubscribe from channel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1119"/>
         <source>Are you sure you want to &lt;b&gt;unsubscribe&lt;/b&gt; from channel&lt;br/&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1119"/>
         <source>&lt;br/&gt;and remove its contents?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1108"/>
+        <location filename="../tribler_window.py" line="1119"/>
         <source>UNSUBSCRIBE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1146"/>
         <source>Are you sure you want to &lt;b&gt;delete&lt;/b&gt; your personal channel&lt;br/&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1146"/>
         <source>&lt;br/&gt;and all its contents?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1135"/>
+        <location filename="../tribler_window.py" line="1146"/>
         <source>DELETE</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1161"/>
+        <location filename="../tribler_window.py" line="1172"/>
         <source>Tribler recovered from a corrupted config. Please check your settings and update if necessary.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1162"/>
+        <location filename="../tribler_window.py" line="1175"/>
         <source>Tribler config error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="24"/>
+        <location filename="../utilities.py" line="29"/>
         <source>Zero popularity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="24"/>
+        <location filename="../utilities.py" line="29"/>
         <source>Very low popularity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="24"/>
+        <location filename="../utilities.py" line="29"/>
         <source>3rd tier popularity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="24"/>
+        <location filename="../utilities.py" line="29"/>
         <source>2nd tier popularity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="24"/>
+        <location filename="../utilities.py" line="29"/>
         <source>1st tier popularity</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="164"/>
+        <location filename="../utilities.py" line="171"/>
         <source>Forever</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="166"/>
-        <source>%iy %iw</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../utilities.py" line="168"/>
-        <source>%iw %id</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../utilities.py" line="170"/>
-        <source>%id %ih</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../utilities.py" line="172"/>
-        <source>%ih %im</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../utilities.py" line="174"/>
-        <source>%im %is</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../utilities.py" line="175"/>
-        <source>%is</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="106"/>
-        <source>%s in %d files</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="109"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="112"/>
         <source>%d seeders, %d leechers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="182"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="185"/>
         <source>Include files</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="182"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="185"/>
         <source>Include file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="183"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="186"/>
         <source>Exclude file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="228"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="231"/>
         <source>Copying magnet link</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="183"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="186"/>
         <source>Exclude files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="105"/>
+        <source>%(num_bytes)s in %(num_files)d files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/searchresultswidget.py" line="77"/>
+        <source>Search results for %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/settingspage.py" line="45"/>
+        <source>System default</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/settingspage.py" line="301"/>
+        <source>Are you sure to remove the selected versions? 
+You can not undo this action.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/settingspage.py" line="323"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/settingspage.py" line="551"/>
+        <source>Tribler settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../tribler_window.py" line="215"/>
+        <source>Show Tribler window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../tribler_window.py" line="219"/>
+        <source>Show downloads</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../tribler_window.py" line="221"/>
+        <source>Quit Tribler</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../tribler_window.py" line="753"/>
+        <source>Torrent files%s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utilities.py" line="173"/>
+        <source>%(years)iy %(weeks)iw</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utilities.py" line="175"/>
+        <source>%(weeks)iw %(days)id</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utilities.py" line="177"/>
+        <source>%(days)id %(hours)ih</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utilities.py" line="179"/>
+        <source>%(hours)ih %(minutes)im</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utilities.py" line="181"/>
+        <source>%(minutes)im %(seconds)is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../utilities.py" line="182"/>
+        <source>%(seconds)is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/trustgraphpage.py" line="229"/>
+        <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interactions made by &lt;strong&gt;%(num_users)s&lt;/strong&gt; users.&lt;br/&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="58"/>
+        <source>Please select the files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="149"/>
+        <source>Please select the directory containing the files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="82"/>
+        <source>Warning!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="82"/>
+        <source>You should add at least one file to your torrent.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="109"/>
+        <source>Cannot save torrent file to %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="102"/>
+        <source>Path does not exist</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="109"/>
+        <source>Error: %s </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="121"/>
+        <source>Creating torrent. Please wait...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="127"/>
+        <source>Created torrent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="129"/>
+        <source>Torrent successfully created</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="146"/>
+        <source>Torrent successfully added to the channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/createtorrentdialog.py" line="167"/>
+        <source>Remove file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="41"/>
+        <source>Unexpected error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="51"/>
+        <source>What were you doing before this crash happened? This information will help Tribler developers to figure out and fix the issue quickly.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="131"/>
+        <source>Remove entry</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="147"/>
+        <source>Successfully sent the report! Thanks for your contribution.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="148"/>
+        <source>Could not send the report! Please post this issue on GitHub.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="151"/>
+        <source>Report Sent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="151"/>
+        <source>ERROR: Report Sending Failed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="160"/>
+        <source>SENDING...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/feedbackdialog.py" line="176"/>
+        <source>Not provided</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/new_channel_dialog.py" line="8"/>
+        <source>Create new channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/new_channel_dialog.py" line="8"/>
+        <source>Enter the name of the channel/folder to create:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/new_channel_dialog.py" line="8"/>
+        <source>NEW</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/new_channel_dialog.py" line="21"/>
+        <source>Channel name</source>
+        <translation type="unfinished">频道名称</translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
+        <source>directly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
+        <source>anonymously</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="162"/>
+        <source>Loading torrent files %s...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="163"/>
+        <source>Timeout in fetching files %s. Retrying  %i/%i</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="188"/>
+        <source>Failed to load files. Click to retry again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="193"/>
+        <source>Unable to read torrent file data</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="195"/>
+        <source>Error: %s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="206"/>
+        <source>Note: this torrent already exists in the Downloads</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="240"/>
+        <source>Please select the destination directory of your download</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="252"/>
+        <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory. [%s]</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="264"/>
+        <source>No files selected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="264"/>
+        <source>Please select at least one file to download.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="275"/>
+        <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory and try to download again. [%s]</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/channelcontentswidget.py" line="453"/>
+        <source>%(total)i/%(torrents)i items</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/channelcontentswidget.py" line="455"/>
+        <source>%(total)i items</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../widgets/searchresultswidget.py" line="27"/>
+        <source>Remote responses: %(num_complete_peers)i / %(total_peers)i
+New remote results received: %(num_remote_results)i</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../tribler_window.py" line="447"/>
+        <source>Popular torrents</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1219,7 +1440,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">覆盖网</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4068"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3591"/>
         <source>Name</source>
         <translation>名称</translation>
     </message>
@@ -1234,7 +1455,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">本对等机</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4440"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3963"/>
         <source>Peers</source>
         <translation>对等机</translation>
     </message>
@@ -1264,7 +1485,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">时间差（秒）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3950"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3475"/>
         <source>Details</source>
         <translation>详情</translation>
     </message>
@@ -1290,7 +1511,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
                  </translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4119"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3642"/>
         <source>Health</source>
         <translation>健康度</translation>
     </message>
@@ -1315,7 +1536,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">跃点数</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1988"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1518"/>
         <source>Type</source>
         <translation>类型</translation>
     </message>
@@ -1380,7 +1601,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">隐藏集群</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4136"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3659"/>
         <source>Infohash</source>
         <translation>散列值</translation>
     </message>
@@ -1415,7 +1636,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">IP</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2286"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1816"/>
         <source>Port</source>
         <translation>端口</translation>
     </message>
@@ -1605,7 +1826,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">导出到文件</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1115"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5599"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
@@ -1695,97 +1916,97 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">Tribler</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="336"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5426"/>
         <source>Search for your favorite content</source>
         <translation>搜索你喜欢的内容</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="420"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5555"/>
         <source>Token balance</source>
         <translation>代币余额</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="550"/>
+        <location filename="../qt_resources/mainwindow.ui" line="218"/>
         <source>Transaction in progress, Please don&apos;t close Tribler.</source>
         <translation>交易正在进行中，请不要关闭 Tribler。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="671"/>
+        <location filename="../qt_resources/mainwindow.ui" line="336"/>
         <source>Add torrent</source>
         <translation>添加种子</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="734"/>
+        <location filename="../qt_resources/mainwindow.ui" line="439"/>
         <source> Discovered</source>
         <translation> 发现</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="786"/>
+        <location filename="../qt_resources/mainwindow.ui" line="482"/>
         <source> Popular</source>
         <translation> 流行</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="832"/>
+        <location filename="../qt_resources/mainwindow.ui" line="371"/>
         <source> Downloads</source>
         <translation> 下载</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="877"/>
         <source> Trust Graph </source>
-        <translation> 信任图 </translation>
+        <translation type="obsolete"> 信任图 </translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="922"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5473"/>
         <source> Debug</source>
         <translation> 调试</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1029"/>
         <source>New channel</source>
-        <translation>新建频道</translation>
+        <translation type="obsolete">新建频道</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1140"/>
+        <location filename="../qt_resources/mainwindow.ui" line="710"/>
         <source>SAVE</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1242"/>
+        <location filename="../qt_resources/mainwindow.ui" line="809"/>
         <source>GENERAL</source>
         <translation>常规</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1279"/>
+        <location filename="../qt_resources/mainwindow.ui" line="846"/>
         <source>CONNECTION</source>
         <translation>连接</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1313"/>
+        <location filename="../qt_resources/mainwindow.ui" line="880"/>
         <source>BANDWIDTH</source>
         <translation>带宽</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1341"/>
+        <location filename="../qt_resources/mainwindow.ui" line="908"/>
         <source>SEEDING</source>
         <translation>做种</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1375"/>
+        <location filename="../qt_resources/mainwindow.ui" line="942"/>
         <source>ANONYMITY</source>
         <translation>匿名</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1409"/>
+        <location filename="../qt_resources/mainwindow.ui" line="976"/>
         <source>DATA</source>
         <translation>数据</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1443"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1010"/>
         <source>DEBUG</source>
         <translation>调试</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1567"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1134"/>
         <source>Family filter</source>
         <translation>家庭过滤</translation>
     </message>
@@ -1793,30 +2014,30 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <location filename="../qt_resources/mainwindow.ui" line="1574"/>
         <source>Family filter enabled?
 (requires Tribler restart)</source>
-        <translation>启用家庭过滤（需重启 Tribler）</translation>
+        <translation type="obsolete">启用家庭过滤（需重启 Tribler）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1593"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1152"/>
         <source>Download location</source>
         <translation>下载位置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1603"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1177"/>
         <source>Save files to:</source>
         <translation>保存文件到：</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1649"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1218"/>
         <source>File location</source>
         <translation>文件位置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1668"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1237"/>
         <source>Browse download location</source>
         <translation>浏览下载位置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3068"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2598"/>
         <source>Browse</source>
         <translation>浏览</translation>
     </message>
@@ -1824,10 +2045,10 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <location filename="../qt_resources/mainwindow.ui" line="1697"/>
         <source>Always ask download
 settings?</source>
-        <translation>总是询问下载设置</translation>
+        <translation type="obsolete">总是询问下载设置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1719"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1274"/>
         <source>Default download settings</source>
         <translation>默认下载设置</translation>
     </message>
@@ -1835,56 +2056,56 @@ settings?</source>
         <location filename="../qt_resources/mainwindow.ui" line="1726"/>
         <source>Download anonymously
 using proxies</source>
-        <translation>使用代理匿名下载</translation>
+        <translation type="obsolete">使用代理匿名下载</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1744"/>
         <source>Encrypted anonymous
 seeding using proxies</source>
-        <translation>使用代理加密匿名做种</translation>
+        <translation type="obsolete">使用代理加密匿名做种</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1765"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1295"/>
         <source>Add torrent to My channel</source>
         <translation>添加种子到我的频道</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1786"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1306"/>
         <source>Watch Folder</source>
         <translation>监视文件夹</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1796"/>
         <source>Enable watch folder?</source>
-        <translation>启用文件夹监视</translation>
+        <translation type="obsolete">启用文件夹监视</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1816"/>
         <source>Location:</source>
-        <translation>位置：</translation>
+        <translation type="obsolete">位置：</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1862"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1372"/>
         <source>Location</source>
         <translation>位置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1881"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1391"/>
         <source>Browse watch folder</source>
         <translation>浏览监视的文件夹</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1911"/>
         <source>Monochrome tray icon</source>
-        <translation>单色托盘图标</translation>
+        <translation type="obsolete">单色托盘图标</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1918"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1435"/>
         <source>Use monochrome icon?</source>
-        <translation>使用单色图标</translation>
+        <translation type="unfinished">使用单色图标</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1939"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1446"/>
         <source>Personal channel settings</source>
         <translation>个人频道设置</translation>
     </message>
@@ -1892,142 +2113,142 @@ seeding using proxies</source>
         <location filename="../qt_resources/mainwindow.ui" line="1946"/>
         <source>Commit changes automatically
 (requires Tribler restart)</source>
-        <translation>自动提交更改（需重启 Tribler）</translation>
+        <translation type="obsolete">自动提交更改（需重启 Tribler）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="1978"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1508"/>
         <source>Torrent proxy settings</source>
         <translation>种子代理设置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2008"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1538"/>
         <source>None</source>
         <translation>无</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2013"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1543"/>
         <source>Socks4</source>
         <translation>Socks4</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2018"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1548"/>
         <source>Socks5</source>
         <translation>Socks5</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2023"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1553"/>
         <source>Socks5 with authentication</source>
         <translation>带身份验证的 Socks5</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2028"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1558"/>
         <source>HTTP</source>
         <translation>HTTP</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2033"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1563"/>
         <source>HTTP with authentication</source>
         <translation>带身份验证的 HTTP和</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2072"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1602"/>
         <source>Server</source>
         <translation>服务器</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2136"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1666"/>
         <source>Username</source>
         <translation>用户名</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2171"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1701"/>
         <source>Password</source>
         <translation>密码</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2182"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1712"/>
         <source>BitTorrent features</source>
         <translation>BitTorrent 功能</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2192"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1722"/>
         <source>Enabled bandwidth
 Management (uTP)</source>
         <translation>启用带宽管理（uTP）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2210"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1740"/>
         <source>Max connections
 per download</source>
         <translation>每个下载任务最大连接数</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2236"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1766"/>
         <source>Max connections per download</source>
         <translation>每个下载任务的最大连接数</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2243"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1773"/>
         <source>0 = unlimited</source>
         <translation>0 = 无限制</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2254"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1784"/>
         <source>GUI/Core connection</source>
         <translation>图形界面/核心连接</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2261"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1791"/>
         <source>Port (defaults to 52194)</source>
         <translation>端口（默认为 52194）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2299"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1829"/>
         <source>You can adjust the port that the interface uses to communicate with the Tribler core. Applied after restarting Tribler. Change this at your own risk!</source>
         <translation>你可以调整图形界面用于与核心进行通信的端口。重启 Tribler 后应用更改。自行承担更改风险！</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2326"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1856"/>
         <source>Bandwidth limits</source>
         <translation>带宽限制</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2336"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1866"/>
         <source>Upload rate limit</source>
         <translation>上传速率限制</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2388"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1918"/>
         <source>Upload</source>
         <translation>上传</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2489"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2019"/>
         <source>KB/s   (0 = unlimited)</source>
         <translation>KB/s（0 = 无限制）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2411"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1941"/>
         <source>Download rate limit</source>
         <translation>下载速率限制</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2427"/>
+        <location filename="../qt_resources/mainwindow.ui" line="1957"/>
         <source>Note that these settings apply to anonymous and plain downloads.</source>
         <translation>注意这些设置会应用于普通下载和匿名下载。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2479"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2009"/>
         <source>Download</source>
         <translation>下载</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2516"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2046"/>
         <source>Seeding options</source>
         <translation>做种选项</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2544"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2074"/>
         <source>hh:mm</source>
         <translation>hh:mm</translation>
     </message>
@@ -2068,59 +2289,59 @@ per download</source>
         <translation type="obsolete">5.0</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2611"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2141"/>
         <source>No seeding</source>
         <translation>不做种</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2621"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2151"/>
         <source>Seeding for (hours:minutes)</source>
         <translation>做种时长（时:分）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2631"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2161"/>
         <source>Unlimited seeding</source>
         <translation>无做种限制</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2641"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2171"/>
         <source>Seed until up/down ratio is bigger than</source>
         <translation>做种直到分享率到达</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2648"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2178"/>
         <source>Note that these settings also apply to existing downloads.</source>
         <translation>注意这些设置也会应用到现有的下载任务。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2684"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2214"/>
         <source>Anonymity</source>
         <translation>匿名</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2694"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2224"/>
         <source>Allow Tribler to be an exit node</source>
         <translation>允许 Tribler 成为出口节点</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2710"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2240"/>
         <source>By allowing Tribler to be an exit node, your computer will act as a proxy for other Tribler users&apos; bittorrent traffic, be it seeding or downloading. Check your local laws and make sure you are aware of the implications of enabling this checkbox.</source>
         <translation>通过允许 Tribler 成为出口节点，你的计算机将充当其他 Tribler 用户的代理，无论是在做种还是下载。检查你当地的法律，并确保你了解启用此复选框的含义。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2743"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2273"/>
         <source>Proxy downloading</source>
         <translation>代理下载</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2768"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2298"/>
         <source>High speed
 Minimum anonymity</source>
         <translation>高速
 低匿名性</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2776"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2306"/>
         <source>Low speed
 High anonymity</source>
         <translation>低速
@@ -2132,213 +2353,213 @@ High anonymity</source>
         <translation type="obsolete">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;以 &lt;span style=&quot; font-weight:600;&quot;&gt;1&lt;/span&gt; 个跃点的匿名性下载。当下载一个 200 MB 文件时，你将支付 &lt;span style=&quot; font-weight:600;&quot;&gt;200&lt;/span&gt; MB 的带宽代币。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2857"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2387"/>
         <source>Tribler state directory</source>
         <translation>Tribler 状态目录</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2867"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2397"/>
         <source>This is where Tribler stores housekeeping data which includes databases and config files. Note that, your torrent data is not stored here.</source>
         <translation>这个目录是 Tribler 保存包含数据库和配置文件等内部数据的位置。注意，你的种子数据不会储存在这里。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2880"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2410"/>
         <source>Current version</source>
         <translation>当前版本</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2896"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2426"/>
         <source>Older versions</source>
         <translation>旧版本</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2939"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2469"/>
         <source>Remove selected versions</source>
         <translation>移除所选版本</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2972"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2502"/>
         <source>Developer mode</source>
         <translation>开发者模式</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2979"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2509"/>
         <source>Enable developer mode </source>
         <translation>启用开发者模式 </translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="2990"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2520"/>
         <source>Log Directory</source>
         <translation>日志目录</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3000"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2530"/>
         <source>Log directory </source>
         <translation>日志目录 </translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3046"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2576"/>
         <source>Log directory</source>
         <translation>日志目录</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3065"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2595"/>
         <source>Browse directory</source>
         <translation>浏览目录</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3094"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2624"/>
         <source>Resource Monitoring</source>
         <translation>资源监视</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3101"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2631"/>
         <source>Enable resource monitoring</source>
         <translation>启用资源监视</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3111"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2641"/>
         <source>CPU Priority [0-5]</source>
         <translation>CPU 优先级 [0-5]</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3134"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2664"/>
         <source>Current priority = 1</source>
         <translation>当前优先级 = 1</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3144"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2674"/>
         <source>Network (IPv8) Statistics</source>
         <translation>网络（IPv8）统计</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3151"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2681"/>
         <source>Enable network statistics (requires restart)</source>
         <translation>启用网络统计（需要重启）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3158"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2688"/>
         <source>Note: Enabling statistics slightly slows down Tribler</source>
         <translation>注意：启用统计会稍微减慢 Tribler 的速度</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3239"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2764"/>
         <source>Downloads</source>
         <translation>下载</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3286"/>
+        <location filename="../qt_resources/mainwindow.ui" line="2811"/>
         <source>Filter</source>
         <translation>过滤器</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3555"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3080"/>
         <source>ALL</source>
         <translation>全部</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3592"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3117"/>
         <source>DOWNLOADING</source>
         <translation>下载中</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4512"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4035"/>
         <source>COMPLETED</source>
         <translation>已完成</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3660"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3185"/>
         <source>ACTIVE</source>
         <translation>活动</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3694"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3219"/>
         <source>INACTIVE</source>
         <translation>无活动</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3719"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3244"/>
         <source>CHANNELS</source>
         <translation>
 频道</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4421"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3944"/>
         <source>NAME</source>
         <translation>名称</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4338"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3861"/>
         <source>SIZE</source>
         <translation>大小</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3868"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3393"/>
         <source>PROGRESS</source>
         <translation>进度</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4426"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3949"/>
         <source>STATUS</source>
         <translation>状态</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3878"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3403"/>
         <source>SEEDS</source>
         <translation>种子数</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4431"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3954"/>
         <source>PEERS</source>
         <translation>对等机数</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4517"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4040"/>
         <source>SPEED (DOWN)</source>
         <translation>下载速度</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4522"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4045"/>
         <source>SPEED (UP)</source>
         <translation>上传速度</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3898"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3423"/>
         <source>RATIO</source>
         <translation>分享率</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3903"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3428"/>
         <source>ANONYMOUS?</source>
         <translation>匿名？</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3908"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3433"/>
         <source>HOPS</source>
         <translation>跃点数</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3913"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3438"/>
         <source>ETA</source>
         <translation>剩余时间</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="3918"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3443"/>
         <source>ADDED ON</source>
         <translation>添加时间</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4015"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3538"/>
         <source>Progress</source>
         <translation>进度</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4085"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3608"/>
         <source>Status</source>
         <translation>状态</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4102"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3625"/>
         <source>Filesize</source>
         <translation>文件大小</translation>
     </message>
@@ -2348,92 +2569,92 @@ High anonymity</source>
         <translation type="obsolete">00000000000000000000</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4173"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3696"/>
         <source>Click to copy magnet link</source>
         <translation>点击复制磁力链接</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4201"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3724"/>
         <source>Destination</source>
         <translation>下载位置</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4218"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3741"/>
         <source>Ratio</source>
         <translation>分享率</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4228"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3751"/>
         <source>Availability</source>
         <translation>可用性</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4254"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3777"/>
         <source>Files</source>
         <translation>文件</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4333"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3856"/>
         <source>PATH</source>
         <translation>路径</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4343"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3866"/>
         <source>% DONE</source>
         <translation>完成率</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4348"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3871"/>
         <source>INCLUDED</source>
         <translation>包含</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4357"/>
+        <location filename="../qt_resources/mainwindow.ui" line="3880"/>
         <source>Trackers</source>
         <translation>追踪器</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4507"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4030"/>
         <source>PEER (IP/PORT)</source>
         <translation>对等机（IP/端口）</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4527"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4050"/>
         <source>FLAGS</source>
         <translation>旗帜</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4532"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4055"/>
         <source>CLIENT</source>
         <translation>客户端</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4587"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4110"/>
         <source>Loading...</source>
         <translation>正在加载……</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4638"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4161"/>
         <source>Force Shutdown</source>
         <translation>强制关闭</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4689"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4212"/>
         <source>Skip</source>
         <translation>跳过</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4752"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4275"/>
         <source>Discovering your first content...</source>
         <translation>正在发现你的首批内容……</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4796"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4319"/>
         <source>This process might take around a minute.</source>
         <translation>此过程可能需要一分钟左右的时间。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4874"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4397"/>
         <source>Trust statistics</source>
         <translation>信任统计信息</translation>
     </message>
@@ -2443,37 +2664,37 @@ High anonymity</source>
         <translation type="obsolete">i</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4952"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4522"/>
         <source>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle.</source>
         <translation>你可以通过向 Tribler 网络贡献带宽来构建信任。让 Tribler 待机运行就可以进行。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5111"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4681"/>
         <source>- MBytes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5032"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4602"/>
         <source>Given to community</source>
         <translation>给予社区</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5068"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4638"/>
         <source>People you helped</source>
         <translation>我帮助的人</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5137"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4707"/>
         <source>Taken from community</source>
         <translation>取自社区</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5173"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4743"/>
         <source>People who helped you</source>
         <translation>帮助我的人</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5351"/>
+        <location filename="../qt_resources/mainwindow.ui" line="4921"/>
         <source>Trust Graph</source>
         <translation>信任链图</translation>
     </message>
@@ -2483,24 +2704,85 @@ High anonymity</source>
         <translation type="obsolete">刷新</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5452"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5022"/>
         <source>The graph below is based on your historical interactions with other users in the network.</source>
         <translation>以下图表基于你与网络上其他用户的历史交互记录。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5508"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5078"/>
         <source>Progress %p%</source>
         <translation>进度 %p%</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5645"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5215"/>
         <source>Peer            : </source>
         <translation>对等机            ：</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5669"/>
+        <location filename="../qt_resources/mainwindow.ui" line="5239"/>
         <source>Balance      Given: XX Taken: YY</source>
         <translation>结算      给予：XX  获取：YY</translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="523"/>
+        <source>MY CHANNELS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="586"/>
+        <source>Create channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1141"/>
+        <source>Family filter enabled? (requires Tribler restart)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1263"/>
+        <source>Always ask download settings?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1281"/>
+        <source>Download anonymously using proxies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1288"/>
+        <source>Encrypted anonymous seeding using proxies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1331"/>
+        <source>Torrent watch folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1421"/>
+        <source>Tray Icon</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1453"/>
+        <source>Commit changes automatically (requires Tribler restart)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1471"/>
+        <source>Select interface language
+(requires Tribler restart)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="4462"/>
+        <source>Show trust graph</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1428"/>
+        <source>Minimize to system tray?</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2537,6 +2819,19 @@ High anonymity</source>
     </message>
 </context>
 <context>
+    <name>search_stacked_widget</name>
+    <message>
+        <location filename="../qt_resources/search_results.ui" line="61"/>
+        <source>TextLabel</source>
+        <translation type="obsolete">文本标签</translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/search_results.ui" line="79"/>
+        <source>Show now</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>torrents_list</name>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="123"/>
@@ -2559,7 +2854,7 @@ High anonymity</source>
         <translation type="obsolete">刷新</translation>
     </message>
     <message>
-        <location filename="../qt_resources/torrents_list.ui" line="383"/>
+        <location filename="../qt_resources/torrents_list.ui" line="329"/>
         <source>NEW CHANNEL</source>
         <translation>新建频道</translation>
     </message>
@@ -2579,17 +2874,17 @@ High anonymity</source>
         <translation type="obsolete">🔍 筛选器</translation>
     </message>
     <message>
-        <location filename="../qt_resources/torrents_list.ui" line="732"/>
+        <location filename="../qt_resources/torrents_list.ui" line="678"/>
         <source>Your channel has uncommitted changes.</source>
         <translation>你的频道有未提交的更改。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/torrents_list.ui" line="759"/>
+        <location filename="../qt_resources/torrents_list.ui" line="705"/>
         <source>APPLY CHANGES</source>
         <translation>应用更改</translation>
     </message>
     <message encoding="UTF-8">
-        <location filename="../qt_resources/torrents_list.ui" line="628"/>
+        <location filename="../qt_resources/torrents_list.ui" line="574"/>
         <source>🔍 Filter</source>
         <translation type="unfinished"></translation>
     </message>

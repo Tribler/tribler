@@ -1425,14 +1425,14 @@ color: white;margin-top:10px</string>
                   <item row="13" column="0">
                    <widget class="QCheckBox" name="minimize_to_tray_checkbox">
                     <property name="text">
-                     <string notr="true">Minimize to system tray?</string>
+                     <string>Minimize to system tray?</string>
                     </property>
                    </widget>
                   </item>
                   <item row="14" column="0">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
                     <property name="text">
-                     <string notr="true">Use monochrome icon?</string>
+                     <string>Use monochrome icon?</string>
                     </property>
                    </widget>
                   </item>
