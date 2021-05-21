@@ -400,7 +400,7 @@ QPushButton::menu-indicator{width:0px;}</string>
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>5</height>
+             <height>18</height>
             </size>
            </property>
           </spacer>
@@ -512,7 +512,7 @@ QPushButton::menu-indicator{width:0px;}</string>
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>20</height>
+             <height>14</height>
             </size>
            </property>
           </spacer>
