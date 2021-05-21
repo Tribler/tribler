@@ -450,11 +450,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if "total" in self.model.channel_info:
             self.channel_num_torrents_label.setHidden(False)
             if "torrents" in self.model.channel_info:
-                self.channel_num_torrents_label.setText(
-                    f"{self.model.channel_info['total']}/{self.model.channel_info['torrents']} items"
-                )
+                self.channel_num_torrents_label.setText(tr("%(total)i/%(torrents)i items") % self.model.channel_info)
             else:
-                self.channel_num_torrents_label.setText(f"{self.model.channel_info['total']} items")
+                self.channel_num_torrents_label.setText(tr("%(total)i items") % self.model.channel_info)
         else:
             self.channel_num_torrents_label.setHidden(True)
 

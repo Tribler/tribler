@@ -445,7 +445,7 @@ class TriblerWindow(QMainWindow):
         connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
 
         self.popular_page.initialize_root_model(
-            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=self.hide_xxx)
+            PopularTorrentsModel(channel_info={"name": tr("Popular torrents")}, hide_xxx=self.hide_xxx)
         )
         self.popular_page.explanation_text.setText(
             tr("This page show the list of popular torrents collected by Tribler during the last 24 hours.")

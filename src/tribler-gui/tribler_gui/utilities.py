@@ -165,19 +165,21 @@ def duration_to_string(seconds):
     seconds -= minutes * 60
     seconds = int(seconds)
 
+    data = {'years': years, 'weeks': weeks, 'days': days, 'hours': hours, 'minutes': minutes, 'seconds': seconds}
+
     if years >= 100:
         return tr("Forever")
     if years > 0:
-        return tr("%iy %iw") % (years, weeks)
+        return tr("%(years)iy %(weeks)iw") % data
     if weeks > 0:
-        return tr("%iw %id") % (weeks, days)
+        return tr("%(weeks)iw %(days)id") % data
     if days > 0:
-        return tr("%id %ih") % (days, hours)
+        return tr("%(days)id %(hours)ih") % data
     if hours > 0:
-        return tr("%ih %im") % (hours, minutes)
+        return tr("%(hours)ih %(minutes)im") % data
     if minutes > 0:
-        return tr("%im %is") % (minutes, seconds)
-    return tr("%is") % seconds
+        return tr("%(minutes)im %(seconds)is") % data
+    return tr("%(seconds)is") % data
 
 
 def split_into_keywords(query):

@@ -229,7 +229,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         if 'cpu_priority' in settings['resource_monitor']:
             cpu_priority = int(settings['resource_monitor']['cpu_priority'])
         self.window().slider_cpu_level.setValue(cpu_priority)
-        self.window().cpu_priority_value.setText(f"Current Priority = {cpu_priority}")
+        self.show_updated_cpu_priority(cpu_priority)
         connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
         self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
 

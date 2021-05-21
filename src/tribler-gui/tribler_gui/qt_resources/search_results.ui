@@ -54,8 +54,11 @@
         <height>60</height>
        </size>
       </property>
+      <property name="accessibleDescription">
+       <string notr="true"/>
+      </property>
       <property name="text">
-       <string>TextLabel</string>
+       <string notr="true">TextLabel</string>
       </property>
      </widget>
     </item>
