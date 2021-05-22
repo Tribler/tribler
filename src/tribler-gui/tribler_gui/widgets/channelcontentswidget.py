@@ -1,4 +1,3 @@
-import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
@@ -220,9 +219,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channels_stack.append(model)
         connect(self.model.info_changed, self.on_model_info_changed)
 
-        connect(
-            self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
-        )
         connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
         with self.freeze_controls():
@@ -280,9 +276,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def disconnect_current_model(self):
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
-        disconnect(
-            self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
-        )
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def go_back(self, checked=False):  # pylint: disable=W0613
@@ -327,32 +320,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
-
-    def preview_clicked(self, checked=False):  # pylint: disable=W0613
-        params = dict()
-
-        if "public_key" in self.model.channel_info:
-            # This is a channel contents query, limit the search by channel_pk and origin_id
-            params.update(
-                {'channel_pk': self.model.channel_info["public_key"], 'origin_id': self.model.channel_info["id"]}
-            )
-        if self.model.text_filter:
-            params.update({'txt_filter': self.model.text_filter})
-        if self.model.hide_xxx is not None:
-            params.update({'hide_xxx': self.model.hide_xxx})
-        if self.model.sort_by is not None:
-            params.update({'sort_by': self.model.sort_by})
-        if self.model.sort_desc is not None:
-            params.update({'sort_desc': self.model.sort_desc})
-        if self.model.category_filter is not None:
-            params.update({'category_filter': self.model.category_filter})
-
-        def add_request_uuid(response):
-            request_uuid = response["request_uuid"]
-            if self.model:
-                self.model.remote_queries.add(uuid.UUID(request_uuid))
-
-        TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 
     def create_new_channel(self, checked):  # pylint: disable=W0613
         NewChannelDialog(self, self.model.create_new_channel)

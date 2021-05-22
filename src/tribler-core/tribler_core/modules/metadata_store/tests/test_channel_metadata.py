@@ -14,6 +14,8 @@ from pony.orm import ObjectNotFound, db_session
 
 import pytest
 
+from tribler_common.simpledefs import CHANNEL_STATE
+
 from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
@@ -943,6 +945,28 @@ def test_get_parents(metadata_store):
 
     loop = metadata_store.CollectionNode(id_=777, origin_id=777)
     assert loop.get_parent_nodes() == (loop,)
+
+
+@db_session
+def test_collection_node_state(metadata_store):
+    """
+    Test that CollectionNode state is inherited from the top-level parent channel
+    """
+    key = default_eccrypto.generate_key("curve25519")
+    src_chan = create_ext_chan(metadata_store, key)
+    coll1 = metadata_store.CollectionNode.select(lambda g: g.origin_id == src_chan.id_).first()
+
+    # Initially, the top level parent channel is in the preview state, so must be the collection
+    assert coll1.state == CHANNEL_STATE.PREVIEW.value
+
+    src_chan.local_version = src_chan.timestamp
+    # Now the top level parent channel is complete, so must become the collection
+    assert coll1.state == CHANNEL_STATE.COMPLETE.value
+
+    # For personal collections, state should always be "personal" no matter what
+    pers_chan = metadata_store.ChannelMetadata(infohash=random_infohash())
+    pers_coll = metadata_store.CollectionNode(origin_id=pers_chan.id_)
+    assert pers_coll.state == CHANNEL_STATE.PERSONAL.value
 
 
 @db_session
