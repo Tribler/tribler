@@ -279,11 +279,33 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def go_back(self, checked=False):  # pylint: disable=W0613
-        if len(self.channels_stack) > 1:
-            self.disconnect_current_model()
-            self.channels_stack.pop().deleteLater()
-            self.channel_description_container.initialized = False
+        self.go_back_to_level(len(self.channels_stack) - 2)
 
+    def on_breadcrumb_clicked(self, tgt_level):
+        if int(tgt_level) + 1 != len(self.channels_stack):
+            self.go_back_to_level(tgt_level)
+        elif isinstance(self.model, SearchResultsModel) and len(self.channels_stack) == 1:
+            # In case of remote search, when only the search results are on the stack,
+            # we must keep the txt_filter (which contains the search term) before resetting the view
+            text_filter = self.model.text_filter
+            self.reset_view(text_filter=text_filter)
+        else:
+            # Reset the view if the user clicks on the last part of the breadcrumb
+            self.reset_view()
+
+    def go_back_to_level(self, level):
+        switched_level = False
+        level = int(level)
+        disconnected_current_model = False
+        while level + 1 < len(self.channels_stack):
+            switched_level = True
+            if not disconnected_current_model:
+                disconnected_current_model = True
+                self.disconnect_current_model()
+            self.channels_stack.pop().deleteLater()
+
+        if switched_level:
+            self.channel_description_container.initialized = False
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
                 # Set filter category selector to correct index corresponding to loaded model
@@ -300,23 +322,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
             connect(self.model.info_changed, self.on_model_info_changed)
             self.update_labels()
-
-    def on_breadcrumb_clicked(self, tgt_level):
-        if int(tgt_level) + 1 != len(self.channels_stack):
-            self.go_back_to_level(tgt_level)
-        elif isinstance(self.model, SearchResultsModel) and len(self.channels_stack) == 1:
-            # In case of remote search, when only the search results are on the stack,
-            # we must keep the txt_filter (which contains the search term) before resetting the view
-            text_filter = self.model.text_filter
-            self.reset_view(text_filter=text_filter)
-        else:
-            # Reset the view if the user clicks on the last part of the breadcrumb
-            self.reset_view()
-
-    def go_back_to_level(self, level):
-        level = int(level)
-        while level + 1 < len(self.channels_stack):
-            self.go_back()
 
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
