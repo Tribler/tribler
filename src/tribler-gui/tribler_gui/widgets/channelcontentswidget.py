@@ -164,7 +164,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if self.autocommit_enabled:
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
-        self.update_labels(True)
+        self.model.channel_info["dirty"] = True
+        self.update_labels()
 
     def _run_brain_dead_refresh(self):
         if self.model:
@@ -245,7 +246,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
-        self.update_labels(dirty)
+        self.model.channel_info["dirty"] = dirty
+        self.update_labels()
 
     def initialize_root_model_from_channel_info(self, channel_info):
         if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
@@ -278,13 +280,17 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
+    @property
+    def current_level(self):
+        return len(self.channels_stack) - 1
+
     def go_back(self, checked=False):  # pylint: disable=W0613
-        self.go_back_to_level(len(self.channels_stack) - 2)
+        self.go_back_to_level(self.current_level - 1)
 
     def on_breadcrumb_clicked(self, tgt_level):
-        if int(tgt_level) + 1 != len(self.channels_stack):
+        if int(tgt_level) != self.current_level:
             self.go_back_to_level(tgt_level)
-        elif isinstance(self.model, SearchResultsModel) and len(self.channels_stack) == 1:
+        elif isinstance(self.model, SearchResultsModel) and self.current_level == 0:
             # In case of remote search, when only the search results are on the stack,
             # we must keep the txt_filter (which contains the search term) before resetting the view
             text_filter = self.model.text_filter
@@ -297,7 +303,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         switched_level = False
         level = int(level)
         disconnected_current_model = False
-        while level + 1 < len(self.channels_stack):
+        while level < self.current_level:
             switched_level = True
             if not disconnected_current_model:
                 disconnected_current_model = True
@@ -376,20 +382,20 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
-        root = len(self.channels_stack) == 1
-        self.channel_back_button.setHidden(root)
+        self.channel_back_button.setHidden(self.current_level == 0)
 
-    def update_labels(self, dirty=False):
+    def update_labels(self):
 
         folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
         personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
-        root = len(self.channels_stack) == 1
+        root = self.current_level == 0
         legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
         discovered = isinstance(self.model, DiscoveredChannelsModel)
         personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
         description_flag = self.model.channel_info.get("description_flag")
         thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
+        dirty = self.model.channel_info.get("dirty")
 
         self.update_navigation_breadcrumbs()
 
