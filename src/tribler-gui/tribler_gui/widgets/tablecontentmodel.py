@@ -292,7 +292,6 @@ class RemoteTableModel(QAbstractTableModel):
         update_labels = len(self.data_items) == 0
 
         if not remote or (uuid.UUID(response.get('uuid')) in self.remote_queries):
-
             prev_total = self.channel_info.get("total")
             if not remote:
                 if "total" in response:
@@ -590,6 +589,9 @@ class PersonalChannelsModel(ChannelContentModel):
         # This is a hack to put the newly created object at the top of the table
         kwargs["on_top"] = 1
         self.on_query_results(response, **kwargs)
+        if not response or self.qt_object_destroyed:
+            return False
+        self.info_changed.emit(response['results'])
 
     @property
     def edit_enabled(self):
