@@ -487,8 +487,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
             # Join/leave hidden swarm as needed.
             if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
-                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
-                                callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
+                if old_state != DLSTATUS_METADATA or new_state != DLSTATUS_DOWNLOADING:
+                    self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
+                                    callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 self.leave_swarm(info_hash)
 
