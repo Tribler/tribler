@@ -18,18 +18,33 @@ class FreePortNotFoundError(Exception):
     pass
 
 
-def get_first_free_port(start=5000, limit=100, family=socket.AF_INET, socket_type=socket.SOCK_STREAM):
-    stop = min(MAX_PORT, start + limit)
-    logger.info(f'Looking for first free port in range [{start}..{stop}]')
+class NetworkUtils:
+    def __init__(self, socket_class=None):
+        if socket_class is None:
+            socket_class = lambda: socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    for port in range(start, stop):
-        if _test_port(family, socket_type, port):
-            logger.info(f'{port} is free')
-            return port
+        self.socket_class = socket_class
 
-        logger.info(f'{port} in use')
+    def get_first_free_port(self, start=5000, limit=100):
+        stop = min(MAX_PORT, start + limit)
+        logger.info(f'Looking for first free port in range [{start}..{stop}]')
 
-    raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
+        for port in range(start, stop):
+            if self.is_port_free(port):
+                logger.info(f'{port} is free')
+                return port
+
+            logger.info(f'{port} in use')
+
+        raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
+
+    def is_port_free(self, port):
+        try:
+            with self.socket_class() as s:
+                s.bind(('', port))
+                return True
+        except OSError:
+            return False
 
 
 def get_random_port(socket_type="all", min_port=5000, max_port=60000):

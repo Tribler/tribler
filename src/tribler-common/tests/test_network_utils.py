@@ -5,8 +5,7 @@ import pytest
 
 from tribler_common.network_utils import (
     FreePortNotFoundError,
-    autodetect_socket_style,
-    get_first_free_port,
+    NetworkUtils, autodetect_socket_style,
     get_random_port,
 )
 
@@ -51,15 +50,32 @@ def test_autodetect_socket_style():
 
 
 def test_get_first_free_port():
+    class MockSocket:
+        def __init__(self):
+            self.bound_ports = [60000, 60001]
+
+        def bind(self, host_port):
+            _, port = host_port
+
+            if port in self.bound_ports:
+                raise OSError
+
+            self.bound_ports.append(port)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, t, v, tb):
+            pass
+
     # target port is free
-    port = random.randint(50000, 60000)
-    assert get_first_free_port(start=port) == port
+    assert NetworkUtils(MockSocket).get_first_free_port(start=50000) == 50000
 
     # target port is locked
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(('', port))
-        assert get_first_free_port(start=port) == port + 1
+    assert NetworkUtils(MockSocket).get_first_free_port(start=60000) == 60002
 
+
+def test_get_first_free_port_none_available():
     # no free ports found
     with pytest.raises(FreePortNotFoundError):
-        get_first_free_port(start=port, limit=0)
+        NetworkUtils().get_first_free_port(start=50000, limit=0)
