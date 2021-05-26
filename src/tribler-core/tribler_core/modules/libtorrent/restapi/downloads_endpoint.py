@@ -223,6 +223,8 @@ class DownloadsEndpoint(RESTEndpoint):
             if download.config.get_channel_download():
                 download_name = self.session.mds.ChannelMetadata.get_channel_name_cached(
                     tdef.get_name_utf8(), tdef.get_infohash())
+            elif self.session.mds is None:
+                download_name = tdef.get_name_utf8()
             else:
                 download_name = self.session.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
                                 tdef.get_name_utf8()
