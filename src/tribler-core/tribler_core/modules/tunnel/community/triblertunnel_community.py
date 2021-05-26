@@ -124,8 +124,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             await sleep(.05)
 
     def get_available_strategies(self):
-        return super().get_available_strategies().update({'GoldenRatioStrategy':
-                                                                                          GoldenRatioStrategy})
+        return super().get_available_strategies().update({'GoldenRatioStrategy': GoldenRatioStrategy})
 
     def cache_exitnodes_to_disk(self):
         """
@@ -409,17 +408,17 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Now we actually remove the circuit
         return super().remove_circuit(circuit_id, additional_info=additional_info,
-                                                                  remove_now=remove_now, destroy=destroy)
+                                      remove_now=remove_now, destroy=destroy)
 
     @task
     async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
                            got_destroy_from=None, both_sides=True):
         removed_relays = await super().remove_relay(circuit_id,
-                                                                                additional_info=additional_info,
-                                                                                remove_now=remove_now,
-                                                                                destroy=destroy,
-                                                                                got_destroy_from=got_destroy_from,
-                                                                                both_sides=both_sides)
+                                                    additional_info=additional_info,
+                                                    remove_now=remove_now,
+                                                    destroy=destroy,
+                                                    got_destroy_from=got_destroy_from,
+                                                    both_sides=both_sides)
 
         self.clean_from_slots(circuit_id)
 
@@ -435,7 +434,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.clean_from_slots(circuit_id)
 
         return super().remove_exit_socket(circuit_id, additional_info=additional_info,
-                                                                      remove_now=remove_now, destroy=destroy)
+                                          remove_now=remove_now, destroy=destroy)
 
     def _ours_on_created_extended(self, circuit, payload):
         super()._ours_on_created_extended(circuit, payload)
