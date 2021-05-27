@@ -11,13 +11,10 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import (
-    TriblerNetworkRequest,
     performed_requests as tribler_performed_requests,
-    tribler_urlencode,
 )
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 
@@ -136,30 +133,9 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def on_cancel_clicked(self, checked):
         self.close()
 
-    def on_report_sent(self, response):
-        if not response:
-            return
-        if self.send_automatically:
-            self.close()
-
-        sent = response['sent']
-
-        success_text = tr("Successfully sent the report! Thanks for your contribution.")
-        error_text = tr("Could not send the report! Please post this issue on GitHub.")
-
-        box = QMessageBox(self.window())
-        box.setWindowTitle(tr("Report Sent") if sent else tr("ERROR: Report Sending Failed"))
-        box.setText(success_text if sent else error_text)
-        box.setStyleSheet("QPushButton { color: white; }")
-        box.exec_()
-
-        self.close()
-
     def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText(tr("SENDING..."))
-
-        endpoint = 'http://reporter.tribler.org/report'
 
         sys_info = ""
         sys_info_dict = defaultdict(lambda: [])
@@ -187,8 +163,21 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         }
 
         SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags)
+        self.on_report_sent()
 
-        TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
+    def on_report_sent(self):
+        if self.send_automatically:
+            self.close()
+
+        success_text = tr("Successfully sent the report! Thanks for your contribution.")
+
+        box = QMessageBox(self.window())
+        box.setWindowTitle(tr("Report Sent"))
+        box.setText(success_text)
+        box.setStyleSheet("QPushButton { color: white; }")
+        box.exec_()
+
+        self.close()
 
     def closeEvent(self, close_event):
         if self.stop_application_on_close:
