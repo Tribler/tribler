@@ -15,7 +15,6 @@ import pytest
 from tribler_core.modules.metadata_store.community.gigachannel_community import (
     ChannelsPeersMapping,
     GigaChannelCommunity,
-    MAGIC_GIGACHAN_VERSION_MARK,
     NoChannelSourcesException,
 )
 from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
@@ -134,7 +133,6 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[1].overlay.send_remote_select_subscribed_channels = mock_send
         peer = self.nodes[0].my_peer
         payload = Mock()
-        payload.extra_bytes = MAGIC_GIGACHAN_VERSION_MARK
         self.nodes[1].overlay.introduction_response_callback(peer, None, payload)
         self.assertIn(peer.mid, self.nodes[1].overlay.queried_peers)
         self.assertTrue(send_ok)
