@@ -6,6 +6,7 @@
 .DS_Store
 
 
+doc/restapi/swagger.yaml
 *.autosave
 *.stats
 .*project
