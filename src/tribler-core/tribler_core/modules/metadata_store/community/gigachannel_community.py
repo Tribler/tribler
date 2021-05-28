@@ -27,8 +27,6 @@ max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
 
 
-MAGIC_GIGACHAN_VERSION_MARK = b'\x01'
-
 
 @dataclass
 class ChannelEntry:
@@ -78,7 +76,8 @@ class GigaChannelCommunitySettings(RemoteQueryCommunitySettings):
 
 
 class GigaChannelCommunity(RemoteQueryCommunity):
-    community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
+    community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
+
 
     def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
@@ -86,7 +85,6 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         return super().create_introduction_response(
             *args,
             introduction=introduction,
-            extra_bytes=MAGIC_GIGACHAN_VERSION_MARK,
             prefix=prefix,
             new_style=new_style
         )
