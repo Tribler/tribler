@@ -1,4 +1,3 @@
-import glob
 import json
 import logging
 import os
@@ -6,7 +5,7 @@ import signal
 import sys
 import time
 from base64 import b64encode
-from urllib.parse import quote, unquote, urlparse
+from pathlib import Path
 
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import (
@@ -37,6 +36,7 @@ from PyQt5.QtWidgets import (
 )
 
 from tribler_common.network_utils import NetworkUtils
+from tribler_common.utilities import uri_to_path
 
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
@@ -129,15 +129,12 @@ class TriblerWindow(QMainWindow):
         self.core_manager = CoreManager(api_port, api_key, self.error_handler)
         self.pending_requests = {}
         self.pending_uri_requests = []
-        self.download_uri = None
         self.dialog = None
         self.create_dialog = None
         self.chosen_dir = None
         self.new_version_dialog = None
         self.start_download_dialog_active = False
         self.selected_torrent_files = []
-        self.last_search_query = None
-        self.last_search_time = None
         self.start_time = time.time()
         self.token_refresh_timer = None
         self.shutdown_timer = None
@@ -566,7 +563,7 @@ class TriblerWindow(QMainWindow):
             def on_add_button_pressed(channel_id):
                 post_data = {}
                 if uri.startswith("file:"):
-                    with open(uri[5:], "rb") as torrent_file:
+                    with open(uri_to_path(uri), "rb") as torrent_file:
                         post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
                 elif uri.startswith("magnet:"):
                     post_data['uri'] = uri
@@ -755,12 +752,11 @@ class TriblerWindow(QMainWindow):
         )
         if len(filenames[0]) > 0:
             for filename in filenames[0]:
-                self.pending_uri_requests.append(f"file:{quote(filename)}")
+                self.pending_uri_requests.append(Path(filename).as_uri())
             self.process_uri_request()
 
     def start_download_from_uri(self, uri):
         uri = uri.decode('utf-8') if isinstance(uri, bytes) else uri
-        self.download_uri = uri
 
         if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
             # FIXME: instead of using this workaround, make sure the settings are _available_ by this moment
@@ -781,7 +777,7 @@ class TriblerWindow(QMainWindow):
                 self.dialog.close_dialog()
                 self.dialog = None
 
-            self.dialog = StartDownloadDialog(self, self.download_uri)
+            self.dialog = StartDownloadDialog(self, uri)
             connect(self.dialog.button_clicked, self.on_start_download_action)
             self.dialog.show()
             self.start_download_dialog_active = True
@@ -791,12 +787,12 @@ class TriblerWindow(QMainWindow):
             # add the download uri back to self.pending_uri_requests to process again.
             if not self.tribler_settings:
                 self.fetch_settings()
-                if self.download_uri not in self.pending_uri_requests:
-                    self.pending_uri_requests.append(self.download_uri)
+                if uri not in self.pending_uri_requests:
+                    self.pending_uri_requests.append(uri)
                 return
 
             self.window().perform_start_download_request(
-                self.download_uri,
+                uri,
                 self.window().tribler_settings['download_defaults']['anonymity_enabled'],
                 self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                 self.tribler_settings['download_defaults']['saveas'],
@@ -808,7 +804,7 @@ class TriblerWindow(QMainWindow):
         if action == 1:
             if self.dialog and self.dialog.dialog_widget:
                 self.window().perform_start_download_request(
-                    self.download_uri,
+                    self.dialog.download_uri,
                     self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                     self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
                     self.dialog.dialog_widget.destination_input.currentText(),
@@ -840,7 +836,7 @@ class TriblerWindow(QMainWindow):
         )
         self.chosen_dir = chosen_dir
         if len(chosen_dir) != 0:
-            self.selected_torrent_files = [torrent_file for torrent_file in glob.glob(chosen_dir + "/*.torrent")]
+            self.selected_torrent_files = list(Path(chosen_dir).glob("*.torrent"))
             self.dialog = ConfirmationDialog(
                 self,
                 tr("Add torrents from directory"),
@@ -872,7 +868,7 @@ class TriblerWindow(QMainWindow):
 
             for torrent_file in self.selected_torrent_files:
                 self.perform_start_download_request(
-                    f"file:{torrent_file}",
+                    torrent_file.as_uri(),
                     self.window().tribler_settings['download_defaults']['anonymity_enabled'],
                     self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
                     self.tribler_settings['download_defaults']['saveas'],
@@ -1050,22 +1046,24 @@ class TriblerWindow(QMainWindow):
             return True
         return super().event(event)
 
-    def dragEnterEvent(self, e):
-        file_urls = [_qurl_to_path(url) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
+    @classmethod
+    def get_urls_from_dragndrop_list(cls, e):
+        return [url.toString() for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
 
-        if any(os.path.isfile(filename) for filename in file_urls):
+    def dragEnterEvent(self, e):
+        file_urls = self.get_urls_from_dragndrop_list(e)
+
+        if any(uri_to_path(fu).is_file() for fu in file_urls):
             e.accept()
         else:
             e.ignore()
 
     def dropEvent(self, e):
-        file_urls = (
-            [(_qurl_to_path(url), url.toString()) for url in e.mimeData().urls()] if e.mimeData().hasUrls() else []
-        )
+        file_urls = self.get_urls_from_dragndrop_list(e)
 
-        for filename, fileurl in file_urls:
-            if os.path.isfile(filename):
-                self.start_download_from_uri(fileurl)
+        for fu in file_urls:
+            if uri_to_path(fu).is_file():
+                self.start_download_from_uri(fu)
 
         e.accept()
 
@@ -1173,8 +1171,3 @@ class TriblerWindow(QMainWindow):
             "Tribler recovered from a corrupted config. Please check your settings and update if necessary."
         )
         ConfirmationDialog.show_error(self, tr("Tribler config error"), user_message)
-
-
-def _qurl_to_path(qurl):
-    parsed = urlparse(qurl.toString())
-    return os.path.abspath(os.path.join(parsed.netloc, unquote(parsed.path)))
