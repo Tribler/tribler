@@ -12,11 +12,11 @@ from binascii import unhexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
-from urllib.request import url2pathname
 
 from ipv8.taskmanager import TaskManager, task
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING, STATEDIR_CHECKPOINT_DIR
+from tribler_common.utilities import uri_to_path
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download import Download
@@ -503,7 +503,7 @@ class DownloadManager(TaskManager):
                 tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
             return self.start_download(tdef=tdef, config=config)
         if uri.startswith("file:"):
-            argument = url2pathname(uri[5:])
+            argument = uri_to_path(uri)
             return self.start_download(torrent_file=argument, config=config)
         raise Exception("invalid uri")
 

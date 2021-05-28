@@ -1,4 +1,8 @@
+import os
 import sys
+from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 
 def is_frozen():
@@ -11,3 +15,9 @@ def is_frozen():
     except Exception:
         return False
     return True
+
+
+def uri_to_path(uri):
+    parsed = urlparse(uri)
+    host = "{0}{0}{mnt}{0}".format(os.path.sep, mnt=parsed.netloc)
+    return Path(host) / url2pathname(parsed.path)

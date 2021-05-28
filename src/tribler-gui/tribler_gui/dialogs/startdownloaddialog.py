@@ -6,6 +6,8 @@ from PyQt5 import uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
+from tribler_common.utilities import uri_to_path
+
 import tribler_core.utilities.json_util as json
 
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
@@ -19,7 +21,8 @@ from tribler_gui.utilities import (
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
-    quote_plus_unicode, tr,
+    quote_plus_unicode,
+    tr,
 )
 
 
@@ -38,7 +41,7 @@ class StartDownloadDialog(DialogContainer):
 
         torrent_name = download_uri
         if torrent_name.startswith('file:'):
-            torrent_name = torrent_name[5:]
+            torrent_name = uri_to_path(torrent_name).stem
         elif torrent_name.startswith('magnet:'):
             torrent_name = unquote_plus(torrent_name)
 
@@ -154,7 +157,7 @@ class StartDownloadDialog(DialogContainer):
         direct = not self.dialog_widget.anon_download_checkbox.isChecked()
         request = f"torrentinfo?uri={quote_plus_unicode(self.download_uri)}"
         if direct is True:
-            request = request + f"&hops=0"
+            request = request + "&hops=0"
         self.rest_request = TriblerNetworkRequest(request, self.on_received_metainfo, capture_core_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:

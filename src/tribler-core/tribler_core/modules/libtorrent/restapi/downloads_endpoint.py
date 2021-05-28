@@ -1,8 +1,6 @@
 from asyncio import CancelledError, TimeoutError as AsyncTimeoutError, wait_for
 from binascii import unhexlify
 from contextlib import suppress
-from urllib.parse import unquote_plus
-from urllib.request import url2pathname
 
 from aiohttp import web
 
@@ -340,15 +338,8 @@ class DownloadsEndpoint(RESTEndpoint):
         if error:
             return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
-        uri = parameters['uri']
-        if uri.startswith("file:"):
-            filename = url2pathname(uri[5:])
-            download_uri = f"file:{filename}"
-        else:
-            download_uri = unquote_plus(uri)
-
         try:
-            download = await self.session.dlmgr.start_download_from_uri(download_uri, config=download_config)
+            download = await self.session.dlmgr.start_download_from_uri(parameters['uri'], config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
