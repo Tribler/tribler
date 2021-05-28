@@ -113,67 +113,67 @@
         <translation>лет</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="440"/>
+        <location filename="../tribler_window.py" line="441"/>
         <source>Discovered channels</source>
         <translation> Все каналы</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="450"/>
+        <location filename="../tribler_window.py" line="451"/>
         <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation>Эта страница показывает список популярных торрентов обнаруженных Tribler за последние 24 часа.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="575"/>
+        <location filename="../tribler_window.py" line="576"/>
         <source>Channel update</source>
         <translation>Обновление канала</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="575"/>
+        <location filename="../tribler_window.py" line="576"/>
         <source>Torrent(s) added to your channel</source>
         <translation>Торрент(ы) добавлен(ы) в персональный канал</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>New version available</source>
         <translation>Доступна новая версия</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="436"/>
+        <location filename="../widgets/channelcontentswidget.py" line="414"/>
         <source>NEW CHANNEL</source>
         <translation>СОЗДАТЬ КАНАЛ</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="436"/>
+        <location filename="../widgets/channelcontentswidget.py" line="414"/>
         <source>NEW FOLDER</source>
         <translation>НОВАЯ ПАПКА</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="464"/>
+        <location filename="../widgets/channelcontentswidget.py" line="442"/>
         <source>Add .torrent file</source>
         <translation>Добавить торрент из файла</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="465"/>
+        <location filename="../widgets/channelcontentswidget.py" line="443"/>
         <source>Add torrent(s) directory</source>
         <translation>Добавить торрент(ы) из папки</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="466"/>
+        <location filename="../widgets/channelcontentswidget.py" line="444"/>
         <source>Add URL/magnet links</source>
         <translation>Добавить торрент по URL/magnet-ссылки</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="835"/>
+        <location filename="../tribler_window.py" line="836"/>
         <source>Please select the directory containing the .torrent files</source>
         <translation>Пожалуйста, выберите папку из которой следует добавить .torrent-файл</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="844"/>
+        <location filename="../tribler_window.py" line="845"/>
         <source>Add torrents from directory</source>
         <translation>Добавить все торренты из папки</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="490"/>
+        <location filename="../widgets/channelcontentswidget.py" line="468"/>
         <source>Add all torrent files from the following directory to your Tribler channel: 
 
  %s</source>
@@ -182,42 +182,42 @@
  %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="490"/>
+        <location filename="../widgets/channelcontentswidget.py" line="468"/>
         <source>Include subdirectories (recursive mode)</source>
         <translation>Просматривать поддиректории (рекурсивный режим)</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="753"/>
+        <location filename="../tribler_window.py" line="754"/>
         <source>Please select the .torrent file</source>
         <translation>Пожалуйста, выберите .torrent-файл</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="510"/>
+        <location filename="../widgets/channelcontentswidget.py" line="488"/>
         <source>Torrent files %s</source>
         <translation>Торренты %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="891"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>Add torrent from URL/magnet link</source>
         <translation>Добавить торренты по URL/magnet-ссылке</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="891"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>Please enter the URL/magnet link in the field below:</source>
         <translation>Пожалуйста, введите URL/magnet-ссылку в поле ниже:</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="891"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>ADD</source>
         <translation>ДОБАВИТЬ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>CANCEL</source>
         <translation>ОТМЕНА</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="898"/>
+        <location filename="../tribler_window.py" line="899"/>
         <source>URL/magnet link</source>
         <translation>URL/magnet-ссылка</translation>
     </message>
@@ -256,7 +256,7 @@
         <translation>Отписаться</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>Delete channel</source>
         <translation>Удалить канал</translation>
     </message>
@@ -336,7 +336,7 @@
         <translation>Торрент-файл экспортирован в %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="869"/>
+        <location filename="../tribler_window.py" line="870"/>
         <source>Add torrent(s)</source>
         <translation>Добавить торрент(ы)</translation>
     </message>
@@ -406,7 +406,7 @@
         <translation>Пожалуйста, выберите директорию для сохранения журнала</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="276"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="279"/>
         <source>Insufficient Permissions</source>
         <translation>Недостаточно прав доступа</translation>
     </message>
@@ -414,7 +414,8 @@
         <location filename="../widgets/settingspage.py" line="298"/>
         <source>Versions: 
 - %s</source>
-        <translation>Версии:</translation>
+        <translation>Версии:
+- %s</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="300"/>
@@ -517,14 +518,14 @@ Note that the decimal values are truncated.</source>
         <translation>Нажмите, чтобы отписаться.</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="409"/>
+        <location filename="../widgets/tablecontentmodel.py" line="408"/>
         <source>Subscribed.%s
 (Click to unsubscribe)</source>
         <translation>Вы подписаны.%s
 (Нажмите, чтобы отписаться)</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="409"/>
+        <location filename="../widgets/tablecontentmodel.py" line="408"/>
         <source>Not subscribed.
 (Click to subscribe)</source>
         <translation>Вы не подписаны.
@@ -595,107 +596,107 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
 Если Вы не уверены, нажмите &apos;Нет&apos;. Данные можно будет удалить позже (меню Настройки, вкладка Диск).</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="362"/>
+        <location filename="../tribler_window.py" line="363"/>
         <source>&lt;b&gt;CRITICAL ERROR&lt;/b&gt;</source>
         <translation>&lt;b&gt;КРИТИЧЕСКАЯ ОШИБКА&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="362"/>
+        <location filename="../tribler_window.py" line="363"/>
         <source>You are running low on disk space (&lt;100MB). Please make sure to have sufficient free space available and restart Tribler again.</source>
         <translation>Заканчивается свободное место на диске (осталось менее 100MB). Tribler может работать некорректно. Пожалуйста, удостоверьтесь что на диске достаточно свободного места и перезапустите Tribler.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="362"/>
+        <location filename="../tribler_window.py" line="363"/>
         <source>Close Tribler</source>
         <translation>Закрыть Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="376"/>
+        <location filename="../tribler_window.py" line="377"/>
         <source>Download finished</source>
         <translation>Загрузка закончена</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="376"/>
+        <location filename="../tribler_window.py" line="377"/>
         <source>Download of %s has finished.</source>
         <translation>Загрузка %s завершена</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="539"/>
+        <location filename="../tribler_window.py" line="540"/>
         <source>Insufficient write permissions to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions on the directory and add the torrent again. %s</source>
         <translation>Недостаточно прав для записи в папку &lt;i&gt;%s&lt;/i&gt;. Пожалуйста, установите верные права доступа к папке и повторите загрузку. %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="540"/>
+        <location filename="../tribler_window.py" line="541"/>
         <source>Download error &lt;i&gt;%s&lt;/i&gt;</source>
         <translation>Ошибка загрузки &lt;i&gt;%s&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>Version %s of Tribler is available.Do you want to visit the website to download the newest version?</source>
         <translation>Доступна новая версия Tribler: %s. Перейти к веб-сайту разработчиков чтобы загрузить её?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>IGNORE</source>
         <translation>ПРОПУСТИТЬ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>LATER</source>
         <translation>НАПОМНИТЬ ПОЗЖЕ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>OK</source>
         <translation>ОК</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="721"/>
+        <location filename="../tribler_window.py" line="722"/>
         <source>Import torrent from file</source>
         <translation>Загрузить торрент из файла</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="722"/>
+        <location filename="../tribler_window.py" line="723"/>
         <source>Import torrent(s) from directory</source>
         <translation>Загрузить торрент(ы) из папки</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="723"/>
+        <location filename="../tribler_window.py" line="724"/>
         <source>Import torrent from magnet/URL</source>
         <translation>Загрузить торрент по URL/magnet-ссылке</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="724"/>
+        <location filename="../tribler_window.py" line="725"/>
         <source>Create torrent from file(s)</source>
         <translation>Создать торрент</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="749"/>
+        <location filename="../tribler_window.py" line="750"/>
         <source>Torrent updates</source>
         <translation>Торрент изменил состояние</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="770"/>
+        <location filename="../tribler_window.py" line="771"/>
         <source>Download Error</source>
         <translation>Ошибка загрузки</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="770"/>
+        <location filename="../tribler_window.py" line="771"/>
         <source>Tribler settings is not available yet. Fetching it now. Please try again later.</source>
         <translation>Настройки Tribler не доступны, поскольку еще загружаются. Пожалуйста попробуйте позже.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="820"/>
+        <location filename="../tribler_window.py" line="821"/>
         <source>Tribler UI Error</source>
         <translation>Ошибка графического интерфейса Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="820"/>
+        <location filename="../tribler_window.py" line="821"/>
         <source>Something went wrong. Please try again.</source>
         <translation>Что-то пошло не так. Пожалуйста, попробуйте снова.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="844"/>
+        <location filename="../tribler_window.py" line="845"/>
         <source>Add %s torrent files from the following directory to your Tribler channel: 
 
 %s</source>
@@ -704,87 +705,87 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
 %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="844"/>
+        <location filename="../tribler_window.py" line="845"/>
         <source>Add torrents to My Channel</source>
         <translation>Добавить торренты в персональный канал</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="860"/>
+        <location filename="../tribler_window.py" line="861"/>
         <source>Channels update</source>
         <translation>Изменение состояния каналов</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="860"/>
+        <location filename="../tribler_window.py" line="861"/>
         <source>%s added to your channel</source>
         <translation>%s добавлен в персональный канал</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1013"/>
+        <location filename="../tribler_window.py" line="1014"/>
         <source>Shutting down...</source>
         <translation>Выключение...</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>Abort the conversion of Channels database</source>
         <translation>Отменить конвертирование базы данных каналов Tribler к новой версии</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>The upgrade procedure is now &lt;b&gt;converting your personal channel&lt;/b&gt; and channels collected by the previous installation of Tribler.&lt;br&gt;Are you sure you want to abort the conversion process?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! WARNING !!! &lt;br&gt;You will lose your personal channel and subscribed channels if you ABORT now! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</source>
         <translation>Процедура преобразования &lt;b&gt;конвертирует Ваш персональный канал&lt;/b&gt; и каналы других пользователей, накопленные предыдущей версией Tribler.&lt;br&gt;Вы уверены, что хотите отменить процесс конвертации?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! ВНИМАНИЕ !!! &lt;br&gt;Вы потеряете и персональный канал, и все подписки, если сейчас нажмете ПРЕРВАТЬ! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>ABORT</source>
         <translation>ПРЕРВАТЬ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>CONTINUE</source>
         <translation>ПРОДОЛЖИТЬ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>Unsubscribe from channel</source>
         <translation>Отписаться от канала</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>Are you sure you want to &lt;b&gt;unsubscribe&lt;/b&gt; from channel&lt;br/&gt;</source>
         <translation>Вы уверены, что хотите &lt;b&gt;отписаться&lt;/b&gt; от канала&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>&lt;br/&gt;and remove its contents?</source>
         <translation>и удалить его вместе со всем содержимым?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>UNSUBSCRIBE</source>
         <translation>ОТПИСАТЬСЯ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>Are you sure you want to &lt;b&gt;delete&lt;/b&gt; your personal channel&lt;br/&gt;</source>
         <translation>Вы уверены, что хотитие &lt;b&gt;удалить&lt;/b&gt; Ваш персональный канал&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>&lt;br/&gt;and all its contents?</source>
         <translation>&lt;br/&gt;со всем его содержимым?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>DELETE</source>
         <translation>УДАЛИТЬ</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1172"/>
+        <location filename="../tribler_window.py" line="1171"/>
         <source>Tribler recovered from a corrupted config. Please check your settings and update if necessary.</source>
         <translation>Tribler восстановился после повреждения файла конфигурации. Пожалуйста, проверьте настройки и измените их, если необходимо.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1175"/>
+        <location filename="../tribler_window.py" line="1174"/>
         <source>Tribler config error</source>
         <translation>Ошибка конфигурации Tribler</translation>
     </message>
@@ -854,7 +855,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation>%(num_bytes)s в %(num_files)d файлах</translation>
     </message>
     <message>
-        <location filename="../widgets/searchresultswidget.py" line="77"/>
+        <location filename="../widgets/searchresultswidget.py" line="81"/>
         <source>Search results for %s</source>
         <translation>Результаты поиска для запроса %s</translation>
     </message>
@@ -889,22 +890,22 @@ You can not undo this action.</source>
         <translation>Этот граф построен по данным взаимодействия вашего Tribler с другими пользователями. Он показывает &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; взаимодействий &lt;strong&gt;%(num_users)s&lt;/strong&gt; пользователей.&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="215"/>
+        <location filename="../tribler_window.py" line="216"/>
         <source>Show Tribler window</source>
         <translation>Показать окно Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="219"/>
+        <location filename="../tribler_window.py" line="220"/>
         <source>Show downloads</source>
         <translation>Показать загрузки</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="221"/>
+        <location filename="../tribler_window.py" line="222"/>
         <source>Quit Tribler</source>
         <translation>Закрыть Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="753"/>
+        <location filename="../tribler_window.py" line="754"/>
         <source>Torrent files%s</source>
         <translation>Торрент-файлы%s</translation>
     </message>
@@ -1004,47 +1005,37 @@ You can not undo this action.</source>
         <translation>Убрать файл</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="41"/>
+        <location filename="../dialogs/feedbackdialog.py" line="38"/>
         <source>Unexpected error</source>
         <translation>Отчет об ошибке</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="51"/>
+        <location filename="../dialogs/feedbackdialog.py" line="48"/>
         <source>What were you doing before this crash happened? This information will help Tribler developers to figure out and fix the issue quickly.</source>
         <translation>Какие действия вы совершали, прежде чем произошел сбой? Подробное описание произошедшего поможет разработчикам выяснить причину ошибки и исправить её.</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="131"/>
+        <location filename="../dialogs/feedbackdialog.py" line="128"/>
         <source>Remove entry</source>
         <translation>Удалить запись</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="147"/>
+        <location filename="../dialogs/feedbackdialog.py" line="172"/>
         <source>Successfully sent the report! Thanks for your contribution.</source>
         <translation>Отчет об ошибке отправлен успешно! Спасибо за помощь!</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="148"/>
-        <source>Could not send the report! Please post this issue on GitHub.</source>
-        <translation>Не удалось отправить отчет об ошибке! Пожалуйста, сообщите об этом на нашей странице в GitHub</translation>
-    </message>
-    <message>
-        <location filename="../dialogs/feedbackdialog.py" line="151"/>
+        <location filename="../dialogs/feedbackdialog.py" line="175"/>
         <source>Report Sent</source>
         <translation>Отчет отправлен</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="151"/>
-        <source>ERROR: Report Sending Failed</source>
-        <translation>ОШИБКА: Сбой отправки отчета</translation>
-    </message>
-    <message>
-        <location filename="../dialogs/feedbackdialog.py" line="160"/>
+        <location filename="../dialogs/feedbackdialog.py" line="138"/>
         <source>SENDING...</source>
         <translation>ОТПРАВЛЯЕМ...</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="176"/>
+        <location filename="../dialogs/feedbackdialog.py" line="152"/>
         <source>Not provided</source>
         <translation>Не указано</translation>
     </message>
@@ -1069,89 +1060,89 @@ You can not undo this action.</source>
         <translation>Имя канала</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="164"/>
         <source>directly</source>
         <translation>напрямую</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="164"/>
         <source>anonymously</source>
         <translation>анонимно</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="162"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="165"/>
         <source>Loading torrent files %s...</source>
         <translation>Загружаем список файлов торрента %s...</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="163"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="166"/>
         <source>Timeout in fetching files %s. Retrying  %i/%i</source>
         <translation>Истекло время ожидания загрузки списка файлов %s. Попытка %i/%i</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="188"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="191"/>
         <source>Failed to load files. Click to retry again.</source>
         <translation>Не удалось загрузить список файлов. Нажмите здесь, чтобы повторить попытку.</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="193"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="196"/>
         <source>Unable to read torrent file data</source>
         <translation>Не удалось прочитать данные торрента</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="195"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="198"/>
         <source>Error: %s</source>
         <translation>Ошибка: %s</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="206"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="209"/>
         <source>Note: this torrent already exists in the Downloads</source>
         <translation>Внимание: этот торрент уже присутствует в списке загрузок</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="240"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="243"/>
         <source>Please select the destination directory of your download</source>
         <translation>Пожалуйства, выберите папку назначения для этой загрузки</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="252"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="255"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory. [%s]</source>
         <translation>Tribler не может поместить загрузку в папку &lt;i&gt;%s&lt;/i&gt;. Пожалуйста, удостоверьтесь что в указанную папку разрешена запись или укажите иную папку. [%s]</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="264"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="267"/>
         <source>No files selected</source>
         <translation>Не выбрано ни одного файла</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="264"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="267"/>
         <source>Please select at least one file to download.</source>
         <translation>Пожалуйста, укажите хотя бы один файл, который следует загрузить.</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="275"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="278"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory and try to download again. [%s]</source>
         <translation>Tribler не может поместить загрузку в папку &lt;i&gt;%s&lt;/i&gt;. Пожалуйста, удостоверьтесь что в указанную папку разрешена запись или укажите иную папку и попытайтесь повторить загрузку. [%s]</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="453"/>
+        <location filename="../widgets/channelcontentswidget.py" line="431"/>
         <source>%(total)i/%(torrents)i items</source>
         <translation>%(total)i/%(torrents)i объектов</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="455"/>
+        <location filename="../widgets/channelcontentswidget.py" line="433"/>
         <source>%(total)i items</source>
         <translation>%(total)i объектов</translation>
     </message>
     <message>
-        <location filename="../widgets/searchresultswidget.py" line="27"/>
+        <location filename="../widgets/searchresultswidget.py" line="28"/>
         <source>Remote responses: %(num_complete_peers)i / %(total_peers)i
 New remote results received: %(num_remote_results)i</source>
         <translation>Завершенные запросы к сети: %(num_complete_peers)i / %(total_peers)i
 Новые результаты: %(num_remote_results)i</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="447"/>
+        <location filename="../tribler_window.py" line="448"/>
         <source>Popular torrents</source>
         <translation>Популярные торренты</translation>
     </message>
