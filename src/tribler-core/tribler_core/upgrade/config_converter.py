@@ -116,7 +116,7 @@ def convert_config_to_tribler75(state_dir):
             config.set_selected_files([tdef.get_index_of_file_in_files(fn)
                                        for fn in config.config['download_defaults'].pop('selected_files')])
             config.write(str(filename))
-        except ConfigObjParseError:
+        except (ConfigObjParseError, UnicodeDecodeError):
             logger.error("Could not parse %s file so removing it", filename)
             os.remove(filename)
 
