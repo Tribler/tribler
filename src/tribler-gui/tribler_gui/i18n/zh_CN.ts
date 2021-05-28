@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="zh_CN">
+<!DOCTYPE TS><TS version="2.0" language="zh_CN" sourcelanguage="">
 <context>
     <name>@default</name>
     <message>
@@ -114,67 +113,67 @@
         <translation>年</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="440"/>
+        <location filename="../tribler_window.py" line="441"/>
         <source>Discovered channels</source>
         <translation>发现的频道</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="450"/>
+        <location filename="../tribler_window.py" line="451"/>
         <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation>此页面显示 Tribler 最近 24 小时收集到的流行种子列表。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="575"/>
+        <location filename="../tribler_window.py" line="576"/>
         <source>Channel update</source>
         <translation>频道更新</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="575"/>
+        <location filename="../tribler_window.py" line="576"/>
         <source>Torrent(s) added to your channel</source>
         <translation>你的频道已添加的种子</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>New version available</source>
         <translation>有新版本</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="436"/>
+        <location filename="../widgets/channelcontentswidget.py" line="414"/>
         <source>NEW CHANNEL</source>
         <translation>新建频道</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="436"/>
+        <location filename="../widgets/channelcontentswidget.py" line="414"/>
         <source>NEW FOLDER</source>
         <translation>新建文件夹</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="464"/>
+        <location filename="../widgets/channelcontentswidget.py" line="442"/>
         <source>Add .torrent file</source>
         <translation>添加种子文件</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="465"/>
+        <location filename="../widgets/channelcontentswidget.py" line="443"/>
         <source>Add torrent(s) directory</source>
         <translation>添加种子目录</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="466"/>
+        <location filename="../widgets/channelcontentswidget.py" line="444"/>
         <source>Add URL/magnet links</source>
         <translation>添加 URL/磁力链接</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="835"/>
+        <location filename="../tribler_window.py" line="836"/>
         <source>Please select the directory containing the .torrent files</source>
         <translation>请选择包含种子（.torrent）文件的目录</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="844"/>
+        <location filename="../tribler_window.py" line="845"/>
         <source>Add torrents from directory</source>
         <translation>从目录添加种子</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="490"/>
+        <location filename="../widgets/channelcontentswidget.py" line="468"/>
         <source>Add all torrent files from the following directory to your Tribler channel: 
 
  %s</source>
@@ -183,42 +182,42 @@
  %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="490"/>
+        <location filename="../widgets/channelcontentswidget.py" line="468"/>
         <source>Include subdirectories (recursive mode)</source>
         <translation>包含子目录（递归模式）</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="753"/>
+        <location filename="../tribler_window.py" line="754"/>
         <source>Please select the .torrent file</source>
         <translation>请选择种子文件</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="510"/>
+        <location filename="../widgets/channelcontentswidget.py" line="488"/>
         <source>Torrent files %s</source>
         <translation>种子文件 %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="891"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>Add torrent from URL/magnet link</source>
         <translation>从 URL/磁力链接添加种子文件</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="891"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>Please enter the URL/magnet link in the field below:</source>
         <translation>请在下面字段输入 URL/磁力链接：</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="891"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>ADD</source>
         <translation>添加</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>CANCEL</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="898"/>
+        <location filename="../tribler_window.py" line="899"/>
         <source>URL/magnet link</source>
         <translation>URL/磁力链接</translation>
     </message>
@@ -257,7 +256,7 @@
         <translation>取消订阅</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>Delete channel</source>
         <translation>删除频道</translation>
     </message>
@@ -337,7 +336,7 @@
         <translation>种子文件已导出到 %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="869"/>
+        <location filename="../tribler_window.py" line="870"/>
         <source>Add torrent(s)</source>
         <translation>添加种子</translation>
     </message>
@@ -407,7 +406,7 @@
         <translation>请选择日志目录</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="276"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="279"/>
         <source>Insufficient Permissions</source>
         <translation>权限不足</translation>
     </message>
@@ -525,14 +524,14 @@ Note that the decimal values are truncated.</source>
 （点击取消订阅）</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="409"/>
+        <location filename="../widgets/tablecontentmodel.py" line="408"/>
         <source>Subscribed.%s
 (Click to unsubscribe)</source>
         <translation>已订阅。%s
 （点击取消订阅）</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="409"/>
+        <location filename="../widgets/tablecontentmodel.py" line="408"/>
         <source>Not subscribed.
 (Click to subscribe)</source>
         <translation>未订阅。
@@ -603,107 +602,107 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
 如果不确定，按下“否”。你以后仍可以从设置-&gt;数据页面里移除那些目录。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="362"/>
+        <location filename="../tribler_window.py" line="363"/>
         <source>&lt;b&gt;CRITICAL ERROR&lt;/b&gt;</source>
         <translation>&lt;b&gt;严重错误&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="362"/>
+        <location filename="../tribler_window.py" line="363"/>
         <source>You are running low on disk space (&lt;100MB). Please make sure to have sufficient free space available and restart Tribler again.</source>
         <translation>你的磁盘空间不足（小于 100MB）。请确保有足够的可用空间，然后再重启 Tribler。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="362"/>
+        <location filename="../tribler_window.py" line="363"/>
         <source>Close Tribler</source>
         <translation>关闭 Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="376"/>
+        <location filename="../tribler_window.py" line="377"/>
         <source>Download finished</source>
         <translation>下载已完成</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="376"/>
+        <location filename="../tribler_window.py" line="377"/>
         <source>Download of %s has finished.</source>
         <translation>%s 的下载已完成。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="539"/>
+        <location filename="../tribler_window.py" line="540"/>
         <source>Insufficient write permissions to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions on the directory and add the torrent again. %s</source>
         <translation>没有对 &lt;i&gt;%s&lt;/i&gt; 目录的写入权限。请为目录添加适当的写入权限，然后再次添加种子。%s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="540"/>
+        <location filename="../tribler_window.py" line="541"/>
         <source>Download error &lt;i&gt;%s&lt;/i&gt;</source>
         <translation>下载错误。&lt;i&gt;%s&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>Version %s of Tribler is available.Do you want to visit the website to download the newest version?</source>
         <translation>Tribler 版本 %s 可用。你想要访问网站下载最新版本吗？</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>IGNORE</source>
         <translation>忽略</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>LATER</source>
         <translation>推迟</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="594"/>
+        <location filename="../tribler_window.py" line="595"/>
         <source>OK</source>
         <translation>确定</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="721"/>
+        <location filename="../tribler_window.py" line="722"/>
         <source>Import torrent from file</source>
         <translation>从文件导入种子</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="722"/>
+        <location filename="../tribler_window.py" line="723"/>
         <source>Import torrent(s) from directory</source>
         <translation>从目录导入种子</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="723"/>
+        <location filename="../tribler_window.py" line="724"/>
         <source>Import torrent from magnet/URL</source>
         <translation>从磁力/URL 导入种子</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="724"/>
+        <location filename="../tribler_window.py" line="725"/>
         <source>Create torrent from file(s)</source>
         <translation>从文件创建种子</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="749"/>
+        <location filename="../tribler_window.py" line="750"/>
         <source>Torrent updates</source>
         <translation>种子更新</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="770"/>
+        <location filename="../tribler_window.py" line="771"/>
         <source>Download Error</source>
         <translation>下载错误</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="770"/>
+        <location filename="../tribler_window.py" line="771"/>
         <source>Tribler settings is not available yet. Fetching it now. Please try again later.</source>
         <translation>Tribler 设置还不可用。正在获取。请稍后再试。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="820"/>
+        <location filename="../tribler_window.py" line="821"/>
         <source>Tribler UI Error</source>
         <translation>Tribler 用户界面错误</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="820"/>
+        <location filename="../tribler_window.py" line="821"/>
         <source>Something went wrong. Please try again.</source>
         <translation>出现问题了。请再试一次。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="844"/>
+        <location filename="../tribler_window.py" line="845"/>
         <source>Add %s torrent files from the following directory to your Tribler channel: 
 
 %s</source>
@@ -712,87 +711,87 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
 %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="844"/>
+        <location filename="../tribler_window.py" line="845"/>
         <source>Add torrents to My Channel</source>
         <translation>添加种子到我的频道</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="860"/>
+        <location filename="../tribler_window.py" line="861"/>
         <source>Channels update</source>
         <translation>频道更新</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="860"/>
+        <location filename="../tribler_window.py" line="861"/>
         <source>%s added to your channel</source>
         <translation>%s 已添加到你的频道</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1013"/>
+        <location filename="../tribler_window.py" line="1014"/>
         <source>Shutting down...</source>
         <translation>正在关闭……</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>Abort the conversion of Channels database</source>
         <translation>中止频道数据库的转换</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>The upgrade procedure is now &lt;b&gt;converting your personal channel&lt;/b&gt; and channels collected by the previous installation of Tribler.&lt;br&gt;Are you sure you want to abort the conversion process?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! WARNING !!! &lt;br&gt;You will lose your personal channel and subscribed channels if you ABORT now! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</source>
         <translation>升级程序正在&lt;b&gt;转换你的个人数据&lt;/b&gt;和 Tribler 上个安装版本收集的频道。&lt;br&gt;你确定要中止转换过程吗？&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt;！！！警告！！！&lt;br&gt;如果现在中止，你将丢失你的个人频道和订阅的频道！&lt;/b&gt; &lt;/p&gt; &lt;br&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>ABORT</source>
         <translation>中止</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1081"/>
+        <location filename="../tribler_window.py" line="1080"/>
         <source>CONTINUE</source>
         <translation>继续</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>Unsubscribe from channel</source>
         <translation>取消频道订阅</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>Are you sure you want to &lt;b&gt;unsubscribe&lt;/b&gt; from channel&lt;br/&gt;</source>
         <translation>你确定要&lt;b&gt;取消订阅&lt;/b&gt;频道&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>&lt;br/&gt;and remove its contents?</source>
         <translation>&lt;br/&gt;并移除它的内容吗？</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1119"/>
+        <location filename="../tribler_window.py" line="1118"/>
         <source>UNSUBSCRIBE</source>
         <translation>取消订阅</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>Are you sure you want to &lt;b&gt;delete&lt;/b&gt; your personal channel&lt;br/&gt;</source>
         <translation>你确定要&lt;b&gt;删除&lt;/b&gt;你的个人频道&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>&lt;br/&gt;and all its contents?</source>
         <translation>&lt;br/&gt;和它的全部内容吗？</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1146"/>
+        <location filename="../tribler_window.py" line="1145"/>
         <source>DELETE</source>
         <translation>删除</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1172"/>
+        <location filename="../tribler_window.py" line="1171"/>
         <source>Tribler recovered from a corrupted config. Please check your settings and update if necessary.</source>
         <translation>Tribler 已从损坏的配置中恢复。请检查你的设置并在必要时进行更新。</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1175"/>
+        <location filename="../tribler_window.py" line="1174"/>
         <source>Tribler config error</source>
         <translation>Tribler 配置错误</translation>
     </message>
@@ -884,32 +883,32 @@ You can not undo this action.</source>
         <translation>Tribler 设置</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="215"/>
+        <location filename="../tribler_window.py" line="216"/>
         <source>Show Tribler window</source>
         <translation>显示 Tribler 窗口</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="219"/>
+        <location filename="../tribler_window.py" line="220"/>
         <source>Show downloads</source>
         <translation>显示下载</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="221"/>
+        <location filename="../tribler_window.py" line="222"/>
         <source>Quit Tribler</source>
         <translation>退出 Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="753"/>
+        <location filename="../tribler_window.py" line="754"/>
         <source>Torrent files%s</source>
         <translation>种子文件 %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="453"/>
+        <location filename="../widgets/channelcontentswidget.py" line="431"/>
         <source>%(total)i/%(torrents)i items</source>
         <translation>%(total)i/%(torrents)i 项目</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="455"/>
+        <location filename="../widgets/channelcontentswidget.py" line="433"/>
         <source>%(total)i items</source>
         <translation>%(total)i 项目</translation>
     </message>
@@ -991,47 +990,37 @@ New remote results received: %(num_remote_results)i</source>
         <translation>移除文件</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="41"/>
+        <location filename="../dialogs/feedbackdialog.py" line="38"/>
         <source>Unexpected error</source>
         <translation>意外错误</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="51"/>
+        <location filename="../dialogs/feedbackdialog.py" line="48"/>
         <source>What were you doing before this crash happened? This information will help Tribler developers to figure out and fix the issue quickly.</source>
         <translation>在发生此崩溃前你正在做什么？这个消息可以帮助 Tribler 开发者快速找出问题并修复。</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="131"/>
+        <location filename="../dialogs/feedbackdialog.py" line="128"/>
         <source>Remove entry</source>
         <translation>移除条目</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="147"/>
+        <location filename="../dialogs/feedbackdialog.py" line="172"/>
         <source>Successfully sent the report! Thanks for your contribution.</source>
         <translation>成功发送报告！感谢你的贡献。</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="148"/>
-        <source>Could not send the report! Please post this issue on GitHub.</source>
-        <translation>无法发送报告！请在 GitHub 上发表相关议题。</translation>
-    </message>
-    <message>
-        <location filename="../dialogs/feedbackdialog.py" line="151"/>
+        <location filename="../dialogs/feedbackdialog.py" line="175"/>
         <source>Report Sent</source>
         <translation>已发送报告</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="151"/>
-        <source>ERROR: Report Sending Failed</source>
-        <translation>错误：报告发送失败</translation>
-    </message>
-    <message>
-        <location filename="../dialogs/feedbackdialog.py" line="160"/>
+        <location filename="../dialogs/feedbackdialog.py" line="138"/>
         <source>SENDING...</source>
         <translation>正在发送……</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="176"/>
+        <location filename="../dialogs/feedbackdialog.py" line="152"/>
         <source>Not provided</source>
         <translation>未提供</translation>
     </message>
@@ -1056,72 +1045,72 @@ New remote results received: %(num_remote_results)i</source>
         <translation>频道名称</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="164"/>
         <source>directly</source>
         <translation>直接</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="164"/>
         <source>anonymously</source>
         <translation>匿名</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="162"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="165"/>
         <source>Loading torrent files %s...</source>
         <translation>正在载入种子文件 %s……</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="163"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="166"/>
         <source>Timeout in fetching files %s. Retrying  %i/%i</source>
         <translation>提取文件 %s 超时。正在重试 %i/%i</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="188"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="191"/>
         <source>Failed to load files. Click to retry again.</source>
         <translation>载入文件失败。点击重试。</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="193"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="196"/>
         <source>Unable to read torrent file data</source>
         <translation>无法读取种子文件数据</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="195"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="198"/>
         <source>Error: %s</source>
         <translation>错误：%s</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="206"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="209"/>
         <source>Note: this torrent already exists in the Downloads</source>
         <translation>注意：此种子应在下载列表中存在</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="240"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="243"/>
         <source>Please select the destination directory of your download</source>
         <translation>请选择你的下载的目标目录</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="252"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="255"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory. [%s]</source>
         <translation>Tribler 无法下载到 &lt;i&gt;%s&lt;/i&gt; 目录。请为目录添加适当的写入权限或者选择另一下载目录。[%s]</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="264"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="267"/>
         <source>No files selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="264"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="267"/>
         <source>Please select at least one file to download.</source>
         <translation>请选择至少一个要下载的文件。</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="275"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="278"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory and try to download again. [%s]</source>
         <translation>Tribler 无法下载到 &lt;i&gt;%s&lt;/i&gt; 目录。请为目录添加适当的写入权限或者选择另一下载目录，然后重试下载。[%s]</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="447"/>
+        <location filename="../tribler_window.py" line="448"/>
         <source>Popular torrents</source>
         <translation>流行种子</translation>
     </message>
@@ -2239,7 +2228,7 @@ High anonymity</source>
         <source>APPLY CHANGES</source>
         <translation>应用更改</translation>
     </message>
-    <message>
+    <message encoding="UTF-8">
         <location filename="../qt_resources/torrents_list.ui" line="574"/>
         <source>🔍 Filter</source>
         <translation>🔍 过滤器</translation>
