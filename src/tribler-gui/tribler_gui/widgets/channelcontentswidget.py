@@ -384,6 +384,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.channel_back_button.setHidden(self.current_level == 0)
 
+        # Disabling focus on the label is necessary to remove the ugly dotted rectangle around the most recently
+        # clicked part of the path.
+        # ACHTUNG! Setting focus policy in the .ui file does not work for some reason!
+        # Also, something changes the focus policy during the runtime, so we have to re-set it every time here.
+        self.channel_name_label.setFocusPolicy(Qt.NoFocus)
+
     def update_labels(self):
 
         folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
