@@ -30,6 +30,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         error_reporting_requires_user_consent=True,
         stop_application_on_close=True,
         additional_tags=None,
+        retrieve_error_message_from_stacktrace=False
     ):
         QDialog.__init__(self, parent)
 
@@ -42,6 +43,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.scrubber = SentryScrubber()
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
+        self.retrieve_error_message_from_stacktrace = retrieve_error_message_from_stacktrace
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -162,7 +164,8 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             "stack": stack,
         }
 
-        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags)
+        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags,
+                                  self.retrieve_error_message_from_stacktrace)
         self.on_report_sent()
 
     def on_report_sent(self):

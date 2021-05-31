@@ -2,14 +2,7 @@ import re
 
 from tribler_common.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
-    CONTEXTS,
-    EXTRA,
-    LOGENTRY,
-    OS_ENVIRON,
     RELEASE,
-    REPORTER,
-    STACKTRACE,
-    SYSINFO,
     VALUES,
 )
 from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value

@@ -1,14 +1,16 @@
 import pytest
 
 from tribler_common.sentry_reporter.sentry_reporter import (
-    OS_ENVIRON,
+    EXCEPTION, OS_ENVIRON,
     PLATFORM_DETAILS,
     SentryReporter,
     SentryStrategy,
-    this_sentry_strategy,
+    VALUES, this_sentry_strategy,
 )
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 
+
+# fmt: off
 
 @pytest.fixture(name="mock_reporter")  # this workaround implemented only for pylint
 def fixture_mock_reporter():
@@ -74,21 +76,22 @@ def test_send_post_data():
             "stack": 'l1\nl2--LONG TEXT--l3\nl4',
         },
     ) == {
-        'a': 'b',
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': '0.0.0'},
-            'reporter': {
-                '_stacktrace': ['l1', 'l2'],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': ['l3', 'l4'],
-                'comments': 'comment',
-                'os.environ': {},
-                'sysinfo': {},
-                'events': {},
-            },
-        },
-        'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, PLATFORM_DETAILS: None, 'version': '0.0.0'},
-    }
+               'a': 'b',
+               'contexts': {
+                   'browser': {'name': 'Tribler', 'version': '0.0.0'},
+                   'reporter': {
+                       '_stacktrace': ['l1', 'l2'],
+                       '_stacktrace_context': [],
+                       '_stacktrace_extra': ['l3', 'l4'],
+                       'comments': 'comment',
+                       'os.environ': {},
+                       'sysinfo': {},
+                       'events': {},
+                   },
+               },
+               'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, PLATFORM_DETAILS: None,
+                        'version': '0.0.0'},
+           }
 
 
 def test_send_sys_info():
@@ -104,20 +107,21 @@ def test_send_sys_info():
             'request_2': [],
         },
     ) == {
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {
-                '_stacktrace': [],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': [],
-                'comments': None,
-                OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
-                'sysinfo': {'platform': ['darwin'], PLATFORM_DETAILS: ['details']},
-                'events': {'event_1': [{'type': ''}], 'request_1': [{}], 'event_2': [], 'request_2': []},
-            },
-        },
-        'tags': {'machine': None, 'os': None, 'platform': 'darwin', 'platform.details': 'details', 'version': None},
-    }
+               'contexts': {
+                   'browser': {'name': 'Tribler', 'version': None},
+                   'reporter': {
+                       '_stacktrace': [],
+                       '_stacktrace_context': [],
+                       '_stacktrace_extra': [],
+                       'comments': None,
+                       OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
+                       'sysinfo': {'platform': ['darwin'], PLATFORM_DETAILS: ['details']},
+                       'events': {'event_1': [{'type': ''}], 'request_1': [{}], 'event_2': [], 'request_2': []},
+                   },
+               },
+               'tags': {'machine': None, 'os': None, 'platform': 'darwin', 'platform.details': 'details',
+                        'version': None},
+           }
 
 
 def test_send_additional_tags():
@@ -226,3 +230,11 @@ def test_get_actual_strategy():
 
     SentryReporter.thread_strategy.set(SentryStrategy.SEND_ALLOWED)
     assert SentryReporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED
+
+
+def test_retrieve_error_message_from_stacktrace():
+    post_data = {"stack": '--LONG TEXT--Type: Text'}
+    event = SentryReporter.send_event({EXCEPTION: {VALUES: []}}, post_data, None, None, True)
+
+    assert event[EXCEPTION][VALUES][0]['type'] == 'Type'
+    assert event[EXCEPTION][VALUES][0]['value'] == ' Text'
