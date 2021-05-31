@@ -152,21 +152,6 @@ async def test_non_json_response(version_check_manager, version_server):
 
 
 @pytest.mark.asyncio
-async def test_version_check_timeout(version_check_manager, version_server):
-    global response  # pylint: disable=global-statement
-    response = json.dumps({'name': NEW_VERSION_ID})
-
-    import tribler_core.modules.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
-    old_timeout = vcm.VERSION_CHECK_TIMEOUT
-    vcm.VERSION_CHECK_TIMEOUT = 0.001
-
-    has_new_version = await version_check_manager.check_new_version()
-    assert not has_new_version
-
-    vcm.VERSION_CHECK_TIMEOUT = old_timeout
-
-
-@pytest.mark.asyncio
 async def test_version_check_api_timeout(free_port, version_check_manager, version_server):
     global response, response_lag  # pylint: disable=global-statement
     response = json.dumps({'name': NEW_VERSION_ID})

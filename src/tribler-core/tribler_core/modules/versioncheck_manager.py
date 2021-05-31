@@ -54,12 +54,9 @@ class VersionCheckManager(TaskManager):
 
     async def check_new_version(self):
         for version_check_url in VERSION_CHECK_URLS:
-            try:
-                result = await asyncio.wait_for(self.check_new_version_api(version_check_url), VERSION_CHECK_TIMEOUT)
-                if result is not None:
-                    return result
-            except asyncio.TimeoutError:
-                self._logger.warning("Checking for new version failed for %s", version_check_url)
+            result = await self.check_new_version_api(version_check_url)
+            if result is not None:
+                return result
         return False
 
     async def check_new_version_api(self, version_check_url):
