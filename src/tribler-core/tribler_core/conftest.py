@@ -13,7 +13,7 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_common.network_utils import get_random_port
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -170,9 +170,9 @@ def _free_ports():
         random.seed()
         ports = []
         for _ in range(param):
-            selected_port = get_random_port(min_port=1024, max_port=50000)
+            selected_port = NetworkUtils().get_random_free_port(start=1024, stop=50000)
             while selected_port in selected_ports:
-                selected_port = get_random_port(min_port=1024, max_port=50000)
+                selected_port = NetworkUtils().get_random_free_port(start=1024, stop=50000)
             selected_ports.add(selected_port)
             ports.append(selected_port)
         random.setstate(rstate)

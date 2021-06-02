@@ -116,7 +116,7 @@ class TriblerWindow(QMainWindow):
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
         self.gui_settings.setValue("api_key", api_key)
 
-        api_port = NetworkUtils().get_first_free_port(start=api_port, limit=100)
+        api_port = NetworkUtils().get_first_free_port(start=api_port)
         request_manager.port, request_manager.key = api_port, api_key
 
         self.tribler_started = False

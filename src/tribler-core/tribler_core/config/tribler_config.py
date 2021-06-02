@@ -10,7 +10,7 @@ from configobj import ConfigObj, ParseError
 
 from validate import Validator
 
-from tribler_common.network_utils import get_random_port
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_core.exceptions import InvalidConfigException
@@ -137,7 +137,7 @@ class TriblerConfig:
     def _get_random_port(self, path):
         """Get a random port which is not already selected."""
         if path not in self.selected_ports:
-            self.selected_ports[path] = get_random_port()
+            self.selected_ports[path] = NetworkUtils().get_random_free_port()
             self._logger.debug("Get random port %d for [%s]", self.selected_ports[path], path)
         return self.selected_ports[path]
 
