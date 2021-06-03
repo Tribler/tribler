@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 
 import pytest
 
-from tribler_common.network_utils import get_random_port
+from tribler_common.network_utils import NetworkUtils
 
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 
@@ -27,7 +27,7 @@ RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.
 
 @pytest.fixture(scope="module")
 def api_port():
-    return get_random_port()
+    return NetworkUtils().get_random_free_port()
 
 
 @pytest.fixture(scope="module")
