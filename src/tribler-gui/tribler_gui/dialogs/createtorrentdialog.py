@@ -4,8 +4,6 @@ from PyQt5 import uic
 from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
-from tribler_core.utilities.unicode import ensure_unicode
-
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
@@ -22,6 +20,7 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 class CreateTorrentDialog(DialogContainer):
 
     create_torrent_notification = pyqtSignal(dict)
+    add_to_channel_selected = pyqtSignal(str)
 
     def __init__(self, parent):
         DialogContainer.__init__(self, parent)
@@ -127,23 +126,9 @@ class CreateTorrentDialog(DialogContainer):
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText(tr("Created torrent"))
         if 'torrent' in result:
             self.create_torrent_notification.emit({"msg": tr("Torrent successfully created")})
-            if self.dialog_widget.add_to_channel_checkbox.isChecked():
-                self.add_torrent_to_channel(result['torrent'])
             self.close_dialog()
-
-    def add_torrent_to_channel(self, torrent):
-        data = {"torrent": torrent}
-        if self.name:
-            data.update({"title": ensure_unicode(self.name, 'utf8')})
-        self.rest_request2 = TriblerNetworkRequest(
-            "mychannel/torrents", self.on_torrent_to_channel_added, data=data, method='PUT'
-        )
-
-    def on_torrent_to_channel_added(self, result):
-        if not result:
-            return
-        if 'added' in result:
-            self.create_torrent_notification.emit({"msg": tr("Torrent successfully added to the channel")})
+            if self.dialog_widget.add_to_channel_checkbox.isChecked():
+                self.add_to_channel_selected.emit(result['torrent'])
 
     def on_select_save_directory(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(
