@@ -8,9 +8,8 @@ from tribler_common.network_utils import (
 
 # fmt: off
 
-
-@pytest.fixture(name="mock_socket")
-def fixture_mock_socket():
+@pytest.fixture(name="network_utils")
+def fixture_network_utils():
     class MockSocket:
         bound_ports = set()
 
@@ -28,22 +27,22 @@ def fixture_mock_socket():
         def __exit__(self, t, v, tb):
             pass
 
-    return {MockSocket}
+    return NetworkUtils(socket_class_set={MockSocket}, remember_checked_ports_enabled=False)
 
 
-def test_get_first_free_port(mock_socket):
+def test_get_first_free_port(network_utils):
     # target port is free
-    assert NetworkUtils(mock_socket).get_first_free_port(start=0) == 0
+    assert network_utils.get_first_free_port(start=0) == 0
 
     # target port is locked
-    assert NetworkUtils(mock_socket).get_first_free_port(start=0) == 1
+    assert network_utils.get_first_free_port(start=0) == 1
 
 
-def test_get_random_free_port(mock_socket):
-    assert NetworkUtils(mock_socket).get_random_free_port(start=0, stop=0) == 0
+def test_get_random_free_port(network_utils):
+    assert network_utils.get_random_free_port(start=0, stop=0) == 0
 
-    port1 = NetworkUtils(mock_socket).get_random_free_port(start=0, stop=3)
-    port2 = NetworkUtils(mock_socket).get_random_free_port(start=0, stop=3)
+    port1 = network_utils.get_random_free_port(start=0, stop=3)
+    port2 = network_utils.get_random_free_port(start=0, stop=3)
 
     assert port1 != port2
 

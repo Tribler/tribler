@@ -7,12 +7,9 @@ import traceback
 from typing import Optional
 
 from configobj import ConfigObj, ParseError
-
 from validate import Validator
 
-from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
-
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 from tribler_core.utilities import path_util
@@ -42,7 +39,6 @@ class TriblerConfig:
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self._state_dir = Path(state_dir)
-        self.selected_ports = {}
 
         self.config = None
         self.config_error = None
@@ -120,26 +116,6 @@ class TriblerConfig:
             os.makedirs(state_dir, exist_ok=True)
         self.config.filename = state_dir / CONFIG_FILENAME
         self.config.write()
-
-    def _obtain_port(self, section, option):
-        """
-        Fetch a port setting from the config file and in case it's set to -1 (random), look for a free port
-        and assign it to this particular setting.
-        """
-        settings_port = self.config[section][option]
-        path = section + '~' + option
-        in_selected_ports = path in self.selected_ports
-
-        if in_selected_ports or settings_port == -1:
-            return self._get_random_port(path)
-        return settings_port
-
-    def _get_random_port(self, path):
-        """Get a random port which is not already selected."""
-        if path not in self.selected_ports:
-            self.selected_ports[path] = NetworkUtils().get_random_free_port()
-            self._logger.debug("Get random port %d for [%s]", self.selected_ports[path], path)
-        return self.selected_ports[path]
 
     # Version and backup
     def set_version(self, version):
@@ -260,7 +236,7 @@ class TriblerConfig:
         self.config['api']['http_port'] = http_port
 
     def get_api_http_port(self):
-        return self._obtain_port('api', 'http_port')
+        return self.config['api']['http_port']
 
     def set_api_https_enabled(self, https_enabled):
         self.config['api']['https_enabled'] = https_enabled
@@ -272,7 +248,7 @@ class TriblerConfig:
         self.config['api']['https_port'] = https_port
 
     def get_api_https_port(self):
-        return self._obtain_port('api', 'https_port')
+        return self.config['api']['https_port']
 
     def set_api_https_certfile(self, certfile):
         self.config['api']['https_certfile'] = certfile
@@ -304,7 +280,7 @@ class TriblerConfig:
         self.config['ipv8']['port'] = value
 
     def get_ipv8_port(self):
-        return self._obtain_port('ipv8', 'port')
+        return self.config['ipv8']['port']
 
     def set_ipv8_bootstrap_override(self, value):
         self.config['ipv8']['bootstrap_override'] = value
@@ -363,11 +339,8 @@ class TriblerConfig:
     def set_libtorrent_port(self, port):
         self.config['libtorrent']['port'] = port
 
-    def set_libtorrent_port_runtime(self, port):
-        self.selected_ports['~'.join(('libtorrent', 'port'))] = port
-
     def get_libtorrent_port(self):
-        return self._obtain_port('libtorrent', 'port')
+        return self.config['libtorrent']['port']
 
     def set_libtorrent_dht_readiness_timeout(self, value):
         self.config['libtorrent']['dht_readiness_timeout'] = value
@@ -379,7 +352,7 @@ class TriblerConfig:
         self.config['libtorrent']['anon_listen_port'] = listen_port
 
     def get_anon_listen_port(self):
-        return self._obtain_port('libtorrent', 'anon_listen_port')
+        return self.config['libtorrent']['anon_listen_port']
 
     def set_libtorrent_proxy_settings(self, proxy_type, server=None, auth=None):
         """
@@ -506,13 +479,10 @@ class TriblerConfig:
         return self.config['tunnel_community']['enabled']
 
     def set_tunnel_community_socks5_listen_ports(self, ports):
-        self.config['tunnel_community']['socks5_listen_ports'] = [str(port) for port in ports]
+        self.config['tunnel_community']['socks5_listen_ports'] = ports
 
     def get_tunnel_community_socks5_listen_ports(self):
-        ports = self.config['tunnel_community']['socks5_listen_ports']
-        path = 'tunnel_community~socks5_listen_ports~'
-        return [self._get_random_port(path + str(index))
-                if int(port) < 0 else int(port) for index, port in enumerate(ports)]
+        return self.config['tunnel_community']['socks5_listen_ports']
 
     def set_tunnel_community_exitnode_enabled(self, value):
         self.config['tunnel_community']['exitnode_enabled'] = value
