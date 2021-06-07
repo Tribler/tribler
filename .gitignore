@@ -86,8 +86,5 @@ annotations.txt
 # Screenshots taken by GUI tests
 tribler_gui/screenshots
 
-# Tests output directory
-temp
-
 #venv
 venv/
