@@ -5,7 +5,7 @@ version_checker_enabled = boolean(default=True)
 
 [tunnel_community]
 enabled = boolean(default=True)
-socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
+socks5_listen_ports = int_list(default=None)
 exitnode_enabled = boolean(default=False)
 random_slots = integer(default=5)
 competing_slots = integer(default=15)
@@ -42,7 +42,7 @@ enabled = boolean(default=True)
 
 [libtorrent]
 enabled = boolean(default=True)
-port = integer(min=-1, max=65536, default=-1)
+port = integer(min=-1, max=65536, default=None)
 proxy_type = integer(min=0, max=5, default=0)
 proxy_server = string(default=':')
 proxy_auth = string(default=':')
@@ -53,7 +53,7 @@ utp = boolean(default=True)
 dht = boolean(default=True)
 dht_readiness_timeout = integer(default=30)
 
-anon_listen_port = integer(min=-1, max=65536, default=-1)
+anon_listen_port = integer(min=-1, max=65536, default=None)
 anon_proxy_type = integer(min=0, max=5, default=0)
 anon_proxy_server_ip = ip_addr(default=127.0.0.1)
 anon_proxy_server_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))

@@ -55,6 +55,12 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
         return mock_ipv8
 
+
+    @staticmethod
+    def get_free_port():
+        return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port()
+
+
     async def create_intro(self, node_nr, service):
         """
         Create an 1 hop introduction point for some node for some service.
@@ -554,7 +560,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        http_port = NetworkUtils().get_random_free_port()
+        http_port = TestTriblerTunnelCommunity.get_free_port()
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         await http_tracker.start()
@@ -574,7 +580,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        http_port = NetworkUtils().get_random_free_port()
+        http_port = TestTriblerTunnelCommunity.get_free_port()
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         http_tracker.tracker_info.infohashes['0']['downloaded'] = os.urandom(10000)
@@ -595,7 +601,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        http_port = NetworkUtils().get_random_free_port()
+        http_port = TestTriblerTunnelCommunity.get_free_port()
         http_tracker = HTTPTracker(http_port)
         await http_tracker.start()
         with self.assertRaises(AsyncTimeoutError):

@@ -86,7 +86,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
         elif socks_listen_ports is None:
             socks_listen_ports = range(1080, 1085)
-
+        self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}

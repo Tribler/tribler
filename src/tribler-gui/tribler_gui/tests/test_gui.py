@@ -27,7 +27,7 @@ RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.
 
 @pytest.fixture(scope="module")
 def api_port():
-    return NetworkUtils().get_random_free_port()
+    return NetworkUtils(remember_checked_ports_enabled=False).get_random_free_port()
 
 
 @pytest.fixture(scope="module")

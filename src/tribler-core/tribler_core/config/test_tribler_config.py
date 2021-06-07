@@ -41,16 +41,6 @@ def test_invalid_config_recovers(tmpdir):
     tribler_conf2 = TriblerConfig(tmpdir, config_file=default_config_file, reset_config_on_error=False)
     assert tribler_conf2
 
-def test_write_load(tribler_config):
-    """
-    When writing and reading a config the options should remain the same.
-    """
-    port = 4444
-    tribler_config.set_anon_listen_port(port)
-    tribler_config.write()
-    path = tribler_config.get_state_dir() / CONFIG_FILENAME
-    read_config = TriblerConfig(path, config_file=path)
-    assert read_config.get_anon_listen_port() == port
 
 
 def test_libtorrent_proxy_settings(tribler_config):
@@ -201,10 +191,6 @@ def test_get_set_methods_libtorrent(tribler_config):
     assert tribler_config.get_libtorrent_utp()
     tribler_config.set_libtorrent_port(1234)
     assert tribler_config.get_libtorrent_port() == 1234
-    tribler_config.set_libtorrent_port_runtime(1235)
-    assert tribler_config.get_libtorrent_port() == 1235
-    tribler_config.set_anon_listen_port(1236)
-    assert tribler_config.get_anon_listen_port() == 1236
     proxy_server, proxy_auth = ["localhost", "9090"], ["user", "pass"]
     tribler_config.set_libtorrent_proxy_settings(3, ":".join(proxy_server), ":".join(proxy_auth))
     assert tribler_config.get_libtorrent_proxy_settings() == (3, proxy_server, proxy_auth)
@@ -241,8 +227,6 @@ def test_get_set_methods_tunnel_community(tribler_config):
     """
     tribler_config.set_tunnel_community_enabled(True)
     assert tribler_config.get_tunnel_community_enabled()
-    tribler_config.set_tunnel_community_socks5_listen_ports([-1])
-    assert tribler_config.get_tunnel_community_socks5_listen_ports() != [-1]  # We cannot set a negative port
     tribler_config.set_tunnel_community_socks5_listen_ports([5])
     assert tribler_config.get_tunnel_community_socks5_listen_ports() == [5]
     tribler_config.set_tunnel_community_exitnode_enabled(True)
