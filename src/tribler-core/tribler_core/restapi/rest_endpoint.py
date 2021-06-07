@@ -14,7 +14,7 @@ class RESTEndpoint:
 
     def __init__(self, session, middlewares=()):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.app = web.Application(middlewares=middlewares)
+        self.app = web.Application(middlewares=middlewares, client_max_size=4*1024**2)
         self.session = session
         self.endpoints = {}
         self.setup_routes()

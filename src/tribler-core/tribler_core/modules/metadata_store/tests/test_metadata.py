@@ -31,14 +31,18 @@ def test_serialization(metadata_store):
     """
     Test converting metadata to serialized data and back
     """
-    for md_type in [
-        metadata_store.ChannelNode,
-        metadata_store.MetadataNode,
-        metadata_store.CollectionNode,
-        metadata_store.ChannelDescription,
-        metadata_store.ChannelThumbnail,
+    for md_type, md_args in [
+        (metadata_store.ChannelNode, {}),
+        (metadata_store.MetadataNode, {'title': 'bla', 'tags': 'foo'}),
+        (metadata_store.CollectionNode, {'title': 'bla', 'tags': 'foo', 'num_entries': 222}),
+        (metadata_store.ChannelDescription, {'json_text': 'some_text'}),
+        (metadata_store.ChannelThumbnail, {'binary_data': b'0x01', 'data_type': 'bla_type'}),
+        (
+            metadata_store.WebFile,
+            {'binary_data': b'0x01', 'data_type': 'bla_type', 'title': 'bla', 'tags': 'bla_tags', 'filename': 'eee'},
+        ),
     ]:
-        metadata1 = md_type()
+        metadata1 = md_type(**md_args)
         serialized1 = metadata1.serialized()
         metadata1.delete()
         orm.flush()
@@ -46,6 +50,8 @@ def test_serialization(metadata_store):
         metadata2 = md_type.from_payload(md_type._payload_class.from_signed_blob(serialized1))
         serialized2 = metadata2.serialized()
         assert serialized1 == serialized2
+        for k, v in md_args.items():
+            assert metadata2.to_dict()[k] == v
 
         # Test no signature exception
         metadata2_dict = metadata2.to_dict()

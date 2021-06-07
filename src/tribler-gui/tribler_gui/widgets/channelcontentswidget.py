@@ -1,4 +1,7 @@
 from base64 import b64encode
+from mimetypes import MimeTypes
+from pathlib import Path
+from urllib.parse import quote
 
 from PyQt5 import uic
 from PyQt5.QtCore import QDir, QTimer, Qt
@@ -445,19 +448,52 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     # ==============================
 
     def create_channel_options_menu(self):
-        browse_files_action = QAction(tr("Add .torrent file"), self)
-        browse_dir_action = QAction(tr("Add torrent(s) directory"), self)
-        add_url_action = QAction(tr("Add URL/magnet links"), self)
+        channel_options_menu = TriblerActionMenu(self)
 
+        browse_files_action = QAction(tr("Add .torrent file"), self)
+        channel_options_menu.addAction(browse_files_action)
         connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
+
+        browse_dir_action = QAction(tr("Add torrent(s) directory"), self)
+        channel_options_menu.addAction(browse_dir_action)
         connect(browse_dir_action.triggered, self.on_add_torrents_browse_dir)
+
+        add_url_action = QAction(tr("Add URL/magnet links"), self)
+        channel_options_menu.addAction(add_url_action)
         connect(add_url_action.triggered, self.on_add_torrent_from_url)
 
-        channel_options_menu = TriblerActionMenu(self)
-        channel_options_menu.addAction(browse_files_action)
-        channel_options_menu.addAction(browse_dir_action)
-        channel_options_menu.addAction(add_url_action)
+        add_web_file_action = QAction(tr("Add Web file"), self)
+        channel_options_menu.addAction(add_web_file_action)
+        connect(add_web_file_action.triggered, self.on_add_web_file_browse_file)
+
         return channel_options_menu
+
+    def on_add_web_file_browse_file(self, checked):
+        filenames = QFileDialog.getOpenFileNames(self, tr("Please select the file(s) to add"))
+        if not filenames[0]:
+            return
+
+        for filename in filenames[0]:
+            self.add_web_file_to_channel(Path(filename))
+
+    def add_web_file_to_channel(self, filename: Path):
+        with open(filename, "rb") as file:
+            data = file.read()
+
+        mime_type = MimeTypes().guess_type(filename)[0]
+        page_title = Path(filename).stem
+        TriblerNetworkRequest(
+            f'channels/mychannel/{self.model.channel_info["id"]}/web/{quote(filename.name)}',
+            self._on_web_file_to_channel_added,
+            url_params={"title": page_title},
+            decode_json_response=False,
+            method='PUT',
+            raw_data=data,
+            content_type_header=mime_type,
+        )
+
+    def _on_web_file_to_channel_added(self, result):
+        self.model.reset()
 
     # Torrent addition-related methods
     def on_add_torrents_browse_dir(self, checked):  # pylint: disable=W0613

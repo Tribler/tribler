@@ -1,6 +1,7 @@
 import json
 import logging
 from collections import deque
+from functools import cached_property
 from time import time
 from urllib.parse import quote_plus
 
@@ -59,7 +60,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.port = DEFAULT_API_PORT
         self.key = b""
 
-    def get_base_url(self):
+    @cached_property
+    def base_url(self):
         return "%s://%s:%d/" % (self.protocol, self.host, self.port)
 
     @staticmethod
@@ -108,6 +110,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         qt_request = QNetworkRequest(QUrl(request.url))
         qt_request.setPriority(request.priority)
         qt_request.setHeader(QNetworkRequest.ContentTypeHeader, request.content_type_header)
+        if request.content_encoding_header is not None:
+            qt_request.setRawHeader("Content-Encoding".encode(), request.content_encoding_header.encode())
         qt_request.setRawHeader(b'X-Api-Key', self.key)
 
         buf = QBuffer()
@@ -150,6 +154,7 @@ class TriblerNetworkRequest(QObject):
         on_error_callback=None,
         include_header_in_response=None,
         content_type_header="application/x-www-form-urlencoded",
+        content_encoding_header=None,
     ):
         QObject.__init__(self)
 
@@ -160,7 +165,7 @@ class TriblerNetworkRequest(QObject):
         if endpoint.startswith("http:") or endpoint.startswith("https:"):
             url = endpoint
         else:
-            url = request_manager.get_base_url() + endpoint
+            url = request_manager.base_url + endpoint
         url += ("?" + tribler_urlencode(url_params)) if url_params else ""
 
         self.decode_json_response = decode_json_response
@@ -172,6 +177,7 @@ class TriblerNetworkRequest(QObject):
         self.capture_core_errors = capture_core_errors
         self.include_header_in_response = include_header_in_response
         self.content_type_header = content_type_header
+        self.content_encoding_header = content_encoding_header
         if data:
             raw_data = json.dumps(data)
         self.raw_data = raw_data if (issubclass(type(raw_data), bytes) or raw_data is None) else raw_data.encode('utf8')

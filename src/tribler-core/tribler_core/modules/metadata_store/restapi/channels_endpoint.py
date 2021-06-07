@@ -7,6 +7,8 @@ from aiohttp import ClientSession, ContentTypeError, web
 
 from aiohttp_apispec import docs, json_schema
 
+import brotli
+
 from ipv8.REST.schema import schema
 from ipv8.database import database_blob
 
@@ -17,7 +19,7 @@ from pony.orm import db_session
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import BROTLI_COMPRESSED_FLAG, DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
@@ -29,12 +31,17 @@ from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
+COMPRESSABLE_TYPES = (
+    "text/html",
+    "text/plain",
+    "text/xml",
+    "text/css",
+    "text/javascript",
+    "application/javascript",
+)
 
-class ChannelsEndpointBase(MetadataEndpointBase):
-    pass
 
-
-class ChannelsEndpoint(ChannelsEndpointBase):
+class ChannelsEndpoint(MetadataEndpointBase):
     def setup_routes(self):
         self.app.add_routes(
             [
@@ -44,6 +51,8 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/description', self.put_channel_description),
                 web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/thumbnail', self.get_channel_thumbnail),
                 web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/thumbnail', self.put_channel_thumbnail),
+                web.get(r'/{channel_pk:\w*}/{channel_id:\w*}/web/{filename}', self.get_web_file),
+                web.put(r'/{channel_pk:\w*}/{channel_id:\w*}/web/{filename}', self.put_web_file),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/copy', self.copy_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/channels', self.create_channel),
                 web.post(r'/{channel_pk:\w*}/{channel_id:\w*}/collections', self.create_collection),
@@ -234,6 +243,60 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             else:
                 self.session.mds.ChannelThumbnail(
                     public_key=channel_pk, origin_id=channel_id, status=NEW, **obj_properties
+                )
+        return web.Response(status=201)
+
+    async def get_web_file(self, request):
+        filename = request.match_info['filename']
+
+        channel_pk, channel_id = self.get_channel_from_request(request)
+
+        with db_session:
+            obj = self.session.mds.WebFile.get(public_key=channel_pk, origin_id=channel_id, filename=filename)
+            brotli_compressed = obj.brotli_compressed_flag
+
+        response = (
+            web.Response(
+                body=obj.binary_data,
+                content_type=obj.data_type,
+                headers={"Content-Encoding": "br"} if brotli_compressed else None,
+            )
+            if obj
+            else web.Response(status=400)
+        )
+
+        return response
+
+    async def put_web_file(self, request):
+        content_type = request.headers["Content-Type"]
+        filename = request.match_info['filename']
+        title = request.query.get('title')
+
+        post_body = await request.read()
+        channel_pk, channel_id = self.get_channel_from_request(request)
+
+        brotli_compressed = False
+        if content_type in COMPRESSABLE_TYPES:
+            post_body = brotli.compress(post_body, mode=brotli.MODE_TEXT)
+            brotli_compressed = True
+        obj_properties = {
+            "binary_data": post_body,
+            "data_type": content_type,
+            "reserved_flags": BROTLI_COMPRESSED_FLAG * int(brotli_compressed),
+        }
+
+        with db_session:
+            obj = self.session.mds.WebFile.get(public_key=channel_pk, origin_id=channel_id, filename=filename)
+            if obj is not None:
+                obj.update_properties(obj_properties)
+            else:
+                self.session.mds.WebFile(
+                    title=title,
+                    filename=filename,
+                    public_key=channel_pk,
+                    origin_id=channel_id,
+                    status=NEW,
+                    **obj_properties
                 )
         return web.Response(status=201)
 

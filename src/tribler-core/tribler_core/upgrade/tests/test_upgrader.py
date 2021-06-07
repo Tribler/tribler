@@ -217,6 +217,7 @@ def test_upgrade_pony11to12(upgrader, session):
         assert int(mds.MiscData.get(name="db_version").value) == 12
     mds.shutdown()
 
+
 def test_upgrade_pony12to13(upgrader, session):
     old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v12.db'
     database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
@@ -249,7 +250,7 @@ def test_upgrade_pony12to13(upgrader, session):
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
-        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
+        assert int(mds.MiscData.get(name="db_version").value) == 13
         for index_name in existing_indexes:
             assert list(db.execute(f'PRAGMA index_info("{index_name}")')), index_name
         for index_name in removed_indexes:
@@ -258,6 +259,22 @@ def test_upgrade_pony12to13(upgrader, session):
         assert upgrader.trigger_exists(db, 'torrentstate_ai')
         assert upgrader.trigger_exists(db, 'torrentstate_au')
     mds.shutdown()
+
+
+def test_upgrade_pony13to14(upgrader, session):
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v13.db'
+    database_path = session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+    shutil.copyfile(old_db_sample, database_path)
+
+    upgrader.upgrade_pony_db_13to14()
+    channels_dir = session.config.get_chant_channels_dir()
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=13)
+    with db_session:
+        # pylint: disable=protected-access
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'filename')
+        assert int(mds.MiscData.get(name="db_version").value) == 14
+    mds.shutdown()
+
 
 def test_calc_progress():
     EPSILON = 0.001

@@ -404,11 +404,20 @@ def test_recursive_commit_channel_torrent(metadata_store):
             origin_id=toplevel_channel.id_,
             binary_data=os.urandom(20000),
             data_type="image/png",
+            status=NEW,
         )
         metadata_store.ChannelDescription(
             public_key=toplevel_channel.public_key,
             origin_id=toplevel_channel.id_,
             json_text='{"description_text":"foobar"}',
+            status=NEW,
+        )
+        metadata_store.WebFile(
+            public_key=toplevel_channel.public_key,
+            origin_id=toplevel_channel.id_,
+            binary_data=os.urandom(20000),
+            filename="lala.bin",
+            status=NEW,
         )
         toplevel_channel.status = status
         for s in status_types:
@@ -465,7 +474,7 @@ def test_recursive_commit_channel_torrent(metadata_store):
         c.delete()
     my_dir = path_util.abspath(metadata_store.ChannelMetadata._channels_dir / chan.dirname)
     metadata_store.process_channel_dir(my_dir, chan.public_key, chan.id_, skip_personal_metadata_payload=False)
-    assert chan.num_entries == 366
+    assert chan.num_entries == 367
 
 
 @db_session

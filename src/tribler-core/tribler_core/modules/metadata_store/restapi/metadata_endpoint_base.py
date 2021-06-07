@@ -1,4 +1,9 @@
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    WEB_FILE,
+)
 from tribler_core.restapi.rest_endpoint import RESTEndpoint
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
@@ -19,12 +24,13 @@ json2pony_columns = {
 
 # TODO: use the same representation for metadata nodes as in the database
 metadata_type_to_search_scope = {
-    '': frozenset((REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE)),
+    '': frozenset((REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE, WEB_FILE)),
     "channel": frozenset((CHANNEL_TORRENT, COLLECTION_NODE)),
     "torrent": frozenset((REGULAR_TORRENT,)),
     str(CHANNEL_TORRENT): frozenset((CHANNEL_TORRENT,)),
     str(REGULAR_TORRENT): frozenset((REGULAR_TORRENT,)),
     str(COLLECTION_NODE): frozenset((COLLECTION_NODE,)),
+    str(WEB_FILE): frozenset((WEB_FILE,)),
 }
 
 

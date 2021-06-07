@@ -30,6 +30,7 @@ from tribler_core.modules.metadata_store.orm_bindings import (
     torrent_state,
     tracker_state,
     vsids,
+    web_file,
 )
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
@@ -52,7 +53,7 @@ from tribler_core.utilities.path_util import str_path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 13
+CURRENT_DB_VERSION = 14
 
 MIN_BATCH_SIZE = 10
 MAX_BATCH_SIZE = 1000
@@ -199,6 +200,8 @@ class MetadataStore:
 
         self.BinaryNode = binary_node.define_binding(self._db, db_version)
         self.ChannelThumbnail = channel_thumbnail.define_binding(self._db)
+
+        self.WebFile = web_file.define_binding(self._db, db_version)
 
         self.ChannelVote = channel_vote.define_binding(self._db)
         self.ChannelPeer = channel_peer.define_binding(self._db)

@@ -16,7 +16,7 @@ from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest, request_manager
 from tribler_gui.utilities import connect, dict_item_is_any_of, get_health, tr
 from tribler_gui.widgets.tablecontentmodel import Column
 
@@ -160,6 +160,21 @@ class TableSelectionMixin:
                 else:
                     self.check_torrent_health(data_item)
                 self.healthcheck_cooldown.start(HEALTHCHECK_DELAY_MS)
+
+
+class WikiPageOpenMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        connect(self.table_view.web_page_doubleclicked, self.open_web_page)
+
+    def open_web_page(self, data_item):
+        public_key = data_item['public_key']
+        origin_id = data_item['origin_id']
+        filename = data_item['filename']
+
+        first_url = f"http://localhost:{request_manager.port}/channels/{public_key}/{origin_id}/web/{filename}"
+        self.table_view.window().browser_window.open_url(first_url)
+        self.table_view.window().browser_window.show()
 
 
 class HealthCheckerMixin:
@@ -352,6 +367,11 @@ class PopularContentTableViewController(
 
 
 class ContentTableViewController(
-    TableSelectionMixin, ContextMenuMixin, HealthCheckerMixin, TableLoadingAnimationMixin, TriblerTableViewController
+    WikiPageOpenMixin,
+    TableSelectionMixin,
+    ContextMenuMixin,
+    HealthCheckerMixin,
+    TableLoadingAnimationMixin,
+    TriblerTableViewController,
 ):
     pass

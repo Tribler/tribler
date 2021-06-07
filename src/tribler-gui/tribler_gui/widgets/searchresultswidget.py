@@ -8,7 +8,12 @@ from PyQt5.QtCore import pyqtSignal
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    WEB_FILE,
+)
 
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path, tr
@@ -84,7 +89,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
                 endpoint_url="search",
                 hide_xxx=self.results_page.hide_xxx,
                 text_filter=to_fts_query(query),
-                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
+                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE, WEB_FILE],
             )
         )
         self.setCurrentWidget(self.results_page)

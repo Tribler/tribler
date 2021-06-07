@@ -31,6 +31,7 @@ PUBLIC_KEY_LEN = 64
 
 CHANNEL_DESCRIPTION_FLAG = 1
 CHANNEL_THUMBNAIL_FLAG = 2
+BROTLI_COMPRESSED_FLAG = 4
 
 
 def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):

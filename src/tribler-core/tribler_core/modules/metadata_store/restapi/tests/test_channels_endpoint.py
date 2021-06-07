@@ -5,6 +5,8 @@ from unittest.mock import Mock
 
 from aiohttp import ClientSession
 
+import brotli
+
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.util import succeed
 
@@ -17,6 +19,7 @@ from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.community.gigachannel_community import NoChannelSourcesException
 from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import BROTLI_COMPRESSED_FLAG
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
@@ -32,6 +35,21 @@ PNG_DATA = unhexlify(
 )
 
 # pylint: disable=unused-argument
+
+HTML = """
+<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>title</title>
+        <link rel="stylesheet" href="style.css">
+        <script src="script.js"></script>
+      </head>
+      <body>
+        <!-- page content -->
+      </body>
+    </html>
+"""
 
 
 @pytest.mark.asyncio
@@ -710,3 +728,116 @@ async def test_get_channel_thumbnail(enable_chant, enable_api, session):
             assert response.status == 200
             assert await response.read() == PNG_DATA
             assert response.headers["Content-Type"] == "image/png"
+
+
+@pytest.mark.asyncio
+async def test_get_web_page(enable_chant, enable_api, session):
+    """
+    Test getting a Brotli-compressed web page from a channel
+    """
+
+    filename = 'foobar.html'
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+        session.mds.WebFile(
+            public_key=chan.public_key,
+            origin_id=chan.id_,
+            binary_data=brotli.compress(HTML.encode()),
+            reserved_flags=BROTLI_COMPRESSED_FLAG,
+            data_type="text/html",
+            filename=filename,
+        )
+
+    async with ClientSession() as cl_session:
+        endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/web/{filename}'
+        url = f'http://localhost:{session.config.get_api_http_port()}/{endpoint}'
+        async with cl_session.request("GET", url, ssl=False) as response:
+            assert response.status == 200
+            assert await response.read() == HTML.encode()
+            assert response.headers["Content-Type"] == "text/html"
+
+
+@pytest.mark.asyncio
+async def test_get_web_image(enable_chant, enable_api, session):
+    """
+    Test getting a binary image file from a channel.
+    """
+
+    filename = 'foobar.png'
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+        session.mds.WebFile(
+            public_key=chan.public_key,
+            origin_id=chan.id_,
+            binary_data=PNG_DATA,
+            data_type="image/png",
+            filename=filename,
+        )
+
+    async with ClientSession() as cl_session:
+        endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/web/{filename}'
+        url = f'http://localhost:{session.config.get_api_http_port()}/{endpoint}'
+        async with cl_session.request("GET", url, ssl=False) as response:
+            assert response.status == 200
+            assert await response.read() == PNG_DATA
+            assert response.headers["Content-Type"] == "image/png"
+
+
+@pytest.mark.asyncio
+async def test_put_web_page(enable_chant, enable_api, session):
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+
+    filename = 'foo_bar.html'
+    await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/web/{filename}?title=Foo%20Bar',
+        request_type="PUT",
+        headers={'Content-Type': 'text/html'},
+        json_response=False,
+        post_data=HTML,
+        expected_code=201,
+    )
+    with db_session:
+        obj = session.mds.WebFile.get(
+            public_key=chan.public_key,
+            origin_id=chan.id_,
+            filename=filename,
+        )
+    assert brotli.decompress(obj.binary_data) == HTML.encode()
+    assert obj.data_type == 'text/html'
+    assert obj.title == 'Foo Bar'
+    assert obj.brotli_compressed_flag
+    assert obj.filename == filename
+
+
+@pytest.mark.asyncio
+async def test_put_web_image(enable_chant, enable_api, session):
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.create_channel(title="bla")
+
+    filename = 'foo_bar.png'
+    await do_request(
+        session,
+        f'channels/{hexlify(chan.public_key)}/{chan.id_}/web/{filename}?title=Foo%20Bar',
+        request_type="PUT",
+        headers={'Content-Type': 'image/png'},
+        json_response=False,
+        post_data=PNG_DATA,
+        expected_code=201,
+    )
+    with db_session:
+        obj = session.mds.WebFile.get(
+            public_key=chan.public_key,
+            origin_id=chan.id_,
+            filename=filename,
+        )
+    assert obj.binary_data == PNG_DATA
+    assert obj.data_type == 'image/png'
+    assert obj.title == 'Foo Bar'
+    assert not obj.brotli_compressed_flag
+    assert obj.filename == filename

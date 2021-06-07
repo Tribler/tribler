@@ -28,6 +28,7 @@ JSON_NODE = 230
 CHANNEL_DESCRIPTION = 231
 BINARY_NODE = 240
 CHANNEL_THUMBNAIL = 241
+WEB_FILE = 242
 REGULAR_TORRENT = 300
 CHANNEL_TORRENT = 400
 DELETED = 500
@@ -299,6 +300,62 @@ class BinaryNodePayload(ChannelNodePayload):
         return dct
 
 
+class WebFilePayload(BinaryNodePayload):
+    format_list = BinaryNodePayload.format_list + ['varlenI', 'varlenI', 'varlenI']
+
+    def __init__(
+            self,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
+            title, tags,
+            filename,
+            **kwargs):
+        self.title = title.decode('utf-8') if isinstance(title, bytes) else title
+        self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
+        self.filename = filename.decode('utf-8') if isinstance(filename, bytes) else filename
+        super().__init__(
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
+            **kwargs
+        )
+
+    def to_pack_list(self):
+        data = super().to_pack_list()
+        data.append(('varlenI', self.title.encode('utf-8')))
+        data.append(('varlenI', self.tags.encode('utf-8')))
+        data.append(('varlenI', self.filename.encode('utf-8')))
+        return data
+
+    @classmethod
+    def from_unpack_list( # pylint: disable=arguments-differ
+            cls,
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
+            title, tags,
+            filename,
+            **kwargs
+    ):
+        return cls(
+            metadata_type, reserved_flags, public_key,  # SignedPayload
+            id_, origin_id, timestamp,                  # ChannelNodePayload
+            binary_data, data_type,                     # BinaryNodePayload
+            title, tags,
+            filename,
+            **kwargs
+        )
+
+    def to_dict(self):
+        dct = super().to_dict()
+        dct.update(
+            {"title": self.title,
+             "tags": self.tags,
+             "filename": self.filename})
+        return dct
+
+
 class MetadataNodePayload(ChannelNodePayload):
 
     format_list = ChannelNodePayload.format_list + ['varlenI', 'varlenI']
@@ -556,6 +613,7 @@ class DeletedMetadataPayload(SignedPayload):
         return dct
 # fmt: on
 
+
 DISCRIMINATOR_TO_PAYLOAD_CLASS = {
     REGULAR_TORRENT: TorrentMetadataPayload,
     CHANNEL_TORRENT: ChannelMetadataPayload,
@@ -563,6 +621,7 @@ DISCRIMINATOR_TO_PAYLOAD_CLASS = {
     CHANNEL_THUMBNAIL: BinaryNodePayload,
     CHANNEL_DESCRIPTION: JsonNodePayload,
     DELETED: DeletedMetadataPayload,
+    WEB_FILE: WebFilePayload,
 }
 
 

@@ -106,6 +106,21 @@ class TriblerUpgrader:
         self.upgrade_bw_accounting_db_8to9()
         self.upgrade_pony_db_11to12()
         self.upgrade_pony_db_12to13()
+        self.upgrade_pony_db_13to14()
+
+    def upgrade_pony_db_13to14(self):
+        """
+        Upgrade GigaChannel DB from version 13 (7.10.x) to version 14 (7.11.x).
+        Version 14 adds filename column to DB schema.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.session.config.get_state_dir() / 'sqlite' / 'metadata.db'
+        channels_dir = self.session.config.get_chant_channels_dir()
+        if database_path.exists():
+            mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+                                disable_sync=True, check_tables=False, db_version=13)
+            self.do_upgrade_pony_db_13to14(mds)
+            mds.shutdown()
 
     def upgrade_pony_db_12to13(self):
         """
@@ -219,6 +234,29 @@ class TriblerUpgrader:
             db.execute(sql_create_partial_index_channelnode_metadata_type)
             db.execute(sql_create_partial_index_channelnode_subscribed)
 
+            db_version.value = str(to_version)
+
+    def do_upgrade_pony_db_13to14(self, mds):
+        from_version = 13
+        to_version = 14
+
+        db = mds._db  # pylint: disable=protected-access
+
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != from_version:
+                return
+
+            table_name = "ChannelNode"
+            new_columns = [("filename", "TEXT1")]
+
+            for column_name, datatype in new_columns:
+                # pylint: disable=protected-access
+                if not self.column_exists_in_table(mds._db, table_name, column_name):
+                    sql = f'ALTER TABLE {table_name} ADD {column_name} {datatype};'
+                    mds._db.execute(sql)
+
+            db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
 
     def do_upgrade_pony_db_11to12(self, mds):

@@ -42,6 +42,7 @@ from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
 
+from tribler_gui.browser_window import BrowserWindow, WebEngineUrlRequestInterceptor
 from tribler_gui.core_manager import CoreManager
 from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
@@ -464,6 +465,12 @@ class TriblerWindow(QMainWindow):
 
         # Toggle debug if developer mode is enabled
         self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
+
+        self.browser_window = BrowserWindow(
+            url_interceptor=WebEngineUrlRequestInterceptor(
+                api_key=request_manager.key, allowed_netloc=f"{request_manager.host}:{request_manager.port}"
+            )
+        )
 
     @property
     def hide_xxx(self):

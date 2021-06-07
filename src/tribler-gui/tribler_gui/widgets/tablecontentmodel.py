@@ -9,7 +9,12 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    WEB_FILE,
+)
 
 from tribler_gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -457,7 +462,7 @@ class ChannelContentModel(RemoteTableModel):
         if self.type_filter is not None:
             kwargs.update({"metadata_type": self.type_filter})
         else:
-            kwargs.update({"metadata_type": [REGULAR_TORRENT, COLLECTION_NODE]})
+            kwargs.update({"metadata_type": [REGULAR_TORRENT, COLLECTION_NODE, WEB_FILE]})
         if self.subscribed_only is not None:
             kwargs.update({"subscribed": self.subscribed_only})
         if self.exclude_deleted is not None:

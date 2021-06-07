@@ -2,7 +2,12 @@ from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    WEB_FILE,
+)
 
 from tribler_gui.defs import COMMIT_STATUS_COMMITTED
 from tribler_gui.utilities import connect, data_item2uri, get_image_path, index2uri
@@ -50,6 +55,7 @@ class TriblerContentTableView(QTableView):
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
+    web_page_doubleclicked = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
@@ -132,11 +138,16 @@ class TriblerContentTableView(QTableView):
         if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
             self.channel_clicked.emit(data_item)
 
+        # TODO: DRY and refactor
         if data_item.get('type') == REGULAR_TORRENT:
             if not doubleclick:
                 self.torrent_clicked.emit(data_item)
             else:
                 self.torrent_doubleclicked.emit(data_item)
+
+        if data_item.get('type') == WEB_FILE:
+            if doubleclick:
+                self.web_page_doubleclicked.emit(data_item)
 
     def on_torrent_status_updated(self, json_result, index):
         if not json_result:
