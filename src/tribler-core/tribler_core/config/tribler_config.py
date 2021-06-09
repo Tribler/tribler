@@ -4,15 +4,15 @@ Configuration object for the Tribler Core.
 import logging
 import os
 import traceback
+from pathlib import Path
 
 from configobj import ConfigObj, ParseError
 from validate import Validator
 
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler_core.exceptions import InvalidConfigException
-from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
-from tribler_core.utilities.path_util import Path
+
 
 class TriblerConfig:
     def __init__(self, state_dir):
@@ -78,10 +78,8 @@ class TriblerConfig:
         self.config.write()
 
     def validate(self):
-        self.logger.info(f'Validate')
-
         result = self.config.validate(Validator())
-        self.logger.info(f'Result: {result}')
+        self.logger.info(f'Validation result: {result}')
 
         if result is not True:
             raise InvalidConfigException(msg=f"TriblerConfig is invalid: {str(result)}")
@@ -107,14 +105,28 @@ class TriblerConfig:
     def state_dir(self, value):
         self._state_dir = Path(value)
 
-    def abspath(self, path):
-        return path_util.abspath(path, optional_prefix=self.state_dir)
+    def put_path(self, section_name, property_name, value):
+        """Save a relative path if 'value' is relative to state_dir.
+        Save an absolute path overwise.
+        """
+        path = Path(value)
 
-    def norm_path(self, path):
+        if path.is_relative_to(self.state_dir):
+            path = path.relative_to(self.state_dir)
+
+        self.config[section_name][property_name] = str(path)
+
+    def get_path(self, section_name, property_name):
+        """Get a path.
+
+        Returns: an absolute path.
         """
-        Return absolute path if it points outside the state dir. Otherwise, change it to relative path.
-        """
-        return path_util.norm_path(self.state_dir, path)
+        path = Path(self.config[section_name][property_name])
+
+        if path.is_absolute():
+            return path
+
+        return (self.state_dir / path).absolute()
 
     # Version and backup
     def set_version(self, version):
@@ -124,10 +136,10 @@ class TriblerConfig:
         return self.config['general']['version']
 
     def set_log_dir(self, value):
-        self.config['general']['log_dir'] = str(self.norm_path(value))
+        self.put_path(section_name='general', property_name='log_dir', value=value)
 
     def get_log_dir(self):
-        return self.abspath(self.config['general']['log_dir'])
+        return self.get_path(section_name='general', property_name='log_dir')
 
     def set_version_checker_enabled(self, value):
         self.config['general']['version_checker_enabled'] = value
@@ -148,11 +160,11 @@ class TriblerConfig:
     def set_chant_manager_enabled(self, value):
         self.config['chant']['manager_enabled'] = value
 
-    def set_chant_channels_dir(self, chant_db_filename):
-        self.config['chant']['channels_dir'] = str(self.norm_path(chant_db_filename))
+    def set_chant_channels_dir(self, value):
+        self.put_path(section_name='chant', property_name='channels_dir', value=value)
 
     def get_chant_channels_dir(self):
-        return self.abspath(self.config['chant']['channels_dir'])
+        return self.get_path(section_name='chant', property_name='channels_dir')
 
     def set_chant_testnet(self, value):
         self.config['chant']['testnet'] = value
@@ -162,17 +174,17 @@ class TriblerConfig:
 
     # TrustChain
 
-    def set_trustchain_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['ec_keypair_filename'] = str(self.norm_path(keypairfilename))
+    def set_trustchain_keypair_filename(self, value):
+        self.put_path(section_name='trustchain', property_name='ec_keypair_filename', value=value)
 
     def get_trustchain_keypair_filename(self):
-        return self.abspath(self.config['trustchain']['ec_keypair_filename'])
+        return self.get_path(section_name='trustchain', property_name='ec_keypair_filename')
 
-    def set_trustchain_testnet_keypair_filename(self, keypairfilename):
-        self.config['trustchain']['testnet_keypair_filename'] = str(self.norm_path(keypairfilename))
+    def set_trustchain_testnet_keypair_filename(self, value):
+        self.put_path(section_name='trustchain', property_name='testnet_keypair_filename', value=value)
 
     def get_trustchain_testnet_keypair_filename(self):
-        return self.abspath(self.config['trustchain']['testnet_keypair_filename'])
+        return self.get_path(section_name='trustchain', property_name='testnet_keypair_filename')
 
     def get_trustchain_testnet(self):
         return 'TESTNET' in os.environ or 'TRUSTCHAIN_TESTNET' in os.environ or self.config['trustchain']['testnet']
@@ -247,7 +259,7 @@ class TriblerConfig:
         self.config['api']['https_certfile'] = certfile
 
     def get_api_https_certfile(self):
-        return self.abspath(self.config['api']['https_certfile'])
+        return self.get_path(section_name='api', property_name='https_certfile')
 
     def set_api_key(self, key):
         self.config['api']['key'] = key
@@ -520,7 +532,7 @@ class TriblerConfig:
         return self.config['download_defaults']['safeseeding_enabled']
 
     def set_default_destination_dir(self, value):
-        self.config['download_defaults']['saveas'] = str(self.norm_path(value))
+        self.put_path(section_name='download_defaults', property_name='saveas', value=value)
 
     def get_default_destination_dir(self):
         value = self.config['download_defaults']['saveas']
@@ -583,10 +595,10 @@ class TriblerConfig:
         return self.config['watch_folder']['enabled']
 
     def set_watch_folder_path(self, value):
-        self.config['watch_folder']['directory'] = self.norm_path(value)
+        self.put_path(section_name='watch_folder', property_name='directory', value=value)
 
     def get_watch_folder_path(self):
-        return self.abspath(self.config['watch_folder']['directory'])
+        return self.get_path(section_name='watch_folder', property_name='directory')
 
     # Resource monitor
 

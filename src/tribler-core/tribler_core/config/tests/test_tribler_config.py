@@ -23,11 +23,55 @@ async def test_copy(tribler_config):
 
 
 @pytest.mark.asyncio
+async def test_put_path_relative(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+
+    # put correct path
+    config.put_path(section_name='general', property_name='log_dir', value=Path(tmpdir))
+    assert config.config['general']['log_dir'] == '.'
+
+    config.put_path(section_name='general', property_name='log_dir', value=Path(tmpdir) / '1')
+    assert config.config['general']['log_dir'] == '1'
+
+
+@pytest.mark.asyncio
+async def test_put_path_absolute(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+
+    config.put_path(section_name='general', property_name='log_dir', value=Path(tmpdir).parent)
+    assert config.config['general']['log_dir'] == str(Path(tmpdir).parent)
+
+    config.put_path(section_name='general', property_name='log_dir', value=Path('/Tribler'))
+    assert config.config['general']['log_dir'] == '/Tribler'
+
+
+@pytest.mark.asyncio
+async def test_get_path_relative(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+
+    # get correct path
+    config.config['general']['log_dir'] = '.'
+    assert config.get_path(section_name='general', property_name='log_dir') == Path(tmpdir)
+
+    config.config['general']['log_dir'] = '1'
+    assert config.get_path(section_name='general', property_name='log_dir') == Path(tmpdir) / '1'
+
+
+@pytest.mark.asyncio
+async def test_get_path_absolute(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+
+    config.config['general']['log_dir'] = str(Path(tmpdir).parent)
+    assert config.get_path(section_name='general', property_name='log_dir') == Path(tmpdir).parent
+
+
+@pytest.mark.asyncio
 async def test_init_without_config(tribler_config):
     """
     A newly created TriblerConfig is valid.
     """
     tribler_config.validate()
+
 
 @pytest.mark.asyncio
 async def test_invalid_config_recovers(tmpdir):
