@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 
@@ -6,8 +7,6 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
-
-import tribler_core.utilities.json_util as json
 
 from tribler_gui.utilities import connect
 

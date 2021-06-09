@@ -1,3 +1,4 @@
+import json
 import logging
 from binascii import unhexlify
 from urllib.parse import unquote_plus
@@ -7,8 +8,6 @@ from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from tribler_common.utilities import uri_to_path
-
-import tribler_core.utilities.json_util as json
 
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog

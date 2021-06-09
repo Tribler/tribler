@@ -1,5 +1,6 @@
 import base64
 import codecs
+import json
 from asyncio import CancelledError
 from binascii import unhexlify
 
@@ -25,7 +26,6 @@ from tribler_core.modules.metadata_store.utils import NoChannelSourcesException,
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
-from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
@@ -193,13 +193,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
 
-        response_dict = loads(channel_description.json_text) if (channel_description is not None) else {}
+        response_dict = json.loads(channel_description.json_text) if (channel_description is not None) else {}
         return RESTResponse(response_dict)
 
     async def put_channel_description(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         request_parsed = await request.json()
-        updated_json_text = dumps({"description_text": request_parsed["description_text"]})
+        updated_json_text = json.dumps({"description_text": request_parsed["description_text"]})
         with db_session:
             channel_description = self.session.mds.ChannelDescription.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
@@ -210,7 +210,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 channel_description = self.session.mds.ChannelDescription(
                     public_key=channel_pk, origin_id=channel_id, json_text=updated_json_text, status=NEW
                 )
-        return RESTResponse(loads(channel_description.json_text))
+        return RESTResponse(json.loads(channel_description.json_text))
 
     async def get_channel_thumbnail(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
