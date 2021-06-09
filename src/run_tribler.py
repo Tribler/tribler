@@ -12,7 +12,6 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 
 import tribler_core
-from tribler_core.config.tribler_config import CONFIG_FILENAME
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
@@ -21,6 +20,7 @@ import tribler_gui
 from tribler_gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
+CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
@@ -72,8 +72,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         version_history.fork_state_directory_if_necessary()
         version_history.save_if_necessary()
         state_dir = version_history.code_version.directory
-
-        config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME, reset_config_on_error=True)
+        config = TriblerConfig(state_dir=state_dir)
+        config.load(file=state_dir / CONFIG_FILE_NAME, reset_config_on_error=True)
 
         if not config.get_core_error_reporting_requires_user_consent():
             SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED

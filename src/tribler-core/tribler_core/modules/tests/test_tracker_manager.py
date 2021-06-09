@@ -81,7 +81,7 @@ def test_load_blacklist_from_file_none(enable_chant, session, tracker_manager):
     """
     Test if we correctly load a blacklist without entries
     """
-    blacklist_file = session.config.get_state_dir() / "tracker_blacklist.txt"
+    blacklist_file = session.config.state_dir / "tracker_blacklist.txt"
     with open(blacklist_file, 'w') as f:
         f.write("")
 
@@ -94,7 +94,7 @@ def test_load_blacklist_from_file_single(enable_chant, session, tracker_manager)
     """
     Test if we correctly load a blacklist entry from a file
     """
-    blacklist_file = session.config.get_state_dir() / "tracker_blacklist.txt"
+    blacklist_file = session.config.state_dir / "tracker_blacklist.txt"
     with open(blacklist_file, 'w') as f:
         f.write("http://test1.com/announce")
 
@@ -107,7 +107,7 @@ def test_load_blacklist_from_file_multiple(enable_chant, session, tracker_manage
     """
     Test if we correctly load blacklist entries from a file
     """
-    blacklist_file = session.config.get_state_dir() / "tracker_blacklist.txt"
+    blacklist_file = session.config.state_dir / "tracker_blacklist.txt"
     with open(blacklist_file, 'w') as f:
         f.write("http://test1.com/announce\nhttp://test2.com/announce")
 

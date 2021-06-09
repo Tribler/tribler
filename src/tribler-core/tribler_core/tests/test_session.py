@@ -1,6 +1,7 @@
 import asyncio
 import shutil
 from asyncio import get_event_loop, sleep
+from pathlib import Path
 from unittest.mock import Mock
 
 from _socket import getaddrinfo
@@ -11,7 +12,7 @@ import pytest
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.config.test_tribler_config import CONFIG_PATH
+from tribler_core.config.tests.test_tribler_config import CONFIG_PATH
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.session import IGNORED_ERRORS, Session
 from tribler_core.tests.tools.base_test import MockObject
@@ -165,7 +166,9 @@ async def test_config_error_notification(tmpdir):
 
     # 1. Setup corrupted config
     shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', tmpdir / 'triblerd.conf')
-    tribler_config = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf', reset_config_on_error=True)
+
+    tribler_config = TriblerConfig(tmpdir)
+    tribler_config.load(file=tmpdir / 'triblerd.conf', reset_config_on_error=True)
 
     # 2. Initialize session with corrupted config, disable upgrader for simplicity.
     # By mocking the notifier, we can check if the notify was called with correct parameters
@@ -180,7 +183,7 @@ async def test_config_error_notification(tmpdir):
 
     # 4. There could be multiple notify calls but we are only interested in the config error
     # so using 'assert_any_call' here to check if the notify was called.
-    session.notifier.notify.assert_any_call(NTFY.REPORT_CONFIG_ERROR, tribler_config.config_error)
+    session.notifier.notify.assert_any_call(NTFY.REPORT_CONFIG_ERROR, tribler_config.error)
 
     # 5. Always shutdown the session at the end.
     await session.shutdown()

@@ -119,7 +119,7 @@ class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
 
 @overlay(bandwidth_accounting_community)
 @precondition('not session.config.get_bandwidth_testnet()')
-@kwargs(database_path='session.config.get_state_dir() / "sqlite" / "bandwidth.db"')
+@kwargs(database_path='session.config.state_dir / "sqlite" / "bandwidth.db"')
 @walk_strategy(random_walk)
 @set_in_session('bandwidth_community')
 class BandwidthCommunityLauncher(IPv8CommunityLauncher):

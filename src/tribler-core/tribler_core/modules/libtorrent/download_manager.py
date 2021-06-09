@@ -11,6 +11,7 @@ from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
+from pathlib import Path
 from shutil import rmtree
 
 from ipv8.taskmanager import TaskManager, task
@@ -143,7 +144,7 @@ class DownloadManager(TaskManager):
 
         # Save libtorrent state
         if self.has_session():
-            with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'wb') as ltstate_file:
+            with open(self.tribler_session.config.state_dir / LTSTATE_FILENAME, 'wb') as ltstate_file:
                 ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
         if self.has_session():
@@ -241,7 +242,7 @@ class DownloadManager(TaskManager):
             if libtorrent_port != ltsession.listen_port() and store_listen_port:
                 self.tribler_session.config.set_libtorrent_port(ltsession.listen_port())
             try:
-                with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'rb') as fp:
+                with open(self.tribler_session.config.state_dir / LTSTATE_FILENAME, 'rb') as fp:
                     lt_state = bdecode_compat(fp.read())
                 if lt_state is not None:
                     ltsession.load_state(lt_state)
@@ -817,7 +818,7 @@ class DownloadManager(TaskManager):
                 self.remove_config(tdef.get_infohash())
                 return
 
-        config.state_dir = self.tribler_session.config.get_state_dir()
+        config.state_dir = self.tribler_session.config.state_dir
         if config.get_dest_dir() == '':  # removed torrent ignoring
             self._logger.info("Removing checkpoint %s destdir is %s", filename, config.get_dest_dir())
             os.remove(filename)
@@ -849,7 +850,7 @@ class DownloadManager(TaskManager):
         """
         Returns the directory in which to checkpoint the Downloads in this Session.
         """
-        return self.tribler_session.config.get_state_dir() / STATEDIR_CHECKPOINT_DIR
+        return self.tribler_session.config.state_dir / STATEDIR_CHECKPOINT_DIR
 
     @staticmethod
     async def create_torrent_file(file_path_list, params=None):

@@ -42,7 +42,7 @@ class Download(TaskManager):
         self.tdef = tdef
         self.handle = None
         self.config = None
-        self.state_dir = self.session.config.get_state_dir() if self.session else None
+        self.state_dir = self.session.config.state_dir if self.session else None
         self.dlmgr = self.session.dlmgr if self.session else None
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
@@ -136,7 +136,7 @@ class Download(TaskManager):
         """
         self.hidden = hidden
         self.checkpoint_disabled = checkpoint_disabled or self.dummy
-        self.config = config or DownloadConfig(state_dir=self.session.config.get_state_dir())
+        self.config = config or DownloadConfig(state_dir=self.session.config.state_dir)
 
         self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
 

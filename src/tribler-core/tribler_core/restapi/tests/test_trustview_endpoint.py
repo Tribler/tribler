@@ -24,7 +24,7 @@ def root_key():
 
 @pytest.fixture
 async def mock_ipv8(session):
-    db_path = session.config.get_state_dir() / "bandwidth.db"
+    db_path = session.config.state_dir / "bandwidth.db"
     mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path)
     session.bandwidth_community = mock_ipv8.overlay
     yield mock_ipv8

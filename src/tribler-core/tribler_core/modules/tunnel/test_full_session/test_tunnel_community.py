@@ -39,7 +39,7 @@ class ProxyFactory:
         config = self.base_tribler_config.copy()
         config.set_libtorrent_enabled(False)
         config.set_tunnel_community_socks5_listen_ports(ports)
-        config.set_state_dir(Path(self.tmpdir_factory.mktemp("session")))
+        config.state_dir = self.tmpdir_factory.mktemp("session")
 
         session = Session(config)
         session.upgrader_enabled = False
@@ -138,7 +138,7 @@ def start_anon_download(session, seed_session, tdef, hops=1):
     """
     session.config.set_libtorrent_dht_readiness_timeout(0)
     dscfg = DownloadConfig()
-    dscfg.set_dest_dir(session.config.get_state_dir())
+    dscfg.set_dest_dir(session.config.state_dir)
     dscfg.set_hops(hops)
     download = session.dlmgr.start_download(tdef=tdef, config=dscfg)
     session.tunnel_community.bittorrent_peers[download] = [("127.0.0.1", seed_session.config.get_libtorrent_port())]

@@ -6,7 +6,7 @@ from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities import path_util
 
@@ -67,7 +67,8 @@ class WatchFolder(TaskManager):
 
                     anon_enabled = self.session.config.get_default_anonymity_enabled()
                     default_num_hops = self.session.config.get_default_number_hops()
+                    destination_dir = self.session.config.get_default_destination_dir() or get_default_dest_dir()
                     dl_config.set_hops(default_num_hops if anon_enabled else 0)
                     dl_config.set_safe_seeding(self.session.config.get_default_safeseeding_enabled())
-                    dl_config.set_dest_dir(self.session.config.get_default_destination_dir())
+                    dl_config.set_dest_dir(destination_dir)
                     self.session.dlmgr.start_download(tdef=tdef, config=dl_config)

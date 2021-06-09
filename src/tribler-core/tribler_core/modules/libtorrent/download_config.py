@@ -157,17 +157,14 @@ class DownloadConfig:
 def get_default_dest_dir():
     """
     Returns the default dir to save content to.
-
-    If Downloads/ exists: Downloads/TriblerDownloads
-    else: Home/TriblerDownloads
     """
-    download_dir = Path("TriblerDownloads")
+    tribler_downloads = Path("TriblerDownloads")
+    if tribler_downloads.is_dir():
+        return tribler_downloads.absolute()
 
-    # TODO: Is this here so the unit tests work?
-    if download_dir.is_dir():
-        return path_util.abspath(download_dir)
+    home = get_home_dir()
+    downloads = home / "Downloads"
+    if downloads.is_dir():
+        return (downloads / tribler_downloads).absolute()
 
-    downloads_dir = get_home_dir() / "Downloads"
-    if downloads_dir.is_dir():
-        return downloads_dir / download_dir
-    return get_home_dir() / download_dir
+    return (home / tribler_downloads).absolute()

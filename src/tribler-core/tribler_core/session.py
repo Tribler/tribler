@@ -149,7 +149,7 @@ class Session(TaskManager):
         if not self.payout_manager:
             self._logger.warning("Running bootstrap without payout enabled")
         from tribler_core.modules.bootstrap import Bootstrap
-        self.bootstrap = Bootstrap(self.config.get_state_dir(), dht=self.dht_community)
+        self.bootstrap = Bootstrap(self.config.state_dir, dht=self.dht_community)
         self.bootstrap.start_by_infohash(self.dlmgr.start_download, self.config.get_bootstrap_infohash())
         await self.bootstrap.download.future_finished
         # Temporarily disabling SQL import for experimental release
@@ -164,9 +164,9 @@ class Session(TaskManager):
                 os.makedirs(path)
 
         def create_in_state_dir(path):
-            create_dir(self.config.get_state_dir() / path)
+            create_dir(self.config.state_dir / path)
 
-        create_dir(self.config.get_state_dir())
+        create_dir(self.config.state_dir)
         create_in_state_dir(STATEDIR_DB_DIR)
         create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
         create_in_state_dir(STATEDIR_CHANNELS_DIR)
@@ -176,13 +176,14 @@ class Session(TaskManager):
         Set parameters that depend on state_dir.
         """
         trustchain_pairfilename = self.config.get_trustchain_keypair_filename()
+        state_dir = self.config.state_dir
         if trustchain_pairfilename.exists():
             self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
         else:
             self.trustchain_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
-            trustchain_pubfilename = self.config.get_state_dir() / 'ecpub_multichain.pem'
+            trustchain_pubfilename = state_dir / 'ecpub_multichain.pem'
             permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
@@ -193,7 +194,7 @@ class Session(TaskManager):
             self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
-            trustchain_testnet_pubfilename = self.config.get_state_dir() / 'ecpub_trustchain_testnet.pem'
+            trustchain_testnet_pubfilename = state_dir / 'ecpub_trustchain_testnet.pem'
             permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
             permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
@@ -261,7 +262,8 @@ class Session(TaskManager):
 
         :param config: a TriblerConfig object
         """
-        self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
+        state_dir = self.config.state_dir
+        self._logger.info("Session is using state directory: %s", state_dir)
         self.create_state_directory_structure()
         self.init_keypair()
 
@@ -301,7 +303,7 @@ class Session(TaskManager):
             from tribler_core.modules.metadata_store.store import MetadataStore
             channels_dir = self.config.get_chant_channels_dir()
             metadata_db_name = 'metadata.db' if not self.config.get_chant_testnet() else 'metadata_testnet.db'
-            database_path = self.config.get_state_dir() / 'sqlite' / metadata_db_name
+            database_path = state_dir / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
                                      notifier=self.notifier,
                                      disable_sync=self.core_test_mode)
@@ -321,7 +323,7 @@ class Session(TaskManager):
                                    .set_address(address)
                                    .clear_overlays()
                                    .clear_keys()  # We load the keys ourselves
-                                   .set_working_directory(str(self.config.get_state_dir()))
+                                   .set_working_directory(str(state_dir))
                                    .set_walker_interval(self.config.get_ipv8_walk_interval()))
 
             if self.core_test_mode:
@@ -410,8 +412,8 @@ class Session(TaskManager):
         self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keypair.key.pk)
 
         # If there is a config error, report to the user via GUI notifier
-        if self.config.config_error:
-            self.notifier.notify(NTFY.REPORT_CONFIG_ERROR, self.config.config_error)
+        if self.config.error:
+            self.notifier.notify(NTFY.REPORT_CONFIG_ERROR, self.config.error)
 
     async def shutdown(self):
         """

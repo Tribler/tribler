@@ -4,118 +4,117 @@ Configuration object for the Tribler Core.
 import logging
 import os
 import traceback
-from typing import Optional
 
 from configobj import ConfigObj, ParseError
 from validate import Validator
 
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler_core.exceptions import InvalidConfigException
-from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.path_util import Path
 
-CONFIG_FILENAME = 'triblerd.conf'
-SPEC_FILENAME = 'tribler_config.spec'
-CONFIG_SPEC_PATH = get_lib_path() / 'config' / SPEC_FILENAME
-
-
 class TriblerConfig:
-    """
-    Holds all Tribler Core configurable variables.
+    def __init__(self, state_dir):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info(f'Init. State dir: {state_dir}')
 
-    This class is a wrapper around a ConfigObj. It has a specification of it's configuration sections and fields,
-    their allowed values and default value in `config.spec`.
-    """
-
-    def __init__(self, state_dir, config_file=None, reset_config_on_error=False):
-        """
-        Create a new TriblerConfig instance.
-
-        :param config_file: path to existing config file
-        :param reset_config_on_error: Flag indicating whether to recover from corrupt config using default config.
-        :raises an InvalidConfigException if ConfigObj is invalid
-        """
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self._state_dir = Path(state_dir)
-
+        self.error = None
+        self.file = None
         self.config = None
-        self.config_error = None
-        self.load_config_file(config_file, reset_config_on_error)
 
-        # Set the default destination dir. The value should be in the config dict
-        # because of the REST endpoint sending the whole dict to the GUI.
-        # TODO: do not write the value into the config file if the user did not change it
-        if self.config['download_defaults']['saveas'] is None:
-            self.config['download_defaults']['saveas'] = str(self.abspath(get_default_dest_dir()))
+        self.state_dir = state_dir
+        self.create_empty_config()
 
-    def load_config_file(self, config_file: Path, recover_error: bool):
-        """
-        Loads ConfigObj from the config file. If the file is corrupted, tries to create
-        ConfigObj using the spec file if `recover_error` is set.
+    def create_empty_config(self):
+        self.config = TriblerConfig._load()
+        self.validate()
 
-        """
-        config_file_path = str(config_file) if config_file else None
+    def load(self, file: Path = None, reset_config_on_error=False):
+        self.logger.info(f'Load: {file}. Reset config on error: {reset_config_on_error}')
+        self.file = file
+        self.error = None
+
         try:
-            self.config = self._load_config_file(config_file_path)
+            self.config = TriblerConfig._load(file)
         except ParseError:
-            if not config_file or not recover_error:
+            self.error = traceback.format_exc()
+            self.logger.warning(f'Error: {self.error}')
+
+            if not reset_config_on_error:
                 raise
 
-            self.config_error = traceback.format_exc()
-            self.config = self._load_config_file(None)
-            # Since this is a new config, save it immediately
-            self.write()
+        if self.error and reset_config_on_error:
+            self.logger.info(f'Create a default config')
+
+            self.config = TriblerConfig._load(None)
+            self.write(file=file)
 
         self.validate()
 
-    def _load_config_file(self, config_file_path: Optional[str]) -> ConfigObj:
-        return ConfigObj(infile=config_file_path, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8')
+    @staticmethod
+    def _load(file=None, spec=get_lib_path() / 'config' / 'tribler_config.spec'):
+        return ConfigObj(
+            infile=str(file) if file else None,
+            configspec=str(spec) if spec else None,
+            default_encoding='utf-8',
+        )
+
+    def write(self, file: Path = None):
+        if not file:
+            file = self.file  # try to remember a file from the last load
+
+        self.logger.info(f'Write: {file}')
+
+        if not file:
+            return
+
+        parent = Path(file).parent
+        if not parent.exists():
+            self.logger.info(f'Create folder: {parent}')
+            parent.mkdir(parents=True)
+
+        self.config.filename = file
+        self.config.write()
+
+    def validate(self):
+        self.logger.info(f'Validate')
+
+        result = self.config.validate(Validator())
+        self.logger.info(f'Result: {result}')
+
+        if result is not True:
+            raise InvalidConfigException(msg=f"TriblerConfig is invalid: {str(result)}")
+
+    def copy(self):
+        self.logger.info(f'Copy')
+
+        new_config = TriblerConfig(self.state_dir)
+        new_config.config = ConfigObj(infile=self.config.copy(),
+                                      configspec=self.config.configspec,
+                                      default_encoding='utf-8')
+
+        for section in self.config:
+            new_config.config[section] = self.config[section].copy()
+
+        return new_config
+
+    @property
+    def state_dir(self):
+        return self._state_dir
+
+    @state_dir.setter
+    def state_dir(self, value):
+        self._state_dir = Path(value)
 
     def abspath(self, path):
-        return path_util.abspath(path, optional_prefix=self.get_state_dir())
+        return path_util.abspath(path, optional_prefix=self.state_dir)
 
     def norm_path(self, path):
         """
         Return absolute path if it points outside the state dir. Otherwise, change it to relative path.
         """
-        return path_util.norm_path(self.get_state_dir(), path)
-
-    def copy(self):
-        """
-        Return a TriblerConfig object that has the same values.
-        """
-        # References to the sections are copied here
-        new_configobj = ConfigObj(self.config.copy(), configspec=self.config.configspec, default_encoding='utf-8')
-        # Make a deep copy of every section
-        for section in self.config:
-            new_configobj[section] = self.config[section].copy()
-        new_tribler_config = TriblerConfig(self.get_state_dir())
-        new_tribler_config.config = new_configobj
-        return new_tribler_config
-
-    def validate(self):
-        """
-        Validate the ConfigObj using Validator.
-
-        Note that `validate()` returns `True` if the ConfigObj is correct and a dictionary with `True` and `False`
-        values for keys who's validation failed if at least one key was found to be incorrect.
-        """
-        validator = Validator()
-        validation_result = self.config.validate(validator)
-        if validation_result is not True:
-            raise InvalidConfigException(msg=f"TriblerConfig is invalid: {str(validation_result)}")
-
-    def write(self):
-        """
-        Write the configuration to the config file in the state dir as specified in the config.
-        """
-        state_dir = self.get_state_dir()
-        if not state_dir.exists():
-            os.makedirs(state_dir, exist_ok=True)
-        self.config.filename = state_dir / CONFIG_FILENAME
-        self.config.write()
+        return path_util.norm_path(self.state_dir, path)
 
     # Version and backup
     def set_version(self, version):
@@ -160,12 +159,6 @@ class TriblerConfig:
 
     def get_chant_testnet(self):
         return 'TESTNET' in os.environ or 'CHANT_TESTNET' in os.environ or self.config['chant']['testnet']
-
-    def get_state_dir(self):
-        return self._state_dir
-
-    def set_state_dir(self, new_state_dir):
-        self._state_dir = new_state_dir
 
     # TrustChain
 
@@ -530,7 +523,8 @@ class TriblerConfig:
         self.config['download_defaults']['saveas'] = str(self.norm_path(value))
 
     def get_default_destination_dir(self):
-        return Path(self.config['download_defaults']['saveas'])
+        value = self.config['download_defaults']['saveas']
+        return Path(value) if value else None
 
     def set_default_add_download_to_channel(self, value):
         self.config['download_defaults']['add_download_to_channel'] = value

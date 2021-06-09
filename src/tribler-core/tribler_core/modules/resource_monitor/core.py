@@ -29,7 +29,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.session = session
         self.disk_usage_data = deque(maxlen=history_size)
 
-        self.state_dir = session.config.get_state_dir()
+        self.state_dir = session.config.state_dir
         self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
         self.resource_log_enabled = session.config.get_resource_monitor_enabled()
 
@@ -101,7 +101,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
                 self.session.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(str(self.session.config.get_state_dir()))
+        return psutil.disk_usage(str(self.session.config.state_dir))
 
     def get_disk_usage(self):
         """

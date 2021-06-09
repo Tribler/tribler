@@ -27,7 +27,7 @@ class BandwidthCommunityCrawlerLauncher(BandwidthCommunityLauncher):
     def get_kwargs(self, session):
         settings = BandwidthAccountingSettings()
         settings.outgoing_query_interval = 5
-        database = BandwidthDatabase(session.config.get_state_dir() / "sqlite" / "bandwidth.db",
+        database = BandwidthDatabase(session.config.state_dir / "sqlite" / "bandwidth.db",
                                      session.trustchain_keypair.pub().key_to_bin(), store_all_transactions=True)
 
         return {
@@ -55,8 +55,8 @@ if __name__ == "__main__":
                         action=PortAction, metavar='{0..65535}')
     args = parser.parse_args(sys.argv[1:])
 
-    config = TriblerConfig(args.statedir, config_file=Path(args.statedir) / 'triblerd.conf')
-    config.set_state_dir(Path(args.statedir).absolute())
+    config = TriblerConfig(Path(args.statedir).absolute())
+    config.load(file=Path(args.statedir) / 'triblerd.conf')
     config.set_tunnel_community_enabled(False)
     config.set_libtorrent_enabled(False)
     config.set_bootstrap_enabled(False)

@@ -7,43 +7,52 @@ import pytest
 
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
-from tribler_core.config.tribler_config import CONFIG_FILENAME, TriblerConfig
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.osutils import get_home_dir
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 
-def test_init_without_config(tribler_config):
+@pytest.mark.asyncio
+async def test_copy(tribler_config):
+    tribler_config.set_api_http_port(42)
+
+    cloned = tribler_config.copy()
+    assert cloned.get_api_http_port() == 42
+
+
+@pytest.mark.asyncio
+async def test_init_without_config(tribler_config):
     """
     A newly created TriblerConfig is valid.
     """
     tribler_config.validate()
 
-
-def test_invalid_config_recovers(tmpdir):
+@pytest.mark.asyncio
+async def test_invalid_config_recovers(tmpdir):
     default_config_file = tmpdir / 'triblerd.conf'
     shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', default_config_file)
 
     # By default, recover_error set to False when loading the config file so
     # if the config file is corrupted, it should raise a ParseError.
+    config = TriblerConfig(tmpdir)
     with pytest.raises(ParseError):
-        _ = TriblerConfig(tmpdir, config_file=default_config_file)
+        config.load(file=default_config_file)
 
     # If recover_error is set to True, the config should successfully load using
     # the default config in case of corrupted config file and the error is saved.
-    tribler_conf = TriblerConfig(tmpdir, config_file=default_config_file, reset_config_on_error=True)
-    assert "configobj.ParseError: Invalid line" in tribler_conf.config_error
-    assert tribler_conf.get_state_dir() is not None
+    config.load(file=default_config_file, reset_config_on_error=True)
+    assert "configobj.ParseError: Invalid line" in config.error
 
     # Since the config should be saved on previous recovery, subsequent instantiation of TriblerConfig
     # should work without the reset flag.
-    tribler_conf2 = TriblerConfig(tmpdir, config_file=default_config_file, reset_config_on_error=False)
-    assert tribler_conf2
+    config.load(file=default_config_file)
+    assert not config.error
 
 
-
-def test_libtorrent_proxy_settings(tribler_config):
+@pytest.mark.asyncio
+async def test_libtorrent_proxy_settings(tribler_config):
     """
     Setting and getting of libtorrent proxy settings.
     """
@@ -61,7 +70,8 @@ def test_libtorrent_proxy_settings(tribler_config):
     assert tribler_config.get_libtorrent_proxy_settings()[2], ['', '']
 
 
-def test_anon_proxy_settings(tribler_config):
+@pytest.mark.asyncio
+async def test_anon_proxy_settings(tribler_config):
     proxy_type, server, auth = 3, ("33.33.33.33", [2222, 2223, 4443, 58848]), 1
     tribler_config.set_anon_proxy_settings(proxy_type, server, auth)
 
@@ -77,13 +87,15 @@ def test_anon_proxy_settings(tribler_config):
     assert not tribler_config.get_anon_proxy_settings()[2]
 
 
-def test_tunnel_community_socks5_listen_ports(tribler_config):
+@pytest.mark.asyncio
+async def test_tunnel_community_socks5_listen_ports(tribler_config):
     ports = [5554, 9949, 9588, 35555, 84899]
     tribler_config.set_tunnel_community_socks5_listen_ports(ports)
     assert tribler_config.get_tunnel_community_socks5_listen_ports() == ports
 
 
-def test_bootstrap_configs(tribler_config):
+@pytest.mark.asyncio
+async def test_bootstrap_configs(tribler_config):
     tribler_config.set_bootstrap_enabled(False)
     assert not tribler_config.get_bootstrap_enabled()
 
@@ -94,7 +106,8 @@ def test_bootstrap_configs(tribler_config):
     assert tribler_config.get_bootstrap_infohash() == "TestInfohash"
 
 
-def test_relative_paths(tribler_config, state_dir):
+@pytest.mark.asyncio
+async def test_relative_paths(tribler_config, state_dir):
     # Default should be taken from config.spec
     assert tribler_config.get_trustchain_keypair_filename() == (state_dir / "ec_multichain.pem").absolute()
 
@@ -113,7 +126,8 @@ def test_relative_paths(tribler_config, state_dir):
     assert tribler_config.config['trustchain']['ec_keypair_filename'] == str(out_of_dir_name_global)
 
 
-def test_get_set_methods_general(tribler_config, state_dir):
+@pytest.mark.asyncio
+async def test_get_set_methods_general(tribler_config, state_dir):
     """
     Check whether general get and set methods are working as expected.
     """
@@ -121,11 +135,12 @@ def test_get_set_methods_general(tribler_config, state_dir):
     tribler_config.set_trustchain_testnet_keypair_filename("bla2")
     assert tribler_config.get_trustchain_testnet_keypair_filename(), state_dir / "bla2"
 
-    tribler_config.set_log_dir(tribler_config.get_state_dir() / "bla3")
-    assert tribler_config.get_log_dir() == tribler_config.get_state_dir() / "bla3"
+    tribler_config.set_log_dir(tribler_config.state_dir / "bla3")
+    assert tribler_config.get_log_dir() == state_dir / "bla3"
 
 
-def test_get_set_methods_version_checker(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_version_checker(tribler_config):
     """
     Checks whether version checker get and set methods are working as expected.
     """
@@ -133,7 +148,8 @@ def test_get_set_methods_version_checker(tribler_config):
     assert tribler_config.get_version_checker_enabled()
 
 
-def test_get_set_methods_torrent_checking(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_torrent_checking(tribler_config):
     """
     Check whether torrent checking get and set methods are working as expected.
     """
@@ -141,7 +157,8 @@ def test_get_set_methods_torrent_checking(tribler_config):
     assert tribler_config.get_torrent_checking_enabled()
 
 
-def test_get_set_methods_rest_api(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_rest_api(tribler_config):
     """
     Check whether http api get and set methods are working as expected.
     """
@@ -154,14 +171,15 @@ def test_get_set_methods_rest_api(tribler_config):
     tribler_config.set_api_https_port(123)
     assert tribler_config.get_api_https_port() == 123
     tribler_config.set_api_https_certfile('certfile.pem')
-    assert tribler_config.get_api_https_certfile() == tribler_config.get_state_dir() / 'certfile.pem'
+    assert tribler_config.get_api_https_certfile() == tribler_config.state_dir / 'certfile.pem'
     tribler_config.set_api_key('000')
     assert tribler_config.get_api_key() == '000'
     tribler_config.set_api_retry_port(True)
     assert tribler_config.get_api_retry_port()
 
 
-def test_get_set_methods_ipv8(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_ipv8(tribler_config):
     """
     Check whether IPv8 get and set methods are working as expected.
     """
@@ -181,7 +199,8 @@ def test_get_set_methods_ipv8(tribler_config):
     assert tribler_config.get_ipv8_walk_scaling_upper_limit() == 9.6
 
 
-def test_get_set_methods_libtorrent(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_libtorrent(tribler_config):
     """
     Check whether libtorrent get and set methods are working as expected.
     """
@@ -221,7 +240,8 @@ def test_get_set_methods_libtorrent(tribler_config):
     assert tribler_config.get_libtorrent_max_download_rate() == MAX_LIBTORRENT_RATE_LIMIT
 
 
-def test_get_set_methods_tunnel_community(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_tunnel_community(tribler_config):
     """
     Check whether tunnel community get and set methods are working as expected.
     """
@@ -238,7 +258,7 @@ def test_get_set_methods_tunnel_community(tribler_config):
     tribler_config.set_default_safeseeding_enabled(True)
     assert tribler_config.get_default_safeseeding_enabled()
     tribler_config.set_default_destination_dir(get_home_dir())
-    assert tribler_config.get_default_destination_dir() == Path(get_home_dir())
+    assert tribler_config.get_default_destination_dir() == get_home_dir()
     tribler_config.set_tunnel_community_random_slots(10)
     assert tribler_config.get_tunnel_community_random_slots() == 10
     tribler_config.set_tunnel_community_competing_slots(20)
@@ -247,7 +267,8 @@ def test_get_set_methods_tunnel_community(tribler_config):
     assert tribler_config.get_tunnel_testnet()
 
 
-def test_get_set_chant_methods(tribler_config, state_dir):
+@pytest.mark.asyncio
+async def test_get_set_chant_methods(tribler_config, state_dir):
     """
     Check whether chant get and set methods are working as expected.
     """
@@ -259,7 +280,8 @@ def test_get_set_chant_methods(tribler_config, state_dir):
     assert tribler_config.get_chant_testnet()
 
 
-def test_get_set_methods_popularity_community(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_popularity_community(tribler_config):
     """
     Check whether popularity community get and set methods are working as expected.
     """
@@ -267,7 +289,8 @@ def test_get_set_methods_popularity_community(tribler_config):
     assert tribler_config.get_popularity_community_enabled()
 
 
-def test_get_set_methods_watch_folder(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_watch_folder(tribler_config):
     """
     Check whether watch folder get and set methods are working as expected.
     """
@@ -277,7 +300,8 @@ def test_get_set_methods_watch_folder(tribler_config):
     assert tribler_config.get_watch_folder_path() == get_home_dir()
 
 
-def test_get_set_methods_resource_monitor(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_resource_monitor(tribler_config):
     """
     Check whether resource monitor get and set methods are working as expected.
     """
@@ -293,7 +317,8 @@ def test_get_set_methods_resource_monitor(tribler_config):
     assert tribler_config.get_cpu_priority_order() == 3
 
 
-def test_get_set_methods_dht(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_methods_dht(tribler_config):
     """
     Check whether dht get and set methods are working as expected.
     """
@@ -301,7 +326,8 @@ def test_get_set_methods_dht(tribler_config):
     assert not tribler_config.get_dht_enabled()
 
 
-def test_get_set_default_add_download_to_channel(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_default_add_download_to_channel(tribler_config):
     """
     Check whether set/get methods of default add download to channel works.
     """
@@ -310,7 +336,8 @@ def test_get_set_default_add_download_to_channel(tribler_config):
     assert tribler_config.get_default_add_download_to_channel()
 
 
-def test_get_set_discovery_community_enabled(tribler_config):
+@pytest.mark.asyncio
+async def test_get_set_discovery_community_enabled(tribler_config):
     """
     Test disabling the discovery community.
     """
@@ -319,5 +346,6 @@ def test_get_set_discovery_community_enabled(tribler_config):
     assert tribler_config.get_discovery_community_enabled()
 
 
-def test_get_error_handling(tribler_config):
+@pytest.mark.asyncio
+async def test_get_error_handling(tribler_config):
     assert tribler_config.get_core_error_reporting_requires_user_consent()

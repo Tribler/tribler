@@ -202,7 +202,7 @@ class DebugEndpoint(RESTEndpoint):
             dump_buffer.close()
         else:
             # On other platforms, simply writing to file is much faster
-            dump_file_path = self.session.config.get_state_dir() / 'memory_dump.json'
+            dump_file_path = self.session.config.state_dir / 'memory_dump.json'
             scanner.dump_all_objects(dump_file_path)
             with open(dump_file_path) as dump_file:
                 content = dump_file.read()

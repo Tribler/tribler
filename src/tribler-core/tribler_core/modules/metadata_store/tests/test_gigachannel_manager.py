@@ -112,7 +112,7 @@ def test_updated_my_channel(enable_chant, personal_channel, channel_manager, moc
     session.dlmgr.start_download = Mock()
     session.dlmgr.download_exists = lambda *_: False
     session.mds.channels_dir = "bla"
-    session.config.get_state_dir = lambda: Path(tmpdir / "foo")
+    session.config.state_dir = Path(tmpdir / "foo")
     channel_manager.updated_my_channel(tdef)
     session.dlmgr.start_download.assert_called_once()
 
@@ -337,7 +337,7 @@ async def test_reject_malformed_channel(enable_chant, channel_manager, mock_dlmg
             title="bla1", public_key=database_blob(b'123'), infohash=random_infohash()
         )
     session.config = Mock()
-    session.config.get_state_dir = lambda: None
+    session.config.state_dir = None
 
     def mock_get_metainfo_bad(*args, **kwargs):
         return succeed({b'info': {b'name': b'bla'}})

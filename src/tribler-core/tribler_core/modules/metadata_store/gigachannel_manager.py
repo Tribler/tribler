@@ -273,7 +273,7 @@ class GigaChannelManager(TaskManager):
         except (KeyError, TypeError):
             return
 
-        dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
+        dcfg = DownloadConfig(state_dir=self.session.config.state_dir)
         dcfg.set_dest_dir(self.session.mds.channels_dir)
         dcfg.set_channel_download(True)
         tdef = TorrentDef(metainfo=metainfo)
@@ -316,7 +316,7 @@ class GigaChannelManager(TaskManager):
             and my_channel.status == COMMITTED
             and not self.session.dlmgr.download_exists(bytes(my_channel.infohash))
         ):
-            dcfg = DownloadConfig(state_dir=self.session.config.get_state_dir())
+            dcfg = DownloadConfig(state_dir=self.session.config.state_dir)
             dcfg.set_dest_dir(self.session.mds.channels_dir)
             dcfg.set_channel_download(True)
             return self.session.dlmgr.start_download(tdef=tdef, config=dcfg)

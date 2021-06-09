@@ -45,7 +45,8 @@ class TinyTriblerService:
 
     @staticmethod
     def create_default_config(working_dir, config_path):
-        config = TriblerConfig(working_dir, config_path)
+        config = TriblerConfig(working_dir)
+        config.load(file=config_path)
 
         config.set_tunnel_community_enabled(False)
         config.set_popularity_community_enabled(False)

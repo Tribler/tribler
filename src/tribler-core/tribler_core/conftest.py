@@ -46,6 +46,7 @@ def _tribler_download_dir(tribler_root_dir):
 @pytest.fixture(name="tribler_config")
 def _tribler_config(tribler_state_dir, tribler_download_dir):
     config = TriblerConfig(tribler_state_dir)
+
     config.set_default_destination_dir(tribler_download_dir)
     config.set_torrent_checking_enabled(False)
     config.set_ipv8_enabled(False)
@@ -73,7 +74,7 @@ def get_free_port():
 @pytest.fixture
 def seed_config(tribler_config, tmpdir_factory):
     seed_config = tribler_config.copy()
-    seed_config.set_state_dir(Path(tmpdir_factory.mktemp("seeder")))
+    seed_config.state_dir = tmpdir_factory.mktemp("seeder")
     seed_config.set_libtorrent_enabled(True)
     seed_config.set_libtorrent_port(get_free_port())
     seed_config.set_tunnel_community_socks5_listen_ports([(get_free_port()) for _ in range(5)])
@@ -88,7 +89,7 @@ def download_config():
 
 @pytest.fixture
 def state_dir(tribler_config):
-    return tribler_config.get_state_dir()
+    return tribler_config.state_dir
 
 
 @pytest.fixture
@@ -275,7 +276,7 @@ def test_tdef(state_dir):
 @pytest.fixture
 async def test_download(session, mock_dlmgr, test_tdef):
     download = Download(session, test_tdef)
-    download.config = DownloadConfig(state_dir=session.config.get_state_dir())
+    download.config = DownloadConfig(state_dir=session.config.state_dir)
     download.infohash = hexlify(test_tdef.get_infohash())
     yield download
     await download.shutdown()

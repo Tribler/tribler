@@ -57,7 +57,7 @@ async def fake_dlmgr(tmpdir):
     tribler_session.config.get_anon_proxy_settings = lambda: (2, ('127.0.0.1', [1338]), None)
     tribler_session.config.get_libtorrent_port = lambda: 1337
     tribler_session.config.get_anon_listen_port = lambda: 1338
-    tribler_session.config.get_state_dir = lambda: tmpdir
+    tribler_session.config.state_dir = tmpdir
     tribler_session.config.set_listen_port_runtime = lambda: None
     tribler_session.config.get_libtorrent_max_upload_rate = lambda: 100
     tribler_session.config.get_libtorrent_max_download_rate = lambda: 120

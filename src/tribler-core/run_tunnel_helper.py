@@ -66,7 +66,7 @@ class TunnelHelperService(TaskManager):
         self.community = None
 
     def on_circuit_reject(self, reject_time, balance):
-        with open(os.path.join(self.session.config.get_state_dir(), "circuit_rejects.log"), 'a') as out_file:
+        with open(os.path.join(self.session.config.state_dir, "circuit_rejects.log"), 'a') as out_file:
             time_millis = int(round(reject_time * 1000))
             out_file.write("%d,%d\n" % (time_millis, balance))
 
@@ -102,7 +102,7 @@ class TunnelHelperService(TaskManager):
     def circuit_removed(self, circuit, additional_info):
         self.session.ipv8.network.remove_by_address(circuit.peer.address)
         if self.log_circuits:
-            with open(os.path.join(self.session.config.get_state_dir(), "circuits.log"), 'a') as out_file:
+            with open(os.path.join(self.session.config.state_dir, "circuits.log"), 'a') as out_file:
                 duration = time.time() - circuit.creation_time
                 out_file.write("%d,%f,%d,%d,%s\n" % (circuit.circuit_id, duration, circuit.bytes_up, circuit.bytes_down,
                                                      additional_info))
@@ -115,7 +115,8 @@ class TunnelHelperService(TaskManager):
             ipv8_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
 
         statedir = Path(os.path.join(get_root_state_directory(), "tunnel-%d") % ipv8_port)
-        config = TriblerConfig(statedir, config_file=statedir / 'triblerd.conf')
+        config = TriblerConfig(statedir)
+        config.load(file=statedir / 'triblerd.conf')
         config.set_tunnel_community_socks5_listen_ports([])
         config.set_tunnel_community_random_slots(options.random_slots)
         config.set_tunnel_community_competing_slots(options.competing_slots)

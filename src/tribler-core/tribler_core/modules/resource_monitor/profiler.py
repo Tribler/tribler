@@ -39,7 +39,7 @@ class YappiProfiler:
         yappi_stats = yappi.get_func_stats()
         yappi_stats.sort('tsub', sort_order="desc")
 
-        log_dir = self.session.config.get_state_dir() / 'logs'
+        log_dir = self.session.config.state_dir / 'logs'
         file_path = log_dir / f"yappi_{self._start_time}.stats"
         # Make the log directory if it does not exist
         if not log_dir.exists():
