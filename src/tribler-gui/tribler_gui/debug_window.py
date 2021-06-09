@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os
 import socket
@@ -16,7 +17,6 @@ import libtorrent
 
 import psutil
 
-import tribler_core.utilities.json_util as json
 from tribler_core.utilities.utilities import has_bep33_support
 
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB

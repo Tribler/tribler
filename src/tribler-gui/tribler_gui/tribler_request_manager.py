@@ -7,8 +7,6 @@ from urllib.parse import quote_plus
 from PyQt5.QtCore import QBuffer, QIODevice, QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-import tribler_core.utilities.json_util as json
-
 from tribler_gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.utilities import connect

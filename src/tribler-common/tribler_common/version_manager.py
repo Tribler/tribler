@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os.path
 import shutil
 import time
@@ -13,7 +14,6 @@ from typing import Dict, List, Optional, Tuple
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 import tribler_core.version
-from tribler_core.utilities import json_util as json
 
 VERSION_HISTORY_FILENAME = "version_history.json"
 

@@ -2,6 +2,7 @@
 This file contains various controllers for table views.
 The responsibility of the controller is to populate the table view with some data, contained in a specific model.
 """
+import json
 import time
 
 from PyQt5.QtCore import QObject, QTimer, Qt
@@ -12,7 +13,6 @@ from PyQt5.QtWidgets import QAction
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -301,7 +301,7 @@ class ContextMenuMixin:
                     lambda _: self.table_view.window().tray_show_message(
                         tr("Channel update"), tr("Torrent(s) added to your channel")
                     ),
-                    raw_data=dumps(entries),
+                    raw_data=json.dumps(entries),
                     method='POST',
                 )
 
@@ -314,7 +314,8 @@ class ContextMenuMixin:
                 changes_list = [
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
-                TriblerNetworkRequest("metadata", self.model.remove_items, raw_data=dumps(changes_list), method='PATCH')
+                TriblerNetworkRequest("metadata", self.model.remove_items,
+                                      raw_data=json.dumps(changes_list), method='PATCH')
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Move")

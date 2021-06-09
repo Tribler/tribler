@@ -1,4 +1,5 @@
 import base64
+import json
 import shutil
 from binascii import unhexlify
 from unittest.mock import Mock
@@ -20,7 +21,6 @@ from tribler_core.modules.metadata_store.community.remote_query_community import
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
@@ -220,12 +220,12 @@ async def test_get_channel_description(enable_chant, enable_api, session):
     with db_session:
         chan = session.mds.ChannelMetadata.create_channel(title="bla")
         channel_description = session.mds.ChannelDescription(
-            origin_id=chan.id_, json_text=dumps({"description_text": descr_txt})
+            origin_id=chan.id_, json_text=json.dumps({"description_text": descr_txt})
         )
     response_dict = await do_request(
         session, f'channels/{hexlify(chan.public_key)}/{chan.id_}/description', expected_code=200
     )
-    assert response_dict == loads(channel_description.json_text)
+    assert response_dict == json.loads(channel_description.json_text)
 
 
 @pytest.mark.asyncio

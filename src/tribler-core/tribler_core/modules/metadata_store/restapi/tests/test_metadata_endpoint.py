@@ -1,3 +1,5 @@
+import json
+
 from ipv8.util import succeed
 
 from pony.orm import db_session
@@ -8,7 +10,6 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMIT
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import TORRENT_CHECK_TIMEOUT
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.base_api_test import do_request
-from tribler_core.utilities.json_util import dumps
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support
@@ -151,7 +152,8 @@ async def test_get_entry(enable_chant, enable_api, session):
         ),
         (
             session.mds.ChannelDescription,
-            {"text": dumps({"description_text": "*{{}bla <\\> [)]// /ee2323㋛㋛㋛  ", "channel_thumbnail": "ffffff.jpg"})},
+            {"text": json.dumps({"description_text": "*{{}bla <\\> [)]// /ee2323㋛㋛㋛  ",
+                                 "channel_thumbnail": "ffffff.jpg"})},
         ),
     ):
         with db_session:
