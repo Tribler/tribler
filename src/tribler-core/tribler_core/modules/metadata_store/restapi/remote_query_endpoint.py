@@ -1,4 +1,5 @@
 import time
+from binascii import unhexlify
 
 from aiohttp import web
 
@@ -28,11 +29,8 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     def sanitize_parameters(self, parameters):
         sanitized = super().sanitize_parameters(parameters)
 
-        # Convert frozenset to string
-        if "metadata_type" in sanitized:
-            sanitized["metadata_type"] = [str(mt) for mt in sanitized["metadata_type"] if mt]
         if "channel_pk" in parameters:
-            sanitized["channel_pk"] = parameters["channel_pk"]
+            sanitized["channel_pk"] = unhexlify(parameters["channel_pk"])
         if "origin_id" in parameters:
             sanitized["origin_id"] = int(parameters["origin_id"])
 
@@ -52,8 +50,10 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
 
-        request_uuid = self.session.gigachannel_community.send_search_request(**sanitized)
-        return RESTResponse({"request_uuid": str(request_uuid)})
+        request_uuid, peers_list = self.session.gigachannel_community.send_search_request(**sanitized)
+        peers_mid_list = [hexlify(p.mid) for p in peers_list]
+
+        return RESTResponse({"request_uuid": str(request_uuid), "peers": peers_mid_list})
 
     async def get_channels_peers(self, _):
         # Get debug stats for peers serving channels

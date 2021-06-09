@@ -2,6 +2,7 @@
 This file contains various controllers for table views.
 The responsibility of the controller is to populate the table view with some data, contained in a specific model.
 """
+import json
 import time
 
 from PyQt5.QtCore import QObject, QTimer, Qt
@@ -12,12 +13,12 @@ from PyQt5.QtWidgets import QAction
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.utilities.json_util import dumps
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, dict_item_is_any_of, get_health
+from tribler_gui.utilities import connect, dict_item_is_any_of, get_health, tr
+from tribler_gui.widgets.tablecontentmodel import Column
 
 HEALTHCHECK_DELAY_MS = 500
 
@@ -68,6 +69,7 @@ class TriblerTableViewController(QObject):
         if (
             self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum()
             and self.model.data_items
+            and not self.model.all_local_entries_loaded
         ):  # workaround for duplicate calls to _on_list_scroll on view creation
             self.model.perform_query()
 
@@ -78,7 +80,7 @@ class TriblerTableViewController(QObject):
         sort_column_number = self.table_view.horizontalHeader().sortIndicatorSection()
         # If the column number is set to -1, this means we do not want to do sorting at all
         # We have to set it to something (-1), because QT does not support setting it to "None"
-        sort_by = self.model.columns[sort_column_number] if sort_column_number >= 0 else None
+        sort_by = self.model.columns[sort_column_number].dict_key if sort_column_number >= 0 else None
         sort_asc = self.table_view.horizontalHeader().sortIndicatorOrder()
         return sort_by, sort_asc
 
@@ -114,8 +116,7 @@ class TableLoadingAnimationMixin:
             self.model.query_complete.disconnect()
             self.model.query_started.disconnect()
 
-        if self.model.loaded:
-            self.table_view.hide_loading_animation()
+        self.table_view.hide_loading_animation()
         super().unset_model()
 
 
@@ -179,7 +180,7 @@ class HealthCheckerMixin:
 
         infohash = data_item['infohash']
 
-        if 'health' not in self.model.column_position:
+        if Column.HEALTH not in self.model.column_position:
             return
         # Check if the entry still exists in the table
         row = self.model.item_uid_map.get(infohash)
@@ -191,7 +192,7 @@ class HealthCheckerMixin:
         if not forced and data_item.get('health', HEALTH_UNCHECKED) != HEALTH_UNCHECKED:
             return
         data_item['health'] = HEALTH_CHECKING
-        health_cell_index = self.model.index(row, self.model.column_position['health'])
+        health_cell_index = self.model.index(row, self.model.column_position[Column.HEALTH])
         self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
 
         TriblerNetworkRequest(
@@ -232,8 +233,8 @@ class HealthCheckerMixin:
             data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
         )
 
-        if 'health' in self.model.column_position:
-            index = self.model.index(row, self.model.column_position['health'])
+        if Column.HEALTH in self.model.column_position:
+            index = self.model.index(row, self.model.column_position[Column.HEALTH])
             self.model.dataChanged.emit(index, index, [])
 
 
@@ -249,12 +250,12 @@ class ContextMenuMixin:
 
     def _trigger_name_editor(self, index):
         model = index.model()
-        title_index = model.index(index.row(), model.columns.index('name'))
+        title_index = model.index(index.row(), model.columns_shown.index(Column.NAME))
         self.table_view.edit(title_index)
 
     def _trigger_category_editor(self, index):
         model = index.model()
-        title_index = model.index(index.row(), model.columns.index('category'))
+        title_index = model.index(index.row(), model.columns_shown.index(Column.CATEGORY))
         self.table_view.edit(title_index)
 
     def _show_context_menu(self, pos):
@@ -270,21 +271,21 @@ class ContextMenuMixin:
         # Single selection menu items
         num_selected = len(self.table_view.selectionModel().selectedRows())
         if num_selected == 1 and item_index.model().data_items[item_index.row()]["type"] == REGULAR_TORRENT:
-            self.add_menu_item(menu, ' Download ', item_index, self.table_view.start_download_from_index)
+            self.add_menu_item(menu, tr(" Download "), item_index, self.table_view.start_download_from_index)
             if issubclass(type(self), HealthCheckerMixin):
                 self.add_menu_item(
                     menu,
-                    ' Recheck health',
+                    tr(" Recheck health"),
                     item_index.model().data_items[item_index.row()],
                     lambda x: self.check_torrent_health(x, forced=True),
                 )
-        if num_selected == 1 and item_index.model().column_position.get('subscribed') is not None:
+        if num_selected == 1 and item_index.model().column_position.get(Column.SUBSCRIBED) is not None:
             data_item = item_index.model().data_items[item_index.row()]
             if data_item["type"] == CHANNEL_TORRENT and data_item["state"] != CHANNEL_STATE.PERSONAL.value:
                 self.add_menu_item(
                     menu,
-                    f' {"Unsubscribe" if data_item["subscribed"] else "Subscribe"} channel',
-                    item_index.model().index(item_index.row(), item_index.model().column_position['subscribed']),
+                    tr("Unsubscribe channel") if data_item["subscribed"] else tr("Subscribe channel"),
+                    item_index.model().index(item_index.row(), item_index.model().column_position[Column.SUBSCRIBED]),
                     self.table_view.delegate.subscribe_control.clicked.emit,
                 )
 
@@ -298,32 +299,37 @@ class ContextMenuMixin:
                 TriblerNetworkRequest(
                     f"collections/mychannel/{channel_id}/copy",
                     lambda _: self.table_view.window().tray_show_message(
-                        "Channel update", "Torrent(s) added to your channel"
+                        tr("Channel update"), tr("Torrent(s) added to your channel")
                     ),
-                    raw_data=dumps(entries),
+                    raw_data=json.dumps(entries),
                     method='POST',
                 )
 
-            self.table_view.window().add_to_channel_dialog.show_dialog(on_confirm_clicked, confirm_button_text="Copy")
+            self.table_view.window().add_to_channel_dialog.show_dialog(
+                on_confirm_clicked, confirm_button_text=tr("Copy")
+            )
 
         def on_move(_):
             def on_confirm_clicked(channel_id):
                 changes_list = [
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
-                TriblerNetworkRequest("metadata", self.model.remove_items, raw_data=dumps(changes_list), method='PATCH')
+                TriblerNetworkRequest("metadata", self.model.remove_items,
+                                      raw_data=json.dumps(changes_list), method='PATCH')
 
-            self.table_view.window().add_to_channel_dialog.show_dialog(on_confirm_clicked, confirm_button_text="Move")
+            self.table_view.window().add_to_channel_dialog.show_dialog(
+                on_confirm_clicked, confirm_button_text=tr("Move")
+            )
 
         if not self.model.edit_enabled:
             if self.selection_can_be_added_to_channel():
-                self.add_menu_item(menu, ' Copy into personal channel', item_index, on_add_to_channel)
+                self.add_menu_item(menu, tr(" Copy into personal channel"), item_index, on_add_to_channel)
         else:
-            self.add_menu_item(menu, ' Move ', item_index, on_move)
-            self.add_menu_item(menu, ' Rename ', item_index, self._trigger_name_editor)
-            self.add_menu_item(menu, ' Change category ', item_index, self._trigger_category_editor)
+            self.add_menu_item(menu, tr(" Move "), item_index, on_move)
+            self.add_menu_item(menu, tr(" Rename "), item_index, self._trigger_name_editor)
+            self.add_menu_item(menu, tr(" Change category "), item_index, self._trigger_category_editor)
             menu.addSeparator()
-            self.add_menu_item(menu, ' Remove from channel', item_index, self.table_view.on_delete_button_clicked)
+            self.add_menu_item(menu, tr(" Remove from channel"), item_index, self.table_view.on_delete_button_clicked)
 
         menu.exec_(QCursor.pos())
 

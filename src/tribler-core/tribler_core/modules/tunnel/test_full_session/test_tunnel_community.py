@@ -13,6 +13,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 import pytest
 
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -27,16 +28,17 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 class ProxyFactory:
 
-    def __init__(self, tribler_config, free_ports_factory, tmpdir_factory):
+    def __init__(self, tribler_config, tmpdir_factory):
         self.base_tribler_config = tribler_config
-        self.free_ports_factory = free_ports_factory
         self.tmpdir_factory = tmpdir_factory
         self.sessions = []
 
     async def get(self, exitnode=False):
+        ports = [NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port() for _ in range(5)]
+
         config = self.base_tribler_config.copy()
         config.set_libtorrent_enabled(False)
-        config.set_tunnel_community_socks5_listen_ports(self.free_ports_factory(5))
+        config.set_tunnel_community_socks5_listen_ports(ports)
         config.set_state_dir(Path(self.tmpdir_factory.mktemp("session")))
 
         session = Session(config)
@@ -55,8 +57,8 @@ async def logger():
 
 
 @pytest.fixture
-async def proxy_factory(tribler_config, free_ports, tmpdir_factory):
-    factory = ProxyFactory(tribler_config, free_ports, tmpdir_factory)
+async def proxy_factory(tribler_config, tmpdir_factory):
+    factory = ProxyFactory(tribler_config, tmpdir_factory)
     yield factory
 
     for session in factory.sessions:

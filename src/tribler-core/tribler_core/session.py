@@ -18,6 +18,7 @@ from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
+from tribler_common.network_utils import NetworkUtils
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import (
@@ -170,15 +171,6 @@ class Session(TaskManager):
         create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
         create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
-    def get_ports_in_config(self):
-        """Claim all required random ports."""
-        if self.core_test_mode:
-            self.config.selected_ports = {}
-            return
-        self.config.get_libtorrent_port()
-        self.config.get_anon_listen_port()
-        self.config.get_tunnel_community_socks5_listen_ports()
-
     def init_keypair(self):
         """
         Set parameters that depend on state_dir.
@@ -270,7 +262,6 @@ class Session(TaskManager):
         :param config: a TriblerConfig object
         """
         self._logger.info("Session is using state directory: %s", self.config.get_state_dir())
-        self.get_ports_in_config()
         self.create_state_directory_structure()
         self.init_keypair()
 
@@ -321,9 +312,13 @@ class Session(TaskManager):
         if self.config.get_ipv8_enabled():
             from ipv8.configuration import ConfigBuilder
             from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+            port = self.config.get_ipv8_port()
+            address = self.config.get_ipv8_address()
+            self._logger.info('Starting ipv8')
+            self._logger.info(f'Port: {port}. Address: {address}')
             ipv8_config_builder = (ConfigBuilder()
-                                   .set_port(self.config.get_ipv8_port())
-                                   .set_address(self.config.get_ipv8_address())
+                                   .set_port(port)
+                                   .set_address(address)
                                    .clear_overlays()
                                    .clear_keys()  # We load the keys ourselves
                                    .set_working_directory(str(self.config.get_state_dir()))
@@ -335,16 +330,20 @@ class Session(TaskManager):
                 # IPv8 includes IPv6 support by default.
                 # We only load IPv4 to not kill all Tribler overlays (currently, it would instantly crash all users).
                 # If you want to test IPv6 in Tribler you can set ``endpoint = None`` here.
-                endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': self.config.get_ipv8_port(),
-                                                                    'ip': self.config.get_ipv8_address()})
+                endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port,
+                                                                    'ip': address})
             self.ipv8 = IPv8(ipv8_config_builder.finalize(),
                              enable_statistics=self.config.get_ipv8_statistics() and not self.core_test_mode,
                              endpoint_override=endpoint)
             await self.ipv8.start()
 
-            self.config.set_anon_proxy_settings(2, ("127.0.0.1",
-                                                    self.
-                                                    config.get_tunnel_community_socks5_listen_ports()))
+            anon_proxy_ports = self.config.get_tunnel_community_socks5_listen_ports()
+            if not anon_proxy_ports:
+                anon_proxy_ports = [NetworkUtils().get_random_free_port() for _ in range(5)]
+                self.config.set_tunnel_community_socks5_listen_ports(anon_proxy_ports)
+            anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
+            self._logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
+            self.config.set_anon_proxy_settings(2, anon_proxy_settings)
             self.ipv8_start_time = timemod.time()
             self.load_ipv8_overlays()
             if not self.core_test_mode:

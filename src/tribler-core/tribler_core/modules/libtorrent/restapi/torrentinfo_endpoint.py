@@ -1,7 +1,6 @@
 import hashlib
 import json
 from copy import deepcopy
-from urllib.request import url2pathname
 
 from aiohttp import ClientResponseError, ClientSession, ServerConnectionError, web
 
@@ -11,7 +10,8 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
-import tribler_core.utilities.json_util as json
+from tribler_common.utilities import uri_to_path
+
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
@@ -63,7 +63,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         uri = args['uri']
         if uri.startswith('file:'):
             try:
-                filename = url2pathname(uri[5:])
+                filename = uri_to_path(uri)
                 tdef = TorrentDef.load(filename)
                 metainfo = tdef.get_metainfo()
             except (TypeError, RuntimeError):

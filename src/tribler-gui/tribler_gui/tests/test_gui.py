@@ -2,14 +2,14 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt5.QtCore import QPoint, QProcess, QProcessEnvironment, QTimer, Qt
+from PyQt5.QtCore import QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
 
 import pytest
 
-from tribler_common.network_utils import get_random_port
+from tribler_common.network_utils import NetworkUtils
 
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 
@@ -20,13 +20,14 @@ from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loading_list_item import LoadingListItem
+from tribler_gui.widgets.tablecontentmodel import Column
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
 
 
 @pytest.fixture(scope="module")
 def api_port():
-    return get_random_port()
+    return NetworkUtils(remember_checked_ports_enabled=False).get_random_free_port()
 
 
 @pytest.fixture(scope="module")
@@ -35,7 +36,7 @@ def window(api_port):
     tribler_gui.defs.DEFAULT_API_PORT = api_port
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
-    window = TriblerWindow(api_port=api_port)
+    window = TriblerWindow(settings=QSettings(), api_port=api_port)  # pylint: disable=W0621
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 
@@ -222,7 +223,7 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
 
     if test_subscribe:
         # Unsubscribe and subscribe again
-        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['votes'])
+        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.VOTES])
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
         window.dialog.button_clicked.emit(0)
@@ -232,13 +233,13 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
         window.dialog.button_clicked.emit(0)
 
     # Test channel view
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['name'])
+    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
     widget.content_table.on_table_item_clicked(index)
     wait_for_list_populated(widget.content_table)
     screenshot(window, name=f"{widget_name}-channel_loaded")
 
     # Click the first torrent
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position['name'])
+    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
     widget.content_table.on_table_item_clicked(index)
     QTest.qWait(100)
     screenshot(window, name=f"{widget_name}-torrent_details")
@@ -357,8 +358,16 @@ def test_search_suggestions(tribler_api, window):
 def test_search(tribler_api, window):
     window.top_search_bar.setText("trib")
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
+    wait_for_variable(window, "search_results_page.search_request")
+    screenshot(window, name="search_loading_page")
+    QTest.mouseClick(window.search_results_page.show_results_button, Qt.LeftButton)
     tst_channels_widget(
-        window, window.search_results_page, "search_results", sort_column=2, test_filter=False, test_subscribe=False
+        window,
+        window.search_results_page.results_page,
+        "search_results",
+        sort_column=2,
+        test_filter=False,
+        test_subscribe=False,
     )
 
 
@@ -421,7 +430,7 @@ def test_debug_pane(tribler_api, window):
     if not window.developer_mode_enabled_checkbox.isChecked():
         QTest.mouseClick(window.developer_mode_enabled_checkbox, Qt.LeftButton)
 
-    QTest.mouseClick(window.left_menu_button_debug, Qt.LeftButton)
+    QTest.mouseClick(window.debug_panel_button, Qt.LeftButton)
     screenshot(window.debug_window, name="debug_panel_just_opened")
     wait_for_list_populated(window.debug_window.general_tree_widget)
     screenshot(window.debug_window, name="debug_panel_general_tab")

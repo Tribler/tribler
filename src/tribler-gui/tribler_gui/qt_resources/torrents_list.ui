@@ -26,7 +26,7 @@
    <cursorShape>ArrowCursor</cursorShape>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">Form</string>
   </property>
   <property name="autoFillBackground">
    <bool>false</bool>
@@ -120,7 +120,7 @@
          <string notr="true">border: none;</string>
         </property>
         <property name="text">
-         <string>BACK</string>
+         <string notr="true">BACK</string>
         </property>
         <property name="icon">
          <iconset>
@@ -164,6 +164,9 @@
           <height>50</height>
          </size>
         </property>
+        <property name="contextMenuPolicy">
+         <enum>Qt::NoContextMenu</enum>
+        </property>
         <property name="styleSheet">
          <string notr="true">color: #eee;
 background-color: transparent;
@@ -171,7 +174,7 @@ font-size: 20px;
 font-weight: bold;</string>
         </property>
         <property name="text">
-         <string>Some fancy channel</string>
+         <string notr="true">Some fancy channel</string>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse</set>
@@ -239,61 +242,7 @@ font-weight: bold;</string>
 color: #B5B5B5;</string>
         </property>
         <property name="text">
-         <string>99/100 torrents</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_60">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>10</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QToolButton" name="channel_preview_button">
-        <property name="minimumSize">
-         <size>
-          <width>28</width>
-          <height>28</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>28</width>
-          <height>28</height>
-         </size>
-        </property>
-        <property name="cursor">
-         <cursorShape>PointingHandCursor</cursorShape>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QToolButton {
-border: none;
-background-color: transparent;
-}</string>
-        </property>
-        <property name="text">
-         <string>REFRESH</string>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>../images/refresh.png</normaloff>../images/refresh.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>18</width>
-          <height>18</height>
-         </size>
+         <string notr="true">99/100 torrents</string>
         </property>
        </widget>
       </item>
@@ -491,6 +440,12 @@ QToolButton{border:none;margin-left:16px;}</string>
              <height>0</height>
             </size>
            </property>
+           <property name="accessibleName">
+            <string notr="true"/>
+           </property>
+           <property name="accessibleDescription">
+            <string notr="true"/>
+           </property>
           </widget>
          </item>
          <item>
@@ -512,7 +467,7 @@ QToolButton{border:none;margin-left:16px;}</string>
          <item>
           <widget class="QLabel" name="channel_rating_label">
            <property name="text">
-            <string>|||||</string>
+            <string notr="true">|||||</string>
            </property>
           </widget>
          </item>
@@ -553,7 +508,7 @@ QToolButton{border:none;margin-left:16px;}</string>
          <string notr="true">color: #eee; font-size: 15px; font-style: italic;</string>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string notr="true">explanation text for channel</string>
         </property>
        </widget>
       </item>

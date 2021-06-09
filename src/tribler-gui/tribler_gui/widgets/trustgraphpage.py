@@ -22,7 +22,7 @@ from tribler_gui.defs import (
     TRUST_GRAPH_PEER_LEGENDS,
 )
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, html_label
+from tribler_gui.utilities import connect, format_size, html_label, tr
 
 
 class TrustGraph(pg.GraphItem):
@@ -179,7 +179,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         if self.rest_request:
             self.rest_request.cancel_request()
         self.rest_request = TriblerNetworkRequest(
-            "trustview", self.on_received_data, priority=QNetworkRequest.LowPriority
+            "trustview?refresh=1", self.on_received_data, priority=QNetworkRequest.LowPriority
         )
 
     def on_received_data(self, data):
@@ -226,10 +226,11 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         return math.log(diff, 2) / 512 + min_size
 
     def update_gui_labels(self, data):
-        header_message = (
+        header_message = tr(
             "The graph below is based on your historical interactions with other users in the "
-            "network. It shows <strong>%s</strong> interactions made by <strong>%s</strong> users."
-            "<br/>" % (data['num_tx'], len(data['graph']['node']))
-        )
+            "network. It shows <strong>%(num_interactions)s</strong> interactions "
+            "made by <strong>%(num_users)s</strong> users."
+            "<br/>"
+        ) % {'num_interactions': data['num_tx'], 'num_users': len(data['graph']['node'])}
         self.window().trust_graph_explanation_label.setText(header_message)
         self.window().trust_graph_status_bar.setText(TRUST_GRAPH_PEER_LEGENDS)

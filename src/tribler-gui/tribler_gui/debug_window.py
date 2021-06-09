@@ -1,8 +1,10 @@
 import datetime
+import json
 import logging
 import os
 import socket
 import sys
+from binascii import unhexlify
 from time import localtime, strftime, time
 from typing import Dict
 
@@ -15,7 +17,6 @@ import libtorrent
 
 import psutil
 
-import tribler_core.utilities.json_util as json
 from tribler_core.utilities.utilities import has_bep33_support
 
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
@@ -59,7 +60,7 @@ class DebugWindow(QMainWindow):
 
     resize_event = pyqtSignal()
 
-    def __init__(self, settings, tribler_version):
+    def __init__(self, settings, gui_settings, tribler_version):
         self._logger = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)
 
@@ -132,6 +133,9 @@ class DebugWindow(QMainWindow):
         # GUI resource monitor
         self.resource_monitor = GuiResourceMonitor()
         self.resource_monitor.start()
+
+        # QT settings
+        self.gui_settings = gui_settings
 
     def hideEvent(self, hide_event):
         self.stop_timer()
@@ -282,6 +286,38 @@ class DebugWindow(QMainWindow):
         self.create_and_add_widget_item(
             "Free disk space", format_size(disk_usage.free), self.window().general_tree_widget
         )
+
+        # Show GUI settings
+        self.show_gui_settings()
+
+    def show_gui_settings(self):
+        # Empty line at the beginning
+        self.create_and_add_widget_item("", "", self.window().general_tree_widget)
+        # Heading: GUI Settings
+        self.create_and_add_widget_item("GUI Settings:", "", self.window().general_tree_widget)
+        # Location of the settings file
+        self.create_and_add_widget_item(
+            "Qt file", self.gui_settings.fileName(), self.window().general_tree_widget
+        )
+
+        selected_settings = {"api_key": lambda val: val.decode('utf-8'),
+                             "api_port": lambda val: val,
+                             "pos": lambda val: f"(x : {val.x()} px,  y : {val.y()} px)",
+                             "size": lambda val: f"(width : {val.width()} px,  height : {val.height()} px)",
+                             "ask_download_settings": lambda val: val,
+                             "autocommit_enabled": lambda val: val,
+                             "debug": lambda val: val,
+                             "family_filter": lambda val: val,
+                             "first_discover": lambda val: val,
+                             "use_monochrome_icon": lambda val: val,
+                             "recent_download_locations": lambda val: [unhexlify(url).decode('utf-8')
+                                                                       for url in val.split(",")]}
+
+        # List only selected gui settings
+        for key in self.gui_settings.allKeys():
+            if key in selected_settings:
+                value = selected_settings[key](self.gui_settings.value(key, 'N/A'))
+                self.create_and_add_widget_item(key, value, self.window().general_tree_widget)
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
@@ -558,7 +594,7 @@ class DebugWindow(QMainWindow):
                 ["prefix", "last_changed", "num_peers"],
             )
 
-    def on_event_clicked(self, item):
+    def on_event_clicked(self, item, _):
         event_dict = item.data(0, Qt.UserRole)
         self.window().event_text_box.setPlainText(json.dumps(event_dict))
 

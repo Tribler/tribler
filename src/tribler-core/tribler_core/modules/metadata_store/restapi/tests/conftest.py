@@ -37,7 +37,7 @@ def add_fake_torrents_channels(session):
                 )
                 t.health.seeders = int.from_bytes(t.infohash[:2], byteorder="big")
                 t.health.self_checked = bool(torrent_ind % 2 == 1)
-                t.health.last_check = int(time())
+                t.health.last_check = int(time()) - (60 * 60 * 24 * 7 if torrent_ind % 2 else 0)
 
 
 @pytest.fixture

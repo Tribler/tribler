@@ -1,171 +1,83 @@
-"""
-This module contains some utility functions for networking.
-"""
 import logging
 import random
 import socket
-import struct
-import sys
-
-MAX_PORT = 65535
-
-logger = logging.getLogger("NetworkUtils")
-
-CLAIMED_PORTS = []
 
 
 class FreePortNotFoundError(Exception):
     pass
 
 
-def get_first_free_port(start=5000, limit=100, family=socket.AF_INET, socket_type=socket.SOCK_STREAM):
-    stop = min(MAX_PORT, start + limit)
-    logger.info(f'Looking for first free port in range [{start}..{stop}]')
+class NetworkUtils:
+    MAX_PORT = 65535
+    FIRST_PORT_IN_DYNAMIC_RANGE = 49152
+    ports_in_use = set()
 
-    for port in range(start, stop):
-        if _test_port(family, socket_type, port):
-            logger.info(f'{port} is free')
-            return port
+    def __init__(self, socket_class_set=None, remember_checked_ports_enabled=False):
+        """
 
-        logger.info(f'{port} in use')
+        Args:
+            socket_class_set: a set of sockets that will be used for checkings
+                port availability. A port is considered free only in case that
+                it is free in all sockets from `socket_class_set`
+            remember_checked_ports_enabled: a flag that enables or disables
+                remembering returned ports. If it is set to true, then
+                a particular port will be returned only once.
+        """
+        if socket_class_set is None:
+            socket_class_set = {
+                lambda: socket.socket(socket.AF_INET, socket.SOCK_STREAM),  # tcp
+                lambda: socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # udp
+            }
 
-    raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
+        self.socket_class_set = socket_class_set
+        self.remember_checked_ports_enabled = remember_checked_ports_enabled
 
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.random_instance = random.Random()
 
-def get_random_port(socket_type="all", min_port=5000, max_port=60000):
-    """Gets a random port number that works.
-    @param socket_type: Type of the socket, can be "all", "tcp", or "udp".
-    @param min_port: The minimal port number to try with.
-    @param max_port: The maximal port number to try with.
-    @return: A working port number if exists, otherwise None.
-    """
-    assert socket_type in ("all", "tcp", "udp"), f"Invalid socket type {type(socket_type)}"
-    assert isinstance(min_port, int), f"Invalid min_port type {type(min_port)}"
-    assert isinstance(max_port, int), f"Invalid max_port type {type(max_port)}"
-    assert 0 < min_port <= max_port <= MAX_PORT, f"Invalid min_port and mac_port values {min_port}, {max_port}"
+    @staticmethod
+    def not_in_use(port):
+        return port not in NetworkUtils.ports_in_use
 
-    working_port = None
-    try_port = random.randint(min_port, max_port)
-    while try_port <= MAX_PORT:
-        if check_random_port(try_port, socket_type):
-            working_port = try_port
-            break
-        try_port += 1
+    def get_first_free_port(self, start=FIRST_PORT_IN_DYNAMIC_RANGE, stop=MAX_PORT):
+        self.logger.info(f'Looking for first free port in range [{start}..{stop}]')
 
-    if working_port:
-        CLAIMED_PORTS.append(working_port)
+        for port in range(start, stop):
+            if NetworkUtils.not_in_use(port) and self.is_port_free(port):
+                self.logger.info(f'{port} is free')
+                return self.remember(port)
 
-    logger.debug("Got a working random port %s", working_port)
-    return working_port
+            self.logger.info(f'{port} in use')
 
+        raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
 
-def check_random_port(port, socket_type="all"):
-    """Returns an usable port number that can be bound with by the specific type of socket.
-    @param socket_type: Type of the socket, can be "all", "tcp", or "udp".
-    @param port: The port to try with.
-    @return: True or False indicating if port is available.
-    """
-    assert socket_type in ("all", "tcp", "udp"), f"Invalid socket type {type(socket_type)}"
-    assert isinstance(port, int), f"Invalid port type {type(port)}"
-    assert 0 < port <= MAX_PORT, f"Invalid port value {port}"
+    def get_random_free_port(self, start=FIRST_PORT_IN_DYNAMIC_RANGE, stop=MAX_PORT, attempts=100):
+        start = max(0, start)
+        stop = min(NetworkUtils.MAX_PORT, stop)
 
-    # only support IPv4 for now
-    _family = socket.AF_INET
+        self.logger.info(f'Looking for random free port in range [{start}..{stop}]')
 
-    _sock_type = None
-    if socket_type == "udp":
-        _sock_type = socket.SOCK_DGRAM
-    elif socket_type == "tcp":
-        _sock_type = socket.SOCK_STREAM
+        for _ in range(attempts):
+            port = self.random_instance.randint(start, stop)
+            if NetworkUtils.not_in_use(port) and self.is_port_free(port):
+                self.logger.info(f'{port} is free')
+                return self.remember(port)
 
-    is_port_working = False
-    if port in CLAIMED_PORTS:
-        return False
-    if socket_type == "all":
-        # try both UDP and TCP
-        if _test_port(_family, socket.SOCK_DGRAM, port):
-            is_port_working = _test_port(_family, socket.SOCK_STREAM, port)
-    else:
-        is_port_working = _test_port(_family, _sock_type, port)
+            self.logger.info(f'{port} in use')
 
-    return is_port_working
+        raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
 
-
-def _test_port(family, sock_type, port):
-    """Tests if a port is available.
-    @param family: The socket family, must be socket.AF_INET.
-    @param sock_type: The socket type, can be socket.SOCK_DGRAM or socket.SOCK_STREAM.
-    @param port: The port number to test with.
-    @return: True if the port is available or there is no problem with the socket, otherwise False.
-    """
-    assert family in (socket.AF_INET,), f"Invalid family value {family}"
-    assert sock_type in (socket.SOCK_DGRAM, socket.SOCK_STREAM), f"Invalid sock_type value {sock_type}"
-    assert 0 < port <= MAX_PORT, f"Invalid port value {port}"
-
-    try:
-        with socket.socket(family, sock_type) as s:
-            if sock_type == socket.SOCK_STREAM:
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
-            s.bind(('', port))
-        is_port_working = True
-    except OSError as e:
-        logger.debug("Port test failed (port=%s, family=%s, type=%s): %s", port, family, sock_type, e)
-        is_port_working = False
-    return is_port_working
-
-
-def autodetect_socket_style():
-    if sys.platform.find('linux') < 0:
-        return 1
-    else:
+    def is_port_free(self, port):
         try:
-            with open('/proc/sys/net/ipv6/bindv6only') as f:
-                dual_socket_style = int(f.read())
-            return int(not dual_socket_style)
-        except (OSError, ValueError):
-            return 0
+            for socket_class in self.socket_class_set:
+                with socket_class() as s:
+                    s.bind(('', port))
+            return True
+        except OSError:
+            return False
 
+    def remember(self, port):
+        if self.remember_checked_ports_enabled:
+            NetworkUtils.ports_in_use.add(port)
 
-def is_valid_address(address):
-    """
-    Returns True when ADDRESS is valid.
-
-    ADDRESS must be supplied as a (HOST string, PORT integer) tuple.
-
-    An address is valid when it meets the following criteria:
-    - HOST must be non empty
-    - HOST must be non '0.0.0.0'
-    - PORT must be > 0
-    - HOST must be 'A.B.C.D' where A, B, and C are numbers higher or equal to 0 and lower or
-      equal to 255.  And where D is higher than 0 and lower than 255
-    """
-    assert isinstance(address, tuple), type(address)
-    assert len(address) == 2, len(address)
-    assert isinstance(address[0], str), type(address[0])
-    assert isinstance(address[1], int), type(address[1])
-
-    if address[0] == "":
-        return False
-
-    if address[0] == "0.0.0.0":
-        return False
-
-    if address[1] <= 0:
-        return False
-
-    try:
-        socket.inet_aton(address[0])
-    except OSError:
-        return False
-
-    # ending with .0
-    # Niels: is now allowed, subnet mask magic call actually allow for this
-    #        if binary[3] == "\x00":
-    #            return False
-
-    # ending with .255
-    # Niels: same for this one, if the netmask is /23 a .255 could indicate 011111111 which is allowed
-    #        if binary[3] == "\xff":
-    #            return False
-
-    return True
+        return port

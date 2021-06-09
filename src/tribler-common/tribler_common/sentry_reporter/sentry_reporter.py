@@ -20,6 +20,8 @@ from tribler_common.sentry_reporter.sentry_tools import (
     parse_stacktrace,
 )
 
+# fmt: off
+
 PLATFORM_DETAILS = 'platform.details'
 STACKTRACE = '_stacktrace'
 SYSINFO = 'sysinfo'
@@ -33,6 +35,7 @@ LOGENTRY = 'logentry'
 REPORTER = 'reporter'
 VALUES = 'values'
 RELEASE = 'release'
+EXCEPTION = 'exception'
 
 
 class SentryStrategy(Enum):
@@ -142,7 +145,8 @@ class SentryReporter:
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
     @staticmethod
-    def send_event(event=None, post_data=None, sys_info=None, additional_tags=None):
+    def send_event(event=None, post_data=None, sys_info=None, additional_tags=None,
+                   retrieve_error_message_from_stacktrace=False):
         """Send the event to the Sentry server
 
         This method
@@ -201,7 +205,8 @@ class SentryReporter:
 
         stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
         reporter[STACKTRACE] = next(stacktrace_parts, [])
-        reporter[f'{STACKTRACE}_extra'] = next(stacktrace_parts, [])
+        stacktrace_extra = next(stacktrace_parts, [])
+        reporter[f'{STACKTRACE}_extra'] = stacktrace_extra
         reporter[f'{STACKTRACE}_context'] = next(stacktrace_parts, [])
 
         reporter['comments'] = get_value(post_data, 'comments')
@@ -211,6 +216,16 @@ class SentryReporter:
 
         reporter['events'] = extract_dict(sys_info, r'^(event|request)')
         reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
+
+        # try to retrieve an error from the stacktrace
+        if retrieve_error_message_from_stacktrace and stacktrace_extra:
+            exception_value = stacktrace_extra[-1].split(':', maxsplit=1)
+            exception_values = event.get(EXCEPTION, {}).get(VALUES, [])
+            if len(exception_value) == 2:
+                exception_values.append({
+                    'type': exception_value[0],
+                    'value': exception_value[1]
+                })
 
         with this_sentry_strategy(SentryStrategy.SEND_ALLOWED):
             sentry_sdk.capture_event(event)
@@ -247,7 +262,7 @@ class SentryReporter:
         messagebox = QMessageBox(
             icon=QMessageBox.Question,
             text='Do you want to send this crash report to the Tribler team? '
-            'We anonymize all your data, who you are and what you downloaded.',
+                 'We anonymize all your data, who you are and what you downloaded.',
         )
         messagebox.setWindowTitle("Error")
         messagebox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)

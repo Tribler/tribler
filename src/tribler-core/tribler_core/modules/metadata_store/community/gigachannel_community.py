@@ -16,16 +16,16 @@ from tribler_core.modules.metadata_store.community.remote_query_community import
     RemoteQueryCommunity,
     RemoteQueryCommunitySettings,
 )
+from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
-from tribler_core.modules.metadata_store.store import ObjState
+from tribler_core.modules.metadata_store.utils import NoChannelSourcesException
+from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200
 maximum_payload_size = 1024
 max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
 
-
-MAGIC_GIGACHAN_VERSION_MARK = b'\x01'
 
 
 @dataclass
@@ -76,7 +76,8 @@ class GigaChannelCommunitySettings(RemoteQueryCommunitySettings):
 
 
 class GigaChannelCommunity(RemoteQueryCommunity):
-    community_id = unhexlify('dc43e3465cbd83948f30d3d3e8336d71cce33aa7')
+    community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
+
 
     def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
@@ -84,7 +85,6 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         return super().create_introduction_response(
             *args,
             introduction=introduction,
-            extra_bytes=MAGIC_GIGACHAN_VERSION_MARK,
             prefix=prefix,
             new_style=new_style
         )
@@ -142,7 +142,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                 r.md_obj.to_simple_dict()
                 for r in processing_results
                 if (
-                    r.obj_state == ObjState.UNKNOWN_OBJECT
+                    r.obj_state == ObjState.NEW_OBJECT
                     and r.md_obj.metadata_type == CHANNEL_TORRENT
                     and r.md_obj.origin_id == 0
                 )
@@ -158,23 +158,37 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         }
         self.send_remote_select(peer, **request_dict, processing_callback=on_packet_callback)
 
+    async def remote_select_channel_contents(self, **kwargs):
+
+        peers_to_query = self.get_known_subscribed_peers_for_node(kwargs["channel_pk"], kwargs["origin_id"], 1)
+        if not peers_to_query:
+            raise NoChannelSourcesException()
+
+        result = await self.send_remote_select(peers_to_query[0], force_eva_response=True, **kwargs).processing_results
+        request_results = [r.md_obj.to_simple_dict() for r in result]
+
+        return request_results
+
     def send_search_request(self, **kwargs):
         # Send a remote query request to multiple random peers to search for some terms
         request_uuid = uuid.uuid4()
 
-        def notify_gui(_, processing_results):
+        def notify_gui(request, processing_results):
             results = [
                 r.md_obj.to_simple_dict()
                 for r in processing_results
-                if r.obj_state in (ObjState.UNKNOWN_OBJECT, ObjState.UPDATED_OUR_VERSION)
+                if r.obj_state in (ObjState.NEW_OBJECT, ObjState.UPDATED_LOCAL_VERSION)
             ]
-            if self.notifier and results:
-                self.notifier.notify(NTFY.REMOTE_QUERY_RESULTS, {"results": results, "uuid": str(request_uuid)})
+            if self.notifier:
+                self.notifier.notify(
+                    NTFY.REMOTE_QUERY_RESULTS,
+                    {"results": results, "uuid": str(request_uuid), "peer": hexlify(request.peer.mid)},
+                )
 
         # Try sending the request to at least some peers that we know have it
         if "channel_pk" in kwargs and "origin_id" in kwargs:
             peers_to_query = self.get_known_subscribed_peers_for_node(
-                unhexlify(kwargs["channel_pk"]), kwargs["origin_id"], self.settings.max_mapped_query_peers
+                kwargs["channel_pk"], kwargs["origin_id"], self.settings.max_mapped_query_peers
             )
         else:
             peers_to_query = self.get_random_peers(self.settings.max_query_peers)
@@ -182,13 +196,15 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         for p in peers_to_query:
             self.send_remote_select(p, **kwargs, processing_callback=notify_gui)
 
-        return request_uuid
+        return request_uuid, peers_to_query
 
     def get_known_subscribed_peers_for_node(self, node_pk, node_id, limit=None):
         # Determine the toplevel parent channel
+        root_id = node_id
         with db_session:
             node = self.mds.ChannelNode.get(public_key=node_pk, id_=node_id)
-            root_id = next((value for value in node.get_parents_ids() if value != 0), node_id) if node else node_id
+            if node:
+                root_id = next((node.id_ for node in node.get_parent_nodes() if node.origin_id == 0), node.origin_id)
 
         return self.channels_peers.get_last_seen_peers_for_channel(node_pk, root_id, limit)
 

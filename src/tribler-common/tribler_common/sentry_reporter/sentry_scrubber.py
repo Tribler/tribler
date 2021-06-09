@@ -2,14 +2,7 @@ import re
 
 from tribler_common.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
-    CONTEXTS,
-    EXTRA,
-    LOGENTRY,
-    OS_ENVIRON,
     RELEASE,
-    REPORTER,
-    STACKTRACE,
-    SYSINFO,
     VALUES,
 )
 from tribler_common.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value
@@ -91,19 +84,13 @@ class SentryScrubber:
         modify_value(event, RELEASE, format_version)
 
         # remove sensitive information
-        modify_value(event, EXTRA, self.scrub_entity_recursively)
-        modify_value(event, LOGENTRY, self.scrub_entity_recursively)
-        modify_value(event, BREADCRUMBS, self.scrub_entity_recursively)
+        scrubbed_event = self.scrub_entity_recursively(event)
 
-        reporter = event.get(CONTEXTS, {}).get(REPORTER, None)
-        if not reporter:
-            return event
+        # this second call is necessary for complete the entities scrubbing
+        # which were found at the end of the previous call
+        scrubbed_event = self.scrub_entity_recursively(scrubbed_event)
 
-        modify_value(reporter, OS_ENVIRON, self.scrub_entity_recursively)
-        modify_value(reporter, STACKTRACE, self.scrub_entity_recursively)
-        modify_value(reporter, SYSINFO, self.scrub_entity_recursively)
-
-        return event
+        return scrubbed_event
 
     def scrub_text(self, text):
         """Replace all sensitive information from `text` by corresponding

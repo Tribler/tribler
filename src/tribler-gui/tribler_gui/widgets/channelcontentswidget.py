@@ -1,4 +1,3 @@
-import uuid
 from base64 import b64encode
 
 from PyQt5 import uic
@@ -17,9 +16,10 @@ from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path
+from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
+    ChannelPreviewModel,
     DiscoveredChannelsModel,
     PersonalChannelsModel,
     SearchResultsModel,
@@ -51,8 +51,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # detecting paths to external resources used in .ui files. Therefore,
         # for each external resource (e.g. image/icon), we must reload it manually here.
         self.channel_options_button.setIcon(QIcon(get_image_path('ellipsis.png')))
-        self.channel_preview_button.setIcon(QIcon(get_image_path('refresh.png')))
-        self.channel_preview_button.setToolTip('Click to load preview contents')
 
         self.default_channel_model = ChannelContentModel
 
@@ -92,6 +90,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channel_description_container.setHidden(True)
 
         self.explanation_container.setHidden(True)
+
+    def hide_all_labels(self):
+        self.edit_channel_contents_top_bar.setHidden(True)
+        self.subscription_widget.setHidden(True)
+        self.channel_num_torrents_label.setHidden(True)
+        self.channel_state_label.setHidden(True)
 
     @property
     def personal_channel_model(self):
@@ -136,9 +140,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.controller = controller_class(self.content_table, filter_input=self.channel_torrents_filter_input)
 
-        # To reload the preview
-        connect(self.channel_preview_button.clicked, self.preview_clicked)
-
         # Hide channel description on scroll
         connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
 
@@ -163,7 +164,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if self.autocommit_enabled:
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
-        self.update_labels(True)
+        self.model.channel_info["dirty"] = True
+        self.update_labels()
 
     def _run_brain_dead_refresh(self):
         if self.model:
@@ -218,9 +220,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channels_stack.append(model)
         connect(self.model.info_changed, self.on_model_info_changed)
 
-        connect(
-            self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
-        )
         connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
         with self.freeze_controls():
@@ -247,7 +246,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.commit_timer.stop()
             self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
-        self.update_labels(dirty)
+        self.model.channel_info["dirty"] = dirty
+        self.update_labels()
 
     def initialize_root_model_from_channel_info(self, channel_info):
         if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
@@ -261,6 +261,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.empty_channels_stack()
         self.push_channels_stack(root_model)
         self.controller.set_model(self.model)
+        # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
+        self.hide_all_labels()
 
     def reset_view(self, text_filter=None):
         self.model.text_filter = text_filter or ''
@@ -269,24 +271,47 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         with self.freeze_controls():
             self.controller.table_view.horizontalHeader().setSortIndicator(-1, Qt.DescendingOrder)
         self.model.sort_by = (
-            self.model.columns[self.model.default_sort_column] if self.model.default_sort_column >= 0 else None
+            self.model.columns[self.model.default_sort_column].dict_key if self.model.default_sort_column >= 0 else None
         )
         self.model.sort_desc = True
         self.model.reset()
 
     def disconnect_current_model(self):
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
-        disconnect(
-            self.window().core_manager.events_manager.received_remote_query_results, self.model.on_new_entry_received
-        )
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
-    def go_back(self, checked=False):  # pylint: disable=W0613
-        if len(self.channels_stack) > 1:
-            self.disconnect_current_model()
-            self.channels_stack.pop().deleteLater()
-            self.channel_description_container.initialized = False
+    @property
+    def current_level(self):
+        return len(self.channels_stack) - 1
 
+    def go_back(self, checked=False):  # pylint: disable=W0613
+        self.go_back_to_level(self.current_level - 1)
+
+    def on_breadcrumb_clicked(self, tgt_level):
+        if int(tgt_level) != self.current_level:
+            self.go_back_to_level(tgt_level)
+        elif isinstance(self.model, SearchResultsModel) and self.current_level == 0:
+            # In case of remote search, when only the search results are on the stack,
+            # we must keep the txt_filter (which contains the search term) before resetting the view
+            text_filter = self.model.text_filter
+            self.reset_view(text_filter=text_filter)
+        else:
+            # Reset the view if the user clicks on the last part of the breadcrumb
+            self.reset_view()
+
+    def go_back_to_level(self, level):
+        switched_level = False
+        level = int(level)
+        disconnected_current_model = False
+        while level < self.current_level:
+            switched_level = True
+            if not disconnected_current_model:
+                disconnected_current_model = True
+                self.disconnect_current_model()
+            self.channels_stack.pop().deleteLater()
+
+        if switched_level:
+            self.channel_description_container.initialized = False
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
                 # Set filter category selector to correct index corresponding to loaded model
@@ -304,88 +329,27 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             connect(self.model.info_changed, self.on_model_info_changed)
             self.update_labels()
 
-    def on_breadcrumb_clicked(self, tgt_level):
-        if int(tgt_level) + 1 != len(self.channels_stack):
-            self.go_back_to_level(tgt_level)
-        elif isinstance(self.model, SearchResultsModel) and len(self.channels_stack) == 1:
-            # In case of remote search, when only the search results are on the stack,
-            # we must keep the txt_filter (which contains the search term) before resetting the view
-            text_filter = self.model.text_filter
-            self.reset_view(text_filter=text_filter)
-        else:
-            # Reset the view if the user clicks on the last part of the breadcrumb
-            self.reset_view()
-
-    def go_back_to_level(self, level):
-        level = int(level)
-        while level + 1 < len(self.channels_stack):
-            self.go_back()
-
     def on_channel_clicked(self, channel_dict):
         self.initialize_with_channel(channel_dict)
-
-    def preview_clicked(self, checked=False):  # pylint: disable=W0613
-        params = dict()
-
-        if "public_key" in self.model.channel_info:
-            # This is a channel contents query, limit the search by channel_pk and origin_id
-            params.update(
-                {'channel_pk': self.model.channel_info["public_key"], 'origin_id': self.model.channel_info["id"]}
-            )
-        if self.model.text_filter:
-            params.update({'txt_filter': self.model.text_filter})
-        if self.model.hide_xxx is not None:
-            params.update({'hide_xxx': self.model.hide_xxx})
-        if self.model.sort_by is not None:
-            params.update({'sort_by': self.model.sort_by})
-        if self.model.sort_desc is not None:
-            params.update({'sort_desc': self.model.sort_desc})
-        if self.model.category_filter is not None:
-            params.update({'category_filter': self.model.category_filter})
-
-        def add_request_uuid(response):
-            request_uuid = response["request_uuid"]
-            if self.model:
-                self.model.remote_queries.add(uuid.UUID(request_uuid))
-
-        TriblerNetworkRequest('remote_query', add_request_uuid, method="PUT", url_params=params)
 
     def create_new_channel(self, checked):  # pylint: disable=W0613
         NewChannelDialog(self, self.model.create_new_channel)
 
     def initialize_with_channel(self, channel_info):
+        # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
+        self.hide_all_labels()
         # Turn off sorting by default to speed up SQL queries
-        self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
+        if channel_info.get("state") == CHANNEL_STATE.PREVIEW.value:
+            self.push_channels_stack(ChannelPreviewModel(channel_info=channel_info))
+        else:
+            self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
+        self.update_navigation_breadcrumbs()
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
 
-    def update_labels(self, dirty=False):
-
-        folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
-        personal = self.model.channel_info.get("state", None) == "Personal"
-        root = len(self.channels_stack) == 1
-        legacy = self.model.channel_info.get("state", None) == "Legacy"
-        complete = self.model.channel_info.get("state", None) == "Complete"
-        search = isinstance(self.model, SearchResultsModel)
-        discovered = isinstance(self.model, DiscoveredChannelsModel)
-        personal_model = isinstance(self.model, PersonalChannelsModel)
-        is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
-        description_flag = self.model.channel_info.get("description_flag")
-        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
-
-        info = self.model.channel_info
-        container = self.channel_description_container
-        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
-            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
-        else:
-            container.initialized = False
-            container.setHidden(True)
-
-        self.category_selector.setHidden(root and (discovered or personal_model))
-        # initialize the channel page
-
+    def update_navigation_breadcrumbs(self):
         # Assemble the channels navigation breadcrumb by utilising RichText links feature
         self.channel_name_label.setTextFormat(Qt.RichText)
         # We build the breadcrumb text backwards, by performing lookahead on each step.
@@ -415,13 +379,45 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if len(breadcrumb_text) >= len(slash_separator):
             breadcrumb_text = breadcrumb_text[len(slash_separator) :]
 
-        self.edit_channel_contents_top_bar.setHidden(not personal)
-        self.new_channel_button.setText("NEW CHANNEL" if not is_a_channel and not folder else "NEW FOLDER")
-
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
-        self.channel_back_button.setHidden(root)
+        self.channel_back_button.setHidden(self.current_level == 0)
+
+        # Disabling focus on the label is necessary to remove the ugly dotted rectangle around the most recently
+        # clicked part of the path.
+        # ACHTUNG! Setting focus policy in the .ui file does not work for some reason!
+        # Also, something changes the focus policy during the runtime, so we have to re-set it every time here.
+        self.channel_name_label.setFocusPolicy(Qt.NoFocus)
+
+    def update_labels(self):
+
+        folder = self.model.channel_info.get("type", None) == COLLECTION_NODE
+        personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
+        root = self.current_level == 0
+        legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
+        discovered = isinstance(self.model, DiscoveredChannelsModel)
+        personal_model = isinstance(self.model, PersonalChannelsModel)
+        is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
+        description_flag = self.model.channel_info.get("description_flag")
+        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
+        dirty = self.model.channel_info.get("dirty")
+
+        self.update_navigation_breadcrumbs()
+
+        info = self.model.channel_info
+        container = self.channel_description_container
+        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
+            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
+        else:
+            container.initialized = False
+            container.setHidden(True)
+
+        self.category_selector.setHidden(root and (discovered or personal_model))
+        # initialize the channel page
+
+        self.edit_channel_contents_top_bar.setHidden(not personal)
+        self.new_channel_button.setText(tr("NEW CHANNEL") if not is_a_channel and not folder else tr("NEW FOLDER"))
         self.channel_options_button.setHidden(not personal_model or not personal or (root and not is_a_channel))
         self.new_channel_button.setHidden(not personal_model or not personal)
 
@@ -431,9 +427,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
 
-        self.channel_preview_button.setHidden(
-            (root and not search and not is_a_channel) or personal or legacy or complete
-        )
         self.channel_state_label.setHidden((root and not is_a_channel) or personal)
 
         self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
@@ -441,11 +434,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if "total" in self.model.channel_info:
             self.channel_num_torrents_label.setHidden(False)
             if "torrents" in self.model.channel_info:
-                self.channel_num_torrents_label.setText(
-                    f"{self.model.channel_info['total']}/{self.model.channel_info['torrents']} items"
-                )
+                self.channel_num_torrents_label.setText(tr("%(total)i/%(torrents)i items") % self.model.channel_info)
             else:
-                self.channel_num_torrents_label.setText(f"{self.model.channel_info['total']} items")
+                self.channel_num_torrents_label.setText(tr("%(total)i items") % self.model.channel_info)
         else:
             self.channel_num_torrents_label.setHidden(True)
 
@@ -454,9 +445,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     # ==============================
 
     def create_channel_options_menu(self):
-        browse_files_action = QAction('Add .torrent file', self)
-        browse_dir_action = QAction('Add torrent(s) directory', self)
-        add_url_action = QAction('Add URL/magnet links', self)
+        browse_files_action = QAction(tr("Add .torrent file"), self)
+        browse_dir_action = QAction(tr("Add torrent(s) directory"), self)
+        add_url_action = QAction(tr("Add URL/magnet links"), self)
 
         connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
         connect(browse_dir_action.triggered, self.on_add_torrents_browse_dir)
@@ -471,7 +462,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     # Torrent addition-related methods
     def on_add_torrents_browse_dir(self, checked):  # pylint: disable=W0613
         chosen_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the directory containing the .torrent files", QDir.homePath(), QFileDialog.ShowDirsOnly
+            self,
+            tr("Please select the directory containing the .torrent files"),
+            QDir.homePath(),
+            QFileDialog.ShowDirsOnly,
         )
         if not chosen_dir:
             return
@@ -479,10 +473,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.chosen_dir = chosen_dir
         self.dialog = ConfirmationDialog(
             self,
-            "Add torrents from directory",
-            f"Add all torrent files from the following directory to your Tribler channel:\n\n{chosen_dir}",
+            tr("Add torrents from directory"),
+            tr("Add all torrent files from the following directory to your Tribler channel: \n\n %s") % chosen_dir,
             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
-            checkbox_text="Include subdirectories (recursive mode)",
+            checkbox_text=tr("Include subdirectories (recursive mode)"),
         )
         connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
         self.dialog.show()
@@ -498,7 +492,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def on_add_torrent_browse_file(self, checked):  # pylint: disable=W0613
         filenames = QFileDialog.getOpenFileNames(
-            self, "Please select the .torrent file", "", "Torrent files (*.torrent)"
+            self, tr("Please select the .torrent file"), filter=(tr("Torrent files %s") % '(*.torrent)')
         )
         if not filenames[0]:
             return
@@ -509,12 +503,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def on_add_torrent_from_url(self, checked):  # pylint: disable=W0613
         self.dialog = ConfirmationDialog(
             self,
-            "Add torrent from URL/magnet link",
-            "Please enter the URL/magnet link in the field below:",
-            [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+            tr("Add torrent from URL/magnet link"),
+            tr("Please enter the URL/magnet link in the field below:"),
+            [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
             show_input=True,
         )
-        self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+        self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
         connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
         self.dialog.show()
 

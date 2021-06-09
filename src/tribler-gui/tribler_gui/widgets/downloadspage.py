@@ -29,7 +29,7 @@ from tribler_gui.defs import (
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, connect, format_speed
+from tribler_gui.utilities import compose_magnetlink, connect, format_speed, tr
 from tribler_gui.widgets.downloadwidgetitem import DownloadWidgetItem
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 
@@ -318,12 +318,12 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_remove_download_clicked(self, checked):
         self.dialog = ConfirmationDialog(
             self,
-            "Remove download",
-            "Are you sure you want to remove this download?",
+            tr("Remove download"),
+            tr("Are you sure you want to remove this download?"),
             [
-                ('remove download', BUTTON_TYPE_NORMAL),
-                ('remove download + data', BUTTON_TYPE_NORMAL),
-                ('cancel', BUTTON_TYPE_CONFIRM),
+                (tr("remove download"), BUTTON_TYPE_NORMAL),
+                (tr("remove download + data"), BUTTON_TYPE_NORMAL),
+                (tr("cancel"), BUTTON_TYPE_CONFIRM),
             ],
         )
         connect(self.dialog.button_clicked, self.on_remove_download_dialog)
@@ -375,6 +375,12 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             )
 
     def on_explore_files(self, checked):
+        # ACHTUNG! To whomever might stumble upon here intending to debug the case
+        # when this does not work on Linux: know, my friend, that for some mysterious reason
+        # (probably related to Snap disk access rights peculiarities), this DOES NOT work
+        # when you run Tribler from PyCharm. However, it works perfectly fine when you
+        # run Tribler directly from system console, etc. So, don't spend your time on debugging this,
+        # like I did.
         for selected_item in self.selected_items:
             path = os.path.normpath(selected_item.download_info["destination"])
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
@@ -385,7 +391,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         dest_dir = QFileDialog.getExistingDirectory(
             self,
-            "Please select the destination directory",
+            tr("Please select the destination directory"),
             self.selected_items[0].download_info["destination"],
             QFileDialog.ShowDirsOnly,
         )
@@ -410,7 +416,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_export_download(self, checked):
         self.export_dir = QFileDialog.getExistingDirectory(
-            self, "Please select the destination directory", "", QFileDialog.ShowDirsOnly
+            self, tr("Please select the destination directory"), "", QFileDialog.ShowDirsOnly
         )
 
         selected_item = self.selected_items[:1]
@@ -419,12 +425,12 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             torrent_name = selected_item[0].download_info['name']
             self.dialog = ConfirmationDialog(
                 self,
-                "Export torrent file",
-                "Please enter the name of the torrent file:",
-                [('SAVE', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
+                tr("Export torrent file"),
+                tr("Please enter the name of the torrent file:"),
+                [(tr("SAVE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
                 show_input=True,
             )
-            self.dialog.dialog_widget.dialog_input.setPlaceholderText('Torrent file name')
+            self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("Torrent file name"))
             self.dialog.dialog_widget.dialog_input.setText(f"{torrent_name}.torrent")
             self.dialog.dialog_widget.dialog_input.setFocus()
             connect(self.dialog.button_clicked, self.on_export_download_dialog_done)
@@ -451,11 +457,13 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         except OSError as exc:
             ConfirmationDialog.show_error(
                 self.window(),
-                "Error when exporting file",
-                f"An error occurred when exporting the torrent file: {str(exc)}",
+                tr("Error when exporting file"),
+                tr("An error occurred when exporting the torrent file: %s") % str(exc),
             )
         else:
-            self.window().tray_show_message("Torrent file exported", f"Torrent file exported to {dest_path}")
+            self.window().tray_show_message(
+                tr("Torrent file exported"), tr("Torrent file exported to %s") % str(dest_path)
+            )
 
     def on_add_to_channel(self, checked):
         def on_add_button_pressed(channel_id):
@@ -464,12 +472,14 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 name = selected_item.download_info["name"]
                 TriblerNetworkRequest(
                     f"channels/mychannel/{channel_id}/torrents",
-                    lambda _: self.window().tray_show_message("Channel update", "Torrent(s) added to your channel"),
+                    lambda _: self.window().tray_show_message(
+                        tr("Channel update"), tr("Torrent(s) added to your channel")
+                    ),
                     method='PUT',
                     data={"uri": compose_magnetlink(infohash, name=name)},
                 )
 
-        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent(s)")
+        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text=tr("Add torrent(s)"))
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
@@ -481,19 +491,19 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         menu = TriblerActionMenu(self)
 
-        start_action = QAction('Start', self)
-        stop_action = QAction('Stop', self)
-        remove_download_action = QAction('Remove download', self)
-        add_to_channel_action = QAction('Add to my channel', self)
-        force_recheck_action = QAction('Force recheck', self)
-        export_download_action = QAction('Export .torrent file', self)
-        explore_files_action = QAction('Explore files', self)
-        move_files_action = QAction('Move file storage', self)
+        start_action = QAction(tr("Start"), self)
+        stop_action = QAction(tr("Stop"), self)
+        remove_download_action = QAction(tr("Remove download"), self)
+        add_to_channel_action = QAction(tr("Add to my channel"), self)
+        force_recheck_action = QAction(tr("Force recheck"), self)
+        export_download_action = QAction(tr("Export .torrent file"), self)
+        explore_files_action = QAction(tr("Explore files"), self)
+        move_files_action = QAction(tr("Move file storage"), self)
 
-        no_anon_action = QAction('No anonymity', self)
-        one_hop_anon_action = QAction('One hop', self)
-        two_hop_anon_action = QAction('Two hops', self)
-        three_hop_anon_action = QAction('Three hops', self)
+        no_anon_action = QAction(tr("No anonymity"), self)
+        one_hop_anon_action = QAction(tr("One hop"), self)
+        two_hop_anon_action = QAction(tr("Two hops"), self)
+        three_hop_anon_action = QAction(tr("Three hops"), self)
 
         connect(start_action.triggered, self.on_start_download_clicked)
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
@@ -537,7 +547,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             menu.addAction(move_files_action)
         menu.addSeparator()
 
-        menu_anon_level = menu.addMenu("Change Anonymity ")
+        menu_anon_level = menu.addMenu(tr("Change Anonymity "))
         menu_anon_level.addAction(no_anon_action)
         menu_anon_level.addAction(one_hop_anon_action)
         menu_anon_level.addAction(two_hop_anon_action)

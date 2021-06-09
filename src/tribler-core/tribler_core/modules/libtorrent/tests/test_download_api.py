@@ -1,5 +1,4 @@
 import shutil
-from urllib.request import pathname2url
 
 import pytest
 
@@ -20,5 +19,5 @@ async def test_download_torrent_from_url(enable_libtorrent, session, tmpdir, fil
 @pytest.mark.asyncio
 @pytest.mark.timeout(10)
 async def test_download_torrent_from_file(enable_libtorrent, session):
-    d = await session.dlmgr.start_download_from_uri('file:' + pathname2url(str(TORRENT_UBUNTU_FILE)))
+    d = await session.dlmgr.start_download_from_uri(TORRENT_UBUNTU_FILE.as_uri())
     await d.wait_for_status(DLSTATUS_DOWNLOADING)

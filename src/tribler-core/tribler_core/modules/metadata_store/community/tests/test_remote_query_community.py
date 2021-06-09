@@ -1,7 +1,10 @@
+import random
 from binascii import unhexlify
 from datetime import datetime
 from json import dumps
+from operator import attrgetter
 from os import urandom
+from time import time
 from unittest.mock import Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -23,12 +26,18 @@ from tribler_core.utilities.unicode import hexlify
 # pylint: disable=protected-access
 
 
-def add_random_torrent(metadata_cls, name="test", channel=None):
+def add_random_torrent(metadata_cls, name="test", channel=None, seeders=None, leechers=None, last_check=None):
     d = {"infohash": random_infohash(), "title": name, "tags": "", "size": 1234, "status": NEW}
     if channel:
         d.update({"origin_id": channel.id_})
     torrent_metadata = metadata_cls.from_dict(d)
     torrent_metadata.sign()
+    if seeders:
+        torrent_metadata.health.seeders = seeders
+    if leechers:
+        torrent_metadata.health.leechers = leechers
+    if last_check:
+        torrent_metadata.health.last_check = last_check
 
 
 class BasicRemoteQueryCommunity(RemoteQueryCommunity):
@@ -40,7 +49,12 @@ class TestRemoteQueryCommunity(TestBase):
     Unit tests for the base RemoteQueryCommunity which do not need a real Session.
     """
 
+    def __init__(self, methodName='runTest'):
+        random.seed(123)
+        super().__init__(methodName)
+
     def setUp(self):
+        random.seed(456)
         super().setUp()
         self.count = 0
         self.initialize(BasicRemoteQueryCommunity, 2)
@@ -78,7 +92,14 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             channel = mds0.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
             for i in range(20):
-                add_random_torrent(mds0.TorrentMetadata, name=f"ubuntu {i}", channel=channel)
+                add_random_torrent(
+                    mds0.TorrentMetadata,
+                    name=f"ubuntu {i}",
+                    channel=channel,
+                    seeders=2 * i,
+                    leechers=i,
+                    last_check=int(time()) + i,
+                )
 
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
         callback = Mock()
@@ -90,10 +111,14 @@ class TestRemoteQueryCommunity(TestBase):
 
         # All the matching torrent entries should have been sent to Node 1
         with db_session:
-            torrents0 = mds0.get_entries(**kwargs_dict)
-            torrents1 = mds1.get_entries(**kwargs_dict)
+            torrents0 = sorted(mds0.get_entries(**kwargs_dict), key=attrgetter('infohash'))
+            torrents1 = sorted(mds1.get_entries(**kwargs_dict), key=attrgetter('infohash'))
             self.assertEqual(len(torrents0), len(torrents1))
             self.assertEqual(len(torrents0), 20)
+            for t0, t1 in zip(torrents0, torrents1):
+                assert t0.health.seeders == t1.health.seeders
+                assert t0.health.leechers == t1.health.leechers
+                assert t0.health.last_check == t1.health.last_check
 
         # Test getting empty response for a query
         kwargs_dict = {"txt_filter": "ubuntu*", "origin_id": 352127}
@@ -118,8 +143,9 @@ class TestRemoteQueryCommunity(TestBase):
             for _ in range(0, num_channels):
                 chan = mds0.ChannelMetadata.create_channel("channel", "")
                 # Generate torrents in each channel
-                for _ in range(0, max_received_torrents_per_channel_query_back):
-                    mds0.TorrentMetadata(origin_id=chan.id_, infohash=random_infohash())
+                for i in range(0, max_received_torrents_per_channel_query_back):
+                    torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=random_infohash())
+                    torrent.health.seeders = i
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
@@ -130,10 +156,11 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             received_channels = list(mds1.ChannelMetadata.select(lambda g: g.title == "channel"))
             assert len(received_channels) == num_channels
-
             # For each unknown channel that we received, we should have queried the sender for 4 preview torrents.
             received_torrents = list(mds1.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
-        assert num_channels * max_received_torrents_per_channel_query_back == len(received_torrents)
+            assert num_channels * max_received_torrents_per_channel_query_back == len(received_torrents)
+            seeders = {t.health.seeders for t in received_torrents}
+            assert seeders == set(range(max_received_torrents_per_channel_query_back))
 
     async def test_push_back_entry_update(self):
         """
@@ -207,7 +234,7 @@ class TestRemoteQueryCommunity(TestBase):
             processing_results.extend(results)
 
         self.nodes[1].overlay.send_remote_select(
-            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+            peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
         )
         await self.deliver_messages()
 
@@ -225,7 +252,7 @@ class TestRemoteQueryCommunity(TestBase):
 
         processing_results = []
         self.nodes[1].overlay.send_remote_select(
-            peer, metadata_type=REGULAR_TORRENT, infohash=hexlify(torrent_infohash), processing_callback=callback
+            peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
         )
         await self.deliver_messages()
 
@@ -255,12 +282,13 @@ class TestRemoteQueryCommunity(TestBase):
         # There should be an outstanding request in the list
         self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
 
-        await self.deliver_messages(timeout=0.5)
+        await self.deliver_messages(timeout=1.5)
 
         with db_session:
-            received_channels = mds1.ChannelMetadata.select()
+            received_channels = list(mds1.ChannelMetadata.select())
             # We should receive less that 6 packets, so all the channels should not fit there.
-            assert 40 < received_channels.count() < 60
+            received_channels_count = len(received_channels)
+            assert 40 < received_channels_count < 60
 
             # The list of outstanding requests should be empty
             self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
@@ -293,7 +321,7 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.1)
 
         # mixed: the old and a new attribute
-        rqc_node2.send_remote_select(rqc_node1.my_peer, **{'infohash': hexlify(b'0' * 20), 'foo': 'bar'})
+        rqc_node2.send_remote_select(rqc_node1.my_peer, **{'infohash': b'0' * 20, 'foo': 'bar'})
         await self.deliver_messages(timeout=0.1)
 
     async def test_process_rpc_query_match_many(self):

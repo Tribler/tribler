@@ -1,4 +1,3 @@
-import sys
 from math import floor
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
@@ -10,20 +9,22 @@ from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import (
-    ACTION_BUTTONS,
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
     COMMIT_STATUS_TODELETE,
     COMMIT_STATUS_UPDATED,
     ContentCategories,
+    DARWIN,
     HEALTH_CHECKING,
     HEALTH_DEAD,
     HEALTH_ERROR,
     HEALTH_GOOD,
     HEALTH_MOOT,
     HEALTH_UNCHECKED,
+    WINDOWS,
 )
 from tribler_gui.utilities import format_votes, get_health, get_image_path
+from tribler_gui.widgets.tablecontentmodel import Column
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
 PROGRESS_BAR_BACKGROUND = QColor("#444444")
@@ -32,9 +33,6 @@ TRIBLER_NEUTRAL = QColor("#B5B5B5")
 TRIBLER_ORANGE = QColor("#e67300")
 TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
-
-DARWIN = sys.platform == 'darwin'
-WINDOWS = sys.platform == 'win32'
 
 
 def draw_text(
@@ -90,9 +88,12 @@ def draw_progress_bar(painter, rect, progress=0.0):
 
 class CheckClickedMixin:
     def check_clicked(self, event, _, __, index):
+        model = index.model()
+        data_item = model.data_items[index.row()]
         if (
             event.type() == QEvent.MouseButtonRelease
-            and index.model().column_position.get(self.column_name, -1) == index.column()
+            and model.column_position.get(self.column_name, -1) == index.column()
+            and data_item[index.model().columns[index.model().column_position[self.column_name]].dict_key] != ''
         ):
             self.clicked.emit(index)
             return True
@@ -102,9 +103,10 @@ class CheckClickedMixin:
         return self.size
 
     def on_mouse_moved(self, pos, index):
+        model = index.model()
         if self.last_index != index:
             # Handle the case when the cursor leaves the table
-            if not index.model() or (index.model().column_position.get(self.column_name, -1) == index.column()):
+            if not model or (model.column_position.get(self.column_name, -1) == index.column()):
                 self.last_index = index
                 return True
         return False
@@ -131,7 +133,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         #   row 2
         # button_box_extended_border_ration controls the thickness of the tolerance zone
         self.button_box = QRect()
-        self.button_box_extended_border_ratio = float(0.3)
+        self.button_box_extended_border_ratio = float(1.0)
 
     def paint_empty_background(self, painter, option):
         super().paint(painter, option, self.no_index)
@@ -194,9 +196,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         # Add null editor to action buttons column
-        if index.column() == index.model().column_position[ACTION_BUTTONS]:
+        if index.column() == index.model().column_position[Column.ACTIONS]:
             return
-        if index.column() == index.model().column_position['category']:
+        if index.column() == index.model().column_position[Column.CATEGORY]:
             cbox = QComboBox(parent)
             cbox.addItems(ContentCategories.codes)
             return cbox
@@ -370,14 +372,14 @@ class TriblerContentDelegate(
     def __init__(self, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
-        self.subscribe_control = SubscribeToggleControl('subscribed')
-        self.rating_control = RatingControl('votes')
+        self.subscribe_control = SubscribeToggleControl(Column.SUBSCRIBED)
+        self.rating_control = RatingControl(Column.VOTES)
 
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.download_button]
 
-        self.commit_control = CommitStatusControl('status')
-        self.health_status_widget = HealthStatusControl('health')
+        self.commit_control = CommitStatusControl(Column.STATUS)
+        self.health_status_widget = HealthStatusControl(Column.HEALTH)
         self.controls = [
             self.subscribe_control,
             self.download_button,
@@ -386,25 +388,24 @@ class TriblerContentDelegate(
             self.health_status_widget,
         ]
         self.column_drawing_actions = [
-            ('subscribed', self.draw_subscribed_control),
-            ('votes', self.draw_rating_control),
-            (ACTION_BUTTONS, self.draw_action_column),
-            ('category', self.draw_category_label),
-            ('health', self.draw_health_column),
-            ('status', self.draw_commit_status_column),
-            ('state', self.draw_channel_state),
+            (Column.SUBSCRIBED, self.draw_subscribed_control),
+            (Column.VOTES, self.draw_rating_control),
+            (Column.ACTIONS, self.draw_action_column),
+            (Column.CATEGORY, self.draw_category_label),
+            (Column.HEALTH, self.draw_health_column),
+            (Column.STATUS, self.draw_commit_status_column),
+            (Column.STATE, self.draw_channel_state),
         ]
 
     def draw_action_column(self, painter, option, index, data_item):
         if data_item['type'] == REGULAR_TORRENT:
             return self.draw_download_controls(painter, option, index, data_item)
+        return False
 
     def draw_commit_status_column(self, painter, option, index, _):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
-
         self.commit_control.paint(painter, option.rect, index, hover=index == self.hover_index)
-
         return True
 
 
@@ -532,7 +533,7 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
         painter.restore()
 
 
-class CommitStatusControl(QObject):
+class CommitStatusControl(QObject, CheckClickedMixin):
     # Column-level controls are stateless collections of methods for visualizing cell data and
     # triggering corresponding events.
     icon_border = 4
@@ -557,9 +558,10 @@ class CommitStatusControl(QObject):
 
     def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
-        if self.column_name not in data_item or data_item[self.column_name] == '':
+        column_key = index.model().columns[index.model().column_position[self.column_name]].dict_key
+        if data_item.get(column_key, '') == '':
             return
-        state = data_item[self.column_name]
+        state = data_item[column_key]
         icon = QIcon()
 
         if state == COMMIT_STATUS_COMMITTED:
@@ -577,31 +579,6 @@ class CommitStatusControl(QObject):
 
         icon.paint(painter, icon_rect)
         self.rect = rect
-
-    def check_clicked(self, event, _, __, index):
-        data_item = index.model().data_items[index.row()]
-        if (
-            event.type() == QEvent.MouseButtonRelease
-            and index.model().column_position.get(self.column_name, -1) == index.column()
-            and data_item[self.column_name] != ''
-        ):
-            self.clicked.emit(index)
-            return True
-        return False
-
-    def size_hint(self, _, __):
-        return self.size
-
-    def on_mouse_moved(self, _, index):
-        if self.last_index != index:
-            # Handle the case when the cursor leaves the table
-            if not index.model():
-                self.last_index = index
-                return True
-            elif index.model().column_position.get(self.column_name, -1) == index.column():
-                self.last_index = index
-                return True
-        return False
 
 
 class HealthStatusDisplay(QObject):
@@ -702,5 +679,6 @@ class RatingControl(QObject, CheckClickedMixin):
             self.font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
 
     def paint(self, painter, rect, _index, votes=0):
-        draw_text(painter, rect, format_votes(1.0), color=self.rating_colors["BACKGROUND"], font=self.font)
-        draw_text(painter, rect, format_votes(votes), color=self.rating_colors["FOREGROUND"], font=self.font)
+        lpad = "      "  # we pad it to move it closer to the center
+        draw_text(painter, rect, lpad + format_votes(1.0), color=self.rating_colors["BACKGROUND"], font=self.font)
+        draw_text(painter, rect, lpad + format_votes(votes), color=self.rating_colors["FOREGROUND"], font=self.font)

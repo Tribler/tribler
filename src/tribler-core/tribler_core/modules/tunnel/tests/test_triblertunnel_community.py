@@ -19,7 +19,7 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
 
-from tribler_common.network_utils import get_random_port
+from tribler_common.network_utils import NetworkUtils
 
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
 from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
@@ -54,6 +54,12 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
                                                               mock_ipv8.overlay.my_estimated_wan))
 
         return mock_ipv8
+
+
+    @staticmethod
+    def get_free_port():
+        return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port()
+
 
     async def create_intro(self, node_nr, service):
         """
@@ -554,7 +560,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        http_port = get_random_port()
+        http_port = TestTriblerTunnelCommunity.get_free_port()
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         await http_tracker.start()
@@ -574,7 +580,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        http_port = get_random_port()
+        http_port = TestTriblerTunnelCommunity.get_free_port()
         http_tracker = HTTPTracker(http_port)
         http_tracker.tracker_info.add_info_about_infohash('0', 0, 0)
         http_tracker.tracker_info.infohashes['0']['downloaded'] = os.urandom(10000)
@@ -595,7 +601,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
         await self.introduce_nodes()
 
-        http_port = get_random_port()
+        http_port = TestTriblerTunnelCommunity.get_free_port()
         http_tracker = HTTPTracker(http_port)
         await http_tracker.start()
         with self.assertRaises(AsyncTimeoutError):

@@ -307,7 +307,7 @@ padding-left: 4px;
 padding-right: 4px;</string>
           </property>
           <property name="text">
-           <string>CONFIRM_BUTTON</string>
+           <string notr="true">CONFIRM_BUTTON</string>
           </property>
          </widget>
         </item>

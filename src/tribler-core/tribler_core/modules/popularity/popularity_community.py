@@ -1,11 +1,11 @@
 import heapq
 import random
-from asyncio import get_event_loop
 from binascii import unhexlify
 
 from ipv8.lazy_community import lazy_wrapper
+from ipv8.peerdiscovery.network import Network
 
-from pony.orm import CacheIndexError, TransactionIntegrityError, db_session
+from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
@@ -16,37 +16,44 @@ class PopularityCommunity(RemoteQueryCommunity):
     """
     Community for disseminating the content across the network.
 
-    Every 5 seconds it gossips 5 the most popular torrents and 5 random torrents to
+    Every 2 minutes it gossips 10 popular torrents and
+    every 5 seconds it gossips 10 random torrents to
     a random peer.
 
     Gossiping is for checked torrents only.
     """
-    GOSSIP_INTERVAL = 5
-    GOSSIP_POPULAR_TORRENT_COUNT = 5
-    GOSSIP_RANDOM_TORRENT_COUNT = 5
+    GOSSIP_INTERVAL_FOR_POPULAR_TORRENTS = 120  # seconds
+    GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS = 5  # seconds
+    GOSSIP_POPULAR_TORRENT_COUNT = 10
+    GOSSIP_RANDOM_TORRENT_COUNT = 10
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, my_peer, endpoint, network, **kwargs):
         self.torrent_checker = kwargs.pop('torrent_checker', None)
 
-        super().__init__(*args, **kwargs)
+        # Creating a separate instance of Network for this community to find more peers
+        super().__init__(my_peer, endpoint, Network(), **kwargs)
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
         self.logger.info('Popularity Community initialized (peer mid %s)',
                          hexlify(self.my_peer.mid))
-        self.register_task("gossip", self.gossip_torrents_health,
-                           interval=PopularityCommunity.GOSSIP_INTERVAL)
+        self.register_task("gossip_popular_torrents", self.gossip_popular_torrents_health,
+                           interval=PopularityCommunity.GOSSIP_INTERVAL_FOR_POPULAR_TORRENTS)
+        self.register_task("gossip_random_torrents", self.gossip_random_torrents_health,
+                           interval=PopularityCommunity.GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS)
 
     @staticmethod
-    def select_torrents_to_gossip(torrents) -> (set, set):
+    def select_torrents_to_gossip(torrents, include_popular=True, include_random=True) -> (set, set):
         """ Select torrents to gossip.
 
         Select top 5 popular torrents, and 5 random torrents.
 
         Args:
             torrents: set of tuples (infohash, seeders, leechers, last_check)
+            include_popular: If True, popular torrents based on seeder count are selected
+            include_random: If True, torrents are randomly selected
 
         Returns:
             tuple (set(popular), set(random))
@@ -58,18 +65,22 @@ class PopularityCommunity(RemoteQueryCommunity):
         if not alive:
             return {}, {}
 
-        # select 5 most popular from alive torrents, using `seeders` as a key
-        count = PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
-        popular = set(heapq.nlargest(count, alive, key=lambda t: t[1]))
+        popular, rand = set(), set()
 
-        # select 5 random torrents from the rest of the list
-        rest = alive - popular
-        count = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, len(rest))
-        rand = set(random.sample(rest, count))
+        # select most popular from alive torrents, using `seeders` as a key
+        if include_popular:
+            count = PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
+            popular = set(heapq.nlargest(count, alive, key=lambda t: t[1]))
+
+        # select random torrents from the rest of the list
+        if include_random:
+            rest = alive - popular
+            count = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, len(rest))
+            rand = set(random.sample(rest, count))
 
         return popular, rand
 
-    def gossip_torrents_health(self):
+    def _gossip_torrents_health(self, include_popular=True, include_random=True):
         """
         Gossip torrent health information to another peer.
         """
@@ -80,7 +91,9 @@ class PopularityCommunity(RemoteQueryCommunity):
         if not checked:
             return
 
-        popular, rand = PopularityCommunity.select_torrents_to_gossip(checked)
+        popular, rand = PopularityCommunity.select_torrents_to_gossip(checked,
+                                                                      include_popular=include_popular,
+                                                                      include_random=include_random)
         if not popular and not rand:
             self.logger.info(f'No torrents to gossip. Checked torrents count: '
                              f'{len(checked)}')
@@ -94,6 +107,18 @@ class PopularityCommunity(RemoteQueryCommunity):
 
         self.ez_send(random_peer, TorrentsHealthPayload.create(rand, popular))
 
+    def gossip_random_torrents_health(self):
+        """
+        Gossip random torrent health information to another peer.
+        """
+        self._gossip_torrents_health(include_popular=False, include_random=True)
+
+    def gossip_popular_torrents_health(self):
+        """
+        Gossip popular torrent health information to another peer.
+        """
+        self._gossip_torrents_health(include_popular=True, include_random=False)
+
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, peer, payload):
         self.logger.info(f"Received torrent health information for "
@@ -102,43 +127,15 @@ class PopularityCommunity(RemoteQueryCommunity):
 
         torrents = payload.random_torrents + payload.torrents_checked
 
-        for infohash in await self.process_health_threaded(peer, torrents):
+        for infohash in await self.mds.run_threaded(self.process_torrents_health, torrents):
             # Get a single result per infohash to avoid duplicates
-            self.send_remote_select(peer=peer, infohash=hexlify(infohash), last=1)
+            self.send_remote_select(peer=peer, infohash=infohash, last=1)
 
-    async def process_health_threaded(self, peer, torrent_healths):
-        def _process_blob():
-            result = []
-            try:
-                with db_session:
-                    try:
-                        result = self.process_torrents_health(torrent_healths)
-                    except (TransactionIntegrityError, CacheIndexError) as err:
-                        self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
-            # Unfortunately, we have to catch the exception twice, because Pony can raise them both on the exit from
-            # db_session, and on calling the line of code
-            except (TransactionIntegrityError, CacheIndexError) as err:
-                self._logger.error("DB transaction error when tried to process compressed mdblob: %s", str(err))
-            finally:
-                self.mds.disconnect_thread()
-            return result
-
-        return await get_event_loop().run_in_executor(None, _process_blob)
-
+    @db_session
     def process_torrents_health(self, torrent_healths):
-        infohashes_to_resolve = []
-        with db_session:
-            for infohash, seeders, leechers, last_check in torrent_healths:
-                torrent_state = self.mds.TorrentState.get(infohash=infohash)
-                if torrent_state and last_check > torrent_state.last_check:
-                    # Replace current information
-                    torrent_state.seeders = seeders
-                    torrent_state.leechers = leechers
-                    torrent_state.last_check = last_check
-                    self.logger.info(f"{hexlify(infohash)} updated ({seeders},{leechers})")
-                elif not torrent_state:
-                    self.mds.TorrentState(infohash=infohash, seeders=seeders,
-                                          leechers=leechers, last_check=last_check)
-                    self.logger.info(f"{hexlify(infohash)} added ({seeders},{leechers})")
-                    infohashes_to_resolve.append(infohash)
+        infohashes_to_resolve = set()
+        for infohash, seeders, leechers, last_check in torrent_healths:
+            added = self.mds.process_torrent_health(infohash, seeders, leechers, last_check)
+            if added:
+                infohashes_to_resolve.add(infohash)
         return infohashes_to_resolve

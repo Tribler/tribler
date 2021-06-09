@@ -56,7 +56,7 @@ def define_binding(db):
 
         # Serializable
         infohash = orm.Required(database_blob, index=True)
-        size = orm.Optional(int, size=64, default=0, index=True)
+        size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
         tracker_info = orm.Optional(str, default='')
 
@@ -78,9 +78,9 @@ def define_binding(db):
 
         def __init__(self, *args, **kwargs):
             if "health" not in kwargs and "infohash" in kwargs:
-                kwargs["health"] = db.TorrentState.get(infohash=kwargs["infohash"]) or db.TorrentState(
-                    infohash=kwargs["infohash"]
-                )
+                infohash = kwargs["infohash"]
+                health = db.TorrentState.get_for_update(infohash=infohash) or db.TorrentState(infohash=infohash)
+                kwargs["health"] = health
             if 'xxx' not in kwargs:
                 kwargs["xxx"] = default_xxx_filter.isXXXTorrentMetadataDict(kwargs)
 
@@ -92,7 +92,7 @@ def define_binding(db):
         def add_tracker(self, tracker_url):
             sanitized_url = get_uniformed_tracker_url(tracker_url)
             if sanitized_url:
-                tracker = db.TrackerState.get(url=sanitized_url) or db.TrackerState(url=sanitized_url)
+                tracker = db.TrackerState.get_for_update(url=sanitized_url) or db.TrackerState(url=sanitized_url)
                 self.health.trackers.add(tracker)
 
         def before_update(self):
@@ -159,5 +159,11 @@ def define_binding(db):
         def get_torrent_title(cls, infohash):
             md = cls.get_with_infohash(infohash)
             return md.title if md else None
+
+        def serialized_health(self) -> bytes:
+            health = self.health
+            if not health or (not health.seeders and not health.leechers and not health.last_check):
+                return b';'
+            return b'%d,%d,%d;' % (health.seeders or 0, health.leechers or 0, health.last_check or 0)
 
     return TorrentMetadata

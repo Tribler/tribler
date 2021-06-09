@@ -1,4 +1,5 @@
 import base64
+import json
 import shutil
 from binascii import unhexlify
 from unittest.mock import Mock
@@ -15,10 +16,11 @@ import pytest
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.community.gigachannel_community import NoChannelSourcesException
+from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
@@ -141,6 +143,75 @@ async def test_get_channel_contents(enable_chant, enable_api, add_fake_torrents_
 
 
 @pytest.mark.asyncio
+async def test_get_channel_contents_remote(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
+    """
+    Test whether we can query torrents from a channel from a remote peer
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+
+    async def mock_select(**kwargs):
+        with db_session:
+            return [r.to_simple_dict() for r in session.mds.get_entries(**kwargs)]
+
+    session.gigachannel_community = Mock()
+    session.gigachannel_community.remote_select_channel_contents = mock_select
+    with db_session:
+        chan = session.mds.ChannelMetadata.select().first()
+    json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123?remote=1', expected_code=200)
+    assert len(json_dict['results']) == 5
+    assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_contents_remote_request_timeout(
+    enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session
+):
+    """
+    Test whether we can query torrents from a channel from a remote peer.
+    In case of remote query timeout, the results should still be served from the local DB
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+
+    async def mock_select(**kwargs):
+        raise RequestTimeoutException()
+
+    session.gigachannel_community = Mock()
+    session.gigachannel_community.remote_select_channel_contents = mock_select
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.select().first()
+    json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123?remote=1', expected_code=200)
+    assert len(json_dict['results']) == 5
+    assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_get_channel_contents_remote_request_no_peers(
+    enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session
+):
+    """
+    Test whether we can query torrents from a channel from a remote peer.
+    In case of zero available remote sources for the channel, the results should still be served from the local DB
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+
+    async def mock_select(**kwargs):
+        raise NoChannelSourcesException()
+
+    session.gigachannel_community = Mock()
+    session.gigachannel_community.remote_select_channel_contents = mock_select
+
+    with db_session:
+        chan = session.mds.ChannelMetadata.select().first()
+    json_dict = await do_request(session, f'channels/{hexlify(chan.public_key)}/123?remote=1', expected_code=200)
+    assert len(json_dict['results']) == 5
+    assert 'status' in json_dict['results'][0]
+    assert json_dict['results'][0]['progress'] == 0.5
+
+
+@pytest.mark.asyncio
 async def test_get_channel_description(enable_chant, enable_api, session):
     """
     Test getting description of the channel from the database
@@ -149,12 +220,12 @@ async def test_get_channel_description(enable_chant, enable_api, session):
     with db_session:
         chan = session.mds.ChannelMetadata.create_channel(title="bla")
         channel_description = session.mds.ChannelDescription(
-            origin_id=chan.id_, json_text=dumps({"description_text": descr_txt})
+            origin_id=chan.id_, json_text=json.dumps({"description_text": descr_txt})
         )
     response_dict = await do_request(
         session, f'channels/{hexlify(chan.public_key)}/{chan.id_}/description', expected_code=200
     )
-    assert response_dict == loads(channel_description.json_text)
+    assert response_dict == json.loads(channel_description.json_text)
 
 
 @pytest.mark.asyncio
@@ -196,11 +267,33 @@ async def test_get_popular_torrents(enable_chant, enable_api, add_fake_torrents_
     session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
     json_dict = await do_request(session, 'channels/popular_torrents', expected_code=200)
 
-    seeders_orig_order = [int(t['num_seeders']) for t in json_dict['results']]
+    def fields(d, *args):
+        return {key: d[key] for key in args}
 
-    assert seeders_orig_order[0] > 0
-    assert sorted(seeders_orig_order, reverse=True) == seeders_orig_order
-    assert len(json_dict['results']) == 20
+    seeders_orig_order = [fields(d, 'type', 'num_seeders', 'num_leechers') for d in json_dict['results']]
+
+    def sort_key(d):
+        a = 1 if d["type"] == CHANNEL_TORRENT else 2 if d["type"] == COLLECTION_NODE else 3
+        b = -d["num_seeders"]
+        c = -d["num_leechers"]
+        return (a, b, c)
+
+    assert seeders_orig_order == sorted(seeders_orig_order, key=sort_key)
+    assert len(json_dict['results']) == 30  # torrents 1, 3, 5 in each of 10 channels
+
+
+@pytest.mark.asyncio
+async def test_get_popular_torrents_mdtype(enable_chant, enable_api, add_fake_torrents_channels, mock_dlmgr, session):
+    """
+    It should be not possible to specify metadata_type argument for popular torrents endpoint
+    """
+    session.dlmgr.get_download().get_state().get_progress = lambda: 0.5
+    json_dict1 = await do_request(session, 'channels/popular_torrents')
+    json_dict2 = await do_request(session, 'channels/popular_torrents?metadata_type=300')
+    json_dict3 = await do_request(session, 'channels/popular_torrents?metadata_type=400')
+
+    # Currently popularity page force-set metadata_type to 300 (REGULAR_TORRENT) for all requests
+    assert json_dict1 == json_dict2 == json_dict3
 
 
 @pytest.mark.asyncio

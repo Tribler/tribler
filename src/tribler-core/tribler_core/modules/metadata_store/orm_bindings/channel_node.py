@@ -61,11 +61,11 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         rowid = orm.PrimaryKey(int, size=64, auto=True)
 
         # Serializable
-        metadata_type = orm.Discriminator(int, size=16, index=True)
+        metadata_type = orm.Discriminator(int, size=16)
         reserved_flags = orm.Optional(int, size=16, default=0)
         origin_id = orm.Optional(int, size=64, default=0, index=True)
 
-        public_key = orm.Required(database_blob, index=True)
+        public_key = orm.Required(database_blob)
         id_ = orm.Required(int, size=64)
         orm.composite_key(public_key, id_)
         orm.composite_index(public_key, origin_id)
@@ -78,7 +78,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
 
         # Local
         added_on = orm.Optional(datetime, default=datetime.utcnow)
-        status = orm.Optional(int, default=COMMITTED, index=True)
+        status = orm.Optional(int, default=COMMITTED)
 
         # Special class-level properties
         _payload_class = ChannelNodePayload
@@ -208,6 +208,9 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             """
             return b''.join(self._serialized_delete())
 
+        def serialized_health(self) -> bytes:
+            return b';'
+
         def to_file(self, filename, key=None):
             with open(str_path(filename), 'wb') as output_file:
                 output_file.write(self.serialized(key))
@@ -274,15 +277,20 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
 
             return self
 
-        def get_parents_ids(self, max_recursion_depth=15):
-            if max_recursion_depth == 0:
-                return tuple()
-            if self.origin_id == 0:
-                return (0,)
-            parent = db.CollectionNode.get(public_key=self.public_key, id_=self.origin_id)
-            if parent:
-                return parent.get_parents_ids(max_recursion_depth=max_recursion_depth - 1) + (parent.id_,)
-            return tuple()
+        def get_parent_nodes(self):
+            full_path = {self: True}
+            node = self
+            while node:
+                node = db.CollectionNode.get(public_key=self.public_key, id_=node.origin_id)
+                if node is None:
+                    break
+                if node in full_path:
+                    # Found id loop, but we return it nonetheless to keep the logic from breaking.
+                    break
+                full_path[node] = True
+                if node.origin_id == 0:
+                    break
+            return tuple(reversed(list(full_path)))
 
         def make_copy(self, tgt_parent_id, attributes_override=None):
             dst_dict = attributes_override or {}

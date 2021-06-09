@@ -17,7 +17,6 @@ def verify_settings(settings_dict):
                      'tunnel_community', 'api', 'trustchain', 'watch_folder']
 
     assert settings_dict['settings']
-    assert settings_dict['ports']
     assert Path(settings_dict['settings']['download_defaults']['saveas'])
     for section in check_section:
         assert settings_dict['settings'][section]

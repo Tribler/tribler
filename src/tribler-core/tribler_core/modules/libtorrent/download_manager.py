@@ -12,12 +12,11 @@ from binascii import unhexlify
 from copy import deepcopy
 from distutils.version import LooseVersion
 from shutil import rmtree
-from urllib.request import url2pathname
 
 from ipv8.taskmanager import TaskManager, task
-
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING, STATEDIR_CHECKPOINT_DIR
-
+from tribler_common.utilities import uri_to_path
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -167,12 +166,15 @@ class DownloadManager(TaskManager):
     def create_session(self, hops=0, store_listen_port=True):
         # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
         # the settings dictionary
+        self._logger.info('Creating a session')
         settings = {'outgoing_port': 0,
                     'num_outgoing_ports': 1,
                     'allow_multiple_connections_per_ip': 0}
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
+        anon_port = self.tribler_session.config.get_anon_listen_port() or NetworkUtils().get_random_free_port()
+        self._logger.info(f'Anon port: {anon_port}. Dummy mode: {self.dummy_mode}. Hops: {hops}')
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
         fingerprint = ['TL'] + [int(x) for x in version_id.split('-')[0].split('.')] + [0]
@@ -185,6 +187,8 @@ class DownloadManager(TaskManager):
         else:
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
 
+        libtorrent_port = self.tribler_session.config.get_libtorrent_port() or NetworkUtils().get_random_free_port()
+        self._logger.info(f'Libtorrent port: {libtorrent_port}')
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
             enable_utp = self.tribler_session.config.get_libtorrent_utp()
@@ -193,7 +197,7 @@ class DownloadManager(TaskManager):
 
             if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
                 settings['prefer_rc4'] = True
-                settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_libtorrent_port()
+                settings["listen_interfaces"] = "0.0.0.0:%d" % libtorrent_port
             else:
                 pe_settings = lt.pe_settings()
                 pe_settings.prefer_rc4 = True
@@ -211,7 +215,7 @@ class DownloadManager(TaskManager):
             settings['force_proxy'] = True
 
             if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-                settings["listen_interfaces"] = "0.0.0.0:%d" % self.tribler_session.config.get_anon_listen_port()
+                settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
 
             # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
             self.update_ip_filter(ltsession, ['1.1.1.1'])
@@ -233,10 +237,9 @@ class DownloadManager(TaskManager):
 
         # Set listen port & start the DHT
         if hops == 0:
-            listen_port = self.tribler_session.config.get_libtorrent_port()
-            ltsession.listen_on(listen_port, listen_port + 10)
-            if listen_port != ltsession.listen_port() and store_listen_port:
-                self.tribler_session.config.set_libtorrent_port_runtime(ltsession.listen_port())
+            ltsession.listen_on(libtorrent_port, libtorrent_port + 10)
+            if libtorrent_port != ltsession.listen_port() and store_listen_port:
+                self.tribler_session.config.set_libtorrent_port(ltsession.listen_port())
             try:
                 with open(self.tribler_session.config.get_state_dir() / LTSTATE_FILENAME, 'rb') as fp:
                     lt_state = bdecode_compat(fp.read())
@@ -247,8 +250,7 @@ class DownloadManager(TaskManager):
             except Exception as exc:
                 self._logger.info(f"could not load libtorrent state, got exception: {exc!r}. starting from scratch")
         else:
-            ltsession.listen_on(self.tribler_session.config.get_anon_listen_port(),
-                                self.tribler_session.config.get_anon_listen_port() + 20)
+            ltsession.listen_on(anon_port, anon_port + 20)
 
             settings = {'upload_rate_limit': self.tribler_session.config.get_libtorrent_max_upload_rate(),
                         'download_rate_limit': self.tribler_session.config.get_libtorrent_max_download_rate()}
@@ -352,9 +354,10 @@ class DownloadManager(TaskManager):
                                  else getattr(alert, 'info_hash', '')))
         download = self.downloads.get(infohash)
         if download:
-            if (download.handle and download.handle.is_valid())\
-                    or (not download.handle and alert_type == 'add_torrent_alert') \
-                    or (download.handle and alert_type == 'torrent_removed_alert'):
+            is_process_alert = (download.handle and download.handle.is_valid()) \
+                               or (not download.handle and alert_type == 'add_torrent_alert') \
+                               or (download.handle and alert_type == 'torrent_removed_alert')
+            if is_process_alert:
                 download.process_alert(alert, alert_type)
             else:
                 self._logger.debug("Got alert for download without handle %s: %s", hexlify(infohash), alert)
@@ -392,7 +395,7 @@ class DownloadManager(TaskManager):
 
             # We are sending a raw DHT message - notify the DHTHealthManager of the outstanding request.
             if not incoming and decoded.get(b'y') == b'q' \
-               and decoded.get(b'q') == b'get_peers' and decoded[b'a'].get(b'scrape') == 1:
+                    and decoded.get(b'q') == b'get_peers' and decoded[b'a'].get(b'scrape') == 1:
                 self.dht_health_manager.requesting_bloomfilters(decoded[b't'],
                                                                 decoded[b'a'][b'info_hash'])
 
@@ -503,7 +506,7 @@ class DownloadManager(TaskManager):
                 tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
             return self.start_download(tdef=tdef, config=config)
         if uri.startswith("file:"):
-            argument = url2pathname(uri[5:])
+            argument = uri_to_path(uri)
             return self.start_download(torrent_file=argument, config=config)
         raise Exception("invalid uri")
 

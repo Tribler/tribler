@@ -6,6 +6,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Boolean
 
+from tribler_common.network_utils import NetworkUtils
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
@@ -27,13 +28,12 @@ class SettingsEndpoint(RESTEndpoint):
             }
         },
         description="This endpoint returns all the session settings that can be found in Tribler.\n\n It also returns "
-                    "the runtime-determined ports, i.e. the ports for the SOCKS5 servers. Please note that a port "
-                    "with a value of -1 in the settings means that the port is randomly assigned at startup."
+                    "the runtime-determined ports"
     )
     async def get_settings(self, request):
         return RESTResponse({
             "settings": self.session.config.config,
-            "ports": self.session.config.selected_ports
+            "ports": list(NetworkUtils.ports_in_use)
         })
 
     @docs(

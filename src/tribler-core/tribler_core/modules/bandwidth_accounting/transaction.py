@@ -141,7 +141,7 @@ def define_binding(bandwidth_database):
         PrimaryKey(sequence_number, public_key_a, public_key_b)
 
         @classmethod
-        @db_session
+        @db_session(optimistic=False)
         def insert(cls, transaction: BandwidthTransaction) -> None:
             """
             Insert a BandwidthTransaction object in the database.

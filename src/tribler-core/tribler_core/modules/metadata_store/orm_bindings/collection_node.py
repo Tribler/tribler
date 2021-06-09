@@ -6,6 +6,8 @@ from ipv8.database import database_blob
 from pony import orm
 from pony.orm import db_session, select
 
+from tribler_common.simpledefs import CHANNEL_STATE
+
 from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.discrete_clock import clock
@@ -20,7 +22,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     UPDATED,
 )
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, CollectionNodePayload
+from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, CollectionNodePayload, CHANNEL_TORRENT
 from tribler_core.utilities.random_utils import random_infohash
 
 # pylint: disable=too-many-statements
@@ -52,8 +54,14 @@ def define_binding(db):
         @db_session
         def state(self):
             if self.is_personal:
-                return "Personal"
-            return "Preview"
+                return CHANNEL_STATE.PERSONAL.value
+
+            toplevel_parent = self.get_parent_nodes()[0]
+            if (toplevel_parent.metadata_type == CHANNEL_TORRENT and
+                toplevel_parent.local_version == toplevel_parent.timestamp):
+                return CHANNEL_STATE.COMPLETE.value
+
+            return CHANNEL_STATE.PREVIEW.value
 
         def to_simple_dict(self):
             result = super().to_simple_dict()
@@ -414,11 +422,10 @@ def define_binding(db):
                 new_parent = CollectionNode.get(public_key=self.public_key, id_=new_origin_id)
                 if not new_parent:
                     raise ValueError("Target collection does not exists")
-                root_path = new_parent.get_parents_ids()
-                if new_origin_id == self.id_ or self.id_ in root_path:
+                root_path = new_parent.get_parent_nodes()
+                if new_origin_id == self.id_ or self in root_path[:-1]:
                     raise ValueError("Can't move collection into itself or its descendants!")
-                if 0 not in root_path:
-                    # Remark: maybe add orphan-cleaning hook here?
+                if root_path[0].origin_id != 0:
                     raise ValueError("Tried to move collection into an orphaned hierarchy!")
             updated_self = super().update_properties(update_dict)
             if updated_self.origin_id == 0 and self.metadata_type == COLLECTION_NODE:

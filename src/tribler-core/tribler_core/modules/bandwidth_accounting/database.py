@@ -50,7 +50,6 @@ class BandwidthDatabase:
             with db_session:
                 self.MiscData(name="db_version", value=str(self.CURRENT_DB_VERSION))
 
-    @db_session
     def has_transaction(self, transaction: BandwidthTransactionData) -> bool:
         """
         Return whether a transaction is persisted to the database.

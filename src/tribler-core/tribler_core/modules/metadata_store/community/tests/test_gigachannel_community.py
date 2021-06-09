@@ -15,17 +15,19 @@ import pytest
 from tribler_core.modules.metadata_store.community.gigachannel_community import (
     ChannelsPeersMapping,
     GigaChannelCommunity,
-    MAGIC_GIGACHAN_VERSION_MARK,
+    NoChannelSourcesException,
 )
+from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
-from tribler_core.utilities.unicode import hexlify
 
 EMPTY_BLOB = database_blob(b"")
 
 # pylint:disable=protected-access
+
+BASE_PATH = 'tribler_core.modules.metadata_store.community.remote_query_community'
 
 
 class TestGigaChannelUnits(TestBase):
@@ -53,6 +55,25 @@ class TestGigaChannelUnits(TestBase):
 
     def torrent_metadata(self, i):
         return self.nodes[i].overlay.mds.TorrentMetadata
+
+    def generate_torrents(self, overlay):
+        key = default_eccrypto.generate_key("curve25519")
+        channel_pk = key.pub().key_to_bin()[10:]
+        channel_id = 123
+        kwargs = {"channel_pk": channel_pk, "origin_id": channel_id}
+        with db_session:
+            for m in range(0, 50):
+                overlay.mds.TorrentMetadata(
+                    title=f"bla-{m}", origin_id=channel_id, infohash=random_infohash(), sign_with=key
+                )
+        return kwargs
+
+    def client_server_request_setup(self):
+        client = self.overlay(0)
+        server = self.overlay(2)
+        kwargs = self.generate_torrents(server)
+        client.get_known_subscribed_peers_for_node = lambda *_: [server.my_peer]
+        return client, server, kwargs
 
     async def test_gigachannel_search(self):
         """
@@ -112,7 +133,6 @@ class TestGigaChannelUnits(TestBase):
         self.nodes[1].overlay.send_remote_select_subscribed_channels = mock_send
         peer = self.nodes[0].my_peer
         payload = Mock()
-        payload.extra_bytes = MAGIC_GIGACHAN_VERSION_MARK
         self.nodes[1].overlay.introduction_response_callback(peer, None, payload)
         self.assertIn(peer.mid, self.nodes[1].overlay.queried_peers)
         self.assertTrue(send_ok)
@@ -233,7 +253,22 @@ class TestGigaChannelUnits(TestBase):
         assert len(mapping._peers_channels) == 0
         assert len(mapping._channels_dict) == 0
 
-    @pytest.mark.timeout(0)
+    async def test_get_known_subscribed_peers_for_node(self):
+        key = default_eccrypto.generate_key("curve25519")
+        with db_session:
+            channel = self.overlay(0).mds.ChannelMetadata(origin_id=0, infohash=random_infohash(), sign_with=key)
+            folder1 = self.overlay(0).mds.CollectionNode(origin_id=channel.id_, sign_with=key)
+            folder2 = self.overlay(0).mds.CollectionNode(origin_id=folder1.id_, sign_with=key)
+
+            orphan = self.overlay(0).mds.CollectionNode(origin_id=123123, sign_with=key)
+
+        source_peer = self.nodes[1].my_peer
+        self.overlay(0).channels_peers.add(source_peer, channel.public_key, channel.id_)
+        assert [source_peer] == self.overlay(0).get_known_subscribed_peers_for_node(channel.public_key, channel.id_)
+        assert [source_peer] == self.overlay(0).get_known_subscribed_peers_for_node(folder1.public_key, folder1.id_)
+        assert [source_peer] == self.overlay(0).get_known_subscribed_peers_for_node(folder2.public_key, folder2.id_)
+        assert [] == self.overlay(0).get_known_subscribed_peers_for_node(orphan.public_key, orphan.id_)
+
     async def test_remote_search_mapped_peers(self):
         """
         Test using mapped peers for channel queries.
@@ -241,7 +276,7 @@ class TestGigaChannelUnits(TestBase):
         key = default_eccrypto.generate_key("curve25519")
         channel_pk = key.pub().key_to_bin()[10:]
         channel_id = 123
-        kwargs = {"channel_pk": f"{hexlify(channel_pk)}", "origin_id": channel_id}
+        kwargs = {"channel_pk": channel_pk, "origin_id": channel_id}
 
         await self.introduce_nodes()
 
@@ -259,24 +294,16 @@ class TestGigaChannelUnits(TestBase):
         # The peer must have queried at least one peer
         self.nodes[2].overlay.send_remote_select.assert_called()
 
-    @pytest.mark.timeout(5)
     async def test_drop_silent_peer_from_channels_map(self):
-
         # We do not want the query back mechanism to interfere with this test
         self.nodes[1].overlay.settings.max_channel_query_back = 0
-
         kwargs_dict = {"txt_filter": "ubuntu*"}
-
-        basic_path = 'tribler_core.modules.metadata_store.community'
-
-        with patch(
-            basic_path + '.remote_query_community.SelectRequest.timeout_delay', new_callable=PropertyMock
-        ) as delay_mock:
+        with patch(f'{BASE_PATH}.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
             # Change query timeout to a really low value
             delay_mock.return_value = 0.3
 
             # Stop peer 0 from responding
-            with patch(basic_path + '.remote_query_community.RemoteQueryCommunity._on_remote_select_basic'):
+            with patch(f'{BASE_PATH}.RemoteQueryCommunity._on_remote_select_basic'):
                 self.nodes[1].overlay.channels_peers.remove_peer = Mock()
                 self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
 
@@ -289,3 +316,35 @@ class TestGigaChannelUnits(TestBase):
             self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
             await self.deliver_messages(timeout=1)
             self.nodes[1].overlay.channels_peers.remove_peer.assert_not_called()
+
+    async def test_remote_select_channel_contents(self):
+        """
+        Test awaiting for response from remote peer
+        """
+        client, server, kwargs = self.client_server_request_setup()
+        with db_session:
+            results = [p.to_simple_dict() for p in server.mds.get_entries(**kwargs)]
+        assert results == await client.remote_select_channel_contents(**kwargs)
+        assert len(results) == 50
+
+    async def test_remote_select_channel_contents_empty(self):
+        """
+        Test awaiting for response from remote peer and getting empty results
+        """
+        client, _, kwargs = self.client_server_request_setup()
+        kwargs["origin_id"] = 333
+        assert [] == await client.remote_select_channel_contents(**kwargs)
+
+    async def test_remote_select_channel_timeout(self):
+        client, server, kwargs = self.client_server_request_setup()
+        server.send_db_results = Mock()
+        with patch(f'{BASE_PATH}.EvaSelectRequest.timeout_delay', new_callable=PropertyMock) as zz:
+            zz.return_value = 2.0
+            with pytest.raises(RequestTimeoutException):
+                await client.remote_select_channel_contents(**kwargs)
+
+    async def test_remote_select_channel_no_peers(self):
+        client, _, kwargs = self.client_server_request_setup()
+        client.get_known_subscribed_peers_for_node = lambda *_: []
+        with pytest.raises(NoChannelSourcesException):
+            await client.remote_select_channel_contents(**kwargs)

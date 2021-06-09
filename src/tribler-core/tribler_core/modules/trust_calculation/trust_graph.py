@@ -32,6 +32,7 @@ class TrustGraph(nx.DiGraph):
         self.get_or_create_node(root_key)
 
     def reset(self, root_key):
+        self.clear()
         self.node_public_keys = []
         self.edge_set = set()
 
@@ -70,6 +71,9 @@ class TrustGraph(nx.DiGraph):
         return self.nodes()[node_id]
 
     def compose_graph_data(self):
+        # Reset the graph first
+        self.reset(self.root_key)
+
         layer_1 = self.bandwidth_db.get_latest_transactions(self.root_key)
         try:
             for tx in layer_1:

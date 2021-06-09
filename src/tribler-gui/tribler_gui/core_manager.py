@@ -15,9 +15,10 @@ from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, get_base_path
+from tribler_gui.utilities import connect, format_size, get_base_path, tr
 
 START_FAKE_API = False
+SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
 
 
 class CoreManager(QObject):
@@ -112,7 +113,8 @@ class CoreManager(QObject):
 
     def should_cleanup_old_versions(self) -> List[TriblerVersion]:
         # Skip old version check popup when running fake core, eg. during GUI tests
-        if START_FAKE_API:
+        # or during deployment tests since it blocks the tests with a popup dialog
+        if START_FAKE_API or SKIP_VERSION_CLEANUP:
             return []
 
         if self.version_history.last_run_version == self.version_history.code_version:
@@ -131,14 +133,14 @@ class CoreManager(QObject):
 
         # Show a question to the user asking if the user wants to remove the old data.
         title = "Delete state directories for old versions?"
-        message_body = (
-            f"Press 'Yes' to remove state directories for older versions of Tribler "
-            f"and reclaim {format_size(claimable_storage)} of storage space. "
-            f"Tribler used those directories during upgrades from previous versions. "
-            f"Now those directories can be safely deleted. \n\n"
-            f"If unsure, press 'No'. "
-            f"You will be able to remove those directories from the Settings->Data page later."
-        )
+        message_body = tr(
+            "Press 'Yes' to remove state directories for older versions of Tribler "
+            "and reclaim %s of storage space. "
+            "Tribler used those directories during upgrades from previous versions. "
+            "Now those directories can be safely deleted. \n\n"
+            "If unsure, press 'No'. "
+            "You will be able to remove those directories from the Settings->Data page later."
+        ) % format_size(claimable_storage)
 
         user_choice = self._show_question_box(title, message_body, storage_info, default_button=QMessageBox.Yes)
         if user_choice == QMessageBox.Yes:

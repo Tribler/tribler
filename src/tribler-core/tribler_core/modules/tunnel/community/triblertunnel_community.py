@@ -86,7 +86,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 socks_listen_ports = self.tribler_session.config.get_tunnel_community_socks5_listen_ports()
         elif socks_listen_ports is None:
             socks_listen_ports = range(1080, 1085)
-
+        self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}
@@ -124,8 +124,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             await sleep(.05)
 
     def get_available_strategies(self):
-        return super().get_available_strategies().update({'GoldenRatioStrategy':
-                                                                                          GoldenRatioStrategy})
+        return super().get_available_strategies().update({'GoldenRatioStrategy': GoldenRatioStrategy})
 
     def cache_exitnodes_to_disk(self):
         """
@@ -409,17 +408,17 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Now we actually remove the circuit
         return super().remove_circuit(circuit_id, additional_info=additional_info,
-                                                                  remove_now=remove_now, destroy=destroy)
+                                      remove_now=remove_now, destroy=destroy)
 
     @task
     async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
                            got_destroy_from=None, both_sides=True):
         removed_relays = await super().remove_relay(circuit_id,
-                                                                                additional_info=additional_info,
-                                                                                remove_now=remove_now,
-                                                                                destroy=destroy,
-                                                                                got_destroy_from=got_destroy_from,
-                                                                                both_sides=both_sides)
+                                                    additional_info=additional_info,
+                                                    remove_now=remove_now,
+                                                    destroy=destroy,
+                                                    got_destroy_from=got_destroy_from,
+                                                    both_sides=both_sides)
 
         self.clean_from_slots(circuit_id)
 
@@ -435,7 +434,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.clean_from_slots(circuit_id)
 
         return super().remove_exit_socket(circuit_id, additional_info=additional_info,
-                                                                      remove_now=remove_now, destroy=destroy)
+                                          remove_now=remove_now, destroy=destroy)
 
     def _ours_on_created_extended(self, circuit, payload):
         super()._ours_on_created_extended(circuit, payload)
@@ -487,9 +486,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             state_changed = new_state != old_state
 
             # Join/leave hidden swarm as needed.
-            if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
-                self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
-                                callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
+            if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
+                if old_state != DLSTATUS_METADATA or new_state != DLSTATUS_DOWNLOADING:
+                    self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
+                                    callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 self.leave_swarm(info_hash)
 

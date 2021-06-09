@@ -8,25 +8,30 @@ import sys
 import traceback
 import types
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Callable
 from urllib.parse import quote_plus
 from uuid import uuid4
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QLocale, QTranslator, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
-from tribler_gui.i18n import tr
 
 NUM_VOTES_BARS = 8
 
+
+def tr(key):
+    return f"{QCoreApplication.translate('@default', key)}"
+
+
 VOTES_RATING_DESCRIPTIONS = (
-    "Zero popularity",
-    "Very low popularity",
-    "3rd tier popularity",
-    "2nd tier popularity",
-    "1st tier popularity",
+    tr("Zero popularity"),
+    tr("Very low popularity"),
+    tr("3rd tier popularity"),
+    tr("2nd tier popularity"),
+    tr("1st tier popularity"),
 )
 
 
@@ -70,16 +75,6 @@ def string_to_seconds(time_str):
     hours = float(parts[0])
     minutes = float(parts[1])
     return hours * 3600 + minutes * 60
-
-
-def timestamp_to_time(timestamp):
-    today = datetime.today()
-    discovered = datetime.fromtimestamp(timestamp)
-
-    diff = today - discovered
-    if diff.days > 0 or today.day != discovered.day:
-        return discovered.strftime('%d-%m-%Y %H:%M')
-    return discovered.strftime('Today %H:%M')
 
 
 def get_color(name):
@@ -170,19 +165,21 @@ def duration_to_string(seconds):
     seconds -= minutes * 60
     seconds = int(seconds)
 
+    data = {'years': years, 'weeks': weeks, 'days': days, 'hours': hours, 'minutes': minutes, 'seconds': seconds}
+
     if years >= 100:
-        return "Forever"
+        return tr("Forever")
     if years > 0:
-        return f"{years}y {weeks}w"
+        return tr("%(years)iy %(weeks)iw") % data
     if weeks > 0:
-        return f"{weeks}w {days}d"
+        return tr("%(weeks)iw %(days)id") % data
     if days > 0:
-        return f"{days}d {hours}h"
+        return tr("%(days)id %(hours)ih") % data
     if hours > 0:
-        return f"{hours}h {minutes}m"
+        return tr("%(hours)ih %(minutes)im") % data
     if minutes > 0:
-        return f"{minutes}m {seconds}s"
-    return f"{seconds}s"
+        return tr("%(minutes)im %(seconds)is") % data
+    return tr("%(seconds)is") % data
 
 
 def split_into_keywords(query):
@@ -198,6 +195,25 @@ def get_base_path():
     except Exception:
         base_path = os.path.dirname(tribler_gui.__file__)
     return base_path
+
+
+TRANSLATIONS_DIR = os.path.join(get_base_path(), "i18n")
+
+
+def get_available_translations():
+    # Returns a list of tuples: (lanugage_name, language_code) for each available translation
+    translations_list = [str(p.stem) for p in Path(TRANSLATIONS_DIR).glob('*.qm')]
+    translations_list.append("en_US")
+
+    result = {}
+    for lang_code in translations_list:
+        loc = QLocale(lang_code)
+        lang_name = loc.languageToString(loc.language())
+        result[lang_name] = lang_code
+    return result
+
+
+AVAILABLE_TRANSLATIONS = get_available_translations()
 
 
 def get_ui_file_path(filename):
@@ -316,15 +332,6 @@ def html_label(text, background="#e4e4e4", color="#222222", bold=True):
     return f"<label style='{style}'>&nbsp;{text}&nbsp;</label>"
 
 
-def get_checkbox_style(color="#B5B5B5"):
-    return (
-        """QCheckBox { color: %s; }
-                QCheckBox::indicator:unchecked {border: 1px solid #555;}
-                """
-        % color
-    )
-
-
 def votes_count(votes=0.0):
     votes = float(votes)
     # FIXME: this is a temp fix to cap the normalized value to 1.
@@ -436,3 +443,19 @@ def dict_item_is_any_of(d, key, values):
     if not d or not key or not values:
         return False
     return key in d and d[key] in values
+
+
+def get_translator(language=None):
+    system_locale = QLocale.system()
+    # Remapping the language from uiLanguages is a workaround for an annoying bug in Qt,
+    # which makes QTranslator use the system language (e.g. the language the OS was installed in),
+    # instead of the user-display language the user installed later.
+    locale = QLocale(language) if language is not None else QLocale(system_locale.uiLanguages()[0])
+    tribler_gui.logger.info("Available Tribler translations %s", AVAILABLE_TRANSLATIONS)
+    tribler_gui.logger.info(
+        "System language: %s, Tribler language: %s", system_locale.uiLanguages(), locale.uiLanguages()
+    )
+    translator = QTranslator()
+    filename = ""
+    translator.load(locale, filename, directory=TRANSLATIONS_DIR)
+    return translator

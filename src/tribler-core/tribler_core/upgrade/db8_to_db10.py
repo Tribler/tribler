@@ -2,7 +2,7 @@ import contextlib
 import datetime
 import logging
 import sqlite3
-from asyncio import get_event_loop, sleep
+from asyncio import sleep
 from collections import deque
 from time import time as now
 
@@ -153,17 +153,15 @@ class PonyToPonyMigration:
             self._logger.error(f"Error during database upgrade: {type(e).__name__}:{str(e)}")
             self.shutting_down = True
 
-    async def recreate_indexes(self, mds, base_duration):
-        await get_event_loop().run_in_executor(
-            None, self.do_recreate_indexes_safe, mds, base_duration)
+    async def recreate_indexes(self, mds: MetadataStore, base_duration):
+        await mds.run_threaded(self.do_recreate_indexes_safe, mds, base_duration)
 
     def do_recreate_indexes_safe(self, mds: MetadataStore, base_duration):
         try:
             if not self.shutting_down:
                 self.do_recreate_indexes(mds, base_duration)
-        except Exception as e:
-            self._logger.error(
-                f"Error during index re-building: {type(e).__name__}:{str(e)}")
+        except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
+            self._logger.error(f"Error during index re-building: {type(e).__name__}:{str(e)}")
             self.shutting_down = True
 
     def do_recreate_indexes(self, mds: MetadataStore, base_duration):

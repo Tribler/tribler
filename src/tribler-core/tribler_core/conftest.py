@@ -1,16 +1,18 @@
 import os
-import random
 from pathlib import Path
 from unittest.mock import Mock
 
 from aiohttp import web
 
+from ipv8.database import database_blob
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 
+from pony.orm import db_session
+
 import pytest
 
-from tribler_common.network_utils import get_random_port
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -22,26 +24,27 @@ from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
+from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 
-@pytest.fixture
-def tribler_root_dir(tmpdir):
+@pytest.fixture(name="tribler_root_dir")
+def _tribler_root_dir(tmpdir):
     return Path(tmpdir)
 
 
-@pytest.fixture
-def tribler_state_dir(tribler_root_dir):
+@pytest.fixture(name="tribler_state_dir")
+def _tribler_state_dir(tribler_root_dir):
     return tribler_root_dir / "dot.Tribler"
 
 
-@pytest.fixture
-def tribler_download_dir(tribler_root_dir):
+@pytest.fixture(name="tribler_download_dir")
+def _tribler_download_dir(tribler_root_dir):
     return tribler_root_dir / "TriblerDownloads"
 
 
-@pytest.fixture
-def tribler_config(tribler_state_dir, tribler_download_dir):
+@pytest.fixture(name="tribler_config")
+def _tribler_config(tribler_state_dir, tribler_download_dir):
     config = TriblerConfig(tribler_state_dir)
     config.set_default_destination_dir(tribler_download_dir)
     config.set_torrent_checking_enabled(False)
@@ -63,11 +66,17 @@ def tribler_config(tribler_state_dir, tribler_download_dir):
     return config
 
 
+def get_free_port():
+    return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port()
+
+
 @pytest.fixture
 def seed_config(tribler_config, tmpdir_factory):
     seed_config = tribler_config.copy()
     seed_config.set_state_dir(Path(tmpdir_factory.mktemp("seeder")))
     seed_config.set_libtorrent_enabled(True)
+    seed_config.set_libtorrent_port(get_free_port())
+    seed_config.set_tunnel_community_socks5_listen_ports([(get_free_port()) for _ in range(5)])
 
     return seed_config
 
@@ -100,14 +109,19 @@ def mock_dlmgr(session, mocker, tmpdir):
 
 
 @pytest.fixture
-def mock_dlmgr_get_download(session, mocker, tmpdir, mock_dlmgr):
+def mock_dlmgr_get_download(session, mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
     session.dlmgr.get_download = lambda _: None
 
 
-@pytest.fixture
-async def session(tribler_config):
+@pytest.fixture(name='session')
+async def _session(tribler_config):
+    tribler_config.set_api_http_port(get_free_port())
+    tribler_config.set_libtorrent_port(get_free_port())
+    tribler_config.set_tunnel_community_socks5_listen_ports([get_free_port() for _ in range(5)])
+
     session = Session(tribler_config)
     session.upgrader_enabled = False
+
     await session.start()
     yield session
     await session.shutdown()
@@ -152,48 +166,13 @@ async def channel_seeder_session(seed_config, channel_tdef):
 selected_ports = set()
 
 
-@pytest.fixture
-def free_ports():
-    """
-    Return random, free ports.
-    This is here to make sure that tests in different buckets get assigned different listen ports.
-    Also, make sure that we have no duplicates in selected ports.
-    """
-    global selected_ports
-
-    def get_ports(param):
-        rstate = random.getstate()
-        random.seed()
-        ports = []
-        for _ in range(param):
-            selected_port = get_random_port(min_port=1024, max_port=50000)
-            while selected_port in selected_ports:
-                selected_port = get_random_port(min_port=1024, max_port=50000)
-            selected_ports.add(selected_port)
-            ports.append(selected_port)
-        random.setstate(rstate)
-        return ports
-
-    return get_ports
+@pytest.fixture(name="free_port")
+def fixture_free_port():
+    return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port(start=1024, stop=50000)
 
 
 @pytest.fixture
-def free_port(free_ports):
-    return free_ports(1)[0]
-
-
-@pytest.fixture
-def free_https_port(free_ports):
-    return free_ports(1)[0]
-
-
-@pytest.fixture
-def free_file_server_port(free_ports):
-    return free_ports(2)[1]
-
-
-@pytest.fixture
-async def file_server(free_file_server_port, tmpdir):
+async def file_server(tmpdir, free_port):
     """
     Returns a file server that listens in a free port, and serves from the "serve" directory in the tmpdir.
     """
@@ -201,9 +180,9 @@ async def file_server(free_file_server_port, tmpdir):
     app.add_routes([web.static('/', Path(tmpdir))])
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
-    site = web.TCPSite(runner, 'localhost', free_file_server_port)
+    site = web.TCPSite(runner, 'localhost', free_port)
     await site.start()
-    yield free_file_server_port
+    yield free_port
     await site.stop()
 
 
@@ -249,22 +228,22 @@ def dispersy_to_pony_migrator(metadata_store):
     return migrator
 
 
-@pytest.fixture
-def enable_api(tribler_config, free_port):
+@pytest.fixture(name='enable_api')
+def _enable_api(tribler_config, free_port):
     tribler_config.set_api_http_enabled(True)
     tribler_config.set_api_http_port(free_port)
     tribler_config.set_api_retry_port(True)
 
 
 @pytest.fixture
-def enable_https(tribler_config, free_https_port):
+def enable_https(tribler_config, free_port):
     tribler_config.set_api_https_enabled(True)
-    tribler_config.set_api_https_port(free_https_port)
+    tribler_config.set_api_https_port(free_port)
     tribler_config.set_api_https_certfile(TESTS_DIR / 'data' / 'certfile.pem')
 
 
-@pytest.fixture
-def enable_chant(tribler_config):
+@pytest.fixture(name='enable_chant')
+def _enable_chant(tribler_config):
     tribler_config.set_chant_enabled(True)
 
 
@@ -311,7 +290,7 @@ def mock_lt_status():
     lt_status.total_upload = 100
     lt_status.total_download = 200
     lt_status.all_time_upload = 100
-    lt_status.all_time_download = 200
+    lt_status.total_done = 200
     lt_status.list_peers = 10
     lt_status.download_payload_rate = 10
     lt_status.upload_payload_rate = 30
@@ -329,3 +308,15 @@ def mock_lt_status():
 @pytest.fixture
 def mock_handle(mocker, test_download):
     return mocker.patch.object(test_download, 'handle')
+
+
+@pytest.fixture
+def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=unused-argument
+    num_hay = 100
+    with db_session:
+        _ = session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
+        for x in range(0, num_hay):
+            session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
+        session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(random_infohash())))
+        session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(random_infohash())))
+    return session

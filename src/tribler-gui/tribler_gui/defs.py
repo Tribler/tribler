@@ -1,6 +1,7 @@
 """
 This file contains various definitions used by the Tribler GUI.
 """
+import sys
 from collections import namedtuple
 
 DEFAULT_API_PROTOCOL = "http"
@@ -132,8 +133,6 @@ VIDEO_EXTS = [
 # Tribler shutdown grace period in milliseconds
 SHUTDOWN_WAITING_PERIOD = 120000
 
-ACTION_BUTTONS = 'action_buttons'
-
 # Torrent commit status constants
 COMMIT_STATUS_NEW = 0
 COMMIT_STATUS_TODELETE = 1
@@ -224,3 +223,6 @@ MB = 1024 * KB
 GB = 1024 * MB
 TB = 1024 * GB
 PB = 1024 * TB
+
+DARWIN = sys.platform == 'darwin'
+WINDOWS = sys.platform == 'win32'

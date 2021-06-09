@@ -1,7 +1,8 @@
 import base64
 import codecs
+import json
+from asyncio import CancelledError
 from binascii import unhexlify
-from time import time
 
 from aiohttp import ClientSession, ContentTypeError, web
 
@@ -21,14 +22,12 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities import path_util
-from tribler_core.utilities.json_util import dumps, loads
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
-
-POPULAR_TORRENTS_FRESHNESS_PERIOD = 60 * 60 * 24  # Last day
 
 
 class ChannelsEndpointBase(MetadataEndpointBase):
@@ -89,7 +88,6 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             }
         },
     )
-    # TODO: DRY it with SpecificChannel endpoint?
     async def get_channels(self, request):
         sanitized = self.sanitize_parameters(request.query)
         sanitized['subscribed'] = None if 'subscribed' not in request.query else bool(int(request.query['subscribed']))
@@ -159,10 +157,22 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         include_total = request.query.get('include_total', '')
         channel_pk, channel_id = self.get_channel_from_request(request)
         sanitized.update({"channel_pk": channel_pk, "origin_id": channel_id})
-        with db_session:
-            contents = self.session.mds.get_entries(**sanitized)
-            contents_list = [c.to_simple_dict() for c in contents]
-            total = self.session.mds.get_total_count(**sanitized) if include_total else None
+        remote = sanitized.pop("remote", None)
+
+        total = None
+
+        remote_failed = False
+        if remote:
+            try:
+                contents_list = await self.session.gigachannel_community.remote_select_channel_contents(**sanitized)
+            except (RequestTimeoutException, NoChannelSourcesException, CancelledError):
+                remote_failed = True
+
+        if not remote or remote_failed:
+            with db_session:
+                contents = self.session.mds.get_entries(**sanitized)
+                contents_list = [c.to_simple_dict() for c in contents]
+                total = self.session.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
@@ -183,13 +193,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
 
-        response_dict = loads(channel_description.json_text) if (channel_description is not None) else {}
+        response_dict = json.loads(channel_description.json_text) if (channel_description is not None) else {}
         return RESTResponse(response_dict)
 
     async def put_channel_description(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         request_parsed = await request.json()
-        updated_json_text = dumps({"description_text": request_parsed["description_text"]})
+        updated_json_text = json.dumps({"description_text": request_parsed["description_text"]})
         with db_session:
             channel_description = self.session.mds.ChannelDescription.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
@@ -200,7 +210,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 channel_description = self.session.mds.ChannelDescription(
                     public_key=channel_pk, origin_id=channel_id, json_text=updated_json_text, status=NEW
                 )
-        return RESTResponse(loads(channel_description.json_text))
+        return RESTResponse(json.loads(channel_description.json_text))
 
     async def get_channel_thumbnail(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
@@ -472,9 +482,8 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def get_popular_torrents_channel(self, request):
         sanitized = self.sanitize_parameters(request.query)
         sanitized["metadata_type"] = REGULAR_TORRENT
-        sanitized["sort_by"] = "HEALTH"
-        sanitized["self_checked_torrent"] = True
-        sanitized["health_checked_after"] = int(time()) - POPULAR_TORRENTS_FRESHNESS_PERIOD
+        sanitized["popular"] = True
+
         with db_session:
             contents = self.session.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]

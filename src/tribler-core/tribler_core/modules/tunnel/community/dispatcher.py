@@ -66,12 +66,11 @@ class TunnelDispatcher(TaskManager):
         We received some data from the SOCKS5 server (from the SOCKS5 client). This method
         selects a circuit to send this data over to the final destination.
         """
-        circuit = None
         connection = udp_connection.socksconnection
         try:
             circuit = self.con_to_cir[connection][request.destination]
         except KeyError:
-            circuit = circuit or self.select_circuit(connection, request)
+            circuit = self.select_circuit(connection, request)
             if circuit is None:
                 return False
 

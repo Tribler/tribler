@@ -2,7 +2,7 @@ import json
 
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPixmap
-from PyQt5.QtWidgets import QAbstractItemView, QAction, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QAbstractItemView, QAbstractScrollArea, QAction, QListWidget, QListWidgetItem
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
@@ -10,7 +10,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_image_path
+from tribler_gui.utilities import connect, get_image_path, tr
 
 
 def entry_to_tuple(entry):
@@ -47,6 +47,7 @@ class ChannelsMenuListWidget(QListWidget):
     def __init__(self, parent=None):
         QListWidget.__init__(self, parent=parent)
         self.base_url = "channels"
+        self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
         # Items set, used for checking changes
         self.items_set = frozenset()
@@ -58,6 +59,20 @@ class ChannelsMenuListWidget(QListWidget):
         self.foreign_channel_menu = self.create_foreign_menu()
         self.personal_channel_menu = self.create_personal_menu()
         self.setSelectionMode(QAbstractItemView.NoSelection)
+
+    def sizeHint(self):
+        count = self.count()
+        height = self.sizeHintForRow(0) * count if count else 0
+        # !!!ACHTUNG!!!
+        # !!! Qt Bug !!!
+        # Qt never shrinks QListWidget vertically to less than the size
+        # that is required to contain list three items. Even if there a no items.
+        # sizeHint is ignored completely, the real minimum size is always at least
+        # three items. Also, Qt ignores the overloaded self.maximumHeight method.
+        # So, the only way to shrink it is to call setMaximumHeight manually.
+        # Qt, I hate you! Why are you doing this to me!?
+        self.setMaximumHeight(height)
+        return QSize(self.width(), height)
 
     def contextMenuEvent(self, event):
         item = self.itemAt(event.pos())
@@ -71,18 +86,18 @@ class ChannelsMenuListWidget(QListWidget):
 
     def create_foreign_menu(self):
         menu = TriblerActionMenu(self)
-        unsubscribe_action = QAction('Unsubscribe', self)
+        unsubscribe_action = QAction(tr("Unsubscribe"), self)
         connect(unsubscribe_action.triggered, self._on_unsubscribe_action)
         menu.addAction(unsubscribe_action)
         return menu
 
     def create_personal_menu(self):
         menu = TriblerActionMenu(self)
-        delete_action = QAction('Delete channel', self)
+        delete_action = QAction(tr("Delete channel"), self)
         connect(delete_action.triggered, self._on_delete_action)
         menu.addAction(delete_action)
 
-        rename_action = QAction('Rename channel', self)
+        rename_action = QAction(tr("Rename channel"), self)
         connect(rename_action.triggered, self._trigger_name_editor)
         menu.addAction(rename_action)
         return menu
@@ -98,7 +113,7 @@ class ChannelsMenuListWidget(QListWidget):
 
     def on_query_results(self, response):
         channels = response.get('results')
-        if not channels:
+        if channels is None:
             return
         self.clear()
         for channel_info in sorted(channels, key=lambda x: x.get('state') != 'Personal'):

@@ -1,5 +1,3 @@
-import asyncio
-
 from aiohttp import web
 
 from aiohttp_apispec import docs, querystring_schema
@@ -12,6 +10,7 @@ from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import MetadataParameters
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 
 
@@ -26,6 +25,13 @@ class SearchEndpoint(MetadataEndpointBase):
     @staticmethod
     def get_uuid(parameters):
         return parameters['uuid'] if 'uuid' in parameters else None
+
+    @classmethod
+    def sanitize_parameters(cls, parameters):
+        sanitized = super().sanitize_parameters(parameters)
+        if "max_rowid" in parameters:
+            sanitized["max_rowid"] = int(parameters["max_rowid"])
+        return sanitized
 
     @docs(
         tags=['Metadata'],
@@ -71,18 +77,23 @@ class SearchEndpoint(MetadataEndpointBase):
 
         include_total = request.query.get('include_total', '')
 
+        mds: MetadataStore = self.session.mds
+
         def search_db():
             with db_session:
-                pony_query = self.session.mds.get_entries(**sanitized)
-                total = self.session.mds.get_total_count(**sanitized) if include_total else None
+                pony_query = mds.get_entries(**sanitized)
                 search_results = [r.to_simple_dict() for r in pony_query]
-            self.session.mds._db.disconnect()  # DB must be disconnected explicitly if run on a thread
-            return search_results, total
+                if include_total:
+                    total = mds.get_total_count(**sanitized)
+                    max_rowid = mds.get_max_rowid()
+                else:
+                    total = max_rowid = None
+            return search_results, total, max_rowid
 
         try:
-            search_results, total = await asyncio.get_event_loop().run_in_executor(None, search_db)
-        except Exception as e:
-            self._logger.error("Error while performing DB search: %s", e)
+            search_results, total, max_rowid = await mds.run_threaded(search_db)
+        except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
+            self._logger.error("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
         response_dict = {
@@ -92,8 +103,8 @@ class SearchEndpoint(MetadataEndpointBase):
             "sort_by": sanitized["sort_by"],
             "sort_desc": sanitized["sort_desc"],
         }
-        if total is not None:
-            response_dict.update({"total": total})
+        if include_total:
+            response_dict.update(total=total, max_rowid=max_rowid)
 
         return RESTResponse(response_dict)
 

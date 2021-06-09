@@ -11,8 +11,6 @@ from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
 from ipv8.types import Address
 
-from pony.orm import db_session
-
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.cache import BandwidthTransactionSignCache
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
@@ -80,8 +78,7 @@ class BandwidthAccountingCommunity(Community):
         :return A Future that fires when the counterparty has acknowledged the payout.
         """
         tx = self.construct_signed_transaction(peer, amount)
-        with db_session:
-            self.database.BandwidthTransaction.insert(tx)
+        self.database.BandwidthTransaction.insert(tx)
         cache = self.request_cache.add(BandwidthTransactionSignCache(self, tx))
         self.send_transaction(tx, peer.address, cache.number)
 

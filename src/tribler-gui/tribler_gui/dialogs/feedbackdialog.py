@@ -11,15 +11,12 @@ from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWi
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import (
-    TriblerNetworkRequest,
     performed_requests as tribler_performed_requests,
-    tribler_urlencode,
 )
-from tribler_gui.utilities import connect, get_ui_file_path
+from tribler_gui.utilities import connect, get_ui_file_path, tr
 
 
 class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
@@ -32,24 +29,28 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         sentry_event=None,
         error_reporting_requires_user_consent=True,
         stop_application_on_close=True,
-        additional_tags=None
+        additional_tags=None,
+        retrieve_error_message_from_stacktrace=False
     ):
         QDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 
-        self.setWindowTitle("Unexpected error")
+        self.setWindowTitle(tr("Unexpected error"))
         self.selected_item_index = 0
         self.tribler_version = tribler_version
         self.sentry_event = sentry_event
         self.scrubber = SentryScrubber()
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
+        self.retrieve_error_message_from_stacktrace = retrieve_error_message_from_stacktrace
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
-            placeholder = "What were you doing before this crash happened? " \
-                          "This information will help Tribler developers to figure out and fix the issue quickly."
+            placeholder = tr(
+                "What were you doing before this crash happened? "
+                "This information will help Tribler developers to figure out and fix the issue quickly."
+            )
             self.comments_text_edit.setPlaceholderText(placeholder)
 
         def add_item_to_info_widget(key, value):
@@ -126,7 +127,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         menu = TriblerActionMenu(self)
 
-        remove_action = QAction('Remove entry', self)
+        remove_action = QAction(tr("Remove entry"), self)
         connect(remove_action.triggered, self.on_remove_entry)
         menu.addAction(remove_action)
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
@@ -134,30 +135,9 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def on_cancel_clicked(self, checked):
         self.close()
 
-    def on_report_sent(self, response):
-        if not response:
-            return
-        if self.send_automatically:
-            self.close()
-
-        sent = response['sent']
-
-        success_text = "Successfully sent the report! Thanks for your contribution."
-        error_text = "Could not send the report! Please post this issue on GitHub."
-
-        box = QMessageBox(self.window())
-        box.setWindowTitle("Report Sent" if sent else "ERROR: Report Sending Failed")
-        box.setText(success_text if sent else error_text)
-        box.setStyleSheet("QPushButton { color: white; }")
-        box.exec_()
-
-        self.close()
-
     def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
-        self.send_report_button.setText("SENDING...")
-
-        endpoint = 'http://reporter.tribler.org/report'
+        self.send_report_button.setText(tr("SENDING..."))
 
         sys_info = ""
         sys_info_dict = defaultdict(lambda: [])
@@ -171,7 +151,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         comments = self.comments_text_edit.toPlainText()
         if len(comments) == 0:
-            comments = "Not provided"
+            comments = tr("Not provided")
         stack = self.error_text_edit.toPlainText()
 
         post_data = {
@@ -184,9 +164,23 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             "stack": stack,
         }
 
-        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags)
+        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags,
+                                  self.retrieve_error_message_from_stacktrace)
+        self.on_report_sent()
 
-        TriblerNetworkRequest(endpoint, self.on_report_sent, raw_data=tribler_urlencode(post_data), method='POST')
+    def on_report_sent(self):
+        if self.send_automatically:
+            self.close()
+
+        success_text = tr("Successfully sent the report! Thanks for your contribution.")
+
+        box = QMessageBox(self.window())
+        box.setWindowTitle(tr("Report Sent"))
+        box.setText(success_text)
+        box.setStyleSheet("QPushButton { color: white; }")
+        box.exec_()
+
+        self.close()
 
     def closeEvent(self, close_event):
         if self.stop_application_on_close:

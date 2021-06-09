@@ -1,5 +1,5 @@
 import asyncio
-from asyncio import CancelledError, get_event_loop, wait_for
+from asyncio import CancelledError, wait_for
 
 from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
@@ -12,6 +12,7 @@ from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.utilities.unicode import hexlify
 
 PROCESS_CHANNEL_DIR = 1
@@ -81,8 +82,11 @@ class GigaChannelManager(TaskManager):
             if channel is None:
                 self._logger.warning("Tried to regenerate non-existing channel %s %i", hexlify(channel_pk), channel_id)
                 return None
-            for d in self.session.dlmgr.get_downloads_by_name(channel.dirname):
-                await self.session.dlmgr.remove_download(d, remove_content=True)
+            channel_dirname = channel.dirname
+        for d in self.session.dlmgr.get_downloads_by_name(channel_dirname):
+            await self.session.dlmgr.remove_download(d, remove_content=True)
+        with db_session:
+            channel = self.session.mds.ChannelMetadata.get_for_update(public_key=channel_pk, id_=channel_id)
             regenerated = channel.consolidate_channel_torrent()
             # If the user created their channel, but added no torrents to it,
             # the channel torrent will not be created.
@@ -284,24 +288,22 @@ class GigaChannelManager(TaskManager):
         return download
 
     async def process_channel_dir_threaded(self, channel):
-        def _process_download():
-            try:
-                channel_dirname = self.session.mds.get_channel_dir_path(channel)
-                self.session.mds.process_channel_dir(
-                    channel_dirname, channel.public_key, channel.id_, external_thread=True
-                )
-            except Exception as e:
-                self._logger.error("Error when processing channel dir download: %s", e)
-                return
-            finally:
-                self.session.mds._db.disconnect()
+        mds: MetadataStore = self.session.mds
 
-        await get_event_loop().run_in_executor(None, _process_download)
+        def _process_download():
+            channel_dirname = mds.get_channel_dir_path(channel)
+            mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_, external_thread=True)
+
+        try:
+            await mds.run_threaded(_process_download)
+        except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
+            self._logger.error("Error when processing channel dir download: %s", e)
 
         with db_session:
-            channel_upd = self.session.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
-            channel_upd_dict = channel_upd.to_simple_dict()
-        self.session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED, channel_upd_dict)
+            updated_channel = self.session.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
+            channel_dict = updated_channel.to_simple_dict() if updated_channel else None
+        if updated_channel:
+            self.session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED, channel_dict)
 
     def updated_my_channel(self, tdef):
         """
@@ -323,8 +325,10 @@ class GigaChannelManager(TaskManager):
     def clean_unsubscribed_channels(self):
 
         unsubscribed_list = list(
-            self.session.mds.ChannelMetadata.select(lambda g: g.subscribed is False and g.local_version > 0)
-        )
+            self.session.mds.ChannelMetadata.select(
+                lambda g: not g.subscribed and g.local_version > 0 and g.metadata_type == CHANNEL_TORRENT
+            )
+        )  # do not delete `g.metadata_type == CHANNEL_TORRENT` condition, it is used by partial index!
 
         for channel in unsubscribed_list:
             self.channels_processing_queue[channel.infohash] = (
