@@ -6,11 +6,11 @@ import traceback
 from pathlib import Path
 
 from configobj import ConfigObj, ParseError
-
 from validate import Validator
 
+from tribler_core.config.config_registry import SPECIFICATION_REGISTRY
 from tribler_core.exceptions import InvalidConfigException
-from tribler_core.utilities.install_dir import get_lib_path
+
 
 # fmt: off
 
@@ -54,12 +54,16 @@ class TriblerConfig:
         return self.validate()
 
     @staticmethod
-    def _load(file=None, spec=get_lib_path() / 'config' / 'tribler_config.spec'):
-        return ConfigObj(
-            infile=str(file) if file else None,
-            configspec=str(spec) if spec else None,
-            default_encoding='utf-8',
-        )
+    def _load(file=None):
+        spec = []
+
+        # merge specifications
+        for specification in SPECIFICATION_REGISTRY:
+            with open(specification, encoding='utf-8') as f:
+                spec.extend(f.readlines())
+
+        file = str(file) if file else None
+        return ConfigObj(infile=file, configspec=spec, default_encoding='utf-8')
 
     def write(self, file: Path = None):
         if not file:
