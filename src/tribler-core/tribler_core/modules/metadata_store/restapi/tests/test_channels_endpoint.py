@@ -473,7 +473,7 @@ async def test_add_torrents_from_dir(enable_chant, enable_api, my_channel, state
     """
     Test whether adding torrents from a directory to your channels works
     """
-    post_params = {'torrents_dir': state_dir, 'recursive': True}
+    post_params = {'torrents_dir': str(state_dir), 'recursive': True}
     await do_request(
         session,
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
@@ -705,7 +705,8 @@ async def test_get_channel_thumbnail(enable_chant, enable_api, session):
         )
     async with ClientSession() as cl_session:
         endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail'
-        url = f'http://localhost:{session.config.get_api_http_port()}/{endpoint}'
+        port = session.config.get('api', 'http_port')
+        url = f'http://localhost:{port}/{endpoint}'
         async with cl_session.request("GET", url, ssl=False) as response:
             assert response.status == 200
             assert await response.read() == PNG_DATA

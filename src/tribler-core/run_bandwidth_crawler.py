@@ -55,15 +55,15 @@ if __name__ == "__main__":
                         action=PortAction, metavar='{0..65535}')
     args = parser.parse_args(sys.argv[1:])
 
-    config = TriblerConfig(Path(args.statedir).absolute())
-    config.load(file=Path(args.statedir) / 'triblerd.conf')
-    config.set_tunnel_community_enabled(False)
-    config.set_libtorrent_enabled(False)
-    config.set_bootstrap_enabled(False)
-    config.set_chant_enabled(False)
-    config.set_torrent_checking_enabled(False)
-    config.set_api_http_enabled(True)
-    config.set_api_http_port(args.restapi)
+    config = TriblerConfig(Path(args.statedir).absolute())\
+        .load(file=Path(args.statedir) / 'triblerd.conf')\
+        .put('tunnel_community', 'enabled', False)\
+        .put('libtorrent', 'enabled', False)\
+        .put('bootstrap', 'enabled', False)\
+        .put('chant', 'enabled', False)\
+        .put('torrent_checking', 'enabled', False)\
+        .put('api', 'http_enabled', True)\
+        .put('api', 'http_port', args.restapi)
 
     loop = get_event_loop()
     coro = start_crawler(config)

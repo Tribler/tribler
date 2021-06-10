@@ -33,7 +33,7 @@ async def test_create_torrent(enable_api, tmpdir, mock_dlmgr, session):
     response_dict = await do_request(session, 'createtorrent?download=1', expected_code=200, request_type='POST',
                                      post_data=post_data)
     assert response_dict["torrent"]
-    assert start_download.call_args[1]['config'].get_hops() == session.config.get_default_number_hops()
+    assert start_download.call_args[1]['config'].get_hops() == session.config.get('download_defaults', 'number_hops')
 
 @pytest.mark.asyncio
 async def test_create_torrent_io_error(enable_api, mock_dlmgr, session):

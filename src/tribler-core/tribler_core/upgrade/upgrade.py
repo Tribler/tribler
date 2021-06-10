@@ -115,7 +115,7 @@ class TriblerUpgrader:
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.get_chant_channels_dir()
+        channels_dir = self.session.config.get_path('chant', 'channels_dir')
         if database_path.exists():
             mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
                                 disable_sync=True, check_tables=False, db_version=12)
@@ -130,7 +130,7 @@ class TriblerUpgrader:
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.get_chant_channels_dir()
+        channels_dir = self.session.config.get_path('chant', 'channels_dir')
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
@@ -146,7 +146,7 @@ class TriblerUpgrader:
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.get_chant_channels_dir()
+        channels_dir = self.session.config.get_path('chant', 'channels_dir')
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
@@ -318,7 +318,7 @@ class TriblerUpgrader:
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.get_chant_channels_dir()
+        channels_dir = self.session.config.get_path('chant', 'channels_dir')
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
@@ -348,7 +348,7 @@ class TriblerUpgrader:
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.get_chant_channels_dir()
+        channels_dir = self.session.config.get_path('chant', 'channels_dir')
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
@@ -393,7 +393,7 @@ class TriblerUpgrader:
         state_dir = self.session.config.state_dir
         old_database_path = state_dir / 'sqlite' / 'tribler.sdb'
         new_database_path = state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.get_chant_channels_dir()
+        channels_dir = self.session.config.get_path('chant', 'channels_dir')
 
         if new_database_path.exists():
             cleanup_pony_experimental_db(str(new_database_path))

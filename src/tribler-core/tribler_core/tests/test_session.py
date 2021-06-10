@@ -112,13 +112,14 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     """
     Test whether non-testnet communities are loaded, if configured to do so.
     """
-    session.config.set_trustchain_testnet(False)
-    session.config.set_tunnel_testnet(False)
-    session.config.set_chant_testnet(False)
-    session.config.set_dht_enabled(True)
-    session.config.set_tunnel_community_enabled(True)
-    session.config.set_popularity_community_enabled(True)
-    session.config.set_chant_enabled(True)
+    session.config\
+        .put('trustchain', 'testnet', False)\
+        .put('tunnel_community', 'testnet', False)\
+        .put('chant', 'testnet', False)\
+        .put('dht', 'enabled', True)\
+        .put('tunnel_community', 'enabled', True)\
+        .put('popularity_community', 'enabled', True)\
+        .put('chant', 'enabled', True)
 
     await session.start()
 
@@ -136,14 +137,15 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     """
     Test whether testnet communities are loaded, if configured to do so.
     """
-    session.config.set_trustchain_testnet(True)
-    session.config.set_bandwidth_testnet(True)
-    session.config.set_tunnel_testnet(True)
-    session.config.set_chant_testnet(True)
-    session.config.set_dht_enabled(True)
-    session.config.set_tunnel_community_enabled(True)
-    session.config.set_popularity_community_enabled(True)
-    session.config.set_chant_enabled(True)
+    session.config\
+        .put('trustchain', 'testnet', True)\
+        .put('bandwidth_accounting', 'testnet', True)\
+        .put('tunnel_community', 'testnet', True)\
+        .put('chant', 'testnet', True)\
+        .put('dht', 'enabled', True)\
+        .put('tunnel_community', 'enabled', True)\
+        .put('popularity_community', 'enabled', True)\
+        .put('chant', 'enabled', True)
 
     await session.start()
 

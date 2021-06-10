@@ -23,12 +23,11 @@ class Service(TinyTriblerService, TaskManager):
 
     @staticmethod
     def create_config(working_dir, config_path):
-        config = TinyTriblerService.create_default_config(working_dir, config_path)
-        config.set_ipv8_enabled(True)
-        config.set_tunnel_community_enabled(True)
-        config.set_dht_enabled(True)
-        config.set_torrent_checking_enabled(False)
-        return config
+        return TinyTriblerService.create_default_config(working_dir, config_path)\
+            .put('ipv8', 'enabled', True)\
+            .put('tunnel_community', 'enabled', True)\
+            .put('dht', 'enabled', True)\
+            .put('torrent_checking', 'enabled', False)
 
     def _graceful_shutdown(self):
         task = asyncio.create_task(self.on_tribler_shutdown())

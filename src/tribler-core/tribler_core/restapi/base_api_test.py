@@ -22,7 +22,8 @@ async def do_request(tribler_session, endpoint, expected_code=200, expected_json
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
     is_url = endpoint.startswith('http://') or endpoint.startswith('https://')
-    url = endpoint if is_url else f'http://localhost:{tribler_session.config.get_api_http_port()}/{endpoint}'
+    port = tribler_session.config.get('api', 'http_port')
+    url = endpoint if is_url else f'http://localhost:{port}/{endpoint}'
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
     async with ClientSession() as session:

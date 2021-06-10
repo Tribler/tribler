@@ -38,11 +38,13 @@ class WatchFolder(TaskManager):
         self.session.notifier.notify(NTFY.WATCH_FOLDER_CORRUPT_FILE, name)
 
     def check_watch_folder(self):
-        if not self.session.config.get_watch_folder_path().is_dir():
+
+        watch_folder = self.session.config.get_path('watch_folder', 'directory')
+        if not watch_folder.is_dir():
             return
 
         # Make sure that we pass a str to os.walk
-        watch_dir = str(self.session.config.get_watch_folder_path())
+        watch_dir = str(watch_folder)
 
         for root, _, files in os.walk(watch_dir):
             root = path_util.Path(root)
@@ -65,10 +67,11 @@ class WatchFolder(TaskManager):
                     self._logger.info("Starting download from torrent file %s", name)
                     dl_config = DownloadConfig()
 
-                    anon_enabled = self.session.config.get_default_anonymity_enabled()
-                    default_num_hops = self.session.config.get_default_number_hops()
-                    destination_dir = self.session.config.get_default_destination_dir() or get_default_dest_dir()
+                    anon_enabled = self.session.config.get('download_defaults', 'anonymity_enabled')
+                    default_num_hops = self.session.config.get('download_defaults', 'number_hops')
+                    default_destination = self.session.config.get_path('download_defaults', 'saveas')
+                    destination_dir = default_destination or get_default_dest_dir()
                     dl_config.set_hops(default_num_hops if anon_enabled else 0)
-                    dl_config.set_safe_seeding(self.session.config.get_default_safeseeding_enabled())
+                    dl_config.set_safe_seeding(self.session.config.get('download_defaults', 'safeseeding_enabled'))
                     dl_config.set_dest_dir(destination_dir)
                     self.session.dlmgr.start_download(tdef=tdef, config=dl_config)

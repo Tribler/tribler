@@ -220,13 +220,10 @@ class Service(TinyTriblerService):
 
     @staticmethod
     def create_config(working_dir, config_path):
-        config = TinyTriblerService.create_default_config(working_dir, config_path)
-
-        config.set_ipv8_enabled(True)
-        config.set_ipv8_walk_interval = IPV8_WALK_INTERVAL
-
-        config.set_chant_enabled(True)
-        return config
+        return TinyTriblerService.create_default_config(working_dir, config_path)\
+            .put('ipv8', 'enabled', True)\
+            .put('ipv8', 'walk_interval', IPV8_WALK_INTERVAL)\
+            .put('chant', 'enabled', True)
 
     async def on_tribler_started(self):
         await super().on_tribler_started()

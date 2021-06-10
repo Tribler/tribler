@@ -198,11 +198,11 @@ class Download(TaskManager):
             self.pause_after_next_hashcheck = user_stopped
 
         # Limit the amount of connections if we have specified that
-        self.handle.set_max_connections(self.session.config.get_libtorrent_max_conn_download())
+        self.handle.set_max_connections(self.session.config.get('libtorrent', 'max_connections_download'))
 
         # Set limit on download for a bootstrap file
         if self.config.get_bootstrap_download():
-            self.handle.set_download_limit(self.session.config.get_bootstrap_max_download_rate())
+            self.handle.set_download_limit(self.session.config.get('bootstrap', 'max_download_rate'))
 
         # By default don't apply the IP filter
         self.apply_ip_filter(False)
@@ -399,10 +399,10 @@ class Download(TaskManager):
     def _stop_if_finished(self):
         state = self.get_state()
         if state.get_status() == DLSTATUS_SEEDING:
-            mode = self.session.config.get_seeding_mode()
+            mode = self.session.config.get('download_defaults', 'seeding_mode')
             if mode == 'never' \
-                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.session.config.get_seeding_ratio()) \
-                    or (mode == 'time' and state.get_seeding_time() >= self.session.config.get_seeding_time()):
+                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.session.config.get('download_defaults', 'seeding_ratio')) \
+                    or (mode == 'time' and state.get_seeding_time() >= self.session.config.get('download_defaults', 'seeding_time')):
                 self.stop()
 
     @check_handle()

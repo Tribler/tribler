@@ -33,7 +33,7 @@ class ApiKeyMiddleware:
             return True
         # The api key can either be in the headers or as part of the url query
         api_key = request.headers.get('X-Api-Key') or request.query.get('apikey') or request.cookies.get('api_key')
-        expected_api_key = self.config.get_api_key()
+        expected_api_key = self.config.get('api', 'key')
         return not expected_api_key or expected_api_key == api_key
 
 
@@ -103,7 +103,7 @@ class RESTManager():
             version=version_id,
             swagger_path='/docs'
         )
-        if config.get_api_key():
+        if config.get('api', 'key'):
             # Set security scheme and apply to all endpoints
             aiohttp_apispec.spec.options['security'] = [{'apiKey': []}]
             aiohttp_apispec.spec.components.security_scheme('apiKey', {'type': 'apiKey',
@@ -116,9 +116,9 @@ class RESTManager():
         self.runner = web.AppRunner(self.root_endpoint.app, access_log=None)
         await self.runner.setup()
 
-        if config.get_api_http_enabled():
-            api_port = config.get_api_http_port()
-            if not self.session.config.get_api_retry_port():
+        if config.get('api', 'http_enabled'):
+            api_port = config.get('api', 'http_port')
+            if not self.session.config.get('api', 'retry_port'):
                 self.site = web.TCPSite(self.runner, 'localhost', api_port)
                 await self.site.start()
             else:
@@ -127,17 +127,22 @@ class RESTManager():
                     try:
                         self.site = web.TCPSite(self.runner, 'localhost', api_port + bind_attempts)
                         await self.site.start()
-                        self.session.config.set_api_http_port(api_port + bind_attempts)
+                        self.session.config.put('api', 'http_port', api_port + bind_attempts)
                         break
                     except OSError:
                         bind_attempts += 1
 
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
-        if config.get_api_https_enabled():
+        if config.get('api', 'https_enabled'):
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            ssl_context.load_cert_chain(config.get_api_https_certfile())
-            self.site_https = web.TCPSite(self.runner, '0.0.0.0', config.get_api_https_port(), ssl_context=ssl_context)
+
+            cert = config.get_path('api', 'https_certfile')
+            ssl_context.load_cert_chain(cert)
+
+            port = config.get('api', 'https_port')
+            self.site_https = web.TCPSite(self.runner, '0.0.0.0', port, ssl_context=ssl_context)
+
             await self.site_https.start()
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 

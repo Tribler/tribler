@@ -6,6 +6,7 @@ import pytest
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.base_api_test import do_request
 
 
@@ -85,9 +86,9 @@ async def test_set_settings(enable_api, mock_dlmgr, session):
                                        'seeding_ratio': 3,
                                        'seeding_time': 123}}
     await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
-    assert session.config.get_seeding_mode() == 'ratio'
-    assert session.config.get_seeding_ratio() == 3
-    assert session.config.get_seeding_time() == 123
+    assert session.config.get('download_defaults', 'seeding_mode') == 'ratio'
+    assert session.config.get('download_defaults', 'seeding_ratio') == 3
+    assert session.config.get('download_defaults', 'seeding_time') == 123
 
 
 @pytest.mark.asyncio
@@ -110,5 +111,5 @@ async def test_set_rate_settings(enable_api, mock_dlmgr, session):
     }
     await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
 
-    assert session.config.get_libtorrent_max_download_rate() == MAX_LIBTORRENT_RATE_LIMIT
-    assert session.config.get_libtorrent_max_upload_rate() == MAX_LIBTORRENT_RATE_LIMIT
+    assert DownloadManager.get_libtorrent_max_download_rate(session.config) == MAX_LIBTORRENT_RATE_LIMIT
+    assert DownloadManager.get_libtorrent_max_upload_rate(session.config) == MAX_LIBTORRENT_RATE_LIMIT

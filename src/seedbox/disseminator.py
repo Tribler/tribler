@@ -165,14 +165,11 @@ class Service(TinyTriblerService):
 
     @staticmethod
     def create_config(working_dir, config_path):
-        config = TinyTriblerService.create_default_config(working_dir, config_path)
-
-        config.set_libtorrent_enabled(True)
-        config.set_ipv8_enabled(True)
-        config.set_chant_enabled(True)
-        config.set_chant_manager_enabled(True)
-
-        return config
+        return TinyTriblerService.create_default_config(working_dir, config_path)\
+            .put('libtorrent', 'enabled', True)\
+            .put('ipv8', 'enabled', True)\
+            .put('chant', 'enabled', True)\
+            .put('chant', 'manager_enabled', True)
 
     def get_torrents_from_source(self):
         return [(file, file.relative_to(self.source_dir)) for file in self.source_dir.rglob('*.torrent')]
