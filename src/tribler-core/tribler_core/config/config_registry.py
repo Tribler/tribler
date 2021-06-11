@@ -16,4 +16,3 @@ SPECIFICATION_REGISTRY = [
     _tribler_core / 'modules/resource_monitor/resource_monitor.ini',
     _tribler_core / 'modules/popularity/popularity_community.ini',
 ]
-

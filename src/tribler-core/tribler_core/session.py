@@ -238,7 +238,8 @@ class Session(TaskManager):
             if not self.api_manager:
                 return
             events = self.api_manager.get_endpoint('events')
-            core_error_reporting_requires_user_consent = self.config.get('error_handling', 'core_error_reporting_requires_user_consent')
+            core_error_reporting_requires_user_consent = self.config.get('error_handling',
+                                                                         'core_error_reporting_requires_user_consent')
             events.on_tribler_exception(text_long,
                                         sentry_event,
                                         core_error_reporting_requires_user_consent)
@@ -302,7 +303,6 @@ class Session(TaskManager):
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         chant_enabled = self.config.get('chant', 'enabled')
-        chant_manager_enabled = self.config.get('chant', 'manager_enabled')
         if chant_enabled:
             from tribler_core.modules.metadata_store.store import MetadataStore
             channels_dir = self.config.get_path('chant', 'channels_dir')
@@ -350,7 +350,7 @@ class Session(TaskManager):
                 self.config.put('tunnel_community', 'socks5_listen_ports', anon_proxy_ports)
             anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
             self._logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
-            from tribler_core.modules.libtorrent.download_manager import DownloadManager
+            from tribler_core.modules.libtorrent.download_manager import DownloadManager  # pylint: disable=import-outside-toplevel
             DownloadManager.set_anon_proxy_settings(self.config, 2, anon_proxy_settings)
             self.ipv8_start_time = timemod.time()
             self.load_ipv8_overlays()
@@ -406,6 +406,7 @@ class Session(TaskManager):
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
+        chant_manager_enabled = self.config.get('chant', 'manager_enabled')
         if chant_enabled and chant_manager_enabled and libtorrent_enabled:
             from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
             self.gigachannel_manager = GigaChannelManager(self)
@@ -513,13 +514,21 @@ class Session(TaskManager):
         self.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE, state)
 
     def chant_testnet(self):
-        return 'TESTNET' in os.environ or 'CHANT_TESTNET' in os.environ or self.config.get('chant', 'testnet')
+        return ('TESTNET' in os.environ or
+                'CHANT_TESTNET' in os.environ or
+                self.config.get('chant', 'testnet'))
 
     def trustchain_testnet(self):
-        return 'TESTNET' in os.environ or 'TRUSTCHAIN_TESTNET' in os.environ or self.config.get('trustchain', 'testnet')
+        return ('TESTNET' in os.environ or
+                'TRUSTCHAIN_TESTNET' in os.environ or
+                self.config.get('trustchain', 'testnet'))
 
     def bandwidth_testnet(self):
-        return 'TESTNET' in os.environ or 'BANDWIDTH_TESTNET' in os.environ or self.config.get('bandwidth_accounting', 'testnet')
+        return ('TESTNET' in os.environ or
+                'BANDWIDTH_TESTNET' in os.environ or
+                self.config.get('bandwidth_accounting', 'testnet'))
 
     def tunnel_testnet(self):
-        return 'TESTNET' in os.environ or 'TUNNEL_TESTNET' in os.environ or self.config.get('tunnel_community', 'testnet')
+        return ('TESTNET' in os.environ or
+                'TUNNEL_TESTNET' in os.environ or
+                self.config.get('tunnel_community', 'testnet'))

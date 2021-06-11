@@ -8,7 +8,8 @@ import pytest
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.osutils import get_home_dir
+
+# fmt: off
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
@@ -44,7 +45,7 @@ async def test_put_path_absolute(tmpdir):
     assert config.config['general']['log_dir'] == str(Path(tmpdir).parent)
 
     config.put_path(section_name='general', property_name='log_dir', value=Path('/Tribler'))
-    assert config.config['general']['log_dir'] == '/Tribler'
+    assert config.config['general']['log_dir'] == str(Path('/Tribler'))
 
 
 @pytest.mark.asyncio
@@ -70,11 +71,12 @@ async def test_get_path_absolute(tmpdir):
 
 
 @pytest.mark.asyncio
-async def test_init_without_config(tribler_config):
+async def test_init_without_config():
     """
     A newly created TriblerConfig is valid.
     """
-    tribler_config.validate()
+    config = TriblerConfig()
+    assert config.config
 
 
 @pytest.mark.asyncio
@@ -111,4 +113,3 @@ async def test_anon_proxy_settings(tribler_config):
     DownloadManager.set_anon_proxy_settings(tribler_config, proxy_type, server, auth)
     settings = DownloadManager.get_anon_proxy_settings(tribler_config)
     assert settings == [proxy_type, server, None]
-

@@ -1,7 +1,6 @@
 import asyncio
 import shutil
 from asyncio import get_event_loop, sleep
-from pathlib import Path
 from unittest.mock import Mock
 
 from _socket import getaddrinfo

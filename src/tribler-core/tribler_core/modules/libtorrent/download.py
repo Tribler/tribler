@@ -400,9 +400,11 @@ class Download(TaskManager):
         state = self.get_state()
         if state.get_status() == DLSTATUS_SEEDING:
             mode = self.session.config.get('download_defaults', 'seeding_mode')
-            if mode == 'never' \
-                    or (mode == 'ratio' and state.get_seeding_ratio() >= self.session.config.get('download_defaults', 'seeding_ratio')) \
-                    or (mode == 'time' and state.get_seeding_time() >= self.session.config.get('download_defaults', 'seeding_time')):
+            seeding_ratio = self.session.config.get('download_defaults', 'seeding_ratio')
+            seeding_time = self.session.config.get('download_defaults', 'seeding_time')
+            if (mode == 'never' or
+                    (mode == 'ratio' and state.get_seeding_ratio() >= seeding_ratio) or
+                    (mode == 'time' and state.get_seeding_time() >= seeding_time)):
                 self.stop()
 
     @check_handle()

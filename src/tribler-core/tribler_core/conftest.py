@@ -243,7 +243,9 @@ def enable_https(tribler_config, free_port):
 
 @pytest.fixture(name='enable_chant')
 def _enable_chant(tribler_config):
-    tribler_config.put('chant', 'enabled', True)
+    (tribler_config.put('chant', 'enabled', True)
+        .put('chant', 'manager_enabled', True)
+        .put('libtorrent', 'enabled', True))
 
 
 @pytest.fixture

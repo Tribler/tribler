@@ -124,7 +124,7 @@ async def load_tunnel_community_in_session(session, exitnode=False, start_lt=Fal
         # it will never recover (on Mac/Linux with Libtorrent >=1.2.0). Therefore, we start
         # libtorrent afterwards.
         tunnel_community_ports = session.config.get('tunnel_community', 'socks5_listen_ports')
-        DownloadManager.set_anon_proxy_settings(2, ("127.0.0.1", tunnel_community_ports))
+        DownloadManager.set_anon_proxy_settings(session.config, 2, ("127.0.0.1", tunnel_community_ports))
         session.dlmgr = DownloadManager(session)
         session.dlmgr.initialize()
         session.dlmgr.is_shutdown_ready = lambda: True
@@ -138,7 +138,7 @@ def start_anon_download(session, seed_session, tdef, hops=1):
     """
     Start an anonymous download in the main Tribler session.
     """
-    session.config.set_libtorrent_dht_readiness_timeout(0)
+    session.config.put('libtorrent', 'dht_readiness_timeout', 0)
     dscfg = DownloadConfig()
     dscfg.set_dest_dir(session.config.state_dir)
     dscfg.set_hops(hops)

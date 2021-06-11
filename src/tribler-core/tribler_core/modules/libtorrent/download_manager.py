@@ -173,7 +173,8 @@ class DownloadManager(TaskManager):
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
-        anon_port = self.tribler_session.config.get('libtorrent', 'anon_listen_port') or NetworkUtils().get_random_free_port()
+        anon_listen_port = self.tribler_session.config.get('libtorrent', 'anon_listen_port')
+        anon_port = anon_listen_port or NetworkUtils().get_random_free_port()
         self._logger.info(f'Anon port: {anon_port}. Dummy mode: {self.dummy_mode}. Hops: {hops}')
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
@@ -252,8 +253,9 @@ class DownloadManager(TaskManager):
             ltsession.listen_on(anon_port, anon_port + 20)
 
             rate = DownloadManager.get_libtorrent_max_upload_rate(self.tribler_session.config)
+            download_rate = DownloadManager.get_libtorrent_max_download_rate(self.tribler_session.config)
             settings = {'upload_rate_limit': rate,
-                        'download_rate_limit': DownloadManager.get_libtorrent_max_download_rate(self.tribler_session.config)}
+                        'download_rate_limit': download_rate}
             self.set_session_settings(ltsession, settings)
 
         if self.tribler_session.config.get('libtorrent', 'dht') and not self.dummy_mode:
@@ -631,7 +633,8 @@ class DownloadManager(TaskManager):
         """
         for lt_session in self.ltsessions.values():
             rate = DownloadManager.get_libtorrent_max_upload_rate(self.tribler_session.config)
-            settings = {'download_rate_limit': DownloadManager.get_libtorrent_max_download_rate(self.tribler_session.config),
+            download_rate = DownloadManager.get_libtorrent_max_download_rate(self.tribler_session.config)
+            settings = {'download_rate_limit': download_rate,
                         'upload_rate_limit': rate}
             self.set_session_settings(lt_session, settings)
 

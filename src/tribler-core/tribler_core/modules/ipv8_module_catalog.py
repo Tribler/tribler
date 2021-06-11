@@ -235,5 +235,3 @@ def register_default_launchers(loader):
     loader.set_launcher(PopularityCommunityLauncher())
     loader.set_launcher(GigaChannelCommunityLauncher())
     loader.set_launcher(GigaChannelTestnetCommunityLauncher())
-
-

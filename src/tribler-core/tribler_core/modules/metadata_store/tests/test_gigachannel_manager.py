@@ -112,7 +112,7 @@ def test_updated_my_channel(enable_chant, personal_channel, channel_manager, moc
     session.dlmgr.start_download = Mock()
     session.dlmgr.download_exists = lambda *_: False
     session.mds.channels_dir = "bla"
-    session.config.state_dir = Path(tmpdir / "foo")
+    session.config.state_dir = Path(tmpdir)
     channel_manager.updated_my_channel(tdef)
     session.dlmgr.start_download.assert_called_once()
 
@@ -330,14 +330,14 @@ initiated_download = False
 
 
 @pytest.mark.asyncio
-async def test_reject_malformed_channel(enable_chant, channel_manager, mock_dlmgr, session):
+async def test_reject_malformed_channel(enable_chant, channel_manager, mock_dlmgr, session, tmpdir):  # pylint: disable=unused-argument, redefined-outer-name
     global initiated_download
     with db_session:
         channel = session.mds.ChannelMetadata(
             title="bla1", public_key=database_blob(b'123'), infohash=random_infohash()
         )
     session.config = Mock()
-    session.config.state_dir = None
+    session.config.state_dir = tmpdir
 
     def mock_get_metainfo_bad(*args, **kwargs):
         return succeed({b'info': {b'name': b'bla'}})

@@ -16,7 +16,7 @@ from tribler_core.exceptions import InvalidConfigException
 
 
 class TriblerConfig:
-    def __init__(self, state_dir):
+    def __init__(self, state_dir=Path()):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f'Init. State dir: {state_dir}')
 
@@ -28,6 +28,8 @@ class TriblerConfig:
         self.create_empty_config()
 
     def create_empty_config(self):
+        self.logger.info('Create an empty config')
+
         self.config = TriblerConfig._load()
         self.validate()
 
@@ -46,7 +48,7 @@ class TriblerConfig:
                 raise
 
         if self.error and reset_config_on_error:
-            self.logger.info(f'Create a default config')
+            self.logger.info('Create a default config')
 
             self.config = TriblerConfig._load(None)
             self.write(file=file)
@@ -55,15 +57,15 @@ class TriblerConfig:
 
     @staticmethod
     def _load(file=None):
-        spec = []
+        full_specification = []
 
         # merge specifications
         for specification in SPECIFICATION_REGISTRY:
             with open(specification, encoding='utf-8') as f:
-                spec.extend(f.readlines())
+                full_specification.extend(f.readlines())
 
         file = str(file) if file else None
-        return ConfigObj(infile=file, configspec=spec, default_encoding='utf-8')
+        return ConfigObj(infile=file, configspec=full_specification, default_encoding='utf-8')
 
     def write(self, file: Path = None):
         if not file:
@@ -92,7 +94,7 @@ class TriblerConfig:
         return self
 
     def copy(self):
-        self.logger.info(f'Copy')
+        self.logger.info('Copy')
 
         new_config = TriblerConfig(self.state_dir)
         new_config.config = ConfigObj(infile=self.config.copy(),
@@ -116,16 +118,15 @@ class TriblerConfig:
         """Save a relative path if 'value' is relative to state_dir.
         Save an absolute path overwise.
         """
-        if value is None:
-            self.config[section_name][property_name] = None
-            return self
+        if value is not None:
+            # try to put a relative path (if it possible)
+            try:
+                value = Path(value).relative_to(self.state_dir)
+            except ValueError:  # `path` is not in the subpath of `self.state_dir`
+                pass
+            value = str(value)
 
-        path = Path(value)
-
-        if path.is_relative_to(self.state_dir):
-            path = path.relative_to(self.state_dir)
-
-        self.config[section_name][property_name] = str(path)
+        self.config[section_name][property_name] = value
         return self
 
     def get_path(self, section_name, property_name):
