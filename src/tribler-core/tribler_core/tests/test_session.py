@@ -11,7 +11,7 @@ import pytest
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.config.test_tribler_config import CONFIG_PATH
+from tribler_core.config.tests.test_tribler_config import CONFIG_PATH
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.session import IGNORED_ERRORS, Session
 from tribler_core.tests.tools.base_test import MockObject
@@ -111,13 +111,14 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     """
     Test whether non-testnet communities are loaded, if configured to do so.
     """
-    session.config.set_trustchain_testnet(False)
-    session.config.set_tunnel_testnet(False)
-    session.config.set_chant_testnet(False)
-    session.config.set_dht_enabled(True)
-    session.config.set_tunnel_community_enabled(True)
-    session.config.set_popularity_community_enabled(True)
-    session.config.set_chant_enabled(True)
+    session.config\
+        .put('trustchain', 'testnet', False)\
+        .put('tunnel_community', 'testnet', False)\
+        .put('chant', 'testnet', False)\
+        .put('dht', 'enabled', True)\
+        .put('tunnel_community', 'enabled', True)\
+        .put('popularity_community', 'enabled', True)\
+        .put('chant', 'enabled', True)
 
     await session.start()
 
@@ -135,14 +136,15 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     """
     Test whether testnet communities are loaded, if configured to do so.
     """
-    session.config.set_trustchain_testnet(True)
-    session.config.set_bandwidth_testnet(True)
-    session.config.set_tunnel_testnet(True)
-    session.config.set_chant_testnet(True)
-    session.config.set_dht_enabled(True)
-    session.config.set_tunnel_community_enabled(True)
-    session.config.set_popularity_community_enabled(True)
-    session.config.set_chant_enabled(True)
+    session.config\
+        .put('trustchain', 'testnet', True)\
+        .put('bandwidth_accounting', 'testnet', True)\
+        .put('tunnel_community', 'testnet', True)\
+        .put('chant', 'testnet', True)\
+        .put('dht', 'enabled', True)\
+        .put('tunnel_community', 'enabled', True)\
+        .put('popularity_community', 'enabled', True)\
+        .put('chant', 'enabled', True)
 
     await session.start()
 
@@ -165,7 +167,9 @@ async def test_config_error_notification(tmpdir):
 
     # 1. Setup corrupted config
     shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', tmpdir / 'triblerd.conf')
-    tribler_config = TriblerConfig(tmpdir, config_file=tmpdir / 'triblerd.conf', reset_config_on_error=True)
+
+    tribler_config = TriblerConfig(tmpdir)
+    tribler_config.load(file=tmpdir / 'triblerd.conf', reset_config_on_error=True)
 
     # 2. Initialize session with corrupted config, disable upgrader for simplicity.
     # By mocking the notifier, we can check if the notify was called with correct parameters
@@ -180,7 +184,7 @@ async def test_config_error_notification(tmpdir):
 
     # 4. There could be multiple notify calls but we are only interested in the config error
     # so using 'assert_any_call' here to check if the notify was called.
-    session.notifier.notify.assert_any_call(NTFY.REPORT_CONFIG_ERROR, tribler_config.config_error)
+    session.notifier.notify.assert_any_call(NTFY.REPORT_CONFIG_ERROR, tribler_config.error)
 
     # 5. Always shutdown the session at the end.
     await session.shutdown()

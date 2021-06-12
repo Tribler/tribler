@@ -29,7 +29,7 @@ class TrackerManager:
 
         Entries are newline separated and are supposed to be sanitized.
         """
-        blacklist_file = path_util.abspath(self._session.config.get_state_dir() / "tracker_blacklist.txt")
+        blacklist_file = path_util.abspath(self._session.config.state_dir / "tracker_blacklist.txt")
         if blacklist_file.exists():
             with open(blacklist_file) as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()

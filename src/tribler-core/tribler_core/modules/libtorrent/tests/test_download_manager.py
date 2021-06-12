@@ -9,6 +9,7 @@ from libtorrent import bencode
 import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
+from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
@@ -51,21 +52,8 @@ async def fake_dlmgr(tmpdir):
     tribler_session.state_dir = tmpdir
     tribler_session.notify_shutdown_state = lambda _: None
 
-    tribler_session.config = Mock()
-    tribler_session.config.get_libtorrent_utp = lambda: True
-    tribler_session.config.get_libtorrent_proxy_settings = lambda: (0, None, None)
-    tribler_session.config.get_anon_proxy_settings = lambda: (2, ('127.0.0.1', [1338]), None)
-    tribler_session.config.get_libtorrent_port = lambda: 1337
-    tribler_session.config.get_anon_listen_port = lambda: 1338
-    tribler_session.config.get_state_dir = lambda: tmpdir
-    tribler_session.config.set_listen_port_runtime = lambda: None
-    tribler_session.config.get_libtorrent_max_upload_rate = lambda: 100
-    tribler_session.config.get_libtorrent_max_download_rate = lambda: 120
-    tribler_session.config.get_libtorrent_dht_enabled = lambda: False
-    tribler_session.config.set_libtorrent_port_runtime = lambda _: None
-    tribler_session.config.get_libtorrent_max_conn_download = lambda: 0
-    tribler_session.config.get_default_number_hops = lambda: 1
-    tribler_session.config.get_libtorrent_dht_readiness_timeout = lambda: 0
+    tribler_session.config = TriblerConfig('')\
+        .put('libtorrent', 'dht_readiness_timeout', 0)
 
     dlmgr = DownloadManager(tribler_session)
     dlmgr.metadata_tmpdir = tmpdir
@@ -91,7 +79,7 @@ async def test_get_metainfo_valid_metadata(fake_dlmgr):
 
     fake_dlmgr.initialize()
     fake_dlmgr.start_download = Mock(return_value=download_impl)
-    fake_dlmgr.tribler_session.config.get_default_number_hops = lambda: 1
+    fake_dlmgr.tribler_session.config.put('download_defaults', 'number_hops', 1)
     fake_dlmgr.remove_download = Mock(return_value=succeed(None))
 
     assert await fake_dlmgr.get_metainfo(infohash) == metainfo
@@ -114,7 +102,7 @@ async def test_get_metainfo_add_fail(fake_dlmgr):
     fake_dlmgr.initialize()
     fake_dlmgr.start_download = Mock()
     fake_dlmgr.start_download.side_effect = TypeError
-    fake_dlmgr.tribler_session.config.get_default_number_hops = lambda: 1
+    fake_dlmgr.tribler_session.config.put('download_defaults', 'number_hops', 1)
     fake_dlmgr.remove = Mock(return_value=succeed(None))
 
     assert await fake_dlmgr.get_metainfo(infohash) is None
@@ -137,7 +125,7 @@ async def test_get_metainfo_duplicate_request(fake_dlmgr):
 
     fake_dlmgr.initialize()
     fake_dlmgr.start_download = Mock(return_value=download_impl)
-    fake_dlmgr.tribler_session.config.get_default_number_hops = lambda: 1
+    fake_dlmgr.tribler_session.config.put('download_defaults', 'number_hops', 1)
     fake_dlmgr.remove_download = Mock(return_value=succeed(None))
 
     results = await gather(fake_dlmgr.get_metainfo(infohash), fake_dlmgr.get_metainfo(infohash))

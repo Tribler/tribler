@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.ipv8_module_catalog import IPv8DiscoveryCommunityLauncher, get_hiddenimports
 
 
@@ -15,8 +16,8 @@ def test_bootstrap_override():
     Check that the DiscoveryCommunityLauncher respects the bootstrap override.
     """
     session = Mock()
-    session.config = Mock()
-    session.config.get_ipv8_bootstrap_override = Mock(return_value=("1.2.3.4", 5))
+    session.config = TriblerConfig('')\
+        .put('ipv8', 'bootstrap_override', "1.2.3.4:5")
 
     bootstrappers = IPv8DiscoveryCommunityLauncher().get_bootstrappers(session)
 

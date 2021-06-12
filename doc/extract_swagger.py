@@ -5,16 +5,19 @@ from unittest.mock import Mock
 
 import aiohttp
 
-import yaml
-
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.restapi.rest_manager import RESTManager
+
+import yaml
 
 
 async def extract_swagger(destination_fn):
     session = Mock()
-    session.config.get_api_key = lambda: 'apikey'
-    session.config.get_api_http_enabled = lambda: False
-    session.config.get_api_https_enabled = lambda: False
+    session.config = (TriblerConfig()
+                      .put('api', 'key', 'apikey')
+                      .put('api', 'http_enabled', False)
+                      .put('api', 'https_enabled', False))
+
     api_manager = RESTManager(session)
     await api_manager.start()
 

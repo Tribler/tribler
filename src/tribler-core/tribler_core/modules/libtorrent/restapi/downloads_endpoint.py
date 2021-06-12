@@ -14,6 +14,7 @@ from marshmallow.fields import Boolean, Float, Integer, List, String
 from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.stream import STREAM_PAUSE_TIME, StreamChunk
 from tribler_core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
@@ -248,8 +249,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 "anon_download": download.get_anon_mode(),
                 "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
-                "max_upload_speed": self.session.config.get_libtorrent_max_upload_rate(),
-                "max_download_speed": self.session.config.get_libtorrent_max_download_rate(),
+                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.session.config),
+                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.session.config),
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),

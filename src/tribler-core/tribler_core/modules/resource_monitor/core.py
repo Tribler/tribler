@@ -29,9 +29,9 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.session = session
         self.disk_usage_data = deque(maxlen=history_size)
 
-        self.state_dir = session.config.get_state_dir()
-        self.resource_log_file = session.config.get_log_dir() / DEFAULT_RESOURCE_FILENAME
-        self.resource_log_enabled = session.config.get_resource_monitor_enabled()
+        self.state_dir = session.config.state_dir
+        self.resource_log_file = self.session.config.get_path('general', 'log_dir') / DEFAULT_RESOURCE_FILENAME
+        self.resource_log_enabled = session.config.get('resource_monitor', 'enabled')
 
         # Setup yappi profiler
         self.profiler = YappiProfiler(self.session)
@@ -40,8 +40,8 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         """
         Start the resource monitoring by scheduling a task in TaskManager.
         """
-        self.register_task("check_resources", self.check_resources,
-                           interval=self.session.config.get_resource_monitor_poll_interval())
+        poll_interval = self.session.config.get('resource_monitor', 'poll_interval')
+        self.register_task("check_resources", self.check_resources, interval=poll_interval)
 
     async def stop(self):
         """
@@ -101,7 +101,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
                 self.session.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(str(self.session.config.get_state_dir()))
+        return psutil.disk_usage(str(self.session.config.state_dir))
 
     def get_disk_usage(self):
         """

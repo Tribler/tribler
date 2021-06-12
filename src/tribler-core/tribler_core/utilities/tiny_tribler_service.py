@@ -45,19 +45,16 @@ class TinyTriblerService:
 
     @staticmethod
     def create_default_config(working_dir, config_path):
-        config = TriblerConfig(working_dir, config_path)
-
-        config.set_tunnel_community_enabled(False)
-        config.set_popularity_community_enabled(False)
-        config.set_bootstrap_enabled(False)
-
-        config.set_torrent_checking_enabled(True)
-        config.set_ipv8_enabled(False)
-        config.set_libtorrent_enabled(False)
-        config.set_dht_enabled(False)
-        config.set_chant_enabled(False)
-
-        return config
+        return TriblerConfig(working_dir)\
+            .load(file=config_path)\
+            .put('tunnel_community', 'enabled', False)\
+            .put('popularity_community', 'enabled', False)\
+            .put('bootstrap', 'enabled', False)\
+            .put('torrent_checking', 'enabled', True)\
+            .put('ipv8', 'enabled', False)\
+            .put('libtorrent', 'enabled', False)\
+            .put('dht', 'enabled', False)\
+            .put('chant', 'enabled', False)
 
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")

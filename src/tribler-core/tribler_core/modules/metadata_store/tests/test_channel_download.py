@@ -47,7 +47,7 @@ async def test_channel_update_and_download(
 
     def hinted_start_download(tdef=None, config=None, hidden=False):
         download = original_start_download_from_tdef(tdef=tdef, config=config, hidden=hidden)
-        download.add_peer(("127.0.0.1", channel_seeder_session.config.get_libtorrent_port()))
+        download.add_peer(("127.0.0.1", channel_seeder_session.config.get('libtorrent', 'port')))
         return download
 
     session.dlmgr.start_download = hinted_start_download

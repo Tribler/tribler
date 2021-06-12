@@ -12,7 +12,6 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 
 import tribler_core
-from tribler_core.config.tribler_config import CONFIG_FILENAME
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
@@ -21,6 +20,7 @@ import tribler_gui
 from tribler_gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
+CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
@@ -72,25 +72,25 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         version_history.fork_state_directory_if_necessary()
         version_history.save_if_necessary()
         state_dir = version_history.code_version.directory
+        config = TriblerConfig(state_dir=state_dir)\
+            .load(file=state_dir / CONFIG_FILE_NAME, reset_config_on_error=True)
 
-        config = TriblerConfig(state_dir, config_file=state_dir / CONFIG_FILENAME, reset_config_on_error=True)
-
-        if not config.get_core_error_reporting_requires_user_consent():
+        if not config.get('error_handling', 'core_error_reporting_requires_user_consent'):
             SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
-        config.set_api_http_port(int(api_port))
+        config.put('api', 'http_port', int(api_port))
         # If the API key is set to an empty string, it will remain disabled
-        if config.get_api_key() not in ('', api_key):
-            config.set_api_key(api_key)
+        if config.get('api', 'key') not in ('', api_key):
+            config.put('api', 'key', api_key)
             config.write()  # Immediately write the API key so other applications can use it
-        config.set_api_http_enabled(True)
+        config.put('api', 'http_enabled', True)
 
-        priority_order = config.get_cpu_priority_order()
+        priority_order = config.get('resource_monitor', 'cpu_priority')
         set_process_priority(pid=os.getpid(), priority_order=priority_order)
 
         global trace_logger
         # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
-        trace_logger = check_and_enable_code_tracing('core', config.get_log_dir())
+        trace_logger = check_and_enable_code_tracing('core', config.get_path('general', 'log_dir'))
 
         session = Session(config, core_test_mode=core_test_mode)
 

@@ -27,7 +27,7 @@ class BandwidthCommunityCrawlerLauncher(BandwidthCommunityLauncher):
     def get_kwargs(self, session):
         settings = BandwidthAccountingSettings()
         settings.outgoing_query_interval = 5
-        database = BandwidthDatabase(session.config.get_state_dir() / "sqlite" / "bandwidth.db",
+        database = BandwidthDatabase(session.config.state_dir / "sqlite" / "bandwidth.db",
                                      session.trustchain_keypair.pub().key_to_bin(), store_all_transactions=True)
 
         return {
@@ -55,15 +55,15 @@ if __name__ == "__main__":
                         action=PortAction, metavar='{0..65535}')
     args = parser.parse_args(sys.argv[1:])
 
-    config = TriblerConfig(args.statedir, config_file=Path(args.statedir) / 'triblerd.conf')
-    config.set_state_dir(Path(args.statedir).absolute())
-    config.set_tunnel_community_enabled(False)
-    config.set_libtorrent_enabled(False)
-    config.set_bootstrap_enabled(False)
-    config.set_chant_enabled(False)
-    config.set_torrent_checking_enabled(False)
-    config.set_api_http_enabled(True)
-    config.set_api_http_port(args.restapi)
+    config = TriblerConfig(Path(args.statedir).absolute())\
+        .load(file=Path(args.statedir) / 'triblerd.conf')\
+        .put('tunnel_community', 'enabled', False)\
+        .put('libtorrent', 'enabled', False)\
+        .put('bootstrap', 'enabled', False)\
+        .put('chant', 'enabled', False)\
+        .put('torrent_checking', 'enabled', False)\
+        .put('api', 'http_enabled', True)\
+        .put('api', 'http_port', args.restapi)
 
     loop = get_event_loop()
     coro = start_crawler(config)
