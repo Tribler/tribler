@@ -141,10 +141,10 @@ coll = COLLECT(exe,
                name='tribler')
 
 app = BUNDLE(coll,
-             name='tribler.app',
+             name='Tribler.app',
              icon='build/mac/resources/tribler.icns',
              bundle_identifier='nl.tudelft.tribler',
-             info_plist={'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
+             info_plist={'CFBundleName': 'Tribler', 'CFBundleDisplayName': 'Tribler', 'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
              console=show_console)
 
 # Replace the Info.plist file on MacOS
