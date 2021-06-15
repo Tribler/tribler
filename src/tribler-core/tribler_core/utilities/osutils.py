@@ -60,7 +60,7 @@ if sys.platform == "win32":
     except ImportError:
         def get_home_dir():
             # This will always succeed on python 3.x
-            return path_util.expanduser("~")
+            return Path("~").expanduser()
 
         def get_appstate_dir():
             homedir = get_home_dir()
@@ -85,10 +85,10 @@ if sys.platform == "win32":
 elif is_android():
 
     def get_home_dir():
-        return path_util.realpath(str(os.environ['EXTERNAL_STORAGE']))
+        return Path(str(os.environ['EXTERNAL_STORAGE'])).resolve()
 
     def get_appstate_dir():
-        return path_util.realpath(os.environ['ANDROID_PRIVATE'] / '../.Tribler')
+        return Path(os.environ['ANDROID_PRIVATE'] / '../.Tribler').resolve()
 
     def get_picture_dir():
         return get_home_dir() / 'DCIM'
@@ -99,7 +99,7 @@ elif is_android():
 else:
     # linux or darwin (mac)
     def get_home_dir():
-        return path_util.expanduser("~")
+        return Path("~").expanduser()
 
     def get_appstate_dir():
         return get_home_dir()
@@ -111,18 +111,6 @@ else:
         home = get_home_dir()
         desktop = home / "Desktop"
         return desktop if desktop.exists() else home
-
-
-def get_free_space(path):
-    if not path.exists():
-        return -1
-
-    if sys.platform == 'win32':
-        from win32file import GetDiskFreeSpaceEx
-        return GetDiskFreeSpaceEx(path_util.splitdrive(path_util.abspath(path))[0])[0]
-    else:
-        data = os.statvfs(path.encode("utf-8"))
-        return data.f_bavail * data.f_frsize
 
 
 invalidwinfilenamechars = ''

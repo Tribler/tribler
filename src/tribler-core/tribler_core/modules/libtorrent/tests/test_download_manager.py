@@ -1,5 +1,4 @@
 from asyncio import Future, gather, get_event_loop, sleep
-from pathlib import Path
 from unittest.mock import Mock
 
 from ipv8.util import succeed
@@ -15,6 +14,7 @@ from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 
 

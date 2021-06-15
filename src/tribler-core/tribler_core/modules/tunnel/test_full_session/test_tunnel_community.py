@@ -2,7 +2,6 @@ import logging
 import time
 from asyncio import Future, all_tasks, sleep
 from collections import defaultdict
-from pathlib import Path
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER, PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer

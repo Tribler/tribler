@@ -1,5 +1,6 @@
 import json
 import shutil
+import urllib
 from binascii import unhexlify
 from unittest.mock import Mock
 from urllib.parse import quote_plus, unquote_plus
@@ -13,7 +14,6 @@ import pytest
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
-from tribler_core.utilities.path_util import pathname2url
 from tribler_core.utilities.unicode import hexlify
 
 SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
@@ -35,6 +35,9 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
         # assert TorrentDef.load_from_dict(metainfo_dict)
         assert 'info' in metainfo_dict
 
+    def path_to_url(path):
+        return urllib.request.pathname2url(str(path))
+
     session.dlmgr.downloads = {}
     session.dlmgr.metainfo_requests = {}
     session.dlmgr.get_channel_downloads = lambda: []
@@ -43,11 +46,11 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
     await do_request(session, 'torrentinfo', expected_code=400)
     await do_request(session, 'torrentinfo?uri=def', expected_code=400)
 
-    path = "file:" + pathname2url(TESTS_DATA_DIR / "bak_single.torrent")
+    path = "file:" + path_to_url(TESTS_DATA_DIR / "bak_single.torrent")
     verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
 
     # Corrupt file
-    path = "file:" + pathname2url(TESTS_DATA_DIR / "test_rss.xml")
+    path = "file:" + path_to_url(TESTS_DATA_DIR / "test_rss.xml")
     await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
 
     # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!

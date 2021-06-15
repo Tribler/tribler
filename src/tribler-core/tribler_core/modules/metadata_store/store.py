@@ -48,7 +48,7 @@ from tribler_core.modules.metadata_store.serialization import (
     REGULAR_TORRENT,
     read_payload_with_offset,
 )
-from tribler_core.utilities.path_util import str_path
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
@@ -428,10 +428,11 @@ class MetadataStore:
             to possibly pace down the upload process
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
-        with open(str_path(filepath), 'rb') as f:
+        path = Path.fix_win_long_file(filepath)
+        with open(path, 'rb') as f:
             serialized_data = f.read()
 
-        if str(filepath).endswith('.lz4'):
+        if path.endswith('.lz4'):
             return self.process_compressed_mdblob(serialized_data, **kwargs)
         return self.process_squashed_mdblob(serialized_data, **kwargs)
 

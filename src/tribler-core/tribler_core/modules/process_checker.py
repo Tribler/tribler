@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import psutil
 
@@ -46,7 +47,7 @@ class ProcessChecker:
         might be called before the .Tribler directory has been created.
         """
         if not self.state_directory.exists():
-            path_util.makedirs(self.state_directory)
+            Path(self.state_directory).mkdir(parents=True)
 
         # Remove the previous lock file
         self.remove_lock_file()

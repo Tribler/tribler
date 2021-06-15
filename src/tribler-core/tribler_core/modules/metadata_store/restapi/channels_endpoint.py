@@ -3,6 +3,7 @@ import codecs
 import json
 from asyncio import CancelledError
 from binascii import unhexlify
+from pathlib import Path
 
 from aiohttp import ClientSession, ContentTypeError, web
 
@@ -404,7 +405,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         torrents_dir = None
         if parameters.get('torrents_dir', None):
             torrents_dir = parameters['torrents_dir']
-            if not path_util.isabs(torrents_dir):
+            if not Path(torrents_dir).is_absolute():
                 return RESTResponse({"error": "the torrents_dir should point to a directory"}, status=HTTP_BAD_REQUEST)
 
         recursive = False

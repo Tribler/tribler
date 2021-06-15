@@ -2,6 +2,7 @@ import os
 from binascii import unhexlify
 from datetime import datetime
 from itertools import combinations
+from pathlib import Path
 from time import sleep
 from unittest.mock import Mock, patch
 
@@ -30,6 +31,8 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.utilities import path_util
 from tribler_core.utilities.random_utils import random_infohash
 
+
+# pylint: disable=protected-access
 
 @pytest.fixture
 def my_key():
@@ -463,7 +466,7 @@ def test_recursive_commit_channel_torrent(metadata_store):
     # Remove the channel and read it back from disk
     for c in chan.contents:
         c.delete()
-    my_dir = path_util.abspath(metadata_store.ChannelMetadata._channels_dir / chan.dirname)
+    my_dir = Path(metadata_store.ChannelMetadata._channels_dir / chan.dirname).absolute()
     metadata_store.process_channel_dir(my_dir, chan.public_key, chan.id_, skip_personal_metadata_payload=False)
     assert chan.num_entries == 366
 
@@ -474,7 +477,7 @@ def test_consolidate_channel_torrent(torrent_template, metadata_store):
     Test completely re-commit your channel
     """
     channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
-    my_dir = path_util.abspath(metadata_store.ChannelMetadata._channels_dir / channel.dirname)
+    my_dir = Path(metadata_store.ChannelMetadata._channels_dir / channel.dirname).absolute()
     tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
     # 1st torrent
