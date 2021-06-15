@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pathlib
 import sys
 import tempfile
@@ -5,11 +7,11 @@ import tempfile
 
 class Path(type(pathlib.Path())):
     @staticmethod
-    def mkdtemp(*args, **kwargs):
+    def mkdtemp(*args, **kwargs) -> Path:
         return Path(tempfile.mkdtemp(*args, **kwargs))
 
     @staticmethod
-    def fix_win_long_file(path):
+    def fix_win_long_file(path: Path):
         """"
         String representation of Path-like object with work around for Windows long filename issue.
         """
@@ -17,7 +19,7 @@ class Path(type(pathlib.Path())):
             return "\\\\?\\" + str(path)
         return str(path)
 
-    def normalize_to(self, base):
+    def normalize_to(self, base: str = None) -> Path:
         """Return a relative path if 'self' is relative to base.
         Return an absolute path overwise.
         """
@@ -30,13 +32,13 @@ class Path(type(pathlib.Path())):
 
         return self
 
-    def size(self):
+    def size(self) -> int:
         return self.stat().st_size
 
-    def startswith(self, text):
+    def startswith(self, text: str) -> bool:
         return self.match(f"{text}*")
 
-    def endswith(self, text):
+    def endswith(self, text: str) -> bool:
         return self.match(f"*{text}")
 
 
