@@ -15,7 +15,7 @@ from tribler_core.modules.metadata_store.serialization import (
     DELETED,
     DeletedMetadataPayload,
 )
-from tribler_core.utilities.path_util import str_path
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 
 # Metadata, torrents and channel statuses
@@ -212,11 +212,11 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             return b';'
 
         def to_file(self, filename, key=None):
-            with open(str_path(filename), 'wb') as output_file:
+            with open(Path.fix_win_long_file(filename), 'wb') as output_file:
                 output_file.write(self.serialized(key))
 
         def to_delete_file(self, filename):
-            with open(str_path(filename), 'wb') as output_file:
+            with open(Path.fix_win_long_file(filename), 'wb') as output_file:
                 output_file.write(self.serialized_delete())
 
         def sign(self, key=None):

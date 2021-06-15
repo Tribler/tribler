@@ -23,7 +23,7 @@ from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.utilities import path_util, torrent_utils
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.path_util import mkdtemp
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler_core.version import version_id
@@ -109,7 +109,7 @@ class DownloadManager(TaskManager):
             self.dht_health_manager = DHTHealthManager(dht_health_session)
 
         # Make temporary directory for metadata collecting through DHT
-        self.metadata_tmpdir = mkdtemp(suffix='tribler_metainfo_tmpdir')
+        self.metadata_tmpdir = Path.mkdtemp(suffix='tribler_metainfo_tmpdir')
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
@@ -560,6 +560,8 @@ class DownloadManager(TaskManager):
 
     @task
     async def start_handle(self, download, atp):
+        self._logger.info(f"Start handle. Download: {download}. Atp: {atp}")
+
         ltsession = self.get_session(download.config.get_hops())
         infohash = download.get_def().get_infohash()
 

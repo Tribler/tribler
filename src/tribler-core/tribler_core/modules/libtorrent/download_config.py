@@ -1,16 +1,14 @@
 import base64
-from pathlib import Path
 
 from configobj import ConfigObj
 
 from validate import Validator
 
 from tribler_core.exceptions import InvalidConfigException
-from tribler_core.utilities import path_util
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.osutils import get_home_dir
-from tribler_core.utilities.path_util import str_path
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
@@ -40,7 +38,7 @@ class DownloadConfig:
 
     @staticmethod
     def load(config_path=None):
-        return DownloadConfig(ConfigObj(infile=str_path(config_path), file_error=True,
+        return DownloadConfig(ConfigObj(infile=Path.fix_win_long_file(config_path), file_error=True,
                                         configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     def copy(self):
@@ -48,7 +46,7 @@ class DownloadConfig:
                               state_dir=self.state_dir)
 
     def write(self, filename):
-        self.config.filename = str_path(filename)
+        self.config.filename = Path.fix_win_long_file(filename)
         self.config.write()
 
     def set_dest_dir(self, path):
@@ -56,10 +54,7 @@ class DownloadConfig:
         @param path A path of a directory.
         """
         # If something is saved inside the Tribler state dir, it should use relative path
-        path = Path(path)
-        if self.state_dir:
-            base_path = self.state_dir
-            path = path_util.norm_path(base_path, path)
+        path = Path(path).normalize_to(self.state_dir)
         self.config['download_defaults']['saveas'] = str(path)
 
     def get_dest_dir(self):
@@ -71,7 +66,7 @@ class DownloadConfig:
             self.set_dest_dir(dest_dir)
 
         # This is required to support relative paths
-        if not path_util.isabs(dest_dir):
+        if not Path(dest_dir).is_absolute():
             dest_dir = self.state_dir / dest_dir
 
         return Path(dest_dir)

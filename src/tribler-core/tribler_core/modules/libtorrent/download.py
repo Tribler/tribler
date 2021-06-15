@@ -7,7 +7,6 @@ import base64
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
-from pathlib import Path
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
@@ -23,6 +22,7 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoM
 from tribler_core.utilities import path_util
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.osutils import fix_filebasename
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import bdecode_compat
@@ -111,10 +111,8 @@ class Download(TaskManager):
         return future
 
     async def wait_for_status(self, *status):
-        current = self.get_state().get_status()
-        while current not in status:
+        while self.get_state().get_status() not in status:
             await self.wait_for_alert('state_changed_alert')
-            current = self.get_state().get_status()
 
     def get_def(self):
         return self.tdef
@@ -142,7 +140,8 @@ class Download(TaskManager):
 
         self.checkpoint()
 
-        atp = {"save_path": path_util.normpath(get_default_dest_dir() / self.config.get_dest_dir()),
+        save_path = (get_default_dest_dir() / self.config.get_dest_dir()).resolve()
+        atp = {"save_path": str(save_path),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
                         | lt.add_torrent_params_flags_t.flag_duplicate_is_error
@@ -161,8 +160,10 @@ class Download(TaskManager):
             atp["ti"] = torrentinfo
             if resume_data and isinstance(resume_data, dict):
                 # Rewrite save_path as a global path, if it is given as a relative path
-                if b"save_path" in resume_data and not path_util.isabs(ensure_unicode(resume_data[b"save_path"], 'utf8')):
-                    resume_data[b"save_path"] = self.state_dir / ensure_unicode(resume_data[b"save_path"], 'utf8')
+                save_path = (ensure_unicode(resume_data[b"save_path"], 'utf8') if b"save_path" in resume_data
+                             else None)
+                if save_path and not Path(save_path).is_absolute():
+                    resume_data[b"save_path"] = str(self.state_dir / save_path)
                 atp["resume_data"] = lt.bencode(resume_data)
         else:
             atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
@@ -266,15 +267,16 @@ class Download(TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
+        self._logger.debug(f'On save resume data alert: {alert}')
         if self.checkpoint_disabled:
             return
 
         resume_data = alert.resume_data
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir and b'save_path' in resume_data:
-            save_path = path_util.abspath(resume_data[b'save_path'].decode('utf8'))
-            if save_path.exists() and path_util.issubfolder(self.state_dir, save_path):
-                resume_data[b'save_path'] = str(path_util.norm_path(self.state_dir, save_path))
+            save_path = Path(resume_data[b'save_path'].decode('utf8'))
+            if save_path.exists():
+                resume_data[b'save_path'] = str(save_path.normalize_to(self.state_dir))
 
         metainfo = {
             'infohash': self.tdef.get_infohash(),

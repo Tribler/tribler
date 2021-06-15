@@ -1,6 +1,7 @@
 import time
 
 from tribler_core.utilities import path_util
+from tribler_core.utilities.path_util import Path
 
 DATA_NONE = "None"
 
@@ -18,7 +19,7 @@ class TriblerStatistics:
         """
         Return a dictionary with some general Tribler statistics.
         """
-        db_size = path_util.getsize(str(self.session.mds.db_filename)) if self.session.mds else 0
+        db_size = Path(str(self.session.mds.db_filename)).size() if self.session.mds else 0
         stats_dict = {"db_size": db_size,
                       "num_channels": self.session.mds.get_num_channels(),
                       "num_torrents": self.session.mds.get_num_torrents()}

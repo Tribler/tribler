@@ -1,8 +1,10 @@
 from unittest.mock import Mock
 
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.torrent_utils import create_torrent_file, get_info_from_handle
+import pytest
 
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.torrent_utils import commonprefix, create_torrent_file, get_info_from_handle
 
 TORRENT_DATA_DIR = TESTS_DATA_DIR / "torrent_creation_files"
 FILE1_NAME = "file1.txt"
@@ -54,3 +56,17 @@ def test_get_info_from_handle():
 
     mock_handle.torrent_file = mock_get_torrent_file
     assert not get_info_from_handle(mock_handle)
+
+
+@pytest.mark.asyncio
+def test_commonprefix(tmpdir):
+    assert commonprefix([Path(tmpdir) / '1.txt']) == Path(tmpdir)
+
+    assert commonprefix([Path(tmpdir)]) == Path(tmpdir).parent
+
+    assert commonprefix([Path(tmpdir),
+                         Path(tmpdir)]) == Path(tmpdir).parent
+
+    assert commonprefix([Path(tmpdir) / '1' / '2.txt',
+                         Path(tmpdir) / '1' / '2' / '3' / '4.txt',
+                         Path(tmpdir) / '1.txt']) == Path(tmpdir)

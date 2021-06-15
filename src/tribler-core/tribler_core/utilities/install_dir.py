@@ -8,7 +8,7 @@ import sys
 from tribler_common.utilities import is_frozen
 
 import tribler_core
-from tribler_core.utilities.path_util import Path, str_path
+from tribler_core.utilities.path_util import Path
 
 
 def get_base_path():
@@ -18,7 +18,9 @@ def get_base_path():
         base_path = Path(sys._MEIPASS)
     except Exception:
         base_path = Path(tribler_core.__file__).parent
-    return Path(str_path(base_path))
+
+    fixed_filename = Path.fix_win_long_file(base_path)
+    return Path(fixed_filename)
 
 
 def get_lib_path():

@@ -4,7 +4,6 @@ import string
 import threading
 from binascii import unhexlify
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import patch
 
 from ipv8.database import database_blob
@@ -26,7 +25,7 @@ from tribler_core.modules.metadata_store.serialization import (
 )
 from tribler_core.modules.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.path_util import str_path
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 
 # pylint: disable=protected-access,unused-argument
@@ -187,7 +186,7 @@ def test_skip_processing_of_received_personal_channel_torrents(metadata_store):
     torrent_md.delete()
 
     channel_dir = Path(metadata_store.ChannelMetadata._channels_dir) / channel.dirname
-    assert os.listdir(str_path(channel_dir))
+    assert os.listdir(Path.fix_win_long_file(channel_dir))
 
     # By default, personal channel torrent metadata processing is skipped so there should be no torrents
     # added to the channel
