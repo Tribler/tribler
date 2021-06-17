@@ -10,6 +10,7 @@ from tribler_common.simpledefs import INFOHASH_LENGTH
 
 from tribler_core.utilities import maketorrent, path_util
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import create_torrent_file
 from tribler_core.utilities.unicode import ensure_unicode
 from tribler_core.utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
@@ -140,7 +141,7 @@ class TorrentDef:
         Add some content to the torrent file.
         :param file_path: The (absolute) path of the file to add.
         """
-        self.files_list.append(path_util.abspath(file_path))
+        self.files_list.append(Path(file_path).absolute())
 
     def set_encoding(self, enc):
         """
@@ -328,7 +329,6 @@ class TorrentDef:
         """
         if self.metainfo and b"files" in self.metainfo[b"info"]:
             # Multi-file torrent
-            join = path_util.join
             files = self.metainfo[b"info"][b"files"]
 
             for file_dict in files:
@@ -337,7 +337,7 @@ class TorrentDef:
                     # We assume that it is correctly encoded and use
                     # it normally
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
+                        yield (Path(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -349,7 +349,7 @@ class TorrentDef:
                     if b"encoding" in self.metainfo:
                         encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
-                            yield (join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
+                            yield (Path(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
                                    file_dict[b"length"])
                             continue
                         except UnicodeError:
@@ -364,7 +364,7 @@ class TorrentDef:
                     # Try to convert the names in path to unicode,
                     # assuming that it was encoded as utf-8
                     try:
-                        yield (join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                        yield (Path(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -381,7 +381,7 @@ class TorrentDef:
                                 self._logger.debug("Bad character 0x%X", char)
                                 return "?"
                             return "".join([filter_character(char) for char in name])
-                        yield (join(*[filter_characters(element) for element in file_dict[b"path"]]),
+                        yield (Path(*[filter_characters(element) for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:

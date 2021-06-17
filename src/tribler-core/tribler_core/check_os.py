@@ -9,7 +9,6 @@ import psutil
 
 from tribler_core.dependencies import _show_system_popup
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.utilities import path_util
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
@@ -210,7 +209,7 @@ def enable_fault_handler(log_dir):
         import faulthandler
 
         if not log_dir.exists():
-            path_util.makedirs(log_dir)
+            log_dir.mkdir(parents=True)
         crash_file = log_dir / "crash-report.log"
         faulthandler.enable(file=open(str(crash_file), "w"), all_threads=True)
     except ImportError:

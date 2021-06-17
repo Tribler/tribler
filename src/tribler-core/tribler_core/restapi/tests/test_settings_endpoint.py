@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -8,6 +7,7 @@ from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.utilities.path_util import Path
 
 
 def verify_settings(settings_dict):

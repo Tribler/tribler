@@ -1,7 +1,6 @@
 import os
 from binascii import unhexlify
 from datetime import datetime
-from pathlib import Path
 
 from ipv8.database import database_blob
 
@@ -28,9 +27,8 @@ from tribler_core.modules.metadata_store.serialization import (
     ChannelMetadataPayload,
     HealthItemsPayload,
 )
-from tribler_core.utilities import path_util
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.path_util import str_path
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
@@ -301,7 +299,7 @@ def define_binding(db):  # pylint: disable=R0915
                 file_path = folder / filename
                 # We only remove mdblobs and leave the rest as it is
                 if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
-                    os.unlink(str_path(file_path))
+                    os.unlink(Path.fix_win_long_file(file_path))
 
             # Channel should get a new starting timestamp and its contents should get higher timestamps
             start_timestamp = clock.tick()
@@ -332,9 +330,9 @@ def define_binding(db):  # pylint: disable=R0915
             # | create/modify entries | delete entries | <- final timestamp
 
             # Create dir for the metadata files
-            channel_dir = path_util.abspath(self._channels_dir / self.dirname)
+            channel_dir = Path(self._channels_dir / self.dirname).absolute()
             if not channel_dir.is_dir():
-                os.makedirs(str_path(channel_dir))
+                os.makedirs(Path.fix_win_long_file(channel_dir))
 
             existing_contents = sorted(channel_dir.iterdir())
             last_existing_blob_number = get_mdblob_sequence_number(existing_contents[-1]) if existing_contents else None
