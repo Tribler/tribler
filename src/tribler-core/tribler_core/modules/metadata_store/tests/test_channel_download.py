@@ -18,7 +18,7 @@ CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
 async def test_channel_update_and_download(
-    enable_chant, channel_tdef, channel_seeder_session, session
+    enable_chant, channel_tdef, channel_seeder_session, session  # pylint: disable=unused-argument
 ):
     """
     Test whether we can successfully update a channel and download the new version

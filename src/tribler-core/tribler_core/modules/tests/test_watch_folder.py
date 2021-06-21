@@ -16,8 +16,9 @@ def test_watchfolder_no_torrent_file(enable_watch_folder, mock_dlmgr, tribler_st
 
 
 def test_watchfolder_invalid_dir(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
-    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "test.txt")
-    session.config.watch_folder.put_path_as_relative('directory', tribler_state_dir / "watch" / "test.txt", tribler_state_dir)
+    file = tribler_state_dir / "watch" / "test.txt"
+    shutil.copyfile(TORRENT_UBUNTU_FILE, file)
+    session.config.watch_folder.put_path_as_relative('directory', file, tribler_state_dir)
     session.watch_folder.check_watch_folder()
     session.dlmgr.start_download.assert_not_called()
 

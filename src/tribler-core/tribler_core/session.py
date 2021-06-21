@@ -123,6 +123,8 @@ class Session(TaskManager):
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
+        self.trustchain_keypair = None
+        self.trustchain_testnet_keypair = None
 
         self.dht_community = None
         self.payout_manager = None
@@ -176,27 +178,28 @@ class Session(TaskManager):
         """
         Set parameters that depend on state_dir.
         """
-        trustchain_pairfilename = self.config.trustchain.get_path_as_absolute('ec_keypair_filename', self.config.state_dir)
+        keypair_filename = self.config.trustchain.get_path_as_absolute('ec_keypair_filename', self.config.state_dir)
         state_dir = self.config.state_dir
-        if trustchain_pairfilename.exists():
-            self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
+        if keypair_filename.exists():
+            self.trustchain_keypair = permid_module.read_keypair_trustchain(keypair_filename)
         else:
             self.trustchain_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
             trustchain_pubfilename = state_dir / 'ecpub_multichain.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
+            permid_module.save_keypair_trustchain(self.trustchain_keypair, keypair_filename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
-        trustchain_testnet_pairfilename = self.config.trustchain.get_path_as_absolute('testnet_keypair_filename', self.config.state_dir)
-        if trustchain_testnet_pairfilename.exists():
-            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(trustchain_testnet_pairfilename)
+        testnet_keypair_filename = self.config.trustchain.get_path_as_absolute('testnet_keypair_filename',
+                                                                               self.config.state_dir)
+        if testnet_keypair_filename.exists():
+            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(testnet_keypair_filename)
         else:
             self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
             trustchain_testnet_pubfilename = state_dir / 'ecpub_trustchain_testnet.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
+            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, testnet_keypair_filename)
             permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
     def unhandled_error_observer(self, loop, context):

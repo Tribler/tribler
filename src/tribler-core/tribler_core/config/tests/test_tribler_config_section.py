@@ -36,6 +36,6 @@ async def test_put_path_absolute(tmpdir):
 
 
 @pytest.mark.asyncio
-async def test_null_replacement(tmpdir):
+async def test_null_replacement():
     section = TriblerTestConfigSection(path='None')
     assert section.path is None

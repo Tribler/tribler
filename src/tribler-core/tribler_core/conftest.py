@@ -65,13 +65,13 @@ def get_free_port():
 
 @pytest.fixture
 def seed_config(tribler_config, tmpdir_factory):
-    seed_config = tribler_config.copy(deep=True)
-    seed_config.set_state_dir(tmpdir_factory.mktemp("seeder"))
-    seed_config.libtorrent.enabled = True
-    seed_config.libtorrent.port = get_free_port()
-    seed_config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
+    config = tribler_config.copy(deep=True)
+    config.set_state_dir(tmpdir_factory.mktemp("seeder"))
+    config.libtorrent.enabled = True
+    config.libtorrent.port = get_free_port()
+    config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
 
-    return seed_config
+    return config
 
 
 @pytest.fixture

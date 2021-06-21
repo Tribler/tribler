@@ -8,6 +8,7 @@ from tribler_common.network_utils import NetworkUtils
 from tribler_core.config.tribler_config_section import TriblerConfigSection
 
 
+# pylint: disable=no-self-argument
 @validator('port', 'anon_listen_port')
 def validate_port_with_minus_one(v):
     assert v is None or -1 <= v <= NetworkUtils.MAX_PORT, 'Port must be in range [-1..65535]'

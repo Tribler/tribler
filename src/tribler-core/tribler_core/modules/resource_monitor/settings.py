@@ -3,6 +3,7 @@ from pydantic import validator
 from tribler_core.config.tribler_config_section import TriblerConfigSection
 
 
+# pylint: disable=no-self-argument
 class ResourceMonitorSettings(TriblerConfigSection):
     enabled: bool = True
     cpu_priority: int = 1

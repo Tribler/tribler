@@ -45,7 +45,7 @@ class TriblerConfigSection(BaseSettings):
         return state_dir / path
 
     @root_validator(pre=True)
-    def convert_from_none_string_to_none_type(cls, values):
+    def convert_from_none_string_to_none_type(cls, values):  # pylint: disable=no-self-argument
         """After a convert operation from "ini" to "pydantic", None values
         becomes 'None' string values.
 

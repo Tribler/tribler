@@ -28,7 +28,7 @@ async def test_proxy_type_validation():
 
 
 @pytest.mark.asyncio
-async def test_proxy_type_validation():
+async def test_anon_proxy_server_ip_validation():
     settings = LibtorrentSettings(anon_proxy_server_ip='127.0.0.1')
     assert settings
 

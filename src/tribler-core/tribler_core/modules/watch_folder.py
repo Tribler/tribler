@@ -5,7 +5,6 @@ from pathlib import Path
 from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
-from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
