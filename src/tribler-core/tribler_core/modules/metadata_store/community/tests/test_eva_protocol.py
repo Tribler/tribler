@@ -375,6 +375,8 @@ class TestEVA(TestBase):
 
         self.overlay(0).eva_protocol.block_size = block_size
         self.overlay(1).eva_protocol.window_size = window_size
+        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
 
         data = os.urandom(1), os.urandom(block_size * 1024), 42
 
