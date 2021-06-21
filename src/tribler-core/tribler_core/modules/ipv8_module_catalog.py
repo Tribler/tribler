@@ -19,7 +19,7 @@ class IPv8CommunityLauncher(CommunityLauncher):
     def get_bootstrappers(self, session):
         from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
         from ipv8.configuration import DISPERSY_BOOTSTRAPPER
-        bootstrap_override = session.config.get('ipv8', 'bootstrap_override')
+        bootstrap_override = session.config.ipv8.bootstrap_override
         if bootstrap_override:
             address, port = bootstrap_override.split(':')
             return [(DispersyBootstrapper, {"ip_addresses": [(address, int(port))],
@@ -109,7 +109,7 @@ def remove_peers():
     return RemovePeers
 
 
-@precondition('session.config.get("discovery_community", "enabled")')
+@precondition('session.config.discovery_community.enabled')
 @overlay(discovery_community)
 @kwargs(max_peers='100')
 @walk_strategy(random_churn, target_peers=INFINITE)
@@ -122,6 +122,7 @@ class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
 @overlay(bandwidth_accounting_community)
 @precondition('not session.bandwidth_testnet()')
 @kwargs(database_path='session.config.state_dir / "sqlite" / "bandwidth.db"')
+@kwargs(settings='session.config.bandwidth_accounting')
 @walk_strategy(random_walk)
 @set_in_session('bandwidth_community')
 class BandwidthCommunityLauncher(IPv8CommunityLauncher):
@@ -134,7 +135,7 @@ class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher
     pass
 
 
-@precondition('session.config.get("dht", "enabled")')
+@precondition('session.config.dht.enabled')
 @set_in_session('dht_community')
 @overlay(dht_discovery_community)
 @kwargs(max_peers='60')
@@ -145,14 +146,14 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
 
 
 @after('DHTCommunityLauncher', 'BandwidthCommunityLauncher', 'BandwidthTestnetCommunityLauncher')
-@precondition('session.config.get("tunnel_community", "enabled")')
+@precondition('session.config.tunnel_community.enabled')
 @precondition('not session.tunnel_testnet()')
 @set_in_session('tunnel_community')
 @overlay(tribler_tunnel_community)
 @kwargs(bandwidth_community='session.bandwidth_community',
-        competing_slots='session.config.get("tunnel_community", "competing_slots")',
+        competing_slots='session.config.tunnel_community.competing_slots',
         ipv8='session.ipv8',
-        random_slots='session.config.get("tunnel_community", "random_slots")',
+        random_slots='session.config.tunnel_community.random_slots',
         tribler_session='session')
 @walk_strategy(random_walk)
 @walk_strategy(golden_ratio_strategy, target_peers=INFINITE)
@@ -161,7 +162,7 @@ class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
         from ipv8.dht.provider import DHTCommunityProvider
         from ipv8.messaging.anonymization.community import TunnelSettings
 
-        dht_provider = DHTCommunityProvider(session.dht_community, session.config.get('ipv8', 'port'))
+        dht_provider = DHTCommunityProvider(session.dht_community, session.config.ipv8.port)
         settings = TunnelSettings()
         settings.min_circuits = 3
         settings.max_circuits = 10
@@ -169,14 +170,14 @@ class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
         return {'dht_provider': dht_provider, 'settings': settings}
 
 
-@precondition('session.config.get("tunnel_community", "enabled")')
+@precondition('session.config.tunnel_community.enabled')
 @precondition('session.tunnel_testnet()')
 @overlay(tribler_tunnel_testnet_community)
 class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunityLauncher):
     pass
 
 
-@precondition('session.config.get("popularity_community", "enabled")')
+@precondition('session.config.popularity_community.enabled')
 @set_in_session('popularity_community')
 @overlay(popularity_community)
 @kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker')
@@ -186,7 +187,7 @@ class PopularityCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 @overlay(giga_channel_community)
-@precondition('session.config.get("chant", "enabled")')
+@precondition('session.config.chant.enabled')
 @precondition('not session.chant_testnet()')
 @set_in_session('gigachannel_community')
 @overlay(giga_channel_community)
@@ -198,7 +199,7 @@ class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
     pass
 
 
-@precondition('session.config.get("chant", "enabled")')
+@precondition('session.config.chant.enabled')
 @precondition('session.chant_testnet()')
 @overlay(giga_channel_testnet_community)
 class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLauncher):

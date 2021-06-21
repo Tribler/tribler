@@ -13,11 +13,10 @@ import yaml
 
 async def extract_swagger(destination_fn):
     session = Mock()
-    session.config = (TriblerConfig()
-                      .put('api', 'key', 'apikey')
-                      .put('api', 'http_enabled', False)
-                      .put('api', 'https_enabled', False))
-
+    session.config = TriblerConfig()
+    session.config.api.key = 'apikey'
+    session.config.api.http_enabled = False
+    session.config.api.https_enabled = False
     api_manager = RESTManager(session)
     await api_manager.start()
 

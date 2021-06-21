@@ -77,13 +77,13 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self._use_main_thread = True
 
         if self.tribler_session:
-            if self.tribler_session.config.get('tunnel_community', 'exitnode_enabled'):
+            if self.tribler_session.config.tunnel_community.exitnode_enabled:
                 self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
                 self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
                 self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
             if not socks_listen_ports:
-                socks_listen_ports = self.tribler_session.config.get('tunnel_community', 'socks5_listen_ports')
+                socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
         elif socks_listen_ports is None:
             socks_listen_ports = range(1080, 1085)
         self.logger.info(f'Socks listen ports: {socks_listen_ports}')
@@ -402,7 +402,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Make sure the circuit is marked as closing, otherwise we may end up reusing it
         circuit.close()
 
-        if self.tribler_session and self.tribler_session.config.get('libtorrent', 'enabled'):
+        if self.tribler_session and self.tribler_session.config.libtorrent.enabled:
             for download in self.tribler_session.dlmgr.get_downloads():
                 self.update_torrent(affected_peers, download)
 

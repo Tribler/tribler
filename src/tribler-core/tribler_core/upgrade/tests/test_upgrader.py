@@ -40,7 +40,7 @@ async def test_upgrade_72_to_pony(upgrader, session):
     shutil.copyfile(old_db_sample, old_database_path)
 
     await upgrader.run()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair, db_version=6)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 24
@@ -58,7 +58,7 @@ def test_upgrade_pony_db_6to7(upgrader, session):
     shutil.copyfile(old_db_sample, old_database_path)
 
     upgrader.upgrade_pony_db_6to7()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=7)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
@@ -77,7 +77,7 @@ def test_upgrade_pony_db_7to8(upgrader, session):
     shutil.copyfile(old_db_sample, old_database_path)
 
     upgrader.upgrade_pony_db_7to8()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=8)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 8
@@ -96,7 +96,7 @@ async def test_upgrade_pony_db_complete(upgrader, session):
     shutil.copyfile(old_db_sample, old_database_path)
 
     await upgrader.run()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair)
     db = mds._db  # pylint: disable=protected-access
 
@@ -139,7 +139,7 @@ async def test_skip_upgrade_72_to_pony(upgrader, session):
     state_dir = session.config.state_dir
     old_database_path = state_dir / 'sqlite' / 'tribler.sdb'
     new_database_path = state_dir / 'sqlite' / 'metadata.db'
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
 
     shutil.copyfile(old_db_sample, old_database_path)
 
@@ -181,7 +181,7 @@ async def test_upgrade_pony_8to10(upgrader, session):
     upgrader.upgrade_pony_db_6to7()
     upgrader.upgrade_pony_db_7to8()
     await upgrader.upgrade_pony_db_8to10()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 10
@@ -195,7 +195,7 @@ async def test_upgrade_pony_10to11(upgrader, session):
     shutil.copyfile(old_db_sample, database_path)
 
     upgrader.upgrade_pony_db_10to11()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
@@ -209,7 +209,7 @@ def test_upgrade_pony11to12(upgrader, session):
     shutil.copyfile(old_db_sample, database_path)
 
     upgrader.upgrade_pony_db_11to12()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
@@ -225,7 +225,7 @@ def test_upgrade_pony12to13(upgrader, session):
     shutil.copyfile(old_db_sample, database_path)
 
     upgrader.upgrade_pony_db_12to13()
-    channels_dir = session.config.get_path('chant', 'channels_dir')
+    channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
     mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=12)
     db = mds._db  # pylint: disable=protected-access
 

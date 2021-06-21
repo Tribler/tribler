@@ -18,7 +18,7 @@ CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
 async def test_channel_update_and_download(
-    enable_chant, enable_libtorrent, channel_tdef, channel_seeder_session, session
+    enable_chant, channel_tdef, channel_seeder_session, session
 ):
     """
     Test whether we can successfully update a channel and download the new version
@@ -47,7 +47,7 @@ async def test_channel_update_and_download(
 
     def hinted_start_download(tdef=None, config=None, hidden=False):
         download = original_start_download_from_tdef(tdef=tdef, config=config, hidden=hidden)
-        download.add_peer(("127.0.0.1", channel_seeder_session.config.get('libtorrent', 'port')))
+        download.add_peer(("127.0.0.1", channel_seeder_session.config.libtorrent.port))
         return download
 
     session.dlmgr.start_download = hinted_start_download

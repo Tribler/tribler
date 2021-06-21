@@ -72,25 +72,25 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         version_history.fork_state_directory_if_necessary()
         version_history.save_if_necessary()
         state_dir = version_history.code_version.directory
-        config = TriblerConfig(state_dir=state_dir)\
-            .load(file=state_dir / CONFIG_FILE_NAME, reset_config_on_error=True)
+        config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
 
-        if not config.get('error_handling', 'core_error_reporting_requires_user_consent'):
+        if not config.error_handling.core_error_reporting_requires_user_consent:
             SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
-        config.put('api', 'http_port', int(api_port))
+        config.api.http_port = int(api_port)
         # If the API key is set to an empty string, it will remain disabled
-        if config.get('api', 'key') not in ('', api_key):
-            config.put('api', 'key', api_key)
+        if config.api.key not in ('', api_key):
+            config.api.key = api_key
             config.write()  # Immediately write the API key so other applications can use it
-        config.put('api', 'http_enabled', True)
+        config.api.http_enabled = True
 
-        priority_order = config.get('resource_monitor', 'cpu_priority')
+        priority_order = config.resource_monitor.cpu_priority
         set_process_priority(pid=os.getpid(), priority_order=priority_order)
 
         global trace_logger
         # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
-        trace_logger = check_and_enable_code_tracing('core', config.get_path('general', 'log_dir'))
+        log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
+        trace_logger = check_and_enable_code_tracing('core', log_dir)
 
         session = Session(config, core_test_mode=core_test_mode)
 

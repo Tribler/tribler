@@ -249,7 +249,8 @@ class DebugEndpoint(RESTEndpoint):
 
         # Get the location of log file
         param_process = request.query.get('process', 'core')
-        log_file_name = self.session.config.get_path('general', 'log_dir') / f'tribler-{param_process}-info.log'
+        config = self.session.config
+        log_file_name = config.general.get_path_as_absolute('log_dir', config.state_dir) / f'tribler-{param_process}-info.log'
 
         # If the log file is not present in the versioned state directory, try root state directory location
         if not log_file_name.exists():
@@ -315,7 +316,7 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_profiler_state(self, _):
-        monitor_enabled = self.session.config.get('resource_monitor', 'enabled')
+        monitor_enabled = self.session.config.resource_monitor.enabled
         state = "STARTED" if (monitor_enabled and self.session.resource_monitor.profiler.is_running()) else "STOPPED"
         return RESTResponse({"state": state})
 

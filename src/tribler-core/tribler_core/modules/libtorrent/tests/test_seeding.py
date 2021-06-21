@@ -20,7 +20,7 @@ async def test_seeding(enable_libtorrent, video_seeder_session, video_tdef, sess
     dscfg = DownloadConfig()
     dscfg.set_dest_dir(tmpdir)
     download = session.dlmgr.start_download(tdef=video_tdef, config=dscfg)
-    download.add_peer(("127.0.0.1", video_seeder_session.config.get('libtorrent', 'port')))
+    download.add_peer(("127.0.0.1", video_seeder_session.config.libtorrent.port))
     await download.wait_for_status(DLSTATUS_SEEDING)
 
     with open(tmpdir / "video.avi", "rb") as f:

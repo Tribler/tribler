@@ -17,7 +17,7 @@ messages_to_wait_for = set()
 
 async def open_events_socket(session, connected_future, events_future):
     global messages_to_wait_for
-    port = session.config.get('api', 'http_port')
+    port = session.config.api.http_port
     url = f'http://localhost:{port}/events'
     headers = {'User-Agent': 'Tribler ' + version_id}
 

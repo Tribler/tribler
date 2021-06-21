@@ -705,8 +705,7 @@ async def test_get_channel_thumbnail(enable_chant, enable_api, session):
         )
     async with ClientSession() as cl_session:
         endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail'
-        port = session.config.get('api', 'http_port')
-        url = f'http://localhost:{port}/{endpoint}'
+        url = f'http://localhost:{session.config.api.http_port}/{endpoint}'
         async with cl_session.request("GET", url, ssl=False) as response:
             assert response.status == 200
             assert await response.read() == PNG_DATA

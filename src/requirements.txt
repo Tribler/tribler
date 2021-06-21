@@ -21,4 +21,4 @@ Pillow
 netifaces
 pyqtgraph
 yappi
-
+pydantic

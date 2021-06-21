@@ -1,153 +1,155 @@
-"""
-Configuration object for the Tribler Core.
-"""
+from __future__ import annotations
+
 import logging
 import traceback
 from pathlib import Path
+from typing import Optional
 
-from configobj import ConfigObj, ParseError
-from validate import Validator
+import configobj
+from configobj import ParseError
+from pydantic import BaseSettings, Extra, PrivateAttr
 
-from tribler_core.config.config_registry import SPECIFICATION_REGISTRY
-from tribler_core.exceptions import InvalidConfigException
+from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
+from tribler_core.modules.metadata_store.settings import ChantSettings
+from tribler_core.modules.popularity.settings import PopularityCommunitySettings
+from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
+from tribler_core.modules.settings import BootstrapSettings, DHTSettings, DiscoveryCommunitySettings, Ipv8Settings, \
+    TrustchainSettings, WatchFolderSettings
+from tribler_core.modules.torrent_checker.settings import TorrentCheckerSettings
+from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
+from tribler_core.restapi.settings import APISettings
+from tribler_core.settings import ErrorHandlingSettings, GeneralSettings
+
+logger = logging.getLogger('Tribler Config')
 
 
-# fmt: off
+class TriblerConfigSections(BaseSettings):
+    """ Base Tribler config class that contains section listing
+
+    A corresponding class that contains methods (load, save etc.) see below.
+    """
+
+    class Config:
+        extra = Extra.ignore  # ignore extra attributes during model initialization
+
+    general: GeneralSettings = GeneralSettings()
+    error_handling: ErrorHandlingSettings = ErrorHandlingSettings()
+    tunnel_community: TunnelCommunitySettings = TunnelCommunitySettings()
+    bandwidth_accounting: BandwidthAccountingSettings = BandwidthAccountingSettings()
+    bootstrap: BootstrapSettings = BootstrapSettings()
+    ipv8: Ipv8Settings = Ipv8Settings()
+    discovery_community: DiscoveryCommunitySettings = DiscoveryCommunitySettings()
+    dht: DHTSettings = DHTSettings()
+    trustchain: TrustchainSettings = TrustchainSettings()
+    watch_folder: WatchFolderSettings = WatchFolderSettings()
+    chant: ChantSettings = ChantSettings()
+    torrent_checking: TorrentCheckerSettings = TorrentCheckerSettings()
+    libtorrent: LibtorrentSettings = LibtorrentSettings()
+    download_defaults: DownloadDefaultsSettings = DownloadDefaultsSettings()
+    api: APISettings = APISettings()
+    resource_monitor: ResourceMonitorSettings = ResourceMonitorSettings()
+    popularity_community: PopularityCommunitySettings = PopularityCommunitySettings()
 
 
-class TriblerConfig:
-    def __init__(self, state_dir=Path()):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.info(f'Init. State dir: {state_dir}')
+class TriblerConfig(TriblerConfigSections):
+    """ Tribler config class that contains common logic for manipulating with a config.
+    """
+    _state_dir: Path = PrivateAttr()
+    _file: Optional[Path] = PrivateAttr()  # a last file saved during write-load operations
+    _error: Optional[Exception] = PrivateAttr()
 
-        self.error = None
-        self.file = None
-        self.config = None
+    def __init__(self, *args, state_dir: Path = None, file: Path = None, error: str = None, **kwargs):
+        """ Constructor
 
-        self.state_dir = state_dir
-        self.create_empty_config()
+        Args:
+            *args: Arguments that will be passed to the `BaseSettings` constructor.
+            state_dir: Tribler's state dir. Will be used for calculated relative paths.
+            file: A config file.
+            error: A last error.
+            **kwargs: Arguments that will be passed to the `BaseSettings` constructor.
+        """
+        super().__init__(*args, **kwargs)
+        logger.info(f'Init. State dir: {state_dir}. File: {file}')
 
-    def create_empty_config(self):
-        self.logger.info('Create an empty config')
+        self.set_state_dir(state_dir)
+        self.set_file(file)
 
-        self.config = TriblerConfig._load()
-        self.validate()
-
-    def load(self, file: Path = None, reset_config_on_error=False):
-        self.logger.info(f'Load: {file}. Reset config on error: {reset_config_on_error}')
-        self.file = file
-        self.error = None
-
-        try:
-            self.config = TriblerConfig._load(file)
-        except ParseError:
-            self.error = traceback.format_exc()
-            self.logger.warning(f'Error: {self.error}')
-
-            if not reset_config_on_error:
-                raise
-
-        if self.error and reset_config_on_error:
-            self.logger.info('Create a default config')
-
-            self.config = TriblerConfig._load(None)
-            self.write(file=file)
-
-        return self.validate()
+        self._error = error
 
     @staticmethod
-    def _load(file=None):
-        full_specification = []
+    def load(file: Path, state_dir: Path, reset_config_on_error: bool = False) -> TriblerConfig:
+        """ Load a config from a file
 
-        # merge specifications
-        for specification in SPECIFICATION_REGISTRY:
-            with open(specification, encoding='utf-8') as f:
-                full_specification.extend(f.readlines())
+        Args:
+            file: A path to the config file.
+            state_dir: A Tribler's state dir.
+            reset_config_on_error: Ф flag that shows whether it is necessary to
+                create a new config in case of an error.
 
-        file = str(file) if file else None
-        return ConfigObj(infile=file, configspec=full_specification, default_encoding='utf-8')
+        Returns: `TriblerConfig` instance.
+        """
+        logger.info(f'Load: {file}. State dir: {state_dir}. Reset config on error: {reset_config_on_error}')
+        error = None
+        config = None
+
+        try:
+            dictionary = configobj.ConfigObj(infile=str(file))
+            config = TriblerConfig.parse_obj(dictionary)
+            config.set_state_dir(state_dir)
+            config.set_file(file)
+        except (ParseError, ValueError) as e:
+            logger.error(e)
+            if not reset_config_on_error:
+                raise
+            error = traceback.format_exc()
+
+        if error:
+            logger.info('Resetting a config')
+            config = TriblerConfig(state_dir=state_dir, file=file, error=error)
+            config.write(file=file)
+
+        return config
 
     def write(self, file: Path = None):
-        if not file:
-            file = self.file  # try to remember a file from the last load
+        """Save a config to a file
 
-        self.logger.info(f'Write: {file}')
+        Args:
+            file: Path to the config. In case it is omitted, last file will be used.
+        """
+        if not file:
+            file = self._file  # try to remember a file from the last load-write
+
+        logger.info(f'Write: {file}')
+        self._file = file
 
         if not file:
             return
 
         parent = Path(file).parent
         if not parent.exists():
-            self.logger.info(f'Create folder: {parent}')
+            logger.info(f'Create folder: {parent}')
             parent.mkdir(parents=True)
 
-        self.config.filename = file
-        self.config.write()
-
-    def validate(self):
-        result = self.config.validate(Validator())
-        self.logger.info(f'Validation result: {result}')
-
-        if result is not True:
-            raise InvalidConfigException(msg=f"TriblerConfig is invalid: {str(result)}")
-
-        return self
-
-    def copy(self):
-        self.logger.info('Copy')
-
-        new_config = TriblerConfig(self.state_dir)
-        new_config.config = ConfigObj(infile=self.config.copy(),
-                                      configspec=self.config.configspec,
-                                      default_encoding='utf-8')
-
-        for section in self.config:
-            new_config.config[section] = self.config[section].copy()
-
-        return new_config
+        dictionary = self.dict(exclude_defaults=True)
+        conf = configobj.ConfigObj(dictionary)
+        conf.filename = str(file)
+        conf.write()
 
     @property
-    def state_dir(self):
+    def error(self) -> Optional[str]:
+        return self._error
+
+    @property
+    def state_dir(self) -> Optional[Path]:
         return self._state_dir
 
-    @state_dir.setter
-    def state_dir(self, value):
-        self._state_dir = Path(value)
+    def set_state_dir(self, val):
+        self._state_dir = Path(val) if val is not None else None
 
-    def put_path(self, section_name, property_name, value):
-        """Save a relative path if 'value' is relative to state_dir.
-        Save an absolute path overwise.
-        """
-        if value is not None:
-            # try to put a relative path (if it possible)
-            try:
-                value = Path(value).relative_to(self.state_dir)
-            except ValueError:  # `path` is not in the subpath of `self.state_dir`
-                pass
-            value = str(value)
+    @property
+    def file(self) -> Optional[Path]:
+        return self._file
 
-        self.config[section_name][property_name] = value
-        return self
-
-    def get_path(self, section_name, property_name):
-        """Get a path.
-
-        Returns: an absolute path.
-        """
-        value = self.config[section_name][property_name]
-        if value is None:
-            return None
-
-        path = Path(self.config[section_name][property_name])
-
-        if path.is_absolute():
-            return path
-
-        return self.state_dir / path
-
-    def put(self, section_name, property_name, value):
-        self.config[section_name][property_name] = value
-        return self
-
-    def get(self, section_name, property_name):
-        return self.config[section_name][property_name]
+    def set_file(self, val):
+        self._file = Path(val) if val is not None else None

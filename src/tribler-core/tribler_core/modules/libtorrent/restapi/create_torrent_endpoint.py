@@ -108,7 +108,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         if 'download' in request.query and request.query['download'] and request.query['download'] == "1":
             download_config = DownloadConfig()
             download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
-            download_config.set_hops(self.session.config.get('download_defaults', 'number_hops'))
+            download_config.set_hops(self.session.config.download_defaults.number_hops)
             try:
                 self.session.dlmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
             except DuplicateDownloadException:

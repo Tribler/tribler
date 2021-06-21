@@ -14,6 +14,7 @@ import pytest
 
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
+from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -27,7 +28,7 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 class ProxyFactory:
 
-    def __init__(self, tribler_config, tmpdir_factory):
+    def __init__(self, tribler_config: TriblerConfig, tmpdir_factory):
         self.base_tribler_config = tribler_config
         self.tmpdir_factory = tmpdir_factory
         self.sessions = []
@@ -35,12 +36,11 @@ class ProxyFactory:
     async def get(self, exitnode=False):
         ports = [NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port() for _ in range(5)]
 
-        config = self.base_tribler_config\
-            .copy()\
-            .put('libtorrent', 'enabled', False)\
-            .put('tunnel_community', 'socks5_listen_ports', ports)
+        config = self.base_tribler_config.copy(deep=True)
 
-        config.state_dir = self.tmpdir_factory.mktemp("session")
+        config.libtorrent.enabled = True
+        config.tunnel_community.socks5_listen_ports = ports
+        config.set_state_dir(self.tmpdir_factory.mktemp("session"))
 
         session = Session(config)
         session.upgrader_enabled = False
@@ -69,7 +69,7 @@ async def proxy_factory(tribler_config, tmpdir_factory):
 
 @pytest.fixture
 async def hidden_seeder_session(seed_config, video_tdef):
-    seed_config.put('libtorrent', 'enabled', False)
+    seed_config.libtorrent.enabled = False
     seeder_session = Session(seed_config)
     seeder_session.upgrader_enabled = False
     await seeder_session.start()
@@ -105,7 +105,7 @@ async def load_tunnel_community_in_session(session, exitnode=False, start_lt=Fal
     Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
     used in Tribler.
     """
-    session.config.put('tunnel_community', 'exitnode_enabled', exitnode)
+    session.config.tunnel_community.exitnode_enabled = exitnode
 
     mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, settings={"max_circuits": 1}, tribler_session=session)
     session.ipv8 = mock_ipv8
@@ -122,7 +122,7 @@ async def load_tunnel_community_in_session(session, exitnode=False, start_lt=Fal
         # If libtorrent tries to connect to the socks5 servers before they are loaded,
         # it will never recover (on Mac/Linux with Libtorrent >=1.2.0). Therefore, we start
         # libtorrent afterwards.
-        tunnel_community_ports = session.config.get('tunnel_community', 'socks5_listen_ports')
+        tunnel_community_ports = session.config.tunnel_community.socks5_listen_ports
         DownloadManager.set_anon_proxy_settings(session.config, 2, ("127.0.0.1", tunnel_community_ports))
         session.dlmgr = DownloadManager(session)
         session.dlmgr.initialize()
@@ -137,12 +137,12 @@ def start_anon_download(session, seed_session, tdef, hops=1):
     """
     Start an anonymous download in the main Tribler session.
     """
-    session.config.put('libtorrent', 'dht_readiness_timeout', 0)
+    session.config.libtorrent.dht_readiness_timeout = 0
     dscfg = DownloadConfig()
     dscfg.set_dest_dir(session.config.state_dir)
     dscfg.set_hops(hops)
     download = session.dlmgr.start_download(tdef=tdef, config=dscfg)
-    port = seed_session.config.get('libtorrent', 'port')
+    port = seed_session.config.libtorrent.port
     session.tunnel_community.bittorrent_peers[download] = [("127.0.0.1", port)]
     return download
 

@@ -111,14 +111,13 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     """
     Test whether non-testnet communities are loaded, if configured to do so.
     """
-    session.config\
-        .put('trustchain', 'testnet', False)\
-        .put('tunnel_community', 'testnet', False)\
-        .put('chant', 'testnet', False)\
-        .put('dht', 'enabled', True)\
-        .put('tunnel_community', 'enabled', True)\
-        .put('popularity_community', 'enabled', True)\
-        .put('chant', 'enabled', True)
+    session.config.trustchain.testnet = False
+    session.config.tunnel_community.testnet = False
+    session.config.chant.testnet = False
+    session.config.dht.enabled = True
+    session.config.tunnel_community.enabled = True
+    session.config.popularity_community.enabled = True
+    session.config.chant.enabled = True
 
     await session.start()
 
@@ -136,15 +135,14 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     """
     Test whether testnet communities are loaded, if configured to do so.
     """
-    session.config\
-        .put('trustchain', 'testnet', True)\
-        .put('bandwidth_accounting', 'testnet', True)\
-        .put('tunnel_community', 'testnet', True)\
-        .put('chant', 'testnet', True)\
-        .put('dht', 'enabled', True)\
-        .put('tunnel_community', 'enabled', True)\
-        .put('popularity_community', 'enabled', True)\
-        .put('chant', 'enabled', True)
+    session.config.trustchain.testnet = True
+    session.config.bandwidth_accounting.testnet = True
+    session.config.tunnel_community.testnet = True
+    session.config.chant.testnet = True
+    session.config.dht.enabled = True
+    session.config.tunnel_community.enabled = True
+    session.config.popularity_community.enabled = True
+    session.config.chant.enabled = True
 
     await session.start()
 
@@ -168,8 +166,7 @@ async def test_config_error_notification(tmpdir):
     # 1. Setup corrupted config
     shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', tmpdir / 'triblerd.conf')
 
-    tribler_config = TriblerConfig(tmpdir)
-    tribler_config.load(file=tmpdir / 'triblerd.conf', reset_config_on_error=True)
+    tribler_config = TriblerConfig.load(file=tmpdir / 'triblerd.conf', state_dir=tmpdir, reset_config_on_error=True)
 
     # 2. Initialize session with corrupted config, disable upgrader for simplicity.
     # By mocking the notifier, we can check if the notify was called with correct parameters
