@@ -12,6 +12,7 @@ from pony.orm import db_session
 import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
+from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
@@ -112,7 +113,7 @@ def test_updated_my_channel(enable_chant, personal_channel, channel_manager, moc
     session.dlmgr.start_download = Mock()
     session.dlmgr.download_exists = lambda *_: False
     session.mds.channels_dir = "bla"
-    session.config.state_dir = Path(tmpdir)
+    session.config.set_state_dir(Path(tmpdir))
     channel_manager.updated_my_channel(tdef)
     session.dlmgr.start_download.assert_called_once()
 
@@ -336,8 +337,7 @@ async def test_reject_malformed_channel(enable_chant, channel_manager, mock_dlmg
         channel = session.mds.ChannelMetadata(
             title="bla1", public_key=database_blob(b'123'), infohash=random_infohash()
         )
-    session.config = Mock()
-    session.config.state_dir = tmpdir
+    session.config = TriblerConfig(state_dir=tmpdir)
 
     def mock_get_metainfo_bad(*args, **kwargs):
         return succeed({b'info': {b'name': b'bla'}})

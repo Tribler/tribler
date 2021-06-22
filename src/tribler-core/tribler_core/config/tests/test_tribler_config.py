@@ -1,81 +1,88 @@
 import shutil
 
-from configobj import ParseError
-
 import pytest
+from configobj import ParseError
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 
-# fmt: off
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 
-@pytest.mark.asyncio
-async def test_copy(tribler_config):
-    tribler_config.put('api', 'http_port', 42)
-
-    cloned = tribler_config.copy()
-    assert cloned.get('api', 'http_port') == 42
+# fmt: off
 
 
 @pytest.mark.asyncio
-async def test_put_path_relative(tmpdir):
+async def test_create(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
-
-    # put correct path
-    config.put_path(section_name='general', property_name='log_dir', value=Path(tmpdir))
-    assert config.config['general']['log_dir'] == '.'
-
-    config.put_path(section_name='general', property_name='log_dir', value=Path(tmpdir) / '1')
-    assert config.config['general']['log_dir'] == '1'
+    assert config
+    assert config.state_dir == Path(tmpdir)
 
 
 @pytest.mark.asyncio
-async def test_put_path_absolute(tmpdir):
+async def test_base_getters_and_setters(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
+    assert config.state_dir == Path(tmpdir)
 
-    config.put_path(section_name='general', property_name='log_dir', value=None)
-    assert not config.config['general']['log_dir']
+    config.set_state_dir('.')
+    assert config.state_dir == Path('.')
 
-    config.put_path(section_name='general', property_name='log_dir', value=Path(tmpdir).parent)
-    assert config.config['general']['log_dir'] == str(Path(tmpdir).parent)
 
-    config.put_path(section_name='general', property_name='log_dir', value=Path('/Tribler'))
-    assert config.config['general']['log_dir'] == str(Path('/Tribler'))
+@pytest.mark.asyncio
+async def test_load_write(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+    filename = 'test_read_write.ini'
+
+    config.general.log_dir = '1'
+    config.general.version_checker_enabled = False
+    config.libtorrent.port = None
+    config.libtorrent.proxy_type = 2
+    config.libtorrent.anon_proxy_server_ports = ['3'] * 5
+
+    assert not config.file
+    config.write(tmpdir / filename)
+    assert config.file == tmpdir / filename
+
+    config = TriblerConfig.load(file=tmpdir / filename, state_dir=tmpdir)
+    assert config.general.log_dir == '1'
+    assert config.general.version_checker_enabled is False
+    assert config.libtorrent.port is None
+    assert config.libtorrent.proxy_type == 2
+    assert config.libtorrent.anon_proxy_server_ports == ['3'] * 5
+    assert config.file == tmpdir / filename
+
+
+@pytest.mark.asyncio
+async def test_copy(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir, file=tmpdir / '1.txt')
+    config.api.http_port = 42
+
+    cloned = config.copy()
+    assert cloned.api.http_port == 42
+    assert cloned.state_dir == tmpdir
+    assert cloned.file == tmpdir / '1.txt'
 
 
 @pytest.mark.asyncio
 async def test_get_path_relative(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
+    config.general.log_dir = None
+    assert not config.general.log_dir
 
-    config.config['general']['log_dir'] = None
-    assert not config.get_path(section_name='general', property_name='log_dir')
+    config.general.log_dir = '.'
+    assert config.general.get_path_as_absolute('log_dir', tmpdir) == Path(tmpdir)
 
-    config.config['general']['log_dir'] = '.'
-    assert config.get_path(section_name='general', property_name='log_dir') == Path(tmpdir)
-
-    config.config['general']['log_dir'] = '1'
-    assert config.get_path(section_name='general', property_name='log_dir') == Path(tmpdir) / '1'
+    config.general.log_dir = '1'
+    assert config.general.get_path_as_absolute('log_dir', tmpdir) == Path(tmpdir) / '1'
 
 
 @pytest.mark.asyncio
 async def test_get_path_absolute(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
-
-    config.config['general']['log_dir'] = str(Path(tmpdir).parent)
-    assert config.get_path(section_name='general', property_name='log_dir') == Path(tmpdir).parent
-
-
-@pytest.mark.asyncio
-async def test_init_without_config():
-    """
-    A newly created TriblerConfig is valid.
-    """
-    config = TriblerConfig()
-    assert config.config
+    config.general.log_dir = str(Path(tmpdir).parent)
+    assert config.general.get_path_as_absolute(property_name='log_dir', state_dir=tmpdir) == Path(tmpdir).parent
 
 
 @pytest.mark.asyncio
@@ -85,18 +92,17 @@ async def test_invalid_config_recovers(tmpdir):
 
     # By default, recover_error set to False when loading the config file so
     # if the config file is corrupted, it should raise a ParseError.
-    config = TriblerConfig(tmpdir)
     with pytest.raises(ParseError):
-        config.load(file=default_config_file)
+        TriblerConfig.load(file=default_config_file, state_dir=tmpdir)
 
     # If recover_error is set to True, the config should successfully load using
     # the default config in case of corrupted config file and the error is saved.
-    config.load(file=default_config_file, reset_config_on_error=True)
+    config = TriblerConfig.load(file=default_config_file, state_dir=tmpdir, reset_config_on_error=True)
     assert "configobj.ParseError: Invalid line" in config.error
 
     # Since the config should be saved on previous recovery, subsequent instantiation of TriblerConfig
     # should work without the reset flag.
-    config.load(file=default_config_file)
+    config = TriblerConfig.load(file=default_config_file, state_dir=tmpdir)
     assert not config.error
 
 

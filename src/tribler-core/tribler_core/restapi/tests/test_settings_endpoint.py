@@ -86,9 +86,9 @@ async def test_set_settings(enable_api, mock_dlmgr, session):
                                        'seeding_ratio': 3,
                                        'seeding_time': 123}}
     await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
-    assert session.config.get('download_defaults', 'seeding_mode') == 'ratio'
-    assert session.config.get('download_defaults', 'seeding_ratio') == 3
-    assert session.config.get('download_defaults', 'seeding_time') == 123
+    assert session.config.download_defaults.seeding_mode == 'ratio'
+    assert session.config.download_defaults.seeding_ratio == 3
+    assert session.config.download_defaults.seeding_time == 123
 
 
 @pytest.mark.asyncio

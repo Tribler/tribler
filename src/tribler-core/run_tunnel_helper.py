@@ -115,46 +115,42 @@ class TunnelHelperService(TaskManager):
             ipv8_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
 
         statedir = Path(os.path.join(get_root_state_directory(), "tunnel-%d") % ipv8_port)
-        config = TriblerConfig(statedir)\
-            .load(file=statedir / 'triblerd.conf')\
-            .put('tunnel_community', 'socks5_listen_ports', [])\
-            .put('tunnel_community', 'random_slots', options.random_slots)\
-            .put('tunnel_community', 'competing_slots', options.competing_slots)\
-            .put('torrent_checking', 'enabled', False)\
-            .put('ipv8', 'enabled', True)\
-            .put('libtorrent', 'enabled', False)\
-            .put('ipv8', 'port', ipv8_port)\
-            .put('ipv8', 'address', options.ipv8_address)\
-            .put('dht', 'enabled', True)\
-            .put('tunnel_community', 'exitnode_enabled', bool(options.exit))\
-            .put('popularity_community', 'enabled', False)\
-            .put('tunnel_community', 'testnet', bool(options.testnet))\
-            .put('chant', 'enabled', False)\
-            .put('bootstrap', 'enabled', False)
+        config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
+        config.tunnel_community.socks5_listen_ports = []
+        config.tunnel_community.random_slots = options.random_slots
+        config.tunnel_community.competing_slots = options.competing_slots
+        config.torrent_checking.enabled = False
+        config.ipv8.enabled = True
+        config.libtorrent.enabled = False
+        config.ipv8.port = ipv8_port
+        config.ipv8.address = options.ipv8_address
+        config.dht.enabled = True
+        config.tunnel_community.exitnode_enabled = bool(options.exit)
+        config.popularity_community.enabled = False
+        config.tunnel_community.testnet = bool(options.testnet)
+        config.chant.enabled = False
+        config.bootstrap.enabled = False
 
         if not options.no_rest_api:
             https = bool(options.cert_file)
-            config\
-                .put('api', 'https_enabled', https)\
-                .put('api', 'http_enabled', not https)\
-                .put('api', 'key', options.api_key)
+            config.api.https_enabled = https
+            config.api.http_enabled = not https
+            config.api.key = options.api_key
 
             api_port = options.restapi
             if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
                 api_port = int(os.environ["HELPER_BASE"]) + 10000 + int(os.environ["HELPER_INDEX"])
             if https:
-                config\
-                    .put('api', 'https_port', api_port)        \
-                    .put_path('api', 'https_certfile', options.cert_file)
+                config.api.https_port = api_port
+                config.api.put_path_as_relative('https_certfile', options.cert_file, config.state_dir)
             else:
-                config.put('api', 'http_port', api_port)
+                config.api.http_port = api_port
         else:
-            config\
-                .put('api', 'https_enabled', False)\
-                .put('api', 'http_enabled', False)
+            config.api.https_enabled = False
+            config.api.http_enabled = False
 
         if options.ipv8_bootstrap_override is not None:
-            config.put('ipv8', 'bootstrap_override', options.ipv8_bootstrap_override)
+            config.ipv8.bootstrap_override = options.ipv8_bootstrap_override
 
         self.session = Session(config)
 

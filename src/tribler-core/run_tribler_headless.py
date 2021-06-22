@@ -69,8 +69,7 @@ class TriblerService:
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
         statedir = Path(options.statedir or Path(get_appstate_dir(), '.Tribler'))
-        config = TriblerConfig(statedir)\
-            .load(file=statedir / 'triblerd.conf')
+        config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
 
         # Check if we are already running a Tribler instance
         self.process_checker = ProcessChecker()
@@ -82,26 +81,24 @@ class TriblerService:
         print("Starting Tribler")
 
         if options.restapi > 0:
-            config\
-                .put('api', 'http_enabled', True)\
-                .put('api', 'http_port', options.restapi)
+            config.api.http_enabled = True
+            config.api.http_port = options.restapi
 
         if options.ipv8 > 0:
-            config.put('ipv8', 'port', options.ipv8)
+            config.ipv8.port = options.ipv8
         elif options.ipv8 == 0:
-            config.put('ipv8', 'enabled', False)
+            config.ipv8.enabled = False
 
         if options.libtorrent != -1 and options.libtorrent > 0:
-            config.put('libtorrent', 'port', options.libtorrent)
+            config.libtorrent.port = options.libtorrent
 
         if options.ipv8_bootstrap_override is not None:
-            config.put('ipv8', 'bootstrap_override', options.ipv8_bootstrap_override)
+            config.ipv8.bootstrap_override = options.ipv8_bootstrap_override
 
         if options.testnet:
-            config\
-                .put('tunnel_community', 'testnet', True)\
-                .put('chant', 'testnet', True)\
-                .put('bandwidth_accounting', 'testnet', True)
+            config.tunnel_community.testnet = True
+            config.chant.testnet = True
+            config.bandwidth_accounting.testnet = True
 
         self.session = Session(config)
         try:

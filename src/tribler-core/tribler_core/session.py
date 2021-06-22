@@ -123,6 +123,8 @@ class Session(TaskManager):
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
+        self.trustchain_keypair = None
+        self.trustchain_testnet_keypair = None
 
         self.dht_community = None
         self.payout_manager = None
@@ -135,7 +137,7 @@ class Session(TaskManager):
         self.ipv8_community_loader.load(self.ipv8, self)
 
     def enable_ipv8_statistics(self):
-        if self.config.get('ipv8', 'statistics'):
+        if self.config.ipv8.statistics:
             for overlay in self.ipv8.overlays:
                 self.ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
@@ -150,7 +152,7 @@ class Session(TaskManager):
             self._logger.warning("Running bootstrap without payout enabled")
         from tribler_core.modules.bootstrap import Bootstrap
         self.bootstrap = Bootstrap(self.config.state_dir, dht=self.dht_community)
-        infohash = self.config.get('bootstrap', 'infohash')
+        infohash = self.config.bootstrap.infohash
         self.bootstrap.start_by_infohash(self.dlmgr.start_download, infohash)
         await self.bootstrap.download.future_finished
         # Temporarily disabling SQL import for experimental release
@@ -176,27 +178,28 @@ class Session(TaskManager):
         """
         Set parameters that depend on state_dir.
         """
-        trustchain_pairfilename = self.config.get_path('trustchain', 'ec_keypair_filename')
+        keypair_filename = self.config.trustchain.get_path_as_absolute('ec_keypair_filename', self.config.state_dir)
         state_dir = self.config.state_dir
-        if trustchain_pairfilename.exists():
-            self.trustchain_keypair = permid_module.read_keypair_trustchain(trustchain_pairfilename)
+        if keypair_filename.exists():
+            self.trustchain_keypair = permid_module.read_keypair_trustchain(keypair_filename)
         else:
             self.trustchain_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
             trustchain_pubfilename = state_dir / 'ecpub_multichain.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_keypair, trustchain_pairfilename)
+            permid_module.save_keypair_trustchain(self.trustchain_keypair, keypair_filename)
             permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
 
-        trustchain_testnet_pairfilename = self.config.get_path('trustchain', 'testnet_keypair_filename')
-        if trustchain_testnet_pairfilename.exists():
-            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(trustchain_testnet_pairfilename)
+        testnet_keypair_filename = self.config.trustchain.get_path_as_absolute('testnet_keypair_filename',
+                                                                               self.config.state_dir)
+        if testnet_keypair_filename.exists():
+            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(testnet_keypair_filename)
         else:
             self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
 
             # Save keypair
             trustchain_testnet_pubfilename = state_dir / 'ecpub_trustchain_testnet.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pairfilename)
+            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, testnet_keypair_filename)
             permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
     def unhandled_error_observer(self, loop, context):
@@ -238,11 +241,9 @@ class Session(TaskManager):
             if not self.api_manager:
                 return
             events = self.api_manager.get_endpoint('events')
-            core_error_reporting_requires_user_consent = self.config.get('error_handling',
-                                                                         'core_error_reporting_requires_user_consent')
             events.on_tribler_exception(text_long,
                                         sentry_event,
-                                        core_error_reporting_requires_user_consent)
+                                        self.config.error_handling.core_error_reporting_requires_user_consent)
 
             state = self.api_manager.get_endpoint('state')
             state.on_tribler_exception(text_long, sentry_event)
@@ -276,7 +277,7 @@ class Session(TaskManager):
         SentryReporter.set_user(user_id_str)
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
-        if self.config.get('api', 'http_enabled') or self.config.get('api', 'https_enabled'):
+        if self.config.api.http_enabled or self.config.api.https_enabled:
             from tribler_core.restapi.rest_manager import RESTManager
             self.api_manager = RESTManager(self)
             self.readable_status = STATE_START_API
@@ -291,7 +292,7 @@ class Session(TaskManager):
         self.tracker_manager = TrackerManager(self)
 
         # Start torrent checker before Popularity community is loaded
-        if self.config.get('torrent_checking', 'enabled') and not self.core_test_mode:
+        if self.config.torrent_checking.enabled and not self.core_test_mode:
             from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
             self.readable_status = STATE_START_TORRENT_CHECKER
             self.torrent_checker = TorrentChecker(self)
@@ -302,10 +303,10 @@ class Session(TaskManager):
         if sys.platform == 'darwin':
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-        chant_enabled = self.config.get('chant', 'enabled')
+        chant_enabled = self.config.chant.enabled
         if chant_enabled:
             from tribler_core.modules.metadata_store.store import MetadataStore
-            channels_dir = self.config.get_path('chant', 'channels_dir')
+            channels_dir = self.config.chant.get_path_as_absolute('channels_dir', self.config.state_dir)
             metadata_db_name = 'metadata.db' if not self.chant_testnet() else 'metadata_testnet.db'
             database_path = state_dir / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
@@ -315,12 +316,11 @@ class Session(TaskManager):
                 generate_test_channels(self.mds)
 
         # IPv8
-        ipv8_enabled = self.config.get('ipv8', 'enabled')
-        if ipv8_enabled:
+        if self.config.ipv8.enabled:
             from ipv8.configuration import ConfigBuilder
             from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
-            port = self.config.get('ipv8', 'port')
-            address = self.config.get('ipv8', 'address')
+            port = self.config.ipv8.port
+            address = self.config.ipv8.address
             self._logger.info('Starting ipv8')
             self._logger.info(f'Port: {port}. Address: {address}')
             ipv8_config_builder = (ConfigBuilder()
@@ -329,7 +329,7 @@ class Session(TaskManager):
                                    .clear_overlays()
                                    .clear_keys()  # We load the keys ourselves
                                    .set_working_directory(str(state_dir))
-                                   .set_walker_interval(self.config.get('ipv8', 'walk_interval')))
+                                   .set_walker_interval(self.config.ipv8.walk_interval))
 
             if self.core_test_mode:
                 endpoint = DispatcherEndpoint([])
@@ -340,14 +340,14 @@ class Session(TaskManager):
                 endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port,
                                                                     'ip': address})
             self.ipv8 = IPv8(ipv8_config_builder.finalize(),
-                             enable_statistics=self.config.get('ipv8', 'statistics') and not self.core_test_mode,
+                             enable_statistics=self.config.ipv8.statistics and not self.core_test_mode,
                              endpoint_override=endpoint)
             await self.ipv8.start()
 
-            anon_proxy_ports = self.config.get('tunnel_community', 'socks5_listen_ports')
+            anon_proxy_ports = self.config.tunnel_community.socks5_listen_ports
             if not anon_proxy_ports:
                 anon_proxy_ports = [NetworkUtils().get_random_free_port() for _ in range(5)]
-                self.config.put('tunnel_community', 'socks5_listen_ports', anon_proxy_ports)
+                self.config.tunnel_community.socks5_listen_ports = anon_proxy_ports
             anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
             self._logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
             from tribler_core.modules.libtorrent.download_manager import DownloadManager  # pylint: disable=import-outside-toplevel
@@ -358,16 +358,16 @@ class Session(TaskManager):
                 self.enable_ipv8_statistics()
             if self.api_manager:
                 self.api_manager.set_ipv8_session(self.ipv8)
-            if self.config.get('tunnel_community', 'enabled'):
+            if self.config.tunnel_community.enabled:
                 await self.tunnel_community.wait_for_socks_servers()
-            if self.config.get('ipv8', 'walk_scaling_enabled'):
+            if self.config.ipv8.walk_scaling_enabled:
                 from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
                 IPv8Monitor(self.ipv8,
-                            self.config.get('ipv8', 'walk_interval'),
-                            self.config.get('ipv8', 'walk_scaling_upper_limit')).start(self)
+                            self.config.ipv8.walk_interval,
+                            self.config.ipv8.walk_scaling_upper_limit).start(self)
 
         # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
-        libtorrent_enabled = self.config.get('libtorrent', 'enabled')
+        libtorrent_enabled = self.config.libtorrent.enabled
         if libtorrent_enabled:
             self.readable_status = STATE_START_LIBTORRENT
             from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -379,23 +379,23 @@ class Session(TaskManager):
                 await self.dlmgr.start_download_from_uri("magnet:?xt=urn:btih:0000000000000000000000000000000000000000")
         self.readable_status = STATE_READABLE_STARTED
 
-        if self.config.get('watch_folder', 'enabled'):
+        if self.config.watch_folder.enabled:
             from tribler_core.modules.watch_folder import WatchFolder
             self.readable_status = STATE_START_WATCH_FOLDER
             self.watch_folder = WatchFolder(self)
             self.watch_folder.start()
 
-        if self.config.get('resource_monitor', 'enabled') and not self.core_test_mode:
+        if self.config.resource_monitor.enabled and not self.core_test_mode:
             from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
             self.resource_monitor = CoreResourceMonitor(self)
             self.resource_monitor.start()
 
-        if self.config.get('general', 'version_checker_enabled') and not self.core_test_mode:
+        if self.config.general.version_checker_enabled and not self.core_test_mode:
             from tribler_core.modules.versioncheck_manager import VersionCheckManager
             self.version_check_manager = VersionCheckManager(self)
             self.version_check_manager.start()
 
-        if ipv8_enabled:
+        if self.config.ipv8.enabled:
             from tribler_core.modules.payout_manager import PayoutManager
             self.payout_manager = PayoutManager(self.bandwidth_community, self.dht_community)
 
@@ -406,14 +406,13 @@ class Session(TaskManager):
 
         # GigaChannel Manager should be started *after* resuming the downloads,
         # because it depends on the states of torrent downloads
-        chant_manager_enabled = self.config.get('chant', 'manager_enabled')
-        if chant_enabled and chant_manager_enabled and libtorrent_enabled:
+        if chant_enabled and self.config.chant.manager_enabled and libtorrent_enabled:
             from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
             self.gigachannel_manager = GigaChannelManager(self)
             if not self.core_test_mode:
                 self.gigachannel_manager.start()
 
-        if self.config.get('bootstrap', 'enabled') and not self.core_test_mode:
+        if self.config.bootstrap.enabled and not self.core_test_mode:
             self.register_task('bootstrap_download', self.start_bootstrap_download)
 
         self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keypair.key.pk)
@@ -516,19 +515,19 @@ class Session(TaskManager):
     def chant_testnet(self):
         return ('TESTNET' in os.environ or
                 'CHANT_TESTNET' in os.environ or
-                self.config.get('chant', 'testnet'))
+                self.config.chant.testnet)
 
     def trustchain_testnet(self):
         return ('TESTNET' in os.environ or
                 'TRUSTCHAIN_TESTNET' in os.environ or
-                self.config.get('trustchain', 'testnet'))
+                self.config.trustchain.testnet)
 
     def bandwidth_testnet(self):
         return ('TESTNET' in os.environ or
                 'BANDWIDTH_TESTNET' in os.environ or
-                self.config.get('bandwidth_accounting', 'testnet'))
+                self.config.bandwidth_accounting.testnet)
 
     def tunnel_testnet(self):
         return ('TESTNET' in os.environ or
                 'TUNNEL_TESTNET' in os.environ or
-                self.config.get('tunnel_community', 'testnet'))
+                self.config.tunnel_community.testnet)

@@ -16,8 +16,8 @@ def test_bootstrap_override():
     Check that the DiscoveryCommunityLauncher respects the bootstrap override.
     """
     session = Mock()
-    session.config = TriblerConfig('')\
-        .put('ipv8', 'bootstrap_override', "1.2.3.4:5")
+    session.config = TriblerConfig()
+    session.config.ipv8.bootstrap_override = "1.2.3.4:5"
 
     bootstrappers = IPv8DiscoveryCommunityLauncher().get_bootstrappers(session)
 

@@ -1,11 +1,8 @@
 from aiohttp import web
-
 from aiohttp_apispec import docs, json_schema
-
-from ipv8.REST.schema import schema
-
 from marshmallow.fields import Boolean
 
+from ipv8.REST.schema import schema
 from tribler_common.network_utils import NetworkUtils
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
@@ -31,8 +28,9 @@ class SettingsEndpoint(RESTEndpoint):
                     "the runtime-determined ports"
     )
     async def get_settings(self, request):
+        self._logger.info(f'Get settings. Request: {request}')
         return RESTResponse({
-            "settings": self.session.config.config,
+            "settings": self.session.config.dict(),
             "ports": list(NetworkUtils.ports_in_use)
         })
 
@@ -56,10 +54,10 @@ class SettingsEndpoint(RESTEndpoint):
         """
         Set a specific Tribler setting. Throw a ValueError if this setting is not available.
         """
-        if section in self.session.config.config and option in self.session.config.config[section]:
-            self.session.config.config[section][option] = value
-        else:
-            raise ValueError(f"Section {section} with option {option} does not exist")
+        # if section in self.session.config.config and option in self.session.config.config[section]:
+        self.session.config.__getattribute__(section).__setattr__(option, value)
+        # else:
+        #     raise ValueError(f"Section {section} with option {option} does not exist")
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
@@ -71,6 +69,6 @@ class SettingsEndpoint(RESTEndpoint):
         """
         for key, value in settings_dict.items():
             if isinstance(value, dict):
-                await self.parse_settings_dict(value, depth=depth+1, root_key=key)
+                await self.parse_settings_dict(value, depth=depth + 1, root_key=key)
             else:
                 await self.parse_setting(root_key, key, value)

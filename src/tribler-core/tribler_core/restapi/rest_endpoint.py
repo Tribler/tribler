@@ -3,6 +3,8 @@ import logging
 
 from aiohttp import web
 
+from tribler_core.session import Session
+
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
 HTTP_NOT_FOUND = 404
@@ -12,7 +14,7 @@ HTTP_INTERNAL_SERVER_ERROR = 500
 
 class RESTEndpoint:
 
-    def __init__(self, session, middlewares=()):
+    def __init__(self, session: Session, middlewares=()):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.app = web.Application(middlewares=middlewares)
         self.session = session

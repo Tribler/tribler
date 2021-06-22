@@ -10,7 +10,7 @@ from tribler_core.utilities.osutils import get_root_state_directory
 
 @pytest.fixture
 def enable_resource_monitor(tribler_config):
-    tribler_config.put('resource_monitor', 'enabled', True)
+    tribler_config.resource_monitor.enabled = True
 
 
 @pytest.mark.asyncio
@@ -121,7 +121,7 @@ async def test_debug_pane_core_logs(enable_api, session):
     """
     Test whether the API returns the logs
     """
-    log_dir = session.config.get_path('general', 'log_dir')
+    log_dir = session.config.general.get_path_as_absolute('log_dir', session.config.state_dir)
     process = 'core'
     test_core_log_message = "This is the core test log message"
     num_logs = 100
@@ -171,7 +171,7 @@ async def test_debug_pane_default_num_logs(enable_api, session):
     num_logs_to_write = 200
 
     # Log directory
-    log_dir = session.config.get_path('general', 'log_dir')
+    log_dir = session.config.general.get_path_as_absolute('log_dir', session.config.state_dir)
     create_dummy_logs(log_dir, process=module, log_message=log_dir, num_logs=num_logs_to_write)
 
     json_response = await do_request(session, f'debug/log?process={module}&max_lines=', expected_code=200)

@@ -2,19 +2,15 @@ import os
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
 from aiohttp import web
+from pony.orm import db_session
 
 from ipv8.database import database_blob
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
-
-from pony.orm import db_session
-
-import pytest
-
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
-
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -44,23 +40,23 @@ def _tribler_download_dir(tribler_root_dir):
 
 
 @pytest.fixture(name="tribler_config")
-def _tribler_config(tribler_state_dir, tribler_download_dir):
-    return TriblerConfig(tribler_state_dir)\
-        .put_path('download_defaults', 'saveas', tribler_download_dir)\
-        .put('torrent_checking', 'enabled', False)\
-        .put('ipv8', 'enabled', False)\
-        .put('discovery_community', 'enabled', False)\
-        .put('ipv8', 'walk_scaling_enabled', False)\
-        .put('libtorrent', 'enabled', False)\
-        .put('libtorrent', 'dht_readiness_timeout', 0)\
-        .put('api', 'http_enabled', False)\
-        .put('tunnel_community', 'enabled', False)\
-        .put('popularity_community', 'enabled', False)\
-        .put('dht', 'enabled', False)\
-        .put('libtorrent', 'dht', False)\
-        .put('chant', 'enabled', False)\
-        .put('resource_monitor', 'enabled', False)\
-        .put('bootstrap', 'enabled', False)
+def _tribler_config(tribler_state_dir, tribler_download_dir) -> TriblerConfig:
+    config = TriblerConfig(state_dir=tribler_state_dir)
+    config.download_defaults.put_path_as_relative('saveas', tribler_download_dir, state_dir=tribler_state_dir)
+    config.torrent_checking.enabled = False
+    config.ipv8.enabled = False
+    config.ipv8.walk_scaling_enabled = False
+    config.discovery_community.enabled = False
+    config.libtorrent.enabled = False
+    config.libtorrent.dht_readiness_timeout = 0
+    config.tunnel_community.enabled = False
+    config.popularity_community.enabled = False
+    config.dht.enabled = False
+    config.libtorrent.dht = False
+    config.chant.enabled = False
+    config.resource_monitor.enabled = False
+    config.bootstrap.enabled = False
+    return config
 
 
 def get_free_port():
@@ -69,12 +65,13 @@ def get_free_port():
 
 @pytest.fixture
 def seed_config(tribler_config, tmpdir_factory):
-    seed_config = tribler_config.copy()
-    seed_config.state_dir = tmpdir_factory.mktemp("seeder")
-    return seed_config\
-        .put('libtorrent', 'enabled', True)\
-        .put('libtorrent', 'port', get_free_port())\
-        .put('tunnel_community', 'socks5_listen_ports', [(get_free_port()) for _ in range(5)])
+    config = tribler_config.copy(deep=True)
+    config.set_state_dir(tmpdir_factory.mktemp("seeder"))
+    config.libtorrent.enabled = True
+    config.libtorrent.port = get_free_port()
+    config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
+
+    return config
 
 
 @pytest.fixture
@@ -89,12 +86,12 @@ def state_dir(tribler_config):
 
 @pytest.fixture
 def enable_libtorrent(tribler_config):
-    tribler_config.put('libtorrent', 'enabled', True)
+    tribler_config.libtorrent.enabled = True
 
 
 @pytest.fixture
 def enable_ipv8(tribler_config):
-    tribler_config.put('ipv8', 'enabled', True)
+    tribler_config.ipv8.enabled = True
 
 
 @pytest.fixture
@@ -110,11 +107,10 @@ def mock_dlmgr_get_download(session, mock_dlmgr):  # pylint: disable=unused-argu
 
 
 @pytest.fixture(name='session')
-async def _session(tribler_config):
-    tribler_config\
-        .put('api', 'http_port', get_free_port())\
-        .put('libtorrent', 'port', get_free_port())\
-        .put('tunnel_community', 'socks5_listen_ports', [get_free_port() for _ in range(5)])
+async def _session(tribler_config) -> Session:
+    tribler_config.api.http_port = get_free_port()
+    tribler_config.libtorrent.port = get_free_port()
+    tribler_config.tunnel_community.socks5_listen_ports = [get_free_port() for _ in range(5)]
 
     session = Session(tribler_config)
     session.upgrader_enabled = False
@@ -204,9 +200,9 @@ async def magnet_redirect_server(free_port):
 
 
 TEST_PERSONAL_KEY = LibNaCLSK(
-     b'4c69624e61434c534b3af56022aa5d556c07aeed704ee98df7dca580f'
-     b'522e1405663f0d36508d2189cb8991af2dd27b34bc18b4d24869e2c4f2cfdb164a78ea6e687daf7a21640d62b1b'[10:]
- )
+    b'4c69624e61434c534b3af56022aa5d556c07aeed704ee98df7dca580f'
+    b'522e1405663f0d36508d2189cb8991af2dd27b34bc18b4d24869e2c4f2cfdb164a78ea6e687daf7a21640d62b1b'[10:]
+)
 
 
 @pytest.fixture
@@ -227,32 +223,31 @@ def dispersy_to_pony_migrator(metadata_store):
 
 @pytest.fixture(name='enable_api')
 def _enable_api(tribler_config, free_port):
-    tribler_config\
-        .put('api', 'http_enabled', True)\
-        .put('api', 'http_port', free_port)\
-        .put('api', 'retry_port', True)
+    tribler_config.api.http_enabled = True
+    tribler_config.api.http_port = free_port
+    tribler_config.api.retry_port = True
 
 
 @pytest.fixture
 def enable_https(tribler_config, free_port):
-    tribler_config\
-        .put('api', 'https_enabled', True)\
-        .put('api', 'https_port', free_port)\
-        .put_path('api', 'https_certfile', TESTS_DIR / 'data' / 'certfile.pem')
+    tribler_config.api.put_path_as_relative('https_certfile', TESTS_DIR / 'data' / 'certfile.pem',
+                                            tribler_config.state_dir)
+    tribler_config.api.https_enabled = True
+    tribler_config.api.https_port = free_port
 
 
 @pytest.fixture(name='enable_chant')
 def _enable_chant(tribler_config):
-    (tribler_config.put('chant', 'enabled', True)
-        .put('chant', 'manager_enabled', True)
-        .put('libtorrent', 'enabled', True))
+    tribler_config.chant.enabled = True
+    tribler_config.chant.manager_enabled = True
+    tribler_config.libtorrent.enabled = True
 
 
 @pytest.fixture
 def enable_watch_folder(tribler_state_dir, tribler_config):
-    tribler_config.put_path('watch_folder', 'directory', tribler_state_dir / "watch")
+    tribler_config.watch_folder.put_path_as_relative('directory', tribler_state_dir / "watch", tribler_state_dir)
     os.makedirs(tribler_state_dir / "watch")
-    tribler_config.put('watch_folder', 'enabled', True)
+    tribler_config.watch_folder.enabled = True
 
 
 @pytest.fixture

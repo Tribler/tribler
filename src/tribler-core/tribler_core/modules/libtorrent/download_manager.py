@@ -21,6 +21,7 @@ from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.session import Session
 from tribler_core.utilities import path_util, torrent_utils
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
@@ -53,7 +54,7 @@ def encode_atp(atp):
 
 class DownloadManager(TaskManager):
 
-    def __init__(self, tribler_session, dummy_mode=False):
+    def __init__(self, tribler_session: Session, dummy_mode: bool = False):
         super().__init__()
         self.dummy_mode = dummy_mode
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -65,6 +66,7 @@ class DownloadManager(TaskManager):
         self.listen_ports = {}
 
         self.notifier = tribler_session.notifier
+        self.config = tribler_session.config
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
@@ -86,8 +88,7 @@ class DownloadManager(TaskManager):
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
         self.lt_session_shutdown_ready = {}
         self._dht_ready_task = None
-        self.dht_readiness_timeout = tribler_session.config.get('libtorrent', 'dht_readiness_timeout') \
-            if not self.dummy_mode else 0
+        self.dht_readiness_timeout = self.config.libtorrent.dht_readiness_timeout if not self.dummy_mode else 0
 
     async def _check_dht_ready(self, min_dht_peers=60):
         # Checks whether we got enough DHT peers. If the number of DHT peers is low,
@@ -104,7 +105,7 @@ class DownloadManager(TaskManager):
 
         if has_bep33_support():
             # Also listen to DHT log notifications - we need the dht_pkt_alert and extract the BEP33 bloom filters
-            dht_health_session = self.get_session(self.tribler_session.config.get('download_defaults', 'number_hops'))
+            dht_health_session = self.get_session(self.config.download_defaults.number_hops)
             dht_health_session.set_alert_mask(self.default_alert_mask | lt.alert.category_t.dht_log_notification)
             self.dht_health_manager = DHTHealthManager(dht_health_session)
 
@@ -173,7 +174,7 @@ class DownloadManager(TaskManager):
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
-        anon_listen_port = self.tribler_session.config.get('libtorrent', 'anon_listen_port')
+        anon_listen_port = self.config.libtorrent.anon_listen_port
         anon_port = anon_listen_port or NetworkUtils().get_random_free_port()
         self._logger.info(f'Anon port: {anon_port}. Dummy mode: {self.dummy_mode}. Hops: {hops}')
 
@@ -188,11 +189,11 @@ class DownloadManager(TaskManager):
         else:
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
 
-        libtorrent_port = self.tribler_session.config.get('libtorrent', 'port') or NetworkUtils().get_random_free_port()
+        libtorrent_port = self.config.libtorrent.port or NetworkUtils().get_random_free_port()
         self._logger.info(f'Libtorrent port: {libtorrent_port}')
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
-            enable_utp = self.tribler_session.config.get('libtorrent', 'utp')
+            enable_utp = self.config.libtorrent.utp
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
 
@@ -239,7 +240,7 @@ class DownloadManager(TaskManager):
         if hops == 0:
             ltsession.listen_on(libtorrent_port, libtorrent_port + 10)
             if libtorrent_port != ltsession.listen_port() and store_listen_port:
-                self.tribler_session.config.put('libtorrent', 'port', ltsession.listen_port())
+                self.config.libtorrent.port = ltsession.listen_port()
             try:
                 with open(self.tribler_session.config.state_dir / LTSTATE_FILENAME, 'rb') as fp:
                     lt_state = bdecode_compat(fp.read())
@@ -258,7 +259,7 @@ class DownloadManager(TaskManager):
                         'download_rate_limit': download_rate}
             self.set_session_settings(ltsession, settings)
 
-        if self.tribler_session.config.get('libtorrent', 'dht') and not self.dummy_mode:
+        if self.config.libtorrent.dht and not self.dummy_mode:
             ltsession.start_dht()
             for router in DEFAULT_DHT_ROUTERS:
                 ltsession.add_dht_router(*router)
@@ -439,7 +440,7 @@ class DownloadManager(TaskManager):
         else:
             tdef = TorrentDefNoMetainfo(infohash, 'metainfo request', url=url)
             dcfg = DownloadConfig()
-            dcfg.set_hops(self.tribler_session.config.get('download_defaults', 'number_hops') if hops is None else hops)
+            dcfg.set_hops(hops or self.config.download_defaults.number_hops)
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
             dcfg.set_dest_dir(self.metadata_tmpdir)
             try:
@@ -774,7 +775,7 @@ class DownloadManager(TaskManager):
             if ds.get_status() == DLSTATUS_SEEDING:
                 if download.config.get_hops() == 0 and download.config.get_safe_seeding():
                     # Re-add the download with anonymity enabled
-                    hops = self.tribler_session.config.get('download_defaults', 'number_hops')
+                    hops = self.config.download_defaults.number_hops
                     await self.update_hops(download, hops)
 
             # Check the peers of this download every five seconds and add them to the payout manager when
@@ -819,7 +820,7 @@ class DownloadManager(TaskManager):
             return
 
         if config.get_bootstrap_download():
-            infohash = self.tribler_session.config.get('bootstrap', 'infohash')
+            infohash = self.config.bootstrap.infohash
             if hexlify(tdef.get_infohash()) != infohash:
                 self.remove_config(tdef.get_infohash())
                 return
@@ -886,17 +887,15 @@ class DownloadManager(TaskManager):
         :param server: (host, [ports]) tuple or None
         :param auth: (username, password) tuple or None
         """
-        config.put('libtorrent', 'anon_proxy_type', proxy_type)
+        config.libtorrent.anon_proxy_type = proxy_type
         if server and proxy_type:
-            config\
-                .put('libtorrent', 'anon_proxy_server_ip', server[0])\
-                .put('libtorrent', 'anon_proxy_server_ports', [str(i) for i in server[1]])
+            config.libtorrent.anon_proxy_server_ip = server[0]
+            config.libtorrent.anon_proxy_server_ports = [str(i) for i in server[1]]
         else:
-            config\
-                .put('libtorrent', 'anon_proxy_server_ip', None)\
-                .put('libtorrent', 'anon_proxy_server_ports', None)
+            config.libtorrent.anon_proxy_server_ip = None
+            config.libtorrent.anon_proxy_server_ports = None
 
-        config.put('libtorrent', 'anon_proxy_auth', auth if proxy_type in [3, 5] else None)
+        config.libtorrent.anon_proxy_auth = auth if proxy_type in [3, 5] else None
 
     @staticmethod
     def set_libtorrent_proxy_settings(config, proxy_type, server=None, auth=None):
@@ -912,20 +911,19 @@ class DownloadManager(TaskManager):
         :param server: (host, port) tuple or None
         :param auth: (username, password) tuple or None
         """
-        config\
-            .put('libtorrent', 'proxy_type', proxy_type)\
-            .put('libtorrent', 'proxy_server', server if proxy_type else ':')\
-            .put('libtorrent', 'proxy_auth',  auth if proxy_type in [3, 5] else ':')
+        config.libtorrent.proxy_type = proxy_type
+        config.libtorrent.proxy_server = server if proxy_type else ':'
+        config.libtorrent.proxy_auth = auth if proxy_type in [3, 5] else ':'
 
     @staticmethod
     def get_libtorrent_proxy_settings(config):
-        proxy_server = str(config.get('libtorrent', 'proxy_server'))
+        proxy_server = str(config.libtorrent.proxy_server)
         proxy_server = proxy_server.split(':') if proxy_server else ['', '']
 
-        proxy_auth = str(config.get('libtorrent', 'proxy_auth'))
+        proxy_auth = str(config.libtorrent.proxy_auth)
         proxy_auth = proxy_auth.split(':') if proxy_auth else ['', '']
 
-        return config.get('libtorrent', 'proxy_type'), proxy_server, proxy_auth
+        return config.libtorrent.proxy_type, proxy_server, proxy_auth
 
     @staticmethod
     def get_anon_proxy_settings(config):
@@ -934,15 +932,13 @@ class DownloadManager(TaskManager):
 
         :return: a 4-tuple with the proxytype in int, (ip as string, list of ports in int), auth
         """
-        server_ports = config.get('libtorrent', 'anon_proxy_server_ports')
-        anon_proxy_type = config.get('libtorrent', 'anon_proxy_type')
-        anon_proxy_auth = config.get('libtorrent', 'anon_proxy_auth')
+        server_ports = config.libtorrent.anon_proxy_server_ports
         server = (
-            config.get('libtorrent', 'anon_proxy_server_ip'),
+            config.libtorrent.anon_proxy_server_ip,
             [int(s) for s in server_ports] if server_ports else None
         )
 
-        return [anon_proxy_type, server, anon_proxy_auth]
+        return [config.libtorrent.anon_proxy_type, server, config.libtorrent.anon_proxy_auth]
 
     @staticmethod
     def get_libtorrent_max_upload_rate(config):
@@ -951,7 +947,7 @@ class DownloadManager(TaskManager):
 
         :return: the maximum upload rate in kB / s
         """
-        return min(config.get('libtorrent', 'max_upload_rate'), MAX_LIBTORRENT_RATE_LIMIT)
+        return min(config.libtorrent.max_upload_rate, MAX_LIBTORRENT_RATE_LIMIT)
 
     @staticmethod
     def get_libtorrent_max_download_rate(config):
@@ -960,4 +956,4 @@ class DownloadManager(TaskManager):
 
         :return: the maximum download rate in kB / s
         """
-        return min(config.get('libtorrent', 'max_download_rate'), MAX_LIBTORRENT_RATE_LIMIT)
+        return min(config.libtorrent.max_download_rate, MAX_LIBTORRENT_RATE_LIMIT)

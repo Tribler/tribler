@@ -16,7 +16,7 @@ async def mock_ipv8(session):
     mock_ipv8.endpoint.bytes_up = 100
     mock_ipv8.endpoint.bytes_down = 20
     session.ipv8 = mock_ipv8
-    session.config.put('ipv8', 'enabled', True)
+    session.config.ipv8.enabled = True
     yield mock_ipv8
     session.ipv8 = None
     await mock_ipv8.stop()

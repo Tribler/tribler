@@ -30,8 +30,9 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.disk_usage_data = deque(maxlen=history_size)
 
         self.state_dir = session.config.state_dir
-        self.resource_log_file = self.session.config.get_path('general', 'log_dir') / DEFAULT_RESOURCE_FILENAME
-        self.resource_log_enabled = session.config.get('resource_monitor', 'enabled')
+        log_dir = self.session.config.general.get_path_as_absolute('log_dir', self.state_dir)
+        self.resource_log_file = log_dir / DEFAULT_RESOURCE_FILENAME
+        self.resource_log_enabled = session.config.resource_monitor.enabled
 
         # Setup yappi profiler
         self.profiler = YappiProfiler(self.session)
@@ -40,7 +41,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         """
         Start the resource monitoring by scheduling a task in TaskManager.
         """
-        poll_interval = self.session.config.get('resource_monitor', 'poll_interval')
+        poll_interval = self.session.config.resource_monitor.poll_interval
         self.register_task("check_resources", self.check_resources, interval=poll_interval)
 
     async def stop(self):
