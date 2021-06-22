@@ -12,16 +12,16 @@ from tribler_core.restapi.base_api_test import do_request
 @pytest.fixture
 async def mock_ipv8(session):
     db_path = Path(":memory:")
-    mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
-                         settings=BandwidthAccountingSettings())
-    mock_ipv8.overlays = [mock_ipv8.overlay]
-    mock_ipv8.endpoint.bytes_up = 100
-    mock_ipv8.endpoint.bytes_down = 20
-    session.ipv8 = mock_ipv8
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+                    settings=BandwidthAccountingSettings())
+    ipv8.overlays = [ipv8.overlay]
+    ipv8.endpoint.bytes_up = 100
+    ipv8.endpoint.bytes_down = 20
+    session.ipv8 = ipv8
     session.config.ipv8.enabled = True
-    yield mock_ipv8
+    yield ipv8
     session.ipv8 = None
-    await mock_ipv8.stop()
+    await ipv8.stop()
 
 
 @pytest.mark.asyncio

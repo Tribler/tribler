@@ -26,11 +26,11 @@ def root_key():
 @pytest.fixture
 async def mock_ipv8(session):
     db_path = session.config.state_dir / "bandwidth.db"
-    mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
-                         settings=BandwidthAccountingSettings())
-    session.bandwidth_community = mock_ipv8.overlay
-    yield mock_ipv8
-    await mock_ipv8.stop()
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+                    settings=BandwidthAccountingSettings())
+    session.bandwidth_community = ipv8.overlay
+    yield ipv8
+    await ipv8.stop()
 
 
 @pytest.fixture
@@ -119,7 +119,7 @@ def test_add_bandwidth_transactions(trust_graph):
     """
 
     my_pk = trust_graph.root_key
-    for _ in range(trust_graph.max_nodes-1):
+    for _ in range(trust_graph.max_nodes - 1):
         random_node_pk = unhexlify(get_random_node_public_key())
         random_tx = BandwidthTransactionData(1, random_node_pk, my_pk, EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
         trust_graph.add_bandwidth_transaction(random_tx)

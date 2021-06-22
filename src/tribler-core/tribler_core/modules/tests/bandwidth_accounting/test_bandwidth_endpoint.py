@@ -13,11 +13,11 @@ from tribler_core.utilities.unicode import hexlify
 @pytest.fixture
 async def mock_ipv8(session):
     db_path = session.config.state_dir / "bandwidth.db"
-    mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
-                         settings=BandwidthAccountingSettings())
-    session.bandwidth_community = mock_ipv8.overlay
-    yield mock_ipv8
-    await mock_ipv8.stop()
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+                    settings=BandwidthAccountingSettings())
+    session.bandwidth_community = ipv8.overlay
+    yield ipv8
+    await ipv8.stop()
 
 
 @pytest.mark.asyncio

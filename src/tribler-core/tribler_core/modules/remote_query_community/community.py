@@ -131,9 +131,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
                  **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
-        if not rqc_settings:
-            rqc_settings = RemoteQueryCommunitySettings()
-        self.rqc_settings = rqc_settings
+        self.rqc_settings = rqc_settings or RemoteQueryCommunitySettings()
         self.mds: MetadataStore = metadata_store
 
         # This object stores requests for "select" queries that we sent to other hosts.

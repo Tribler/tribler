@@ -45,12 +45,9 @@ from pony.orm import Database, Required, db_session
 
 import sentry_sdk
 
-from tribler_core.modules.remote_query_community.remote_query_community import (
-    RemoteQueryCommunity,
-    RemoteSelectPayload,
-    SelectRequest,
-    SelectResponsePayload,
-)
+from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity, RemoteSelectPayload, \
+    SelectRequest, \
+    SelectResponsePayload
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
