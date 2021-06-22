@@ -22,8 +22,9 @@ from ipv8.util import succeed
 from tribler_common.network_utils import NetworkUtils
 
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
-from tribler_core.modules.tunnel.community.triblertunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
+from tribler_core.modules.tunnel.community.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import Path
@@ -49,7 +50,8 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
         # Load the bandwidth accounting community
         mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(
-            mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network, database_path=":memory:")
+            mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network, database_path=":memory:",
+            settings=BandwidthAccountingSettings())
         mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
                                                               mock_ipv8.overlay.my_estimated_wan))
 

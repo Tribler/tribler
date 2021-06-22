@@ -2,21 +2,21 @@ import json
 import struct
 from asyncio import Future
 from binascii import unhexlify
-from dataclasses import dataclass
 
-from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
 from pony.orm.dbapiprovider import OperationalError
 
-from tribler_core.modules.metadata_store.community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import RequestTimeoutException
+from tribler_core.modules.remote_query_community.eva_protocol import EVAProtocolMixin
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler_core.modules.tribler_community import TriblerCommunity
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -122,30 +122,18 @@ class PushbackWindow(NumberCache):
         pass
 
 
-@dataclass
-class RemoteQueryCommunitySettings:
-    minimal_blob_size: int = 200
-    maximum_payload_size: int = 1300
-    max_entries: int = maximum_payload_size // minimal_blob_size
-    max_query_peers: int = 5
-    max_response_size: int = 100  # Max number of entries returned by SQL query
-    max_channel_query_back: int = 4  # Max number of entries to query back on receiving an unknown channel
-    push_updates_back_enabled = True
-
-    @property
-    def channel_query_back_enabled(self):
-        return self.max_channel_query_back > 0
-
-
-class RemoteQueryCommunity(Community, EVAProtocolMixin):
+class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, settings=None, **kwargs):
+    def __init__(self, my_peer, endpoint, network, metadata_store, rqc_settings: RemoteQueryCommunitySettings = None,
+                 **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
-        self.settings = settings or RemoteQueryCommunitySettings()
+        if not rqc_settings:
+            rqc_settings = RemoteQueryCommunitySettings()
+        self.rqc_settings = rqc_settings
         self.mds: MetadataStore = metadata_store
 
         # This object stores requests for "select" queries that we sent to other hosts.
@@ -201,7 +189,7 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         :raises ValueError: if no JSON could be decoded.
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
-        request_sanitized = sanitize_query(json.loads(json_bytes), self.settings.max_response_size)
+        request_sanitized = sanitize_query(json.loads(json_bytes), self.rqc_settings.max_response_size)
         return await self.mds.get_entries_threaded(**request_sanitized)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
@@ -214,11 +202,11 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
         index = 0
         while index < len(db_results):
             transfer_size = (
-                self.eva_protocol.binary_size_limit if force_eva_response else self.settings.maximum_payload_size
+                self.eva_protocol.binary_size_limit if force_eva_response else self.rqc_settings.maximum_payload_size
             )
             data, index = entries_to_chunk(db_results, transfer_size, start_index=index, include_health=True)
             payload = SelectResponsePayload(request_payload_id, data)
-            if force_eva_response or (len(data) > self.settings.maximum_payload_size):
+            if force_eva_response or (len(data) > self.rqc_settings.maximum_payload_size):
                 self.eva_send_binary(
                     peer, struct.pack('>i', request_payload_id), self.ezr_pack(payload.msg_id, payload)
                 )
@@ -273,25 +261,25 @@ class RemoteQueryCommunity(Community, EVAProtocolMixin):
             request.processing_results.set_result(processing_results)
 
         # If we know about updated versions of the received stuff, push the updates back
-        if isinstance(request, SelectRequest) and self.settings.push_updates_back_enabled:
+        if isinstance(request, SelectRequest) and self.rqc_settings.push_updates_back_enabled:
             newer_entities = [r.md_obj for r in processing_results if r.obj_state == ObjState.LOCAL_VERSION_NEWER]
             self.send_db_results(peer, response_payload.id, newer_entities)
 
-        if self.settings.channel_query_back_enabled:
+        if self.rqc_settings.channel_query_back_enabled:
             for result in processing_results:
                 # Query back the sender for preview contents for the new channels
                 # The fact that the object is previously unknown is indicated by process_payload in the
                 # .obj_state property of returned ProcessingResults objects.
                 if result.obj_state == ObjState.NEW_OBJECT and result.md_obj.metadata_type in (
-                    CHANNEL_TORRENT,
-                    COLLECTION_NODE,
+                        CHANNEL_TORRENT,
+                        COLLECTION_NODE,
                 ):
                     request_dict = {
                         "metadata_type": [COLLECTION_NODE, REGULAR_TORRENT],
                         "channel_pk": result.md_obj.public_key,
                         "origin_id": result.md_obj.id_,
                         "first": 0,
-                        "last": self.settings.max_channel_query_back,
+                        "last": self.rqc_settings.max_channel_query_back,
                     }
                     self.send_remote_select(peer=peer, **request_dict)
 

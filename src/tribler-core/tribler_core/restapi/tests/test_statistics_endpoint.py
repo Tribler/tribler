@@ -5,13 +5,15 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 import pytest
 
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.restapi.base_api_test import do_request
 
 
 @pytest.fixture
 async def mock_ipv8(session):
     db_path = Path(":memory:")
-    mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path)
+    mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+                         settings=BandwidthAccountingSettings())
     mock_ipv8.overlays = [mock_ipv8.overlay]
     mock_ipv8.endpoint.bytes_up = 100
     mock_ipv8.endpoint.bytes_down = 20

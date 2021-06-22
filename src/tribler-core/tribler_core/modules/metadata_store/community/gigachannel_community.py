@@ -12,13 +12,10 @@ from pony.orm import db_session
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
 from tribler_core.modules.metadata_store.community.discovery_booster import DiscoveryBooster
-from tribler_core.modules.metadata_store.community.remote_query_community import (
-    RemoteQueryCommunity,
-    RemoteQueryCommunitySettings,
-)
 from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.modules.metadata_store.utils import NoChannelSourcesException
+from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity
 from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200
@@ -67,17 +64,8 @@ class ChannelsPeersMapping:
         return sorted(channel_peers, key=lambda x: x.last_response, reverse=True)[0:limit]
 
 
-@dataclass
-class GigaChannelCommunitySettings(RemoteQueryCommunitySettings):
-    queried_peers_limit: int = 1000
-    # The maximum number of peers that we got from channels to peers mapping,
-    # that must be queried in addition to randomly queried peers
-    max_mapped_query_peers = 3
-
-
 class GigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
-
 
     def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
@@ -90,7 +78,6 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         )
 
     def __init__(self, my_peer, endpoint, network, metadata_store, **kwargs):
-        kwargs["settings"] = kwargs.get("settings", GigaChannelCommunitySettings())
         self.notifier = kwargs.pop("notifier", None)
 
         # ACHTUNG! We create a separate instance of Network for this community because it
@@ -191,7 +178,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                 kwargs["channel_pk"], kwargs["origin_id"], self.settings.max_mapped_query_peers
             )
         else:
-            peers_to_query = self.get_random_peers(self.settings.max_query_peers)
+            peers_to_query = self.get_random_peers(self.rqc_settings.max_query_peers)
 
         for p in peers_to_query:
             self.send_remote_select(p, **kwargs, processing_callback=notify_gui)

@@ -17,8 +17,8 @@ from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.community.gigachannel_community import NoChannelSourcesException
-from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.utilities.random_utils import random_infohash

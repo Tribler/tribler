@@ -44,7 +44,7 @@ def dht_discovery_community():
 
 
 def tribler_tunnel_community():
-    from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
+    from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
     return TriblerTunnelCommunity
 
 
@@ -59,7 +59,7 @@ def bandwidth_accounting_testnet_community():
 
 
 def popularity_community():
-    from tribler_core.modules.popularity.popularity_community import PopularityCommunity
+    from tribler_core.modules.popularity.community import PopularityCommunity
     return PopularityCommunity
 
 
@@ -74,7 +74,7 @@ def giga_channel_testnet_community():
 
 
 def tribler_tunnel_testnet_community():
-    from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelTestnetCommunity
+    from tribler_core.modules.tunnel.community.community import TriblerTunnelTestnetCommunity
     return TriblerTunnelTestnetCommunity
 
 
@@ -121,12 +121,14 @@ class IPv8DiscoveryCommunityLauncher(IPv8CommunityLauncher):
 
 @overlay(bandwidth_accounting_community)
 @precondition('not session.bandwidth_testnet()')
-@kwargs(database_path='session.config.state_dir / "sqlite" / "bandwidth.db"')
-@kwargs(settings='session.config.bandwidth_accounting')
 @walk_strategy(random_walk)
 @set_in_session('bandwidth_community')
 class BandwidthCommunityLauncher(IPv8CommunityLauncher):
-    pass
+    def get_kwargs(self, session):
+        return {
+            'settings': session.config.bandwidth_accounting,
+            'database_path': session.config.state_dir / "sqlite" / "bandwidth.db",
+        }
 
 
 @overlay(bandwidth_accounting_testnet_community)
@@ -150,11 +152,6 @@ class DHTCommunityLauncher(IPv8CommunityLauncher):
 @precondition('not session.tunnel_testnet()')
 @set_in_session('tunnel_community')
 @overlay(tribler_tunnel_community)
-@kwargs(bandwidth_community='session.bandwidth_community',
-        competing_slots='session.config.tunnel_community.competing_slots',
-        ipv8='session.ipv8',
-        random_slots='session.config.tunnel_community.random_slots',
-        tribler_session='session')
 @walk_strategy(random_walk)
 @walk_strategy(golden_ratio_strategy, target_peers=INFINITE)
 class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
@@ -162,12 +159,19 @@ class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
         from ipv8.dht.provider import DHTCommunityProvider
         from ipv8.messaging.anonymization.community import TunnelSettings
 
-        dht_provider = DHTCommunityProvider(session.dht_community, session.config.ipv8.port)
         settings = TunnelSettings()
-        settings.min_circuits = 3
-        settings.max_circuits = 10
+        settings.min_circuits = session.config.tunnel_community.min_circuits
+        settings.max_circuits = session.config.tunnel_community.max_circuits
 
-        return {'dht_provider': dht_provider, 'settings': settings}
+        return {
+            'bandwidth_community': session.bandwidth_community,
+            'competing_slots': session.config.tunnel_community.competing_slots,
+            'ipv8': session.ipv8,
+            'random_slots': session.config.tunnel_community.random_slots,
+            'tribler_session': session,
+            'dht_provider': DHTCommunityProvider(session.dht_community, session.config.ipv8.port),
+            'settings': settings
+        }
 
 
 @precondition('session.config.tunnel_community.enabled')
@@ -180,23 +184,37 @@ class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunity
 @precondition('session.config.popularity_community.enabled')
 @set_in_session('popularity_community')
 @overlay(popularity_community)
-@kwargs(metadata_store='session.mds', torrent_checker='session.torrent_checker')
 @walk_strategy(random_walk, target_peers=30)
 @walk_strategy(remove_peers, target_peers=INFINITE)
 class PopularityCommunityLauncher(IPv8CommunityLauncher):
-    pass
+    def get_kwargs(self, session):
+        return {
+            'settings': session.config.popularity_community,
+            'rqc_settings': session.config.remote_query_community,
+
+            'metadata_store': session.mds,
+            'torrent_checker': session.torrent_checker,
+        }
+
 
 @overlay(giga_channel_community)
 @precondition('session.config.chant.enabled')
 @precondition('not session.chant_testnet()')
 @set_in_session('gigachannel_community')
 @overlay(giga_channel_community)
-@kwargs(metadata_store='session.mds', notifier='session.notifier', max_peers='50')
 # GigaChannelCommunity remote search feature works better with higher amount of connected peers
 @walk_strategy(random_walk, target_peers=30)
 @walk_strategy(remove_peers, target_peers=INFINITE)
 class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
-    pass
+    def get_kwargs(self, session):
+        return {
+            'settings': session.config.chant,
+            'rqc_settings': session.config.remote_query_community,
+
+            'metadata_store': session.mds,
+            'notifier': session.notifier,
+            'max_peers': 50,
+        }
 
 
 @precondition('session.config.chant.enabled')

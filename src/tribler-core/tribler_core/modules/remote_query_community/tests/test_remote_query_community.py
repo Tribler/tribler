@@ -15,10 +15,11 @@ from pony.orm.dbapiprovider import OperationalError
 
 import pytest
 
-from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.modules.metadata_store.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity, sanitize_query
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
@@ -68,6 +69,7 @@ class TestRemoteQueryCommunity(TestBase):
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store
+        kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
         node = super().create_node(*args, **kwargs)
         self.count += 1
         return node
@@ -86,7 +88,7 @@ class TestRemoteQueryCommunity(TestBase):
         mds1 = self.nodes[1].overlay.mds
 
         # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.settings.max_channel_query_back = 0
+        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
 
         # Fill Node 0 DB with channels and torrents
         with db_session:
@@ -270,7 +272,7 @@ class TestRemoteQueryCommunity(TestBase):
         mds1 = self.nodes[1].overlay.mds
 
         # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.settings.max_channel_query_back = 0
+        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
 
         with db_session:
             for _ in range(0, 100):
@@ -514,11 +516,11 @@ class TestRemoteQueryCommunity(TestBase):
     async def test_drop_silent_peer(self):
 
         # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.settings.max_channel_query_back = 0
+        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
 
         kwargs_dict = {"txt_filter": "ubuntu*"}
 
-        basic_path = 'tribler_core.modules.metadata_store.community.remote_query_community'
+        basic_path = 'tribler_core.modules.remote_query_community.community'
 
         with patch(basic_path + '.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
             # Change query timeout to a really low value

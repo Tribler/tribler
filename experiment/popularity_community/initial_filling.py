@@ -7,16 +7,14 @@ import os
 import time
 from pathlib import Path
 
-from ipv8.peer import Peer
-from ipv8.peerdiscovery.discovery import RandomWalk
-
+import sentry_sdk
 from pony.orm import count, db_session
 
-import sentry_sdk
-
-from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
-
+from ipv8.peer import Peer
+from ipv8.peerdiscovery.discovery import RandomWalk
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.popularity.popularity_community import PopularityCommunity
+from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
 
@@ -31,7 +29,7 @@ sentry_sdk.init(
 class ObservablePopularityCommunity(PopularityCommunity):
 
     def __init__(self, interval_in_sec, output_file_path, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, rqc_settings=RemoteQueryCommunitySettings(), **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._start_time = time.time()
@@ -77,10 +75,11 @@ class Service(TinyTriblerService):
 
     @staticmethod
     def create_config(working_dir, config_path):
-        return TinyTriblerService.create_default_config(working_dir, config_path)\
-            .put('libtorrent', 'enabled', True)\
-            .put('ipv8', 'enabled', True)\
-            .put('chant', 'enabled', True)
+        config = TinyTriblerService.create_default_config(working_dir, config_path)
+        config.libtorrent.enabled = True
+        config.ipv8.enabled = True
+        config.chant.enabled = True
+        return config
 
     async def on_tribler_started(self):
         await super().on_tribler_started()

@@ -17,8 +17,10 @@ from tribler_core.modules.metadata_store.community.gigachannel_community import 
     GigaChannelCommunity,
     NoChannelSourcesException,
 )
-from tribler_core.modules.metadata_store.community.remote_query_community import RequestTimeoutException
+from tribler_core.modules.metadata_store.settings import ChantSettings
 from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.modules.metadata_store.utils import RequestTimeoutException
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
@@ -27,7 +29,7 @@ EMPTY_BLOB = database_blob(b"")
 
 # pylint:disable=protected-access
 
-BASE_PATH = 'tribler_core.modules.metadata_store.community.remote_query_community'
+BASE_PATH = 'tribler_core.modules.remote_query_community.community'
 
 
 class TestGigaChannelUnits(TestBase):
@@ -45,6 +47,8 @@ class TestGigaChannelUnits(TestBase):
             disable_sync=True,
         )
         kwargs['metadata_store'] = metadata_store
+        kwargs['settings'] = ChantSettings()
+        kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
         with mock.patch('tribler_core.modules.metadata_store.community.gigachannel_community.DiscoveryBooster'):
             node = super().create_node(*args, **kwargs)
         self.count += 1
@@ -82,7 +86,7 @@ class TestGigaChannelUnits(TestBase):
 
         # We do not want the query back mechanism and introduction callback to interfere with this test
         for node in self.nodes:
-            node.overlay.settings.max_channel_query_back = 0
+            node.overlay.rqc_settings.max_channel_query_back = 0
 
         await self.introduce_nodes()
 
@@ -160,7 +164,7 @@ class TestGigaChannelUnits(TestBase):
         """
 
         # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.settings.max_channel_query_back = 0
+        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
 
         num_channels = 5
 
@@ -296,7 +300,7 @@ class TestGigaChannelUnits(TestBase):
 
     async def test_drop_silent_peer_from_channels_map(self):
         # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.settings.max_channel_query_back = 0
+        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
         kwargs_dict = {"txt_filter": "ubuntu*"}
         with patch(f'{BASE_PATH}.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
             # Change query timeout to a really low value
