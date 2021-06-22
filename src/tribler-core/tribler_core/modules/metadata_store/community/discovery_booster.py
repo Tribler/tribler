@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import logging
 
-from ipv8.peerdiscovery.discovery import EdgeWalk
+from ipv8.community import Community
+from ipv8.peerdiscovery.discovery import DiscoveryStrategy, EdgeWalk
 
 
 class DiscoveryBooster:
@@ -9,7 +12,10 @@ class DiscoveryBooster:
     It can be applied to any community.
     """
 
-    def __init__(self, timeout_in_sec=10.0, take_step_interval_in_sec=0.05, walker=None):
+    # fmt: off
+
+    def __init__(self, timeout_in_sec: float = 10.0, take_step_interval_in_sec: float = 0.05,
+                 walker: DiscoveryStrategy = None):
         """
 
         Args:
@@ -28,7 +34,7 @@ class DiscoveryBooster:
 
         self._take_step_task_name = 'take step'
 
-    def apply(self, community):
+    def apply(self, community: Community):
         """Apply DiscoveryBooster to the community
 
         Args:
@@ -39,9 +45,8 @@ class DiscoveryBooster:
         if not community:
             return
 
-        self.logger.info(
-            f'Apply. Timeout: {self.timeout_in_sec}s, ' f'Take step interval: {self.take_step_interval_in_sec}s'
-        )
+        self.logger.info(f'Apply. Timeout: {self.timeout_in_sec}s. '
+                         f'Take step interval: {self.take_step_interval_in_sec}s')
 
         self.community = community
 

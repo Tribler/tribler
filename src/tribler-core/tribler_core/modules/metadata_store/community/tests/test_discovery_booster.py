@@ -48,7 +48,6 @@ def test_init(booster):
 
 
 def test_apply(booster, community):
-    booster.apply(None)
     assert booster.community is None
 
     booster.apply(community)
