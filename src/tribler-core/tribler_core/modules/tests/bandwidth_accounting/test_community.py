@@ -6,6 +6,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.cache import BandwidthTransactionSignCache
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 
 
@@ -16,7 +17,8 @@ class TestBandwidthAccountingCommunity(TestBase):
         self.initialize(BandwidthAccountingCommunity, 2)
 
     def create_node(self):
-        return MockIPv8("curve25519", BandwidthAccountingCommunity, database_path=":memory:")
+        return MockIPv8("curve25519", BandwidthAccountingCommunity, database_path=":memory:",
+                        settings=BandwidthAccountingSettings())
 
     async def test_single_transaction(self):
         """

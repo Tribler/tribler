@@ -26,7 +26,6 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, R
 from tribler_core.modules.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
-from tribler_core.utilities import path_util
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 

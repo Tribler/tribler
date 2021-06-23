@@ -18,7 +18,7 @@ from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.tunnel.community.triblertunnel_community import TriblerTunnelCommunity
+from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
 from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 

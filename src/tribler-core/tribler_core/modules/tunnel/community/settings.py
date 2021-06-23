@@ -10,3 +10,5 @@ class TunnelCommunitySettings(TriblerConfigSection):
     random_slots: int = 5
     competing_slots: int = 15
     testnet: bool = False
+    min_circuits: int = 3
+    max_circuits: int = 10

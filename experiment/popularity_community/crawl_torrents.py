@@ -45,12 +45,10 @@ from pony.orm import Database, Required, db_session
 
 import sentry_sdk
 
-from tribler_core.modules.metadata_store.community.remote_query_community import (
-    RemoteQueryCommunity,
-    RemoteSelectPayload,
-    SelectRequest,
-    SelectResponsePayload,
-)
+from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity, RemoteSelectPayload, \
+    SelectRequest, \
+    SelectResponsePayload
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 from tribler_core.utilities.unicode import hexlify
@@ -107,7 +105,7 @@ class TorrentCrawler(RemoteQueryCommunity):
     """
 
     def __init__(self, my_peer, endpoint, network, metadata_store, crawler_settings):
-        super().__init__(my_peer, endpoint, network, metadata_store)
+        super().__init__(my_peer, endpoint, network, metadata_store, rqc_settings=RemoteQueryCommunitySettings())
         self._logger = logging.getLogger(self.__class__.__name__)
         self._db = TorrentCrawler.create_db(crawler_settings.output_file_path)
         self._peers_count_csv_file = Path(crawler_settings.peers_count_csv_file_path).open("a")

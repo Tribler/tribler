@@ -7,8 +7,8 @@ from ipv8.peerdiscovery.network import Network
 
 from pony.orm import db_session
 
-from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
+from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity
 from tribler_core.utilities.unicode import hexlify
 
 

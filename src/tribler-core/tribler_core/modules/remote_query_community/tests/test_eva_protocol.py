@@ -11,7 +11,7 @@ from ipv8.test.base import TestBase
 
 import pytest
 
-from tribler_core.modules.metadata_store.community.eva_protocol import (
+from tribler_core.modules.remote_query_community.eva_protocol import (
     EVAProtocolMixin,
     Error,
     SizeLimitException,

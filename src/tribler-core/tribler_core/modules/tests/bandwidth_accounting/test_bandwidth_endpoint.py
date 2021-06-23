@@ -4,6 +4,7 @@ import pytest
 
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
@@ -12,10 +13,11 @@ from tribler_core.utilities.unicode import hexlify
 @pytest.fixture
 async def mock_ipv8(session):
     db_path = session.config.state_dir / "bandwidth.db"
-    mock_ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path)
-    session.bandwidth_community = mock_ipv8.overlay
-    yield mock_ipv8
-    await mock_ipv8.stop()
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+                    settings=BandwidthAccountingSettings())
+    session.bandwidth_community = ipv8.overlay
+    yield ipv8
+    await ipv8.stop()
 
 
 @pytest.mark.asyncio
