@@ -9,10 +9,11 @@ from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.community.remote_query_community import RemoteQueryCommunity
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
+from tribler_core.modules.popularity.version_community_mixin import VersionCommunityMixin
 from tribler_core.utilities.unicode import hexlify
 
 
-class PopularityCommunity(RemoteQueryCommunity):
+class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     """
     Community for disseminating the content across the network.
 
@@ -43,6 +44,9 @@ class PopularityCommunity(RemoteQueryCommunity):
                            interval=PopularityCommunity.GOSSIP_INTERVAL_FOR_POPULAR_TORRENTS)
         self.register_task("gossip_random_torrents", self.gossip_random_torrents_health,
                            interval=PopularityCommunity.GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS)
+
+        # Init version community message handlers
+        self.init_version_community()
 
     @staticmethod
     def select_torrents_to_gossip(torrents, include_popular=True, include_random=True) -> (set, set):
