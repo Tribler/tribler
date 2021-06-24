@@ -25,15 +25,23 @@ class TestPopularityCommunity(TestBase):
     def setUp(self):
         super().setUp()
         self.count = 0
+        self.metadata_store_set = set()
         self.initialize(PopularityCommunity, self.NUM_NODES)
 
+    async def tearDown(self):
+        for metadata_store in self.metadata_store_set:
+            metadata_store.shutdown()
+        await super().tearDown()
+
     def create_node(self, *args, **kwargs):
-        mds = MetadataStore(Path(self.temporary_directory()) / ("%d.db" % self.count),
+        mds = MetadataStore(Path(self.temporary_directory()) / f"{self.count}",
                             Path(self.temporary_directory()),
                             default_eccrypto.generate_key("curve25519"))
-
+        self.metadata_store_set.add(mds)
         torrent_checker = MockObject()
         torrent_checker.torrents_checked = set()
+
+        self.count += 1
 
         return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
                         torrent_checker=torrent_checker)
