@@ -36,8 +36,14 @@ class TestGigaChannelUnits(TestBase):
     def setUp(self):
         super().setUp()
         self.count = 0
+        self.metadata_store_set = set()
         self.initialize(GigaChannelCommunity, 3)
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
+
+    async def tearDown(self):
+        for metadata_store in self.metadata_store_set:
+            metadata_store.shutdown()
+        await super().tearDown()
 
     def create_node(self, *args, **kwargs):
         metadata_store = MetadataStore(
@@ -46,6 +52,7 @@ class TestGigaChannelUnits(TestBase):
             default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
+        self.metadata_store_set.add(metadata_store)
         kwargs['metadata_store'] = metadata_store
         kwargs['settings'] = ChantSettings()
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()

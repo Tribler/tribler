@@ -58,8 +58,14 @@ class TestRemoteQueryCommunity(TestBase):
         random.seed(456)
         super().setUp()
         self.count = 0
+        self.metadata_store_set = set()
         self.initialize(BasicRemoteQueryCommunity, 2)
         self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
+
+    async def tearDown(self):
+        for metadata_store in self.metadata_store_set:
+            metadata_store.shutdown()
+        await super().tearDown()
 
     def create_node(self, *args, **kwargs):
         metadata_store = MetadataStore(
@@ -68,6 +74,7 @@ class TestRemoteQueryCommunity(TestBase):
             default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
+        self.metadata_store_set.add(metadata_store)
         kwargs['metadata_store'] = metadata_store
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
         node = super().create_node(*args, **kwargs)
@@ -133,7 +140,6 @@ class TestRemoteQueryCommunity(TestBase):
         """
         Test querying back preview contents for previously unknown channels.
         """
-
         num_channels = 5
         max_received_torrents_per_channel_query_back = 4
 
