@@ -2,7 +2,15 @@
 import inspect
 import sys
 
-from ipv8.loader import CommunityLauncher, kwargs, overlay, precondition, set_in_session, walk_strategy
+from ipv8.loader import (
+    CommunityLauncher,
+    IPv8CommunityLoader,
+    kwargs,
+    overlay,
+    precondition,
+    set_in_session,
+    walk_strategy,
+)
 from ipv8.peer import Peer
 
 INFINITE = -1
@@ -32,7 +40,6 @@ class TestnetMixIn:
         return True
 
 
-# communities
 def discovery_community():
     from ipv8.peerdiscovery.community import DiscoveryCommunity
     return DiscoveryCommunity
@@ -96,7 +103,7 @@ def get_hiddenimports():
     return hiddenimports
 
 
-def register_default_launchers(loader):
+def register_launchers(session, loader):
     """
     Register the default CommunityLaunchers into the given CommunityLoader.
     If you define a new default CommunityLauncher, add it here.
@@ -108,23 +115,29 @@ def register_default_launchers(loader):
     loader.set_launcher(IPv8DiscoveryCommunityLauncher())
     loader.set_launcher(DHTCommunityLauncher())
 
-    from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
-    loader.set_launcher(BandwidthCommunityLauncher())
+    if session.bandwidth_testnet():
+        from tribler_core.modules.bandwidth_accounting.launcher import BandwidthTestnetCommunityLauncher
+        loader.set_launcher(BandwidthTestnetCommunityLauncher())
+    else:
+        from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
+        loader.set_launcher(BandwidthCommunityLauncher())
 
-    from tribler_core.modules.bandwidth_accounting.launcher import BandwidthTestnetCommunityLauncher
-    loader.set_launcher(BandwidthTestnetCommunityLauncher())
+    if session.config.tunnel_community.enabled and not session.tunnel_testnet():
+        from tribler_core.modules.tunnel.community.launcher import TriblerTunnelCommunityLauncher
+        loader.set_launcher(TriblerTunnelCommunityLauncher())
 
-    from tribler_core.modules.tunnel.community.launcher import TriblerTunnelCommunityLauncher
-    loader.set_launcher(TriblerTunnelCommunityLauncher())
+    if session.config.tunnel_community.enabled and session.tunnel_testnet():
+        from tribler_core.modules.tunnel.community.launcher import TriblerTunnelTestnetCommunityLauncher
+        loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
 
-    from tribler_core.modules.tunnel.community.launcher import TriblerTunnelTestnetCommunityLauncher
-    loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
+    if session.config.popularity_community.enabled:
+        from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
+        loader.set_launcher(PopularityCommunityLauncher())
 
-    from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
-    loader.set_launcher(PopularityCommunityLauncher())
+    if session.config.chant.enabled and not session.chant_testnet():
+        from tribler_core.modules.metadata_store.community.launcher import GigaChannelCommunityLauncher
+        loader.set_launcher(GigaChannelCommunityLauncher())
 
-    from tribler_core.modules.metadata_store.community.launcher import GigaChannelCommunityLauncher
-    loader.set_launcher(GigaChannelCommunityLauncher())
-
-    from tribler_core.modules.metadata_store.community.launcher import GigaChannelTestnetCommunityLauncher
-    loader.set_launcher(GigaChannelTestnetCommunityLauncher())
+    if session.config.chant.enabled and session.chant_testnet():
+        from tribler_core.modules.metadata_store.community.launcher import GigaChannelTestnetCommunityLauncher
+        loader.set_launcher(GigaChannelTestnetCommunityLauncher())

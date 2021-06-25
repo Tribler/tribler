@@ -6,7 +6,6 @@ from tribler_core.modules.metadata_store.community.sync_strategy import RemovePe
 from tribler_core.modules.popularity.community import PopularityCommunity
 
 
-@precondition('session.config.popularity_community.enabled')
 @set_in_session('popularity_community')
 @overlay(PopularityCommunity)
 @walk_strategy(RandomWalk, target_peers=30)

@@ -9,7 +9,6 @@ from tribler_core.modules.ipv8_module_catalog import IPv8CommunityLauncher, Test
 
 
 @overlay(BandwidthAccountingCommunity)
-@precondition('not session.bandwidth_testnet()')
 @walk_strategy(RandomWalk)
 @set_in_session('bandwidth_community')
 class BandwidthCommunityLauncher(IPv8CommunityLauncher):
@@ -21,6 +20,5 @@ class BandwidthCommunityLauncher(IPv8CommunityLauncher):
 
 
 @overlay(BandwidthAccountingTestnetCommunity)
-@precondition('session.bandwidth_testnet()')
 class BandwidthTestnetCommunityLauncher(TestnetMixIn, BandwidthCommunityLauncher):
     pass

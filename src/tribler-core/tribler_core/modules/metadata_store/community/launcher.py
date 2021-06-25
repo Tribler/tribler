@@ -10,8 +10,6 @@ from tribler_core.modules.metadata_store.community.sync_strategy import RemovePe
 
 
 @overlay(GigaChannelCommunity)
-@precondition('session.config.chant.enabled')
-@precondition('not session.chant_testnet()')
 @set_in_session('gigachannel_community')
 # GigaChannelCommunity remote search feature works better with higher amount of connected peers
 @walk_strategy(RandomWalk, target_peers=30)
@@ -27,8 +25,7 @@ class GigaChannelCommunityLauncher(IPv8CommunityLauncher):
         }
 
 
-@precondition('session.config.chant.enabled')
-@precondition('session.chant_testnet()')
+
 @overlay(GigaChannelTestnetCommunity)
 class GigaChannelTestnetCommunityLauncher(TestnetMixIn, GigaChannelCommunityLauncher):
     pass

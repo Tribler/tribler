@@ -36,7 +36,8 @@ from tribler_common.simpledefs import (
 )
 
 import tribler_core.utilities.permid as permid_module
-from tribler_core.modules.ipv8_module_catalog import register_default_launchers
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.ipv8_module_catalog import register_launchers
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.notifier import Notifier
@@ -73,7 +74,7 @@ class Session(TaskManager):
     """
     __single = None
 
-    def __init__(self, config, core_test_mode=False):
+    def __init__(self, config: TriblerConfig, core_test_mode: bool = False):
         """
         A Session object is created
         Only a single session instance can exist at a time in a process.
@@ -106,7 +107,7 @@ class Session(TaskManager):
 
         # modules
         self.ipv8_community_loader = IPv8CommunityLoader()
-        register_default_launchers(self.ipv8_community_loader)
+        register_launchers(self, self.ipv8_community_loader)
 
         self.api_manager = None
         self.watch_folder = None

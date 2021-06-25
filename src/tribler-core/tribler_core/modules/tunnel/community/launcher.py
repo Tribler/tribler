@@ -7,8 +7,6 @@ from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
 
 @after('DHTCommunityLauncher', 'BandwidthCommunityLauncher', 'BandwidthTestnetCommunityLauncher')
-@precondition('session.config.tunnel_community.enabled')
-@precondition('not session.tunnel_testnet()')
 @set_in_session('tunnel_community')
 @overlay(TriblerTunnelCommunity)
 @walk_strategy(RandomWalk)
@@ -33,8 +31,6 @@ class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
         }
 
 
-@precondition('session.config.tunnel_community.enabled')
-@precondition('session.tunnel_testnet()')
 @overlay(TriblerTunnelTestnetCommunity)
 class TriblerTunnelTestnetCommunityLauncher(TestnetMixIn, TriblerTunnelCommunityLauncher):
     pass
