@@ -322,10 +322,6 @@ class TorrentChecker(TaskManager):
                 # get torrent's tracker list from DB
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
 
-        hops = self.tribler_session.config.download_defaults.number_hops
-        socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
-        ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
-
         tasks = []
         for tracker_url in tracker_set:
             session = self._create_session_for_request(tracker_url, timeout=timeout)
