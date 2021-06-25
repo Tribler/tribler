@@ -324,11 +324,11 @@ class TorrentChecker(TaskManager):
 
         hops = self.tribler_session.config.download_defaults.number_hops
         socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
-        proxy = ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
+        ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
 
         tasks = []
         for tracker_url in tracker_set:
-            session = self._create_session_for_request(tracker_url, timeout=timeout, proxy=proxy)
+            session = self._create_session_for_request(tracker_url, timeout=timeout)
             session.add_infohash(infohash)
             tasks.append(self.connect_to_tracker(session))
 
@@ -346,7 +346,10 @@ class TorrentChecker(TaskManager):
         res = await gather(*tasks, return_exceptions=True)
         return self.on_torrent_health_check_completed(infohash, res)
 
-    def _create_session_for_request(self, tracker_url, timeout=20, proxy=None):
+    def _create_session_for_request(self, tracker_url, timeout=20):
+        hops = self.tribler_session.config.download_defaults.number_hops
+        socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
+        proxy = ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
 
         if tracker_url not in self._session_list:

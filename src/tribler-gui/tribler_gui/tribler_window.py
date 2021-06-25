@@ -559,24 +559,40 @@ class TriblerWindow(QMainWindow):
         self.update_recent_download_locations(destination)
 
         if add_to_channel:
+            self.show_add_torrent_to_channel_dialog_from_uri(uri)
 
-            def on_add_button_pressed(channel_id):
-                post_data = {}
-                if uri.startswith("file:"):
-                    with open(uri_to_path(uri), "rb") as torrent_file:
-                        post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
-                elif uri.startswith("magnet:"):
-                    post_data['uri'] = uri
+    def show_add_torrent_to_channel_dialog_from_uri(self, uri):
+        def on_add_button_pressed(channel_id):
+            post_data = {}
+            if uri.startswith("file:"):
+                with open(uri_to_path(uri), "rb") as torrent_file:
+                    post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
+            elif uri.startswith("magnet:"):
+                post_data['uri'] = uri
 
-                if post_data:
-                    TriblerNetworkRequest(
-                        f"channels/mychannel/{channel_id}/torrents",
-                        lambda _: self.tray_show_message(tr("Channel update"), tr("Torrent(s) added to your channel")),
-                        method='PUT',
-                        data=post_data,
-                    )
+            if post_data:
+                TriblerNetworkRequest(
+                    f"channels/mychannel/{channel_id}/torrents",
+                    lambda _: self.tray_show_message(tr("Channel update"), tr("Torrent(s) added to your channel")),
+                    method='PUT',
+                    data=post_data,
+                )
 
-            self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
+        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
+
+    def show_add_torrent_to_channel_dialog_from_torrent_data(self, torrent_data):
+        def on_add_button_pressed(channel_id):
+            post_data = {'torrent': torrent_data}
+
+            if post_data:
+                TriblerNetworkRequest(
+                    f"channels/mychannel/{channel_id}/torrents",
+                    lambda _: self.tray_show_message(tr("Channel update"), tr("Torrent(s) added to your channel")),
+                    method='PUT',
+                    data=post_data,
+                )
+
+        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
 
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
@@ -740,6 +756,7 @@ class TriblerWindow(QMainWindow):
 
         self.create_dialog = CreateTorrentDialog(self)
         connect(self.create_dialog.create_torrent_notification, self.on_create_torrent_updates)
+        connect(self.create_dialog.add_to_channel_selected, self.show_add_torrent_to_channel_dialog_from_torrent_data)
         self.create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):

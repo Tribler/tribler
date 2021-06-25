@@ -228,8 +228,9 @@ class UdpSocketManager(DatagramProtocol):
             if proxy not in self.proxy_transports:
                 self.proxy_transports[proxy] = transport
 
+        host = tracker_session.ip_address or tracker_session.tracker_address[0]
         try:
-            transport.sendto(data, (tracker_session.ip_address, tracker_session.port))
+            transport.sendto(data, (host, tracker_session.port))
             f = self.tracker_sessions[tracker_session.transaction_id] = Future()
             return await f
         except OSError as e:
@@ -321,13 +322,16 @@ class UdpTrackerSession(TrackerSession):
 
         try:
             async with async_timeout.timeout(self.timeout):
-                # Resolve the hostname to an IP address if not done already
-                coro = get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET)
-                if isinstance(coro, Future):
-                    infos = await coro  # In Python <=3.6 getaddrinfo returns a Future
-                else:
-                    infos = await self.register_anonymous_task("resolve", ensure_future(coro))
-                self.ip_address = infos[0][-1][0]
+                # We only resolve the hostname if we're not using a proxy.
+                # If a proxy is used, the TunnelCommunity will resolve the hostname at the exit nodes.
+                if not self.proxy:
+                    # Resolve the hostname to an IP address if not done already
+                    coro = get_event_loop().getaddrinfo(self.tracker_address[0], 0, family=socket.AF_INET)
+                    if isinstance(coro, Future):
+                        infos = await coro  # In Python <=3.6 getaddrinfo returns a Future
+                    else:
+                        infos = await self.register_anonymous_task("resolve", ensure_future(coro))
+                    self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
         except TimeoutError:

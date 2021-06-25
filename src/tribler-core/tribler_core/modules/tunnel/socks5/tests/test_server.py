@@ -29,7 +29,7 @@ async def test_start_server(socks5_server):
 @pytest.mark.asyncio
 async def test_socks5_udp_associate(socks5_server):
     """
-    Test is sending a UDP associate request to the server succeeds.
+    Test if sending a UDP associate request to the server succeeds.
     """
     await socks5_server.start()
     client = Socks5Client(('127.0.0.1', socks5_server.port), Mock())
@@ -79,7 +79,7 @@ async def test_socks5_sendto_success(socks5_server):
 @pytest.mark.asyncio
 async def test_socks5_tcp_connect(socks5_server):
     """
-    Test is sending a TCP connect request to the server succeeds.
+    Test if sending a TCP connect request to the server succeeds.
     """
     await socks5_server.start()
     client = Socks5Client(('127.0.0.1', socks5_server.port), Mock())
@@ -91,7 +91,7 @@ async def test_socks5_tcp_connect(socks5_server):
 @pytest.mark.asyncio
 async def test_socks5_write(socks5_server):
     """
-    Test is sending a TCP data to the server succeeds.
+    Test if sending a TCP data to the server succeeds.
     """
     await socks5_server.start()
     client = Socks5Client(('127.0.0.1', socks5_server.port), Mock())

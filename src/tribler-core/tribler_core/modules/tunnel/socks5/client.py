@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 import socket
 from asyncio import DatagramProtocol, Protocol, Queue, get_event_loop
@@ -43,6 +44,10 @@ class Socks5ClientUDPConnection(DatagramProtocol):
             self.callback(request.data, request.destination)
 
     def sendto(self, data, target_addr):
+        try:
+            ipaddress.IPv4Address(target_addr[0])
+        except ipaddress.AddressValueError:
+            target_addr = DomainAddress(*target_addr)
         packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, target_addr, data))
         self.transport.sendto(packet, self.proxy_udp_addr)
 

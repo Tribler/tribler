@@ -213,14 +213,11 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def push_channels_stack(self, model):
         if self.model:
-            self.model.info_changed.disconnect()
             self.model.saved_header_state = self.controller.table_view.horizontalHeader().saveState()
             self.model.saved_scroll_state = self.controller.table_view.verticalScrollBar().value()
-            self.controller.unset_model()  # Disconnect the selectionChanged signal
+            self.disconnect_current_model()
         self.channels_stack.append(model)
-        connect(self.model.info_changed, self.on_model_info_changed)
-
-        connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
+        self.connect_current_model()
 
         with self.freeze_controls():
             self.category_selector.setCurrentIndex(0)
@@ -278,7 +275,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def disconnect_current_model(self):
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
+        disconnect(self.model.info_changed, self.on_model_info_changed)
         self.controller.unset_model()  # Disconnect the selectionChanged signal
+
+    def connect_current_model(self):
+        connect(self.model.info_changed, self.on_model_info_changed)
+        connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
     @property
     def current_level(self):
@@ -326,7 +328,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                     self.channel_torrents_filter_input.setText(self.model.text_filter)
                 self.controller.set_model(self.model)
 
-            connect(self.model.info_changed, self.on_model_info_changed)
+            self.connect_current_model()
             self.update_labels()
 
     def on_channel_clicked(self, channel_dict):
