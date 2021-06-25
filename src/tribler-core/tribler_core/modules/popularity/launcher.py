@@ -1,7 +1,7 @@
-from ipv8.loader import overlay, precondition, set_in_session, walk_strategy
+from ipv8.loader import overlay, set_in_session, walk_strategy
 from ipv8.peerdiscovery.discovery import RandomWalk
+from tribler_core.modules.community_loader import INFINITE, TriblerCommunityLauncher
 
-from tribler_core.modules.ipv8_module_catalog import INFINITE, IPv8CommunityLauncher
 from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.popularity.community import PopularityCommunity
 
@@ -10,7 +10,7 @@ from tribler_core.modules.popularity.community import PopularityCommunity
 @overlay(PopularityCommunity)
 @walk_strategy(RandomWalk, target_peers=30)
 @walk_strategy(RemovePeers, target_peers=INFINITE)
-class PopularityCommunityLauncher(IPv8CommunityLauncher):
+class PopularityCommunityLauncher(TriblerCommunityLauncher):
     def get_kwargs(self, session):
         return {
             'settings': session.config.popularity_community,

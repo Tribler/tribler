@@ -4,6 +4,7 @@ import signal
 from pathlib import Path
 
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.ipv8_module_catalog import create_default_loader
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.session import Session
 
@@ -61,7 +62,7 @@ class TinyTriblerService:
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")
 
-        self.session = Session(self.config)
+        self.session = Session(self.config, community_loader=create_default_loader(self.config))
         await self.session.start()
 
         self.logger.info("Tribler session started")

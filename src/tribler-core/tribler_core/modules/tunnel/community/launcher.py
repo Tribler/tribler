@@ -1,7 +1,7 @@
-from ipv8.loader import after, overlay, precondition, set_in_session, walk_strategy
+from ipv8.loader import after, overlay, set_in_session, walk_strategy
 from ipv8.peerdiscovery.discovery import RandomWalk
 
-from tribler_core.modules.ipv8_module_catalog import INFINITE, IPv8CommunityLauncher, TestnetMixIn
+from tribler_core.modules.community_loader import INFINITE, TestnetMixIn, TriblerCommunityLauncher
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
@@ -11,7 +11,7 @@ from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 @overlay(TriblerTunnelCommunity)
 @walk_strategy(RandomWalk)
 @walk_strategy(GoldenRatioStrategy, target_peers=INFINITE)
-class TriblerTunnelCommunityLauncher(IPv8CommunityLauncher):
+class TriblerTunnelCommunityLauncher(TriblerCommunityLauncher):
     def get_kwargs(self, session):
         from ipv8.dht.provider import DHTCommunityProvider
         from ipv8.messaging.anonymization.community import TunnelSettings

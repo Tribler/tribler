@@ -7,16 +7,15 @@ from asyncio import ensure_future, get_event_loop
 
 from PyQt5.QtCore import QSettings
 
+import tribler_core
+import tribler_gui
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
-
-import tribler_core
 from tribler_core.dependencies import check_for_missing_dependencies
+from tribler_core.modules.community_loader import create_default_loader
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
-
-import tribler_gui
 from tribler_gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
@@ -30,8 +29,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     through the HTTP API.
     """
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
-                 f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
-                 f'Core test mode: "{core_test_mode}"')
+                f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
+                f'Core test mode: "{core_test_mode}"')
 
     from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
     tribler_core.load_logger_config(root_state_dir)
@@ -92,7 +91,11 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-        session = Session(config, core_test_mode=core_test_mode)
+        community_loader = create_default_loader(config, chant_testnet=is_chant_testnet(config),
+                                                 tunnel_testnet=is_tunnel_testnet(config),
+                                                 bandwidth_testnet=is_bandwidth_testnet(config))
+        session = Session(config, core_test_mode=core_test_mode, community_loader=community_loader,
+                          chant_testnet=is_chant_testnet(config), trustchain_testnet=is_trustchain_testnet(config))
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         await session.start()
@@ -123,6 +126,30 @@ def init_sentry_reporter():
                             scrubber=None,
                             strategy=SentryStrategy.SEND_ALLOWED)
         logger.info('Sentry has been initialised in debug mode')
+
+
+def is_chant_testnet(config):
+    return ('TESTNET' in os.environ or
+            'CHANT_TESTNET' in os.environ or
+            config.chant.testnet)
+
+
+def is_bandwidth_testnet(config):
+    return ('TESTNET' in os.environ or
+            'BANDWIDTH_TESTNET' in os.environ or
+            config.bandwidth_accounting.testnet)
+
+
+def is_tunnel_testnet(config):
+    return ('TESTNET' in os.environ or
+            'TUNNEL_TESTNET' in os.environ or
+            config.tunnel_community.testnet)
+
+
+def is_trustchain_testnet(config):
+    return ('TESTNET' in os.environ or
+            'TRUSTCHAIN_TESTNET' in os.environ or
+            config.trustchain.testnet)
 
 
 def init_boot_logger():
