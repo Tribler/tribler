@@ -7,6 +7,7 @@ class ChantSettings(TriblerConfigSection):
     channel_edit: bool = False
     channels_dir: str = 'channels'
     testnet: bool = False
+    db_filename: str = None
 
     queried_peers_limit: int = 1000
     # The maximum number of peers that we got from channels to peers mapping,

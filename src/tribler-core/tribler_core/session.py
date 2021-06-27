@@ -18,8 +18,10 @@ from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
-from tribler_common.network_utils import NetworkUtils
 
+from dependency_injector.wiring import Provide, inject
+
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import (
     NTFY,
@@ -36,7 +38,10 @@ from tribler_common.simpledefs import (
 )
 
 import tribler_core.utilities.permid as permid_module
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.ipv8_module_catalog import register_default_launchers
+from tribler_core.modules.metadata_store.container import MetadataStoreContainer
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.notifier import Notifier
@@ -73,7 +78,9 @@ class Session(TaskManager):
     """
     __single = None
 
-    def __init__(self, config, core_test_mode=False):
+    def __init__(self,
+                 config: TriblerConfig,
+                 core_test_mode: bool = False) -> None:
         """
         A Session object is created
         Only a single session instance can exist at a time in a process.
@@ -259,6 +266,13 @@ class Session(TaskManager):
         """Return a dictionary with IPv8 statistics."""
         return TriblerStatistics(self).get_ipv8_statistics()
 
+    @inject
+    def _start_metadata_store(self, state_dir,
+                              metadata_store: MetadataStore = Provide[MetadataStoreContainer.metadata_store]):
+        self.mds = metadata_store
+        if self.core_test_mode:
+            generate_test_channels(self.mds)
+
     async def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
@@ -305,15 +319,15 @@ class Session(TaskManager):
 
         chant_enabled = self.config.chant.enabled
         if chant_enabled:
-            from tribler_core.modules.metadata_store.store import MetadataStore
-            channels_dir = self.config.chant.get_path_as_absolute('channels_dir', self.config.state_dir)
-            metadata_db_name = 'metadata.db' if not self.chant_testnet() else 'metadata_testnet.db'
-            database_path = state_dir / 'sqlite' / metadata_db_name
-            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
-                                     notifier=self.notifier,
-                                     disable_sync=self.core_test_mode)
-            if self.core_test_mode:
-                generate_test_channels(self.mds)
+            mds_container = MetadataStoreContainer(
+                trustchain_keypair=self.trustchain_keypair,
+                notifier=self.notifier)
+            self.config.chant.db_filename = state_dir / 'sqlite' / 'metadata.db'
+            self.config.chant.channels_dir = self.config.chant.get_path_as_absolute('channels_dir',
+                                                                                       self.config.state_dir)
+            mds_container.config.from_pydantic(self.config.chant)
+            mds_container.wire(modules=[sys.modules[__name__]])
+            self._start_metadata_store(state_dir)
 
         # IPv8
         if self.config.ipv8.enabled:
