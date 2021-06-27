@@ -5,8 +5,8 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 
 class MetadataStoreContainer(containers.DeclarativeContainer):
     config = providers.Configuration()
-    trustchain_keypair = providers.Singleton()
-    notifier = providers.Singleton()
+    trustchain_keypair = providers.Object()
+    notifier = providers.Object()
 
     metadata_store = providers.Singleton(
         MetadataStore,

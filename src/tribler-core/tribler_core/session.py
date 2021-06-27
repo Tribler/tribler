@@ -14,6 +14,7 @@ from traceback import print_exception
 
 from _socket import gaierror
 
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
 
@@ -37,7 +38,6 @@ from tribler_common.simpledefs import (
     STATE_UPGRADING_READABLE,
 )
 
-import tribler_core.utilities.permid as permid_module
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.ipv8_module_catalog import register_default_launchers
 from tribler_core.modules.metadata_store.container import MetadataStoreContainer
@@ -46,6 +46,7 @@ from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.notifier import Notifier
 from tribler_core.statistics import TriblerStatistics
+from tribler_core.trustchain_keypair.container import KeypairUtilsContainer
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import hexlify
@@ -98,7 +99,7 @@ class Session(TaskManager):
 
         self.notifier = Notifier()
 
-        self.upgrader_enabled = True
+        self.upgrader_enabled = False
         self.upgrader = None
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
@@ -131,7 +132,6 @@ class Session(TaskManager):
         self.popularity_community = None
         self.gigachannel_community = None
         self.trustchain_keypair = None
-        self.trustchain_testnet_keypair = None
 
         self.dht_community = None
         self.payout_manager = None
@@ -180,34 +180,6 @@ class Session(TaskManager):
         create_in_state_dir(STATEDIR_DB_DIR)
         create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
         create_in_state_dir(STATEDIR_CHANNELS_DIR)
-
-    def init_keypair(self):
-        """
-        Set parameters that depend on state_dir.
-        """
-        keypair_filename = self.config.trustchain.get_path_as_absolute('ec_keypair_filename', self.config.state_dir)
-        state_dir = self.config.state_dir
-        if keypair_filename.exists():
-            self.trustchain_keypair = permid_module.read_keypair_trustchain(keypair_filename)
-        else:
-            self.trustchain_keypair = permid_module.generate_keypair_trustchain()
-
-            # Save keypair
-            trustchain_pubfilename = state_dir / 'ecpub_multichain.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_keypair, keypair_filename)
-            permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
-
-        testnet_keypair_filename = self.config.trustchain.get_path_as_absolute('testnet_keypair_filename',
-                                                                               self.config.state_dir)
-        if testnet_keypair_filename.exists():
-            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(testnet_keypair_filename)
-        else:
-            self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
-
-            # Save keypair
-            trustchain_testnet_pubfilename = state_dir / 'ecpub_trustchain_testnet.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, testnet_keypair_filename)
-            permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
     def unhandled_error_observer(self, loop, context):
         """
@@ -267,8 +239,7 @@ class Session(TaskManager):
         return TriblerStatistics(self).get_ipv8_statistics()
 
     @inject
-    def _start_metadata_store(self, state_dir,
-                              metadata_store: MetadataStore = Provide[MetadataStoreContainer.metadata_store]):
+    def _start_metadata_store(self, metadata_store: MetadataStore = Provide[MetadataStoreContainer.metadata_store]):
         self.mds = metadata_store
         if self.core_test_mode:
             generate_test_channels(self.mds)
@@ -283,7 +254,11 @@ class Session(TaskManager):
         state_dir = self.config.state_dir
         self._logger.info("Session is using state directory: %s", state_dir)
         self.create_state_directory_structure()
-        self.init_keypair()
+
+        keypair_filename = self.config.trustchain.get_path_as_absolute('ec_keypair_filename', self.config.state_dir)
+        keypair_utils_container = KeypairUtilsContainer(keypair_filename=keypair_filename,
+                                                        trustchain_pubfilename=self.config.state_dir / 'ecpub_multichain.pem')
+        self.trustchain_keypair = keypair_utils_container.trustchain_keypair()
 
         # we have to represent `user_id` as a string to make it equal to the
         # `user_id` on the GUI side
@@ -320,14 +295,15 @@ class Session(TaskManager):
         chant_enabled = self.config.chant.enabled
         if chant_enabled:
             mds_container = MetadataStoreContainer(
-                trustchain_keypair=self.trustchain_keypair,
+                trustchain_keypair=keypair_utils_container.trustchain_keypair(),
                 notifier=self.notifier)
             self.config.chant.db_filename = state_dir / 'sqlite' / 'metadata.db'
             self.config.chant.channels_dir = self.config.chant.get_path_as_absolute('channels_dir',
                                                                                        self.config.state_dir)
             mds_container.config.from_pydantic(self.config.chant)
             mds_container.wire(modules=[sys.modules[__name__]])
-            self._start_metadata_store(state_dir)
+            self._start_metadata_store()
+            assert (self.mds.my_key is self.trustchain_keypair)
 
         # IPv8
         if self.config.ipv8.enabled:
