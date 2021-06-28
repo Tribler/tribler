@@ -6,6 +6,7 @@ from tribler_core.modules.tunnel.community.community import TriblerTunnelCommuni
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
 
+# pylint: disable=import-outside-toplevel
 @after('DHTCommunityLauncher', 'BandwidthCommunityLauncher', 'BandwidthTestnetCommunityLauncher')
 @set_in_session('tunnel_community')
 @overlay(TriblerTunnelCommunity)

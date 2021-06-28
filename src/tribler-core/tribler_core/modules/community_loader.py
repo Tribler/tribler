@@ -12,6 +12,7 @@ from ipv8.loader import (
     walk_strategy,
 )
 from ipv8.peer import Peer
+
 from tribler_core.config.tribler_config import TriblerConfig
 
 INFINITE = -1
@@ -37,7 +38,7 @@ class TriblerCommunityLauncher(CommunityLauncher):
 
 
 class TestnetMixIn:
-    def should_launch(self, session):
+    def should_launch(self, _):
         return True
 
 
@@ -126,15 +127,3 @@ def create_default_loader(config: TriblerConfig, tunnel_testnet: bool = False,
         loader.set_launcher(GigaChannelTestnetCommunityLauncher())
 
     return loader
-
-
-def get_hiddenimports():
-    """
-    Return the set of all hidden imports defined by all CommunityLaunchers in this file.
-    """
-    hiddenimports = set()
-
-    for _, obj in inspect.getmembers(sys.modules[__name__]):
-        hiddenimports.update(getattr(obj, "hiddenimports", set()))
-
-    return hiddenimports
