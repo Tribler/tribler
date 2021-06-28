@@ -8,6 +8,7 @@ from pathlib import Path
 from aiohttp import ClientSession, ContentTypeError, web
 
 from aiohttp_apispec import docs, json_schema
+from dependency_injector.wiring import Provide, inject
 
 from ipv8.REST.schema import schema
 from ipv8.database import database_blob
@@ -19,10 +20,12 @@ from pony.orm import db_session
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.container import MetadataStoreContainer
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
@@ -88,7 +91,8 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             }
         },
     )
-    async def get_channels(self, request):
+    @inject
+    async def get_channels(self, request, mds: MetadataStore = Provide[MetadataStoreContainer.metadata_store]):
         sanitized = self.sanitize_parameters(request.query)
         sanitized['subscribed'] = None if 'subscribed' not in request.query else bool(int(request.query['subscribed']))
         include_total = request.query.get('include_total', '')
@@ -96,8 +100,8 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized['metadata_type'] = CHANNEL_TORRENT
 
         with db_session:
-            channels = self.session.mds.get_entries(**sanitized)
-            total = self.session.mds.get_total_count(**sanitized) if include_total else None
+            channels = mds.get_entries(**sanitized)
+            total = mds.get_total_count(**sanitized) if include_total else None
             channels_list = []
             for channel in channels:
                 channel_dict = channel.to_simple_dict()
@@ -105,7 +109,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 if channel.subscribed:
                     if channel_dict["state"] == CHANNEL_STATE.UPDATING.value:
                         try:
-                            progress = self.session.mds.compute_channel_update_progress(channel)
+                            progress = mds.compute_channel_update_progress(channel)
                             channel_dict["progress"] = progress
                         except (ZeroDivisionError, FileNotFoundError) as e:
                             self._logger.error(

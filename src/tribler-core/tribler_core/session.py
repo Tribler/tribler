@@ -301,7 +301,8 @@ class Session(TaskManager):
             self.config.chant.channels_dir = self.config.chant.get_path_as_absolute('channels_dir',
                                                                                        self.config.state_dir)
             mds_container.config.from_pydantic(self.config.chant)
-            mds_container.wire(modules=[sys.modules[__name__]])
+            from tribler_core.modules.metadata_store.restapi import channels_endpoint
+            mds_container.wire(modules=[sys.modules[__name__], channels_endpoint])
             self._start_metadata_store()
             assert (self.mds.my_key is self.trustchain_keypair)
 
