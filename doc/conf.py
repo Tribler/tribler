@@ -54,8 +54,8 @@ class Mock(MagicMock):
 MOCK_MODULES = ['libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core', 'lz4', 'lz4.frame', 'psutil',
                 'meliae', 'libnacl', 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public',
                 'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
-                'networkx', 'validate', 'ipv8.REST.root_endpoint', 'anydex.restapi.root_endpoint',
-                'anydex.restapi.wallets_endpoint']
+                'networkx', 'validate', 'ipv8_service', 'ipv8.REST.root_endpoint', 'faker', 'sentry_sdk',
+                'sentry_sdk.integrations.logging', 'sentry_sdk.integrations.threading']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 sys.modules['psutil'].boot_time = lambda: 0
 
