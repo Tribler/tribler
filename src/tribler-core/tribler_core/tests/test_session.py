@@ -148,7 +148,7 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     session.trustchain_testnet = True
     session.chant_testnet = True
 
-    session.community_loader = create_default_loader(session.config, True, True, True)
+    session.community_loader = create_default_loader(session.config)
 
     await session.start()
 

@@ -91,11 +91,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-        community_loader = create_default_loader(config, chant_testnet=is_chant_testnet(config),
-                                                 tunnel_testnet=is_tunnel_testnet(config),
-                                                 bandwidth_testnet=is_bandwidth_testnet(config))
-        session = Session(config, core_test_mode=core_test_mode, community_loader=community_loader,
-                          chant_testnet=is_chant_testnet(config), trustchain_testnet=is_trustchain_testnet(config))
+        community_loader = create_default_loader(config)
+        session = Session(config, core_test_mode=core_test_mode, community_loader=community_loader)
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
         await session.start()
@@ -126,30 +123,6 @@ def init_sentry_reporter():
                             scrubber=None,
                             strategy=SentryStrategy.SEND_ALLOWED)
         logger.info('Sentry has been initialised in debug mode')
-
-
-def is_chant_testnet(config):
-    return ('TESTNET' in os.environ or
-            'CHANT_TESTNET' in os.environ or
-            config.chant.testnet)
-
-
-def is_bandwidth_testnet(config):
-    return ('TESTNET' in os.environ or
-            'BANDWIDTH_TESTNET' in os.environ or
-            config.bandwidth_accounting.testnet)
-
-
-def is_tunnel_testnet(config):
-    return ('TESTNET' in os.environ or
-            'TUNNEL_TESTNET' in os.environ or
-            config.tunnel_community.testnet)
-
-
-def is_trustchain_testnet(config):
-    return ('TESTNET' in os.environ or
-            'TRUSTCHAIN_TESTNET' in os.environ or
-            config.trustchain.testnet)
 
 
 def init_boot_logger():

@@ -1,7 +1,4 @@
 # pylint: disable=import-outside-toplevel
-import inspect
-import sys
-
 from ipv8.loader import (
     CommunityLauncher,
     IPv8CommunityLoader,
@@ -23,7 +20,8 @@ The amount of target_peers for a walk_strategy definition to never stop.
 
 class TriblerCommunityLauncher(CommunityLauncher):
     def get_my_peer(self, ipv8, session):
-        return (Peer(session.trustchain_testnet_keypair) if session.trustchain_testnet
+        trustchain_testnet = session.config.general.testnet or session.config.trustchain.testnet
+        return (Peer(session.trustchain_testnet_keypair) if trustchain_testnet
                 else Peer(session.trustchain_keypair))
 
     def get_bootstrappers(self, session):
@@ -92,20 +90,21 @@ class DHTCommunityLauncher(TriblerCommunityLauncher):
     pass
 
 
-def create_default_loader(config: TriblerConfig, tunnel_testnet: bool = False,
-                          bandwidth_testnet: bool = False, chant_testnet: bool = False):
+def create_default_loader(config: TriblerConfig):
     loader = IPv8CommunityLoader()
 
     loader.set_launcher(IPv8DiscoveryCommunityLauncher())
     loader.set_launcher(DHTCommunityLauncher())
 
-    if bandwidth_testnet:
+    bandwidth_accounting_testnet = config.general.testnet or config.bandwidth_accounting.testnet
+    if bandwidth_accounting_testnet:
         from tribler_core.modules.bandwidth_accounting.launcher import BandwidthTestnetCommunityLauncher
         loader.set_launcher(BandwidthTestnetCommunityLauncher())
     else:
         from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
         loader.set_launcher(BandwidthCommunityLauncher())
 
+    tunnel_testnet = config.general.testnet or config.tunnel_community.testnet
     if config.tunnel_community.enabled and not tunnel_testnet:
         from tribler_core.modules.tunnel.community.launcher import TriblerTunnelCommunityLauncher
         loader.set_launcher(TriblerTunnelCommunityLauncher())
@@ -118,6 +117,7 @@ def create_default_loader(config: TriblerConfig, tunnel_testnet: bool = False,
         from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
         loader.set_launcher(PopularityCommunityLauncher())
 
+    chant_testnet = config.general.testnet or config.chant.testnet
     if config.chant.enabled and not chant_testnet:
         from tribler_core.modules.metadata_store.community.launcher import GigaChannelCommunityLauncher
         loader.set_launcher(GigaChannelCommunityLauncher())

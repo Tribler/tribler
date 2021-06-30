@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from tribler_core.config.tribler_config_section import TriblerConfigSection
 
 
@@ -6,7 +8,7 @@ class ChantSettings(TriblerConfigSection):
     manager_enabled: bool = True
     channel_edit: bool = False
     channels_dir: str = 'channels'
-    testnet: bool = False
+    testnet: bool = Field(default=False, env='CHANT_TESTNET')
 
     queried_peers_limit: int = 1000
     # The maximum number of peers that we got from channels to peers mapping,

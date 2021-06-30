@@ -71,8 +71,7 @@ class Session(TaskManager):
     __single = None
 
     def __init__(self, config: TriblerConfig, core_test_mode: bool = False,
-                 community_loader: IPv8CommunityLoader = None, chant_testnet: bool = False,
-                 trustchain_testnet: bool = False):
+                 community_loader: IPv8CommunityLoader = None):
         """
         A Session object is created
         Only a single session instance can exist at a time in a process.
@@ -105,15 +104,12 @@ class Session(TaskManager):
 
         # modules
         if not community_loader:
-            community_loader = create_default_loader(config, chant_testnet=chant_testnet)
+            community_loader = create_default_loader(config)
         self.community_loader = community_loader
         self.api_manager = None
         self.watch_folder = None
         self.version_check_manager = None
         self.resource_monitor = None
-
-        self.chant_testnet = chant_testnet
-        self.trustchain_testnet = trustchain_testnet
 
         self.gigachannel_manager = None
 
@@ -306,7 +302,8 @@ class Session(TaskManager):
         if chant_enabled:
             from tribler_core.modules.metadata_store.store import MetadataStore
             channels_dir = self.config.chant.get_path_as_absolute('channels_dir', self.config.state_dir)
-            metadata_db_name = 'metadata.db' if not self.chant_testnet else 'metadata_testnet.db'
+            chant_testnet = self.config.general.testnet or self.config.chant.testnet
+            metadata_db_name = 'metadata.db' if not chant_testnet else 'metadata_testnet.db'
             database_path = state_dir / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
                                      notifier=self.notifier,
