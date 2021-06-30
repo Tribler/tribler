@@ -6,3 +6,4 @@ aiohttp_apispec
 mock
 sphinx_rtd_theme
 configobj
+pydantic
