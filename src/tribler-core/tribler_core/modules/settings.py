@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import validator
+from pydantic import Field, validator
 
 from tribler_common.network_utils import NetworkUtils
 
@@ -41,7 +41,7 @@ class DHTSettings(TriblerConfigSection):
 class TrustchainSettings(TriblerConfigSection):
     ec_keypair_filename: str = 'ec_multichain.pem'
     testnet_keypair_filename: str = 'ec_trustchain_testnet.pem'
-    testnet: bool = False
+    testnet: bool = Field(default=False, env='TRUSTCHAIN_TESTNET')
 
 
 class WatchFolderSettings(TriblerConfigSection):

@@ -8,18 +8,16 @@ import logging
 import os
 import sys
 import time as timemod
+from _socket import gaierror
 from asyncio import get_event_loop
 from io import StringIO
 from traceback import print_exception
 
-from _socket import gaierror
-
+import tribler_core.utilities.permid as permid_module
 from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
-
 from ipv8_service import IPv8
 from tribler_common.network_utils import NetworkUtils
-
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import (
     NTFY,
@@ -34,9 +32,8 @@ from tribler_common.simpledefs import (
     STATE_START_WATCH_FOLDER,
     STATE_UPGRADING_READABLE,
 )
-
-import tribler_core.utilities.permid as permid_module
-from tribler_core.modules.ipv8_module_catalog import register_default_launchers
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.community_loader import create_default_loader
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.tracker_manager import TrackerManager
 from tribler_core.notifier import Notifier
@@ -73,7 +70,8 @@ class Session(TaskManager):
     """
     __single = None
 
-    def __init__(self, config, core_test_mode=False):
+    def __init__(self, config: TriblerConfig, core_test_mode: bool = False,
+                 community_loader: IPv8CommunityLoader = None):
         """
         A Session object is created
         Only a single session instance can exist at a time in a process.
@@ -105,9 +103,9 @@ class Session(TaskManager):
         self.bootstrap = None
 
         # modules
-        self.ipv8_community_loader = IPv8CommunityLoader()
-        register_default_launchers(self.ipv8_community_loader)
-
+        if not community_loader:
+            community_loader = create_default_loader(config)
+        self.community_loader = community_loader
         self.api_manager = None
         self.watch_folder = None
         self.version_check_manager = None
@@ -132,9 +130,6 @@ class Session(TaskManager):
 
         # In test mode, the Core does not communicate with the external world and the state dir is read-only
         self.core_test_mode = core_test_mode
-
-    def load_ipv8_overlays(self):
-        self.ipv8_community_loader.load(self.ipv8, self)
 
     def enable_ipv8_statistics(self):
         if self.config.ipv8.statistics:
@@ -307,7 +302,8 @@ class Session(TaskManager):
         if chant_enabled:
             from tribler_core.modules.metadata_store.store import MetadataStore
             channels_dir = self.config.chant.get_path_as_absolute('channels_dir', self.config.state_dir)
-            metadata_db_name = 'metadata.db' if not self.chant_testnet() else 'metadata_testnet.db'
+            chant_testnet = self.config.general.testnet or self.config.chant.testnet
+            metadata_db_name = 'metadata.db' if not chant_testnet else 'metadata_testnet.db'
             database_path = state_dir / 'sqlite' / metadata_db_name
             self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
                                      notifier=self.notifier,
@@ -350,10 +346,11 @@ class Session(TaskManager):
                 self.config.tunnel_community.socks5_listen_ports = anon_proxy_ports
             anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
             self._logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
-            from tribler_core.modules.libtorrent.download_manager import DownloadManager  # pylint: disable=import-outside-toplevel
+            from tribler_core.modules.libtorrent.download_manager import \
+                DownloadManager  # pylint: disable=import-outside-toplevel
             DownloadManager.set_anon_proxy_settings(self.config, 2, anon_proxy_settings)
             self.ipv8_start_time = timemod.time()
-            self.load_ipv8_overlays()
+            self.community_loader.load(self.ipv8, self)
             if not self.core_test_mode:
                 self.enable_ipv8_statistics()
             if self.api_manager:
@@ -511,23 +508,3 @@ class Session(TaskManager):
     def notify_shutdown_state(self, state):
         self._logger.info("Tribler shutdown state notification:%s", state)
         self.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE, state)
-
-    def chant_testnet(self):
-        return ('TESTNET' in os.environ or
-                'CHANT_TESTNET' in os.environ or
-                self.config.chant.testnet)
-
-    def trustchain_testnet(self):
-        return ('TESTNET' in os.environ or
-                'TRUSTCHAIN_TESTNET' in os.environ or
-                self.config.trustchain.testnet)
-
-    def bandwidth_testnet(self):
-        return ('TESTNET' in os.environ or
-                'BANDWIDTH_TESTNET' in os.environ or
-                self.config.bandwidth_accounting.testnet)
-
-    def tunnel_testnet(self):
-        return ('TESTNET' in os.environ or
-                'TUNNEL_TESTNET' in os.environ or
-                self.config.tunnel_community.testnet)

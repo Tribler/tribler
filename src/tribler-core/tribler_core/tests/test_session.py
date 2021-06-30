@@ -1,20 +1,19 @@
 import asyncio
 import shutil
+from _socket import getaddrinfo
 from asyncio import get_event_loop, sleep
 from unittest.mock import Mock
 
-from _socket import getaddrinfo
-
-from ipv8.util import succeed
-
 import pytest
 
+from ipv8.util import succeed
 from tribler_common.simpledefs import NTFY
-
 from tribler_core.config.tests.test_tribler_config import CONFIG_PATH
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.community_loader import create_default_loader
 from tribler_core.session import IGNORED_ERRORS, Session
 from tribler_core.tests.tools.base_test import MockObject
+
 
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
@@ -119,6 +118,8 @@ async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
     session.config.popularity_community.enabled = True
     session.config.chant.enabled = True
 
+    session.community_loader = create_default_loader(session.config)
+
     await session.start()
 
     loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
@@ -143,6 +144,11 @@ async def test_load_ipv8_overlays_testnet(mocked_endpoints, enable_ipv8, session
     session.config.tunnel_community.enabled = True
     session.config.popularity_community.enabled = True
     session.config.chant.enabled = True
+
+    session.trustchain_testnet = True
+    session.chant_testnet = True
+
+    session.community_loader = create_default_loader(session.config)
 
     await session.start()
 
