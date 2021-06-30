@@ -450,6 +450,11 @@ def test_debug_pane(tribler_api, window):
     window.debug_window.ipv8_tab_widget.setCurrentIndex(1)
     wait_for_list_populated(window.debug_window.communities_tree_widget)
     screenshot(window.debug_window, name="debug_panel_communities_tab")
+    item = window.debug_window.communities_tree_widget.topLevelItem(0)
+    rect = window.debug_window.communities_tree_widget.visualItemRect(item)
+    QTest.mouseClick(window.debug_window.communities_tree_widget.viewport(), Qt.LeftButton, pos=rect.center())
+    QTest.qWait(200)  # Wait until the peers pane shows
+    screenshot(window.debug_window, name="debug_panel_communities_with_peers_tab")
 
     # FIXME: add dummy tunnels to the core to test this
     # window.debug_window.debug_tab_widget.setCurrentIndex(4)
