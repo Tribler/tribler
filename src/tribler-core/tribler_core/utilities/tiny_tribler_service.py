@@ -3,6 +3,8 @@ import logging
 import signal
 from pathlib import Path
 
+from ipv8.loader import IPv8CommunityLoader
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.session import Session
@@ -15,7 +17,7 @@ class TinyTriblerService:
     """
 
     def __init__(self, config, timeout_in_sec=None, working_dir=Path('/tmp/tribler'),
-                 config_path=Path('tribler.conf')):
+                 config_path=Path('tribler.conf'), loader: IPv8CommunityLoader = None):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
@@ -24,6 +26,7 @@ class TinyTriblerService:
         self.config_path = config_path
         self.config = config
         self.timeout_in_sec = timeout_in_sec
+        self.loader = loader
 
     async def on_tribler_started(self):
         """Function will calls after the Tribler session is started
@@ -61,7 +64,7 @@ class TinyTriblerService:
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")
 
-        self.session = Session(self.config)
+        self.session = Session(self.config, community_loader=self.loader)
         await self.session.start()
 
         self.logger.info("Tribler session started")

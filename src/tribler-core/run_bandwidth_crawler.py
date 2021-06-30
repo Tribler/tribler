@@ -10,8 +10,8 @@ from ipv8.loader import IPv8CommunityLoader
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
+from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.modules.ipv8_module_catalog import BandwidthCommunityLauncher
 from tribler_core.session import Session
 
 
@@ -38,12 +38,11 @@ class BandwidthCommunityCrawlerLauncher(BandwidthCommunityLauncher):
 
 
 async def start_crawler(tribler_config):
-    session = Session(tribler_config)
 
     # We use our own community loader
     loader = IPv8CommunityLoader()
-    session.ipv8_community_loader = loader
     loader.set_launcher(BandwidthCommunityCrawlerLauncher())
+    session = Session(tribler_config, community_loader=loader)
 
     await session.start()
 
