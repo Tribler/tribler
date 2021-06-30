@@ -90,6 +90,7 @@ class DebugWindow(QMainWindow):
         self.window().system_tab_widget.setCurrentIndex(0)
         connect(self.window().debug_tab_widget.currentChanged, self.tab_changed)
         connect(self.window().ipv8_tab_widget.currentChanged, self.ipv8_tab_changed)
+        connect(self.window().communities_tree_widget.itemClicked, self.on_community_clicked)
         connect(self.window().tunnel_tab_widget.currentChanged, self.tunnel_tab_changed)
         connect(self.window().dht_tab_widget.currentChanged, self.dht_tab_changed)
         connect(self.window().events_tree_widget.itemClicked, self.on_event_clicked)
@@ -97,6 +98,8 @@ class DebugWindow(QMainWindow):
         self.load_general_tab()
 
         self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
+
+        self.window().community_peers_tree_widget.hide()
 
         # Enable/disable tabs, based on settings
         self.window().debug_tab_widget.setTabEnabled(2, settings is not None)
@@ -375,9 +378,24 @@ class DebugWindow(QMainWindow):
     def on_ipv8_community_stats(self, data):
         if not data:
             return
-        self.window().communities_tree_widget.clear()
+
         for overlay in data["overlays"]:
-            item = QTreeWidgetItem(self.window().communities_tree_widget)
+            item = None
+            item_exists = False
+
+            # Check if this item is already rendered
+            for ind in range(self.window().communities_tree_widget.topLevelItemCount()):
+                existing_item = self.window().communities_tree_widget.topLevelItem(ind)
+                if existing_item.data(0, Qt.UserRole)["id"] == overlay["id"]:
+                    item = existing_item
+                    item_exists = True
+                    break
+
+            if not item:
+                # Create a new one
+                item = QTreeWidgetItem(self.window().communities_tree_widget)
+
+            item.setData(0, Qt.UserRole, overlay)
             item.setText(0, overlay["overlay_name"])
             item.setText(1, overlay["id"][:10])
             item.setText(2, overlay["my_peer"][-12:])
@@ -399,8 +417,29 @@ class DebugWindow(QMainWindow):
                 item.setText(7, "N/A")
                 item.setText(8, "N/A")
 
-            self.window().communities_tree_widget.addTopLevelItem(item)
+            if not item_exists:
+                self.window().communities_tree_widget.addTopLevelItem(item)
             map(self.window().communities_tree_widget.resizeColumnToContents, range(10))
+
+        # Reload the window with peers
+        selected_items = self.window().communities_tree_widget.selectedItems()
+        if len(selected_items) > 0:
+            self.update_community_peers(selected_items[0])
+
+    def on_community_clicked(self, item, _):
+        self.window().community_peers_tree_widget.show()
+        self.update_community_peers(item)
+
+    def update_community_peers(self, item):
+        self.window().community_peers_tree_widget.clear()
+        peers_info = item.data(0, Qt.UserRole)["peers"]
+
+        for peer_info in peers_info:
+            item = QTreeWidgetItem(self.window().community_peers_tree_widget)
+            item.setText(0, peer_info["ip"])
+            item.setText(1, f"{peer_info['port']}")
+            item.setText(2, peer_info["public_key"])
+            self.window().community_peers_tree_widget.addTopLevelItem(item)
 
     def load_ipv8_community_details_tab(self):
         if self.ipv8_statistics_enabled:

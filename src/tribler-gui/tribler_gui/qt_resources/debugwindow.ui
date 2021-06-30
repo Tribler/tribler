@@ -21,7 +21,7 @@
     <item>
      <widget class="QTabWidget" name="debug_tab_widget">
       <property name="currentIndex">
-       <number>10</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -177,7 +177,7 @@
         <item>
          <widget class="QTabWidget" name="ipv8_tab_widget">
           <property name="currentIndex">
-           <number>3</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab_6">
            <attribute name="title">
@@ -225,7 +225,7 @@
            <attribute name="title">
             <string notr="true">Overlays</string>
            </attribute>
-           <layout class="QVBoxLayout" name="verticalLayout">
+           <layout class="QVBoxLayout" name="verticalLayout_3">
             <property name="spacing">
              <number>0</number>
             </property>
@@ -242,55 +242,77 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QTreeWidget" name="communities_tree_widget">
-              <property name="indentation">
-               <number>0</number>
+             <widget class="QSplitter" name="splitter">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
               </property>
-              <column>
-               <property name="text">
-                <string notr="true">Name</string>
+              <widget class="QTreeWidget" name="communities_tree_widget">
+               <property name="indentation">
+                <number>0</number>
                </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Community ID</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">My peer</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Peers</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Upload(MB)</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Download(MB)</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Msg sent</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Msg received</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
-                <string notr="true">Diff(sec)</string>
-               </property>
-              </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Name</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Community ID</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">My peer</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Peers</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Upload(MB)</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Download(MB)</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Msg sent</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Msg received</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string notr="true">Diff(sec)</string>
+                </property>
+               </column>
+              </widget>
+              <widget class="QTreeWidget" name="community_peers_tree_widget">
+               <column>
+                <property name="text">
+                 <string>IP address</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>Port</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>Public key</string>
+                </property>
+               </column>
+              </widget>
              </widget>
             </item>
            </layout>
@@ -1746,6 +1768,9 @@
             </property>
             <item>
              <widget class="QTreeWidget" name="channels_peers_tree_widget">
+              <property name="mouseTracking">
+               <bool>false</bool>
+              </property>
               <property name="sortingEnabled">
                <bool>true</bool>
               </property>
