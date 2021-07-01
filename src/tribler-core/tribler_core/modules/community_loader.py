@@ -118,10 +118,10 @@ def create_default_loader(config: TriblerConfig):
     if config.tunnel_community.enabled and tunnel_testnet:
         from tribler_core.modules.tunnel.community.launcher import TriblerTunnelTestnetCommunityLauncher
         loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
-    #
-    # if config.popularity_community.enabled:
-    #     from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
-    #     loader.set_launcher(PopularityCommunityLauncher())
+
+    if config.popularity_community.enabled:
+        from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
+        loader.set_launcher(PopularityCommunityLauncher())
 
     chant_testnet = config.general.testnet or config.chant.testnet
     if config.chant.enabled and not chant_testnet:
