@@ -226,7 +226,7 @@ class Service(TinyTriblerService):
     async def on_tribler_started(self):
         await super().on_tribler_started()
         session = self.session
-        peer = Peer(session.trustchain_keypair)
+        peer = Peer(session.trustchain_keys.keypair)
 
         crawler_settings = SimpleNamespace(output_file_path=self._output_file_path,
                                            peers_count_csv_file_path=self._peers_count_csv_file_path)

@@ -28,7 +28,7 @@ class BandwidthCommunityCrawlerLauncher(BandwidthCommunityLauncher):
         settings = BandwidthAccountingSettings()
         settings.outgoing_query_interval = 5
         database = BandwidthDatabase(session.config.state_dir / "sqlite" / "bandwidth.db",
-                                     session.trustchain_keypair.pub().key_to_bin(), store_all_transactions=True)
+                                     session.trustchain_keys.keypair.pub().key_to_bin(), store_all_transactions=True)
 
         return {
             "database": database,

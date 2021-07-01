@@ -41,7 +41,7 @@ async def test_upgrade_72_to_pony(upgrader, session):
 
     await upgrader.run()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair, db_version=6)
+    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keys.keypair, db_version=6)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 24
     mds.shutdown()
@@ -59,7 +59,7 @@ def test_upgrade_pony_db_6to7(upgrader, session):
 
     upgrader.upgrade_pony_db_6to7()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=7)
+    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keys.keypair, check_tables=False, db_version=7)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
@@ -78,7 +78,7 @@ def test_upgrade_pony_db_7to8(upgrader, session):
 
     upgrader.upgrade_pony_db_7to8()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=8)
+    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keys.keypair, check_tables=False, db_version=8)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 8
         assert mds.Vsids[0].exp_period == 24.0 * 60 * 60 * 3
@@ -97,7 +97,7 @@ async def test_upgrade_pony_db_complete(upgrader, session):
 
     await upgrader.run()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keypair)
+    mds = MetadataStore(old_database_path, channels_dir, session.trustchain_keys.keypair)
     db = mds._db  # pylint: disable=protected-access
 
     existing_indexes = [
@@ -145,7 +145,7 @@ async def test_skip_upgrade_72_to_pony(upgrader, session):
 
     upgrader.skip()
     await upgrader.run()
-    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keypair, db_version=6)
+    mds = MetadataStore(new_database_path, channels_dir, session.trustchain_keys.keypair, db_version=6)
     with db_session:
         assert mds.TorrentMetadata.select().count() == 0
         assert mds.ChannelMetadata.select().count() == 0
@@ -182,7 +182,7 @@ async def test_upgrade_pony_8to10(upgrader, session):
     upgrader.upgrade_pony_db_7to8()
     await upgrader.upgrade_pony_db_8to10()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=10)
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keys.keypair, check_tables=False, db_version=10)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 10
         assert mds.ChannelNode.select().count() == 23
@@ -196,7 +196,7 @@ async def test_upgrade_pony_10to11(upgrader, session):
 
     upgrader.upgrade_pony_db_10to11()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=11)
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keys.keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
         assert upgrader.column_exists_in_table(mds._db, 'TorrentState', 'self_checked')
@@ -210,7 +210,7 @@ def test_upgrade_pony11to12(upgrader, session):
 
     upgrader.upgrade_pony_db_11to12()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=11)
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keys.keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'json_text')
@@ -226,7 +226,7 @@ def test_upgrade_pony12to13(upgrader, session):
 
     upgrader.upgrade_pony_db_12to13()
     channels_dir = session.config.chant.get_path_as_absolute('channels_dir', session.config.state_dir)
-    mds = MetadataStore(database_path, channels_dir, session.trustchain_keypair, check_tables=False, db_version=12)
+    mds = MetadataStore(database_path, channels_dir, session.trustchain_keys.keypair, check_tables=False, db_version=12)
     db = mds._db  # pylint: disable=protected-access
 
     existing_indexes = [
@@ -285,7 +285,7 @@ async def test_upgrade_bw_accounting_db_8to9(upgrader, session):
     shutil.copyfile(old_db_sample, database_path)
 
     upgrader.upgrade_bw_accounting_db_8to9()
-    db = BandwidthDatabase(database_path, session.trustchain_keypair.key.pk)
+    db = BandwidthDatabase(database_path, session.trustchain_keys.keypair.key.pk)
     with db_session:
         assert not list(select(tx for tx in db.BandwidthTransaction))
         assert not list(select(item for item in db.BandwidthHistory))

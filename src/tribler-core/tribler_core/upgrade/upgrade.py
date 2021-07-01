@@ -117,7 +117,7 @@ class TriblerUpgrader:
         database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
         channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
         if database_path.exists():
-            mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+            mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keys.keypair,
                                 disable_sync=True, check_tables=False, db_version=12)
             self.do_upgrade_pony_db_12to13(mds)
             mds.shutdown()
@@ -133,7 +133,7 @@ class TriblerUpgrader:
         channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keys.keypair,
                             disable_sync=True, check_tables=False, db_version=11)
         self.do_upgrade_pony_db_11to12(mds)
         mds.shutdown()
@@ -149,7 +149,7 @@ class TriblerUpgrader:
         channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keys.keypair,
                             disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
@@ -165,7 +165,7 @@ class TriblerUpgrader:
         database_path = self.session.config.state_dir / 'sqlite' / 'bandwidth.db'
         if not database_path.exists() or get_db_version(database_path) >= 9:
             return  # No need to update if the database does not exist or is already updated
-        db = BandwidthDatabase(database_path, self.session.trustchain_keypair.key.pk)
+        db = BandwidthDatabase(database_path, self.session.trustchain_keys.keypair.key.pk)
 
         # Wipe all transactions and bandwidth history
         with db_session:
@@ -287,7 +287,7 @@ class TriblerUpgrader:
             tmp_database_path.unlink()
 
         # Create the new database
-        mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keypair,
+        mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keys.keypair,
                             disable_sync=True, db_version=10)
         with db_session(ddl=True):
             mds.drop_indexes()
@@ -321,7 +321,7 @@ class TriblerUpgrader:
         channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keys.keypair,
                             disable_sync=True, check_tables=False, db_version=7)
         self.do_upgrade_pony_db_7to8(mds)
         mds.shutdown()
@@ -351,7 +351,7 @@ class TriblerUpgrader:
         channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keys.keypair,
                             disable_sync=True, check_tables=False, db_version=6)
         self.do_upgrade_pony_db_6to7(mds)
         mds.shutdown()
@@ -406,7 +406,7 @@ class TriblerUpgrader:
         self._dtp72.shutting_down = self.skip_upgrade_called
         self.notify_starting()
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keys.keypair,
                             disable_sync=True, db_version=6)
         self._dtp72.initialize(mds)
 

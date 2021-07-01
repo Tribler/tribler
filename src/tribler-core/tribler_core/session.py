@@ -13,7 +13,8 @@ from asyncio import get_event_loop
 from io import StringIO
 from traceback import print_exception
 
-import tribler_core.utilities.permid as permid_module
+from dependency_injector.wiring import Provide, inject
+
 from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
@@ -32,7 +33,9 @@ from tribler_common.simpledefs import (
     STATE_START_WATCH_FOLDER,
     STATE_UPGRADING_READABLE,
 )
+from tribler_core import containers
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.containers import TrustChainKeys
 from tribler_core.modules.community_loader import create_default_loader
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.tracker_manager import TrackerManager
@@ -69,6 +72,7 @@ class Session(TaskManager):
     A Session is a running instance of the Tribler Core and the Core's central class.
     """
     __single = None
+    trustchain_keys: TrustChainKeys = Provide[containers.ApplicationContainer.trustchain_keys]
 
     def __init__(self, config: TriblerConfig, core_test_mode: bool = False,
                  community_loader: IPv8CommunityLoader = None):
@@ -121,8 +125,6 @@ class Session(TaskManager):
         self.wallets = {}
         self.popularity_community = None
         self.gigachannel_community = None
-        self.trustchain_keypair = None
-        self.trustchain_testnet_keypair = None
 
         self.dht_community = None
         self.payout_manager = None
@@ -168,34 +170,6 @@ class Session(TaskManager):
         create_in_state_dir(STATEDIR_DB_DIR)
         create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
         create_in_state_dir(STATEDIR_CHANNELS_DIR)
-
-    def init_keypair(self):
-        """
-        Set parameters that depend on state_dir.
-        """
-        keypair_filename = self.config.trustchain.get_path_as_absolute('ec_keypair_filename', self.config.state_dir)
-        state_dir = self.config.state_dir
-        if keypair_filename.exists():
-            self.trustchain_keypair = permid_module.read_keypair_trustchain(keypair_filename)
-        else:
-            self.trustchain_keypair = permid_module.generate_keypair_trustchain()
-
-            # Save keypair
-            trustchain_pubfilename = state_dir / 'ecpub_multichain.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_keypair, keypair_filename)
-            permid_module.save_pub_key_trustchain(self.trustchain_keypair, trustchain_pubfilename)
-
-        testnet_keypair_filename = self.config.trustchain.get_path_as_absolute('testnet_keypair_filename',
-                                                                               self.config.state_dir)
-        if testnet_keypair_filename.exists():
-            self.trustchain_testnet_keypair = permid_module.read_keypair_trustchain(testnet_keypair_filename)
-        else:
-            self.trustchain_testnet_keypair = permid_module.generate_keypair_trustchain()
-
-            # Save keypair
-            trustchain_testnet_pubfilename = state_dir / 'ecpub_trustchain_testnet.pem'
-            permid_module.save_keypair_trustchain(self.trustchain_testnet_keypair, testnet_keypair_filename)
-            permid_module.save_pub_key_trustchain(self.trustchain_testnet_keypair, trustchain_testnet_pubfilename)
 
     def unhandled_error_observer(self, loop, context):
         """
@@ -254,6 +228,7 @@ class Session(TaskManager):
         """Return a dictionary with IPv8 statistics."""
         return TriblerStatistics(self).get_ipv8_statistics()
 
+    @inject
     async def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
@@ -261,14 +236,14 @@ class Session(TaskManager):
 
         :param config: a TriblerConfig object
         """
+
         state_dir = self.config.state_dir
         self._logger.info("Session is using state directory: %s", state_dir)
         self.create_state_directory_structure()
-        self.init_keypair()
 
         # we have to represent `user_id` as a string to make it equal to the
         # `user_id` on the GUI side
-        user_id_str = hexlify(self.trustchain_keypair.key.pk).encode('utf-8')
+        user_id_str = hexlify(self.trustchain_keys.keypair.key.pk).encode('utf-8')
         SentryReporter.set_user(user_id_str)
 
         # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
@@ -305,7 +280,7 @@ class Session(TaskManager):
             chant_testnet = self.config.general.testnet or self.config.chant.testnet
             metadata_db_name = 'metadata.db' if not chant_testnet else 'metadata_testnet.db'
             database_path = state_dir / 'sqlite' / metadata_db_name
-            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keypair,
+            self.mds = MetadataStore(database_path, channels_dir, self.trustchain_keys.keypair,
                                      notifier=self.notifier,
                                      disable_sync=self.core_test_mode)
             if self.core_test_mode:
@@ -412,7 +387,7 @@ class Session(TaskManager):
         if self.config.bootstrap.enabled and not self.core_test_mode:
             self.register_task('bootstrap_download', self.start_bootstrap_download)
 
-        self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keypair.key.pk)
+        self.notifier.notify(NTFY.TRIBLER_STARTED, self.trustchain_keys.keypair.key.pk)
 
         # If there is a config error, report to the user via GUI notifier
         if self.config.error:
