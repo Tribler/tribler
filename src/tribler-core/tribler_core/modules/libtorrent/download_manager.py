@@ -205,7 +205,7 @@ class DownloadManager(TaskManager):
                 pe_settings.prefer_rc4 = True
                 ltsession.set_pe_settings(pe_settings)
 
-            mid = self.tribler_session.trustchain_keypair.key_to_hash()
+            mid = self.tribler_session.trustchain_keys.keypair.key_to_hash()
             settings['peer_fingerprint'] = mid
             settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid)
         else:

@@ -12,8 +12,10 @@ from pony.orm import count, db_session
 
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
+from tribler_core import containers
+from tribler_core.modules.popularity.community import PopularityCommunity
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.modules.popularity.popularity_community import PopularityCommunity
+from tribler_core.session import Session
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
@@ -67,11 +69,16 @@ class ObservablePopularityCommunity(PopularityCommunity):
 
 class Service(TinyTriblerService):
     def __init__(self, interval_in_sec, output_file_path, timeout_in_sec, working_dir, config_path):
-        super().__init__(Service.create_config(working_dir, config_path), timeout_in_sec,
+        config = Service.create_config(working_dir, config_path)
+        super().__init__(config, timeout_in_sec,
                          working_dir, config_path)
 
         self._interval_in_sec = interval_in_sec
         self._output_file_path = output_file_path
+
+        self.application = containers.ApplicationContainer(state_dir=config.state_dir)
+        self.application.config.from_pydantic(config)
+        self.application.wire(modules=[Session])
 
     @staticmethod
     def create_config(working_dir, config_path):
@@ -85,7 +92,7 @@ class Service(TinyTriblerService):
         await super().on_tribler_started()
 
         session = self.session
-        peer = Peer(session.trustchain_keypair)
+        peer = Peer(session.trustchain_keys.keypair)
 
         session.popularity_community = ObservablePopularityCommunity(self._interval_in_sec,
                                                                      self._output_file_path,

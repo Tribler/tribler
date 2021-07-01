@@ -17,6 +17,7 @@ from dependency_injector.wiring import Provide, inject
 
 from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
+from ipv8.types import Peer
 from ipv8_service import IPv8
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
@@ -72,7 +73,10 @@ class Session(TaskManager):
     A Session is a running instance of the Tribler Core and the Core's central class.
     """
     __single = None
+
     trustchain_keys: TrustChainKeys = Provide[containers.ApplicationContainer.trustchain_keys]
+    # peer: Peer = Provide[containers.ApplicationContainer.peer]
+    ipv8: IPv8 = Provide[containers.ApplicationContainer.ipv8_container.ipv8]
 
     def __init__(self, config: TriblerConfig, core_test_mode: bool = False,
                  community_loader: IPv8CommunityLoader = None):
@@ -97,7 +101,6 @@ class Session(TaskManager):
         self.upgrader = None
         self.readable_status = ''  # Human-readable string to indicate the status during startup/shutdown of Tribler
 
-        self.ipv8 = None
         self.ipv8_start_time = 0
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -288,31 +291,6 @@ class Session(TaskManager):
 
         # IPv8
         if self.config.ipv8.enabled:
-            from ipv8.configuration import ConfigBuilder
-            from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
-            port = self.config.ipv8.port
-            address = self.config.ipv8.address
-            self._logger.info('Starting ipv8')
-            self._logger.info(f'Port: {port}. Address: {address}')
-            ipv8_config_builder = (ConfigBuilder()
-                                   .set_port(port)
-                                   .set_address(address)
-                                   .clear_overlays()
-                                   .clear_keys()  # We load the keys ourselves
-                                   .set_working_directory(str(state_dir))
-                                   .set_walker_interval(self.config.ipv8.walk_interval))
-
-            if self.core_test_mode:
-                endpoint = DispatcherEndpoint([])
-            else:
-                # IPv8 includes IPv6 support by default.
-                # We only load IPv4 to not kill all Tribler overlays (currently, it would instantly crash all users).
-                # If you want to test IPv6 in Tribler you can set ``endpoint = None`` here.
-                endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port,
-                                                                    'ip': address})
-            self.ipv8 = IPv8(ipv8_config_builder.finalize(),
-                             enable_statistics=self.config.ipv8.statistics and not self.core_test_mode,
-                             endpoint_override=endpoint)
             await self.ipv8.start()
 
             anon_proxy_ports = self.config.tunnel_community.socks5_listen_ports
@@ -450,7 +428,6 @@ class Session(TaskManager):
         if self.ipv8:
             self.notify_shutdown_state("Shutting down IPv8...")
             await self.ipv8.stop(stop_loop=False)
-        self.ipv8 = None
 
         if self.payout_manager:
             await self.payout_manager.shutdown()

@@ -12,6 +12,7 @@ import tribler_gui
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
+from tribler_core import containers
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.community_loader import create_default_loader
 from tribler_core.utilities.osutils import get_root_state_directory
@@ -92,6 +93,16 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
         community_loader = create_default_loader(config)
+
+        application = containers.ApplicationContainer(state_dir=config.state_dir)
+        application.config.from_pydantic(config)
+
+        if core_test_mode:
+            from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+            application.ipv8_container.endpoint = DispatcherEndpoint([])
+
+        application.wire(modules=[Session])
+
         session = Session(config, core_test_mode=core_test_mode, community_loader=community_loader)
 
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))

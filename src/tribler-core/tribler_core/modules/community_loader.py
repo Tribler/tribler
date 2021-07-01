@@ -1,4 +1,6 @@
 # pylint: disable=import-outside-toplevel
+from dependency_injector.wiring import Provide
+
 from ipv8.loader import (
     CommunityLauncher,
     IPv8CommunityLoader,
@@ -9,6 +11,7 @@ from ipv8.loader import (
     walk_strategy,
 )
 from ipv8.peer import Peer
+from tribler_core import containers
 
 from tribler_core.config.tribler_config import TriblerConfig
 
@@ -22,7 +25,7 @@ class TriblerCommunityLauncher(CommunityLauncher):
     def get_my_peer(self, ipv8, session):
         trustchain_testnet = session.config.general.testnet or session.config.trustchain.testnet
         return (Peer(session.trustchain_testnet_keypair) if trustchain_testnet
-                else Peer(session.trustchain_keypair))
+                else Peer(session.trustchain_keys.keypair))
 
     def get_bootstrappers(self, session):
         from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
@@ -89,6 +92,9 @@ class IPv8DiscoveryCommunityLauncher(TriblerCommunityLauncher):
 class DHTCommunityLauncher(TriblerCommunityLauncher):
     pass
 
+# def load_communities(ipv8 = Provide[containers.Ipv8Container.ipv8], peer = Provide[containers.Ipv8Container.peer]):
+#
+#     pass
 
 def create_default_loader(config: TriblerConfig):
     loader = IPv8CommunityLoader()
@@ -112,10 +118,10 @@ def create_default_loader(config: TriblerConfig):
     if config.tunnel_community.enabled and tunnel_testnet:
         from tribler_core.modules.tunnel.community.launcher import TriblerTunnelTestnetCommunityLauncher
         loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
-
-    if config.popularity_community.enabled:
-        from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
-        loader.set_launcher(PopularityCommunityLauncher())
+    #
+    # if config.popularity_community.enabled:
+    #     from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
+    #     loader.set_launcher(PopularityCommunityLauncher())
 
     chant_testnet = config.general.testnet or config.chant.testnet
     if config.chant.enabled and not chant_testnet:

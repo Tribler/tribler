@@ -1,12 +1,13 @@
 import tribler_core.utilities.permid as permid_module
+from tribler_core.utilities.path_util import Path
 
 
 class TrustChainKeys:
-    def __init__(self, config=None):
+    def __init__(self, state_dir=None, config=None):
         """Extracted from session.py
         """
-        keypair_filename = config.trustchain.get_path_as_absolute('ec_keypair_filename', config.state_dir)
-        state_dir = config.state_dir
+
+        keypair_filename = Path(config.trustchain.ec_keypair_filename()).normalize_to(state_dir)
         if keypair_filename.exists():
             self.keypair = permid_module.read_keypair_trustchain(keypair_filename)
         else:
@@ -17,8 +18,7 @@ class TrustChainKeys:
             permid_module.save_keypair_trustchain(self.keypair, keypair_filename)
             permid_module.save_pub_key_trustchain(self.keypair, trustchain_pubfilename)
 
-        testnet_keypair_filename = config.trustchain.get_path_as_absolute('testnet_keypair_filename',
-                                                                          config.state_dir)
+        testnet_keypair_filename = Path(config.trustchain.testnet_keypair_filename()).normalize_to(state_dir)
         if testnet_keypair_filename.exists():
             self.testnet_keypair = permid_module.read_keypair_trustchain(testnet_keypair_filename)
         else:
