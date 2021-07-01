@@ -1,7 +1,6 @@
 from datetime import datetime
 from time import time
 
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony import orm
@@ -17,7 +16,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, R
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.utilities.random_utils import random_infohash
 
-EMPTY_BLOB = database_blob(b"")
+EMPTY_BLOB = b""
 
 
 def rnd_torrent():

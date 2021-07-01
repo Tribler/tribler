@@ -2,8 +2,6 @@ import os
 from binascii import unhexlify
 from datetime import datetime
 
-from ipv8.database import database_blob
-
 from lz4.frame import LZ4FrameCompressor
 
 from pony import orm
@@ -246,7 +244,7 @@ def define_binding(db):  # pylint: disable=R0915
         @db_session
         def get_my_channels(cls):
             return ChannelMetadata.select(
-                lambda g: g.origin_id == 0 and g.public_key == database_blob(cls._my_key.pub().key_to_bin()[10:])
+                lambda g: g.origin_id == 0 and g.public_key == cls._my_key.pub().key_to_bin()[10:]
             )
 
         @classmethod
@@ -261,7 +259,7 @@ def define_binding(db):  # pylint: disable=R0915
             """
             my_channel = cls(
                 origin_id=origin_id,
-                public_key=database_blob(cls._my_key.pub().key_to_bin()[10:]),
+                public_key=cls._my_key.pub().key_to_bin()[10:],
                 title=title,
                 tags=description,
                 subscribed=True,
@@ -447,15 +445,12 @@ def define_binding(db):  # pylint: disable=R0915
         @classmethod
         @db_session
         def get_channel_with_infohash(cls, infohash):
-            return cls.get(infohash=database_blob(infohash))
+            return cls.get(infohash=infohash)
 
         @classmethod
         @db_session
         def get_recent_channel_with_public_key(cls, public_key):
-            return (
-                cls.select(lambda g: g.public_key == database_blob(public_key)).sort_by(lambda g: desc(g.id_)).first()
-                or None
-            )
+            return cls.select(lambda g: g.public_key == public_key).sort_by(lambda g: desc(g.id_)).first() or None
 
         @classmethod
         @db_session
@@ -487,7 +482,7 @@ def define_binding(db):  # pylint: disable=R0915
                 if g.subscribed == 1
                 and g.status != LEGACY_ENTRY
                 and (g.local_version < g.timestamp)
-                and g.public_key != database_blob(cls._my_key.pub().key_to_bin()[10:])
+                and g.public_key != cls._my_key.pub().key_to_bin()[10:]
             )  # don't simplify `g.subscribed == 1` to bool form, it is used by partial index!
 
         @property
@@ -553,7 +548,7 @@ def define_binding(db):  # pylint: disable=R0915
 
             if not channel:
                 return dl_name
-            if channel.infohash == database_blob(infohash):
+            if channel.infohash == infohash:
                 return channel.title
             return 'OLD:' + channel.title
 

@@ -4,7 +4,6 @@ import struct
 from datetime import datetime, timedelta
 from typing import List, Tuple
 
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.payload import Payload
@@ -66,7 +65,7 @@ class UnknownBlobTypeException(Exception):
 
 def read_payload_with_offset(data, offset=0):
     # First we have to determine the actual payload type
-    metadata_type = struct.unpack_from('>H', database_blob(data), offset=offset)[0]
+    metadata_type = struct.unpack_from('>H', data, offset=offset)[0]
     payload_class = DISCRIMINATOR_TO_PAYLOAD_CLASS.get(metadata_type)
     if payload_class is not None:
         return payload_class.from_signed_blob_with_offset(data, offset=offset)

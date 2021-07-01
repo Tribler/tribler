@@ -10,7 +10,6 @@ from aiohttp import ClientSession, ContentTypeError, web
 from aiohttp_apispec import docs, json_schema
 
 from ipv8.REST.schema import schema
-from ipv8.database import database_blob
 
 from marshmallow.fields import Boolean, Dict, Integer, String
 
@@ -260,9 +259,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             channel_pk, channel_id = self.get_channel_from_request(request)
             personal_root = channel_id == 0 and channel_pk == self.session.mds.my_key.pub().key_to_bin()[10:]
             # TODO: better error handling
-            target_collection = self.session.mds.CollectionNode.get(
-                public_key=database_blob(channel_pk), id_=channel_id
-            )
+            target_collection = self.session.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
             try:
                 request_parsed = await request.json()
             except (ContentTypeError, ValueError):
@@ -272,7 +269,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 return RESTResponse({"error": "Target channel not found"}, status=HTTP_NOT_FOUND)
             results_list = []
             for entry in request_parsed:
-                public_key, id_ = database_blob(unhexlify(entry["public_key"])), entry["id"]
+                public_key, id_ = unhexlify(entry["public_key"]), entry["id"]
                 source = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not source:
                     return RESTResponse({"error": "Source entry not found"}, status=HTTP_BAD_REQUEST)
@@ -358,7 +355,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def add_torrent_to_channel(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            channel = self.session.mds.CollectionNode.get(public_key=database_blob(channel_pk), id_=channel_id)
+            channel = self.session.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
         if not channel:
             return RESTResponse({"error": "Unknown channel"}, status=HTTP_NOT_FOUND)
 
@@ -442,7 +439,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 for t in self.session.mds.CollectionNode.commit_all_channels():
                     self.session.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(t))
             else:
-                coll = self.session.mds.CollectionNode.get(public_key=database_blob(channel_pk), id_=channel_id)
+                coll = self.session.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
                 if not coll:
                     return RESTResponse({"success": False}, status=HTTP_NOT_FOUND)
                 torrent_dict = coll.commit_channel_torrent()
@@ -460,7 +457,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_pk, _ = self.get_channel_from_request(request)
         with db_session:
             dirty = self.session.mds.MetadataNode.exists(
-                lambda g: g.public_key == database_blob(channel_pk) and g.status in DIRTY_STATUSES
+                lambda g: g.public_key == channel_pk and g.status in DIRTY_STATUSES
             )
             return RESTResponse({"dirty": dirty})
 

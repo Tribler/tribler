@@ -4,8 +4,6 @@ from asyncio import get_event_loop
 from datetime import datetime, timedelta
 from time import sleep, time
 
-from ipv8.database import database_blob
-
 from lz4.frame import LZ4FrameDecompressor
 
 from pony import orm
@@ -148,7 +146,7 @@ class MetadataStore:
         self.db_filename = db_filename
         self.channels_dir = channels_dir
         self.my_key = my_key
-        self.my_public_key_bin = bytes(database_blob(self.my_key.pub().key_to_bin()[10:]))
+        self.my_public_key_bin = self.my_key.pub().key_to_bin()[10:]
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._shutting_down = False
@@ -565,9 +563,7 @@ class MetadataStore:
         :return: True if torrent exists else False
         """
         return self.TorrentMetadata.exists(
-            lambda g: g.public_key == self.my_public_key_bin
-            and g.infohash == database_blob(infohash)
-            and g.status != LEGACY_ENTRY
+            lambda g: g.public_key == self.my_public_key_bin and g.infohash == infohash and g.status != LEGACY_ENTRY
         )
 
     # pylint: disable=unused-argument
