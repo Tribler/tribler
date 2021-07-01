@@ -1,8 +1,6 @@
 import enum
 from dataclasses import dataclass, field
 
-from ipv8.database import database_blob
-
 from pony.orm import db_session
 
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
@@ -187,9 +185,7 @@ class PayloadChecker:
         If we don't have some version of the node locally, CONTINUE control to further checks.
         """
         # Check for the older version of the added node
-        node = self.mds.ChannelNode.get_for_update(
-            public_key=database_blob(self.payload.public_key), id_=self.payload.id_
-        )
+        node = self.mds.ChannelNode.get_for_update(public_key=self.payload.public_key, id_=self.payload.id_)
         if not node:
             return CONTINUE
 

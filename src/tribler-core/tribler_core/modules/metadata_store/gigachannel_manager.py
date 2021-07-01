@@ -1,7 +1,6 @@
 import asyncio
 from asyncio import CancelledError, wait_for
 
-from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
@@ -310,7 +309,7 @@ class GigaChannelManager(TaskManager):
         Notify the core that we updated our channel.
         """
         with db_session:
-            my_channel = self.session.mds.ChannelMetadata.get(infohash=database_blob(tdef.get_infohash()))
+            my_channel = self.session.mds.ChannelMetadata.get(infohash=tdef.get_infohash())
         if (
             my_channel
             and my_channel.status == COMMITTED

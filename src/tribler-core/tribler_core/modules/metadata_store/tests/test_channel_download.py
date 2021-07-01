@@ -1,4 +1,3 @@
-from ipv8.database import database_blob
 from ipv8.util import succeed
 
 from pony.orm import db_session
@@ -56,7 +55,7 @@ async def test_channel_update_and_download(
 
     with db_session:
         # There should be 8 torrents + 1 channel torrent
-        channel2 = session.mds.ChannelMetadata.get(public_key=database_blob(payload.public_key))
+        channel2 = session.mds.ChannelMetadata.get(public_key=payload.public_key)
         assert channel2.timestamp == channel2.local_version
         assert channel2.timestamp == 1565621688018
         assert session.mds.ChannelNode.select().count() == 8

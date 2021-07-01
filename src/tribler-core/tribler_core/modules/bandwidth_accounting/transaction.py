@@ -39,7 +39,7 @@ class BandwidthTransactionData:
         Encode this block for transport.
         :param signature_a: False to pack EMPTY_SIG in the location of signature A, true to pack the signature A field.
         :param signature_b: False to pack EMPTY_SIG in the location of signature B, true to pack the signature B field.
-        :return: the database_blob the data was packed into.
+        :return: bytes object the data was packed into.
         """
         args = [self.sequence_number, self.public_key_a, self.public_key_b,
                 self.signature_a if signature_a else EMPTY_SIGNATURE,

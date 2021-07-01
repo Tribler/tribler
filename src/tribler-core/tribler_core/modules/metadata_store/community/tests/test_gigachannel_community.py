@@ -3,7 +3,6 @@ from datetime import datetime
 from unittest import mock
 from unittest.mock import Mock, PropertyMock, patch
 
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
@@ -25,7 +24,7 @@ from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 
-EMPTY_BLOB = database_blob(b"")
+EMPTY_BLOB = b""
 
 # pylint:disable=protected-access
 

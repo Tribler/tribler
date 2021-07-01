@@ -5,7 +5,6 @@ from aiohttp import ContentTypeError, web
 from aiohttp_apispec import docs
 
 from ipv8.REST.schema import schema
-from ipv8.database import database_blob
 
 from marshmallow.fields import Integer, String
 
@@ -88,7 +87,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             return RESTResponse({"error": "Bad JSON"}, status=HTTP_BAD_REQUEST)
         results_list = []
         for entry in request_parsed:
-            public_key = database_blob(unhexlify(entry.pop("public_key")))
+            public_key = unhexlify(entry.pop("public_key"))
             id_ = entry.pop("id")
             error, result = self.update_entry(public_key, id_, entry)
             # TODO: handle the results for a list that contains some errors in a smarter way
@@ -119,7 +118,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             request_parsed = await request.json()
             results_list = []
             for entry in request_parsed:
-                public_key = database_blob(unhexlify(entry.pop("public_key")))
+                public_key = unhexlify(entry.pop("public_key"))
                 id_ = entry.pop("id")
                 entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not entry:
@@ -159,7 +158,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         public_key = unhexlify(request.match_info['public_key'])
         id_ = request.match_info['id']
         with db_session:
-            entry = self.session.mds.ChannelNode.get(public_key=database_blob(public_key), id_=id_)
+            entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
 
             if entry:
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata

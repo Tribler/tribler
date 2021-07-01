@@ -6,7 +6,6 @@ from pathlib import Path
 from time import sleep
 from unittest.mock import Mock, patch
 
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
 from lz4.frame import LZ4FrameDecompressor
@@ -28,11 +27,10 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMIT
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.modules.metadata_store.store import HealthItemsPayload
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
-from tribler_core.utilities import path_util
 from tribler_core.utilities.random_utils import random_infohash
 
-
 # pylint: disable=protected-access
+
 
 @pytest.fixture
 def my_key():
@@ -47,12 +45,12 @@ def torrent_template():
 @pytest.fixture
 def sample_torrent_dict(my_key):
     return {
-        "infohash": database_blob(b"1" * 20),
+        "infohash": b"1" * 20,
         "size": 123,
         "torrent_date": datetime.utcnow(),
         "tags": "bla",
         "id_": 123,
-        "public_key": database_blob(my_key.pub().key_to_bin()[10:]),
+        "public_key": my_key.pub().key_to_bin()[10:],
         "title": "lalala",
     }
 
@@ -171,7 +169,7 @@ def test_get_channel_with_dirname(sample_channel_dict, metadata_store):
     assert channel_metadata == channel_result
 
     # Test for corner-case of channel PK starting with zeroes
-    channel_metadata.public_key = database_blob(unhexlify('0' * 128))
+    channel_metadata.public_key = unhexlify('0' * 128)
     channel_result = metadata_store.ChannelMetadata.get_channel_with_dirname(channel_metadata.dirname)
     assert channel_metadata == channel_result
 
@@ -831,7 +829,7 @@ def test_get_channel_name(metadata_store):
     """
     infohash = b"\x00" * 20
     title = "testchan"
-    chan = metadata_store.ChannelMetadata(title=title, infohash=database_blob(infohash))
+    chan = metadata_store.ChannelMetadata(title=title, infohash=infohash)
     dirname = chan.dirname
 
     assert title == metadata_store.ChannelMetadata.get_channel_name(dirname, infohash)

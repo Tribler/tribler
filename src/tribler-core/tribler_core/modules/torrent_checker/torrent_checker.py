@@ -4,7 +4,6 @@ import random
 import time
 from asyncio import CancelledError, gather
 
-from ipv8.database import database_blob
 from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session, desc, select
@@ -232,7 +231,7 @@ class TorrentChecker(TaskManager):
     @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.tribler_session.mds.TorrentState.get(infohash=database_blob(torrent_id)).trackers
+        db_tracker_list = self.tribler_session.mds.TorrentState.get(infohash=torrent_id).trackers
         return {tracker.url for tracker in db_tracker_list
                     if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
@@ -303,7 +302,7 @@ class TorrentChecker(TaskManager):
 
         # We first check whether the torrent is already in the database and checked before
         with db_session:
-            result = self.tribler_session.mds.TorrentState.get(infohash=database_blob(infohash))
+            result = self.tribler_session.mds.TorrentState.get(infohash=infohash)
             if result:
                 torrent_id = result.infohash
                 last_check = result.last_check
@@ -382,7 +381,7 @@ class TorrentChecker(TaskManager):
 
         with db_session:
             # Update torrent state
-            torrent = self.tribler_session.mds.TorrentState.get(infohash=database_blob(infohash))
+            torrent = self.tribler_session.mds.TorrentState.get(infohash=infohash)
             if not torrent:
                 self._logger.warning(
                     "Tried to update torrent health data in DB for an unknown torrent: %s", hexlify(infohash))

@@ -2,15 +2,18 @@ import os
 from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
 from aiohttp import web
-from pony.orm import db_session
 
-from ipv8.database import database_blob
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
+
+from pony.orm import db_session
+
+import pytest
+
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
@@ -313,6 +316,6 @@ def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=un
         _ = session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
         for x in range(0, num_hay):
             session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
-        session.mds.TorrentMetadata(title='needle', infohash=database_blob(bytearray(random_infohash())))
-        session.mds.TorrentMetadata(title='needle2', infohash=database_blob(bytearray(random_infohash())))
+        session.mds.TorrentMetadata(title='needle', infohash=random_infohash())
+        session.mds.TorrentMetadata(title='needle2', infohash=random_infohash())
     return session

@@ -1,4 +1,3 @@
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony import orm
@@ -122,7 +121,7 @@ def test_has_valid_signature(metadata_store):
 
     # Create metadata with wrong key
     metadata.delete()
-    md_dict.update(public_key=database_blob(b"aaa"))
+    md_dict.update(public_key=b"aaa")
     md_dict.pop("rowid")
 
     metadata = metadata_store.ChannelNode(skip_key_check=True, **md_dict)
@@ -130,7 +129,7 @@ def test_has_valid_signature(metadata_store):
 
     key = default_eccrypto.generate_key("curve25519")
     metadata2 = metadata_store.ChannelNode(sign_with=key, **md_dict)
-    assert database_blob(key.pub().key_to_bin()[10:]), metadata2.public_key
+    assert key.pub().key_to_bin()[10:], metadata2.public_key
     md_dict2 = metadata2.to_dict()
     md_dict2["signature"] = md_dict["signature"]
     with pytest.raises(InvalidSignatureException):
