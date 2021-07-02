@@ -1,10 +1,8 @@
-from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
-from ipv8.peer import Peer
-
-from ipv8_service import IPv8
-
 from dependency_injector import containers, providers
 
+from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+from ipv8.peer import Peer
+from ipv8_service import IPv8
 from tribler_core.ipv8_config import Ipv8Config
 from tribler_core.trustchain_keys import TrustChainKeys
 
@@ -17,8 +15,9 @@ class Ipv8Container(containers.DeclarativeContainer):
 
     endpoint = providers.Singleton(
         DispatcherEndpoint,
-        providers.List(providers.Object("UDPIPv4")),
-        UDPIPv4=providers.Dict(port=providers.Factory(config.port), ip=providers.Factory(config.address)),
+        ["UDPIPv4"],
+        UDPIPv4=providers.Dict(port=config.port, ip=config.address),
+
     )
 
     ipv8 = providers.Singleton(

@@ -231,7 +231,6 @@ class Session(TaskManager):
         """Return a dictionary with IPv8 statistics."""
         return TriblerStatistics(self).get_ipv8_statistics()
 
-    @inject
     async def start(self):
         """
         Start a Tribler session by initializing the LaunchManyCore class, opening the database and running the upgrader.
