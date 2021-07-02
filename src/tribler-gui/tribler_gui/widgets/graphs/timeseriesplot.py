@@ -1,9 +1,10 @@
 import time
 
 import pyqtgraph as pg
+from pyqtgraph import DateAxisItem
+from pyqtgraph.graphicsItems.DateAxisItem import YEAR_SPACING
 
 from tribler_gui.defs import BITTORRENT_BIRTHDAY
-from tribler_gui.widgets.graphs.DateAxisItem import DateAxisItem, YEAR_SPACING
 
 
 class TimeSeriesPlot(pg.PlotWidget):
