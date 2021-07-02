@@ -6,7 +6,6 @@ from binascii import unhexlify
 from datetime import datetime
 from unittest.mock import patch
 
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
@@ -35,7 +34,7 @@ def get_payloads(entity_class, key):
     orig_key = entity_class._my_key
 
     entity_class._my_key = key
-    c = entity_class(infohash=database_blob(random_infohash()))
+    c = entity_class(infohash=random_infohash())
     payload = c._payload_class.from_signed_blob(c.serialized())
     deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
 
@@ -45,9 +44,7 @@ def get_payloads(entity_class, key):
 
 def make_wrong_payload(filename):
     key = default_eccrypto.generate_key("curve25519")
-    metadata_payload = SignedPayload(
-        666, 0, database_blob(key.pub().key_to_bin()[10:]), signature=b'\x00' * 64, skip_key_check=True
-    )
+    metadata_payload = SignedPayload(666, 0, key.pub().key_to_bin()[10:], signature=b'\x00' * 64, skip_key_check=True)
     with open(filename, 'wb') as output_file:
         output_file.write(metadata_payload.serialized())
 
@@ -67,7 +64,7 @@ def test_process_channel_dir_file(tmpdir, metadata_store):
     """
     Test whether we are able to process files in a directory containing node metadata
     """
-    test_node_metadata = metadata_store.TorrentMetadata(title='test', infohash=database_blob(random_infohash()))
+    test_node_metadata = metadata_store.TorrentMetadata(title='test', infohash=random_infohash())
     metadata_path = tmpdir / 'metadata.data'
     test_node_metadata.to_file(metadata_path)
     # We delete this TorrentMeta info now, it should be added again to the database when loading it
@@ -101,7 +98,7 @@ def test_squash_mdblobs(metadata_store):
     md_list = [
         metadata_store.TorrentMetadata(
             title=''.join(r.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
-            infohash=database_blob(random_infohash()),
+            infohash=random_infohash(),
             torrent_date=datetime.utcfromtimestamp(100),
         )
         for _ in range(0, 10)
@@ -122,7 +119,7 @@ def test_squash_mdblobs_multiple_chunks(metadata_store):
     md_list = [
         metadata_store.TorrentMetadata(
             title=''.join(r.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
-            infohash=database_blob(random_infohash()),
+            infohash=random_infohash(),
             torrent_date=datetime.utcfromtimestamp(100),
         )
         for _ in range(0, 10)
@@ -155,7 +152,7 @@ def test_multiple_squashed_commit_and_read(metadata_store):
     channel = metadata_store.ChannelMetadata.create_channel('testchan')
     md_list = [
         metadata_store.TorrentMetadata(
-            origin_id=channel.id_, title='test' + str(x), status=NEW, infohash=database_blob(random_infohash())
+            origin_id=channel.id_, title='test' + str(x), status=NEW, infohash=random_infohash()
         )
         for x in range(0, num_entries)
     ]
@@ -180,7 +177,7 @@ def test_skip_processing_of_received_personal_channel_torrents(metadata_store):
     """
     channel = metadata_store.ChannelMetadata.create_channel('testchan')
     torrent_md = metadata_store.TorrentMetadata(
-        origin_id=channel.id_, title='test', status=NEW, infohash=database_blob(random_infohash())
+        origin_id=channel.id_, title='test', status=NEW, infohash=random_infohash()
     )
     channel.commit_channel_torrent()
     torrent_md.delete()
@@ -208,7 +205,7 @@ def test_skip_processing_mdblob_with_forbidden_terms(metadata_store):
     Test that an mdblob with forbidden terms cannot ever get into the local database
     """
     key = default_eccrypto.generate_key("curve25519")
-    chan_entry = metadata_store.ChannelMetadata(title="12yo", infohash=database_blob(random_infohash()), sign_with=key)
+    chan_entry = metadata_store.ChannelMetadata(title="12yo", infohash=random_infohash(), sign_with=key)
     chan_payload = chan_entry._payload_class(**chan_entry.to_dict())
     chan_entry.delete()
     assert metadata_store.process_payload(chan_payload) == []
@@ -321,7 +318,7 @@ def test_process_payload_with_known_channel_public_key(metadata_store):
     """
     key1 = default_eccrypto.generate_key("curve25519")
     key2 = default_eccrypto.generate_key("curve25519")
-    torrent = metadata_store.TorrentMetadata(infohash=database_blob(random_infohash()), sign_with=key1)
+    torrent = metadata_store.TorrentMetadata(infohash=random_infohash(), sign_with=key1)
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
     # Check rejecting a payload with non-matching public key
@@ -346,11 +343,11 @@ def test_process_payload_reject_older(metadata_store):
         version=123,
         timestamp=12,
         local_version=12,
-        infohash=database_blob(random_infohash()),
+        infohash=random_infohash(),
         sign_with=key,
     )
     torrent = metadata_store.TorrentMetadata(
-        title='blabla', timestamp=11, origin_id=channel.id_, infohash=database_blob(random_infohash()), sign_with=key
+        title='blabla', timestamp=11, origin_id=channel.id_, infohash=random_infohash(), sign_with=key
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
@@ -362,7 +359,7 @@ def test_process_payload_reject_older(metadata_store):
     folder_2 = metadata_store.CollectionNode(origin_id=folder_1.id_, sign_with=key)
 
     torrent = metadata_store.TorrentMetadata(
-        title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=database_blob(random_infohash()), sign_with=key
+        title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=random_infohash(), sign_with=key
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
@@ -373,7 +370,7 @@ def test_process_payload_reject_older(metadata_store):
     folder_1 = metadata_store.CollectionNode(origin_id=123123, sign_with=key)
     folder_2 = metadata_store.CollectionNode(origin_id=folder_1.id_, sign_with=key)
     torrent = metadata_store.TorrentMetadata(
-        title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=database_blob(random_infohash()), sign_with=key
+        title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=random_infohash(), sign_with=key
     )
     payload = torrent._payload_class(**torrent.to_dict())
     torrent.delete()
@@ -389,13 +386,13 @@ def test_process_payload_reject_older_entry(metadata_store):
     """
     key = default_eccrypto.generate_key("curve25519")
     torrent_old = metadata_store.TorrentMetadata(
-        title='blabla', timestamp=11, id_=3, infohash=database_blob(random_infohash()), sign_with=key
+        title='blabla', timestamp=11, id_=3, infohash=random_infohash(), sign_with=key
     )
     payload_old = torrent_old._payload_class(**torrent_old.to_dict())
     torrent_old.delete()
 
     torrent_updated = metadata_store.TorrentMetadata(
-        title='blabla', timestamp=12, id_=3, infohash=database_blob(random_infohash()), sign_with=key
+        title='blabla', timestamp=12, id_=3, infohash=random_infohash(), sign_with=key
     )
     # Test rejecting older version of the same entry
     assert metadata_store.process_payload(payload_old, skip_personal_metadata_payload=False)[0] == ProcessingResult(
@@ -405,15 +402,15 @@ def test_process_payload_reject_older_entry(metadata_store):
 
 @db_session
 def test_get_num_channels_nodes(metadata_store):
-    metadata_store.ChannelMetadata(title='testchan', id_=0, infohash=database_blob(random_infohash()))
-    metadata_store.ChannelMetadata(title='testchan', id_=123, infohash=database_blob(random_infohash()))
+    metadata_store.ChannelMetadata(title='testchan', id_=0, infohash=random_infohash())
+    metadata_store.ChannelMetadata(title='testchan', id_=123, infohash=random_infohash())
     metadata_store.ChannelMetadata(
         title='testchan',
         id_=0,
         public_key=unhexlify('0' * 20),
         signature=unhexlify('0' * 64),
         skip_key_check=True,
-        infohash=database_blob(random_infohash()),
+        infohash=random_infohash(),
     )
     metadata_store.ChannelMetadata(
         title='testchan',
@@ -421,11 +418,11 @@ def test_get_num_channels_nodes(metadata_store):
         public_key=unhexlify('1' * 20),
         signature=unhexlify('1' * 64),
         skip_key_check=True,
-        infohash=database_blob(random_infohash()),
+        infohash=random_infohash(),
     )
 
     _ = [
-        metadata_store.TorrentMetadata(title='test' + str(x), status=NEW, infohash=database_blob(random_infohash()))
+        metadata_store.TorrentMetadata(title='test' + str(x), status=NEW, infohash=random_infohash())
         for x in range(0, 3)
     ]
 

@@ -1,8 +1,6 @@
 from datetime import datetime
 from struct import unpack
 
-from ipv8.database import database_blob
-
 from pony import orm
 from pony.orm import db_session
 
@@ -55,7 +53,7 @@ def define_binding(db):
         _discriminator_ = REGULAR_TORRENT
 
         # Serializable
-        infohash = orm.Required(database_blob, index=True)
+        infohash = orm.Required(bytes, index=True)
         size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
         tracker_info = orm.Optional(str, default='')
@@ -112,8 +110,8 @@ def define_binding(db):
             # Check that this torrent is yet unknown to GigaChannel, and if there is no duplicate FFA entry.
             # Test for a duplicate id_+public_key is necessary to account for a (highly improbable) situation when
             # two entries have different infohashes but the same id_. We do not want people to exploit this.
-            ih_blob = database_blob(ffa_dict["infohash"])
-            pk_blob = database_blob(b"")
+            ih_blob = ffa_dict["infohash"]
+            pk_blob = b""
             if cls.exists(lambda g: (g.infohash == ih_blob) or (g.id_ == id_ and g.public_key == pk_blob)):
                 return None
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
@@ -152,7 +150,7 @@ def define_binding(db):
         @classmethod
         @db_session
         def get_with_infohash(cls, infohash):
-            return cls.select(lambda g: g.infohash == database_blob(infohash)).first()
+            return cls.select(lambda g: g.infohash == infohash).first()
 
         @classmethod
         @db_session

@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
 
-from ipv8.database import database_blob
-
 from pony import orm
 from pony.orm import db_session, select
 
@@ -22,7 +20,7 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_node import (
     UPDATED,
 )
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.modules.metadata_store.serialization import COLLECTION_NODE, CollectionNodePayload, CHANNEL_TORRENT
+from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, CollectionNodePayload
 from tribler_core.utilities.random_utils import random_infohash
 
 # pylint: disable=too-many-statements
@@ -57,8 +55,10 @@ def define_binding(db):
                 return CHANNEL_STATE.PERSONAL.value
 
             toplevel_parent = self.get_parent_nodes()[0]
-            if (toplevel_parent.metadata_type == CHANNEL_TORRENT and
-                toplevel_parent.local_version == toplevel_parent.timestamp):
+            if (
+                toplevel_parent.metadata_type == CHANNEL_TORRENT
+                and toplevel_parent.local_version == toplevel_parent.timestamp
+            ):
                 return CHANNEL_STATE.COMPLETE.value
 
             return CHANNEL_STATE.PREVIEW.value
@@ -94,7 +94,7 @@ def define_binding(db):
             :return: New TorrentMetadata signed with your key.
             """
 
-            existing = db.TorrentMetadata.select(lambda g: g.infohash == database_blob(infohash)).first()
+            existing = db.TorrentMetadata.select(lambda g: g.infohash == infohash).first()
 
             if not existing:
                 return None
@@ -298,8 +298,7 @@ def define_binding(db):
                 dead_parents.remove(0)
             # Delete orphans
             db.ChannelNode.select(
-                lambda g: database_blob(db.ChannelNode._my_key.pub().key_to_bin()[10:])  # pylint: disable=W0212
-                == g.public_key
+                lambda g: db.ChannelNode._my_key.pub().key_to_bin()[10:] == g.public_key  # pylint: disable=W0212
                 and g.origin_id in dead_parents
             ).delete()
             orm.flush()  # Just in case...

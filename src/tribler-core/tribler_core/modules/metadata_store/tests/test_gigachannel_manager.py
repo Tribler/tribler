@@ -4,7 +4,6 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from ipv8.database import database_blob
 from ipv8.util import succeed
 
 from pony.orm import db_session
@@ -12,8 +11,8 @@ from pony.orm import db_session
 import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
-from tribler_core.config.tribler_config import TriblerConfig
 
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
@@ -161,8 +160,8 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
         # Subscribed, not updated
         session.mds.ChannelMetadata(
             title="bla1",
-            public_key=database_blob(b'123'),
-            signature=database_blob(b'345'),
+            public_key=b'123',
+            signature=b'345',
             skip_key_check=True,
             timestamp=123,
             local_version=123,
@@ -172,8 +171,8 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
         # Not subscribed, updated
         session.mds.ChannelMetadata(
             title="bla2",
-            public_key=database_blob(b'124'),
-            signature=database_blob(b'346'),
+            public_key=b'124',
+            signature=b'346',
             skip_key_check=True,
             timestamp=123,
             local_version=122,
@@ -183,8 +182,8 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
         # Subscribed, updated - only this one should be downloaded
         chan3 = session.mds.ChannelMetadata(
             title="bla3",
-            public_key=database_blob(b'125'),
-            signature=database_blob(b'347'),
+            public_key=b'125',
+            signature=b'347',
             skip_key_check=True,
             timestamp=123,
             local_version=122,
@@ -201,7 +200,7 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
 
         @db_session
         def fake_get_metainfo(infohash, **_):
-            return {'info': {'name': session.mds.ChannelMetadata.get(infohash=database_blob(infohash)).dirname}}
+            return {'info': {'name': session.mds.ChannelMetadata.get(infohash=infohash).dirname}}
 
         session.dlmgr.get_metainfo = fake_get_metainfo
         session.dlmgr.metainfo_requests = {}
@@ -251,9 +250,9 @@ async def test_remove_cruft_channels(
         # Now we add an external channel we are subscribed to.
         chan2 = session.mds.ChannelMetadata(
             title="bla1",
-            infohash=database_blob(b'123'),
-            public_key=database_blob(b'123'),
-            signature=database_blob(b'345'),
+            infohash=b'123',
+            public_key=b'123',
+            signature=b'345',
             skip_key_check=True,
             timestamp=123,
             local_version=123,
@@ -263,9 +262,9 @@ async def test_remove_cruft_channels(
         # Another external channel, but there is a catch: we recently unsubscribed from it
         chan3 = session.mds.ChannelMetadata(
             title="bla2",
-            infohash=database_blob(b'124'),
-            public_key=database_blob(b'124'),
-            signature=database_blob(b'346'),
+            infohash=b'124',
+            public_key=b'124',
+            signature=b'346',
             skip_key_check=True,
             timestamp=123,
             local_version=123,
@@ -290,16 +289,16 @@ async def test_remove_cruft_channels(
     # Double conversion is required to make sure that buffers signatures are not the same
     mock_dl_list = [
         # Downloads for the personal channel
-        MockDownload(database_blob(bytes(my_chan_old_infohash)), personal_channel.dirname),
-        MockDownload(database_blob(bytes(personal_channel.infohash)), personal_channel.dirname),
+        MockDownload(my_chan_old_infohash, personal_channel.dirname),
+        MockDownload(personal_channel.infohash, personal_channel.dirname),
         # Downloads for the updated external channel: "old ones" and "recent"
-        MockDownload(database_blob(b'12331244'), chan2.dirname),
-        MockDownload(database_blob(bytes(chan2.infohash)), chan2.dirname),
+        MockDownload(b'12331244', chan2.dirname),
+        MockDownload(chan2.infohash, chan2.dirname),
         # Downloads for the unsubscribed external channel
-        MockDownload(database_blob(b'1231551'), chan3.dirname),
-        MockDownload(database_blob(bytes(chan3.infohash)), chan3.dirname),
+        MockDownload(b'1231551', chan3.dirname),
+        MockDownload(chan3.infohash, chan3.dirname),
         # Orphaned download
-        MockDownload(database_blob(b'333'), "blabla"),
+        MockDownload(b'333', "blabla"),
     ]
 
     def mock_get_channel_downloads(**_):
@@ -331,12 +330,12 @@ initiated_download = False
 
 
 @pytest.mark.asyncio
-async def test_reject_malformed_channel(enable_chant, channel_manager, mock_dlmgr, session, tmpdir):  # pylint: disable=unused-argument, redefined-outer-name
+async def test_reject_malformed_channel(
+    enable_chant, channel_manager, mock_dlmgr, session, tmpdir
+):  # pylint: disable=unused-argument, redefined-outer-name
     global initiated_download
     with db_session:
-        channel = session.mds.ChannelMetadata(
-            title="bla1", public_key=database_blob(b'123'), infohash=random_infohash()
-        )
+        channel = session.mds.ChannelMetadata(title="bla1", public_key=b'123', infohash=random_infohash())
     session.config = TriblerConfig(state_dir=tmpdir)
 
     def mock_get_metainfo_bad(*args, **kwargs):

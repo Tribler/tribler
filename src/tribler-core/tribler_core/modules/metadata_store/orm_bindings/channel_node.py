@@ -1,7 +1,6 @@
 import random
 from datetime import datetime
 
-from ipv8.database import database_blob
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony import orm
@@ -65,7 +64,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         reserved_flags = orm.Optional(int, size=16, default=0)
         origin_id = orm.Optional(int, size=64, default=0, index=True)
 
-        public_key = orm.Required(database_blob)
+        public_key = orm.Required(bytes)
         id_ = orm.Required(int, size=64)
         orm.composite_key(public_key, id_)
         orm.composite_index(public_key, origin_id)
@@ -74,7 +73,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         # Signature is nullable. This means that "None" entries are stored in DB as NULLs instead of empty strings.
         # NULLs are not checked for uniqueness and not indexed.
         # This is necessary to store unsigned signatures without violating the uniqueness constraints.
-        signature = orm.Optional(database_blob, unique=True, nullable=True, default=None)
+        signature = orm.Optional(bytes, unique=True, nullable=True, default=None)
 
         # Local
         added_on = orm.Optional(datetime, default=datetime.utcnow)
@@ -108,7 +107,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             # "sign_with" argument given, sign with it
             private_key_override = None
             if "sign_with" in kwargs:
-                kwargs["public_key"] = database_blob(kwargs["sign_with"].pub().key_to_bin()[10:])
+                kwargs["public_key"] = kwargs["sign_with"].pub().key_to_bin()[10:]
                 private_key_override = kwargs.pop("sign_with")
 
             # Free-for-all entries require special treatment
@@ -140,8 +139,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             if not private_key_override and not skip_key_check:
                 # No key/signature given, sign with our own key.
                 if ("signature" not in kwargs) and (
-                    ("public_key" not in kwargs)
-                    or (kwargs["public_key"] == database_blob(self._my_key.pub().key_to_bin()[10:]))
+                    ("public_key" not in kwargs) or (kwargs["public_key"] == self._my_key.pub().key_to_bin()[10:])
                 ):
                     private_key_override = self._my_key
 
@@ -222,7 +220,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         def sign(self, key=None):
             if not key:
                 key = self._my_key
-            self.public_key = database_blob(key.pub().key_to_bin()[10:])
+            self.public_key = key.pub().key_to_bin()[10:]
             _, self.signature = self._serialized(key)
 
         def has_valid_signature(self):
@@ -251,7 +249,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         @property
         @db_session
         def is_personal(self):
-            return database_blob(self._my_key.pub().key_to_bin()[10:]) == database_blob(self.public_key)
+            return self._my_key.pub().key_to_bin()[10:] == self.public_key
 
         @db_session
         def soft_delete(self):
