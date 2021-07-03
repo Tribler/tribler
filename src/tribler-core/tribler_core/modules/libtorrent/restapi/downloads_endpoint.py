@@ -16,6 +16,7 @@ from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.stream import STREAM_PAUSE_TIME, StreamChunk
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -54,8 +55,14 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self,
+                 download_manager: DownloadManager,
+                 tunnel_community = None,
+                 metadata_store: MetadataStore = None):
+        super().__init__()
+        self.dlmgr = download_manager
+        self.mds = metadata_store
+        self.tunnel_community = tunnel_community
 
         self.app.on_shutdown.append(self.on_shutdown)
 
@@ -203,7 +210,7 @@ class DownloadsEndpoint(RESTEndpoint):
         get_files = request.query.get('get_files', '0') == '1'
 
         downloads_json = []
-        downloads = self.session.dlmgr.get_downloads()
+        downloads = self.dlmgr.get_downloads()
         for download in downloads:
             if download.hidden and not download.config.get_channel_download():
                 # We still want to send channel downloads since they are displayed in the GUI
@@ -220,12 +227,12 @@ class DownloadsEndpoint(RESTEndpoint):
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             if download.config.get_channel_download():
-                download_name = self.session.mds.ChannelMetadata.get_channel_name_cached(
+                download_name = self.mds.ChannelMetadata.get_channel_name_cached(
                     tdef.get_name_utf8(), tdef.get_infohash())
-            elif self.session.mds is None:
+            elif self.mds is None:
                 download_name = tdef.get_name_utf8()
             else:
-                download_name = self.session.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
+                download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
                                 tdef.get_name_utf8()
 
             download_json = {
@@ -249,8 +256,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 "anon_download": download.get_anon_mode(),
                 "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
-                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.session.config),
-                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.session.config),
+                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.dlmgr.config),
+                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.dlmgr.config),
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
@@ -272,8 +279,8 @@ class DownloadsEndpoint(RESTEndpoint):
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
                     # Does this peer represent a hidden services circuit?
-                    if peer_info.get('port') == CIRCUIT_ID_PORT:
-                        tc = self.session.tunnel_community
+                    if peer_info.get('port') == CIRCUIT_ID_PORT and self.tunnel_community:
+                        tc = self.tunnel_community
                         circuit_id = tc.ip_to_circuit_id(peer_info['ip'])
                         circuit = tc.circuits.get(circuit_id, None)
                         if circuit:
@@ -340,7 +347,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
         try:
-            download = await self.session.dlmgr.start_download_from_uri(parameters['uri'], config=download_config)
+            download = await self.dlmgr.start_download_from_uri(parameters['uri'], config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
@@ -372,12 +379,12 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
         try:
-            await self.session.dlmgr.remove_download(download, remove_content=parameters['remove_data'])
+            await self.dlmgr.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -409,7 +416,7 @@ class DownloadsEndpoint(RESTEndpoint):
     }))
     async def update_download(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -448,7 +455,7 @@ class DownloadsEndpoint(RESTEndpoint):
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
-                await self.session.dlmgr.update_hops(download, anon_hops)
+                await self.dlmgr.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
                 return return_handled_exception(request, e)
@@ -496,7 +503,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_torrent(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -530,7 +537,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_files(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
         return RESTResponse({"files": self.get_files_info_json(download)})
@@ -558,7 +565,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def stream(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.dlmgr.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 

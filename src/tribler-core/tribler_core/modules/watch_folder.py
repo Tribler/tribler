@@ -7,7 +7,9 @@ from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.notifier import Notifier
 from tribler_core.utilities import path_util
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
@@ -15,11 +17,13 @@ WATCH_FOLDER_CHECK_INTERVAL = 10
 
 class WatchFolder(TaskManager):
 
-    def __init__(self, session):
+    def __init__(self, watch_folder_path, download_manager: DownloadManager, notifier: Notifier):
         super().__init__()
+        self.watch_folder = watch_folder_path
+        self.download_manager = download_manager
+        self.notifier = notifier
 
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
 
     def start(self):
         self.register_task("check watch folder", self.check_watch_folder, interval=WATCH_FOLDER_CHECK_INTERVAL)
@@ -35,16 +39,14 @@ class WatchFolder(TaskManager):
 
         fullpath.rename(Path(str(fullpath)+".corrupt"))
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
-        self.session.notifier.notify(NTFY.WATCH_FOLDER_CORRUPT_FILE, name)
+        self.notifier.notify(NTFY.WATCH_FOLDER_CORRUPT_FILE, name)
 
     def check_watch_folder(self):
-        config = self.session.config
-        watch_folder = config.watch_folder.get_path_as_absolute('directory', config.state_dir)
-        if not watch_folder.is_dir():
+        if not self.watch_folder.is_dir():
             return
 
         # Make sure that we pass a str to os.walk
-        watch_dir = str(watch_folder)
+        watch_dir = str(self.watch_folder)
 
         for root, _, files in os.walk(watch_dir):
             root = path_util.Path(root)
@@ -63,7 +65,7 @@ class WatchFolder(TaskManager):
 
                 infohash = tdef.get_infohash()
 
-                if not self.session.dlmgr.download_exists(infohash):
+                if not self.dlmgr.download_exists(infohash):
                     self._logger.info("Starting download from torrent file %s", name)
                     dl_config = DownloadConfig()
 
@@ -74,4 +76,4 @@ class WatchFolder(TaskManager):
                     dl_config.set_hops(default_num_hops if anon_enabled else 0)
                     dl_config.set_safe_seeding(config.download_defaults.safeseeding_enabled)
                     dl_config.set_dest_dir(destination_dir)
-                    self.session.dlmgr.start_download(tdef=tdef, config=dl_config)
+                    self.dlmgr.start_download(tdef=tdef, config=dl_config)

@@ -11,6 +11,8 @@ from marshmallow.fields import String
 
 from tribler_core.exceptions import DuplicateDownloadException
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
@@ -25,6 +27,13 @@ class CreateTorrentEndpoint(RESTEndpoint):
     Create a torrent file from local files.
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
+
+    def __init__(self,
+                 download_manager: DownloadManager,
+                 download_defaults: DownloadDefaultsSettings):
+        super().__init__()
+        self.dlmgr = download_manager
+        self.download_defaults = download_defaults
 
     def setup_routes(self):
         self.app.add_routes([web.post('', self.create_torrent)])
@@ -92,7 +101,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params['piece length'] = 0  # auto
 
         try:
-            result = await self.session.dlmgr.create_torrent_file(file_path_list, recursive_bytes(params))
+            result = await self.dlmgr.create_torrent_file(file_path_list, recursive_bytes(params))
         except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -108,9 +117,9 @@ class CreateTorrentEndpoint(RESTEndpoint):
         if 'download' in request.query and request.query['download'] and request.query['download'] == "1":
             download_config = DownloadConfig()
             download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
-            download_config.set_hops(self.session.config.download_defaults.number_hops)
+            download_config.set_hops(self.download_defaults.number_hops)
             try:
-                self.session.dlmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
+                self.dlmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
             except DuplicateDownloadException:
                 self._logger.warning("The created torrent is already being downloaded.")
 

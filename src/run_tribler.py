@@ -14,6 +14,7 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.community_loader import create_default_loader
+from tribler_core.session import core_session
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 from tribler_gui.utilities import get_translator
@@ -37,7 +38,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
 
     from tribler_core.config.tribler_config import TriblerConfig
     from tribler_core.modules.process_checker import ProcessChecker
-    from tribler_core.session import Session
 
     trace_logger = None
 
@@ -45,16 +45,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     # peer discovery becomes unstable. Also see issue #5485.
     if sys.platform.startswith('win'):
         asyncio.set_event_loop(asyncio.SelectorEventLoop())
-
-    def on_tribler_shutdown(future):
-        future.result()
-        get_event_loop().stop()
-        if trace_logger:
-            trace_logger.close()
-
-    def shutdown(session, *_):
-        logging.info("Stopping Tribler core")
-        ensure_future(session.shutdown()).add_done_callback(on_tribler_shutdown)
 
     sys.path.insert(0, base_path)
 
@@ -92,14 +82,20 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
         community_loader = create_default_loader(config)
-        session = Session(config, core_test_mode=core_test_mode, community_loader=community_loader)
 
-        signal.signal(signal.SIGTERM, lambda signum, stack: shutdown(session, signum, stack))
-        await session.start()
+        # Run until core_session exits
+        await core_session(config, core_test_mode=core_test_mode, community_loader=community_loader)
+
+        if trace_logger:
+            trace_logger.close()
+
+        process_checker.remove_lock_file()
+        # Flush the logs to the file before exiting
+        for handler in logging.getLogger().handlers:
+            handler.flush()
 
     logging.getLogger('asyncio').setLevel(logging.WARNING)
-    get_event_loop().create_task(start_tribler())
-    get_event_loop().run_forever()
+    asyncio.run(start_tribler())
 
 
 def init_sentry_reporter():
@@ -147,7 +143,7 @@ if __name__ == "__main__":
         check_for_missing_dependencies(scope='core')
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
-        api_key = os.environ['CORE_API_KEY']
+        api_key = os.environ.get('CORE_API_KEY')
         core_test_mode = bool(os.environ.get("TRIBLER_CORE_TEST_MODE", False))
 
         start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=core_test_mode)
@@ -179,7 +175,7 @@ if __name__ == "__main__":
             # Exit if we cant read/write files, etc.
             check_environment()
 
-            should_kill_other_tribler_instances()
+            should_kill_other_tribler_instances(root_state_dir)
 
             check_free_space()
 

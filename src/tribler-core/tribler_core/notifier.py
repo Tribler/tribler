@@ -44,3 +44,7 @@ class Notifier:
             return
         for callback in self.observers[subject]:
             callback(*args)
+
+    def notify_shutdown_state(self, state):
+        self._logger.info("Tribler shutdown state notification:%s", state)
+        self.notify(NTFY.TRIBLER_SHUTDOWN_STATE, state)

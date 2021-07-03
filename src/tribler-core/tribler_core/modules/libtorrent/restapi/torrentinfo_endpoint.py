@@ -11,6 +11,7 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
 from tribler_common.utilities import uri_to_path
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
@@ -24,6 +25,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding torrent info in Tribler.
     """
+
+    def __init__(self, download_manager: DownloadManager):
+        super().__init__()
+        self.dlmgr = download_manager
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_torrent_info)])
@@ -61,6 +66,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
         uri = args['uri']
+        metainfo = None
         if uri.startswith('file:'):
             try:
                 filename = uri_to_path(uri)
@@ -79,14 +85,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
             if response.startswith(b'magnet'):
                 _, infohash, _ = parse_magnetlink(response)
                 if infohash:
-                    metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60, hops=hops, url=response)
+                    metainfo = await self.dlmgr.get_metainfo(infohash, timeout=60, hops=hops, url=response)
             else:
                 metainfo = bdecode_compat(response)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
-            metainfo = await self.session.dlmgr.get_metainfo(infohash, timeout=60, hops=hops, url=uri)
+            metainfo = await self.dlmgr.get_metainfo(infohash, timeout=60, hops=hops, url=uri)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
@@ -97,16 +103,17 @@ class TorrentInfoEndpoint(RESTEndpoint):
             self._logger.warning("Received metainfo is not a valid dictionary")
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
+        # FIXME: FFA entries
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-        self.session.mds.TorrentMetadata.add_ffa_from_dict(
-            tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
+        #self.session.mds.TorrentMetadata.add_ffa_from_dict(
+            #tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
         # TODO(Martijn): store the stuff in a database!!!
         # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB
         infohash = hashlib.sha1(lt.bencode(metainfo[b'info'])).digest()
 
-        download = self.session.dlmgr.downloads.get(infohash)
-        metainfo_request = self.session.dlmgr.metainfo_requests.get(infohash, [None])[0]
+        download = self.dlmgr.downloads.get(infohash)
+        metainfo_request = self.dlmgr.metainfo_requests.get(infohash, [None])[0]
         download_is_metainfo_request = download == metainfo_request
 
         # Check if the torrent is already in the downloads

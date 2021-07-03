@@ -8,6 +8,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer
 
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
 
@@ -16,6 +17,10 @@ class LibTorrentEndpoint(RESTEndpoint):
     """
     Endpoint for getting information about libtorrent sessions and settings.
     """
+
+    def __init__(self, download_manager: DownloadManager):
+        super().__init__()
+        self.dlmgr = download_manager
 
     def setup_routes(self):
         self.app.add_routes([web.get('/settings', self.get_libtorrent_settings),
@@ -45,12 +50,12 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.session.dlmgr.ltsessions:
+        if hop not in self.dlmgr.ltsessions:
             return RESTResponse({'hop': hop, "settings": {}})
 
-        lt_session = self.session.dlmgr.ltsessions[hop]
+        lt_session = self.dlmgr.ltsessions[hop]
         if hop == 0:
-            lt_settings = self.session.dlmgr.get_session_settings(lt_session)
+            lt_settings = self.dlmgr.get_session_settings(lt_session)
             lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
         else:
             lt_settings = lt_session.get_settings()
@@ -87,11 +92,11 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.session.dlmgr.ltsessions or \
-                not hasattr(self.session.dlmgr.ltsessions[hop], "post_session_stats"):
+        if hop not in self.dlmgr.ltsessions or \
+                not hasattr(self.dlmgr.ltsessions[hop], "post_session_stats"):
             return RESTResponse({'hop': hop, 'session': {}})
 
-        self.session.dlmgr.session_stats_callback = on_session_stats_alert_received
-        self.session.dlmgr.ltsessions[hop].post_session_stats()
+        self.dlmgr.session_stats_callback = on_session_stats_alert_received
+        self.dlmgr.ltsessions[hop].post_session_stats()
         stats = await session_stats
         return RESTResponse({'hop': hop, 'session': stats})

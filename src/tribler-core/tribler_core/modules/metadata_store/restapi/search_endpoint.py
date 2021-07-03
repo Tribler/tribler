@@ -77,7 +77,7 @@ class SearchEndpoint(MetadataEndpointBase):
 
         include_total = request.query.get('include_total', '')
 
-        mds: MetadataStore = self.session.mds
+        mds: MetadataStore = self.mds
 
         def search_db():
             with db_session:
@@ -130,5 +130,5 @@ class SearchEndpoint(MetadataEndpointBase):
 
         keywords = args['q'].strip().lower()
         # TODO: add XXX filtering for completion terms
-        results = self.session.mds.get_auto_complete_terms(keywords, max_terms=5)
+        results = self.mds.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})

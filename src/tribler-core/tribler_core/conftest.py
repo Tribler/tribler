@@ -19,7 +19,6 @@ from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
@@ -107,20 +106,6 @@ def mock_dlmgr(session, mocker, tmpdir):
 @pytest.fixture
 def mock_dlmgr_get_download(session, mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
     session.dlmgr.get_download = lambda _: None
-
-
-@pytest.fixture(name='session')
-async def _session(tribler_config) -> Session:
-    tribler_config.api.http_port = get_free_port()
-    tribler_config.libtorrent.port = get_free_port()
-    tribler_config.tunnel_community.socks5_listen_ports = [get_free_port() for _ in range(5)]
-
-    session = Session(tribler_config)
-    session.upgrader_enabled = False
-
-    await session.start()
-    yield session
-    await session.shutdown()
 
 
 @pytest.fixture

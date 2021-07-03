@@ -15,6 +15,7 @@ from aiohttp import (
 from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
+from tribler_core.notifier import Notifier
 
 from tribler_core.version import version_id
 
@@ -39,11 +40,11 @@ def get_user_agent_string(tribler_version, platform_module):
 
 class VersionCheckManager(TaskManager):
 
-    def __init__(self, session):
+    def __init__(self, notifier: Notifier):
         super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
+        self.notifier = notifier
 
     def start(self, interval=VERSION_CHECK_INTERVAL):
         if 'GIT' not in version_id:
@@ -70,7 +71,7 @@ class VersionCheckManager(TaskManager):
                 response_dict = await response.json(content_type=None)
                 version = response_dict['name'][1:]
                 if LooseVersion(version) > LooseVersion(version_id):
-                    self.session.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
+                    self.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
                     return True
                 return False
 

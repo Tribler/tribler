@@ -13,8 +13,8 @@ class ProcessChecker:
     """
     This class contains code to check whether a Tribler process is already running.
     """
-    def __init__(self, state_directory=None):
-        self.state_directory = state_directory or get_root_state_directory()
+    def __init__(self, state_directory):
+        self.state_directory = state_directory
         self.lock_file_path = self.state_directory / LOCK_FILE_NAME
 
         if self.lock_file_path.exists():

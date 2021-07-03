@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pony.orm import count, db_session
 
-from tribler_core.utilities import path_util
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
@@ -13,16 +13,13 @@ TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 secon
 
 class TrackerManager:
 
-    def __init__(self, session):
+    def __init__(self, state_dir: Path = None, metadata_store: MetadataStore = None):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._session = session
+        self.state_dir = state_dir
+        self.tracker_store = metadata_store.TrackerState
 
         self.blacklist = []
         self.load_blacklist()
-
-    @property
-    def tracker_store(self):
-        return self._session.mds.TrackerState
 
     def load_blacklist(self):
         """
@@ -30,7 +27,7 @@ class TrackerManager:
 
         Entries are newline separated and are supposed to be sanitized.
         """
-        blacklist_file = Path(self._session.config.state_dir / "tracker_blacklist.txt").absolute()
+        blacklist_file = Path(self.state_dir / "tracker_blacklist.txt").absolute()
         if blacklist_file.exists():
             with open(blacklist_file) as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()

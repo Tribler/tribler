@@ -12,6 +12,7 @@ from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
+from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
@@ -22,7 +23,7 @@ TORRENT_CHECK_TIMEOUT = 20
 class UpdateEntryMixin:
     @db_session
     def update_entry(self, public_key, id_, update_dict):
-        entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
+        entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
         if not entry:
             return HTTP_NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
 
@@ -50,6 +51,9 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     #          /torrents
     #          /<public_key>
     """
+    def __init__(self, *args, torrent_checker: TorrentChecker, **kwargs):
+        MetadataEndpointBase.__init__(self, *args, **kwargs)
+        self.torrent_checker = torrent_checker
 
     def setup_routes(self):
         self.app.add_routes(
@@ -120,7 +124,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             for entry in request_parsed:
                 public_key = unhexlify(entry.pop("public_key"))
                 id_ = entry.pop("id")
-                entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
+                entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not entry:
                     return RESTResponse({"error": "Entry %i not found" % id_}, status=HTTP_BAD_REQUEST)
                 entry.delete()
@@ -158,7 +162,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         public_key = unhexlify(request.match_info['public_key'])
         id_ = request.match_info['id']
         with db_session:
-            entry = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
+            entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
 
             if entry:
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
@@ -243,7 +247,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         nowait = request.query.get('nowait', '0') == '1'
 
         infohash = unhexlify(request.match_info['infohash'])
-        result_future = self.session.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
+        result_future = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
         # Return immediately. Used by GUI to schedule health updates through the EventsEndpoint
         if nowait:
             return RESTResponse({'checking': '1'})

@@ -18,9 +18,9 @@ class ShutdownEndpoint(RESTEndpoint):
     With this endpoint you can shutdown Tribler.
     """
 
-    def __init__(self, session):
-        super().__init__(session)
-        self.process_checker = ProcessChecker()
+    def __init__(self, shutdown_callback):
+        super().__init__()
+        self.shutdown_callback = shutdown_callback
 
     def setup_routes(self):
         self.app.add_routes([web.put('', self.shutdown)])
@@ -37,19 +37,6 @@ class ShutdownEndpoint(RESTEndpoint):
         }
     )
     async def shutdown(self, request):
-        async def shutdown():
-            try:
-                keep_loop_running = await self.session.shutdown()
-            except Exception as e:
-                self._logger.error(e)
-                keep_loop_running = False
 
-            self.process_checker.remove_lock_file()
-            # Flush the logs to the file before exiting
-            for handler in logging.getLogger().handlers:
-                handler.flush()
-            if not keep_loop_running:
-                get_event_loop().stop()
-
-        ensure_future(shutdown())
+        self.shutdown_callback()
         return RESTResponse({"shutdown": True})

@@ -2,16 +2,19 @@ import asyncio
 import shutil
 from _socket import getaddrinfo
 from asyncio import get_event_loop, sleep
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
 
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 from tribler_common.simpledefs import NTFY
 from tribler_core.config.tests.test_tribler_config import CONFIG_PATH
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.exception_handler import IGNORED_ERRORS
 from tribler_core.modules.community_loader import create_default_loader
-from tribler_core.session import IGNORED_ERRORS, Session
+from tribler_core.session import ProstheticSession, create_ipv8
 from tribler_core.tests.tools.base_test import MockObject
 
 
@@ -106,23 +109,36 @@ async def test_error_observer_ignored_error(mocked_endpoints, session):
 
 
 @pytest.mark.asyncio
-async def test_load_ipv8_overlays(mocked_endpoints, enable_ipv8, session):
+async def test_load_ipv8_overlays():
     """
     Test whether non-testnet communities are loaded, if configured to do so.
     """
-    session.config.trustchain.testnet = False
-    session.config.tunnel_community.testnet = False
-    session.config.chant.testnet = False
-    session.config.dht.enabled = True
-    session.config.tunnel_community.enabled = True
-    session.config.popularity_community.enabled = True
-    session.config.chant.enabled = True
+    config = TriblerConfig(state_dir=Path())
+    config.trustchain.testnet = False
+    config.tunnel_community.testnet = False
+    config.chant.testnet = False
+    config.dht.enabled = True
+    config.tunnel_community.enabled = True
+    config.popularity_community.enabled = True
+    config.chant.enabled = True
 
-    session.community_loader = create_default_loader(session.config)
+    community_loader = create_default_loader(config)
 
-    await session.start()
+    mock_keypair = LibNaCLSK()
+    prosthetic_session = ProstheticSession(
+        config=config,
+        trustchain_keypair=mock_keypair)
 
-    loaded_launchers = [overlay.__class__.__name__ for overlay in session.ipv8.overlays]
+    ipv8 = await create_ipv8(
+        config=config.ipv8,
+        state_dir=Path(""),
+        logger=Mock(),
+        community_loader=community_loader,
+        prosthetic_session=prosthetic_session,
+        root_endpoint=Mock(),
+        ipv8_tasks=Mock())
+
+    loaded_launchers = [overlay.__class__.__name__ for overlay in ipv8.overlays]
     assert "DHTDiscoveryCommunity" in loaded_launchers
     assert "TriblerTunnelCommunity" in loaded_launchers
     assert "TriblerTunnelTestnetCommunity" not in loaded_launchers

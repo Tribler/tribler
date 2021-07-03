@@ -1,4 +1,5 @@
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import RESTEndpoint
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
@@ -29,6 +30,10 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
+    def __init__(self, *args, metadata_store: MetadataStore = None, **kwargs):
+        super(MetadataEndpointBase, self).__init__(*args, **kwargs)
+        self.mds = metadata_store
+
     @classmethod
     def sanitize_parameters(cls, parameters):
         """
