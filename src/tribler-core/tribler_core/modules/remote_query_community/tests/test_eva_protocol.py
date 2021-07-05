@@ -236,6 +236,9 @@ class TestEVA(TestBase):
         count = 100
         block_size = 10
 
+        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
+
         self.overlay(0).eva_protocol.block_size = block_size
         self.overlay(1).eva_protocol.block_size = block_size
 
