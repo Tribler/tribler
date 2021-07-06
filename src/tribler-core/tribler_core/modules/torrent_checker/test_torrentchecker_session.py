@@ -38,15 +38,15 @@ def fixture_fake_udp_socket_manager():
 
 
 @pytest.fixture
-async def bep33_session(session):
-    bep33_dht_session = FakeBep33DHTSession(session, b'a' * 20, 10)
+async def bep33_session(mock_dlmgr):
+    bep33_dht_session = FakeBep33DHTSession(mock_dlmgr, b'a' * 20, 10)
     yield bep33_dht_session
     await bep33_dht_session.shutdown_task_manager()
 
 
 @pytest.fixture
-async def fake_dht_session(session):
-    fake_dht_session = FakeDHTSession(session, b'a' * 20, 10)
+async def fake_dht_session(mock_dlmgr):
+    fake_dht_session = FakeDHTSession(mock_dlmgr, b'a' * 20, 10)
     yield fake_dht_session
     await fake_dht_session.shutdown_task_manager()
 
@@ -352,7 +352,7 @@ def test_failed_unicode_udp(fake_udp_socket_manager):
 
 
 @pytest.mark.asyncio
-async def test_cleanup(session, bep33_session):
+async def test_cleanup(bep33_session):
     """
     Test the cleanup of a DHT session
     """
@@ -360,12 +360,12 @@ async def test_cleanup(session, bep33_session):
 
 
 @pytest.mark.asyncio
-async def test_connect_to_tracker(session, mock_dlmgr, fake_dht_session):
+async def test_connect_to_tracker(mock_dlmgr, fake_dht_session):
     """
     Test the metainfo lookup of the DHT session
     """
     metainfo = {b'seeders': 42, b'leechers': 42}
-    session.dlmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
+    mock_dlmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
 
     metainfo = await fake_dht_session.connect_to_tracker()
 
@@ -375,17 +375,17 @@ async def test_connect_to_tracker(session, mock_dlmgr, fake_dht_session):
 
 
 @pytest.mark.asyncio
-async def test_connect_to_tracker_fail(session, mock_dlmgr, fake_dht_session):
+async def test_connect_to_tracker_fail(mock_dlmgr, fake_dht_session):
     """
     Test the metainfo lookup of the DHT session when it fails
     """
-    session.dlmgr.get_metainfo = lambda *_, **__: succeed(None)
+    mock_dlmgr.get_metainfo = lambda *_, **__: succeed(None)
     with pytest.raises(RuntimeError):
         await fake_dht_session.connect_to_tracker()
 
 
 @pytest.mark.asyncio
-async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr, session):
+async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr):
     """
     Test the metainfo lookup of the BEP33 DHT session
     """
@@ -394,7 +394,8 @@ async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr, session):
         "seeders": 1,
         "leechers": 2
     }
-    session.dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
+    mock_dlmgr.dht_health_manager = Mock()
+    mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
     metainfo = await bep33_session.connect_to_tracker()
 
