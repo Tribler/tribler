@@ -57,7 +57,7 @@ def load_communities(config: TriblerConfig, trustchain_keypair, ipv8, dlmgr, met
 
     bandwidth_community = bandwidth_community_cls(peer, ipv8.endpoint, ipv8.network,
                                                   settings=config.bandwidth_accounting,
-                                                  database_path=config.state_dir / "sqlite" / "bandwidth.db")
+                                                  database=config.state_dir / "sqlite" / "bandwidth.db")
     add_bootstrapper(bandwidth_community, bootstrapper)
 
     ipv8.overlays.append(bandwidth_community)
@@ -86,7 +86,7 @@ def load_communities(config: TriblerConfig, trustchain_keypair, ipv8, dlmgr, met
                                          competing_slots=config.tunnel_community.competing_slots,
                                          ipv8=ipv8,
                                          random_slots=config.tunnel_community.random_slots,
-                                         config=config,
+                                         config=config.tunnel_community,
                                          notifier=notifier,
                                          dlmgr=dlmgr,
                                          dht_provider=DHTCommunityProvider(dht_community, config.ipv8.port),

@@ -22,6 +22,7 @@ from ipv8.util import succeed
 from tribler_common.network_utils import NetworkUtils
 
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
@@ -42,26 +43,28 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await super().tearDown()
 
     def create_node(self):
+
+        state_dir = Path.mkdtemp(suffix="_tribler_test_state")
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
                              socks_listen_ports=[],
                              settings={'remove_tunnel_delay': 0},
-                             exitnode_cache=Path.mkdtemp(suffix="_tribler_test_cache") / 'cache.dat')
+                             exitnode_cache=state_dir / 'cache.dat')
         mock_ipv8.overlay.settings.max_circuits = 1
+
+        db = BandwidthDatabase(db_path=":memory:", my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
 
         # Load the bandwidth accounting community
         mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(
-            mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network, database_path=":memory:",
-            settings=BandwidthAccountingSettings())
+            mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
+            settings=BandwidthAccountingSettings(), database=db)
         mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
                                                               mock_ipv8.overlay.my_estimated_wan))
 
         return mock_ipv8
 
-
     @staticmethod
     def get_free_port():
         return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port()
-
 
     async def create_intro(self, node_nr, service):
         """
@@ -251,19 +254,19 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[0].overlay.get_download = lambda _: download
 
         lt_session = Mock()
-        self.nodes[0].overlay.tribler_session = Mock()
-        self.nodes[0].overlay.tribler_session.dlmgr.get_session = lambda _: lt_session
-        self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter = Mock()
-        self.nodes[0].overlay.tribler_session.dlmgr.get_downloads = lambda: [download]
+        self.nodes[0].overlay.dlmgr = Mock()
+        self.nodes[0].overlay.dlmgr.get_session = lambda _: lt_session
+        self.nodes[0].overlay.dlmgr.update_ip_filter = Mock()
+        self.nodes[0].overlay.dlmgr.get_downloads = lambda: [download]
 
         self.nodes[0].overlay.update_ip_filter(0)
         ips = ['1.1.1.1']
-        self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
+        self.nodes[0].overlay.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
 
         circuit.ctype = CIRCUIT_TYPE_RP_SEEDER
         self.nodes[0].overlay.update_ip_filter(0)
         ips = [self.nodes[0].overlay.circuit_id_to_ip(circuit.circuit_id), '1.1.1.1']
-        self.nodes[0].overlay.tribler_session.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
+        self.nodes[0].overlay.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
 
     def test_update_torrent(self):
         """

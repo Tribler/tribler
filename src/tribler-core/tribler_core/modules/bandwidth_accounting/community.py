@@ -4,7 +4,7 @@ from asyncio import Future
 from binascii import unhexlify
 from pathlib import Path
 from random import Random
-from typing import Dict
+from typing import Dict, Union
 
 from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
@@ -27,19 +27,23 @@ class BandwidthAccountingCommunity(TriblerCommunity):
     DB_NAME = 'bandwidth'
     version = b'\x02'
 
-    def __init__(self, *args, database: BandwidthDatabase, **kwargs) -> None:
+    def __init__(self, *args, database: Union[str, Path, BandwidthDatabase], **kwargs) -> None:
         """
         Initialize the community.
         :param persistence: The database that stores transactions, will be created if not provided.
         :param database_path: The path at which the database will be created. Defaults to the current working directory.
         """
-        self.database = database
         self.random = Random()
 
         super().__init__(*args, **kwargs)
 
         self.request_cache = RequestCache()
         self.my_pk = self.my_peer.public_key.key_to_bin()
+
+        if isinstance(database, BandwidthDatabase):
+            self.database = database
+        else:
+            self.database = BandwidthDatabase(db_path=database, my_pub_key=self.my_pk)
 
         self.add_message_handler(BandwidthTransactionPayload, self.received_transaction)
         self.add_message_handler(BandwidthTransactionQueryPayload, self.received_query)

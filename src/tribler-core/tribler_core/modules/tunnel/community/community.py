@@ -6,11 +6,12 @@ from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection, 
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
+from pathlib import Path
 
 import async_timeout
 
 from ipv8.messaging.anonymization.caches import CreateRequestCache
-from ipv8.messaging.anonymization.community import unpack_cell
+from ipv8.messaging.anonymization.community import unpack_cell, TunnelCommunity
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
@@ -46,8 +47,8 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceRequestPayload,
     RelayBalanceResponsePayload,
 )
+from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
-from tribler_core.utilities import path_util
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
@@ -65,26 +66,25 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     """
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
-    def __init__(self, *args, **kwargs):
-        self.config = kwargs.pop('config', None)
+    def __init__(self, *args, exitnode_cache:Path = None, **kwargs):
+        self.config = kwargs.pop('config', TunnelCommunitySettings())
         self.notifier = kwargs.pop('notifier', None)
         self.dlmgr = kwargs.pop('dlmgr', None)
         num_competing_slots = kwargs.pop('competing_slots', 15)
         num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_community = kwargs.pop('bandwidth_community', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
-        state_path = self.config.state_dir or path_util.Path()
-        self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
+        self.exitnode_cache = exitnode_cache
         super().__init__(*args, **kwargs)
         self._use_main_thread = True
 
-        if self.config.tunnel_community.exitnode_enabled:
+        if self.config.exitnode_enabled:
             self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
             self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
             self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
         if not socks_listen_ports:
-            socks_listen_ports = self.config.tunnel_community.socks5_listen_ports or range(1080, 1085)
+            socks_listen_ports = self.config.socks5_listen_ports or range(1080, 1085)
 
         self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
@@ -115,7 +115,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         NO_CRYPTO_PACKETS.extend([BalanceRequestPayload.msg_id, BalanceResponsePayload.msg_id])
 
-        if self.exitnode_cache:
+        if self.exitnode_cache is not None:
             self.restore_exitnodes_from_disk()
 
     async def wait_for_socks_servers(self):
@@ -402,7 +402,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Make sure the circuit is marked as closing, otherwise we may end up reusing it
         circuit.close()
 
-        if self.dlmgr and self.config.libtorrent.enabled:
+        if self.dlmgr:
             for download in self.dlmgr.get_downloads():
                 self.update_torrent(affected_peers, download)
 
@@ -566,7 +566,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for socks_server in self.socks_servers:
             await socks_server.stop()
 
-        if self.exitnode_cache:
+        if self.exitnode_cache is not None:
             self.cache_exitnodes_to_disk()
 
         await super().unload()

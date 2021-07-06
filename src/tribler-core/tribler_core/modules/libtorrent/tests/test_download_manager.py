@@ -11,6 +11,7 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING
 from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
@@ -46,21 +47,11 @@ def create_fake_download_and_state():
 
 
 @pytest.fixture
-async def fake_dlmgr(tmpdir):
-    tribler_session = Mock()
-    tribler_session.notifier = Notifier()
-    tribler_session.state_dir = tmpdir
-    tribler_session.notify_shutdown_state = lambda _: None
-
-    tribler_session.config = TriblerConfig(state_dir=tmpdir)
-    tribler_session.config.libtorrent.dht_readiness_timeout = 0
-
-    dlmgr = DownloadManager(tribler_session)
-    dlmgr.metadata_tmpdir = tmpdir
+async def fake_dlmgr(tmp_path):
+    config = LibtorrentSettings(dht_readiness_timeout=0)
+    dlmgr = DownloadManager(config=config, state_dir=tmp_path, notifier=Mock(), peer_mid=b"0000")
+    dlmgr.metadata_tmpdir = tmp_path
     dlmgr.get_session = lambda *_, **__: Mock()
-
-    tribler_session.dlmgr = dlmgr
-    tribler_session.tunnel_community = None
     yield dlmgr
     await dlmgr.shutdown(timeout=0)
 
@@ -79,7 +70,7 @@ async def test_get_metainfo_valid_metadata(fake_dlmgr):
 
     fake_dlmgr.initialize()
     fake_dlmgr.start_download = Mock(return_value=download_impl)
-    fake_dlmgr.tribler_session.config.download_defaults.number_hops = 1
+    fake_dlmgr.download_defaults.number_hops = 1
     fake_dlmgr.remove_download = Mock(return_value=succeed(None))
 
     assert await fake_dlmgr.get_metainfo(infohash) == metainfo
@@ -102,7 +93,7 @@ async def test_get_metainfo_add_fail(fake_dlmgr):
     fake_dlmgr.initialize()
     fake_dlmgr.start_download = Mock()
     fake_dlmgr.start_download.side_effect = TypeError
-    fake_dlmgr.tribler_session.config.download_defaults.number_hops = 1
+    fake_dlmgr.download_defaults.number_hops = 1
     fake_dlmgr.remove = Mock(return_value=succeed(None))
 
     assert await fake_dlmgr.get_metainfo(infohash) is None
@@ -125,7 +116,7 @@ async def test_get_metainfo_duplicate_request(fake_dlmgr):
 
     fake_dlmgr.initialize()
     fake_dlmgr.start_download = Mock(return_value=download_impl)
-    fake_dlmgr.tribler_session.config.download_defaults.number_hops = 1
+    fake_dlmgr.download_defaults.number_hops = 1
     fake_dlmgr.remove_download = Mock(return_value=succeed(None))
 
     results = await gather(fake_dlmgr.get_metainfo(infohash), fake_dlmgr.get_metainfo(infohash))
@@ -349,11 +340,11 @@ def test_payout_on_disconnect(fake_dlmgr):
     Test whether a payout is initialized when a peer disconnects
     """
     disconnect_alert = type('peer_disconnected', (object,), dict(pid=Mock(to_bytes=lambda: b'a' * 20)))()
-    fake_dlmgr.tribler_session.payout_manager = Mock()
+    fake_dlmgr.payout_manager = Mock()
     fake_dlmgr.initialize()
     fake_dlmgr.get_session(0).pop_alerts = lambda: [disconnect_alert]
     fake_dlmgr._task_process_alerts()
-    fake_dlmgr.tribler_session.payout_manager.do_payout.is_called_with(b'a' * 20)
+    fake_dlmgr.payout_manager.do_payout.is_called_with(b'a' * 20)
 
 
 @pytest.mark.asyncio
@@ -433,7 +424,7 @@ async def test_readd_download_safe_seeding(fake_dlmgr):
     """
     Test whether a download is re-added when doing safe seeding
     """
-    fake_dlmgr.tribler_session.bootstrap = None
+    fake_dlmgr.bootstrap = None
     readd_future = Future()
 
     async def mocked_update_hops(*_):

@@ -26,16 +26,6 @@ def channel_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
 
 
-@pytest.fixture
-async def download_manager(tmp_path):
-    download_manager = DownloadManager(
-        state_dir=tmp_path,
-        notifier=Mock(),
-        peer_mid=b"0000")
-    download_manager.initialize()
-    yield download_manager
-    await download_manager.shutdown()
-
 
 @pytest.fixture
 async def channel_seeder(channel_tdef, tmp_path):
