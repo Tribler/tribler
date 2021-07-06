@@ -807,11 +807,9 @@ class DownloadManager(TaskManager):
                     if str(peer["extended_version"]).startswith('Tribler'):
                         self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
 
-        # FIXME! tunnel community callbacks!
-        # !!!!!!!!!!!!!!
-        #if self.state_cb_count % 4 == 0:
-            #if self.tunnel_community:
-                #self.tunnel_community.monitor_downloads(states_list)
+        if self.state_cb_count % 4 == 0:
+            if self.tunnel_community:
+                self.tunnel_community.monitor_downloads(states_list)
 
     async def load_checkpoints(self):
         for filename in self.get_checkpoint_dir().glob('*.conf'):

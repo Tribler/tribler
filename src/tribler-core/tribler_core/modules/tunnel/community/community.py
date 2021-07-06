@@ -49,7 +49,6 @@ from tribler_core.modules.tunnel.community.payload import (
 )
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
-from tribler_core.utilities import path_util
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
