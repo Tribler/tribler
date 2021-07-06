@@ -281,7 +281,7 @@ async def core_session(
         download_manager = DownloadManager(config=config.libtorrent,
                                            state_dir=config.state_dir,
                                            notifier=notifier,
-                                           trustchain_keypair=trustchain_keypair,
+                                           peer_mid=trustchain_keypair.key_to_hash(),
                                            download_defaults=config.download_defaults,
                                            payout_manager=None,
                                            tunnel_community=ipv8.get_overlay(TunnelCommunity),
