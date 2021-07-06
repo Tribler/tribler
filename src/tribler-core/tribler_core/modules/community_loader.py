@@ -1,16 +1,10 @@
 # pylint: disable=import-outside-toplevel
-from ipv8.loader import (
-    CommunityLauncher,
-    IPv8CommunityLoader,
-    kwargs,
-    overlay,
-    precondition,
-    set_in_session,
-    walk_strategy,
-)
 from ipv8.peer import Peer
+from ipv8.peerdiscovery.churn import RandomChurn
+from ipv8.peerdiscovery.discovery import RandomWalk
 
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 
 INFINITE = -1
 """
@@ -18,112 +12,124 @@ The amount of target_peers for a walk_strategy definition to never stop.
 """
 
 
-class TriblerCommunityLauncher(CommunityLauncher):
-    def get_my_peer(self, ipv8, session):
-        trustchain_testnet = session.config.general.testnet or session.config.trustchain.testnet
-        return (Peer(session.trustchain_testnet_keypair) if trustchain_testnet
-                else Peer(session.trustchain_keypair))
-
-    def get_bootstrappers(self, session):
-        from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
-        from ipv8.configuration import DISPERSY_BOOTSTRAPPER
-        bootstrap_override = session.config.ipv8.bootstrap_override
-        if bootstrap_override:
-            address, port = bootstrap_override.split(':')
-            return [(DispersyBootstrapper, {"ip_addresses": [(address, int(port))],
-                                            "dns_addresses": []})]
-        return [(DispersyBootstrapper, DISPERSY_BOOTSTRAPPER['init'])]
+def add_bootstrapper(community, bootstrapper):
+    if bootstrapper:
+        community.bootstrappers.append(bootstrapper)
 
 
-class TestnetMixIn:
-    def should_launch(self, _):
-        return True
+def load_communities(config: TriblerConfig, trustchain_keypair, ipv8, dlmgr, metadata_store,
+                     torrent_checker, notifier, bootstrapper):
+    """ This method will be splitted after grand Vadim's PR is merged
+    """
+    peer = Peer(trustchain_keypair)
 
+    if config.discovery_community.enabled:
+        from ipv8.peerdiscovery.community import DiscoveryCommunity
+        from ipv8.peerdiscovery.community import PeriodicSimilarity
 
-def discovery_community():
-    from ipv8.peerdiscovery.community import DiscoveryCommunity
-    return DiscoveryCommunity
+        community = DiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=100)
+        add_bootstrapper(community, bootstrapper)
+        ipv8.overlays.append(community)
+        ipv8.strategies.append((RandomChurn(community), INFINITE))
+        ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
+        ipv8.strategies.append((RandomWalk(community), 20))
 
+    dht_community = None
+    if config.dht.enabled:
+        from ipv8.dht.discovery import DHTDiscoveryCommunity
+        from ipv8.dht.churn import PingChurn
 
-def dht_discovery_community():
-    from ipv8.dht.discovery import DHTDiscoveryCommunity
-    return DHTDiscoveryCommunity
+        dht_community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
+        add_bootstrapper(dht_community, bootstrapper)
 
+        ipv8.overlays.append(dht_community)
+        ipv8.strategies.append((RandomWalk(dht_community), 20))
+        ipv8.strategies.append((PingChurn(dht_community), INFINITE))
 
-def random_churn():
-    from ipv8.peerdiscovery.churn import RandomChurn
-    return RandomChurn
+    #
 
-
-def ping_churn():
-    from ipv8.dht.churn import PingChurn
-    return PingChurn
-
-
-def random_walk():
-    from ipv8.peerdiscovery.discovery import RandomWalk
-    return RandomWalk
-
-
-def periodic_similarity():
-    from ipv8.peerdiscovery.community import PeriodicSimilarity
-    return PeriodicSimilarity
-
-
-@precondition('session.config.discovery_community.enabled')
-@overlay(discovery_community)
-@kwargs(max_peers='100')
-@walk_strategy(random_churn, target_peers=INFINITE)
-@walk_strategy(random_walk)
-@walk_strategy(periodic_similarity, target_peers=INFINITE)
-class IPv8DiscoveryCommunityLauncher(TriblerCommunityLauncher):
-    pass
-
-
-@precondition('session.config.dht.enabled')
-@set_in_session('dht_community')
-@overlay(dht_discovery_community)
-@kwargs(max_peers='60')
-@walk_strategy(ping_churn, target_peers=INFINITE)
-@walk_strategy(random_walk)
-class DHTCommunityLauncher(TriblerCommunityLauncher):
-    pass
-
-
-def create_default_loader(config: TriblerConfig):
-    loader = IPv8CommunityLoader()
-
-    loader.set_launcher(IPv8DiscoveryCommunityLauncher())
-    loader.set_launcher(DHTCommunityLauncher())
-
-    bandwidth_accounting_testnet = config.general.testnet or config.bandwidth_accounting.testnet
-    if bandwidth_accounting_testnet:
-        from tribler_core.modules.bandwidth_accounting.launcher import BandwidthTestnetCommunityLauncher
-        loader.set_launcher(BandwidthTestnetCommunityLauncher())
+    if config.general.testnet or config.bandwidth_accounting.testnet:
+        from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingTestnetCommunity
+        bandwidth_community_cls = BandwidthAccountingTestnetCommunity
     else:
-        from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
-        loader.set_launcher(BandwidthCommunityLauncher())
+        from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+        bandwidth_community_cls = BandwidthAccountingCommunity
 
-    tunnel_testnet = config.general.testnet or config.tunnel_community.testnet
-    if config.tunnel_community.enabled and not tunnel_testnet:
-        from tribler_core.modules.tunnel.community.launcher import TriblerTunnelCommunityLauncher
-        loader.set_launcher(TriblerTunnelCommunityLauncher())
+    bandwidth_community = bandwidth_community_cls(peer, ipv8.endpoint, ipv8.network,
+                                                  settings=config.bandwidth_accounting,
+                                                  database_path=config.state_dir / "sqlite" / "bandwidth.db")
+    add_bootstrapper(bandwidth_community, bootstrapper)
 
-    if config.tunnel_community.enabled and tunnel_testnet:
-        from tribler_core.modules.tunnel.community.launcher import TriblerTunnelTestnetCommunityLauncher
-        loader.set_launcher(TriblerTunnelTestnetCommunityLauncher())
+    ipv8.overlays.append(bandwidth_community)
+    ipv8.strategies.append((RandomWalk(bandwidth_community), 20))
+
+    #
+    if config.tunnel_community.enabled:
+        tunnel_community_cls = None
+        if config.general.testnet or config.tunnel_community.testnet:
+            from tribler_core.modules.tunnel.community.community import TriblerTunnelTestnetCommunity
+            tunnel_community_cls = TriblerTunnelTestnetCommunity
+        else:
+            from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
+            tunnel_community_cls = TriblerTunnelCommunity
+
+        from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
+        from ipv8.messaging.anonymization.community import TunnelSettings
+        from ipv8.dht.provider import DHTCommunityProvider
+
+        settings = TunnelSettings()
+        settings.min_circuits = config.tunnel_community.min_circuits
+        settings.max_circuits = config.tunnel_community.max_circuits
+
+        community = tunnel_community_cls(peer, ipv8.endpoint, ipv8.network,
+                                         bandwidth_community=bandwidth_community,
+                                         competing_slots=config.tunnel_community.competing_slots,
+                                         ipv8=ipv8,
+                                         random_slots=config.tunnel_community.random_slots,
+                                         config=config,
+                                         notifier=notifier,
+                                         dlmgr=dlmgr,
+                                         dht_provider=DHTCommunityProvider(dht_community, config.ipv8.port),
+                                         settings=settings,
+                                         )
+        add_bootstrapper(community, bootstrapper)
+
+        ipv8.overlays.append(community)
+        ipv8.strategies.append((RandomWalk(community), 20))
+        ipv8.strategies.append((GoldenRatioStrategy(community), INFINITE))
 
     if config.popularity_community.enabled:
-        from tribler_core.modules.popularity.launcher import PopularityCommunityLauncher
-        loader.set_launcher(PopularityCommunityLauncher())
+        from tribler_core.modules.popularity.community import PopularityCommunity
 
-    chant_testnet = config.general.testnet or config.chant.testnet
-    if config.chant.enabled and not chant_testnet:
-        from tribler_core.modules.metadata_store.community.launcher import GigaChannelCommunityLauncher
-        loader.set_launcher(GigaChannelCommunityLauncher())
+        community = PopularityCommunity(peer, ipv8.endpoint, ipv8.network,
+                                        settings=config.popularity_community,
+                                        rqc_settings=config.remote_query_community,
+                                        metadata_store=metadata_store,
+                                        torrent_checker=torrent_checker
+                                        )
+        add_bootstrapper(community, bootstrapper)
 
-    if config.chant.enabled and chant_testnet:
-        from tribler_core.modules.metadata_store.community.launcher import GigaChannelTestnetCommunityLauncher
-        loader.set_launcher(GigaChannelTestnetCommunityLauncher())
+        ipv8.overlays.append(community)
+        ipv8.strategies.append((RandomWalk(community), 30))
+        ipv8.strategies.append((RemovePeers(community), INFINITE))
 
-    return loader
+    if config.chant.enabled:
+        if config.general.testnet or config.chant.testnet:
+            from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelTestnetCommunity
+            gigachannel_community_cls = GigaChannelTestnetCommunity
+        else:
+            from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
+            gigachannel_community_cls = GigaChannelCommunity
+
+        community = gigachannel_community_cls(peer, ipv8.endpoint, ipv8.network,
+                                              settings=config.chant,
+                                              rqc_settings=config.remote_query_community,
+                                              metadata_store=metadata_store,
+                                              notifier=notifier,
+                                              max_peers=50
+                                              )
+        add_bootstrapper(community, bootstrapper)
+
+        ipv8.overlays.append(community)
+        ipv8.strategies.append((RandomWalk(community), 30))
+        ipv8.strategies.append((RemovePeers(community), INFINITE))
