@@ -1,7 +1,6 @@
 from unittest.mock import Mock
 
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.community_loader import IPv8DiscoveryCommunityLauncher
 
 
 def test_bootstrap_override():

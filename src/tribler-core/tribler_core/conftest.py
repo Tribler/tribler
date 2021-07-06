@@ -18,6 +18,7 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
@@ -83,13 +84,11 @@ def download_config():
 
 
 @pytest.fixture
-def state_dir(tribler_config):
-    return tribler_config.state_dir
+def state_dir(tmp_path):
+    state_dir = tmp_path / 'state_dir'
+    state_dir.mkdir()
+    return state_dir
 
-
-@pytest.fixture
-def enable_libtorrent(tribler_config):
-    tribler_config.libtorrent.enabled = True
 
 
 @pytest.fixture
@@ -98,10 +97,14 @@ def enable_ipv8(tribler_config):
 
 
 @pytest.fixture
-def mock_dlmgr(session, mocker, tmpdir):
-    mocker.patch.object(session, 'dlmgr')
-    session.dlmgr.shutdown = lambda: succeed(None)
-    session.dlmgr.get_checkpoint_dir = lambda: tmpdir
+def mock_dlmgr(state_dir):
+    dlmgr = Mock()
+    dlmgr.shutdown = lambda: succeed(None)
+    checkpoints_dir = state_dir / 'dlcheckpoints'
+    checkpoints_dir.mkdir()
+    dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
+    dlmgr.state_dir = state_dir
+    return dlmgr
 
 
 @pytest.fixture
@@ -115,16 +118,20 @@ def video_tdef():
 
 
 @pytest.fixture
-async def video_seeder_session(seed_config, video_tdef):
-    seeder_session = Session(seed_config)
-    seeder_session.upgrader_enabled = False
-    await seeder_session.start()
+async def video_seeder(tmp_path, video_tdef):
+    seeder_state_dir = tmp_path / 'video_seeder_state_dir'
+    seeder_state_dir.mkdir()
+    dlmgr = DownloadManager(
+        state_dir=seeder_state_dir,
+        notifier=Mock(),
+        peer_mid=b"0000")
+    dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR)
-    upload = seeder_session.dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
+    upload = dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
     await upload.wait_for_status(DLSTATUS_SEEDING)
-    yield seeder_session
-    await seeder_session.shutdown()
+    yield dlmgr
+    await dlmgr.shutdown()
 
 
 selected_ports = set()
@@ -136,12 +143,12 @@ def fixture_free_port():
 
 
 @pytest.fixture
-async def file_server(tmpdir, free_port):
+async def file_server(tmp_path, free_port):
     """
     Returns a file server that listens in a free port, and serves from the "serve" directory in the tmpdir.
     """
     app = web.Application()
-    app.add_routes([web.static('/', Path(tmpdir))])
+    app.add_routes([web.static('/', tmp_path)])
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     site = web.TCPSite(runner, 'localhost', free_port)
@@ -242,10 +249,9 @@ def test_tdef(state_dir):
 
 
 @pytest.fixture
-async def test_download(session, mock_dlmgr, test_tdef):
-    download = Download(session, test_tdef)
-    download.config = DownloadConfig(state_dir=session.config.state_dir)
-    download.infohash = hexlify(test_tdef.get_infohash())
+async def test_download(mock_dlmgr, test_tdef):
+    config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
+    download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
     yield download
     await download.shutdown()
 
@@ -295,4 +301,14 @@ def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=un
 def peer_key():
     return default_eccrypto.generate_key("curve25519")
 
+
+@pytest.fixture
+async def download_manager(tmp_path):
+    download_manager = DownloadManager(
+        state_dir=tmp_path,
+        notifier=Mock(),
+        peer_mid=b"0000")
+    download_manager.initialize()
+    yield download_manager
+    await download_manager.shutdown()
 

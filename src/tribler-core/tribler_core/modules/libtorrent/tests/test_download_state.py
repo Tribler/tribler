@@ -33,7 +33,7 @@ def test_getters_setters_1(mock_download):
     Testing various getters and setters in DownloadState
     """
     mock_download.get_peerlist = lambda: []
-    mock_download.session.tunnel_community.get_candidates = lambda _: []
+    mock_download.dlmgr.tunnel_community.get_candidates = lambda _: []
     mock_download.config.get_hops = lambda: 0
     download_state = DownloadState(mock_download, None, None)
 

@@ -31,11 +31,11 @@ class Download(TaskManager):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self,
-                 tdef,
-                 config,
-                 download_defaults: DownloadDefaultsSettings,
-                 notifier: Notifier,
-                 state_dir=None,
+                 tdef: TorrentDef,
+                 config: DownloadConfig = None,
+                 download_defaults: DownloadDefaultsSettings = None,
+                 notifier: Notifier = None,
+                 state_dir: Path = None,
                  download_manager=None,
                  checkpoint_disabled=False,
                  hidden=False,
@@ -45,13 +45,11 @@ class Download(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.dummy = dummy
-        self.config = None
         self.tdef = tdef
         self.handle = None
-        self.config = None
         self.state_dir = state_dir
         self.dlmgr = download_manager
-        self.download_defaults = download_defaults
+        self.download_defaults = download_defaults or DownloadDefaultsSettings()
         self.notifier = notifier
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
@@ -144,7 +142,7 @@ class Download(TaskManager):
         return self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
 
     def get_atp(self):
-        save_path = (get_default_dest_dir() / self.config.get_dest_dir()).resolve()
+        save_path = self.config.get_dest_dir()
         atp = {"save_path": str(save_path),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
@@ -387,9 +385,10 @@ class Download(TaskManager):
         self.checkpoint()
         if self.get_state().get_total_transferred(DOWNLOAD) > 0 \
                 and not self.stream.enabled:
-            self.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
-                                 self.tdef.get_name_as_unicode(), self.hidden or
-                                 self.config.get_channel_download())
+            if self.notifier is not None:
+                self.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
+                                     self.tdef.get_name_as_unicode(), self.hidden or
+                                     self.config.get_channel_download())
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
