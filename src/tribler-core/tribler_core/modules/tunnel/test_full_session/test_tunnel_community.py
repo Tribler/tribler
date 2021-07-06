@@ -196,7 +196,8 @@ async def my_comm():
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(0)
+@pytest.mark.tunneltest
+@pytest.mark.timeout(40)
 async def test_anon_download(proxy_factory, video_seeder, video_tdef, logger, download_manager, my_comm):
     """
     Testing whether an anonymous download over our tunnels works
