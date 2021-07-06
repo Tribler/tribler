@@ -51,7 +51,8 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
                              exitnode_cache=state_dir / 'cache.dat')
         mock_ipv8.overlay.settings.max_circuits = 1
 
-        db = BandwidthDatabase(db_path=state_dir / "bandwidth.db", my_pub_key=b"0000")
+        db = BandwidthDatabase(db_path=":memory:", my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
+
         # Load the bandwidth accounting community
         mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(
             mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
@@ -61,11 +62,9 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
         return mock_ipv8
 
-
     @staticmethod
     def get_free_port():
         return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port()
-
 
     async def create_intro(self, node_nr, service):
         """

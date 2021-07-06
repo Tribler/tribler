@@ -5,6 +5,7 @@ from configobj import ParseError
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 
@@ -108,13 +109,14 @@ async def test_invalid_config_recovers(tmpdir):
 
 @pytest.mark.asyncio
 async def test_anon_proxy_settings(tribler_config):
+    config = LibtorrentSettings()
     proxy_type, server, auth = 3, ("33.33.33.33", [2222, 2223, 4443, 58848]), 1
-    DownloadManager.set_anon_proxy_settings(tribler_config, proxy_type, server, auth)
+    DownloadManager.set_anon_proxy_settings(config, proxy_type, server, auth)
 
-    settings = DownloadManager.get_anon_proxy_settings(tribler_config)
+    settings = DownloadManager.get_anon_proxy_settings(config)
     assert settings == [proxy_type, server, auth]
 
     proxy_type = 1
-    DownloadManager.set_anon_proxy_settings(tribler_config, proxy_type, server, auth)
-    settings = DownloadManager.get_anon_proxy_settings(tribler_config)
+    DownloadManager.set_anon_proxy_settings(config, proxy_type, server, auth)
+    settings = DownloadManager.get_anon_proxy_settings(config)
     assert settings == [proxy_type, server, None]
