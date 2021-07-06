@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 import tribler_core.utilities.permid as permid_module
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from ipv8.loader import IPv8CommunityLoader
 from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 from tribler_common.network_utils import NetworkUtils
@@ -28,7 +27,7 @@ from tribler_common.simpledefs import (
     STATE_START_WATCH_FOLDER, STATE_UPGRADING_READABLE,
 )
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.community_loader import create_default_loader
+from tribler_core.modules.community_loader import load_communities
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.settings import Ipv8Settings
 from tribler_core.notifier import Notifier
@@ -42,7 +41,6 @@ async def create_ipv8(
         config: Ipv8Settings,
         state_dir,
         logger,
-        community_loader,
         prosthetic_session,
         root_endpoint,
         ipv8_tasks,
@@ -74,7 +72,15 @@ async def create_ipv8(
                 endpoint_override=endpoint)
     await ipv8.start()
 
-    community_loader.load(ipv8, prosthetic_session)
+    bootstrapper = None
+    if config.bootstrap_override:
+        address, port = config.bootstrap_override.split(':')
+        from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
+        bootstrapper = DispersyBootstrapper(ip_addresses=[(address, int(port))], dns_addresses=[])
+
+    load_communities(prosthetic_session.config, prosthetic_session.trustchain_keypair, ipv8, prosthetic_session.dlmgr,
+                     prosthetic_session.mds, prosthetic_session.torrent_checker, prosthetic_session.notifier,
+                     bootstrapper)
     if config.statistics and not core_test_mode:
         # Enable gathering IPv8 statistics
         for overlay in ipv8.overlays:
@@ -124,6 +130,7 @@ class ProstheticSession:
     torrent_checker: None = None
     notifier: None = None
     overlays: None = None
+    dlmgr: None = None
 
 
 def init_keypair(state_dir, keypair_filename):
@@ -146,7 +153,6 @@ def init_keypair(state_dir, keypair_filename):
 async def core_session(
         config: TriblerConfig,
         core_test_mode: bool = False,
-        community_loader: IPv8CommunityLoader = None,
         upgrader_enabled=True):
     # In test mode, the Core does not communicate with the external world and the state dir is read-only
     logger = logging.getLogger("Session")
@@ -159,8 +165,6 @@ async def core_session(
                                              consent_required=consent_required)
     get_event_loop().set_exception_handler(exception_handler.unhandled_error_observer)
     patch_crypto_be_discovery()
-
-    community_loader = community_loader or create_default_loader(config)
 
     notifier = Notifier()
 
@@ -262,7 +266,6 @@ async def core_session(
             state_dir=config.state_dir,
             config=config.ipv8,
             ipv8_tasks=ipv8_tasks,
-            community_loader=community_loader,
             prosthetic_session=prosthetic_session,
             root_endpoint=root_endpoint,
             logger=logger,
@@ -333,6 +336,9 @@ async def core_session(
                                          tracker_manager=tracker_manager,
                                          metadata_store=metadata_store)
         await torrent_checker.initialize()
+
+    # ?
+
     from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
     from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
     bandwidth_endpoint = BandwidthEndpoint(ipv8.get_overlay(BandwidthAccountingCommunity))

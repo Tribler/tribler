@@ -66,26 +66,26 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
     def __init__(self, *args, **kwargs):
-        self.tribler_session = kwargs.pop('tribler_session', None)
+        self.config = kwargs.pop('config', None)
+        self.notifier = kwargs.pop('notifier', None)
+        self.dlmgr = kwargs.pop('dlmgr', None)
         num_competing_slots = kwargs.pop('competing_slots', 15)
         num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_community = kwargs.pop('bandwidth_community', None)
         socks_listen_ports = kwargs.pop('socks_listen_ports', None)
-        state_path = self.tribler_session.config.state_dir if self.tribler_session else path_util.Path()
+        state_path = self.config.state_dir or path_util.Path()
         self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
         super().__init__(*args, **kwargs)
         self._use_main_thread = True
 
-        if self.tribler_session:
-            if self.tribler_session.config.tunnel_community.exitnode_enabled:
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        if self.config.tunnel_community.exitnode_enabled:
+            self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+            self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
+            self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
-            if not socks_listen_ports:
-                socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
-        elif socks_listen_ports is None:
-            socks_listen_ports = range(1080, 1085)
+        if not socks_listen_ports:
+            socks_listen_ports = self.config.tunnel_community.socks5_listen_ports or range(1080, 1085)
+
         self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
@@ -378,8 +378,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         circuit = self.circuits[circuit_id]
 
         # Send the notification
-        if self.tribler_session:
-            self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, circuit, additional_info)
+        if self.notifier:
+            self.notifier.notify(NTFY.TUNNEL_REMOVE, circuit, additional_info)
 
         # Ignore circuits that are closing so we do not payout again if we receive a destroy message.
         if circuit.state != CIRCUIT_STATE_CLOSING and self.bandwidth_community:
@@ -402,8 +402,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Make sure the circuit is marked as closing, otherwise we may end up reusing it
         circuit.close()
 
-        if self.tribler_session and self.tribler_session.config.libtorrent.enabled:
-            for download in self.tribler_session.dlmgr.get_downloads():
+        if self.dlmgr and self.config.libtorrent.enabled:
+            for download in self.dlmgr.get_downloads():
                 self.update_torrent(affected_peers, download)
 
         # Now we actually remove the circuit
@@ -422,14 +422,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.clean_from_slots(circuit_id)
 
-        if self.tribler_session:
+        if self.notifier:
             for removed_relay in removed_relays:
-                self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, removed_relay, additional_info)
+                self.notifier.notify(NTFY.TUNNEL_REMOVE, removed_relay, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
-        if circuit_id in self.exit_sockets and self.tribler_session:
+        if circuit_id in self.exit_sockets and self.notifier:
             exit_socket = self.exit_sockets[circuit_id]
-            self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, exit_socket, additional_info)
+            self.notifier.notify(NTFY.TUNNEL_REMOVE, exit_socket, additional_info)
 
         self.clean_from_slots(circuit_id)
 
@@ -520,21 +520,21 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super().on_rendezvous_established(source_address, data, circuit_id)
 
         circuit = self.circuits.get(circuit_id)
-        if circuit and self.tribler_session:
+        if circuit and self.dlmgr:
             self.update_ip_filter(circuit.info_hash)
 
     def update_ip_filter(self, info_hash):
         download = self.get_download(info_hash)
-        lt_session = self.tribler_session.dlmgr.get_session(download.config.get_hops())
+        lt_session = self.dlmgr.get_session(download.config.get_hops())
         ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
                         for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)] + ['1.1.1.1']
-        self.tribler_session.dlmgr.update_ip_filter(lt_session, ip_addresses)
+        self.dlmgr.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash):
-        if not self.tribler_session:
+        if not self.dlmgr:
             return None
 
-        for download in self.tribler_session.dlmgr.get_downloads():
+        for download in self.dlmgr.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
@@ -550,12 +550,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # the connection and the libtorrent listen port.
             # Starting from libtorrent 1.2.4 on Windows, listen_port() returns 0 if used in combination with a
             # SOCKS5 proxy. Therefore on Windows, we resort to using ports received through listen_succeeded_alert.
-            if LooseVersion(self.tribler_session.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+            if LooseVersion(self.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
-                lt_listen_port = self.tribler_session.dlmgr.listen_ports.get(hops)
-                lt_listen_port = lt_listen_port or self.tribler_session.dlmgr.get_session(hops).listen_port()
+                lt_listen_port = self.dlmgr.listen_ports.get(hops)
+                lt_listen_port = lt_listen_port or self.dlmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
                     if session.udp_connection and lt_listen_port:
                         session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
