@@ -1,50 +1,51 @@
 import os
 import shutil
 
+import pytest
+from asynctest import Mock
+
+from tribler_core.modules.watch_folder import WatchFolder
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 
-
-def test_watchfolder_no_files(enable_watch_folder, mock_dlmgr, session):
-    session.watch_folder.check_watch_folder()
-    session.dlmgr.start_download.assert_not_called()
-
-
-def test_watchfolder_no_torrent_file(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
-    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "test.txt")
-    session.watch_folder.check_watch_folder()
-    session.dlmgr.start_download.assert_not_called()
+@pytest.fixture
+def watcher_fixture(tmp_path):
+    return WatchFolder(watch_folder_path=tmp_path, download_manager=Mock(), notifier=Mock())
 
 
-def test_watchfolder_invalid_dir(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
-    file = tribler_state_dir / "watch" / "test.txt"
-    shutil.copyfile(TORRENT_UBUNTU_FILE, file)
-    session.config.watch_folder.put_path_as_relative('directory', file, tribler_state_dir)
-    session.watch_folder.check_watch_folder()
-    session.dlmgr.start_download.assert_not_called()
+def test_watchfolder_no_files(watcher_fixture):
+    watcher_fixture.check_watch_folder()
+    watcher_fixture.download_manager.start_download.assert_not_called()
 
 
-def test_watchfolder_utf8_dir(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
-    os.mkdir(tribler_state_dir / "watch" / "\xe2\x82\xac")
-    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "\xe2\x82\xac" / "\xe2\x82\xac.torrent")
-    session.config.watch_folder.put_path_as_relative('directory', tribler_state_dir / "watch", tribler_state_dir)
-    session.watch_folder.check_watch_folder()
+def test_watchfolder_no_torrent_file(watcher_fixture):
+    shutil.copyfile(TORRENT_UBUNTU_FILE, watcher_fixture.watch_folder / "test.txt")
+    watcher_fixture.check_watch_folder()
+    watcher_fixture.download_manager.start_download.assert_not_called()
 
 
-def test_watchfolder_torrent_file_one_corrupt(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
+def test_watchfolder_utf8_dir(watcher_fixture, tmp_path):
+    new_watch_dir = tmp_path / "\xe2\x82\xac"
+    os.mkdir(new_watch_dir)
+    shutil.copyfile(TORRENT_UBUNTU_FILE, new_watch_dir / "\xe2\x82\xac.torrent")
+    watcher_fixture.watch_folder = new_watch_dir
+    watcher_fixture.check_watch_folder()
+
+
+def test_watchfolder_torrent_file_one_corrupt(watcher_fixture):
     def mock_start_download(*_, **__):
         mock_start_download.downloads_started += 1
 
     mock_start_download.downloads_started = 0
 
-    shutil.copyfile(TORRENT_UBUNTU_FILE, tribler_state_dir / "watch" / "test.torrent")
-    shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', tribler_state_dir / "watch" / "test2.torrent")
-    session.dlmgr.start_download = mock_start_download
-    session.dlmgr.download_exists = lambda *_: False
-    session.watch_folder.check_watch_folder()
+    shutil.copyfile(TORRENT_UBUNTU_FILE, watcher_fixture.watch_folder / "test.torrent")
+    shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', watcher_fixture.watch_folder / "test2.torrent")
+    watcher_fixture.download_manager.start_download = mock_start_download
+    watcher_fixture.download_manager.download_exists = lambda *_: False
+    watcher_fixture.check_watch_folder()
     assert mock_start_download.downloads_started == 1
-    assert (tribler_state_dir / "watch" / "test2.torrent.corrupt").is_file()
+    assert (watcher_fixture.watch_folder / "test2.torrent.corrupt").is_file()
 
 
-def test_cleanup(enable_watch_folder, mock_dlmgr, tribler_state_dir, session):
-    session.watch_folder.cleanup_torrent_file(TESTS_DATA_DIR, 'thisdoesnotexist123.bla')
+def test_cleanup(watcher_fixture):
+    watcher_fixture.cleanup_torrent_file(TESTS_DATA_DIR, 'thisdoesnotexist123.bla')
     assert not (TESTS_DATA_DIR / 'thisdoesnotexist123.bla.corrupt').exists()

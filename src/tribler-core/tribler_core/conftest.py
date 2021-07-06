@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 from aiohttp import web
 
+from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 
@@ -304,3 +305,10 @@ def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=un
         session.mds.TorrentMetadata(title='needle', infohash=random_infohash())
         session.mds.TorrentMetadata(title='needle2', infohash=random_infohash())
     return session
+
+
+@pytest.fixture
+def peer_key():
+    return default_eccrypto.generate_key("curve25519")
+
+

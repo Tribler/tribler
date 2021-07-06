@@ -32,7 +32,6 @@ from tribler_core.modules.community_loader import create_default_loader
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.settings import Ipv8Settings
 from tribler_core.notifier import Notifier
-from tribler_core.restapi.rest_manager import ApiKeyMiddleware, error_middleware
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import hexlify
@@ -41,7 +40,6 @@ from tribler_core.utilities.unicode import hexlify
 async def create_ipv8(
         config: Ipv8Settings,
         state_dir,
-        logger,
         community_loader,
         prosthetic_session,
         root_endpoint,
@@ -51,6 +49,7 @@ async def create_ipv8(
     from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
     port = config.port
     address = config.address
+    logger = logging.getLogger("Session")
     logger.info('Starting ipv8')
     logger.info(f'Port: {port}. Address: {address}')
     ipv8_config_builder = (ConfigBuilder()
@@ -180,6 +179,7 @@ async def core_session(
     # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
     if config.api.http_enabled or config.api.https_enabled:
         from tribler_core.restapi.root_endpoint import RootEndpoint
+        from tribler_core.restapi.rest_manager import ApiKeyMiddleware, error_middleware
         root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
         from tribler_core.restapi.rest_manager import RESTManager
@@ -265,7 +265,6 @@ async def core_session(
             community_loader=community_loader,
             prosthetic_session=prosthetic_session,
             root_endpoint=root_endpoint,
-            logger=logger,
             core_test_mode=core_test_mode)
 
         from ipv8.messaging.anonymization.community import TunnelCommunity

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pony.orm import Database, count, db_session, select, sum
 
@@ -14,7 +14,7 @@ class BandwidthDatabase:
     CURRENT_DB_VERSION = 9
     MAX_HISTORY_ITEMS = 100  # The maximum number of history items to store.
 
-    def __init__(self, db_path: Path, my_pub_key: bytes, store_all_transactions: bool = False) -> None:
+    def __init__(self, db_path: Union[Path, str], my_pub_key: bytes, store_all_transactions: bool = False) -> None:
         """
         Sets up the persistence layer ready for use.
         :param db_path: The full path of the database.
@@ -25,7 +25,7 @@ class BandwidthDatabase:
         self.db_path = db_path
         self.my_pub_key = my_pub_key
         self.store_all_transactions = store_all_transactions
-        create_db = str(db_path) == ":memory:" or not self.db_path.is_file()
+        create_db = db_path == ":memory:" or not Path(self.db_path).is_file()
         self.database = Database()
 
         # This attribute is internally called by Pony on startup, though pylint cannot detect it

@@ -27,16 +27,17 @@ def make_platform_mock():
     platform_mock.architecture = lambda: ('64bit', 'FooBar')  # currently only first item is used
     return platform_mock
 
+
 TEST_USER_AGENT = f'Tribler/{version_id} (machine=Something64; os=OsName 123; python=3.10.1; executable=64bit)'
 
 
 @pytest.fixture(name='version_check_manager')
-async def fixture_version_check_manager(free_port, session):
+async def fixture_version_check_manager(free_port):
     prev_platform = versioncheck_manager.platform
     prev_urls = versioncheck_manager.VERSION_CHECK_URLS
     versioncheck_manager.platform = make_platform_mock()
     versioncheck_manager.VERSION_CHECK_URLS = [f"http://localhost:{free_port}"]
-    version_check_manager = VersionCheckManager(session)
+    version_check_manager = VersionCheckManager(notifier=Mock())
     try:
         yield version_check_manager
     finally:

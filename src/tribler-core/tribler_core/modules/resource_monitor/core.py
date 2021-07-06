@@ -24,7 +24,8 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
     TaskManager to implement start() and stop() methods.
     """
 
-    def __init__(self, state_dir, log_dir, config:ResourceMonitorSettings, notifier: Notifier, history_size=CORE_RESOURCE_HISTORY_SIZE):
+    def __init__(self, state_dir, log_dir, config: ResourceMonitorSettings,
+                 notifier: Notifier, history_size=CORE_RESOURCE_HISTORY_SIZE):
         TaskManager.__init__(self)
         ResourceMonitor.__init__(self, history_size=history_size)
 
@@ -37,7 +38,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.resource_log_enabled = config.enabled
 
         # Setup yappi profiler
-        log_dir = state_dir / 'logs'
         self.profiler = YappiProfiler(log_dir)
 
     def start(self):
