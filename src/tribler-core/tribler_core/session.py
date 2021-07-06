@@ -105,7 +105,6 @@ def create_state_directory_structure(state_dir):
 
     create_dir(state_dir)
     create_in_state_dir(STATEDIR_DB_DIR)
-    create_in_state_dir(STATEDIR_CHECKPOINT_DIR)
     create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
 

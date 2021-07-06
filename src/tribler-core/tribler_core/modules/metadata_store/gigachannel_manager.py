@@ -1,5 +1,6 @@
 import asyncio
 from asyncio import CancelledError, wait_for
+from pathlib import Path
 
 from ipv8.taskmanager import TaskManager, task
 
@@ -28,13 +29,13 @@ class GigaChannelManager(TaskManager):
     """
 
     def __init__(self,
-                 state_dir = None,
-                 metadata_store:MetadataStore = None,
+                 state_dir: Path = None,
+                 metadata_store: MetadataStore = None,
                  notifier: Notifier = None,
                  download_manager:DownloadManager = None):
         super().__init__()
         self.notifier = notifier
-        self.dlmgr = download_manager
+        self.download_manager = download_manager
         self.mds = metadata_store
         self.state_dir = state_dir
 
@@ -63,7 +64,7 @@ class GigaChannelManager(TaskManager):
                 for channel in self.mds.ChannelMetadata.get_my_channels().where(
                     lambda g: g.status == COMMITTED
                 ):
-                    channel_download = self.dlmgr.get_download(bytes(channel.infohash))
+                    channel_download = self.download_manager.get_download(bytes(channel.infohash))
                     if channel_download is None:
                         self._logger.warning(
                             "Torrent for personal channel %s %i does not exist.",
@@ -91,8 +92,8 @@ class GigaChannelManager(TaskManager):
                 self._logger.warning("Tried to regenerate non-existing channel %s %i", hexlify(channel_pk), channel_id)
                 return None
             channel_dirname = channel.dirname
-        for d in self.dlmgr.get_downloads_by_name(channel_dirname):
-            await self.dlmgr.remove_download(d, remove_content=True)
+        for d in self.download_manager.get_downloads_by_name(channel_dirname):
+            await self.download_manager.remove_download(d, remove_content=True)
         with db_session:
             channel = self.mds.ChannelMetadata.get_for_update(public_key=channel_pk, id_=channel_id)
             regenerated = channel.consolidate_channel_torrent()
@@ -135,7 +136,7 @@ class GigaChannelManager(TaskManager):
         # TODO: add some more advanced logic for removal of older channel versions
         cruft_list = [
             (d, d.get_def().get_name_utf8() not in dirnames)
-            for d in self.dlmgr.get_channel_downloads()
+            for d in self.download_manager.get_channel_downloads()
             if bytes(d.get_def().infohash) not in subscribed_infohashes
         ]
 
@@ -187,9 +188,9 @@ class GigaChannelManager(TaskManager):
 
         for channel in channels:
             try:
-                if self.dlmgr.metainfo_requests.get(bytes(channel.infohash)):
+                if self.download_manager.metainfo_requests.get(bytes(channel.infohash)):
                     continue
-                elif not self.dlmgr.download_exists(bytes(channel.infohash)):
+                elif not self.download_manager.download_exists(bytes(channel.infohash)):
                     self._logger.info(
                         "Downloading new channel version %s ver %i->%i",
                         channel.dirname,
@@ -198,7 +199,7 @@ class GigaChannelManager(TaskManager):
                     )
                     self.download_channel(channel)
                 elif (
-                    self.dlmgr.get_download(bytes(channel.infohash)).get_state().get_status()
+                    self.download_manager.get_download(bytes(channel.infohash)).get_state().get_status()
                     == DLSTATUS_SEEDING
                 ):
                     self._logger.info(
@@ -228,7 +229,7 @@ class GigaChannelManager(TaskManager):
 
         d, remove_content = to_remove
         try:
-            await self.dlmgr.remove_download(d, remove_content=remove_content)
+            await self.download_manager.remove_download(d, remove_content=remove_content)
         except Exception as e:
             self._logger.error("Error when removing the channel download: %s", e)
 
@@ -247,7 +248,7 @@ class GigaChannelManager(TaskManager):
         :param channel: The channel metadata ORM object.
         """
 
-        metainfo = await self.dlmgr.get_metainfo(bytes(channel.infohash), timeout=60, hops=0)
+        metainfo = await self.download_manager.get_metainfo(bytes(channel.infohash), timeout=60, hops=0)
         if metainfo is None:
             # Timeout looking for the channel metainfo. Probably, there are no seeds.
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually
@@ -265,7 +266,7 @@ class GigaChannelManager(TaskManager):
         dcfg.set_channel_download(True)
         tdef = TorrentDef(metainfo=metainfo)
 
-        download = self.dlmgr.start_download(tdef=tdef, config=dcfg, hidden=True)
+        download = self.download_manager.start_download(tdef=tdef, config=dcfg, hidden=True)
         try:
             await download.future_finished
         except CancelledError:
@@ -301,12 +302,12 @@ class GigaChannelManager(TaskManager):
         if (
             my_channel
             and my_channel.status == COMMITTED
-            and not self.dlmgr.download_exists(bytes(my_channel.infohash))
+            and not self.download_manager.download_exists(bytes(my_channel.infohash))
         ):
             dcfg = DownloadConfig(state_dir=self.state_dir)
             dcfg.set_dest_dir(self.mds.channels_dir)
             dcfg.set_channel_download(True)
-            return self.dlmgr.start_download(tdef=tdef, config=dcfg)
+            return self.download_manager.start_download(tdef=tdef, config=dcfg)
 
     @db_session
     def clean_unsubscribed_channels(self):
