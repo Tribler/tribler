@@ -11,8 +11,10 @@ from marshmallow.fields import Integer
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class LibTorrentEndpoint(RESTEndpoint):
     """
     Endpoint for getting information about libtorrent sessions and settings.

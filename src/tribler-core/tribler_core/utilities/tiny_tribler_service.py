@@ -3,11 +3,8 @@ import logging
 import signal
 from pathlib import Path
 
-from ipv8.loader import IPv8CommunityLoader
-
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.session import Session
+from tribler_core.session import CommunityFactory, core_session
 
 
 class TinyTriblerService:
@@ -17,7 +14,7 @@ class TinyTriblerService:
     """
 
     def __init__(self, config, timeout_in_sec=None, working_dir=Path('/tmp/tribler'),
-                 config_path=Path('tribler.conf'), loader: IPv8CommunityLoader = None):
+                 config_path=Path('tribler.conf'), communities_cls: list[CommunityFactory] = None):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
@@ -26,7 +23,7 @@ class TinyTriblerService:
         self.config_path = config_path
         self.config = config
         self.timeout_in_sec = timeout_in_sec
-        self.loader = loader
+        self.communities_cls = communities_cls
 
     async def on_tribler_started(self):
         """Function will calls after the Tribler session is started
@@ -46,33 +43,17 @@ class TinyTriblerService:
         self._enable_graceful_shutdown()
         await self.on_tribler_started()
 
-    @staticmethod
-    def create_default_config(working_dir, config_path) -> TriblerConfig:
-        config = TriblerConfig.load(file=config_path, state_dir=working_dir)
-
-        config.tunnel_community.enabled = False
-        config.popularity_community.enabled = False
-        config.bootstrap.enabled = False
-        config.torrent_checking.enabled = True
-        config.ipv8.enabled = False
-        config.libtorrent.enabled = False
-        config.dht.enabled = False
-        config.chant.enabled = False
-
-        return config
-
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")
 
-        self.session = Session(self.config, community_loader=self.loader)
-        await self.session.start()
+        await core_session(self.config, communities_cls=self.communities_cls)
 
         self.logger.info("Tribler session started")
 
     def _check_already_running(self):
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.working_dir}')
 
-        self.process_checker = ProcessChecker()
+        self.process_checker = ProcessChecker(self.working_dir)
         if self.process_checker.already_running:
             self.logger.error(f"Another Tribler instance is already using directory: {self.working_dir}")
             asyncio.get_running_loop().stop()

@@ -19,8 +19,10 @@ from tribler_core.restapi.state_endpoint import StateEndpoint
 from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
 from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
 from tribler_core.upgrade.upgrader_endpoint import UpgraderEndpoint
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class RootEndpoint(RESTEndpoint):
     """
     The root endpoint of the Tribler HTTP API is the root resource in the request tree.

@@ -10,7 +10,7 @@ from tribler_core.modules.community_di_mixin import (
 )
 
 
-class TriblerDiscoveryStrategies(CommunityDIMixin, DiscoveryCommunity):
+class TriblerDiscoveryCommunity(CommunityDIMixin, DiscoveryCommunity):
     def __init__(self, *args, mediator=None, **kwargs):
         kwargs['max_peers'] = 100
         super().__init__(*args, **kwargs)

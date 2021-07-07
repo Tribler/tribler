@@ -7,8 +7,10 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 
 from tribler_core.restapi.rest_endpoint import HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class BandwidthEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests for bandwidth accounting data.

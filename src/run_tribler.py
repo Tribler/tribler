@@ -1,7 +1,9 @@
 import asyncio
 import logging.config
 import os
+import signal
 import sys
+from asyncio import Event
 
 from PyQt5.QtCore import QSettings
 
@@ -14,8 +16,8 @@ from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity, \
     BandwidthAccountingTestnetCommunity
-from tribler_core.modules.dht.community import DHTDiscoveryStrategies
-from tribler_core.modules.discovery.community import TriblerDiscoveryStrategies
+from tribler_core.modules.dht.community import TriblerDHTDiscoveryCommunity
+from tribler_core.modules.discovery.community import TriblerDiscoveryCommunity
 from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, \
     GigaChannelTestnetCommunity
 from tribler_core.modules.popularity.community import PopularityCommunity
@@ -33,8 +35,8 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def communities_gen(config: TriblerConfig):
-    yield CommunityFactory(create_class=TriblerDiscoveryStrategies) if config.discovery_community.enabled else ...
-    yield CommunityFactory(create_class=DHTDiscoveryStrategies) if config.dht.enabled else ...
+    yield CommunityFactory(create_class=TriblerDiscoveryCommunity) if config.discovery_community.enabled else ...
+    yield CommunityFactory(create_class=TriblerDHTDiscoveryCommunity) if config.dht.enabled else ...
 
     bandwidth_accounting_kwargs = {'database': config.state_dir / "sqlite" / "bandwidth.db"}
     bandwidth_accounting_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
@@ -107,8 +109,12 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
+        shutdown_event = Event()
+        signal.signal(signal.SIGTERM, lambda signum, stack: shutdown_event.set)
         # Run until core_session exits
-        await core_session(config, communities_cls=list(communities_gen(config)))
+        await core_session(config,
+                           communities_cls=list(communities_gen(config)),
+                           shutdown_event=shutdown_event)
 
         if trace_logger:
             trace_logger.close()

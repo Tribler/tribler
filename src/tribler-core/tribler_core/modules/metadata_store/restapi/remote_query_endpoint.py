@@ -16,8 +16,10 @@ from tribler_core.modules.metadata_store.restapi.metadata_endpoint import Metada
 from tribler_core.modules.metadata_store.restapi.metadata_schema import RemoteQueryParameters
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class RemoteQueryEndpoint(MetadataEndpointBase):
     """
     This endpoint fires a remote search in the IPv8 GigaChannel Community.
