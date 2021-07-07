@@ -12,8 +12,14 @@ from pony.orm import count, db_session
 
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.modules.popularity.popularity_community import PopularityCommunity
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.dht.community import DHTDiscoveryStrategies
+from tribler_core.modules.discovery.community import TriblerDiscoveryStrategies
+from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
+from tribler_core.modules.popularity.community import PopularityCommunity
+from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
+from tribler_core.session import CommunityFactory
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
@@ -28,8 +34,8 @@ sentry_sdk.init(
 
 class ObservablePopularityCommunity(PopularityCommunity):
 
-    def __init__(self, interval_in_sec, output_file_path, *args, **kwargs):
-        super().__init__(*args, rqc_settings=RemoteQueryCommunitySettings(), **kwargs)
+    def __init__(self, *args, interval_in_sec=0, output_file_path=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._start_time = time.time()
@@ -67,19 +73,18 @@ class ObservablePopularityCommunity(PopularityCommunity):
 
 class Service(TinyTriblerService):
     def __init__(self, interval_in_sec, output_file_path, timeout_in_sec, working_dir, config_path):
-        super().__init__(Service.create_config(working_dir, config_path), timeout_in_sec,
-                         working_dir, config_path)
+        config = TriblerConfig(state_dir=working_dir, file=config_path)
+        config.libtorrent.enabled = True
+        config.ipv8.enabled = True
+        config.chant.enabled = True
+        config.upgrader_enabled = False
+        config.chant.enabled = False
 
         self._interval_in_sec = interval_in_sec
         self._output_file_path = output_file_path
 
-    @staticmethod
-    def create_config(working_dir, config_path):
-        config = TinyTriblerService.create_default_config(working_dir, config_path)
-        config.libtorrent.enabled = True
-        config.ipv8.enabled = True
-        config.chant.enabled = True
-        return config
+        super().__init__(config, timeout_in_sec, working_dir, config_path,
+                         communities_cls=list(self.communities_gen(config)))
 
     async def on_tribler_started(self):
         await super().on_tribler_started()
@@ -97,6 +102,17 @@ class Service(TinyTriblerService):
         session.ipv8.overlays.append(session.popularity_community)
         session.ipv8.strategies.append((RandomWalk(session.popularity_community),
                                         TARGET_PEERS_COUNT))
+
+    def communities_gen(self, config: TriblerConfig):
+        yield CommunityFactory(create_class=TriblerDiscoveryStrategies)
+        yield CommunityFactory(create_class=DHTDiscoveryStrategies)
+        yield CommunityFactory(create_class=BandwidthAccountingCommunity,
+                               kwargs={'database': config.state_dir / "sqlite" / "bandwidth.db"})
+        yield CommunityFactory(create_class=TriblerTunnelCommunity)
+        yield CommunityFactory(create_class=ObservablePopularityCommunity,
+                               kwargs={'interval_in_sec': self._interval_in_sec,
+                                       'output_file_path': self._output_file_path})
+        yield CommunityFactory(create_class=GigaChannelCommunity)
 
 
 def _parse_argv():

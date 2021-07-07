@@ -38,7 +38,7 @@ from tribler_core.utilities.unicode import hexlify
 
 @dataclass
 class Mediator:
-    config: TriblerConfig = None
+    config: TriblerConfig
     notifier: Optional[Notifier] = None
     ipv8: Optional[IPv8] = None
     metadata_store = None
@@ -275,10 +275,11 @@ async def core_session(
             mediator=mediator,
             trustchain_keypair=trustchain_keypair,
             core_test_mode=config.core_test_mode)
-
-        from ipv8.messaging.anonymization.community import TunnelCommunity
-        api_manager.get_endpoint('ipv8').initialize(ipv8)
-        await ipv8.get_overlay(TunnelCommunity).wait_for_socks_servers()
+        
+        if api_manager:
+            from ipv8.messaging.anonymization.community import TunnelCommunity
+            api_manager.get_endpoint('ipv8').initialize(ipv8)
+            await ipv8.get_overlay(TunnelCommunity).wait_for_socks_servers()
     if config.libtorrent.enabled:
         state_endpoint.readable_status = STATE_START_LIBTORRENT
         from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -298,9 +299,10 @@ async def core_session(
         state_endpoint.readable_status = STATE_LOAD_CHECKPOINTS
         await download_manager.load_checkpoints()
 
-        api_manager.get_endpoint('createtorrent').download_manager = download_manager
-        api_manager.get_endpoint('libtorrent').download_manager = download_manager
-        api_manager.get_endpoint('torrentinfo').download_manager = download_manager
+        if api_manager:
+            api_manager.get_endpoint('createtorrent').download_manager = download_manager
+            api_manager.get_endpoint('libtorrent').download_manager = download_manager
+            api_manager.get_endpoint('torrentinfo').download_manager = download_manager
 
         if config.core_test_mode:
             await download_manager.start_download_from_uri(
@@ -308,7 +310,8 @@ async def core_session(
 
     # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
 
-    api_manager.get_endpoint('settings').download_manager = download_manager
+    if api_manager and download_manager:
+        api_manager.get_endpoint('settings').download_manager = download_manager
 
     state_endpoint.readable_status = STATE_READABLE_STARTED
 
@@ -326,9 +329,9 @@ async def core_session(
                                          metadata_store=metadata_store)
         mediator.torrent_checker = torrent_checker
         await torrent_checker.initialize()
-
-    from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-    api_manager.get_endpoint('trustview').bandwidth_db = ipv8.get_overlay(BandwidthAccountingCommunity).database
+    if api_manager:
+        from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+        api_manager.get_endpoint('trustview').bandwidth_db = ipv8.get_overlay(BandwidthAccountingCommunity).database
 
     if config.ipv8.enabled:
         from tribler_core.modules.payout_manager import PayoutManager
@@ -340,13 +343,13 @@ async def core_session(
             from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
             from ipv8.dht.routing import RoutingTable
             ipv8.get_overlay(DHTCommunity).routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
+    if api_manager:
+        api_manager.get_endpoint('metadata').torrent_checker = torrent_checker
+        api_manager.get_endpoint('metadata').metadata_store = metadata_store
 
-    api_manager.get_endpoint('metadata').torrent_checker = torrent_checker
-    api_manager.get_endpoint('metadata').metadata_store = metadata_store
-
-    from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
-    api_manager.get_endpoint('remote_query').metadata_store = metadata_store
-    api_manager.get_endpoint('remote_query').gigachannel_community = ipv8.get_overlay(GigaChannelCommunity)
+        from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
+        api_manager.get_endpoint('remote_query').metadata_store = metadata_store
+        api_manager.get_endpoint('remote_query').gigachannel_community = ipv8.get_overlay(GigaChannelCommunity)
 
     watch_folder = None
     if config.watch_folder.enabled:
@@ -381,10 +384,10 @@ async def core_session(
                                                  download_manager=download_manager)
         if not config.core_test_mode:
             gigachannel_manager.start()
-
-    downloads_endpoint.download_manager = download_manager
-    downloads_endpoint.tunnel_community = ipv8.get_overlay(TunnelCommunity)
-    downloads_endpoint.mds = metadata_store
+    if downloads_endpoint:
+        downloads_endpoint.download_manager = download_manager
+        downloads_endpoint.tunnel_community = ipv8.get_overlay(TunnelCommunity)
+        downloads_endpoint.mds = metadata_store
 
     channels_endpoint = api_manager.get_endpoint('channels')
     channels_endpoint.mds = metadata_store
