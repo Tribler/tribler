@@ -3,6 +3,7 @@ import struct
 from asyncio import Future
 from binascii import unhexlify
 
+from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
@@ -15,8 +16,8 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.modules.remote_query_community.eva_protocol import EVAProtocolMixin
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.modules.tribler_community import TriblerCommunity
+
+from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -122,17 +123,16 @@ class PushbackWindow(NumberCache):
         pass
 
 
-class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
+class RemoteQueryCommunity(Community, EVAProtocolMixin):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, rqc_settings: RemoteQueryCommunitySettings = None,
-                 **kwargs):
+    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
-        self.rqc_settings = rqc_settings or RemoteQueryCommunitySettings()
-        self.mds: MetadataStore = metadata_store
+        self.rqc_settings = mediator.config.remote_query_community
+        self.mds: MetadataStore = mediator.metadata_store
 
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.

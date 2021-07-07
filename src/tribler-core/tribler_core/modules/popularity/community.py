@@ -3,17 +3,21 @@ import random
 from binascii import unhexlify
 
 from ipv8.lazy_community import lazy_wrapper
+from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.peerdiscovery.network import Network
 
 from pony.orm import db_session
 
+from tribler_core.modules.community_di_mixin import CommunityDIMixin, INFINITE_TARGET_PEERS, StrategyFactory
+from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
 from tribler_core.modules.popularity.version_community_mixin import VersionCommunityMixin
 from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity
+from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
 
 
-class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
+class PopularityCommunity(CommunityDIMixin, RemoteQueryCommunity, VersionCommunityMixin):
     """
     Community for disseminating the content across the network.
 
@@ -30,11 +34,10 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, my_peer, endpoint, network, **kwargs):
-        self.torrent_checker = kwargs.pop('torrent_checker', None)
-
+    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, **kwargs):
         # Creating a separate instance of Network for this community to find more peers
-        super().__init__(my_peer, endpoint, Network(), **kwargs)
+        super().__init__(my_peer, endpoint, Network(), mediator=mediator, **kwargs)
+        self.torrent_checker = mediator.torrent_checker
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
@@ -47,6 +50,10 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
         # Init version community message handlers
         self.init_version_community()
+        self.init_community_di_mixin(strategies=[
+            StrategyFactory(create_class=RandomWalk, target_peers=30),
+            StrategyFactory(create_class=RemovePeers, target_peers=INFINITE_TARGET_PEERS),
+        ])
 
     @staticmethod
     def select_torrents_to_gossip(torrents, include_popular=True, include_random=True) -> (set, set):
