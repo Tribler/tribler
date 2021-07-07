@@ -7,7 +7,7 @@ import signal
 import sys
 from asyncio import Event, get_event_loop
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List
 
 import tribler_core.utilities.permid as permid_module
 from ipv8.peer import Peer
@@ -58,7 +58,7 @@ async def create_ipv8(
         config: Ipv8Settings,
         state_dir,
         ipv8_tasks,
-        communities_cls: list[CommunityFactory],
+        communities_cls: List[CommunityFactory],
         mediator: Mediator,
         trustchain_keypair,
         core_test_mode=False):
@@ -157,10 +157,9 @@ def init_keypair(state_dir, keypair_filename):
 
 async def core_session(
         config: TriblerConfig,
-        communities_cls: list[CommunityFactory]):
+        communities_cls: List[CommunityFactory]):
 
     mediator = Mediator(config=config)
-    mediator.config = config
     # In test mode, the Core does not communicate with the external world and the state dir is read-only
     logger = logging.getLogger("Session")
 
