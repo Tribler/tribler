@@ -20,7 +20,10 @@ from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
+from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
@@ -285,16 +288,6 @@ def mock_handle(mocker, test_download):
     return mocker.patch.object(test_download, 'handle')
 
 
-@pytest.fixture
-def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=unused-argument
-    num_hay = 100
-    with db_session:
-        _ = session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
-        for x in range(0, num_hay):
-            session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
-        session.mds.TorrentMetadata(title='needle', infohash=random_infohash())
-        session.mds.TorrentMetadata(title='needle2', infohash=random_infohash())
-    return session
 
 
 @pytest.fixture

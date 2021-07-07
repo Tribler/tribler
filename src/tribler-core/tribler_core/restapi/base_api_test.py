@@ -18,7 +18,7 @@ def path_to_str(obj):
     return obj
 
 
-async def do_request(tribler_session, endpoint, expected_code=200, expected_json=None,
+async def do_old_request(tribler_session, endpoint, expected_code=200, expected_json=None,
                      request_type='GET', post_data=None, headers=None, json_response=True):
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
@@ -37,7 +37,7 @@ async def do_request(tribler_session, endpoint, expected_code=200, expected_json
             return response
 
 
-async def do_app_request(test_client, url, expected_code=200, expected_json=None,
+async def do_request(test_client, url, expected_code=200, expected_json=None,
                          request_type='GET', post_data=None, headers=None, json_response=True):
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data

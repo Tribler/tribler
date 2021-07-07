@@ -52,7 +52,7 @@ class RootEndpoint(RESTEndpoint):
             '/trustview': (TrustViewEndpoint, True),
             #'/bandwidth': (BandwidthEndpoint, self.tribler_config.bandwidth_accounting.enabled),
             #'/trustview': (TrustViewEndpoint, self.tribler_config.bandwidth_accounting.enabled),
-            #'/statistics': (StatisticsEndpoint, True),
+            '/statistics': (StatisticsEndpoint, True),
             '/libtorrent': (LibTorrentEndpoint, self.tribler_config.libtorrent.enabled),
             '/torrentinfo': (TorrentInfoEndpoint, self.tribler_config.libtorrent.enabled),
             '/metadata': (MetadataEndpoint, self.tribler_config.chant.enabled),

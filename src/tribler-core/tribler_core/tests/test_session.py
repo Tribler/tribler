@@ -13,7 +13,7 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.config.tests.test_tribler_config import CONFIG_PATH
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.exception_handler import IGNORED_ERRORS
-from tribler_core.session import ProstheticSession, create_ipv8
+from tribler_core.session import create_ipv8
 from tribler_core.tests.tools.base_test import MockObject
 
 
