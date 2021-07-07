@@ -1,4 +1,5 @@
 import json
+from json import JSONDecodeError
 
 from aiohttp import ClientSession
 from aiohttp.test_utils import TestClient
@@ -45,8 +46,15 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
 
 
     async with test_client.request(request_type, url, data=data, headers=headers, ssl=False) as response:
-        status, response = response.status, (await response.json(content_type=None)
-                                             if json_response else await response.read())
+        status = response.status
+        try:
+            response = (await response.json(content_type=None)
+                                                 if json_response else await response.read())
+        except JSONDecodeError:
+            response = None
+
+        if status == 500:
+            print(response['error']['message'])
         assert status == expected_code, response
         if response is not None and expected_json is not None:
             assert expected_json == response

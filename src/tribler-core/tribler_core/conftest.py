@@ -111,8 +111,8 @@ def mock_dlmgr(state_dir):
 
 
 @pytest.fixture
-def mock_dlmgr_get_download(session, mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
-    session.dlmgr.get_download = lambda _: None
+def mock_dlmgr_get_download(mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
+    mock_dlmgr.get_download = lambda _: None
 
 
 @pytest.fixture
