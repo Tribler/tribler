@@ -1,6 +1,7 @@
 import logging
 import os
 import ssl
+import traceback
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPNotFound
@@ -49,10 +50,11 @@ async def error_middleware(request, handler):
         }}, status=HTTP_NOT_FOUND)
     except Exception as e:
         logger.exception(e)
+        full_exception = traceback.format_exc()
         return RESTResponse({"error": {
             "handled": False,
             "code": e.__class__.__name__,
-            "message": str(e)
+            "message": str(full_exception)
         }}, status=HTTP_INTERNAL_SERVER_ERROR)
     return response
 
