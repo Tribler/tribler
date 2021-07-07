@@ -6,7 +6,9 @@ from pathlib import Path
 from random import Random
 from typing import Dict, Union
 
+from ipv8.community import Community
 from ipv8.peer import Peer
+from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.requestcache import RequestCache
 from ipv8.types import Address
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
@@ -15,11 +17,12 @@ from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.payload import BandwidthTransactionPayload, \
     BandwidthTransactionQueryPayload
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
-from tribler_core.modules.tribler_community import TriblerCommunity
+from tribler_core.modules.community_di_mixin import CommunityDIMixin, DEFAULT_TARGET_PEERS, StrategyFactory
+from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
 
 
-class BandwidthAccountingCommunity(TriblerCommunity):
+class BandwidthAccountingCommunity(CommunityDIMixin, Community):
     """
     Community around bandwidth accounting and payouts.
     """
@@ -27,7 +30,8 @@ class BandwidthAccountingCommunity(TriblerCommunity):
     DB_NAME = 'bandwidth'
     version = b'\x02'
 
-    def __init__(self, *args, database: Union[str, Path, BandwidthDatabase], **kwargs) -> None:
+    def __init__(self, *args, mediator: Mediator = None,
+                 database: Union[str, Path, BandwidthDatabase], **kwargs) -> None:
         """
         Initialize the community.
         :param persistence: The database that stores transactions, will be created if not provided.
@@ -36,6 +40,8 @@ class BandwidthAccountingCommunity(TriblerCommunity):
         self.random = Random()
 
         super().__init__(*args, **kwargs)
+
+        self.settings = mediator.config.bandwidth_accounting
 
         self.request_cache = RequestCache()
         self.my_pk = self.my_peer.public_key.key_to_bin()
@@ -51,6 +57,15 @@ class BandwidthAccountingCommunity(TriblerCommunity):
         self.register_task("query_peers", self.query_random_peer, interval=self.settings.outgoing_query_interval)
 
         self.logger.info("Started bandwidth accounting community with public key %s", hexlify(self.my_pk))
+
+        self.init_community_di_mixin(strategies=[
+            StrategyFactory(create_class=RandomWalk, target_peers=DEFAULT_TARGET_PEERS),
+        ])
+
+    def fill_mediator(self, mediator):
+        super().fill_mediator(mediator)
+
+        mediator.dictionary['bandwidth_community'] = self
 
     def construct_signed_transaction(self, peer: Peer, amount: int) -> BandwidthTransactionData:
         """

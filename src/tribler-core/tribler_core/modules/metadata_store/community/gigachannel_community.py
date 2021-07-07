@@ -4,18 +4,22 @@ from collections import defaultdict
 from dataclasses import dataclass
 from random import sample
 
+from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.peerdiscovery.network import Network
 from ipv8.types import Peer
 
 from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
+from tribler_core.modules.community_di_mixin import CommunityDIMixin, INFINITE_TARGET_PEERS, StrategyFactory
 
 from tribler_core.modules.metadata_store.community.discovery_booster import DiscoveryBooster
+from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.modules.metadata_store.utils import NoChannelSourcesException
 from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity
+from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200
@@ -64,7 +68,7 @@ class ChannelsPeersMapping:
         return sorted(channel_peers, key=lambda x: x.last_response, reverse=True)[0:limit]
 
 
-class GigaChannelCommunity(RemoteQueryCommunity):
+class GigaChannelCommunity(CommunityDIMixin, RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
 
     def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
@@ -77,12 +81,13 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             new_style=new_style
         )
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, **kwargs):
-        self.notifier = kwargs.pop("notifier", None)
-
+    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, max_peers = None, **kwargs):
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
-        super().__init__(my_peer, endpoint, Network(), metadata_store, **kwargs)
+        super().__init__(my_peer, endpoint, Network(), max_peers=50, mediator=mediator, **kwargs)
+
+        self.settings = mediator.config.chant
+        self.mediator = mediator.notifier
 
         # This set contains all the peers that we queried for subscribed channels over time.
         # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same
@@ -93,6 +98,11 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         self.discovery_booster.apply(self)
 
         self.channels_peers = ChannelsPeersMapping()
+
+        self.init_community_di_mixin(strategies=[
+            StrategyFactory(create_class=RandomWalk, target_peers=30),
+            StrategyFactory(create_class=RemovePeers, target_peers=INFINITE_TARGET_PEERS),
+        ])
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers

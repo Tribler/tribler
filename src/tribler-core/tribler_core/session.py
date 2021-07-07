@@ -6,13 +6,13 @@ import os
 import signal
 import sys
 from asyncio import Event, get_event_loop
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+import tribler_core.utilities.permid as permid_module
+from ipv8.peer import Peer
 from ipv8.taskmanager import TaskManager
-
 from ipv8_service import IPv8
-
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import (
@@ -27,10 +27,7 @@ from tribler_common.simpledefs import (
     STATE_START_WATCH_FOLDER,
     STATE_UPGRADING_READABLE,
 )
-
-import tribler_core.utilities.permid as permid_module
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.community_loader import load_communities
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.modules.settings import Ipv8Settings
 from tribler_core.notifier import Notifier
@@ -39,11 +36,31 @@ from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import hexlify
 
 
+@dataclass
+class Mediator:
+    config: TriblerConfig = None
+    notifier: Optional[Notifier] = None
+    ipv8: Optional[IPv8] = None
+    metadata_store = None
+    download_manager = None
+    torrent_checker = None
+
+    dictionary: dict = field(default_factory=dict)
+
+
+@dataclass
+class CommunityFactory:
+    create_class: Optional[type] = None
+    kwargs: dict = field(default_factory=dict)
+
+
 async def create_ipv8(
         config: Ipv8Settings,
         state_dir,
-        prosthetic_session,
         ipv8_tasks,
+        communities_cls: list[CommunityFactory],
+        mediator: Mediator,
+        trustchain_keypair,
         core_test_mode=False):
     from ipv8.configuration import ConfigBuilder
     from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
@@ -79,9 +96,20 @@ async def create_ipv8(
         from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
         bootstrapper = DispersyBootstrapper(ip_addresses=[(address, int(port))], dns_addresses=[])
 
-    load_communities(prosthetic_session.config, prosthetic_session.trustchain_keypair, ipv8, prosthetic_session.dlmgr,
-                     prosthetic_session.mds, prosthetic_session.torrent_checker, prosthetic_session.notifier,
-                     bootstrapper)
+    peer = Peer(trustchain_keypair)
+    mediator.ipv8 = ipv8
+    for community_cls in communities_cls:
+        community = community_cls.create_class(peer, ipv8.endpoint, ipv8.network, mediator=mediator, **community_cls.kwargs)
+        community.fill_mediator(mediator)
+
+        for strategy in community.strategies:
+            ipv8.strategies.append((strategy.create_class(community), strategy.target_peers))
+
+        if bootstrapper:
+            community.bootstrappers.append(bootstrapper)
+
+        ipv8.overlays.append(community)
+
     if config.statistics and not core_test_mode:
         # Enable gathering IPv8 statistics
         for overlay in ipv8.overlays:
@@ -110,23 +138,6 @@ def create_state_directory_structure(state_dir):
     create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
 
-@dataclass
-class ProstheticSession:
-    config: TriblerConfig = None
-    trustchain_keypair: LibNaCLSK = None
-    discovery_community: None = None
-    ipv8: IPv8 = None
-    remote_query_community: None = None
-    bandwidth_community: None = None
-    tunnel_community: None = None
-    dht_community: None = None
-    mds: None = None
-    torrent_checker: None = None
-    notifier: None = None
-    overlays: None = None
-    dlmgr: None = None
-
-
 def init_keypair(state_dir, keypair_filename):
     """
     Set parameters that depend on state_dir.
@@ -144,7 +155,12 @@ def init_keypair(state_dir, keypair_filename):
         return trustchain_keypair
 
 
-async def core_session(config: TriblerConfig):
+async def core_session(
+        config: TriblerConfig,
+        communities_cls: list[CommunityFactory]):
+
+    mediator = Mediator(config=config)
+    mediator.config = config
     # In test mode, the Core does not communicate with the external world and the state dir is read-only
     logger = logging.getLogger("Session")
 
@@ -158,6 +174,7 @@ async def core_session(config: TriblerConfig):
     patch_crypto_be_discovery()
 
     notifier = Notifier()
+    mediator.notifier = notifier
 
     logger.info("Session is using state directory: %s", config.state_dir)
     create_state_directory_structure(config.state_dir)
@@ -209,7 +226,7 @@ async def core_session(config: TriblerConfig):
             notifier=notifier)
         state_endpoint.readable_status = STATE_UPGRADING_READABLE
 
-        api_manager.get_endpoint('upgrader').upgrader=upgrader
+        api_manager.get_endpoint('upgrader').upgrader = upgrader
         await upgrader.run()
 
     # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
@@ -233,13 +250,8 @@ async def core_session(config: TriblerConfig):
         if config.core_test_mode:
             generate_test_channels(metadata_store)
 
-    prosthetic_session = ProstheticSession(
-        config=config,
-        trustchain_keypair=trustchain_keypair,
-        mds=metadata_store,
-        notifier=notifier,
-        overlays=[]
-    )
+        mediator.metadata_store = metadata_store
+
     ipv8_tasks = TaskManager()
 
     if config.tunnel_community.enabled:
@@ -259,14 +271,14 @@ async def core_session(config: TriblerConfig):
             state_dir=config.state_dir,
             config=config.ipv8,
             ipv8_tasks=ipv8_tasks,
-            prosthetic_session=prosthetic_session,
+            communities_cls=communities_cls,
+            mediator=mediator,
+            trustchain_keypair=trustchain_keypair,
             core_test_mode=config.core_test_mode)
 
         from ipv8.messaging.anonymization.community import TunnelCommunity
         api_manager.get_endpoint('ipv8').initialize(ipv8)
         await ipv8.get_overlay(TunnelCommunity).wait_for_socks_servers()
-
-    # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
     if config.libtorrent.enabled:
         state_endpoint.readable_status = STATE_START_LIBTORRENT
         from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -279,8 +291,8 @@ async def core_session(config: TriblerConfig):
                                            tunnel_community=ipv8.get_overlay(TunnelCommunity),
                                            bootstrap_infohash=config.bootstrap.infohash,
                                            dummy_mode=config.core_test_mode)
-        # FIXME! Required by TunnelCommunity
-        prosthetic_session.dlmgr = download_manager
+
+        mediator.download_manager = download_manager
 
         download_manager.initialize()
         state_endpoint.readable_status = STATE_LOAD_CHECKPOINTS
@@ -293,6 +305,8 @@ async def core_session(config: TriblerConfig):
         if config.core_test_mode:
             await download_manager.start_download_from_uri(
                 "magnet:?xt=urn:btih:0000000000000000000000000000000000000000")
+
+    # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
 
     api_manager.get_endpoint('settings').download_manager = download_manager
 
@@ -310,6 +324,7 @@ async def core_session(config: TriblerConfig):
                                          notifier=notifier,
                                          tracker_manager=tracker_manager,
                                          metadata_store=metadata_store)
+        mediator.torrent_checker = torrent_checker
         await torrent_checker.initialize()
 
     from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity

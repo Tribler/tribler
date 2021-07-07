@@ -1,9 +1,7 @@
 import asyncio
 import logging.config
 import os
-import signal
 import sys
-from asyncio import ensure_future, get_event_loop
 
 from PyQt5.QtCore import QSettings
 
@@ -12,14 +10,42 @@ import tribler_gui
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.session import core_session
+from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity, \
+    BandwidthAccountingTestnetCommunity
+from tribler_core.modules.dht.community import DHTDiscoveryStrategies
+from tribler_core.modules.discovery.community import TriblerDiscoveryStrategies
+from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, \
+    GigaChannelTestnetCommunity
+from tribler_core.modules.popularity.community import PopularityCommunity
+from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
+from tribler_core.session import CommunityFactory, core_session
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 from tribler_gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
+
+
+# pylint: disable=import-outside-toplevel
+
+
+def communities_gen(config: TriblerConfig):
+    yield CommunityFactory(create_class=TriblerDiscoveryStrategies) if config.discovery_community.enabled else ...
+    yield CommunityFactory(create_class=DHTDiscoveryStrategies) if config.dht.enabled else ...
+
+    bandwidth_accounting_kwargs = {'database': config.state_dir / "sqlite" / "bandwidth.db"}
+    bandwidth_accounting_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
+    yield CommunityFactory(create_class=bandwidth_accounting_cls, kwargs=bandwidth_accounting_kwargs)
+
+    tribler_tunnel_cls = TriblerTunnelTestnetCommunity if config.general.testnet or config.tunnel_community.testnet else TriblerTunnelCommunity
+    yield CommunityFactory(create_class=tribler_tunnel_cls) if config.tunnel_community.enabled else ...
+    yield CommunityFactory(create_class=PopularityCommunity) if config.popularity_community.enabled else ...
+
+    giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
+    yield CommunityFactory(create_class=giga_channel_cls) if config.chant.enabled else ...
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
@@ -82,7 +108,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
         # Run until core_session exits
-        await core_session(config)
+        await core_session(config, communities_cls=list(communities_gen(config)))
 
         if trace_logger:
             trace_logger.close()
