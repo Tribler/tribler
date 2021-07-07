@@ -18,9 +18,9 @@ class LibTorrentEndpoint(RESTEndpoint):
     Endpoint for getting information about libtorrent sessions and settings.
     """
 
-    def __init__(self, download_manager: DownloadManager):
+    def __init__(self):
         super().__init__()
-        self.dlmgr = download_manager
+        self.download_manager = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('/settings', self.get_libtorrent_settings),
@@ -50,12 +50,12 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.dlmgr.ltsessions:
+        if hop not in self.download_manager.ltsessions:
             return RESTResponse({'hop': hop, "settings": {}})
 
-        lt_session = self.dlmgr.ltsessions[hop]
+        lt_session = self.download_manager.ltsessions[hop]
         if hop == 0:
-            lt_settings = self.dlmgr.get_session_settings(lt_session)
+            lt_settings = self.download_manager.get_session_settings(lt_session)
             lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
         else:
             lt_settings = lt_session.get_settings()
@@ -92,11 +92,11 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.dlmgr.ltsessions or \
-                not hasattr(self.dlmgr.ltsessions[hop], "post_session_stats"):
+        if hop not in self.download_manager.ltsessions or \
+                not hasattr(self.download_manager.ltsessions[hop], "post_session_stats"):
             return RESTResponse({'hop': hop, 'session': {}})
 
-        self.dlmgr.session_stats_callback = on_session_stats_alert_received
-        self.dlmgr.ltsessions[hop].post_session_stats()
+        self.download_manager.session_stats_callback = on_session_stats_alert_received
+        self.download_manager.ltsessions[hop].post_session_stats()
         stats = await session_stats
         return RESTResponse({'hop': hop, 'session': stats})

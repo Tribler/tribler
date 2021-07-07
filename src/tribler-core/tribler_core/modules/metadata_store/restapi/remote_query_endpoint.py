@@ -23,9 +23,9 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     This endpoint fires a remote search in the IPv8 GigaChannel Community.
     """
 
-    def __init__(self, *args, gigachannel_community: GigaChannelCommunity, **kwargs):
+    def __init__(self, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
-        self.gigachannel_community = gigachannel_community
+        self.gigachannel_community = None
 
     def setup_routes(self):
         self.app.add_routes([web.put('', self.create_remote_search_request)])

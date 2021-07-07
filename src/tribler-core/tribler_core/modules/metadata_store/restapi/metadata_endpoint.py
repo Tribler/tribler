@@ -51,9 +51,9 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     #          /torrents
     #          /<public_key>
     """
-    def __init__(self, *args, torrent_checker: TorrentChecker, **kwargs):
+    def __init__(self, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
-        self.torrent_checker = torrent_checker
+        self.torrent_checker = None
 
     def setup_routes(self):
         self.app.add_routes(

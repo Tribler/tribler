@@ -16,24 +16,17 @@ from tribler_core.utilities.unicode import hexlify
 
 
 class TrustViewEndpoint(RESTEndpoint):
-    def __init__(self, bandwidth_community):
+    def __init__(self):
         super().__init__()
-        self.logger = logging.getLogger(self.__class__.__name__)
-
-        self.bandwidth_community = bandwidth_community
 
         self.bandwidth_db = None
         self.trust_graph = None
-        self.public_key = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_view)])
 
     def initialize_graph(self):
-        if self.bandwidth_community:
-            self.bandwidth_db = self.bandwidth_community.database
-            self.public_key = self.bandwidth_community.my_pk
-            self.trust_graph = TrustGraph(self.public_key, self.bandwidth_db)
+        self.trust_graph = TrustGraph(self.bandwidth_db.my_pub_key, self.bandwidth_db)
 
     @docs(
         tags=["TrustGraph"],

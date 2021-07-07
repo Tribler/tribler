@@ -32,15 +32,11 @@ from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
 
 
 class ChannelsEndpoint(MetadataEndpointBase):
-    def __init__(self, *args,
-                 download_manager: DownloadManager,
-                 gigachannel_manager: GigaChannelManager,
-                 gigachannel_community,
-                 **kwargs):
+    def __init__(self, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
-        self.dlmgr = download_manager
-        self.gigachannel_manager = gigachannel_manager
-        self.gigachannel_community = gigachannel_community
+        self.download_manager = None
+        self.gigachannel_manager = None
+        self.gigachannel_community = None
 
     def setup_routes(self):
         self.app.add_routes(
@@ -64,8 +60,8 @@ class ChannelsEndpoint(MetadataEndpointBase):
     def add_download_progress_to_metadata_list(self, contents_list):
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                dl = self.dlmgr.get_download(unhexlify(torrent['infohash']))
-                if dl is not None and dl.tdef.infohash not in self.dlmgr.metainfo_requests:
+                dl = self.download_manager.get_download(unhexlify(torrent['infohash']))
+                if dl is not None and dl.tdef.infohash not in self.download_manager.metainfo_requests:
                     torrent['progress'] = dl.get_state().get_progress()
 
     def get_channel_from_request(self, request):
@@ -124,9 +120,9 @@ class ChannelsEndpoint(MetadataEndpointBase):
                                 channel.local_version,
                             )
                     elif channel_dict["state"] == CHANNEL_STATE.METAINFO_LOOKUP.value:
-                        if not self.dlmgr.metainfo_requests.get(
+                        if not self.download_manager.metainfo_requests.get(
                             bytes(channel.infohash)
-                        ) and self.dlmgr.download_exists(bytes(channel.infohash)):
+                        ) and self.download_manager.download_exists(bytes(channel.infohash)):
                             channel_dict["state"] = CHANNEL_STATE.DOWNLOADING.value
 
                 channels_list.append(channel_dict)
@@ -393,7 +389,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 ):
                     return RESTResponse({"added": 1})
 
-                meta_info = await self.dlmgr.get_metainfo(xt, timeout=30, url=uri)
+                meta_info = await self.download_manager.get_metainfo(xt, timeout=30, url=uri)
                 if not meta_info:
                     raise RuntimeError("Metainfo timeout")
                 tdef = TorrentDef.load_from_dict(meta_info)

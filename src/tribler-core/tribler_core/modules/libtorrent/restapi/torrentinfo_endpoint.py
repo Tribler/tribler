@@ -26,9 +26,9 @@ class TorrentInfoEndpoint(RESTEndpoint):
     This endpoint is responsible for handing all requests regarding torrent info in Tribler.
     """
 
-    def __init__(self, download_manager: DownloadManager):
+    def __init__(self):
         super().__init__()
-        self.dlmgr = download_manager
+        self.download_manager = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_torrent_info)])
@@ -85,14 +85,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
             if response.startswith(b'magnet'):
                 _, infohash, _ = parse_magnetlink(response)
                 if infohash:
-                    metainfo = await self.dlmgr.get_metainfo(infohash, timeout=60, hops=hops, url=response)
+                    metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=response)
             else:
                 metainfo = bdecode_compat(response)
         elif uri.startswith('magnet'):
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
-            metainfo = await self.dlmgr.get_metainfo(infohash, timeout=60, hops=hops, url=uri)
+            metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=uri)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
@@ -112,8 +112,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB
         infohash = hashlib.sha1(lt.bencode(metainfo[b'info'])).digest()
 
-        download = self.dlmgr.downloads.get(infohash)
-        metainfo_request = self.dlmgr.metainfo_requests.get(infohash, [None])[0]
+        download = self.download_manager.downloads.get(infohash)
+        metainfo_request = self.download_manager.metainfo_requests.get(infohash, [None])[0]
         download_is_metainfo_request = download == metainfo_request
 
         # Check if the torrent is already in the downloads

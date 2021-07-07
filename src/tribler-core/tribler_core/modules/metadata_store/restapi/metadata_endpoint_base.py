@@ -30,9 +30,9 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
-    def __init__(self, *args, metadata_store: MetadataStore = None, **kwargs):
-        super(MetadataEndpointBase, self).__init__(*args, **kwargs)
-        self.mds = metadata_store
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mds = None
 
     @classmethod
     def sanitize_parameters(cls, parameters):

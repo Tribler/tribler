@@ -1,4 +1,24 @@
+from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+from tribler_core.config.tribler_config import TriblerConfig
+
+from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
+from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
+from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
+from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
+from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
+from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
+from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
+from tribler_core.modules.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
+from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
+from tribler_core.restapi.debug_endpoint import DebugEndpoint
+from tribler_core.restapi.events_endpoint import EventsEndpoint
 from tribler_core.restapi.rest_endpoint import RESTEndpoint
+from tribler_core.restapi.settings_endpoint import SettingsEndpoint
+from tribler_core.restapi.shutdown_endpoint import ShutdownEndpoint
+from tribler_core.restapi.state_endpoint import StateEndpoint
+from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
+from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
+from tribler_core.upgrade.upgrader_endpoint import UpgraderEndpoint
 
 
 class RootEndpoint(RESTEndpoint):
@@ -6,4 +26,44 @@ class RootEndpoint(RESTEndpoint):
     The root endpoint of the Tribler HTTP API is the root resource in the request tree.
     It will dispatch requests regarding torrents, channels, settings etc to the right child endpoint.
     """
-    pass
+
+    def __init__(self, tribler_config: TriblerConfig, **kwargs):
+        self.tribler_config = tribler_config
+        super().__init__(**kwargs)
+
+    def setup_routes(self):
+        # Unfortunately, AIOHTTP endpoints cannot be added after the app has been started.
+        # On the other hand, we have to start the state endpoint from the beginning, to
+        # communicate with the upgrader . Thus, we start the endpoints immediately and
+        # then gradually assign their properties during the core start process
+
+        endpoints = {
+            '/events': (EventsEndpoint, True),
+            '/state': (StateEndpoint, True),
+            '/shutdown': (ShutdownEndpoint, True),
+            '/upgrader': (UpgraderEndpoint, self.tribler_config.upgrader_enabled),
+            '/settings': (SettingsEndpoint, True),
+            '/downloads': (DownloadsEndpoint, self.tribler_config.libtorrent.enabled),
+            '/createtorrent': (CreateTorrentEndpoint, self.tribler_config.libtorrent.enabled),
+            #'/debug': (DebugEndpoint, True),
+            '/bandwidth': (BandwidthEndpoint, True),
+            '/trustview': (TrustViewEndpoint, True),
+            #'/bandwidth': (BandwidthEndpoint, self.tribler_config.bandwidth_accounting.enabled),
+            #'/trustview': (TrustViewEndpoint, self.tribler_config.bandwidth_accounting.enabled),
+            #'/statistics': (StatisticsEndpoint, True),
+            '/libtorrent': (LibTorrentEndpoint, self.tribler_config.libtorrent.enabled),
+            '/torrentinfo': (TorrentInfoEndpoint, self.tribler_config.libtorrent.enabled),
+            '/metadata': (MetadataEndpoint, self.tribler_config.chant.enabled),
+            '/channels': (ChannelsEndpoint, self.tribler_config.chant.enabled),
+            '/collections': (ChannelsEndpoint, self.tribler_config.chant.enabled),
+            '/search': (SearchEndpoint, self.tribler_config.chant.enabled),
+            '/remote_query': (RemoteQueryEndpoint, self.tribler_config.chant.enabled),
+            '/ipv8': (IPV8RootEndpoint, self.tribler_config.ipv8.enabled)
+            }
+        for path, (ep_cls, enabled) in endpoints.items():
+            if enabled:
+                self.add_endpoint(path, ep_cls())
+
+    def set_ipv8_session(self, ipv8_session):
+        if '/ipv8' in self.endpoints:
+            self.endpoints['/ipv8'].initialize(ipv8_session)

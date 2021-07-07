@@ -22,6 +22,10 @@ class TriblerConfig(TriblerConfigSections):
     _file: Optional[Path] = PrivateAttr()  # a last file saved during write-load operations
     _error: Optional[Exception] = PrivateAttr()
 
+    # Special configuration options related to the operation mode of the Core
+    upgrader_enabled: bool = True
+    core_test_mode: bool = False
+
     def __init__(self, *args, state_dir: Path = None, file: Path = None, error: str = None, **kwargs):
         """ Constructor
 
@@ -94,7 +98,7 @@ class TriblerConfig(TriblerConfigSections):
             logger.info(f'Create folder: {parent}')
             parent.mkdir(parents=True)
 
-        dictionary = self.dict(exclude_defaults=True)
+        dictionary = self.dict(exclude_defaults=True, exclude={'upgrader_enabled': ..., 'core_test_mode': ...})
         conf = configobj.ConfigObj(dictionary)
         conf.filename = str(file)
         conf.write()
