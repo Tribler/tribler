@@ -62,21 +62,24 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    def __init__(self, notifier: Notifier):
+    def __init__(self):
         RESTEndpoint.__init__(self)
         TaskManager.__init__(self)
         self.events_responses = []
         self.app.on_shutdown.append(self.on_shutdown)
-        self.notifier = notifier
+        self.notifier = None
 
         # We need to know that Tribler completed its startup sequence
         self.tribler_started = False
+
+    def connect_notifier(self, notifier: Notifier):
+        self.notifier = notifier
         self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
         for event_type, event_lambda in reactions_dict.items():
             self.notifier.add_observer(event_type,
-                                               lambda *args, el=event_lambda, et=event_type:
-                                               self.write_data({"type": et.value, "event": el(*args)}))
+                                       lambda *args, el=event_lambda, et=event_type:
+                                       self.write_data({"type": et.value, "event": el(*args)}))
 
         def on_circuit_removed(circuit, *args):
             if isinstance(circuit, Circuit):
@@ -87,7 +90,6 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                     "uptime": time.time() - circuit.creation_time
                 }
                 self.write_data({"type": NTFY.TUNNEL_REMOVE.value, "event": event})
-
         # Tribler tunnel circuit has been removed
         self.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
 

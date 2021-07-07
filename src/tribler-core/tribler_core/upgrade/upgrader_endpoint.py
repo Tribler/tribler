@@ -18,9 +18,9 @@ class UpgraderEndpoint(RESTEndpoint):
     With this endpoint you can control DB upgrade process of Tribler.
     """
 
-    def __init__(self, *args, upgrader: TriblerUpgrader, **kwargs):
+    def __init__(self, *args, **kwargs):
         RESTEndpoint.__init__(self, *args, **kwargs)
-        self.upgrader = upgrader
+        self.upgrader = None
 
     def setup_routes(self):
         self.app.add_routes([web.post('', self.skip_upgrade)])

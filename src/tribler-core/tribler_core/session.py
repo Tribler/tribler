@@ -43,7 +43,6 @@ async def create_ipv8(
         config: Ipv8Settings,
         state_dir,
         prosthetic_session,
-        root_endpoint,
         ipv8_tasks,
         core_test_mode=False):
     from ipv8.configuration import ConfigBuilder
@@ -87,11 +86,6 @@ async def create_ipv8(
         # Enable gathering IPv8 statistics
         for overlay in ipv8.overlays:
             ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
-
-    from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-    ipv8_root_endpoint = IPV8RootEndpoint()
-    root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
-    ipv8_root_endpoint.initialize(ipv8)
 
     if config.walk_scaling_enabled and not core_test_mode:
         from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
@@ -150,10 +144,7 @@ def init_keypair(state_dir, keypair_filename):
         return trustchain_keypair
 
 
-async def core_session(
-        config: TriblerConfig,
-        core_test_mode: bool = False,
-        upgrader_enabled=True):
+async def core_session(config: TriblerConfig):
     # In test mode, the Core does not communicate with the external world and the state dir is read-only
     logger = logging.getLogger("Session")
 
@@ -185,25 +176,30 @@ async def core_session(
     if config.api.http_enabled or config.api.https_enabled:
         from tribler_core.restapi.root_endpoint import RootEndpoint
         from tribler_core.restapi.rest_manager import ApiKeyMiddleware, error_middleware
-        root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
+        root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
         from tribler_core.restapi.rest_manager import RESTManager
         api_manager = RESTManager(config=config.api, root_endpoint=root_endpoint)
+        # Unfortunately, AIOHTTP endpoints cannot be added after the app has been started.
+        # On the other hand, we have to start the state endpoint from the beginning, to
+        # communicate with the upgrader. Thus, we start the endpoints immediately and
+        # then gradually connect them to their respective backends during the core start process.
+        await api_manager.start()
+        api_manager.get_endpoint('settings').tribler_config = config
 
-        from tribler_core.restapi.state_endpoint import StateEndpoint
-        state_endpoint = StateEndpoint(notifier)
+        state_endpoint = api_manager.get_endpoint('state')
+        state_endpoint.connect_notifier(notifier)
         state_endpoint.readable_status = STATE_START_API
-        root_endpoint.add_endpoint('/state', state_endpoint)
 
-        from tribler_core.restapi.events_endpoint import EventsEndpoint
-        events_endpoint = EventsEndpoint(notifier)
-        root_endpoint.add_endpoint('/events', events_endpoint)
+        exception_handler.events_endpoint = api_manager.get_endpoint('events')
+        exception_handler.state_endpoint = state_endpoint
 
-        from tribler_core.restapi.shutdown_endpoint import ShutdownEndpoint
-        shutdown_endpoint = ShutdownEndpoint(shutdown_event.set)
-        root_endpoint.add_endpoint('/shutdown', shutdown_endpoint)
+        api_manager.get_endpoint('events').connect_notifier(notifier)
+        api_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
 
-    if upgrader_enabled and not core_test_mode:
+        downloads_endpoint = api_manager.get_endpoint('downloads')
+
+    if config.upgrader_enabled and not config.core_test_mode:
         from tribler_core.upgrade.upgrade import TriblerUpgrader
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         upgrader = TriblerUpgrader(
@@ -213,9 +209,7 @@ async def core_session(
             notifier=notifier)
         state_endpoint.readable_status = STATE_UPGRADING_READABLE
 
-        from tribler_core.upgrade.upgrader_endpoint import UpgraderEndpoint
-        upgrader_endpoint = UpgraderEndpoint(upgrader=upgrader)
-        root_endpoint.add_endpoint('/upgrader', upgrader_endpoint)
+        api_manager.get_endpoint('upgrader').upgrader=upgrader
         await upgrader.run()
 
     # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
@@ -232,13 +226,11 @@ async def core_session(
         metadata_store = MetadataStore(
             database_path, channels_dir, trustchain_keypair,
             notifier=notifier,
-            disable_sync=core_test_mode)
+            disable_sync=config.core_test_mode)
 
-        from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
-        search_endpoint = SearchEndpoint(metadata_store=metadata_store)
-        root_endpoint.add_endpoint('/search', search_endpoint)
+        api_manager.get_endpoint('search').mds = metadata_store
 
-        if core_test_mode:
+        if config.core_test_mode:
             generate_test_channels(metadata_store)
 
     prosthetic_session = ProstheticSession(
@@ -268,10 +260,10 @@ async def core_session(
             config=config.ipv8,
             ipv8_tasks=ipv8_tasks,
             prosthetic_session=prosthetic_session,
-            root_endpoint=root_endpoint,
-            core_test_mode=core_test_mode)
+            core_test_mode=config.core_test_mode)
 
         from ipv8.messaging.anonymization.community import TunnelCommunity
+        api_manager.get_endpoint('ipv8').initialize(ipv8)
         await ipv8.get_overlay(TunnelCommunity).wait_for_socks_servers()
 
     # Note that currently we should only start libtorrent after the SOCKS5 servers have been started
@@ -286,7 +278,7 @@ async def core_session(
                                            payout_manager=None,
                                            tunnel_community=ipv8.get_overlay(TunnelCommunity),
                                            bootstrap_infohash=config.bootstrap.infohash,
-                                           dummy_mode=core_test_mode)
+                                           dummy_mode=config.core_test_mode)
         # FIXME! Required by TunnelCommunity
         prosthetic_session.dlmgr = download_manager
 
@@ -294,32 +286,15 @@ async def core_session(
         state_endpoint.readable_status = STATE_LOAD_CHECKPOINTS
         await download_manager.load_checkpoints()
 
-        from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
-        downloads_endpoint = DownloadsEndpoint(download_manager=download_manager,
-                                               tunnel_community=None,
-                                               metadata_store=metadata_store)
-        root_endpoint.add_endpoint('/downloads', downloads_endpoint)
+        api_manager.get_endpoint('createtorrent').download_manager = download_manager
+        api_manager.get_endpoint('libtorrent').download_manager = download_manager
+        api_manager.get_endpoint('torrentinfo').download_manager = download_manager
 
-        from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
-        create_torrent_endpoint = CreateTorrentEndpoint(download_manager=download_manager,
-                                                        download_defaults=config.download_defaults)
-        root_endpoint.add_endpoint('/createtorrent', create_torrent_endpoint)
-
-        from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
-        libtorrent_endpoint = LibTorrentEndpoint(download_manager)
-        root_endpoint.add_endpoint('/libtorrent', libtorrent_endpoint)
-
-        from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-        torrentinfo_endpoint = TorrentInfoEndpoint(download_manager)
-        root_endpoint.add_endpoint('/torrentinfo', torrentinfo_endpoint)
-
-        if core_test_mode:
+        if config.core_test_mode:
             await download_manager.start_download_from_uri(
                 "magnet:?xt=urn:btih:0000000000000000000000000000000000000000")
 
-    from tribler_core.restapi.settings_endpoint import SettingsEndpoint
-    settings_endpoint = SettingsEndpoint(config, download_manager)
-    root_endpoint.add_endpoint('/settings', settings_endpoint)
+    api_manager.get_endpoint('settings').download_manager = download_manager
 
     state_endpoint.readable_status = STATE_READABLE_STARTED
 
@@ -327,7 +302,7 @@ async def core_session(
     tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store)
 
     # Start torrent checker before Popularity community is loaded
-    if config.torrent_checking.enabled and not core_test_mode:
+    if config.torrent_checking.enabled and not config.core_test_mode:
         from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
         state_endpoint.readable_status = STATE_START_TORRENT_CHECKER
         torrent_checker = TorrentChecker(config=config,
@@ -337,16 +312,8 @@ async def core_session(
                                          metadata_store=metadata_store)
         await torrent_checker.initialize()
 
-    # ?
-
-    from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
     from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-    bandwidth_endpoint = BandwidthEndpoint(ipv8.get_overlay(BandwidthAccountingCommunity))
-    root_endpoint.add_endpoint('/bandwidth', bandwidth_endpoint)
-
-    from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
-    trustview_endpoint = TrustViewEndpoint(ipv8.get_overlay(BandwidthAccountingCommunity))
-    root_endpoint.add_endpoint('/trustview', trustview_endpoint)
+    api_manager.get_endpoint('trustview').bandwidth_db = ipv8.get_overlay(BandwidthAccountingCommunity).database
 
     if config.ipv8.enabled:
         from tribler_core.modules.payout_manager import PayoutManager
@@ -354,21 +321,17 @@ async def core_session(
         payout_manager = PayoutManager(ipv8.get_overlay(BandwidthAccountingCommunity), ipv8.get_overlay(DHTCommunity))
         download_manager.payout_manager = payout_manager
 
-        if core_test_mode:
+        if config.core_test_mode:
             from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
             from ipv8.dht.routing import RoutingTable
             ipv8.get_overlay(DHTCommunity).routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
-    from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
-    metadata_endpoint = MetadataEndpoint(metadata_store=metadata_store, torrent_checker=torrent_checker)
-    root_endpoint.add_endpoint('/metadata', metadata_endpoint)
+    api_manager.get_endpoint('metadata').torrent_checker = torrent_checker
+    api_manager.get_endpoint('metadata').metadata_store = metadata_store
 
-    from tribler_core.modules.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
     from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
-    remote_query_endpoint = RemoteQueryEndpoint(
-        metadata_store=metadata_store,
-        gigachannel_community=ipv8.get_overlay(GigaChannelCommunity))
-    root_endpoint.add_endpoint('/remote_query', remote_query_endpoint)
+    api_manager.get_endpoint('remote_query').metadata_store = metadata_store
+    api_manager.get_endpoint('remote_query').gigachannel_community = ipv8.get_overlay(GigaChannelCommunity)
 
     watch_folder = None
     if config.watch_folder.enabled:
@@ -380,7 +343,7 @@ async def core_session(
                                    notifier=notifier)
         watch_folder.start()
 
-    if config.resource_monitor.enabled and not core_test_mode:
+    if config.resource_monitor.enabled and not config.core_test_mode:
         from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         resource_monitor = CoreResourceMonitor(state_dir=config.state_dir,
@@ -389,7 +352,7 @@ async def core_session(
                                                notifier=notifier)
         resource_monitor.start()
 
-    if config.general.version_checker_enabled and not core_test_mode:
+    if config.general.version_checker_enabled and not config.core_test_mode:
         from tribler_core.modules.versioncheck_manager import VersionCheckManager
         version_check_manager = VersionCheckManager(notifier=notifier)
         version_check_manager.start()
@@ -401,25 +364,24 @@ async def core_session(
         gigachannel_manager = GigaChannelManager(notifier=notifier,
                                                  metadata_store=metadata_store,
                                                  download_manager=download_manager)
-        if not core_test_mode:
+        if not config.core_test_mode:
             gigachannel_manager.start()
 
-    from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
-    channels_endpoint = ChannelsEndpoint(
-        metadata_store=metadata_store,
-        download_manager=download_manager,
-        gigachannel_manager=gigachannel_manager,
-        gigachannel_community=ipv8.get_overlay(GigaChannelCommunity))
-    root_endpoint.add_endpoint('/channels', channels_endpoint)
+    downloads_endpoint.download_manager = download_manager
+    downloads_endpoint.tunnel_community = ipv8.get_overlay(TunnelCommunity)
+    downloads_endpoint.mds = metadata_store
 
-    collection_endpoint = ChannelsEndpoint(
-        metadata_store=metadata_store,
-        download_manager=download_manager,
-        gigachannel_manager=gigachannel_manager,
-        gigachannel_community=ipv8.get_overlay(GigaChannelCommunity))
-    root_endpoint.add_endpoint('/collections', collection_endpoint)
+    channels_endpoint = api_manager.get_endpoint('channels')
+    channels_endpoint.mds = metadata_store
+    channels_endpoint.download_manager = download_manager
+    channels_endpoint.gigachannel_manager = gigachannel_manager
+    channels_endpoint.gigachannel_community = ipv8.get_overlay(GigaChannelCommunity)
 
-    await api_manager.start()
+    collections_endpoint = api_manager.get_endpoint('collections')
+    collections_endpoint.mds = metadata_store
+    collections_endpoint.download_manager = download_manager
+    collections_endpoint.gigachannel_manager = gigachannel_manager
+    collections_endpoint.gigachannel_community = ipv8.get_overlay(GigaChannelCommunity)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 
@@ -472,7 +434,7 @@ async def core_session(
         notifier.notify_shutdown_state("Shutting down Watch Folder...")
         await watch_folder.stop()
 
-    if not core_test_mode:
+    if not config.core_test_mode:
         notifier.notify_shutdown_state("Saving configuration...")
         config.write()
 

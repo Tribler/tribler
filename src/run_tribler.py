@@ -61,6 +61,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         version_history.save_if_necessary()
         state_dir = version_history.code_version.directory
         config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
+        config.core_test_mode = core_test_mode
 
         if not config.error_handling.core_error_reporting_requires_user_consent:
             SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
@@ -81,7 +82,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
         # Run until core_session exits
-        await core_session(config, core_test_mode=core_test_mode)
+        await core_session(config)
 
         if trace_logger:
             trace_logger.close()

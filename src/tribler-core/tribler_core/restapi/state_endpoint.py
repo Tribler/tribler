@@ -17,14 +17,16 @@ class StateEndpoint(RESTEndpoint):
     This endpoint is responsible for handing all requests regarding the state of Tribler.
     """
 
-    def __init__(self, notifier: Notifier = None):
+    def __init__(self,):
         super(StateEndpoint, self).__init__()
         self.tribler_state = STATE_STARTING
         self.last_exception = None
         self.sentry_event = None
-        self.notifier = notifier
+        self.notifier = None
         self.readable_status = None
 
+    def connect_notifier(self, notifier: Notifier):
+        self.notifier = notifier
         self.notifier.add_observer(NTFY.UPGRADER_STARTED, self.on_tribler_upgrade_started)
         self.notifier.add_observer(NTFY.UPGRADER_DONE, self.on_tribler_upgrade_finished)
         self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)

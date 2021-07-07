@@ -55,14 +55,11 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    def __init__(self,
-                 download_manager: DownloadManager,
-                 tunnel_community = None,
-                 metadata_store: MetadataStore = None):
+    def __init__(self):
         super().__init__()
-        self.dlmgr = download_manager
-        self.mds = metadata_store
-        self.tunnel_community = tunnel_community
+        self.download_manager = None
+        self.mds = None
+        self.tunnel_community = None
 
         self.app.on_shutdown.append(self.on_shutdown)
 
@@ -210,7 +207,7 @@ class DownloadsEndpoint(RESTEndpoint):
         get_files = request.query.get('get_files', '0') == '1'
 
         downloads_json = []
-        downloads = self.dlmgr.get_downloads()
+        downloads = self.download_manager.get_downloads()
         for download in downloads:
             if download.hidden and not download.config.get_channel_download():
                 # We still want to send channel downloads since they are displayed in the GUI
@@ -256,8 +253,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 "anon_download": download.get_anon_mode(),
                 "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
-                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.dlmgr.config),
-                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.dlmgr.config),
+                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.download_manager.config),
+                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.download_manager.config),
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
@@ -347,7 +344,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
         try:
-            download = await self.dlmgr.start_download_from_uri(parameters['uri'], config=download_config)
+            download = await self.download_manager.start_download_from_uri(parameters['uri'], config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
@@ -379,12 +376,12 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
         try:
-            await self.dlmgr.remove_download(download, remove_content=parameters['remove_data'])
+            await self.download_manager.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -416,7 +413,7 @@ class DownloadsEndpoint(RESTEndpoint):
     }))
     async def update_download(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -455,7 +452,7 @@ class DownloadsEndpoint(RESTEndpoint):
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
-                await self.dlmgr.update_hops(download, anon_hops)
+                await self.download_manager.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
                 return return_handled_exception(request, e)
@@ -503,7 +500,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_torrent(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -537,7 +534,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_files(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
         return RESTResponse({"files": self.get_files_info_json(download)})
@@ -565,7 +562,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def stream(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 

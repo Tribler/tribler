@@ -13,9 +13,9 @@ class BandwidthEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests for bandwidth accounting data.
     """
-    def __init__(self, bandwidth_community=None):
+    def __init__(self):
         super().__init__()
-        self.bandwidth_community = bandwidth_community
+        self.bandwidth_community = None
 
     def setup_routes(self) -> None:
         self.app.add_routes([web.get('/statistics', self.get_statistics)])
