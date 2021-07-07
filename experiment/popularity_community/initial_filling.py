@@ -13,12 +13,9 @@ from pony.orm import count, db_session
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-from tribler_core.modules.dht.community import DHTDiscoveryStrategies
-from tribler_core.modules.discovery.community import TriblerDiscoveryStrategies
-from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
+from tribler_core.modules.dht.community import TriblerDHTDiscoveryCommunity
+from tribler_core.modules.discovery.community import TriblerDiscoveryCommunity
 from tribler_core.modules.popularity.community import PopularityCommunity
-from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
 from tribler_core.session import CommunityFactory
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
@@ -74,9 +71,9 @@ class ObservablePopularityCommunity(PopularityCommunity):
 class Service(TinyTriblerService):
     def __init__(self, interval_in_sec, output_file_path, timeout_in_sec, working_dir, config_path):
         config = TriblerConfig(state_dir=working_dir, file=config_path)
-        config.libtorrent.enabled = True
+        config.libtorrent.enabled = False
         config.ipv8.enabled = True
-        config.chant.enabled = True
+        config.chant.enabled = False
         config.upgrader_enabled = False
         config.chant.enabled = False
 
@@ -84,7 +81,7 @@ class Service(TinyTriblerService):
         self._output_file_path = output_file_path
 
         super().__init__(config, timeout_in_sec, working_dir, config_path,
-                         communities_cls=list(self.communities_gen(config)))
+                         communities_cls=self.communities())
 
     async def on_tribler_started(self):
         await super().on_tribler_started()
@@ -103,16 +100,14 @@ class Service(TinyTriblerService):
         session.ipv8.strategies.append((RandomWalk(session.popularity_community),
                                         TARGET_PEERS_COUNT))
 
-    def communities_gen(self, config: TriblerConfig):
-        yield CommunityFactory(create_class=TriblerDiscoveryStrategies)
-        yield CommunityFactory(create_class=DHTDiscoveryStrategies)
-        yield CommunityFactory(create_class=BandwidthAccountingCommunity,
-                               kwargs={'database': config.state_dir / "sqlite" / "bandwidth.db"})
-        yield CommunityFactory(create_class=TriblerTunnelCommunity)
-        yield CommunityFactory(create_class=ObservablePopularityCommunity,
-                               kwargs={'interval_in_sec': self._interval_in_sec,
-                                       'output_file_path': self._output_file_path})
-        yield CommunityFactory(create_class=GigaChannelCommunity)
+    def communities(self):
+        return [
+            CommunityFactory(create_class=TriblerDiscoveryCommunity),
+            CommunityFactory(create_class=TriblerDHTDiscoveryCommunity),
+            CommunityFactory(create_class=ObservablePopularityCommunity,
+                             kwargs={'interval_in_sec': self._interval_in_sec,
+                                     'output_file_path': self._output_file_path}),
+        ]
 
 
 def _parse_argv():

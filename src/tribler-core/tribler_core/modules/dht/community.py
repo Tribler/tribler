@@ -12,7 +12,7 @@ from tribler_core.modules.community_di_mixin import (
 from tribler_core.session import Mediator
 
 
-class DHTDiscoveryStrategies(CommunityDIMixin, DHTDiscoveryCommunity):
+class TriblerDHTDiscoveryCommunity(CommunityDIMixin, DHTDiscoveryCommunity):
     def __init__(self, *args, mediator=None, **kwargs):
         kwargs['max_peers'] = 60
         super().__init__(*args, **kwargs)

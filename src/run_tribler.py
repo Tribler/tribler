@@ -16,8 +16,8 @@ from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity, \
     BandwidthAccountingTestnetCommunity
-from tribler_core.modules.dht.community import DHTDiscoveryStrategies
-from tribler_core.modules.discovery.community import TriblerDiscoveryStrategies
+from tribler_core.modules.dht.community import TriblerDHTDiscoveryCommunity
+from tribler_core.modules.discovery.community import TriblerDiscoveryCommunity
 from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, \
     GigaChannelTestnetCommunity
 from tribler_core.modules.popularity.community import PopularityCommunity
@@ -35,8 +35,8 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def communities_gen(config: TriblerConfig):
-    yield CommunityFactory(create_class=TriblerDiscoveryStrategies) if config.discovery_community.enabled else ...
-    yield CommunityFactory(create_class=DHTDiscoveryStrategies) if config.dht.enabled else ...
+    yield CommunityFactory(create_class=TriblerDiscoveryCommunity) if config.discovery_community.enabled else ...
+    yield CommunityFactory(create_class=TriblerDHTDiscoveryCommunity) if config.dht.enabled else ...
 
     bandwidth_accounting_kwargs = {'database': config.state_dir / "sqlite" / "bandwidth.db"}
     bandwidth_accounting_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
