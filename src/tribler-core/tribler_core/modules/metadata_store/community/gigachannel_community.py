@@ -87,7 +87,7 @@ class GigaChannelCommunity(CommunityDIMixin, RemoteQueryCommunity):
         super().__init__(my_peer, endpoint, Network(), max_peers=50, mediator=mediator, **kwargs)
 
         self.settings = mediator.config.chant
-        self.mediator = mediator.notifier
+        self.notifier = mediator.notifier
 
         # This set contains all the peers that we queried for subscribed channels over time.
         # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same

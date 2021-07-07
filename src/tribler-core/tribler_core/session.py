@@ -3,7 +3,6 @@ Author(s): Vadim Bulavintsev
 """
 import logging
 import os
-import signal
 import sys
 from asyncio import Event, get_event_loop
 from dataclasses import dataclass, field
@@ -210,9 +209,6 @@ async def core_session(
 
         downloads_endpoint = api_manager.get_endpoint('downloads')
 
-    api_manager.get_endpoint('channels').bbkbkbkbbk = "DDD"
-    print(type(api_manager))
-
     if config.upgrader_enabled and not config.core_test_mode:
         from tribler_core.upgrade.upgrade import TriblerUpgrader
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
@@ -326,6 +322,7 @@ async def core_session(
                                          metadata_store=metadata_store)
         mediator.torrent_checker = torrent_checker
         await torrent_checker.initialize()
+
     if api_manager:
         from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
         api_manager.get_endpoint('trustview').bandwidth_db = ipv8.get_overlay(BandwidthAccountingCommunity).database
@@ -340,12 +337,13 @@ async def core_session(
             from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
             from ipv8.dht.routing import RoutingTable
             ipv8.get_overlay(DHTCommunity).routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
+
     if api_manager:
         api_manager.get_endpoint('metadata').torrent_checker = torrent_checker
-        api_manager.get_endpoint('metadata').metadata_store = metadata_store
+        api_manager.get_endpoint('metadata').mds = metadata_store
 
         from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
-        api_manager.get_endpoint('remote_query').metadata_store = metadata_store
+        api_manager.get_endpoint('remote_query').mds = metadata_store
         api_manager.get_endpoint('remote_query').gigachannel_community = ipv8.get_overlay(GigaChannelCommunity)
 
     watch_folder = None
@@ -381,6 +379,7 @@ async def core_session(
                                                  download_manager=download_manager)
         if not config.core_test_mode:
             gigachannel_manager.start()
+
     if downloads_endpoint:
         downloads_endpoint.download_manager = download_manager
         downloads_endpoint.tunnel_community = ipv8.get_overlay(TunnelCommunity)

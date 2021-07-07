@@ -12,7 +12,6 @@ from pony.orm import db_session
 
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
