@@ -19,9 +19,10 @@ from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, recursive_bytes
-from tribler_core.utilities.utilities import bdecode_compat
+from tribler_core.utilities.utilities import bdecode_compat, froze_it
 
 
+@froze_it
 class CreateTorrentEndpoint(RESTEndpoint):
     """
     Create a torrent file from local files.

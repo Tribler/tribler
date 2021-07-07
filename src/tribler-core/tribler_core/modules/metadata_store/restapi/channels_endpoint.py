@@ -28,9 +28,10 @@ from tribler_core.modules.metadata_store.utils import NoChannelSourcesException,
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
+from tribler_core.utilities.utilities import is_infohash, parse_magnetlink, froze_it
 
 
+@froze_it
 class ChannelsEndpoint(MetadataEndpointBase):
     def __init__(self, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)

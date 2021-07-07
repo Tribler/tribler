@@ -11,8 +11,10 @@ from marshmallow.fields import Boolean
 
 from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class ShutdownEndpoint(RESTEndpoint):
     """
     With this endpoint you can shutdown Tribler.

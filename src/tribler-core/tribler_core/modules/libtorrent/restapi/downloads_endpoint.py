@@ -29,6 +29,7 @@ from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
 def _safe_extended_peer_info(ext_peer_info):
@@ -49,6 +50,7 @@ def _safe_extended_peer_info(ext_peer_info):
         return ''.join([chr(c) for c in ext_peer_info])
 
 
+@froze_it
 class DownloadsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,

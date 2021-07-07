@@ -5,8 +5,10 @@ from marshmallow.fields import Boolean
 from ipv8.REST.schema import schema
 from tribler_common.network_utils import NetworkUtils
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class SettingsEndpoint(RESTEndpoint):
     """
     This endpoint is reponsible for handing all requests regarding settings and configuration.

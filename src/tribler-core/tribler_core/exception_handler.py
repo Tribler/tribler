@@ -5,6 +5,8 @@ from io import StringIO
 from traceback import print_exception
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_core.settings import ErrorHandlingSettings
+from tribler_core.utilities.utilities import froze_it
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -27,10 +29,15 @@ IGNORED_ERRORS = {
 }
 
 
+@froze_it
 class CoreExceptionHandler:
-    def __init__(self, logger, events_endpoint=None, state_endpoint=None, consent_required=True):
+    """
+    This class handles Python errors arising in the Core by catching them, adding necessary context,
+    and sending them to the GUI through the events endpoint. It must be connected to the Asyncio loop.
+    """
+    def __init__(self, logger, config: ErrorHandlingSettings, events_endpoint=None, state_endpoint=None):
         self._logger = logger
-        self.consent_required = consent_required
+        self.config = config
         self.events_endpoint = events_endpoint
         self.state_endpoint = state_endpoint
 
@@ -71,7 +78,8 @@ class CoreExceptionHandler:
             sentry_event = SentryReporter.event_from_exception(exception)
 
             if self.events_endpoint:
-                self.events_endpoint.on_tribler_exception(text_long, sentry_event, self.consent_required)
+                self.events_endpoint.on_tribler_exception(
+                    text_long, sentry_event, self.config.core_error_reporting_requires_user_consent)
 
             if self.events_endpoint:
                 self.state_endpoint.on_tribler_exception(text_long, sentry_event)

@@ -13,8 +13,10 @@ from tribler_common.simpledefs import DOWNLOAD, UPLOAD
 from tribler_core.modules.trust_calculation.trust_graph import TrustGraph
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class TrustViewEndpoint(RESTEndpoint):
     def __init__(self):
         super().__init__()

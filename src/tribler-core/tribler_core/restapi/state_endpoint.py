@@ -10,8 +10,10 @@ from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STAT
 from tribler_core.notifier import Notifier
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class StateEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding the state of Tribler.

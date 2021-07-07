@@ -1,7 +1,9 @@
 import asyncio
 import logging.config
 import os
+import signal
 import sys
+from asyncio import Event
 
 from PyQt5.QtCore import QSettings
 
@@ -107,8 +109,12 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
+        shutdown_event = Event()
+        signal.signal(signal.SIGTERM, lambda signum, stack: shutdown_event.set)
         # Run until core_session exits
-        await core_session(config, communities_cls=list(communities_gen(config)))
+        await core_session(config,
+                           communities_cls=list(communities_gen(config)),
+                           shutdown_event=shutdown_event)
 
         if trace_logger:
             trace_logger.close()

@@ -18,6 +18,7 @@ from tribler_core.notifier import Notifier
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.restapi.util import fix_unicode_dict
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 from tribler_core.version import version_id
 
 
@@ -55,6 +56,7 @@ reactions_dict = {
 # pylint: enable=line-too-long
 
 
+@froze_it
 class EventsEndpoint(RESTEndpoint, TaskManager):
     """
     Important events in Tribler are returned over the events endpoint. This connection is held open. Each event is

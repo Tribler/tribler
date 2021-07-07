@@ -157,18 +157,16 @@ def init_keypair(state_dir, keypair_filename):
 
 async def core_session(
         config: TriblerConfig,
-        communities_cls: List[CommunityFactory]):
+        communities_cls: List[CommunityFactory],
+        shutdown_event = Event()
+):
 
     mediator = Mediator(config=config)
     # In test mode, the Core does not communicate with the external world and the state dir is read-only
     logger = logging.getLogger("Session")
 
     from tribler_core.exception_handler import CoreExceptionHandler
-    consent_required = config.error_handling.core_error_reporting_requires_user_consent
-    exception_handler = CoreExceptionHandler(logger,
-                                             events_endpoint=None,
-                                             state_endpoint=None,
-                                             consent_required=consent_required)
+    exception_handler = CoreExceptionHandler(logger, config=config.error_handling)
     get_event_loop().set_exception_handler(exception_handler.unhandled_error_observer)
     patch_crypto_be_discovery()
 
@@ -184,9 +182,6 @@ async def core_session(
     # `user_id` on the GUI side
     user_id_str = hexlify(trustchain_keypair.key.pk).encode('utf-8')
     SentryReporter.set_user(user_id_str)
-
-    shutdown_event = Event()
-    signal.signal(signal.SIGTERM, lambda signum, stack: shutdown_event.set)
 
     # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
     if config.api.http_enabled or config.api.https_enabled:
@@ -214,6 +209,9 @@ async def core_session(
         api_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
 
         downloads_endpoint = api_manager.get_endpoint('downloads')
+
+    api_manager.get_endpoint('channels').bbkbkbkbbk = "DDD"
+    print(type(api_manager))
 
     if config.upgrader_enabled and not config.core_test_mode:
         from tribler_core.upgrade.upgrade import TriblerUpgrader

@@ -16,6 +16,7 @@ from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 
 TORRENT_CHECK_TIMEOUT = 20
 
@@ -42,6 +43,7 @@ class UpdateEntryMixin:
         return None, entry.update_properties(update_dict).to_simple_dict()
 
 
+@froze_it
 class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     """
     This is the top-level endpoint class that serves other endpoints.

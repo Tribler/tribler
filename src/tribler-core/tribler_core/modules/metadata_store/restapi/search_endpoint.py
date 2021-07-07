@@ -12,8 +12,10 @@ from tribler_core.modules.metadata_store.restapi.metadata_endpoint import Metada
 from tribler_core.modules.metadata_store.restapi.metadata_schema import MetadataParameters
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class SearchEndpoint(MetadataEndpointBase):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
