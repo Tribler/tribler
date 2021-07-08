@@ -68,7 +68,7 @@ class ChannelsPeersMapping:
         return sorted(channel_peers, key=lambda x: x.last_response, reverse=True)[0:limit]
 
 
-class GigaChannelCommunity(CommunityDIMixin, RemoteQueryCommunity):
+class GigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
 
     def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
@@ -81,13 +81,12 @@ class GigaChannelCommunity(CommunityDIMixin, RemoteQueryCommunity):
             new_style=new_style
         )
 
-    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, max_peers = None, **kwargs):
+    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, max_peers=None, notifier=None, **kwargs):
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
         super().__init__(my_peer, endpoint, Network(), max_peers=50, mediator=mediator, **kwargs)
 
-        self.settings = mediator.config.chant
-        self.notifier = mediator.notifier
+        self.notifier = notifier
 
         # This set contains all the peers that we queried for subscribed channels over time.
         # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same
@@ -98,11 +97,6 @@ class GigaChannelCommunity(CommunityDIMixin, RemoteQueryCommunity):
         self.discovery_booster.apply(self)
 
         self.channels_peers = ChannelsPeersMapping()
-
-        self.init_community_di_mixin(strategies=[
-            StrategyFactory(create_class=RandomWalk, target_peers=30),
-            StrategyFactory(create_class=RemovePeers, target_peers=INFINITE_TARGET_PEERS),
-        ])
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers

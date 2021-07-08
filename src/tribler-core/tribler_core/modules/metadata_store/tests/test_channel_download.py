@@ -10,7 +10,7 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
+from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.serialization import ChannelMetadataPayload
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 

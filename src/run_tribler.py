@@ -14,15 +14,22 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity, \
-    BandwidthAccountingTestnetCommunity
-from tribler_core.modules.dht.community import TriblerDHTDiscoveryCommunity
-from tribler_core.modules.discovery.community import TriblerDiscoveryCommunity
-from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity, \
-    GigaChannelTestnetCommunity
-from tribler_core.modules.popularity.community import PopularityCommunity
-from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
-from tribler_core.session import Factory, core_session
+from tribler_core.modules.exception_handler.component import ExceptionHandlerComponent
+from tribler_core.modules.ipv8.component import Ipv8Component
+from tribler_core.modules.libtorrent.module import LibtorrentComponent
+from tribler_core.modules.metadata_store.community.component import GigaChannelComponent
+from tribler_core.modules.metadata_store.component import MetadataStoreComponent
+from tribler_core.modules.metadata_store.manager.component import GigachannelManagerComponent
+from tribler_core.modules.payout.component import PayoutComponent
+from tribler_core.modules.popularity.component import PopularityComponent
+from tribler_core.modules.resource_monitor.component import ResourceMonitorComponent
+from tribler_core.modules.torrent_checker.component import TorrentCheckerComponent
+from tribler_core.modules.tunnel.component import TunnelsComponent
+from tribler_core.modules.version_check.component import VersionCheckComponent
+from tribler_core.modules.watch_folder.component import WatchFolderComponent
+from tribler_core.restapi.component import RESTComponent
+from tribler_core.session import core_session
+from tribler_core.upgrade.component import UpgradeComponent
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 from tribler_gui.utilities import get_translator
@@ -34,20 +41,23 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 # pylint: disable=import-outside-toplevel
 
 
-def communities_gen(config: TriblerConfig):
-    yield Factory(create_class=TriblerDiscoveryCommunity) if config.discovery_community.enabled else ...
-    yield Factory(create_class=TriblerDHTDiscoveryCommunity) if config.dht.enabled else ...
+def components_gen(config: TriblerConfig):
+    yield ExceptionHandlerComponent()
+    yield RESTComponent() if config.api.http_enabled or config.api.https_enabled else ...
+    yield UpgradeComponent() if config.upgrader_enabled and not config.core_test_mode else ...
+    yield MetadataStoreComponent() if config.chant.enabled else ...
+    yield Ipv8Component() if config.ipv8.enabled else ...
+    yield LibtorrentComponent() if config.libtorrent.enabled else ...
+    yield TunnelsComponent()
+    yield PayoutComponent()
+    yield TorrentCheckerComponent() if config.torrent_checking.enabled and not config.core_test_mode else ...
+    yield PopularityComponent() if config.popularity_community.enabled else ...
+    yield GigaChannelComponent() if config.chant.enabled else ...
 
-    bandwidth_accounting_kwargs = {'database': config.state_dir / "sqlite" / "bandwidth.db"}
-    bandwidth_accounting_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
-    yield Factory(create_class=bandwidth_accounting_cls, kwargs=bandwidth_accounting_kwargs)
-
-    tribler_tunnel_cls = TriblerTunnelTestnetCommunity if config.general.testnet or config.tunnel_community.testnet else TriblerTunnelCommunity
-    yield Factory(create_class=tribler_tunnel_cls) if config.tunnel_community.enabled else ...
-    yield Factory(create_class=PopularityCommunity) if config.popularity_community.enabled else ...
-
-    giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
-    yield Factory(create_class=giga_channel_cls) if config.chant.enabled else ...
+    yield WatchFolderComponent() if config.watch_folder.enabled else ...
+    yield ResourceMonitorComponent() if config.resource_monitor.enabled and not config.core_test_mode else ...
+    yield VersionCheckComponent() if config.general.version_checker_enabled and not config.core_test_mode else ...
+    yield GigachannelManagerComponent() if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled else ...
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
@@ -112,9 +122,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         shutdown_event = Event()
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown_event.set)
         # Run until core_session exits
-        await core_session(config,
-                           communities_cls=list(communities_gen(config)),
-                           shutdown_event=shutdown_event)
+        await core_session(config, components=list(components_gen(config)), shutdown_event=shutdown_event)
 
         if trace_logger:
             trace_logger.close()

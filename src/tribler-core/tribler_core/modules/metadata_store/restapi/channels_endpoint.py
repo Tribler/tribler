@@ -16,10 +16,8 @@ from marshmallow.fields import Boolean, Dict, Integer, String
 from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNEL_STATE
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.modules.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.modules.metadata_store.restapi.metadata_schema import ChannelSchema

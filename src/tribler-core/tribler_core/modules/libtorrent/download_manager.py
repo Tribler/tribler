@@ -22,7 +22,7 @@ from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.settings import LibtorrentSettings, DownloadDefaultsSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.modules.payout_manager import PayoutManager
+from tribler_core.modules.payout.payout_manager import PayoutManager
 from tribler_core.notifier import Notifier
 from tribler_core.utilities import path_util, torrent_utils
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt

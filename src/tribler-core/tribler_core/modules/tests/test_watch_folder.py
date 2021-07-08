@@ -4,7 +4,7 @@ import shutil
 import pytest
 from asynctest import Mock
 
-from tribler_core.modules.watch_folder import WatchFolder
+from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 
 @pytest.fixture
