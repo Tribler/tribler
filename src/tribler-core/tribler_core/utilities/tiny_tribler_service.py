@@ -14,7 +14,7 @@ class TinyTriblerService:
     """
 
     def __init__(self, config, timeout_in_sec=None, working_dir=Path('/tmp/tribler'),
-                 config_path=Path('tribler.conf'), communities_cls: list[Factory] = None):
+                 config_path=Path('tribler.conf'), components=None):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
@@ -23,7 +23,7 @@ class TinyTriblerService:
         self.config_path = config_path
         self.config = config
         self.timeout_in_sec = timeout_in_sec
-        self.communities_cls = communities_cls
+        self.components = components or []
 
     async def on_tribler_started(self):
         """Function will calls after the Tribler session is started
@@ -46,7 +46,7 @@ class TinyTriblerService:
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")
 
-        await core_session(self.config, communities_cls=self.communities_cls)
+        await core_session(self.config, components=self.components)
 
         self.logger.info("Tribler session started")
 

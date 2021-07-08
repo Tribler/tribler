@@ -80,8 +80,7 @@ class Service(TinyTriblerService):
         self._interval_in_sec = interval_in_sec
         self._output_file_path = output_file_path
 
-        super().__init__(config, timeout_in_sec, working_dir, config_path,
-                         communities_cls=self.communities())
+        super().__init__(config, timeout_in_sec, working_dir, config_path, components=[])
 
     async def on_tribler_started(self):
         await super().on_tribler_started()
@@ -99,15 +98,6 @@ class Service(TinyTriblerService):
         session.ipv8.overlays.append(session.popularity_community)
         session.ipv8.strategies.append((RandomWalk(session.popularity_community),
                                         TARGET_PEERS_COUNT))
-
-def communities(self):
-    return [
-        Factory(create_class=TriblerDiscoveryCommunity),
-        Factory(create_class=TriblerDHTDiscoveryCommunity),
-        Factory(create_class=ObservablePopularityCommunity,
-                kwargs={'interval_in_sec': self._interval_in_sec,
-                                 'output_file_path': self._output_file_path}),
-    ]
 
 
 def _parse_argv():

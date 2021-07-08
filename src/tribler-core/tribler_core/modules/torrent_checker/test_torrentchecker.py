@@ -14,7 +14,7 @@ import pytest
 import tribler_core.modules.torrent_checker.torrent_checker as torrent_checker_module
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
-from tribler_core.modules.tracker_manager import TrackerManager
+from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.unicode import hexlify
 
