@@ -22,7 +22,7 @@ from tribler_core.modules.metadata_store.community.gigachannel_community import 
     GigaChannelTestnetCommunity
 from tribler_core.modules.popularity.community import PopularityCommunity
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
-from tribler_core.session import CommunityFactory, core_session
+from tribler_core.session import Factory, core_session
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 from tribler_gui.utilities import get_translator
@@ -35,19 +35,19 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def communities_gen(config: TriblerConfig):
-    yield CommunityFactory(create_class=TriblerDiscoveryCommunity) if config.discovery_community.enabled else ...
-    yield CommunityFactory(create_class=TriblerDHTDiscoveryCommunity) if config.dht.enabled else ...
+    yield Factory(create_class=TriblerDiscoveryCommunity) if config.discovery_community.enabled else ...
+    yield Factory(create_class=TriblerDHTDiscoveryCommunity) if config.dht.enabled else ...
 
     bandwidth_accounting_kwargs = {'database': config.state_dir / "sqlite" / "bandwidth.db"}
     bandwidth_accounting_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
-    yield CommunityFactory(create_class=bandwidth_accounting_cls, kwargs=bandwidth_accounting_kwargs)
+    yield Factory(create_class=bandwidth_accounting_cls, kwargs=bandwidth_accounting_kwargs)
 
     tribler_tunnel_cls = TriblerTunnelTestnetCommunity if config.general.testnet or config.tunnel_community.testnet else TriblerTunnelCommunity
-    yield CommunityFactory(create_class=tribler_tunnel_cls) if config.tunnel_community.enabled else ...
-    yield CommunityFactory(create_class=PopularityCommunity) if config.popularity_community.enabled else ...
+    yield Factory(create_class=tribler_tunnel_cls) if config.tunnel_community.enabled else ...
+    yield Factory(create_class=PopularityCommunity) if config.popularity_community.enabled else ...
 
     giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
-    yield CommunityFactory(create_class=giga_channel_cls) if config.chant.enabled else ...
+    yield Factory(create_class=giga_channel_cls) if config.chant.enabled else ...
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):

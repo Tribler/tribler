@@ -4,7 +4,7 @@ import signal
 from pathlib import Path
 
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.session import CommunityFactory, core_session
+from tribler_core.session import Factory, core_session
 
 
 class TinyTriblerService:
@@ -14,7 +14,7 @@ class TinyTriblerService:
     """
 
     def __init__(self, config, timeout_in_sec=None, working_dir=Path('/tmp/tribler'),
-                 config_path=Path('tribler.conf'), communities_cls: list[CommunityFactory] = None):
+                 config_path=Path('tribler.conf'), communities_cls: list[Factory] = None):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None

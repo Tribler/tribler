@@ -16,7 +16,7 @@ from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.dht.community import TriblerDHTDiscoveryCommunity
 from tribler_core.modules.discovery.community import TriblerDiscoveryCommunity
 from tribler_core.modules.popularity.community import PopularityCommunity
-from tribler_core.session import CommunityFactory
+from tribler_core.session import Factory
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
@@ -100,14 +100,14 @@ class Service(TinyTriblerService):
         session.ipv8.strategies.append((RandomWalk(session.popularity_community),
                                         TARGET_PEERS_COUNT))
 
-    def communities(self):
-        return [
-            CommunityFactory(create_class=TriblerDiscoveryCommunity),
-            CommunityFactory(create_class=TriblerDHTDiscoveryCommunity),
-            CommunityFactory(create_class=ObservablePopularityCommunity,
-                             kwargs={'interval_in_sec': self._interval_in_sec,
-                                     'output_file_path': self._output_file_path}),
-        ]
+def communities(self):
+    return [
+        Factory(create_class=TriblerDiscoveryCommunity),
+        Factory(create_class=TriblerDHTDiscoveryCommunity),
+        Factory(create_class=ObservablePopularityCommunity,
+                kwargs={'interval_in_sec': self._interval_in_sec,
+                                 'output_file_path': self._output_file_path}),
+    ]
 
 
 def _parse_argv():

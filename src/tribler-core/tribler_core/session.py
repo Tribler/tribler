@@ -48,7 +48,7 @@ class Mediator:
 
 
 @dataclass
-class CommunityFactory:
+class Factory:
     create_class: Optional[type] = None
     kwargs: dict = field(default_factory=dict)
 
@@ -57,7 +57,7 @@ async def create_ipv8(
         config: Ipv8Settings,
         state_dir,
         ipv8_tasks,
-        communities_cls: List[CommunityFactory],
+        communities_cls: List[Factory],
         mediator: Mediator,
         trustchain_keypair,
         core_test_mode=False):
@@ -156,8 +156,10 @@ def init_keypair(state_dir, keypair_filename):
 
 async def core_session(
         config: TriblerConfig,
-        communities_cls: List[CommunityFactory],
-        shutdown_event = Event()
+        communities_cls: List[Factory],
+        components_cls: List[Factory],
+        shutdown_event=Event(),
+        notifier=Notifier()
 ):
 
     mediator = Mediator(config=config)
@@ -169,7 +171,6 @@ async def core_session(
     get_event_loop().set_exception_handler(exception_handler.unhandled_error_observer)
     patch_crypto_be_discovery()
 
-    notifier = Notifier()
     mediator.notifier = notifier
 
     logger.info("Session is using state directory: %s", config.state_dir)
@@ -268,7 +269,7 @@ async def core_session(
             mediator=mediator,
             trustchain_keypair=trustchain_keypair,
             core_test_mode=config.core_test_mode)
-        
+
         if api_manager:
             from ipv8.messaging.anonymization.community import TunnelCommunity
             api_manager.get_endpoint('ipv8').initialize(ipv8)
