@@ -12,11 +12,8 @@ from pony.orm import count, db_session
 
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.dht.community import TriblerDHTDiscoveryCommunity
-from tribler_core.modules.discovery.community import TriblerDiscoveryCommunity
-from tribler_core.modules.popularity.community import PopularityCommunity
-from tribler_core.session import Factory
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler_core.modules.popularity.popularity_community import PopularityCommunity
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
@@ -31,8 +28,8 @@ sentry_sdk.init(
 
 class ObservablePopularityCommunity(PopularityCommunity):
 
-    def __init__(self, *args, interval_in_sec=0, output_file_path=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, interval_in_sec, output_file_path, *args, **kwargs):
+        super().__init__(*args, rqc_settings=RemoteQueryCommunitySettings(), **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._start_time = time.time()
@@ -70,17 +67,19 @@ class ObservablePopularityCommunity(PopularityCommunity):
 
 class Service(TinyTriblerService):
     def __init__(self, interval_in_sec, output_file_path, timeout_in_sec, working_dir, config_path):
-        config = TriblerConfig(state_dir=working_dir, file=config_path)
-        config.libtorrent.enabled = False
-        config.ipv8.enabled = True
-        config.chant.enabled = False
-        config.upgrader_enabled = False
-        config.chant.enabled = False
+        super().__init__(Service.create_config(working_dir, config_path), timeout_in_sec,
+                         working_dir, config_path)
 
         self._interval_in_sec = interval_in_sec
         self._output_file_path = output_file_path
 
-        super().__init__(config, timeout_in_sec, working_dir, config_path, components=[])
+    @staticmethod
+    def create_config(working_dir, config_path):
+        config = TinyTriblerService.create_default_config(working_dir, config_path)
+        config.libtorrent.enabled = True
+        config.ipv8.enabled = True
+        config.chant.enabled = True
+        return config
 
     async def on_tribler_started(self):
         await super().on_tribler_started()
