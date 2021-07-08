@@ -15,12 +15,12 @@ from tribler_core.modules.torrent_checker.torrentchecker_session import (
     UdpSocketManager,
     create_tracker_session,
 )
-from tribler_core.modules.tracker_manager import MAX_TRACKER_FAILURES
+from tribler_core.modules.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.tracker_manager import TrackerManager
+from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 from tribler_core.modules.metadata_store.store import MetadataStore
 
 from tribler_core.notifier import Notifier

@@ -12,7 +12,7 @@ import async_timeout
 
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.caches import CreateRequestCache
-from ipv8.messaging.anonymization.community import TunnelSettings, unpack_cell, TunnelCommunity
+from ipv8.messaging.anonymization.community import TunnelSettings, unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
@@ -28,7 +28,6 @@ from ipv8.messaging.anonymization.tunnel import (
     RelayRoute,
 )
 from ipv8.peer import Peer
-from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
 from ipv8.types import Address
@@ -37,8 +36,6 @@ from ipv8.util import succeed
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
-from tribler_core.modules.community_di_mixin import CommunityDIMixin, INFINITE_TARGET_PEERS, StrategyFactory
-from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
@@ -51,7 +48,6 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceRequestPayload,
     RelayBalanceResponsePayload,
 )
-from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.session import Mediator
 from tribler_core.utilities.bencodecheck import is_bencoded
@@ -64,28 +60,25 @@ PEER_FLAG_EXIT_HTTP = 32768
 MAX_HTTP_PACKET_SIZE = 1400
 
 
-class TriblerTunnelCommunity(CommunityDIMixin, HiddenTunnelCommunity):
+class TriblerTunnelCommunity(HiddenTunnelCommunity):
     """
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
-    def __init__(self, *args, exitnode_cache: Path = None, mediator: Mediator = None, **kwargs):
-        self.config = mediator.config.tunnel_community
-        self.notifier = mediator.notifier
-        self.dlmgr = mediator.download_manager
+    def __init__(self, my_peer, endpoint, network, exitnode_cache: Path = None, config=None, notifier=None, dlmgr=None,
+                 bandwidth_community=None, dht_community=None, ipv8_port=None, settings=None):
+        self.config = config
+        self.notifier = notifier
+        self.dlmgr = dlmgr
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
-        self.bandwidth_community = mediator.dictionary.pop('bandwidth_community', None)
-        self.dht_community = mediator.dictionary.pop('dht_community', None)
-        socks_listen_ports = self.config.socks5_listen_ports
-        self.settings = TunnelSettings()
-        self.settings.min_circuits = self.config.min_circuits
-        self.settings.max_circuits = self.config.max_circuits
+        self.bandwidth_community = bandwidth_community
+        self.dht_community = dht_community
         self.exitnode_cache = exitnode_cache
-        dht_provider = DHTCommunityProvider(self.dht_community, mediator.config.ipv8.port)
-        super().__init__(*args, ipv8=mediator.ipv8, dht_provider=dht_provider, **kwargs)
+        dht_provider = DHTCommunityProvider(self.dht_community, ipv8_port)
+        super().__init__(my_peer, endpoint, network, ipv8=network, dht_provider=dht_provider, settings=settings)
         self._use_main_thread = True
 
         if self.config.exitnode_enabled:
@@ -93,9 +86,7 @@ class TriblerTunnelCommunity(CommunityDIMixin, HiddenTunnelCommunity):
             self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
             self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
-        if not socks_listen_ports:
-            socks_listen_ports = self.config.socks5_listen_ports or range(1080, 1085)
-
+        socks_listen_ports = self.config.socks5_listen_ports or range(1080, 1085)
         self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
@@ -127,11 +118,6 @@ class TriblerTunnelCommunity(CommunityDIMixin, HiddenTunnelCommunity):
 
         if self.exitnode_cache is not None:
             self.restore_exitnodes_from_disk()
-
-        self.init_community_di_mixin(strategies=[
-            StrategyFactory(create_class=RandomWalk, target_peers=30),
-            StrategyFactory(create_class=RemovePeers, target_peers=INFINITE_TARGET_PEERS),
-        ])
 
     async def wait_for_socks_servers(self):
         # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.

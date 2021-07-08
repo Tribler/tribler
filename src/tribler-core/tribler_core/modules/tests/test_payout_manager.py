@@ -4,7 +4,7 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_core.modules.payout_manager import PayoutManager
+from tribler_core.modules.payout.payout_manager import PayoutManager
 
 
 @pytest.fixture

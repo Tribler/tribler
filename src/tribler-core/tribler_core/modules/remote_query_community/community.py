@@ -16,6 +16,7 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.modules.remote_query_community.eva_protocol import EVAProtocolMixin
+from tribler_core.modules.tribler_community import TriblerCommunity
 
 from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
@@ -123,16 +124,17 @@ class PushbackWindow(NumberCache):
         pass
 
 
-class RemoteQueryCommunity(Community, EVAProtocolMixin):
+class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, **kwargs):
+    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, rqc_settings=None, metadata_store=None,
+                 **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
-        self.rqc_settings = mediator.config.remote_query_community
-        self.mds: MetadataStore = mediator.metadata_store
+        self.rqc_settings = rqc_settings
+        self.mds: MetadataStore = metadata_store
 
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.
