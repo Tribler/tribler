@@ -1,5 +1,5 @@
 import time
-
+import numpy as np
 import pyqtgraph as pg
 from pyqtgraph import DateAxisItem
 from pyqtgraph.graphicsItems.DateAxisItem import YEAR_SPACING
@@ -8,9 +8,10 @@ from tribler_gui.defs import BITTORRENT_BIRTHDAY
 
 
 class TimeSeriesPlot(pg.PlotWidget):
+
     def __init__(self, parent, name, series, **kargs):
-        axisItems = {'bottom': DateAxisItem('bottom')}
-        super().__init__(parent=parent, title=name, axisItems=axisItems, **kargs)
+        axis_items = kargs.pop('axis_items', {'bottom': DateAxisItem('bottom')})
+        super().__init__(parent=parent, title=name, axisItems=axis_items, **kargs)
         self.getPlotItem().showGrid(x=True, y=True)
         self.setBackground('#202020')
         self.setAntialiasing(True)
@@ -47,5 +48,5 @@ class TimeSeriesPlot(pg.PlotWidget):
 
         for i, plot in enumerate(self.plots):
             plot.setData(
-                x=pg.np.array(list(self.plot_data.keys())), y=pg.np.array([data[i] for data in self.plot_data.values()])
+                x=np.array(list(self.plot_data.keys())), y=np.array([data[i] for data in self.plot_data.values()])
             )

@@ -8,16 +8,16 @@ from tribler_gui.defs import GB, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect
-from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
+from tribler_gui.widgets.graphs.dataplot import TimeSeriesDataPlot
 
 
-class TrustSeriesPlot(TimeSeriesPlot):
+class TrustSeriesPlot(TimeSeriesDataPlot):
     def __init__(self, parent, **kargs):
         series = [
             {'name': 'Token balance', 'pen': (224, 94, 0), 'symbolBrush': (224, 94, 0), 'symbolPen': 'w'},
         ]
         super().__init__(parent, 'Token balance over time', series, **kargs)
-        self.setLabel('left', 'Data', units='bytes')
+        self.setLabel('left', 'Data', units='B')
         self.setLimits(yMin=-GB, yMax=TB)
 
 
