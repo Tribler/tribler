@@ -7,7 +7,7 @@ from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 class DataAxisItem(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
-        return [format_size(value) for value in values]
+        return [format_size(value, precision=3) for value in values]
 
 
 class TimeSeriesDataPlot(TimeSeriesPlot):
