@@ -43,10 +43,10 @@ def index2uri(index):
     return data_item2uri(index.model().data_items[index.row()])
 
 
-def format_size(num, suffix='B'):
+def format_size(num, suffix='B', precision=1):
     for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:
-            return f"{num:3.1f} {unit}{suffix}"
+            return f"{num:3.{precision}f} {unit}{suffix}"
         num /= 1024.0
     return f"{num:.1f} Yi{suffix}"
 
