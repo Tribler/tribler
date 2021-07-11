@@ -27,14 +27,13 @@ class BandwidthAccountingCommunity(TriblerCommunity):
     DB_NAME = 'bandwidth'
     version = b'\x02'
 
-    def __init__(self, *args, database=None, database_path='',  **kwargs) -> None:
+    def __init__(self, *args, database=None, **kwargs) -> None:
         """
         Initialize the community.
         :param persistence: The database that stores transactions, will be created if not provided.
         :param database_path: The path at which the database will be created. Defaults to the current working directory.
         """
         self.database = database
-        self.database_path = Path(database_path)
         self.random = Random()
 
         super().__init__(*args, **kwargs)
@@ -42,8 +41,8 @@ class BandwidthAccountingCommunity(TriblerCommunity):
         self.request_cache = RequestCache()
         self.my_pk = self.my_peer.public_key.key_to_bin()
 
-        if not self.database:
-            self.database = BandwidthDatabase(self.database_path, self.my_pk)
+        if not isinstance(database, BandwidthDatabase):
+            self.database = BandwidthDatabase(self.database, self.my_pk)
 
         self.add_message_handler(BandwidthTransactionPayload, self.received_transaction)
         self.add_message_handler(BandwidthTransactionQueryPayload, self.received_query)
