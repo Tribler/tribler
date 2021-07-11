@@ -49,7 +49,6 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
-from tribler_core.session import Mediator
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
@@ -75,9 +74,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
         self.bandwidth_community = bandwidth_community
-        self.dht_community = dht_community
         self.exitnode_cache = exitnode_cache
-        dht_provider = DHTCommunityProvider(self.dht_community, ipv8_port)
+        dht_provider = DHTCommunityProvider(dht_community, ipv8_port)
         super().__init__(my_peer, endpoint, network, ipv8=network, dht_provider=dht_provider, settings=settings)
         self._use_main_thread = True
 

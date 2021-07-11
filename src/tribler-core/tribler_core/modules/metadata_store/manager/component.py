@@ -1,5 +1,8 @@
 from tribler_core.modules.component import Component
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
+from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.restapi.rest_manager import RESTManager
 from tribler_core.session import Mediator
 
 
@@ -14,9 +17,8 @@ class GigachannelManagerComponent(Component):
         config = mediator.config
         notifier = mediator.notifier
 
-        metadata_store = mediator.optional.get('metadata_store', None)
-        download_manager = mediator.optional.get('download_manager', None)
-        api_manager = mediator.optional.get('api_manager', None)
+        download_manager = await mediator.awaitable_components.get(DownloadManager)
+        metadata_store = await mediator.awaitable_components.get(MetadataStore)
 
         if not metadata_store or not download_manager:
             return
@@ -27,13 +29,13 @@ class GigachannelManagerComponent(Component):
         if not config.core_test_mode:
             manager.start()
 
-        if api_manager:
+        if api_manager := await mediator.awaitable_components.get(RESTManager):
             api_manager.get_endpoint('channels').gigachannel_manager = manager
             api_manager.get_endpoint('collections').gigachannel_manager = manager
 
         self.manager = manager
 
     async def shutdown(self, mediator):
-        await super().shutdown(mediator)
         mediator.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")
         await self.manager.shutdown()
+        await super().shutdown(mediator)

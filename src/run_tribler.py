@@ -14,6 +14,7 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
+from tribler_core.modules.bandwidth_accounting.component import BandwidthAccountingComponent
 from tribler_core.modules.exception_handler.component import ExceptionHandlerComponent
 from tribler_core.modules.ipv8.component import Ipv8Component
 from tribler_core.modules.libtorrent.module import LibtorrentComponent
@@ -45,14 +46,15 @@ def components_gen(config: TriblerConfig):
     components_list = [
         (ExceptionHandlerComponent, True),
         (RESTComponent, config.api.http_enabled or config.api.https_enabled),
-        (UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
+        #(UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponent, config.chant.enabled),
         (Ipv8Component, config.ipv8.enabled),
         (LibtorrentComponent, config.libtorrent.enabled),
-        (TunnelsComponent, True),
-        (PayoutComponent, True),
+        (TunnelsComponent, config.ipv8.enabled and config.tunnel_community.enabled),
+        (BandwidthAccountingComponent, config.ipv8.enabled),
+        (PayoutComponent, config.ipv8.enabled),
         (TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
-        (PopularityComponent, config.popularity_community.enabled),
+        (PopularityComponent, config.ipv8.enabled and config.popularity_community.enabled),
         (GigaChannelComponent, config.chant.enabled),
         (WatchFolderComponent, config.watch_folder.enabled),
         (ResourceMonitorComponent, config.resource_monitor.enabled and not config.core_test_mode),

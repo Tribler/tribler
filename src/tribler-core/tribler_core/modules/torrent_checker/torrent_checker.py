@@ -55,7 +55,8 @@ class TorrentChecker(TaskManager):
         self._should_stop = False
         self._session_list = {'DHT': []}
 
-        self.socket_mgr = self.udp_transport = None
+        self.socket_mgr = UdpSocketManager()
+        self.udp_transport = None
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
@@ -64,7 +65,6 @@ class TorrentChecker(TaskManager):
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("torrent_check", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
-        self.socket_mgr = UdpSocketManager()
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self):

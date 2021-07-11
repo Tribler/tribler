@@ -1,10 +1,11 @@
 """
 Author(s): Vadim Bulavintsev
 """
+import itertools
 import logging
 import os
 import sys
-from asyncio import Event
+from asyncio import Event, create_task, gather, Future, get_event_loop
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -30,6 +31,8 @@ class Mediator:
 
     # optional parameters (stored as dictionary)
     optional: dict = field(default_factory=dict)
+
+    awaitable_components: dict = field(default_factory=dict)
 
 
 def create_state_directory_structure(state_dir):
@@ -71,6 +74,7 @@ async def core_session(
         notifier=Notifier()
 ):
     mediator = Mediator(config=config, notifier=notifier, optional={'shutdown_event': shutdown_event})
+    mediator.optional['ipv8'] = get_event_loop().create_future()
 
     logger = logging.getLogger("Session")
 
@@ -87,9 +91,17 @@ async def core_session(
     if sys.platform == 'darwin':
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-    for component in components:
-        await component.run(mediator)
+    for module_class in itertools.chain(*[c.provided_futures for c in components]):
+        print(module_class)
+        mediator.awaitable_components[module_class] = get_event_loop().create_future()
 
+
+
+    tasklist = []
+    for component in components:
+        tasklist.append(create_task(component.run(mediator)))
+
+    await gather(*tasklist)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 
