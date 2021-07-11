@@ -18,7 +18,7 @@ class GigaChannelComponent(Component):
         config = mediator.config
         notifier = mediator.notifier
 
-        ipv8 = mediator.optional.get('ipv8', None)
+        ipv8 = await mediator.optional['ipv8']
         peer = mediator.optional.get('peer', None)
         bootstrapper = mediator.optional.get('bootstrapper', None)
         metadata_store = mediator.optional.get('metadata_store', None)

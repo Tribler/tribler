@@ -12,7 +12,7 @@ class PopularityComponent(Component):
         await super().run(mediator)
         config = mediator.config
 
-        ipv8 = mediator.optional.get('ipv8', None)
+        ipv8 = await mediator.optional['ipv8']
         peer = mediator.optional.get('peer', None)
         bootstrapper = mediator.optional.get('bootstrapper', None)
         torrent_checker = mediator.optional.get('torrent_checker', None)

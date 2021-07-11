@@ -3,7 +3,6 @@ import struct
 from asyncio import Future
 from binascii import unhexlify
 
-from ipv8.community import Community
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache

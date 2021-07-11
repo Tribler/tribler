@@ -26,7 +26,7 @@ class TunnelsComponent(Component):
         config = mediator.config
         notifier = mediator.notifier
 
-        ipv8 = mediator.optional.get('ipv8', None)
+        ipv8 = await mediator.optional['ipv8']
         api_manager = mediator.optional.get('api_manager', None)
 
         if not ipv8:

@@ -4,7 +4,7 @@ Author(s): Vadim Bulavintsev
 import logging
 import os
 import sys
-from asyncio import Event
+from asyncio import Event, create_task, gather, Future, get_event_loop
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -16,7 +16,10 @@ from tribler_common.simpledefs import (
 )
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.component import Component
+from tribler_core.modules.exception_handler.component import ExceptionHandlerComponent
 from tribler_core.notifier import Notifier
+from tribler_core.restapi.component import RESTComponent
+from tribler_core.upgrade.component import UpgradeComponent
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 
@@ -71,6 +74,7 @@ async def core_session(
         notifier=Notifier()
 ):
     mediator = Mediator(config=config, notifier=notifier, optional={'shutdown_event': shutdown_event})
+    mediator.optional['ipv8'] = get_event_loop().create_future()
 
     logger = logging.getLogger("Session")
 
@@ -87,9 +91,14 @@ async def core_session(
     if sys.platform == 'darwin':
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-    for component in components:
+    for component in components[:3]:
         await component.run(mediator)
 
+    tasklist = []
+    for component in components[3:]:
+        tasklist.append(create_task(component.run(mediator)))
+
+    await gather(*tasklist)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 

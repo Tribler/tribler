@@ -19,7 +19,6 @@ class LibtorrentComponent(Component):
         notifier = mediator.notifier
         trustchain_keypair = mediator.trustchain_keypair
 
-        ipv8 = mediator.optional.get('ipv8', None)
         payout_manager = mediator.optional.get('payout_manager', None)
         api_manager = mediator.optional.get('api_manager', None)
 
@@ -32,11 +31,12 @@ class LibtorrentComponent(Component):
                                            peer_mid=trustchain_keypair.key_to_hash(),
                                            download_defaults=config.download_defaults,
                                            payout_manager=payout_manager,
-                                           tunnel_community=ipv8.get_overlay(TunnelCommunity),
                                            bootstrap_infohash=config.bootstrap.infohash,
                                            dummy_mode=config.core_test_mode)
 
         download_manager.initialize()
+        ipv8 = await mediator.optional['ipv8']
+        download_manager.tunnel_community = ipv8.get_overlay(TunnelCommunity)
 
         if api_manager:
             api_manager.get_endpoint('state').readable_status = STATE_LOAD_CHECKPOINTS

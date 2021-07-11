@@ -37,9 +37,9 @@ class Ipv8Component(Component):
         self.ipv8 = ipv8
         self.ipv8_tasks = ipv8_tasks
 
-        mediator.optional['ipv8'] = ipv8
         mediator.optional['peer'] = peer
         mediator.optional['bootstrapper'] = bootstrapper
+        mediator.optional['ipv8'].set_result(ipv8)
 
     async def shutdown(self, mediator):
         await super().shutdown(mediator)
