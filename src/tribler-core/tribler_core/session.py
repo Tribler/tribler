@@ -90,6 +90,7 @@ async def core_session(
     for component in components:
         await component.run(mediator)
 
+
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 
     # If there is a config error, report to the user via GUI notifier

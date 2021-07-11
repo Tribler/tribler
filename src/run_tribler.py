@@ -42,22 +42,28 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def components_gen(config: TriblerConfig):
-    yield ExceptionHandlerComponent()
-    yield RESTComponent() if config.api.http_enabled or config.api.https_enabled else ...
-    yield UpgradeComponent() if config.upgrader_enabled and not config.core_test_mode else ...
-    yield MetadataStoreComponent() if config.chant.enabled else ...
-    yield Ipv8Component() if config.ipv8.enabled else ...
-    yield LibtorrentComponent() if config.libtorrent.enabled else ...
-    yield TunnelsComponent()
-    yield PayoutComponent()
-    yield TorrentCheckerComponent() if config.torrent_checking.enabled and not config.core_test_mode else ...
-    yield PopularityComponent() if config.popularity_community.enabled else ...
-    yield GigaChannelComponent() if config.chant.enabled else ...
+    components_list = [
+        (ExceptionHandlerComponent, True),
+        (RESTComponent, config.api.http_enabled or config.api.https_enabled),
+        (UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
+        (MetadataStoreComponent, config.chant.enabled),
+        (Ipv8Component, config.ipv8.enabled),
+        (LibtorrentComponent, config.libtorrent.enabled),
+        (TunnelsComponent, True),
+        (PayoutComponent, True),
+        (TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
+        (PopularityComponent, config.popularity_community.enabled),
+        (GigaChannelComponent, config.chant.enabled),
+        (WatchFolderComponent, config.watch_folder.enabled),
+        (ResourceMonitorComponent, config.resource_monitor.enabled and not config.core_test_mode),
+        (VersionCheckComponent, config.general.version_checker_enabled and not config.core_test_mode),
+        (GigachannelManagerComponent,
+         config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled)
+    ]
 
-    yield WatchFolderComponent() if config.watch_folder.enabled else ...
-    yield ResourceMonitorComponent() if config.resource_monitor.enabled and not config.core_test_mode else ...
-    yield VersionCheckComponent() if config.general.version_checker_enabled and not config.core_test_mode else ...
-    yield GigachannelManagerComponent() if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled else ...
+    for component, condition in components_list:
+        if condition:
+            yield component()
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
