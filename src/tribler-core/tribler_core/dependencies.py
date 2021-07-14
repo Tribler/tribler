@@ -33,6 +33,7 @@ dependencies = [
     {'module': 'pyqtgraph', 'install_type': 'pip3', 'package': 'pyqtgraph', 'optional': False, 'scope': 'gui'},
     {'module': 'PyQt5', 'install_type': 'pip3', 'package': 'PyQt5', 'optional': False, 'scope': 'gui'},
     {'module': 'yaml', 'install_type': 'pip3', 'package': 'pyyaml', 'optional': False, 'scope': 'core'},
+    {'module': 'pydantic', 'install_type': 'pip3', 'package': 'pydantic', 'optional': False, 'scope': 'core'},
 ]
 
 
