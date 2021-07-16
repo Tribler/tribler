@@ -1,10 +1,13 @@
 from tribler_common.simpledefs import STATE_START_API
 from tribler_core.modules.component import Component
+from tribler_core.modules.exception_handler.exception_handler import CoreExceptionHandler
 from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 
 
 class RESTComponent(Component):
+    provided_futures = (RESTManager, )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.api_manager = None
@@ -14,7 +17,7 @@ class RESTComponent(Component):
         config = mediator.config
         notifier = mediator.notifier
         shutdown_event = mediator.optional.get('shutdown_event', None)
-        exception_handler = mediator.optional.get('exception_handler', None)
+        exception_handler = await mediator.awaitable_components.get(CoreExceptionHandler)
 
         root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
@@ -38,9 +41,9 @@ class RESTComponent(Component):
             api_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
 
         self.api_manager = api_manager
-        mediator.optional['api_manager'] = api_manager
+        mediator.awaitable_components[RESTManager].set_result(api_manager)
 
     async def shutdown(self, mediator):
-        await super().shutdown(mediator)
         mediator.notifier.notify_shutdown_state("Shutting down API Manager...")
         await self.api_manager.stop()
+        await super().shutdown(mediator)

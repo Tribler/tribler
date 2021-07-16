@@ -7,11 +7,12 @@ from aiohttp import web
 from aiohttp_apispec import docs, json_schema
 
 from ipv8.REST.schema import schema
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_BT
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
+from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES, \
+    DLSTATUS_WAITING4HASHCHECK
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -234,13 +235,24 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
                                 tdef.get_name_utf8()
 
+            def get_extended_status(dlstatus):
+                if dlstatus is not None:
+                    return dlstatus
+                if download.config.get_hops() > 0:
+                    if self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+                        return DLSTATUS_CIRCUITS
+                    else:
+                        return DLSTATUS_EXIT_NODES
+                return DLSTATUS_WAITING4HASHCHECK
+
+            download_status = get_extended_status(state.get_status())
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),
                 "infohash": hexlify(tdef.get_infohash()),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
-                "status": dlstatus_strings[state.get_status()],
+                "status": dlstatus_strings[download_status],
                 "size": tdef.get_length(),
                 "eta": state.get_eta(),
                 "num_peers": num_peers,

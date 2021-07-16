@@ -8,6 +8,7 @@ from tribler_core.utilities.unicode import hexlify
 
 
 class ExceptionHandlerComponent(Component):
+    provided_futures = (CoreExceptionHandler, )
     async def run(self, mediator):
         await super().run(mediator)
         config = mediator.config
@@ -19,4 +20,4 @@ class ExceptionHandlerComponent(Component):
         user_id_str = hexlify(trustchain_keypair.key.pk).encode('utf-8')
         SentryReporter.set_user(user_id_str)
 
-        mediator.optional['exception_handler'] = exception_handler
+        mediator.awaitable_components[CoreExceptionHandler].set_result(exception_handler)

@@ -1,6 +1,7 @@
 """
 Author(s): Vadim Bulavintsev
 """
+import itertools
 import logging
 import os
 import sys
@@ -16,10 +17,7 @@ from tribler_common.simpledefs import (
 )
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.component import Component
-from tribler_core.modules.exception_handler.component import ExceptionHandlerComponent
 from tribler_core.notifier import Notifier
-from tribler_core.restapi.component import RESTComponent
-from tribler_core.upgrade.component import UpgradeComponent
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 
@@ -33,6 +31,8 @@ class Mediator:
 
     # optional parameters (stored as dictionary)
     optional: dict = field(default_factory=dict)
+
+    awaitable_components: dict = field(default_factory=dict)
 
 
 def create_state_directory_structure(state_dir):
@@ -91,11 +91,14 @@ async def core_session(
     if sys.platform == 'darwin':
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-    for component in components[:3]:
-        await component.run(mediator)
+    for module_class in itertools.chain(*[c.provided_futures for c in components]):
+        print(module_class)
+        mediator.awaitable_components[module_class] = get_event_loop().create_future()
+
+
 
     tasklist = []
-    for component in components[3:]:
+    for component in components:
         tasklist.append(create_task(component.run(mediator)))
 
     await gather(*tasklist)

@@ -15,14 +15,13 @@ from shutil import rmtree
 
 from ipv8.taskmanager import TaskManager, task
 from tribler_common.network_utils import NetworkUtils
-from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
+from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR, NTFY
 from tribler_common.utilities import uri_to_path
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.settings import LibtorrentSettings, DownloadDefaultsSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.modules.payout.payout_manager import PayoutManager
 from tribler_core.notifier import Notifier
 from tribler_core.utilities import path_util, torrent_utils
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
@@ -62,8 +61,6 @@ class DownloadManager(TaskManager):
                  peer_mid: bytes,
                  config: LibtorrentSettings = None,
                  download_defaults: DownloadDefaultsSettings = None,
-                 payout_manager: PayoutManager = None,
-                 tunnel_community=None,
                  bootstrap_infohash=None,
                  dummy_mode: bool = False):
         super().__init__()
@@ -76,12 +73,11 @@ class DownloadManager(TaskManager):
         self.dht_health_manager = None
         self.listen_ports = {}
 
+        # TODO: Remove the dependency on notifier and refactor it to instead use callbacks injection
         self.notifier = notifier
         self.peer_mid = peer_mid
         self.config = config or LibtorrentSettings()
-        self.payout_manager = payout_manager
         self.bootstrap_infohash = bootstrap_infohash
-        self.tunnel_community = tunnel_community
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
 
         self.set_upload_rate_limit(0)
@@ -389,8 +385,8 @@ class DownloadManager(TaskManager):
             # We use the now-deprecated ``endpoint`` attribute for these older versions.
             self.listen_ports[hops] = getattr(alert, "port", alert.endpoint[1])
 
-        elif alert_type == 'peer_disconnected_alert' and self.payout_manager:
-            self.payout_manager.do_payout(alert.pid.to_bytes())
+        elif alert_type == 'peer_disconnected_alert' and self.notifier:
+            self.notifier.notify(NTFY.PEER_DISCONNECTED_EVENT, alert.pid.to_bytes())
 
         elif alert_type == 'session_stats_alert':
             queued_disk_jobs = alert.values['disk.queued_disk_jobs']
@@ -802,14 +798,14 @@ class DownloadManager(TaskManager):
 
             # Check the peers of this download every five seconds and add them to the payout manager when
             # this peer runs a Tribler instance
-            if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.payout_manager:
+            if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.notifier:
                 for peer in download.get_peerlist():
                     if str(peer["extended_version"]).startswith('Tribler'):
-                        self.payout_manager.update_peer(unhexlify(peer["id"]), infohash, peer["dtotal"])
+                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE, unhexlify(peer["id"]), infohash, peer["dtotal"])
 
         if self.state_cb_count % 4 == 0:
-            if self.tunnel_community:
-                self.tunnel_community.monitor_downloads(states_list)
+            if self.notifier:
+                self.notifier.notify(NTFY.DOWNLOADS_LIST_UPDATE, states_list)
 
     async def load_checkpoints(self):
         for filename in self.get_checkpoint_dir().glob('*.conf'):

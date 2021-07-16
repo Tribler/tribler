@@ -23,6 +23,6 @@ class ResourceMonitorComponent(Component):
         self.resource_monitor = resource_monitor
 
     async def shutdown(self, mediator):
-        await super().shutdown(mediator)
         mediator.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
         await self.resource_monitor.stop()
+        await super().shutdown(mediator)

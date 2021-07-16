@@ -70,13 +70,12 @@ class DownloadState:
     def get_status(self):
         """ Returns the status of the torrent.
         @return DLSTATUS_* """
-        if not self.lt_status:
-            return (DLSTATUS_CIRCUITS if not self.download.dlmgr.tunnel_community
-                    or self.download.dlmgr.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT)
-                    else DLSTATUS_EXIT_NODES) if self.download.config.get_hops() > 0 else DLSTATUS_WAITING4HASHCHECK
-        elif self.get_error():
+
+        if self.lt_status:
+            return DLSTATUS_MAP[self.lt_status.state] if not self.lt_status.paused else DLSTATUS_STOPPED
+        if self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR
-        return DLSTATUS_MAP[self.lt_status.state] if not self.lt_status.paused else DLSTATUS_STOPPED
+        return None
 
     def get_error(self):
         """ Returns the Exception that caused the download to be moved to DLSTATUS_STOPPED_ON_ERROR status.
