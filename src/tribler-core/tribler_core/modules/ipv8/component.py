@@ -1,6 +1,7 @@
 from ipv8.bootstrapping.bootstrapper_interface import Bootstrapper
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
-from ipv8.configuration import ConfigBuilder
+from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
+from ipv8.dht.churn import PingChurn
 from ipv8.dht.discovery import DHTDiscoveryCommunity
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.peer import Peer
@@ -20,7 +21,6 @@ INFINITE = -1
 
 @froze_it
 class Ipv8Component(Component):
-    start_async = True
     provided_futures = (IPv8, Bootstrapper, Peer, DHTDiscoveryCommunity)
 
     def __init__(self, *args, **kwargs):
@@ -39,10 +39,10 @@ class Ipv8Component(Component):
         self.ipv8_tasks = TaskManager()
 
         self.ipv8 = ipv8 = await self.create_ipv8(self.config.ipv8, self.ipv8_tasks, self.config.core_test_mode)
-        print ("IPV8" , repr(ipv8))
         mediator.awaitable_components[IPv8].set_result(ipv8)
-        if api_manager:= await mediator.awaitable_components.get(RESTManager):
-            api_manager.get_endpoint('ipv8').initialize(ipv8)
+        if api_manager := await mediator.awaitable_components.get(RESTManager):
+            api_manager.get_endpoint('statistics').ipv8 = ipv8
+            #api_manager.get_endpoint('ipv8').initialize(ipv8)
 
         bootstrapper = await self.create_bootstrapper(self.config.ipv8.bootstrap_override)
         mediator.awaitable_components[Bootstrapper].set_result(bootstrapper)
@@ -108,8 +108,7 @@ class Ipv8Component(Component):
 
         if self.config.dht.enabled:
             community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
-            ipv8.strategies.append((RandomChurn(community), INFINITE))
-            ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
+            ipv8.strategies.append((PingChurn(community), INFINITE))
             ipv8.strategies.append((RandomWalk(community), 20))
 
             if bootstrapper:
@@ -119,8 +118,8 @@ class Ipv8Component(Component):
             mediator.awaitable_components[DHTDiscoveryCommunity].set_result(community)
 
     async def create_bootstrapper(self, bootstrap_override):
-        if not bootstrap_override:
-            return
+        if bootstrap_override:
+            address, port = bootstrap_override.split(':')
+            return DispersyBootstrapper(ip_addresses=[(address, int(port))], dns_addresses=[])
 
-        address, port = self.config.bootstrap_override.split(':')
-        return DispersyBootstrapper(ip_addresses=[(address, int(port))], dns_addresses=[])
+        return DispersyBootstrapper(**DISPERSY_BOOTSTRAPPER['init'])

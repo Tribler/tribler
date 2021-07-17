@@ -95,13 +95,15 @@ async def core_session(
         print(module_class)
         mediator.awaitable_components[module_class] = get_event_loop().create_future()
 
-
-
     tasklist = []
     for component in components:
         tasklist.append(create_task(component.run(mediator)))
-
     await gather(*tasklist)
+
+    from tribler_core.restapi.rest_manager import RESTManager
+    from ipv8_service import IPv8
+    ipv8 = await mediator.awaitable_components[IPv8]
+    (await mediator.awaitable_components[RESTManager]).get_endpoint('ipv8').initialize(ipv8)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 

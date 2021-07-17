@@ -50,8 +50,6 @@ class RootEndpoint(RESTEndpoint):
             #'/debug': (DebugEndpoint, True),
             '/bandwidth': (BandwidthEndpoint, True),
             '/trustview': (TrustViewEndpoint, True),
-            #'/bandwidth': (BandwidthEndpoint, self.tribler_config.bandwidth_accounting.enabled),
-            #'/trustview': (TrustViewEndpoint, self.tribler_config.bandwidth_accounting.enabled),
             '/statistics': (StatisticsEndpoint, True),
             '/libtorrent': (LibTorrentEndpoint, self.tribler_config.libtorrent.enabled),
             '/torrentinfo': (TorrentInfoEndpoint, self.tribler_config.libtorrent.enabled),

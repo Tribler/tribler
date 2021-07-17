@@ -50,6 +50,24 @@ def _safe_extended_peer_info(ext_peer_info):
         # We might have some special unicode characters in here
         return ''.join([chr(c) for c in ext_peer_info])
 
+def get_extended_status(tunnel_community, download):
+    """
+    This function filters the original download status to possibly add tunnel-related status.
+    Extracted from DownloadState to remove coupling between DownloadState and Tunnels.
+    """
+    state = download.get_state()
+    dlstatus = state.get_status()
+    if state.lt_status and state.lt_status.paused:
+        # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
+        return dlstatus
+
+    if download.config.get_hops() > 0:
+        if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+            return DLSTATUS_CIRCUITS
+        else:
+            return DLSTATUS_EXIT_NODES
+    return dlstatus
+
 
 @froze_it
 class DownloadsEndpoint(RESTEndpoint):
@@ -204,6 +222,7 @@ class DownloadsEndpoint(RESTEndpoint):
                     "get_pieces flag is set. Note that setting this flag has a negative impact on performance "
                     "and should only be used in situations where this data is required. "
     )
+
     async def get_downloads(self, request):
         get_peers = request.query.get('get_peers', '0') == '1'
         get_pieces = request.query.get('get_pieces', '0') == '1'
@@ -235,17 +254,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
                                 tdef.get_name_utf8()
 
-            def get_extended_status(dlstatus):
-                if dlstatus is not None:
-                    return dlstatus
-                if download.config.get_hops() > 0:
-                    if self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-                        return DLSTATUS_CIRCUITS
-                    else:
-                        return DLSTATUS_EXIT_NODES
-                return DLSTATUS_WAITING4HASHCHECK
-
-            download_status = get_extended_status(state.get_status())
+            download_status = get_extended_status(self.tunnel_community, download)
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),

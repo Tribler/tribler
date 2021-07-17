@@ -39,6 +39,7 @@ class MetadataStoreComponent(Component):
             api_manager.get_endpoint('downloads').mds = metadata_store
             api_manager.get_endpoint('channels').mds = metadata_store
             api_manager.get_endpoint('collections').mds = metadata_store
+            api_manager.get_endpoint('statistics').mds = metadata_store
 
         if config.core_test_mode:
             generate_test_channels(metadata_store)
