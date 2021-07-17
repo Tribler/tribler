@@ -12,7 +12,7 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES, \
-    DLSTATUS_WAITING4HASHCHECK
+    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_STOPPED
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -57,15 +57,17 @@ def get_extended_status(tunnel_community, download):
     """
     state = download.get_state()
     dlstatus = state.get_status()
-    if state.lt_status and state.lt_status.paused:
-        # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
-        return dlstatus
 
-    if download.config.get_hops() > 0:
-        if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-            return DLSTATUS_CIRCUITS
-        else:
-            return DLSTATUS_EXIT_NODES
+    # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
+    stopped_by_user = state.lt_status and state.lt_status.paused
+
+    if dlstatus is DLSTATUS_STOPPED and not stopped_by_user:
+        if download.config.get_hops() > 0:
+            if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+                return DLSTATUS_CIRCUITS
+            else:
+                return DLSTATUS_EXIT_NODES
+        return DLSTATUS_STOPPED
     return dlstatus
 
 
