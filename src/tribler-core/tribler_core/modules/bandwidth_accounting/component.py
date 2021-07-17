@@ -29,7 +29,6 @@ class BandwidthAccountingComponent(Component):
 
         bandwidth_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
 
-        print (repr(ipv8))
         community = bandwidth_cls(peer, ipv8.endpoint, ipv8.network,
                                   settings=config.bandwidth_accounting,
                                   database=config.state_dir / "sqlite" / "bandwidth.db")
@@ -43,3 +42,4 @@ class BandwidthAccountingComponent(Component):
 
         if api_manager := await mediator.awaitable_components.get(RESTManager):
             api_manager.get_endpoint('trustview').bandwidth_db = community.database
+            api_manager.get_endpoint('bandwidth').bandwidth_community = community

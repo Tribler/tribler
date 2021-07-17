@@ -72,7 +72,9 @@ class DownloadState:
         @return DLSTATUS_* """
 
         if self.lt_status:
-            return DLSTATUS_MAP[self.lt_status.state] if not self.lt_status.paused else DLSTATUS_STOPPED
+            if self.lt_status.paused:
+                return DLSTATUS_STOPPED
+            return DLSTATUS_MAP[self.lt_status.state]
         if self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR
         return None

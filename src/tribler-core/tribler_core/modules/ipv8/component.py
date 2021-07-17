@@ -20,7 +20,6 @@ INFINITE = -1
 
 @froze_it
 class Ipv8Component(Component):
-    start_async = True
     provided_futures = (IPv8, Bootstrapper, Peer, DHTDiscoveryCommunity)
 
     def __init__(self, *args, **kwargs):
@@ -39,10 +38,10 @@ class Ipv8Component(Component):
         self.ipv8_tasks = TaskManager()
 
         self.ipv8 = ipv8 = await self.create_ipv8(self.config.ipv8, self.ipv8_tasks, self.config.core_test_mode)
-        print ("IPV8" , repr(ipv8))
         mediator.awaitable_components[IPv8].set_result(ipv8)
-        if api_manager:= await mediator.awaitable_components.get(RESTManager):
-            api_manager.get_endpoint('ipv8').initialize(ipv8)
+        if api_manager := await mediator.awaitable_components.get(RESTManager):
+            api_manager.get_endpoint('statistics').ipv8 = ipv8
+            #api_manager.get_endpoint('ipv8').initialize(ipv8)
 
         bootstrapper = await self.create_bootstrapper(self.config.ipv8.bootstrap_override)
         mediator.awaitable_components[Bootstrapper].set_result(bootstrapper)

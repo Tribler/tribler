@@ -72,7 +72,7 @@ class TrustViewEndpoint(RESTEndpoint):
 
         return RESTResponse(
             {
-                'root_public_key': hexlify(self.public_key),
+                'root_public_key': hexlify(self.bandwidth_db.my_pub_key),
                 'graph': graph_data,
                 'bootstrap': 0,
                 'num_tx': len(graph_data['edge'])
