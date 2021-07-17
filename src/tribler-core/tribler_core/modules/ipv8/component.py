@@ -1,6 +1,7 @@
 from ipv8.bootstrapping.bootstrapper_interface import Bootstrapper
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
+from ipv8.dht.churn import PingChurn
 from ipv8.dht.discovery import DHTDiscoveryCommunity
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.peer import Peer
@@ -107,8 +108,7 @@ class Ipv8Component(Component):
 
         if self.config.dht.enabled:
             community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
-            ipv8.strategies.append((RandomChurn(community), INFINITE))
-            ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
+            ipv8.strategies.append((PingChurn(community), INFINITE))
             ipv8.strategies.append((RandomWalk(community), 20))
 
             if bootstrapper:
