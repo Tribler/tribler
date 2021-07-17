@@ -98,7 +98,15 @@ class TriblerConfig(TriblerConfigSections):
             logger.info(f'Create folder: {parent}')
             parent.mkdir(parents=True)
 
-        dictionary = self.dict(exclude_defaults=True, exclude={'upgrader_enabled': ..., 'core_test_mode': ...})
+        dictionary = self.dict(exclude_defaults=True,
+                               exclude={'upgrader_enabled': ...,
+                                        'core_test_mode': ...,
+                                        'tunnel_community': {'socks5_listen_ports': ...},
+                                        'libtorrent': {'anon_proxy_server_ports': ...,
+                                                       'anon_proxy_type': ...,
+                                                       'anon_proxy_auth': ...,
+                                                       'anon_listen_port': ...,
+                                                       'anon_proxy_server_ip': ...}})
         conf = configobj.ConfigObj(dictionary)
         conf.filename = str(file)
         conf.write()

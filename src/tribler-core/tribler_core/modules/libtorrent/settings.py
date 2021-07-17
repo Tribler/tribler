@@ -30,7 +30,6 @@ class LibtorrentSettings(TriblerConfigSection):
 
     anon_listen_port: Optional[int] = None
     anon_proxy_type = 0
-
     anon_proxy_server_ip: str = '127.0.0.1'
     anon_proxy_server_ports: List[str] = ['-1', '-1', '-1', '-1', '-1']
     anon_proxy_auth: Optional[str] = None

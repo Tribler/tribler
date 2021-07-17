@@ -77,7 +77,7 @@ class DownloadState:
             return DLSTATUS_MAP[self.lt_status.state]
         if self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR
-        return None
+        return DLSTATUS_STOPPED
 
     def get_error(self):
         """ Returns the Exception that caused the download to be moved to DLSTATUS_STOPPED_ON_ERROR status.

@@ -9,6 +9,7 @@ from PyQt5.QtCore import QSettings
 
 import tribler_core
 import tribler_gui
+from tribler_common.network_utils import NetworkUtils
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
@@ -17,6 +18,7 @@ from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.bandwidth_accounting.component import BandwidthAccountingComponent
 from tribler_core.modules.exception_handler.component import ExceptionHandlerComponent
 from tribler_core.modules.ipv8.component import Ipv8Component
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.module import LibtorrentComponent
 from tribler_core.modules.metadata_store.community.component import GigaChannelComponent
 from tribler_core.modules.metadata_store.component import MetadataStoreComponent
@@ -53,9 +55,9 @@ def components_gen(config: TriblerConfig):
         (TunnelsComponent, config.ipv8.enabled and config.tunnel_community.enabled),
         (BandwidthAccountingComponent, config.ipv8.enabled),
         (PayoutComponent, config.ipv8.enabled),
-        (TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
-        (PopularityComponent, config.ipv8.enabled and config.popularity_community.enabled),
-        (GigaChannelComponent, config.chant.enabled),
+        #(TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
+        #(PopularityComponent, config.ipv8.enabled and config.popularity_community.enabled),
+        #(GigaChannelComponent, config.chant.enabled),
         (WatchFolderComponent, config.watch_folder.enabled),
         (ResourceMonitorComponent, config.resource_monitor.enabled and not config.core_test_mode),
         (VersionCheckComponent, config.general.version_checker_enabled and not config.core_test_mode),
@@ -66,6 +68,17 @@ def components_gen(config: TriblerConfig):
     for component, condition in components_list:
         if condition:
             yield component()
+
+
+def set_anon_proxy_settings(config):
+    anon_proxy_ports = config.tunnel_community.socks5_listen_ports
+    if not anon_proxy_ports:
+        anon_proxy_ports = [NetworkUtils().get_random_free_port() for _ in range(5)]
+        config.tunnel_community.socks5_listen_ports = anon_proxy_ports
+    anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
+    logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
+
+    DownloadManager.set_anon_proxy_settings(config.libtorrent, 2, anon_proxy_settings)
 
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
@@ -130,6 +143,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         shutdown_event = Event()
         signal.signal(signal.SIGTERM, lambda signum, stack: shutdown_event.set)
         # Run until core_session exits
+        set_anon_proxy_settings(config)
         await core_session(config, components=list(components_gen(config)), shutdown_event=shutdown_event)
 
         if trace_logger:

@@ -43,7 +43,6 @@ class TunnelsComponent(Component):
         dht_community = await mediator.awaitable_components.get(DHTDiscoveryCommunity)
         download_manager = await mediator.awaitable_components.get(DownloadManager)
 
-        self.set_anon_proxy_settings(config)
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits
         settings.max_circuits = config.tunnel_community.max_circuits
@@ -74,12 +73,3 @@ class TunnelsComponent(Component):
         if api_manager := await mediator.awaitable_components.get(RESTManager):
             api_manager.get_endpoint('downloads').tunnel_community = community
 
-    def set_anon_proxy_settings(self, config):
-        anon_proxy_ports = config.tunnel_community.socks5_listen_ports
-        if not anon_proxy_ports:
-            anon_proxy_ports = [NetworkUtils().get_random_free_port() for _ in range(5)]
-            config.tunnel_community.socks5_listen_ports = anon_proxy_ports
-        anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
-        self.logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
-
-        DownloadManager.set_anon_proxy_settings(config.libtorrent, 2, anon_proxy_settings)
