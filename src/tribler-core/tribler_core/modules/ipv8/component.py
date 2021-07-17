@@ -1,6 +1,6 @@
 from ipv8.bootstrapping.bootstrapper_interface import Bootstrapper
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
-from ipv8.configuration import ConfigBuilder
+from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
 from ipv8.dht.discovery import DHTDiscoveryCommunity
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.peer import Peer
@@ -118,8 +118,8 @@ class Ipv8Component(Component):
             mediator.awaitable_components[DHTDiscoveryCommunity].set_result(community)
 
     async def create_bootstrapper(self, bootstrap_override):
-        if not bootstrap_override:
-            return
+        if bootstrap_override:
+            address, port = bootstrap_override.split(':')
+            return DispersyBootstrapper(ip_addresses=[(address, int(port))], dns_addresses=[])
 
-        address, port = self.config.bootstrap_override.split(':')
-        return DispersyBootstrapper(ip_addresses=[(address, int(port))], dns_addresses=[])
+        return DispersyBootstrapper(**DISPERSY_BOOTSTRAPPER['init'])
