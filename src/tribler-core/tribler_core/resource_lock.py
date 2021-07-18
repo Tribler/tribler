@@ -41,7 +41,6 @@ class ResourceLock:
 
     def release(self, user):
         assert (self._provided_object is not NoValue)
-        assert (self._usage_count > 0)
 
         self._users.remove(user)
         if not self._users:

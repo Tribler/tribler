@@ -49,5 +49,5 @@ class BandwidthAccountingComponent(Component):
         self._api_manager.get_endpoint('bandwidth').bandwidth_community = None
         await self._provided_object.unload()
 
-        await super(self).shutdown(mediator)
+        await super().shutdown(mediator)
 

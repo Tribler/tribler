@@ -7,6 +7,8 @@ Also, we purposefully do not put the identifiers into the component classes,
 to avoid unnecessary and circular imports.
 """
 
+ComponentRoleType = sentinel
+
 EXCEPTION_HANDLER = sentinel.EXCEPTION_HANDLER
 REST_MANAGER = sentinel.REST_MANAGER
 IPV8_SERVICE = sentinel.IPV8_SERVICE

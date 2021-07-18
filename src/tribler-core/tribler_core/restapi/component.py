@@ -49,7 +49,7 @@ class RESTComponent(Component):
 
     async def shutdown(self, mediator):
         # TODO: disconnect notifier from endpoints
-        await self.unused()
+        await self.unused(mediator)
         CoreExceptionHandler.report_callback = None
         mediator.notifier.notify_shutdown_state("Shutting down API Manager...")
         await self._provided_object.stop()

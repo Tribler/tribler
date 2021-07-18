@@ -4,8 +4,10 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
 from tribler_core.session import Mediator
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class MetadataStoreComponent(Component):
     role = METADATA_STORE
 
@@ -39,9 +41,10 @@ class MetadataStoreComponent(Component):
         # Release endpoints
         for endpoint in self._endpoints:
             self._api_manager.get_endpoint(endpoint).mds = None
-        self.release_dependency(mediator, RESTManager)
+        self.release_dependency(mediator, REST_MANAGER)
 
-        await self.unused()
+        await self.unused(mediator)
         mediator.notifier.notify_shutdown_state("Shutting down Metadata Store...")
-        self.metadata_store.shutdown()
+        self._provided_object.shutdown()
+
         await super().shutdown(mediator)

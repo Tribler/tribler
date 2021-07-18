@@ -22,7 +22,7 @@ class LibtorrentComponent(Component):
         config = mediator.config
 
         # TODO: move api_manager check after download manager init. Use notifier instead of direct call to endpoint
-        api_manager = await self.use(mediator, REST_MANAGER)
+        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
         state_endpoint = api_manager.get_endpoint('state')
 
         state_endpoint.readable_status = STATE_START_LIBTORRENT
@@ -52,8 +52,8 @@ class LibtorrentComponent(Component):
     async def shutdown(self, mediator):
         # Release endpoints
         for endpoint in self._endpoints:
-            self._api_manager.get_endpoint(endpoint).mds = None
-        self.release_dependency(mediator, RESTManager)
+            self._api_manager.get_endpoint(endpoint).download_manager = None
+        self.release_dependency(mediator, REST_MANAGER)
 
         self._provided_object.stop_download_states_callback()
         await self._provided_object.shutdown()

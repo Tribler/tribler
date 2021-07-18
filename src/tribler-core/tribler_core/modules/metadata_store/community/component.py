@@ -57,4 +57,4 @@ class GigaChannelComponent(Component):
         self.release_dependency(mediator, REST_MANAGER)
 
         await self._provided_object.unload()
-        await super(self).shutdown(mediator)
+        await super().shutdown(mediator)

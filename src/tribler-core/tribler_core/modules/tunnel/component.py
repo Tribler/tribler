@@ -62,5 +62,5 @@ class TunnelsComponent(Component):
     async def shutdown(self, mediator):
         mediator.notifier.remove_observer(NTFY.DOWNLOADS_LIST_UPDATE, self._provided_object.monitor_downloads)
         await self._provided_object.unload()
-        await super(self).shutdown(mediator)
+        await super().shutdown(mediator)
 

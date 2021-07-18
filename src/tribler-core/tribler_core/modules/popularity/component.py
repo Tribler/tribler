@@ -47,4 +47,4 @@ class PopularityComponent(Component):
     async def shutdown(self, mediator):
         await self._provided_object.unload()
 
-        await super(self).shutdown(mediator)
+        await super().shutdown(mediator)

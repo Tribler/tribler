@@ -88,10 +88,7 @@ async def core_session(
     for comp in components:
         mediator.optional[comp.role] = ResourceLock()
 
-    tasklist = []
-    for component in components:
-        tasklist.append(create_task(component.run(mediator)))
-    await gather(*tasklist)
+    await gather(*[create_task(component.run(mediator)) for component in components])
 
     #from tribler_core.restapi.rest_manager import RESTManager
     #from ipv8_service import IPv8
@@ -111,8 +108,7 @@ async def core_session(
     # to 'TRUE', RESTManager will no longer accepts any new requests.
     os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
-    for component in components:
-        await component.shutdown(mediator)
+    await gather(*[create_task(component.shutdown(mediator)) for component in components])
 
     if not config.core_test_mode:
         notifier.notify_shutdown_state("Saving configuration...")

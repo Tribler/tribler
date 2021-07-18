@@ -79,7 +79,7 @@ class Ipv8Component(Component):
         self._api_manager.get_endpoint('statistics').ipv8 = None
         self.release_dependency(mediator, REST_MANAGER)
 
-        await self.unused()
+        await self.unused(mediator)
         mediator.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self._ipv8_tasks.shutdown_task_manager()
         await self._provided_object.stop(stop_loop=False)

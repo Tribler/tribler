@@ -2,8 +2,10 @@ from tribler_core.awaitable_resources import GIGACHANNEL_MANAGER, DOWNLOAD_MANAG
 from tribler_core.modules.component import Component
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.session import Mediator
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class GigachannelManagerComponent(Component):
     role = GIGACHANNEL_MANAGER
 
@@ -38,5 +40,5 @@ class GigachannelManagerComponent(Component):
         self._api_manager.get_endpoint('collections').gigachannel_manager = None
         self.release_dependency(mediator, REST_MANAGER)
 
-        await self.manager.shutdown()
+        await self._provided_object.shutdown()
         await super().shutdown(mediator)
