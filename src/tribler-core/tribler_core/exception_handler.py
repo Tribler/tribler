@@ -1,4 +1,5 @@
 import errno
+import logging
 import sys
 from _socket import gaierror
 from io import StringIO
@@ -32,22 +33,21 @@ IGNORED_ERRORS = {
 @froze_it
 class CoreExceptionHandler:
     """
-    This class handles Python errors arising in the Core by catching them, adding necessary context,
+    This singleton handles Python errors arising in the Core by catching them, adding necessary context,
     and sending them to the GUI through the events endpoint. It must be connected to the Asyncio loop.
     """
-    def __init__(self, logger, config: ErrorHandlingSettings, events_endpoint=None, state_endpoint=None):
-        self._logger = logger
-        self.config = config
-        self.events_endpoint = events_endpoint
-        self.state_endpoint = state_endpoint
 
-    def unhandled_error_observer(self, loop, context):
+    _logger = logging.getLogger("CoreExceptionHandler")
+    report_callback = None
+
+    @classmethod
+    def unhandled_error_observer(cls, loop, context):
         """
         This method is called when an unhandled error in Tribler is observed.
         It broadcasts the tribler_exception event.
         """
         try:
-            SentryReporter.ignore_logger(self._logger.name)
+            SentryReporter.ignore_logger(cls._logger.name)
 
             exception = context.get('exception')
             ignored_message = None
@@ -58,13 +58,13 @@ class CoreExceptionHandler:
             except (ValueError, AttributeError):
                 pass
             if ignored_message is not None:
-                self._logger.error(ignored_message if ignored_message != "" else context.get('message'))
+                cls._logger.error(ignored_message if ignored_message != "" else context.get('message'))
                 return
             text = str(exception or context.get('message'))
             # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
             # error then we simply log and ignore it.
             if isinstance(exception, RuntimeError) and 'invalid info-hash' in text:
-                self._logger.error("Invalid info-hash found")
+                cls._logger.error("Invalid info-hash found")
                 return
             text_long = text
             exc = context.get('exception')
@@ -73,16 +73,17 @@ class CoreExceptionHandler:
                     print_exception(type(exc), exc, exc.__traceback__, file=buffer)
                     text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
             text_long = text_long + "\n--CONTEXT--\n" + str(context)
-            self._logger.error("Unhandled exception occurred! %s", text_long, exc_info=None)
+            cls._logger.error("Unhandled exception occurred! %s", text_long, exc_info=None)
 
             sentry_event = SentryReporter.event_from_exception(exception)
 
-            if self.events_endpoint:
-                self.events_endpoint.on_tribler_exception(
-                    text_long, sentry_event, self.config.core_error_reporting_requires_user_consent)
+            if cls.report_callback is not None:
+                cls.report_callback(text_long, sentry_event)
 
-            if self.events_endpoint:
-                self.state_endpoint.on_tribler_exception(text_long, sentry_event)
+            # FIXME: add callbacks to state endpoint
+            #if self.events_endpoint:
+            #    self.events_endpoint.on_tribler_exception(text_long, sentry_event, cls.report_consent_required)
+            #    self.state_endpoint.on_tribler_exception(text_long, sentry_event)
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)

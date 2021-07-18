@@ -7,7 +7,7 @@ import os
 import sys
 from asyncio import Event, create_task, gather, Future, get_event_loop
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import tribler_core.utilities.permid as permid_module
 from tribler_common.simpledefs import (
@@ -18,8 +18,10 @@ from tribler_common.simpledefs import (
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.component import Component
 from tribler_core.notifier import Notifier
+from tribler_core.resource_lock import ResourceLock
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
+from tribler_core.utilities.unicode import hexlify
 
 
 @dataclass
@@ -29,10 +31,10 @@ class Mediator:
     notifier: Optional[Notifier] = None
     trustchain_keypair = None
 
-    # optional parameters (stored as dictionary)
-    optional: dict = field(default_factory=dict)
+    shutdown_event: Event = None
 
-    awaitable_components: dict = field(default_factory=dict)
+    # optional parameters (stored as dictionary)
+    awaitable_components: Dict[any, ResourceLock] = field(default_factory=dict)
 
 
 def create_state_directory_structure(state_dir):
@@ -73,8 +75,7 @@ async def core_session(
         shutdown_event=Event(),
         notifier=Notifier()
 ):
-    mediator = Mediator(config=config, notifier=notifier, optional={'shutdown_event': shutdown_event})
-    mediator.optional['ipv8'] = get_event_loop().create_future()
+    mediator = Mediator(config=config, notifier=notifier, shutdown_event=shutdown_event)
 
     logger = logging.getLogger("Session")
 
@@ -86,6 +87,10 @@ async def core_session(
     trustchain_keypair = init_keypair(config.state_dir, keypair_filename)
     mediator.trustchain_keypair = trustchain_keypair
 
+    from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+    user_id_str = hexlify(trustchain_keypair.key.pk).encode('utf-8')
+    SentryReporter.set_user(user_id_str)
+
     # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
     # certificates provided by the system trust store.
     if sys.platform == 'darwin':
@@ -93,7 +98,7 @@ async def core_session(
 
     for module_class in itertools.chain(*[c.provided_futures for c in components]):
         print(module_class)
-        mediator.awaitable_components[module_class] = get_event_loop().create_future()
+        mediator.awaitable_components[module_class] = ResourceLock()
 
     tasklist = []
     for component in components:
