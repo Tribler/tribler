@@ -28,6 +28,7 @@ class LibtorrentSettings(TriblerConfigSection):
     dht: bool = True
     dht_readiness_timeout: int = 30
 
+    # TODO: remove this stuff completely from config because it should never be set by user
     anon_listen_port: Optional[int] = None
     anon_proxy_type = 0
     anon_proxy_server_ip: str = '127.0.0.1'

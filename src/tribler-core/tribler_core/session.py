@@ -7,7 +7,7 @@ import os
 import sys
 from asyncio import Event, create_task, gather, Future, get_event_loop
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import tribler_core.utilities.permid as permid_module
 from tribler_common.simpledefs import (
@@ -16,23 +16,13 @@ from tribler_common.simpledefs import (
     STATEDIR_DB_DIR,
 )
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.mediator import Mediator
 from tribler_core.modules.component import Component
 from tribler_core.notifier import Notifier
+from tribler_core.resource_lock import ResourceLock
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
-
-
-@dataclass
-class Mediator:
-    # mandatory parameters
-    config: TriblerConfig
-    notifier: Optional[Notifier] = None
-    trustchain_keypair = None
-
-    # optional parameters (stored as dictionary)
-    optional: dict = field(default_factory=dict)
-
-    awaitable_components: dict = field(default_factory=dict)
+from tribler_core.utilities.unicode import hexlify
 
 
 def create_state_directory_structure(state_dir):
@@ -73,8 +63,7 @@ async def core_session(
         shutdown_event=Event(),
         notifier=Notifier()
 ):
-    mediator = Mediator(config=config, notifier=notifier, optional={'shutdown_event': shutdown_event})
-    mediator.optional['ipv8'] = get_event_loop().create_future()
+    mediator = Mediator(config=config, notifier=notifier, shutdown_event=shutdown_event)
 
     logger = logging.getLogger("Session")
 
@@ -82,28 +71,29 @@ async def core_session(
 
     logger.info("Session is using state directory: %s", config.state_dir)
     create_state_directory_structure(config.state_dir)
+
     keypair_filename = config.trustchain.ec_keypair_filename if not config.general.testnet else config.trustchain.testnet_keypair_filename
     trustchain_keypair = init_keypair(config.state_dir, keypair_filename)
     mediator.trustchain_keypair = trustchain_keypair
+
+    from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+    user_id_str = hexlify(trustchain_keypair.key.pk).encode('utf-8')
+    SentryReporter.set_user(user_id_str)
 
     # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
     # certificates provided by the system trust store.
     if sys.platform == 'darwin':
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-    for module_class in itertools.chain(*[c.provided_futures for c in components]):
-        print(module_class)
-        mediator.awaitable_components[module_class] = get_event_loop().create_future()
+    for comp in components:
+        mediator.optional[comp.role] = ResourceLock()
 
-    tasklist = []
-    for component in components:
-        tasklist.append(create_task(component.run(mediator)))
-    await gather(*tasklist)
+    await gather(*[create_task(component.run(mediator)) for component in components])
 
-    from tribler_core.restapi.rest_manager import RESTManager
-    from ipv8_service import IPv8
-    ipv8 = await mediator.awaitable_components[IPv8]
-    (await mediator.awaitable_components[RESTManager]).get_endpoint('ipv8').initialize(ipv8)
+    #from tribler_core.restapi.rest_manager import RESTManager
+    #from ipv8_service import IPv8
+    #ipv8 = await mediator.components[IPv8]
+    #(await mediator.components[RESTManager]).get_endpoint('ipv8').initialize(ipv8)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 
@@ -118,8 +108,7 @@ async def core_session(
     # to 'TRUE', RESTManager will no longer accepts any new requests.
     os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
-    for component in components:
-        await component.shutdown(mediator)
+    await gather(*[create_task(component.shutdown(mediator)) for component in components])
 
     if not config.core_test_mode:
         notifier.notify_shutdown_state("Saving configuration...")
