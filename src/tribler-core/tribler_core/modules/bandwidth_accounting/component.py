@@ -2,6 +2,8 @@ from ipv8.bootstrapping.bootstrapper_interface import Bootstrapper
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
+from tribler_core.awaitable_resources import BANDWIDTH_ACCOUNTING_COMMUNITY, IPV8_SERVICE, MY_PEER, IPV8_BOOTSTRAPPER, \
+    REST_MANAGER
 
 from tribler_core.modules.bandwidth_accounting.community import (
     BandwidthAccountingCommunity,
@@ -12,20 +14,18 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class BandwidthAccountingComponent(Component):
-    start_async = True
-    provided_futures = (BandwidthAccountingCommunity,)
+    role = BANDWIDTH_ACCOUNTING_COMMUNITY
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.bandwidth_community = None
+        self._api_manager = None
 
     async def run(self, mediator):
         await super().run(mediator)
         config = mediator.config
 
-        if (ipv8 := await mediator.awaitable_components.get(IPv8)) is None:
-            return
-        peer = await mediator.awaitable_components.get(Peer)
+        ipv8 = await self.use(mediator, IPV8_SERVICE)
+        peer = await self.use(mediator, MY_PEER)
 
         bandwidth_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
 
@@ -34,12 +34,20 @@ class BandwidthAccountingComponent(Component):
                                   database=config.state_dir / "sqlite" / "bandwidth.db")
         ipv8.strategies.append((RandomWalk(community), 20))
 
-        if bootstrapper := await mediator.awaitable_components.get(Bootstrapper):
-            community.bootstrappers.append(bootstrapper)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
+        community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
-        mediator.awaitable_components[BandwidthAccountingCommunity].set_result(community)
+        self.provide(mediator, community)
 
-        if api_manager := await mediator.awaitable_components.get(RESTManager):
-            api_manager.get_endpoint('trustview').bandwidth_db = community.database
-            api_manager.get_endpoint('bandwidth').bandwidth_community = community
+        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
+        api_manager.get_endpoint('trustview').bandwidth_db = community.database
+        api_manager.get_endpoint('bandwidth').bandwidth_community = community
+
+    async def shutdown(self, mediator):
+        self._api_manager.get_endpoint('trustview').bandwidth_db = None
+        self._api_manager.get_endpoint('bandwidth').bandwidth_community = None
+        await self._provided_object.unload()
+
+        await super(self).shutdown(mediator)
+

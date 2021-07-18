@@ -16,25 +16,13 @@ from tribler_common.simpledefs import (
     STATEDIR_DB_DIR,
 )
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.mediator import Mediator
 from tribler_core.modules.component import Component
 from tribler_core.notifier import Notifier
 from tribler_core.resource_lock import ResourceLock
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import hexlify
-
-
-@dataclass
-class Mediator:
-    # mandatory parameters
-    config: TriblerConfig
-    notifier: Optional[Notifier] = None
-    trustchain_keypair = None
-
-    shutdown_event: Event = None
-
-    # optional parameters (stored as dictionary)
-    awaitable_components: Dict[any, ResourceLock] = field(default_factory=dict)
 
 
 def create_state_directory_structure(state_dir):
@@ -83,6 +71,7 @@ async def core_session(
 
     logger.info("Session is using state directory: %s", config.state_dir)
     create_state_directory_structure(config.state_dir)
+
     keypair_filename = config.trustchain.ec_keypair_filename if not config.general.testnet else config.trustchain.testnet_keypair_filename
     trustchain_keypair = init_keypair(config.state_dir, keypair_filename)
     mediator.trustchain_keypair = trustchain_keypair
@@ -96,19 +85,18 @@ async def core_session(
     if sys.platform == 'darwin':
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-    for module_class in itertools.chain(*[c.provided_futures for c in components]):
-        print(module_class)
-        mediator.awaitable_components[module_class] = ResourceLock()
+    for comp in components:
+        mediator.optional[comp.role] = ResourceLock()
 
     tasklist = []
     for component in components:
         tasklist.append(create_task(component.run(mediator)))
     await gather(*tasklist)
 
-    from tribler_core.restapi.rest_manager import RESTManager
-    from ipv8_service import IPv8
-    ipv8 = await mediator.awaitable_components[IPv8]
-    (await mediator.awaitable_components[RESTManager]).get_endpoint('ipv8').initialize(ipv8)
+    #from tribler_core.restapi.rest_manager import RESTManager
+    #from ipv8_service import IPv8
+    #ipv8 = await mediator.components[IPv8]
+    #(await mediator.components[RESTManager]).get_endpoint('ipv8').initialize(ipv8)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 

@@ -16,13 +16,18 @@ from tribler_common.version_manager import VersionHistory
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.bandwidth_accounting.component import BandwidthAccountingComponent
-from tribler_core.modules.ipv8.component import Ipv8Component
+from tribler_core.modules.ipv8.component import Ipv8Component, DiscoveryCommunityComponent, \
+    DHTDiscoveryCommunityComponent, MyPeerComponent, Ipv8BootstrapperComponent
+from tribler_core.modules.libtorrent.component import LibtorrentComponent
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.libtorrent.module import LibtorrentComponent
+
+from tribler_core.modules.metadata_store.community.component import GigaChannelComponent
 from tribler_core.modules.metadata_store.component import MetadataStoreComponent
 from tribler_core.modules.metadata_store.manager.component import GigachannelManagerComponent
 from tribler_core.modules.payout.component import PayoutComponent
+from tribler_core.modules.popularity.component import PopularityComponent
 from tribler_core.modules.resource_monitor.component import ResourceMonitorComponent
+from tribler_core.modules.torrent_checker.component import TorrentCheckerComponent
 from tribler_core.modules.tunnel.component import TunnelsComponent
 from tribler_core.modules.version_check.component import VersionCheckComponent
 from tribler_core.modules.watch_folder.component import WatchFolderComponent
@@ -44,14 +49,18 @@ def components_gen(config: TriblerConfig):
         (RESTComponent, config.api.http_enabled or config.api.https_enabled),
         # (UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponent, config.chant.enabled),
+        (DHTDiscoveryCommunityComponent, config.ipv8.enabled),
+        (MyPeerComponent, config.ipv8.enabled),
+        (Ipv8BootstrapperComponent, config.ipv8.enabled),
+        (DiscoveryCommunityComponent, config.ipv8.enabled),
         (Ipv8Component, config.ipv8.enabled),
         (LibtorrentComponent, config.libtorrent.enabled),
         (TunnelsComponent, config.ipv8.enabled and config.tunnel_community.enabled),
         (BandwidthAccountingComponent, config.ipv8.enabled),
         (PayoutComponent, config.ipv8.enabled),
-        # (TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
-        # (PopularityComponent, config.ipv8.enabled and config.popularity_community.enabled),
-        # (GigaChannelComponent, config.chant.enabled),
+        (TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
+        (PopularityComponent, config.ipv8.enabled and config.popularity_community.enabled),
+        (GigaChannelComponent, config.chant.enabled),
         (WatchFolderComponent, config.watch_folder.enabled),
         (ResourceMonitorComponent, config.resource_monitor.enabled and not config.core_test_mode),
         (VersionCheckComponent, config.general.version_checker_enabled and not config.core_test_mode),

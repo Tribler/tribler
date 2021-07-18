@@ -7,7 +7,7 @@ from tribler_core.restapi.root_endpoint import RootEndpoint
 
 
 class RESTComponent(Component):
-    resource_label = REST_MANAGER
+    role = REST_MANAGER
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -15,7 +15,7 @@ INFINITE = -1
 
 
 class TunnelsComponent(Component):
-    resource_label = TUNNELS_COMMUNITY
+    role = TUNNELS_COMMUNITY
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -1,22 +1,26 @@
+from tribler_core.awaitable_resources import VERSION_CHECKER
 from tribler_core.modules.component import Component
 from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager
 from tribler_core.session import Mediator
 
 
 class VersionCheckComponent(Component):
+    role = VERSION_CHECKER
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.version_check_manager = None
 
     async def run(self, mediator: Mediator):
         await super().run(mediator)
 
         notifier = mediator.notifier
 
-        self.version_check_manager = VersionCheckManager(notifier=notifier)
-        self.version_check_manager.start()
+        version_check_manager = VersionCheckManager(notifier=notifier)
+        version_check_manager.start()
+        self.provide(mediator, version_check_manager)
 
     async def shutdown(self, mediator):
         mediator.notifier.notify_shutdown_state("Shutting down Version Checker...")
-        await self.version_check_manager.stop()
+        await self._provided_object.stop()
+
         await super().shutdown(mediator)
