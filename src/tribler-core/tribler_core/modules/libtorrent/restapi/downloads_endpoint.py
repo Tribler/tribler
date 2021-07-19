@@ -256,7 +256,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
                                 tdef.get_name_utf8()
 
-            download_status = get_extended_status(self.tunnel_community, download)
+            download_status = get_extended_status(self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
+
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),
