@@ -15,6 +15,7 @@ from tribler_common.simpledefs import (
     STATEDIR_CHANNELS_DIR,
     STATEDIR_DB_DIR,
 )
+from tribler_core.awaitable_resources import REST_MANAGER, IPV8_SERVICE
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.mediator import Mediator
 from tribler_core.modules.component import Component
@@ -90,10 +91,9 @@ async def core_session(
 
     await gather(*[create_task(component.run(mediator)) for component in components])
 
-    #from tribler_core.restapi.rest_manager import RESTManager
-    #from ipv8_service import IPv8
-    #ipv8 = await mediator.components[IPv8]
-    #(await mediator.components[RESTManager]).get_endpoint('ipv8').initialize(ipv8)
+    # FIXME: workaround for IPv8 initializing all endpoints in one go
+    ipv8 = mediator.optional[IPV8_SERVICE]._provided_object
+    mediator.optional[REST_MANAGER]._provided_object.get_endpoint('ipv8').initialize(ipv8)
 
     notifier.notify(NTFY.TRIBLER_STARTED, trustchain_keypair.key.pk)
 

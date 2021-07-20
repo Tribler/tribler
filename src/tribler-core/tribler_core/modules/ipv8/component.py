@@ -73,7 +73,6 @@ class Ipv8Component(Component):
 
         api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
         api_manager.get_endpoint('statistics').ipv8 = ipv8
-        # api_manager.get_endpoint('ipv8').initialize(ipv8)
 
     async def shutdown(self, mediator):
         self._api_manager.get_endpoint('statistics').ipv8 = None

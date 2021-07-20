@@ -14,6 +14,7 @@ from marshmallow.fields import Boolean, Float, Integer, String
 
 import psutil
 
+from ipv8.messaging.anonymization.community import TunnelCommunity
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
@@ -42,12 +43,12 @@ class DebugEndpoint(RESTEndpoint):
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
 
-    def __init__(self, *args, state_dir, log_dir, tunnel_community, resource_monitor:CoreResourceMonitor, **kwargs):
+    def __init__(self, *args, **kwargs):
         RESTEndpoint.__init__(self, *args, **kwargs)
-        self.state_dir = state_dir
-        self.log_dir = log_dir
-        self.tunnel_community = tunnel_community
-        self.resource_monitor = resource_monitor
+        self.state_dir = None
+        self.log_dir = None
+        self.tunnel_community = None
+        self.resource_monitor = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('/circuits/slots', self.get_circuit_slots),

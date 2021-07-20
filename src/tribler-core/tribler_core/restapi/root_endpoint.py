@@ -47,7 +47,7 @@ class RootEndpoint(RESTEndpoint):
             '/settings': (SettingsEndpoint, True),
             '/downloads': (DownloadsEndpoint, self.tribler_config.libtorrent.enabled),
             '/createtorrent': (CreateTorrentEndpoint, self.tribler_config.libtorrent.enabled),
-            #'/debug': (DebugEndpoint, True),
+            '/debug': (DebugEndpoint, True),
             '/bandwidth': (BandwidthEndpoint, True),
             '/trustview': (TrustViewEndpoint, True),
             '/statistics': (StatisticsEndpoint, True),

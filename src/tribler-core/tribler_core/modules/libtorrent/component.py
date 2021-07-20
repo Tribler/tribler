@@ -1,10 +1,7 @@
-from asyncio import get_event_loop
-
 from tribler_common.simpledefs import STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT, STATE_CHECKPOINTS_LOADED
 from tribler_core.awaitable_resources import DOWNLOAD_MANAGER, REST_MANAGER
 from tribler_core.modules.component import Component
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.restapi.rest_manager import RESTManager
 from tribler_core.session import Mediator
 
 
