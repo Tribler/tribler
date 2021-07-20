@@ -1,4 +1,4 @@
-from tribler_core.awaitable_resources import RESOURCE_MONITOR
+from tribler_core.awaitable_resources import RESOURCE_MONITOR, REST_MANAGER, TUNNELS_COMMUNITY
 from tribler_core.modules.component import Component
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.session import Mediator
@@ -20,6 +20,13 @@ class ResourceMonitorComponent(Component):
                                                notifier=notifier)
         resource_monitor.start()
         self.provide(mediator, resource_monitor)
+        api_manager = await self.use(mediator, REST_MANAGER)
+        # TODO: Split debug endpoint initialization
+        debug_endpoint = api_manager.get_endpoint('debug')
+        debug_endpoint.resource_monitor = resource_monitor
+        debug_endpoint.tunnel_community = await self.use(mediator, TUNNELS_COMMUNITY)
+        debug_endpoint.log_dir = log_dir
+        debug_endpoint.state_dir = config.state_dir
 
     async def shutdown(self, mediator):
         mediator.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
