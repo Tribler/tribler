@@ -24,8 +24,8 @@ class WatchFolderComponent(Component):
                                    download_manager=download_manager,
                                    notifier=notifier)
 
-        #api_manager = await self.use(mediator, REST_MANAGER)
-        #api_manager.get_endpoint('state').readable_status = STATE_START_WATCH_FOLDER
+        rest_manager = await self.use(mediator, REST_MANAGER)
+        rest_manager.get_endpoint('state').readable_status = STATE_START_WATCH_FOLDER
 
         watch_folder.start()
         self.provide(mediator, watch_folder)

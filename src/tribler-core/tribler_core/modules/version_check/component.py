@@ -1,4 +1,4 @@
-from tribler_core.awaitable_resources import VERSION_CHECKER
+from tribler_core.awaitable_resources import VERSION_CHECKER, UPGRADER
 from tribler_core.modules.component import Component
 from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager
 from tribler_core.session import Mediator
@@ -12,6 +12,7 @@ class VersionCheckComponent(Component):
 
     async def run(self, mediator: Mediator):
         await super().run(mediator)
+        await mediator.optional[UPGRADER]._resource_initialized_event.wait()
 
         notifier = mediator.notifier
 

@@ -16,7 +16,7 @@ class GigaChannelComponent(Component):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._api_manager = None
+        self._rest_manager = None
 
     async def run(self, mediator: Mediator):
         await super().run(mediator)
@@ -45,15 +45,15 @@ class GigaChannelComponent(Component):
 
         ipv8.overlays.append(community)
 
-        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
-        api_manager.get_endpoint('remote_query').gigachannel_community = community
-        api_manager.get_endpoint('channels').gigachannel_community = community
-        api_manager.get_endpoint('collections').gigachannel_community = community
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
+        rest_manager.get_endpoint('remote_query').gigachannel_community = community
+        rest_manager.get_endpoint('channels').gigachannel_community = community
+        rest_manager.get_endpoint('collections').gigachannel_community = community
 
     async def shutdown(self, mediator):
-        self._api_manager.get_endpoint('remote_query').gigachannel_community = None
-        self._api_manager.get_endpoint('channels').gigachannel_community = None
-        self._api_manager.get_endpoint('collections').gigachannel_community = None
+        self._rest_manager.get_endpoint('remote_query').gigachannel_community = None
+        self._rest_manager.get_endpoint('channels').gigachannel_community = None
+        self._rest_manager.get_endpoint('collections').gigachannel_community = None
         self.release_dependency(mediator, REST_MANAGER)
 
         await self._provided_object.unload()
