@@ -15,7 +15,7 @@ class TorrentCheckerComponent(Component):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._api_manager = None
+        self._rest_manager = None
 
     async def run(self, mediator: Mediator):
         await super().run(mediator)
@@ -32,15 +32,15 @@ class TorrentCheckerComponent(Component):
                                          metadata_store=metadata_store)
         self.provide(mediator, torrent_checker)
 
-        api_manager = self._api_manager =  await self.use(mediator, REST_MANAGER)
-        api_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
+        rest_manager = self._rest_manager =  await self.use(mediator, REST_MANAGER)
+        rest_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
 
         await torrent_checker.initialize()
-        api_manager.get_endpoint('metadata').torrent_checker = torrent_checker
+        rest_manager.get_endpoint('metadata').torrent_checker = torrent_checker
 
     async def shutdown(self, mediator):
         mediator.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
-        self._api_manager.get_endpoint('metadata').torrent_checker = None
+        self._rest_manager.get_endpoint('metadata').torrent_checker = None
         self.release_dependency(mediator, REST_MANAGER)
 
         await self._provided_object.shutdown()

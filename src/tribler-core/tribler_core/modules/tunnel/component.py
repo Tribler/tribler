@@ -56,8 +56,8 @@ class TunnelsComponent(Component):
         mediator.notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, community.monitor_downloads)
         self.provide(mediator, community)
 
-        api_manager = await self.use(mediator, REST_MANAGER)
-        api_manager.get_endpoint('downloads').tunnel_community = community
+        rest_manager = await self.use(mediator, REST_MANAGER)
+        rest_manager.get_endpoint('downloads').tunnel_community = community
 
     async def shutdown(self, mediator):
         mediator.notifier.remove_observer(NTFY.DOWNLOADS_LIST_UPDATE, self._provided_object.monitor_downloads)

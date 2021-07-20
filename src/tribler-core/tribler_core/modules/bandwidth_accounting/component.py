@@ -3,7 +3,7 @@ from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
 from tribler_core.awaitable_resources import BANDWIDTH_ACCOUNTING_COMMUNITY, IPV8_SERVICE, MY_PEER, IPV8_BOOTSTRAPPER, \
-    REST_MANAGER
+    REST_MANAGER, UPGRADER
 
 from tribler_core.modules.bandwidth_accounting.community import (
     BandwidthAccountingCommunity,
@@ -18,10 +18,11 @@ class BandwidthAccountingComponent(Component):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._api_manager = None
+        self._rest_manager = None
 
     async def run(self, mediator):
         await super().run(mediator)
+        await mediator.optional[UPGRADER]._resource_initialized_event.wait()
         config = mediator.config
 
         ipv8 = await self.use(mediator, IPV8_SERVICE)
@@ -40,13 +41,13 @@ class BandwidthAccountingComponent(Component):
         ipv8.overlays.append(community)
         self.provide(mediator, community)
 
-        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
-        api_manager.get_endpoint('trustview').bandwidth_db = community.database
-        api_manager.get_endpoint('bandwidth').bandwidth_community = community
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
+        rest_manager.get_endpoint('trustview').bandwidth_db = community.database
+        rest_manager.get_endpoint('bandwidth').bandwidth_community = community
 
     async def shutdown(self, mediator):
-        self._api_manager.get_endpoint('trustview').bandwidth_db = None
-        self._api_manager.get_endpoint('bandwidth').bandwidth_community = None
+        self._rest_manager.get_endpoint('trustview').bandwidth_db = None
+        self._rest_manager.get_endpoint('bandwidth').bandwidth_community = None
         await self._provided_object.unload()
 
         await super().shutdown(mediator)

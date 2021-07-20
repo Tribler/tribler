@@ -26,7 +26,7 @@ class Ipv8Component(Component):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._ipv8_tasks = None
-        self._api_manager = None
+        self._rest_manager = None
 
     async def run(self, mediator):
         await super().run(mediator)
@@ -71,11 +71,11 @@ class Ipv8Component(Component):
                         config.ipv8.walk_interval,
                         config.ipv8.walk_scaling_upper_limit).start(self._ipv8_tasks)
 
-        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
-        api_manager.get_endpoint('statistics').ipv8 = ipv8
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
+        rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
     async def shutdown(self, mediator):
-        self._api_manager.get_endpoint('statistics').ipv8 = None
+        self._rest_manager.get_endpoint('statistics').ipv8 = None
         self.release_dependency(mediator, REST_MANAGER)
 
         await self.unused(mediator)

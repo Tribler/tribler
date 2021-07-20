@@ -33,6 +33,7 @@ from tribler_core.modules.version_check.component import VersionCheckComponent
 from tribler_core.modules.watch_folder.component import WatchFolderComponent
 from tribler_core.restapi.component import RESTComponent
 from tribler_core.session import core_session
+from tribler_core.upgrade.component import UpgradeComponent
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 from tribler_gui.utilities import get_translator
@@ -47,7 +48,7 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 def components_gen(config: TriblerConfig):
     components_list = [
         (RESTComponent, config.api.http_enabled or config.api.https_enabled),
-        # (UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
+        (UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponent, config.chant.enabled),
         (DHTDiscoveryCommunityComponent, config.ipv8.enabled),
         (MyPeerComponent, config.ipv8.enabled),

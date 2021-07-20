@@ -1,5 +1,5 @@
 from tribler_common.simpledefs import STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT, STATE_CHECKPOINTS_LOADED
-from tribler_core.awaitable_resources import DOWNLOAD_MANAGER, REST_MANAGER
+from tribler_core.awaitable_resources import DOWNLOAD_MANAGER, REST_MANAGER, UPGRADER
 from tribler_core.modules.component import Component
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.session import Mediator
@@ -12,15 +12,17 @@ class LibtorrentComponent(Component):
         super().__init__(*args, **kwargs)
         self._endpoints = ['createtorrent', 'libtorrent', 'torrentinfo', 'downloads', 'channels', 'collections',
                            'settings']
-        self._api_manager = None
+        self._rest_manager = None
 
     async def run(self, mediator: Mediator):
         await super().run(mediator)
+        await mediator.optional[UPGRADER]._resource_initialized_event.wait()
+
         config = mediator.config
 
-        # TODO: move api_manager check after download manager init. Use notifier instead of direct call to endpoint
-        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
-        state_endpoint = api_manager.get_endpoint('state')
+        # TODO: move rest_manager check after download manager init. Use notifier instead of direct call to endpoint
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
+        state_endpoint = rest_manager.get_endpoint('state')
 
         state_endpoint.readable_status = STATE_START_LIBTORRENT
         download_manager = DownloadManager(
@@ -40,7 +42,7 @@ class LibtorrentComponent(Component):
         self.provide(mediator, download_manager)
 
         for endpoint in self._endpoints:
-            api_manager.get_endpoint(endpoint).download_manager = download_manager
+            rest_manager.get_endpoint(endpoint).download_manager = download_manager
 
         if config.core_test_mode:
             uri = "magnet:?xt=urn:btih:0000000000000000000000000000000000000000"
@@ -49,7 +51,7 @@ class LibtorrentComponent(Component):
     async def shutdown(self, mediator):
         # Release endpoints
         for endpoint in self._endpoints:
-            self._api_manager.get_endpoint(endpoint).download_manager = None
+            self._rest_manager.get_endpoint(endpoint).download_manager = None
         self.release_dependency(mediator, REST_MANAGER)
 
         self._provided_object.stop_download_states_callback()
