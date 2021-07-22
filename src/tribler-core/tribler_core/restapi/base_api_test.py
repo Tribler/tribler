@@ -2,7 +2,6 @@ import json
 from json import JSONDecodeError
 
 from aiohttp import ClientSession
-from aiohttp.test_utils import TestClient
 
 from tribler_core.restapi import get_param
 from tribler_core.utilities.path_util import Path

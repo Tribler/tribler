@@ -16,6 +16,7 @@ class UpgradeComponent(Component):
         config = mediator.config
         notifier = mediator.notifier
         trustchain_keypair = mediator.trustchain_keypair
+        rest_manager = await self.use(mediator, REST_MANAGER)
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
 
@@ -24,7 +25,6 @@ class UpgradeComponent(Component):
             channels_dir=channels_dir,
             trustchain_keypair=trustchain_keypair,
             notifier=notifier)
-        rest_manager = await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('upgrader').upgrader = upgrader
         rest_manager.get_endpoint('state').readable_status = STATE_UPGRADING_READABLE
         await upgrader.run()

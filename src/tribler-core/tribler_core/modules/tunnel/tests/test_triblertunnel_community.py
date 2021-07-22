@@ -26,6 +26,7 @@ from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
+from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import Path
@@ -45,10 +46,11 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
     def create_node(self):
 
         state_dir = Path.mkdtemp(suffix="_tribler_test_state")
+        config = TunnelCommunitySettings()
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
-                             socks_listen_ports=[],
                              settings={'remove_tunnel_delay': 0},
-                             exitnode_cache=state_dir / 'cache.dat')
+                             exitnode_cache=state_dir / 'cache.dat',
+                             config=config)
         mock_ipv8.overlay.settings.max_circuits = 1
 
         db = BandwidthDatabase(db_path=":memory:", my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())

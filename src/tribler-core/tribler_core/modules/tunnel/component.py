@@ -29,6 +29,8 @@ class TunnelsComponent(Component):
         peer = await self.use(mediator, MY_PEER)
         dht_community = await self.use(mediator, DHT_DISCOVERY_COMMUNITY)
         download_manager = await self.use(mediator, DOWNLOAD_MANAGER)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
+        rest_manager = await self.use(mediator, REST_MANAGER)
 
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits
@@ -49,14 +51,12 @@ class TunnelsComponent(Component):
         ipv8.strategies.append((RemovePeers(community), INFINITE))
         ipv8.overlays.append(community)
 
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
         if bootstrapper:
             community.bootstrappers.append(bootstrapper)
 
         mediator.notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, community.monitor_downloads)
         self.provide(mediator, community)
 
-        rest_manager = await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('downloads').tunnel_community = community
 
     async def shutdown(self, mediator):

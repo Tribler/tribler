@@ -23,6 +23,7 @@ class TorrentCheckerComponent(Component):
 
         metadata_store = await self.use(mediator, METADATA_STORE)
         download_manager = await self.use(mediator, DOWNLOAD_MANAGER)
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
 
         tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store)
         torrent_checker = TorrentChecker(config=config,
@@ -32,7 +33,6 @@ class TorrentCheckerComponent(Component):
                                          metadata_store=metadata_store)
         self.provide(mediator, torrent_checker)
 
-        rest_manager = self._rest_manager =  await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
 
         await torrent_checker.initialize()

@@ -7,7 +7,7 @@ from tribler_core.modules.bandwidth_accounting.community import BandwidthAccount
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
-from tribler_core.restapi.base_api_test import do_app_request
+from tribler_core.restapi.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -39,7 +39,7 @@ async def test_get_statistics_no_community(bw_endpoint, aiohttp_client):
     """
     Testing whether the API returns error 404 if no bandwidth community is loaded
     """
-    await do_app_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=404)
+    await do_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=404)
 
 
 async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
@@ -53,7 +53,7 @@ async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
     bw_community.database.BandwidthTransaction.insert(tx1)
     bw_community.database.BandwidthTransaction.insert(tx2)
 
-    response_dict = await do_app_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=200)
+    response_dict = await do_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=200)
     assert "statistics" in response_dict
     stats = response_dict["statistics"]
     assert stats["id"] == hexlify(my_pk)
@@ -67,7 +67,7 @@ async def test_get_history_no_community(bw_endpoint, aiohttp_client):
     """
     Testing whether the API returns error 404 if no bandwidth community is loaded
     """
-    await do_app_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
+    await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
 
 
 @pytest.mark.timeout(0)
@@ -82,6 +82,6 @@ async def test_get_history(bw_endpoint, bw_community, aiohttp_client):
     bw_community.database.BandwidthTransaction.insert(tx1)
     bw_community.database.BandwidthTransaction.insert(tx2)
 
-    response_dict = await do_app_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=200)
+    response_dict = await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=200)
     assert "history" in response_dict
     assert len(response_dict["history"]) == 2

@@ -129,7 +129,7 @@ class DownloadManager(TaskManager):
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
-        if self.dht_readiness_timeout > 0:
+        if self.dht_readiness_timeout > 0 and self.config.dht:
             self._dht_ready_task = self.register_task("check_dht_ready", self._check_dht_ready)
         self.register_task("request_torrent_updates", self._request_torrent_updates, interval=1)
         self.register_task('task_cleanup_metacache', self._task_cleanup_metainfo_cache, interval=60, delay=0)

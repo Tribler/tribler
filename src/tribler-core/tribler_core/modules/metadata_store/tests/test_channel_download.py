@@ -1,3 +1,6 @@
+import asyncio
+from asyncio import sleep
+
 from asynctest import Mock
 
 from ipv8.util import succeed
@@ -9,6 +12,7 @@ import pytest
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.modules.metadata_store.serialization import ChannelMetadataPayload
@@ -21,22 +25,29 @@ CHANNEL_METADATA = CHANNEL_DIR / 'channel.mdblob'
 CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 
+@pytest.fixture(scope='session')
+def loop():
+    return asyncio.get_event_loop()
+
+
 @pytest.fixture
 def channel_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
 
 
-
 @pytest.fixture
-async def channel_seeder(channel_tdef, tmp_path):
-    download_manager = DownloadManager(state_dir=tmp_path, notifier=Mock(), peer_mid=b"0000")
-    download_manager.initialize()
+async def channel_seeder(channel_tdef, tmp_path, loop):
+    config = LibtorrentSettings()
+    #config.dht = False
+    #config.dht_readiness_timeout = 0
+    seeder_dlmgr = DownloadManager(state_dir=tmp_path, config=config, notifier=Mock(), peer_mid=b"0000")
+    seeder_dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR / 'sample_channel')
-    upload = download_manager.start_download(tdef=channel_tdef, config=dscfg_seed)
+    upload = seeder_dlmgr.start_download(tdef=channel_tdef, config=dscfg_seed)
     await upload.wait_for_status(DLSTATUS_SEEDING)
-    yield download_manager
-    await download_manager.shutdown()
+    yield seeder_dlmgr
+    await seeder_dlmgr.shutdown()
 
 
 @pytest.fixture
@@ -51,7 +62,7 @@ async def gigachannel_manager(metadata_store, download_manager):
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(60)
 async def test_channel_update_and_download(channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager):
     """
     Test whether we can successfully update a channel and download the new version

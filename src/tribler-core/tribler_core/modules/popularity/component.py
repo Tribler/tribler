@@ -28,6 +28,7 @@ class PopularityComponent(Component):
         peer = await self.use(mediator, MY_PEER)
         metadata_store = await self.use(mediator, METADATA_STORE)
         torrent_checker = await self.use(mediator, TORRENT_CHECKER)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
 
         community = PopularityCommunity(peer, ipv8.endpoint, ipv8.network,
                                         settings=config.popularity_community,
@@ -39,7 +40,6 @@ class PopularityComponent(Component):
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
 
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)

@@ -28,6 +28,12 @@ from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import is_infohash, parse_magnetlink, froze_it
 
+async def _fetch_uri(uri):
+    async with ClientSession() as session:
+        response = await session.get(uri)
+        data = await response.read()
+    return data
+
 
 @froze_it
 class ChannelsEndpoint(MetadataEndpointBase):
@@ -355,6 +361,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             }
         )
     )
+
     async def add_torrent_to_channel(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
@@ -372,9 +379,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         if parameters.get('uri', None):
             uri = parameters['uri']
             if uri.startswith("http:") or uri.startswith("https:"):
-                async with ClientSession() as session:
-                    response = await session.get(uri)
-                    data = await response.read()
+                data = await _fetch_uri(uri)
                 tdef = TorrentDef.load_from_memory(data)
             elif uri.startswith("magnet:"):
                 _, xt, _ = parse_magnetlink(uri)
