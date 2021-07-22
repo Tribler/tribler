@@ -81,10 +81,10 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             new_style=new_style
         )
 
-    def __init__(self, my_peer, endpoint, network, mediator: Mediator = None, max_peers=None, notifier=None, **kwargs):
+    def __init__(self, my_peer, endpoint, network, max_peers=None, notifier=None, **kwargs):
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
-        super().__init__(my_peer, endpoint, Network(), max_peers=50, mediator=mediator, **kwargs)
+        super().__init__(my_peer, endpoint, Network(), max_peers=50, **kwargs)
 
         self.notifier = notifier
 

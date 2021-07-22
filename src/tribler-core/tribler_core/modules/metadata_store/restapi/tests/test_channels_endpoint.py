@@ -2,7 +2,7 @@ import base64
 import json
 import shutil
 from binascii import unhexlify
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, patch
 
 from aiohttp import ClientSession
 from aiohttp.web_app import Application
@@ -15,6 +15,7 @@ from pony.orm import db_session
 import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.community.gigachannel_community import NoChannelSourcesException
@@ -43,6 +44,7 @@ def session(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disabl
     def return_exc(*args, **kwargs):
         raise RequestTimeoutException
 
+    mock_dlmgr.metainfo_requests = {}
 
     mock_gigachannel_community.remote_select_channel_contents = return_exc
     collections_endpoint = ChannelsEndpoint()
@@ -67,6 +69,7 @@ async def test_get_channels(session, add_fake_torrents_channels, mock_dlmgr, met
     """
     Test whether we can query some channels in the database with the REST API
     """
+    mock_dlmgr.download_exists = lambda *args: None
     json_dict = await do_request(session, 'channels')
     assert len(json_dict['results']) == 10
     # Default channel state should be METAINFO_LOOKUP
@@ -89,7 +92,6 @@ async def test_get_channels(session, add_fake_torrents_channels, mock_dlmgr, met
         channel.subscribed = True
         channel.local_version = 0
 
-    mock_dlmgr.metainfo_requests.get = lambda _: False
     mock_dlmgr.download_exists = lambda _: True
     json_dict = await do_request(session, 'channels')
     assert json_dict['results'][-1]['state'] == CHANNEL_STATE.DOWNLOADING.value
@@ -556,18 +558,23 @@ async def test_add_torrent_invalid_uri(my_channel, session):
     )
 
 
-async def test_add_torrent_from_url(my_channel, tmpdir, file_server, session):
+async def test_add_torrent_from_url(my_channel, tmpdir, session):
     """
     Test whether we can add a torrent to your channel from an URL
     """
-    shutil.copyfile(TORRENT_UBUNTU_FILE, tmpdir / "ubuntu.torrent")
-    post_params = {'uri': 'http://localhost:%d/ubuntu.torrent' % file_server}
-    await do_request(
-        session,
-        f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
-        request_type='PUT',
-        post_data=post_params,
-    )
+    post_params = {'uri': 'http://localhost:123/ubuntu.torrent'}
+
+    async def _mock_fetch(*args):
+        with open(TORRENT_UBUNTU_FILE, 'rb') as f:
+            return f.read()
+
+    with patch('tribler_core.modules.metadata_store.restapi.channels_endpoint._fetch_uri', new=_mock_fetch):
+        await do_request(
+            session,
+            f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
+            request_type='PUT',
+            post_data=post_params,
+        )
 
 
 async def test_add_torrent_from_magnet(my_channel, mock_dlmgr, session, metadata_store):
@@ -635,8 +642,6 @@ async def test_get_torrents_ffa_channel(my_channel, mock_dlmgr_get_download, ses
     def on_response(json_dict):
         assert len(json_dict['results']) == 1
 
-    # We test for both forms of querying null-key channels
-    on_response(await do_request(session, 'channels//123'))
     on_response(await do_request(session, 'channels/00/123'))
 
 
@@ -686,10 +691,9 @@ async def test_get_channel_thumbnail(session, metadata_store):
         metadata_store.ChannelThumbnail(
             public_key=chan.public_key, origin_id=chan.id_, binary_data=PNG_DATA, data_type="image/png"
         )
-    async with ClientSession() as cl_session:
         endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail'
-        url = f'http://localhost:{session.config.api.http_port}/{endpoint}'
-        async with cl_session.request("GET", url, ssl=False) as response:
+        url = f'/{endpoint}'
+        async with session.request("GET", url, ssl=False) as response:
             assert response.status == 200
             assert await response.read() == PNG_DATA
             assert response.headers["Content-Type"] == "image/png"
