@@ -123,9 +123,15 @@ def video_tdef():
 
 @pytest.fixture
 async def video_seeder(tmp_path, video_tdef):
+    config = LibtorrentSettings()
+    config.dht = False
+    config.upnp = False
+    config.natpmp = False
+    config.lsd = False
     seeder_state_dir = tmp_path / 'video_seeder_state_dir'
     seeder_state_dir.mkdir()
     dlmgr = DownloadManager(
+        config=config,
         state_dir=seeder_state_dir,
         notifier=Mock(),
         peer_mid=b"0000")
