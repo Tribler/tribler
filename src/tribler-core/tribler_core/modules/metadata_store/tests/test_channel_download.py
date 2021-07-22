@@ -38,8 +38,10 @@ def channel_tdef():
 @pytest.fixture
 async def channel_seeder(channel_tdef, tmp_path, loop):
     config = LibtorrentSettings()
-    #config.dht = False
-    #config.dht_readiness_timeout = 0
+    config.dht = False
+    config.upnp = False
+    config.natpmp = False
+    config.lsd = False
     seeder_dlmgr = DownloadManager(state_dir=tmp_path, config=config, notifier=Mock(), peer_mid=b"0000")
     seeder_dlmgr.initialize()
     dscfg_seed = DownloadConfig()
@@ -62,7 +64,7 @@ async def gigachannel_manager(metadata_store, download_manager):
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(20)
 async def test_channel_update_and_download(channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager):
     """
     Test whether we can successfully update a channel and download the new version
@@ -92,7 +94,7 @@ async def test_channel_update_and_download(channel_tdef, channel_seeder, metadat
 
     def hinted_start_download(tdef=None, config=None, hidden=False):
         download = original_start_download_from_tdef(tdef=tdef, config=config, hidden=hidden)
-        download.add_peer(("127.0.0.1", channel_seeder.config.port))
+        download.add_peer(("127.0.0.1", channel_seeder.libtorrent_port))
         return download
 
     download_manager.start_download = hinted_start_download
