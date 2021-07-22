@@ -10,6 +10,7 @@ class ResourceMonitorComponent(Component):
     async def run(self, mediator: Mediator):
         await super().run(mediator)
         await mediator.optional[UPGRADER]._resource_initialized_event.wait()
+        tunnel_community = await self.use(mediator, TUNNELS_COMMUNITY)
 
         config = mediator.config
         notifier = mediator.notifier
@@ -25,7 +26,7 @@ class ResourceMonitorComponent(Component):
         # TODO: Split debug endpoint initialization
         debug_endpoint = rest_manager.get_endpoint('debug')
         debug_endpoint.resource_monitor = resource_monitor
-        debug_endpoint.tunnel_community = await self.use(mediator, TUNNELS_COMMUNITY)
+        debug_endpoint.tunnel_community = tunnel_community
         debug_endpoint.log_dir = log_dir
         debug_endpoint.state_dir = config.state_dir
 

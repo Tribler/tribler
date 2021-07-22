@@ -27,6 +27,8 @@ class BandwidthAccountingComponent(Component):
 
         ipv8 = await self.use(mediator, IPV8_SERVICE)
         peer = await self.use(mediator, MY_PEER)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
 
         bandwidth_cls = BandwidthAccountingTestnetCommunity if config.general.testnet or config.bandwidth_accounting.testnet else BandwidthAccountingCommunity
 
@@ -35,13 +37,11 @@ class BandwidthAccountingComponent(Component):
                                   database=config.state_dir / "sqlite" / "bandwidth.db")
         ipv8.strategies.append((RandomWalk(community), 20))
 
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
         self.provide(mediator, community)
 
-        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('trustview').bandwidth_db = community.database
         rest_manager.get_endpoint('bandwidth').bandwidth_community = community
 

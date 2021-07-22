@@ -21,6 +21,7 @@ class GigachannelManagerComponent(Component):
 
         download_manager = await self.use(mediator, DOWNLOAD_MANAGER)
         metadata_store = await self.use(mediator, METADATA_STORE)
+        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
 
         manager = GigaChannelManager(notifier=notifier,
                                      metadata_store=metadata_store,
@@ -28,7 +29,6 @@ class GigachannelManagerComponent(Component):
         if not config.core_test_mode:
             manager.start()
 
-        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
         api_manager.get_endpoint('channels').gigachannel_manager = manager
         api_manager.get_endpoint('collections').gigachannel_manager = manager
 

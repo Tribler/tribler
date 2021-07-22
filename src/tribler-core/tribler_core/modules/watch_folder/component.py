@@ -18,13 +18,13 @@ class WatchFolderComponent(Component):
         config = mediator.config
         notifier = mediator.notifier
         download_manager = await self.use(mediator, DOWNLOAD_MANAGER)
+        rest_manager = await self.use(mediator, REST_MANAGER)
 
         watch_folder_path = config.watch_folder.get_path_as_absolute('directory', config.state_dir)
         watch_folder = WatchFolder(watch_folder_path=watch_folder_path,
                                    download_manager=download_manager,
                                    notifier=notifier)
 
-        rest_manager = await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('state').readable_status = STATE_START_WATCH_FOLDER
 
         watch_folder.start()

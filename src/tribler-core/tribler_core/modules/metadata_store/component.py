@@ -21,6 +21,7 @@ class MetadataStoreComponent(Component):
         config = mediator.config
 
         await mediator.optional[UPGRADER]._resource_initialized_event.wait()
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         chant_testnet = config.general.testnet or config.chant.testnet
@@ -32,7 +33,6 @@ class MetadataStoreComponent(Component):
                                        disable_sync=config.core_test_mode)
         self.provide(mediator, metadata_store)
 
-        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
         for endpoint in self._endpoints:
             rest_manager.get_endpoint(endpoint).mds = metadata_store
 

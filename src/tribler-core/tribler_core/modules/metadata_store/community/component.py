@@ -26,6 +26,8 @@ class GigaChannelComponent(Component):
         ipv8 = await self.use(mediator, IPV8_SERVICE)
         metadata_store = await self.use(mediator, METADATA_STORE)
         peer = await self.use(mediator, MY_PEER)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
         community = giga_channel_cls(peer, ipv8.endpoint, ipv8.network,
@@ -40,12 +42,10 @@ class GigaChannelComponent(Component):
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
 
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
 
-        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('remote_query').gigachannel_community = community
         rest_manager.get_endpoint('channels').gigachannel_community = community
         rest_manager.get_endpoint('collections').gigachannel_community = community

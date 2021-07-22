@@ -32,6 +32,7 @@ class Ipv8Component(Component):
         await super().run(mediator)
         config = mediator.config
 
+        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
         self._ipv8_tasks = TaskManager()
 
         port = config.ipv8.port
@@ -71,7 +72,6 @@ class Ipv8Component(Component):
                         config.ipv8.walk_interval,
                         config.ipv8.walk_scaling_upper_limit).start(self._ipv8_tasks)
 
-        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
     async def shutdown(self, mediator):
@@ -118,12 +118,12 @@ class DHTDiscoveryCommunityComponent(Component):
 
         ipv8 = await self.use(mediator, IPV8_SERVICE)
         peer = await self.use(mediator, MY_PEER)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
 
         community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
         ipv8.strategies.append((PingChurn(community), INFINITE))
         ipv8.strategies.append((RandomWalk(community), 20))
 
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
@@ -138,13 +138,13 @@ class DiscoveryCommunityComponent(Component):
 
         ipv8 = await self.use(mediator, IPV8_SERVICE)
         peer = await self.use(mediator, MY_PEER)
+        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
 
         community = DiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=100)
         ipv8.strategies.append((RandomChurn(community), INFINITE))
         ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
         ipv8.strategies.append((RandomWalk(community), INFINITE))
 
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
