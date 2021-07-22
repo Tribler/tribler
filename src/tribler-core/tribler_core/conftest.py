@@ -19,6 +19,7 @@ from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
@@ -297,7 +298,13 @@ def peer_key():
 
 @pytest.fixture
 async def download_manager(tmp_path):
+    config = LibtorrentSettings()
+    config.dht = False
+    config.upnp = False
+    config.natpmp = False
+    config.lsd = False
     download_manager = DownloadManager(
+        config=config,
         state_dir=tmp_path,
         notifier=Mock(),
         peer_mid=b"0000")

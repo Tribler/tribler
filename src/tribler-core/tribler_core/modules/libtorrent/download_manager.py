@@ -79,6 +79,7 @@ class DownloadManager(TaskManager):
         self.config = config or LibtorrentSettings()
         self.bootstrap_infohash = bootstrap_infohash
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
+        self._libtorrent_port = None
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
@@ -102,6 +103,10 @@ class DownloadManager(TaskManager):
         self._dht_ready_task = None
         self.dht_readiness_timeout = self.config.dht_readiness_timeout if not self.dummy_mode else 0
 
+    @property
+    def libtorrent_port(self):
+        return self._libtorrent_port
+
     async def _check_dht_ready(self, min_dht_peers=60):
         # Checks whether we got enough DHT peers. If the number of DHT peers is low,
         # checking for a bunch of torrents in a short period of time may result in several consecutive requests
@@ -116,7 +121,8 @@ class DownloadManager(TaskManager):
         (self.state_dir / STATEDIR_CHECKPOINT_DIR).mkdir(exist_ok=True)
 
         # Start upnp
-        self.get_session().start_upnp()
+        if self.config.upnp:
+            self.get_session().start_upnp()
 
         if has_bep33_support():
             # Also listen to DHT log notifications - we need the dht_pkt_alert and extract the BEP33 bloom filters
@@ -162,7 +168,7 @@ class DownloadManager(TaskManager):
             with open(self.state_dir / LTSTATE_FILENAME, 'wb') as ltstate_file:
                 ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
-        if self.has_session():
+        if self.has_session() and self.config.upnp:
             self.get_session().stop_upnp()
 
         for ltsession in self.ltsessions.values():
@@ -183,7 +189,11 @@ class DownloadManager(TaskManager):
         self._logger.info('Creating a session')
         settings = {'outgoing_port': 0,
                     'num_outgoing_ports': 1,
-                    'allow_multiple_connections_per_ip': 0}
+                    'allow_multiple_connections_per_ip': 0,
+                    'enable_upnp': int(self.config.upnp),
+                    'enable_dht': int(self.config.dht),
+                    'enable_lsd': int(self.config.lsd),
+                    'enable_natpmp': int(self.config.natpmp)}
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
@@ -203,6 +213,7 @@ class DownloadManager(TaskManager):
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
 
         libtorrent_port = self.config.port or NetworkUtils().get_random_free_port()
+        self._libtorrent_port = libtorrent_port
         self._logger.info(f'Libtorrent port: {libtorrent_port}')
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id

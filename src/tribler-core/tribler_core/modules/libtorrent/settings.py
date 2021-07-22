@@ -27,6 +27,9 @@ class LibtorrentSettings(TriblerConfigSection):
     utp: bool = True
     dht: bool = True
     dht_readiness_timeout: int = 30
+    upnp: bool = True
+    natpmp: bool = True
+    lsd: bool = True
 
     # TODO: remove this stuff completely from config because it should never be set by user
     anon_listen_port: Optional[int] = None
