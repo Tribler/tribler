@@ -1,44 +1,41 @@
-from tribler_core.awaitable_resources import GIGACHANNEL_MANAGER, DOWNLOAD_MANAGER, METADATA_STORE, REST_MANAGER
-from tribler_core.modules.component import Component
+from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
-from tribler_core.session import Mediator
+from tribler_core.restapi.rest_manager import RESTManager
 from tribler_core.utilities.utilities import froze_it
 
 
 @froze_it
-class GigachannelManagerComponent(Component):
-    role = GIGACHANNEL_MANAGER
+class GigachannelManagerComponentImp(GigachannelManagerComponent):
+    rest_manager: RESTManager
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._api_manager = None
+    async def run(self):
+        config = self.session.config
+        notifier = self.session.notifier
 
-    async def run(self, mediator: Mediator):
-        await super().run(mediator)
+        download_manager = (await self.use(LibtorrentComponent)).download_manager
+        metadata_store = (await self.use(MetadataStoreComponent)).mds
+        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
 
-        config = mediator.config
-        notifier = mediator.notifier
-
-        download_manager = await self.use(mediator, DOWNLOAD_MANAGER)
-        metadata_store = await self.use(mediator, METADATA_STORE)
-        api_manager = self._api_manager = await self.use(mediator, REST_MANAGER)
-
-        manager = GigaChannelManager(notifier=notifier,
-                                     metadata_store=metadata_store,
-                                     download_manager=download_manager)
+        manager = GigaChannelManager(
+            notifier=notifier, metadata_store=metadata_store, download_manager=download_manager
+        )
+        self.gigachannel_manager = manager
         if not config.core_test_mode:
             manager.start()
 
-        api_manager.get_endpoint('channels').gigachannel_manager = manager
-        api_manager.get_endpoint('collections').gigachannel_manager = manager
+        rest_manager.get_endpoint('channels').gigachannel_manager = manager
+        rest_manager.get_endpoint('collections').gigachannel_manager = manager
 
-        self.provide(mediator, manager)
+        # self.provide(mediator, manager)
 
-    async def shutdown(self, mediator):
-        mediator.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")
-        self._api_manager.get_endpoint('channels').gigachannel_manager = None
-        self._api_manager.get_endpoint('collections').gigachannel_manager = None
-        self.release_dependency(mediator, REST_MANAGER)
+    async def shutdown(self):
+        self.session.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")
 
-        await self._provided_object.shutdown()
-        await super().shutdown(mediator)
+        self.rest_manager.get_endpoint('channels').gigachannel_manager = None
+        self.rest_manager.get_endpoint('collections').gigachannel_manager = None
+        await self.unuse(RESTComponent)
+
+        await self.gigachannel_manager.shutdown()
