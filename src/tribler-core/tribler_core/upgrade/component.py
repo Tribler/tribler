@@ -1,22 +1,18 @@
 from tribler_common.simpledefs import STATE_UPGRADING_READABLE
-from tribler_core.awaitable_resources import UPGRADER, REST_MANAGER
 
-from tribler_core.modules.component import Component
+from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.upgrade.upgrade import TriblerUpgrader
 from tribler_core.utilities.utilities import froze_it
 
 
 @froze_it
-class UpgradeComponent(Component):
-    role = UPGRADER
-
-    async def run(self, mediator):
-        await super().run(mediator)
-
-        config = mediator.config
-        notifier = mediator.notifier
-        trustchain_keypair = mediator.trustchain_keypair
-        rest_manager = await self.use(mediator, REST_MANAGER)
+class UpgradeComponentImp(UpgradeComponent):
+    async def run(self):
+        config = self.session.config
+        notifier = self.session.notifier
+        trustchain_keypair = self.session.trustchain_keypair
+        rest_manager = (await self.use(RESTComponent)).rest_manager
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
 
@@ -29,4 +25,5 @@ class UpgradeComponent(Component):
         rest_manager.get_endpoint('state').readable_status = STATE_UPGRADING_READABLE
         await upgrader.run()
 
-        self.provide(mediator, UPGRADER)
+        self.upgrader = upgrader
+        # self.provide(mediator, UPGRADER)

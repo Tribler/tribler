@@ -18,7 +18,6 @@ from tribler_core.modules.remote_query_community.eva_protocol import EVAProtocol
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.tribler_community import TriblerCommunity
 
-from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")

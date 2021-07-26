@@ -1,46 +1,50 @@
-from asyncio import gather
 
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peerdiscovery.discovery import RandomWalk
 
 from tribler_common.simpledefs import NTFY
-from tribler_core.awaitable_resources import IPV8_SERVICE, TUNNELS_COMMUNITY, \
-    BANDWIDTH_ACCOUNTING_COMMUNITY, DHT_DISCOVERY_COMMUNITY, DOWNLOAD_MANAGER, MY_PEER, IPV8_BOOTSTRAPPER, REST_MANAGER
 
-from tribler_core.modules.component import Component
+from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.interfaces.ipv8 import (
+    DHTDiscoveryCommunityComponent,
+    Ipv8BootstrapperComponent,
+    Ipv8Component,
+    Ipv8PeerComponent,
+)
+from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
 
 INFINITE = -1
 
 
-class TunnelsComponent(Component):
-    role = TUNNELS_COMMUNITY
+class TunnelsComponentImp(TunnelsComponent):
+    async def run(self):
+        config = self.session.config
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    async def run(self, mediator):
-        await super().run(mediator)
-        config = mediator.config
-
-        ipv8 = await self.use(mediator, IPV8_SERVICE)
-        bandwidth_community = await self.use(mediator, BANDWIDTH_ACCOUNTING_COMMUNITY)
-        peer = await self.use(mediator, MY_PEER)
-        dht_community = await self.use(mediator, DHT_DISCOVERY_COMMUNITY)
-        download_manager = await self.use(mediator, DOWNLOAD_MANAGER)
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
-        rest_manager = await self.use(mediator, REST_MANAGER)
+        ipv8 = (await self.use(Ipv8Component)).ipv8
+        bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
+        peer = (await self.use(Ipv8PeerComponent)).peer
+        dht_community = (await self.use(DHTDiscoveryCommunityComponent)).community
+        download_manager = (await self.use(LibtorrentComponent)).download_manager
+        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
+        rest_manager = (await self.use(RESTComponent)).rest_manager
 
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits
         settings.max_circuits = config.tunnel_community.max_circuits
 
-        tunnel_cls = TriblerTunnelTestnetCommunity if config.general.testnet or config.tunnel_community.testnet else TriblerTunnelCommunity
+        if config.general.testnet or config.tunnel_community.testnet:
+            tunnel_cls = TriblerTunnelTestnetCommunity
+        else:
+            tunnel_cls = TriblerTunnelCommunity
+
         # TODO: decouple bandwidth community and dlmgr to initiate later
         community = tunnel_cls(peer, ipv8.endpoint, ipv8.network,
                                config=config.tunnel_community,
-                               notifier=mediator.notifier,
+                               notifier=self.session.notifier,
                                dlmgr=download_manager,
                                bandwidth_community=bandwidth_community,
                                dht_community=dht_community,
@@ -54,13 +58,13 @@ class TunnelsComponent(Component):
         if bootstrapper:
             community.bootstrappers.append(bootstrapper)
 
-        mediator.notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, community.monitor_downloads)
-        self.provide(mediator, community)
+        self.session.notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, community.monitor_downloads)
+        self.community = community
+
+        # self.provide(mediator, community)
 
         rest_manager.get_endpoint('downloads').tunnel_community = community
 
-    async def shutdown(self, mediator):
-        mediator.notifier.remove_observer(NTFY.DOWNLOADS_LIST_UPDATE, self._provided_object.monitor_downloads)
-        await self._provided_object.unload()
-        await super().shutdown(mediator)
-
+    async def shutdown(self):
+        self.session.notifier.remove_observer(NTFY.DOWNLOADS_LIST_UPDATE, self.community.monitor_downloads)
+        await self.community.unload()

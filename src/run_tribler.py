@@ -3,39 +3,45 @@ import logging.config
 import os
 import signal
 import sys
-from asyncio import Event
 
 from PyQt5.QtCore import QSettings
 
-import tribler_core
-import tribler_gui
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
+
+import tribler_core
+from tribler_core.components.base import Session, set_default_session
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.modules.bandwidth_accounting.component import BandwidthAccountingComponent
-from tribler_core.modules.ipv8.component import Ipv8Component, DiscoveryCommunityComponent, \
-    DHTDiscoveryCommunityComponent, MyPeerComponent, Ipv8BootstrapperComponent
-from tribler_core.modules.libtorrent.component import LibtorrentComponent
+from tribler_core.modules.bandwidth_accounting.component import BandwidthAccountingComponentImp
+from tribler_core.modules.ipv8.component import (
+    DHTDiscoveryCommunityComponentImp,
+    DiscoveryCommunityComponentImp,
+    Ipv8BootstrapperComponentImp,
+    Ipv8ComponentImp,
+    Ipv8PeerComponentImp,
+)
+from tribler_core.modules.libtorrent.component import LibtorrentComponentImp
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
-
-from tribler_core.modules.metadata_store.community.component import GigaChannelComponent
-from tribler_core.modules.metadata_store.component import MetadataStoreComponent
-from tribler_core.modules.metadata_store.manager.component import GigachannelManagerComponent
-from tribler_core.modules.payout.component import PayoutComponent
-from tribler_core.modules.popularity.component import PopularityComponent
-from tribler_core.modules.resource_monitor.component import ResourceMonitorComponent
-from tribler_core.modules.torrent_checker.component import TorrentCheckerComponent
-from tribler_core.modules.tunnel.component import TunnelsComponent
-from tribler_core.modules.version_check.component import VersionCheckComponent
-from tribler_core.modules.watch_folder.component import WatchFolderComponent
-from tribler_core.restapi.component import RESTComponent
+from tribler_core.modules.metadata_store.community.component import GigaChannelComponentImp
+from tribler_core.modules.metadata_store.component import MetadataStoreComponentImp
+from tribler_core.modules.metadata_store.manager.component import GigachannelManagerComponentImp
+from tribler_core.modules.payout.component import PayoutComponentImp
+from tribler_core.modules.popularity.component import PopularityComponentImp
+from tribler_core.modules.resource_monitor.component import ResourceMonitorComponentImp
+from tribler_core.modules.torrent_checker.component import TorrentCheckerComponentImp
+from tribler_core.modules.tunnel.component import TunnelsComponentImp
+from tribler_core.modules.version_check.component import VersionCheckComponentImp
+from tribler_core.modules.watch_folder.component import WatchFolderComponentImp
+from tribler_core.restapi.component import RESTComponentImp
 from tribler_core.session import core_session
-from tribler_core.upgrade.component import UpgradeComponent
+from tribler_core.upgrade.component import UpgradeComponentImp
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
+
+import tribler_gui
 from tribler_gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
@@ -47,25 +53,25 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 def components_gen(config: TriblerConfig):
     components_list = [
-        (RESTComponent, config.api.http_enabled or config.api.https_enabled),
-        (UpgradeComponent, config.upgrader_enabled and not config.core_test_mode),
-        (MetadataStoreComponent, config.chant.enabled),
-        (DHTDiscoveryCommunityComponent, config.ipv8.enabled),
-        (MyPeerComponent, config.ipv8.enabled),
-        (Ipv8BootstrapperComponent, config.ipv8.enabled),
-        (DiscoveryCommunityComponent, config.ipv8.enabled),
-        (Ipv8Component, config.ipv8.enabled),
-        (LibtorrentComponent, config.libtorrent.enabled),
-        (TunnelsComponent, config.ipv8.enabled and config.tunnel_community.enabled),
-        (BandwidthAccountingComponent, config.ipv8.enabled),
-        (PayoutComponent, config.ipv8.enabled),
-        (TorrentCheckerComponent, config.torrent_checking.enabled and not config.core_test_mode),
-        (PopularityComponent, config.ipv8.enabled and config.popularity_community.enabled),
-        (GigaChannelComponent, config.chant.enabled),
-        (WatchFolderComponent, config.watch_folder.enabled),
-        (ResourceMonitorComponent, config.resource_monitor.enabled and not config.core_test_mode),
-        (VersionCheckComponent, config.general.version_checker_enabled and not config.core_test_mode),
-        (GigachannelManagerComponent,
+        (RESTComponentImp, config.api.http_enabled or config.api.https_enabled),
+        (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
+        (MetadataStoreComponentImp, config.chant.enabled),
+        (DHTDiscoveryCommunityComponentImp, config.ipv8.enabled),
+        (Ipv8PeerComponentImp, config.ipv8.enabled),
+        (Ipv8BootstrapperComponentImp, config.ipv8.enabled),
+        (DiscoveryCommunityComponentImp, config.ipv8.enabled),
+        (Ipv8ComponentImp, config.ipv8.enabled),
+        (LibtorrentComponentImp, config.libtorrent.enabled),
+        (TunnelsComponentImp, config.ipv8.enabled and config.tunnel_community.enabled),
+        (BandwidthAccountingComponentImp, config.ipv8.enabled),
+        (PayoutComponentImp, config.ipv8.enabled),
+        (TorrentCheckerComponentImp, config.torrent_checking.enabled and not config.core_test_mode),
+        (PopularityComponentImp, config.ipv8.enabled and config.popularity_community.enabled),
+        (GigaChannelComponentImp, config.chant.enabled),
+        (WatchFolderComponentImp, config.watch_folder.enabled),
+        (ResourceMonitorComponentImp, config.resource_monitor.enabled and not config.core_test_mode),
+        (VersionCheckComponentImp, config.general.version_checker_enabled and not config.core_test_mode),
+        (GigachannelManagerComponentImp,
          config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled)
     ]
 
@@ -148,11 +154,12 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-        shutdown_event = Event()
-        signal.signal(signal.SIGTERM, lambda signum, stack: shutdown_event.set)
+        session = Session(config)
+        set_default_session(session)
+        signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
         # Run until core_session exits
         set_anon_proxy_settings(config)
-        await core_session(config, components=list(components_gen(config)), shutdown_event=shutdown_event)
+        await core_session(session, components=list(components_gen(config)))
 
         if trace_logger:
             trace_logger.close()
