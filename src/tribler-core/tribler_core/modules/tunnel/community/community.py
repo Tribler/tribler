@@ -6,13 +6,11 @@ from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection, 
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
-from pathlib import Path
 
 import async_timeout
 
-from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.caches import CreateRequestCache
-from ipv8.messaging.anonymization.community import TunnelSettings, unpack_cell
+from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
@@ -49,6 +47,7 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
+from tribler_core.utilities import path_util
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
@@ -66,17 +65,19 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     """
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
-    def __init__(self, my_peer, endpoint, network, exitnode_cache: Path = None, config=None, notifier=None, dlmgr=None,
-                 bandwidth_community=None, dht_community=None, ipv8_port=None, settings=None):
-        self.config = config
-        self.notifier = notifier
-        self.dlmgr = dlmgr
+    def __init__(self, *args, **kwargs):
+        self.tribler_session = kwargs.pop('tribler_session', None)
+        self.bandwidth_community = kwargs.pop('bandwidth_community', None)
+        state_path = path_util.Path()
+        self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
+
+        self.config = kwargs.pop('config', None)
+        self.notifier = kwargs.pop('notifier', None)
+        self.dlmgr = kwargs.pop('dlmgr', None)
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
-        self.bandwidth_community = bandwidth_community
-        self.exitnode_cache = exitnode_cache
-        dht_provider = DHTCommunityProvider(dht_community, ipv8_port)
-        super().__init__(my_peer, endpoint, network, ipv8=network, dht_provider=dht_provider, settings=settings)
+
+        super().__init__(*args, **kwargs)
         self._use_main_thread = True
 
         if self.config.exitnode_enabled:
