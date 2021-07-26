@@ -1,8 +1,11 @@
 from unittest.mock import Mock
 
+import pytest
+
 from tribler_core.config.tribler_config import TriblerConfig
 
 
+@pytest.mark.skip
 def test_bootstrap_override():
     """
     Check that the DiscoveryCommunityLauncher respects the bootstrap override.

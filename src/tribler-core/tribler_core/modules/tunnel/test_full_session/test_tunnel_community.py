@@ -220,6 +220,7 @@ async def test_anon_download(proxy_factory, video_seeder, video_tdef, logger, do
     assert my_comm.find_circuits()[0].bytes_down > 0
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 @pytest.mark.timeout(0)
 async def test_hidden_services(proxy_factory, session, hidden_seeder_session, video_tdef, logger):

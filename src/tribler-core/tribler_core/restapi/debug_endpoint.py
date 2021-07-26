@@ -14,9 +14,6 @@ from marshmallow.fields import Boolean, Float, Integer, String
 
 import psutil
 
-from ipv8.messaging.anonymization.community import TunnelCommunity
-from tribler_core.modules.resource_monitor.base import ResourceMonitor
-from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.instrumentation import WatchDog
 from tribler_core.utilities.osutils import get_root_state_directory

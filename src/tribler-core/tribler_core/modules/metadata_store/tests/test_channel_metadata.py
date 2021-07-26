@@ -355,7 +355,6 @@ def test_vsids(metadata_store):
     assert channel.votes < 2.1
 
 
-@pytest.mark.timeout(0)
 @db_session
 def test_commit_channel_torrent(metadata_store):
     """
@@ -508,7 +507,6 @@ def test_consolidate_channel_torrent(torrent_template, metadata_store):
     assert len(channel.contents[:]) == 1
 
 
-@pytest.mark.timeout(0)
 @db_session
 def test_data_dont_fit_in_mdblob(metadata_store):
     import random as rng  # pylint: disable=import-outside-toplevel

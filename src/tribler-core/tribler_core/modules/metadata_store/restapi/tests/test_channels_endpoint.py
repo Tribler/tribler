@@ -126,7 +126,7 @@ async def test_get_channels_count(add_fake_torrents_channels, mock_dlmgr, sessio
     assert json_dict['total'] == 5
 
 
-async def test_create_channel(enable_chant, enable_api, session, metadata_store):
+async def test_create_channel(session, metadata_store):
     """
     Test creating a channel in your channel with REST API POST request
     """

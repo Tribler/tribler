@@ -7,9 +7,12 @@ from asynctest import Mock
 from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 
+
 @pytest.fixture
-def watcher_fixture(tmp_path):
-    return WatchFolder(watch_folder_path=tmp_path, download_manager=Mock(), notifier=Mock())
+async def watcher_fixture(tmp_path):
+    watch = WatchFolder(watch_folder_path=tmp_path, download_manager=Mock(), notifier=Mock())
+    yield watch
+    await watch.stop()
 
 
 def test_watchfolder_no_files(watcher_fixture):

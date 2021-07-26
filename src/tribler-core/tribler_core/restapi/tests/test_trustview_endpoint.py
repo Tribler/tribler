@@ -1,21 +1,35 @@
 import random
 import secrets
 from binascii import unhexlify
-from unittest.mock import Mock
+
+from aiohttp.web_app import Application
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.test.mocking.ipv8 import MockIPv8
-from ipv8.util import succeed
 
 import pytest
 
 from tribler_core.exceptions import TrustGraphException
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
-from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 from tribler_core.modules.trust_calculation.trust_graph import TrustGraph
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
+from tribler_core.utilities.utilities import MEMORY_DB
+
+
+@pytest.fixture
+def endpoint():
+    endpoint = TrustViewEndpoint()
+    return endpoint
+
+
+@pytest.fixture
+def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/trustview', endpoint.app)
+    return loop.run_until_complete(aiohttp_client(app))
 
 
 @pytest.fixture
@@ -24,36 +38,19 @@ def root_key():
 
 
 @pytest.fixture
-async def mock_ipv8(session):
-    db_path = session.config.state_dir / "bandwidth.db"
-    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
-                    settings=BandwidthAccountingSettings())
-    session.bandwidth_community = ipv8.overlay
-    yield ipv8
-    await ipv8.stop()
-
-
-@pytest.fixture
 def mock_bandwidth_community(mock_ipv8, session):
     return session.bandwidth_community
 
 
 @pytest.fixture
-async def trust_graph(root_key, mock_bandwidth_community):
-    bandwidth_db = mock_bandwidth_community.database
-    return TrustGraph(root_key, bandwidth_db, max_nodes=20, max_transactions=200)
+async def bandwidth_db(root_key):
+    bandwidth_db = BandwidthDatabase(MEMORY_DB, root_key)
+    return bandwidth_db
 
 
 @pytest.fixture
-def mock_bootstrap(session):
-    session.bootstrap = Mock()
-    session.bootstrap.shutdown = lambda: succeed(None)
-
-    bootstrap_download_state = Mock()
-    bootstrap_download_state.get_total_transferred = lambda _: random.randint(0, 10000)
-    bootstrap_download_state.get_progress = lambda: random.randint(10, 100)
-
-    session.bootstrap.download.get_state = lambda: bootstrap_download_state
+async def trust_graph(root_key, bandwidth_db):
+    return TrustGraph(root_key, bandwidth_db, max_nodes=20, max_transactions=200)
 
 
 def get_random_node_public_key():
@@ -137,8 +134,7 @@ def test_add_bandwidth_transactions(trust_graph):
         assert False, "Expected to fail but did not."
 
 
-@pytest.mark.asyncio
-async def test_trustview_response(enable_api, mock_ipv8, session, mock_bootstrap):
+async def test_trustview_response(session, root_key, bandwidth_db, endpoint):
     """
     Test whether the trust graph response is correctly returned.
 
@@ -147,7 +143,8 @@ async def test_trustview_response(enable_api, mock_ipv8, session, mock_bootstrap
     number of nodes in the graph = 1 (root node) + 3 (friends) + 3 (fofs) = 7
     number of transactions in the graphs = 3 (root node to friends) + 3 (friends) * 3 (fofs) = 12
     """
-    root_key = session.bandwidth_community.my_pk
+
+    endpoint.bandwidth_db = bandwidth_db
     friends = [
         "4c69624e61434c504b3a2ee28ce24a2259b4e585b81106cdff4359fcf48e93336c11d133b01613f30b03b4db06df27"
         "80daac2cdf2ee60be611bf7367a9c1071ac50d65ca5858a50e9578",
@@ -185,44 +182,42 @@ async def test_trustview_response(enable_api, mock_ipv8, session, mock_bootstrap
 
     for pub_key in friends:
         tx1 = BandwidthTransactionData(1, root_key, unhexlify(pub_key), EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
-        session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
+        bandwidth_db.BandwidthTransaction.insert(tx1)
 
     for friend in friends:
         for fof in fofs:
             tx2 = BandwidthTransactionData(1, unhexlify(friend), unhexlify(fof), EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
-            session.bandwidth_community.database.BandwidthTransaction.insert(tx2)
+            bandwidth_db.BandwidthTransaction.insert(tx2)
 
     for fof in fofs:
         for fofof in fofofs:
             tx3 = BandwidthTransactionData(1, unhexlify(fof), unhexlify(fofof), EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
-            session.bandwidth_community.database.BandwidthTransaction.insert(tx3)
+            bandwidth_db.BandwidthTransaction.insert(tx3)
 
     response = await do_request(session, 'trustview', expected_code=200)
     verify_response(response)
 
 
-def insert_node_transactions(root_key, session, node_public_key=None, count=1):
+def insert_node_transactions(root_key, bandwidth_db, node_public_key=None, count=1):
     for idx in range(count):
         counterparty = unhexlify(node_public_key if node_public_key else get_random_node_public_key())
         amount = random.randint(10, 100)
         tx1 = BandwidthTransactionData(idx, root_key, counterparty, EMPTY_SIGNATURE, EMPTY_SIGNATURE, amount)
-        session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
+        bandwidth_db.BandwidthTransaction.insert(tx1)
 
 
-@pytest.mark.asyncio
-async def test_trustview_max_transactions(enable_api, mock_ipv8, session, mock_bootstrap):
+async def test_trustview_max_transactions(session, bandwidth_db, root_key, endpoint):
     """
     Test whether the max transactions returned is limited.
     """
-    root_key = session.bandwidth_community.my_pk
-    endpoint = session.api_manager.root_endpoint.endpoints['/trustview']
+    endpoint.bandwidth_db = bandwidth_db
     endpoint.initialize_graph()
 
     max_txn = 10
     endpoint.trust_graph.set_limits(max_transactions=max_txn)
 
     # Try adding more transactions than max transactions
-    insert_node_transactions(root_key, session, count=max_txn + 1)
+    insert_node_transactions(root_key, bandwidth_db, count=max_txn + 1)
 
     # The number of transactions should not be returned more than max transactions
     response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
@@ -230,13 +225,11 @@ async def test_trustview_max_transactions(enable_api, mock_ipv8, session, mock_b
     assert response_json['num_tx'] == max_txn
 
 
-@pytest.mark.asyncio
-async def test_trustview_max_nodes(enable_api, mock_ipv8, session, mock_bootstrap):
+async def test_trustview_max_nodes(session, root_key, bandwidth_db, endpoint):
     """
     Test whether the number of nodes returned is limited.
     """
-    root_key = session.bandwidth_community.my_pk
-    endpoint = session.api_manager.root_endpoint.endpoints['/trustview']
+    endpoint.bandwidth_db = bandwidth_db
     endpoint.initialize_graph()
 
     max_nodes = 10
@@ -244,7 +237,7 @@ async def test_trustview_max_nodes(enable_api, mock_ipv8, session, mock_bootstra
 
     # Try transactions from more than max nodes
     for _ in range(max_nodes):
-        insert_node_transactions(root_key, session)
+        insert_node_transactions(root_key, bandwidth_db)
 
     # The number of nodes should not be returned more than max nodes
     response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
@@ -252,18 +245,17 @@ async def test_trustview_max_nodes(enable_api, mock_ipv8, session, mock_bootstra
     assert len(response_json['graph']['node']) == max_nodes
 
 
-@pytest.mark.asyncio
-async def test_trustview_with_refresh(enable_api, mock_ipv8, session, mock_bootstrap):
+async def test_trustview_with_refresh(session, root_key, bandwidth_db, endpoint):
     """
     Test whether refresh query parameters works as expected.
     If refresh parameter is not set, the cached graph is returned otherwise
     a new graph is computed and returned.
     """
-    root_key = session.bandwidth_community.my_pk
+    endpoint.bandwidth_db = bandwidth_db
 
     # Insert a set of transactions
     num_tx_set1 = 10
-    insert_node_transactions(root_key, session, count=num_tx_set1)
+    insert_node_transactions(root_key, bandwidth_db, count=num_tx_set1)
 
     # Since graph is not computed yet, freshly computed result is displayed
     # so the number of transactions returned should be equal to above number
@@ -274,7 +266,7 @@ async def test_trustview_with_refresh(enable_api, mock_ipv8, session, mock_boots
 
     # Now insert a second set of transactions
     num_tx_set2 = 10
-    insert_node_transactions(root_key, session, count=num_tx_set2)
+    insert_node_transactions(root_key, bandwidth_db, count=num_tx_set2)
 
     # At this point, the trust graph should already be computed from the previous API call,
     # since the refresh parameter is not set, the cached result should be returned

@@ -7,6 +7,7 @@ import base64
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
+from typing import Optional
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
@@ -86,7 +87,7 @@ class Download(TaskManager):
 
         for alert_type, alert_handler in alert_handlers.items():
             self.register_alert_handler(alert_type, alert_handler)
-        self.stream = Stream(self)
+        self.stream: Optional[Stream] = None
 
         self.hidden = hidden
         self.checkpoint_disabled = checkpoint_disabled or self.dummy
@@ -102,6 +103,10 @@ class Download(TaskManager):
 
     def __repr__(self):
         return self.__str__()
+
+    def add_stream(self):
+        assert self.stream is None
+        self.stream = Stream(self)
 
     def get_torrent_data(self):
         """
@@ -383,8 +388,7 @@ class Download(TaskManager):
     def on_torrent_finished_alert(self, _):
         self.update_lt_status(self.handle.status())
         self.checkpoint()
-        if self.get_state().get_total_transferred(DOWNLOAD) > 0 \
-                and not self.stream.enabled:
+        if self.get_state().get_total_transferred(DOWNLOAD) > 0 and self.stream is not None:
             if self.notifier is not None:
                 self.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
                                      self.tdef.get_name_as_unicode(), self.hidden or
@@ -408,7 +412,7 @@ class Download(TaskManager):
 
     @check_handle()
     def set_selected_files(self, selected_files=None, prio=4, force=False):
-        if not force and self.stream.enabled:
+        if not force and self.stream is not None:
             return
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
             if selected_files is None:
@@ -590,7 +594,8 @@ class Download(TaskManager):
 
     async def shutdown(self):
         self.alert_handlers.clear()
-        self.stream.close()
+        if self.stream is not None:
+            self.stream.close()
         for _, futures in self.futures.items():
             for future, _, _ in futures:
                 future.cancel()
@@ -599,7 +604,8 @@ class Download(TaskManager):
 
     def stop(self, user_stopped=None):
         self._logger.debug("Stopping %s", self.tdef.get_name())
-        self.stream.disable()
+        if self.stream is not None:
+            self.stream.disable()
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
         if self.handle and self.handle.is_valid():

@@ -28,6 +28,7 @@ def mock_download(mock_tdef):
     return mock_download
 
 
+@pytest.mark.skip
 def test_getters_setters_1(mock_download):
     """
     Testing various getters and setters in DownloadState

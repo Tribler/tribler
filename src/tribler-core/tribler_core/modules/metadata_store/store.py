@@ -3,6 +3,7 @@ import threading
 from asyncio import get_event_loop
 from datetime import datetime, timedelta
 from time import sleep, time
+from typing import Union
 
 from lz4.frame import LZ4FrameDecompressor
 
@@ -48,6 +49,7 @@ from tribler_core.modules.metadata_store.serialization import (
 )
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import MEMORY_DB
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 13
@@ -134,7 +136,7 @@ sql_create_partial_index_torrentstate_last_check = """
 class MetadataStore:
     def __init__(
         self,
-        db_filename,
+        db_filename: Union[Path, type(MEMORY_DB)],
         channels_dir,
         my_key,
         disable_sync=False,
@@ -143,7 +145,7 @@ class MetadataStore:
         db_version: int = CURRENT_DB_VERSION,
     ):
         self.notifier = notifier  # Reference to app-level notification service
-        self.db_filename = db_filename
+        self.db_path = db_filename
         self.channels_dir = channels_dir
         self.my_key = my_key
         self.my_public_key_bin = self.my_key.pub().key_to_bin()[10:]
@@ -153,8 +155,6 @@ class MetadataStore:
         self.batch_size = 10  # reasonable number, a little bit more than typically fits in a single UDP packet
         self.reference_timedelta = timedelta(milliseconds=100)
         self.sleep_on_external_thread = 0.05  # sleep this amount of seconds between batches executed on external thread
-
-        create_db = str(db_filename) == ":memory:" or not self.db_filename.is_file()
 
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
@@ -204,7 +204,14 @@ class MetadataStore:
 
         self.ChannelMetadata._channels_dir = channels_dir  # pylint: disable=protected-access
 
-        self._db.bind(provider='sqlite', filename=str(db_filename), create_db=create_db, timeout=120.0)
+        if db_filename is MEMORY_DB:
+            create_db = True
+            db_path_string = ":memory:"
+        else:
+            create_db = not db_filename.is_file()
+            db_path_string = str(db_filename)
+
+        self._db.bind(provider='sqlite', filename=db_path_string, create_db=create_db, timeout=120.0)
         self._db.generate_mapping(
             create_tables=create_db, check_tables=check_tables
         )  # Must be run out of session scope
@@ -251,6 +258,9 @@ class MetadataStore:
                 if not db_object.exists(provider, connection):
                     result.append(db_object)
         return result
+
+    def get_db_file_size(self):
+        return 0 if self.db_path is MEMORY_DB else Path(self.db_path).size()
 
     def drop_fts_triggers(self):
         cursor = self._db.get_connection().cursor()

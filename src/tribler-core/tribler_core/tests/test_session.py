@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+pytest.skip(allow_module_level=True)
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed

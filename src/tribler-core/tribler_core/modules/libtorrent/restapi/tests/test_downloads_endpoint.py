@@ -14,6 +14,7 @@ from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.unicode import hexlify
 
+
 @pytest.fixture
 def session(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
 
@@ -23,6 +24,7 @@ def session(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disabl
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/downloads', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
+
 
 def get_hex_infohash(tdef):
     return hexlify(tdef.get_infohash())
@@ -269,13 +271,13 @@ async def test_change_hops_error(mock_dlmgr, test_download, session):
                      expected_code=400, request_type='PATCH')
 
 
-async def test_move_to_non_existing_dir(mock_dlmgr, test_download, session, tmpdir):
+async def test_move_to_non_existing_dir(mock_dlmgr, test_download, session, tmp_path):
     """
     Testing whether moving the torrent storage to a non-existing directory works as expected.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
-    dest_dir = tmpdir / "non-existing"
+    dest_dir = tmp_path/ "non-existing"
     assert not dest_dir.exists()
     data = {"state": "move_storage", "dest_dir": str(dest_dir)}
 
@@ -285,13 +287,13 @@ async def test_move_to_non_existing_dir(mock_dlmgr, test_download, session, tmpd
     assert f"Target directory ({dest_dir}) does not exist" == response_dict["error"]
 
 
-async def test_move_to_existing_dir(mock_dlmgr, test_download, session, tmpdir):
+async def test_move_to_existing_dir(mock_dlmgr, test_download, session, tmp_path):
     """
     Testing whether moving the torrent storage to an existing directory works as expected.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
-    dest_dir = tmpdir / "existing"
+    dest_dir = tmp_path / "existing"
     os.mkdir(dest_dir)
     data = {"state": "move_storage", "dest_dir": str(dest_dir)}
 
@@ -357,20 +359,20 @@ async def test_stream_download_out_of_bounds_file(mock_dlmgr, mock_handle, test_
                      headers={'range': 'bytes=0-'}, expected_code=500, request_type='GET')
 
 
-async def test_stream_download(mock_dlmgr, mock_handle, test_download, session, tmpdir):
+async def test_stream_download(mock_dlmgr, mock_handle, test_download, session, tmp_path):
     """
     Testing whether the API returns code 206 if we stream a non-existent download
     """
     mock_dlmgr.get_download = lambda _: test_download
 
-    with open(tmpdir / "dummy.txt", "w") as stream_file:
+    with open(tmp_path / "dummy.txt", "w") as stream_file:
         stream_file.write("a" * 500)
 
     # Prepare a mocked stream
     stream = Mock()
     stream.seek = lambda _: succeed(None)
     stream.closed = False
-    stream.filename = tmpdir / "dummy.txt"
+    stream.filename = tmp_path / "dummy.txt"
     stream.enable = lambda *_, **__: succeed(None)
     stream.filesize = 500
     stream.piecelen = 32

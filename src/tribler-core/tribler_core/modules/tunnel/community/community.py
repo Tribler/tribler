@@ -66,11 +66,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
     def __init__(self, *args, **kwargs):
-        self.tribler_session = kwargs.pop('tribler_session', None)
         self.bandwidth_community = kwargs.pop('bandwidth_community', None)
-        state_path = path_util.Path()
-        self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
-
+        self.exitnode_cache = kwargs.pop('exitnode_cache', None)
         self.config = kwargs.pop('config', None)
         self.notifier = kwargs.pop('notifier', None)
         self.dlmgr = kwargs.pop('dlmgr', None)

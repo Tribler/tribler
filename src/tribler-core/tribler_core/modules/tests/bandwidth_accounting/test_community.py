@@ -9,6 +9,7 @@ from tribler_core.modules.bandwidth_accounting.community import BandwidthAccount
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 class TestBandwidthAccountingCommunity(TestBase):
@@ -18,7 +19,7 @@ class TestBandwidthAccountingCommunity(TestBase):
         self.initialize(BandwidthAccountingCommunity, 2)
 
     def create_node(self):
-        db = BandwidthDatabase(db_path=":memory:", my_pub_key=b"0000")
+        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=b"0000")
         ipv8 = MockIPv8("curve25519", BandwidthAccountingCommunity, database=db,
                         settings=BandwidthAccountingSettings())
         community = ipv8.get_overlay(BandwidthAccountingCommunity)

@@ -12,7 +12,12 @@ from urllib.parse import parse_qsl, urlsplit
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from functools import wraps
 
+from tribler_core.utilities.sentinels import sentinel
+
 logger = logging.getLogger(__name__)
+
+# Sentinel representing that SQLite must create database in-memory with ":memory:" argument
+MEMORY_DB = sentinel('MEMORY_DB')
 
 
 def froze_it(cls):

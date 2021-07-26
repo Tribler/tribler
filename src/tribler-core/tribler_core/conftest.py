@@ -2,39 +2,30 @@ import os
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
 from aiohttp import web
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
-
-from pony.orm import db_session
-
-import pytest
-
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
-
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
-from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
-from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.fixture(name="tribler_root_dir")
-def _tribler_root_dir(tmpdir):
-    return Path(tmpdir)
+def _tribler_root_dir(tmp_path):
+    return Path(tmp_path)
 
 
 @pytest.fixture(name="tribler_state_dir")
@@ -72,9 +63,9 @@ def get_free_port():
 
 
 @pytest.fixture
-def seed_config(tribler_config, tmpdir_factory):
+def seed_config(tribler_config, tmp_path_factory):
     config = tribler_config.copy(deep=True)
-    config.set_state_dir(tmpdir_factory.mktemp("seeder"))
+    config.set_state_dir(tmp_path_factory.mktemp("seeder"))
     config.libtorrent.enabled = True
     config.libtorrent.port = get_free_port()
     config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
@@ -94,7 +85,6 @@ def state_dir(tmp_path):
     return state_dir
 
 
-
 @pytest.fixture
 def enable_ipv8(tribler_config):
     tribler_config.ipv8.enabled = True
@@ -109,7 +99,7 @@ def mock_dlmgr(state_dir):
     checkpoints_dir.mkdir()
     dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
     dlmgr.state_dir = state_dir
-    dlmgr.get_downloads = lambda : []
+    dlmgr.get_downloads = lambda: []
     return dlmgr
 
 
@@ -157,7 +147,7 @@ def fixture_free_port():
 @pytest.fixture
 async def file_server(tmp_path, free_port):
     """
-    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmpdir.
+    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmp_path
     """
     app = web.Application()
     app.add_routes([web.static('/', tmp_path)])
@@ -213,8 +203,6 @@ def dispersy_to_pony_migrator(metadata_store):
     return migrator
 
 
-
-
 @pytest.fixture
 def enable_https(tribler_config, free_port):
     tribler_config.api.put_path_as_relative('https_certfile', TESTS_DIR / 'data' / 'certfile.pem',
@@ -246,6 +234,21 @@ def test_tdef(state_dir):
     torrentfn = state_dir / "gen.torrent"
     tdef.save(torrentfn)
     return tdef
+
+
+@pytest.fixture
+def loop(event_loop):
+    """
+    _This_ fixture masks the original "loop" fixture from pytest-asyncio,
+    effectively replacing it with the "event_loop" fixture from aiohttp.
+    It solves the following problem:
+    pytest-asyncio provides "loop" fixture for creating the event loop,
+    aiohttp provides "event_loop" fixture for creating the event loop,
+    if you use the "@pytest.mark.asyncio" decorator on a test, it will automatically run the "loop"
+    fixture, which could result in test failure if the test uses Futures created with the fixtures
+    that use the "event_loop" fixture.
+    """
+    return event_loop
 
 
 @pytest.fixture
@@ -286,8 +289,6 @@ def mock_handle(mocker, test_download):
     return mocker.patch.object(test_download, 'handle')
 
 
-
-
 @pytest.fixture
 def peer_key():
     return default_eccrypto.generate_key("curve25519")
@@ -308,4 +309,3 @@ async def download_manager(tmp_path):
     download_manager.initialize()
     yield download_manager
     await download_manager.shutdown()
-

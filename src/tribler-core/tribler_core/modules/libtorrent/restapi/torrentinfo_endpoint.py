@@ -11,14 +11,21 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
 from tribler_common.utilities import uri_to_path
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
 from tribler_core.utilities.utilities import bdecode_compat, parse_magnetlink, froze_it
+
+
+async def query_http_uri(uri: str) -> bytes:
+    # This is moved to a separate method to be able to patch it separately,
+    # for compatibility with pytest-aiohttp
+    async with ClientSession(raise_for_status=True) as session:
+        response = await session.get(uri)
+        response = await response.read()
+        return response
 
 
 @froze_it
@@ -52,6 +59,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
             }
         }
     )
+
+
     async def get_torrent_info(self, request):
         args = request.query
 
@@ -77,9 +86,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 return RESTResponse({"error": "error while decoding torrent file"}, status=HTTP_INTERNAL_SERVER_ERROR)
         elif uri.startswith('http'):
             try:
-                async with ClientSession(raise_for_status=True) as session:
-                    response = await session.get(uri)
-                    response = await response.read()
+                response = await query_http_uri(uri)
             except (ServerConnectionError, ClientResponseError) as e:
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 

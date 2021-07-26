@@ -18,12 +18,11 @@ def path_to_str(obj):
     return obj
 
 
-async def do_old_request(tribler_session, endpoint, expected_code=200, expected_json=None,
-                     request_type='GET', post_data=None, headers=None, json_response=True):
+async def do_real_request(port, endpoint, expected_code=200, expected_json=None,
+                          request_type='GET', post_data=None, headers=None, json_response=True):
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
     is_url = endpoint.startswith('http://') or endpoint.startswith('https://')
-    port = tribler_session.config.api.http_port
     url = endpoint if is_url else f'http://localhost:{port}/{endpoint}'
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
@@ -43,7 +42,6 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
-
     async with test_client.request(request_type, url, data=data, headers=headers, ssl=False) as response:
         status = response.status
         try:
@@ -52,11 +50,14 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
         except JSONDecodeError:
             response = None
 
-        if status == 500:
-            print(response['error'])
-        assert status == expected_code, response
+        if status == 500 and expected_code != 500:
+            if 'message' in response['error']:
+                print(response['error']['message'])
+            else:
+                print(response['error'])
+        assert expected_code, response == status
         if response is not None and expected_json is not None:
-            assert expected_json == response
+            assert response == expected_json
         return response
 
 
