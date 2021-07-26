@@ -53,7 +53,7 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
             response = None
 
         if status == 500:
-            print(response['error']['message'])
+            print(response['error'])
         assert status == expected_code, response
         if response is not None and expected_json is not None:
             assert expected_json == response

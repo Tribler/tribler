@@ -103,11 +103,13 @@ def enable_ipv8(tribler_config):
 @pytest.fixture
 def mock_dlmgr(state_dir):
     dlmgr = Mock()
+    dlmgr.config = LibtorrentSettings()
     dlmgr.shutdown = lambda: succeed(None)
     checkpoints_dir = state_dir / 'dlcheckpoints'
     checkpoints_dir.mkdir()
     dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
     dlmgr.state_dir = state_dir
+    dlmgr.get_downloads = lambda : []
     return dlmgr
 
 
@@ -211,11 +213,6 @@ def dispersy_to_pony_migrator(metadata_store):
     return migrator
 
 
-@pytest.fixture(name='enable_api')
-def _enable_api(tribler_config, free_port):
-    tribler_config.api.http_enabled = True
-    tribler_config.api.http_port = free_port
-    tribler_config.api.retry_port = True
 
 
 @pytest.fixture
@@ -224,13 +221,6 @@ def enable_https(tribler_config, free_port):
                                             tribler_config.state_dir)
     tribler_config.api.https_enabled = True
     tribler_config.api.https_port = free_port
-
-
-@pytest.fixture(name='enable_chant')
-def _enable_chant(tribler_config):
-    tribler_config.chant.enabled = True
-    tribler_config.chant.manager_enabled = True
-    tribler_config.libtorrent.enabled = True
 
 
 @pytest.fixture
@@ -262,6 +252,7 @@ def test_tdef(state_dir):
 async def test_download(mock_dlmgr, test_tdef):
     config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
     download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
+    download.infohash = hexlify(test_tdef.get_infohash())
     yield download
     await download.shutdown()
 
