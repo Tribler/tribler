@@ -52,7 +52,7 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
         except JSONDecodeError:
             response = None
 
-        if status == 500 and expected_code is not 500:
+        if status == 500 and expected_code != 500:
             if 'message' in response['error']:
                 print(response['error']['message'])
             else:

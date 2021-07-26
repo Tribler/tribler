@@ -1,30 +1,47 @@
 from unittest.mock import Mock
 
 import pytest
+from aiohttp.web_app import Application
 
+from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.utilities.unicode import hexlify
 
 
+
 @pytest.fixture
-def mock_lt_session(mock_dlmgr, session):
+def endpoint(mock_dlmgr, mock_lt_session):
+    endpoint = LibTorrentEndpoint()
+    endpoint.download_manager = mock_dlmgr
+
+    return endpoint
+
+
+@pytest.fixture
+def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/libtorrent', endpoint.app)
+    return loop.run_until_complete(aiohttp_client(app))
+
+@pytest.fixture
+def mock_lt_session(mock_dlmgr):
     mock_alert = Mock()
     mock_alert.values = {"a": "b"}
 
     lt_session = Mock()
-    lt_session.post_session_stats = lambda: session.dlmgr.session_stats_callback(mock_alert)
+    lt_session.post_session_stats = lambda: mock_dlmgr.session_stats_callback(mock_alert)
     lt_session.settings = {"peer_fingerprint": b"abcd", "user_agent": "Tribler"}
 
     anon_lt_session = Mock()
     anon_lt_session.get_settings = lambda: {"user_agent": "libtorrent"}
 
-    session.dlmgr.ltsessions = {0: lt_session, 1: anon_lt_session}
-    session.dlmgr.get_session_settings = lambda ses: ses.settings
+    mock_dlmgr.ltsessions = {0: lt_session, 1: anon_lt_session}
+    mock_dlmgr.get_session_settings = lambda ses: ses.settings
     return lt_session
 
 
-@pytest.mark.asyncio
-async def test_get_settings_zero_hop(mock_lt_session, session):
+async def test_get_settings_zero_hop(session):
     """
     Tests getting session settings for zero hop session.
     By default, there should always be a zero hop session so we should be able to get settings for
@@ -38,8 +55,7 @@ async def test_get_settings_zero_hop(mock_lt_session, session):
     assert "Tribler" in settings_dict['user_agent']
 
 
-@pytest.mark.asyncio
-async def test_get_settings_for_uninitialized_session(mock_dlmgr, session):
+async def test_get_settings_for_uninitialized_session(session):
     """
     Tests getting session for non initialized session.
     By default, anonymous sessions with hops > 1 are not initialized so test is done for
@@ -51,8 +67,7 @@ async def test_get_settings_for_uninitialized_session(mock_dlmgr, session):
     assert response_dict['settings'] == {}
 
 
-@pytest.mark.asyncio
-async def test_get_settings_for_one_session(mock_lt_session, session):
+async def test_get_settings_for_one_session(session):
     """
     Tests getting session for initialized anonymous session.
     """
@@ -63,8 +78,7 @@ async def test_get_settings_for_one_session(mock_lt_session, session):
     assert "libtorrent" in settings_dict['user_agent'] or settings_dict['user_agent'] == ''
 
 
-@pytest.mark.asyncio
-async def test_get_stats_zero_hop_session(mock_lt_session, session):
+async def test_get_stats_zero_hop_session(session):
     """
     Tests getting session stats for zero hop session.
     By default, there should always be a zero hop session so we should be able to get stats for this session.
@@ -75,8 +89,7 @@ async def test_get_stats_zero_hop_session(mock_lt_session, session):
     assert response_dict["session"] == {"a": "b"}
 
 
-@pytest.mark.asyncio
-async def test_get_stats_for_uninitialized_session(mock_dlmgr, session):
+async def test_get_stats_for_uninitialized_session(session):
     """
     Tests getting stats for non initialized session.
     By default, anonymous sessions with hops > 1 are not initialized so test is done for
