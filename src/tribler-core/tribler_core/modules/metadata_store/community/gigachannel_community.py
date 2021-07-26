@@ -4,29 +4,24 @@ from collections import defaultdict
 from dataclasses import dataclass
 from random import sample
 
-from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.peerdiscovery.network import Network
 from ipv8.types import Peer
 
 from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
-from tribler_core.modules.community_di_mixin import CommunityDIMixin, INFINITE_TARGET_PEERS, StrategyFactory
 
 from tribler_core.modules.metadata_store.community.discovery_booster import DiscoveryBooster
-from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.metadata_store.payload_checker import ObjState
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
 from tribler_core.modules.metadata_store.utils import NoChannelSourcesException
 from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity
-from tribler_core.session import Mediator
 from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200
 maximum_payload_size = 1024
 max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
-
 
 
 @dataclass

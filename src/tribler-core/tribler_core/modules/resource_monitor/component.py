@@ -1,19 +1,17 @@
-from tribler_core.awaitable_resources import RESOURCE_MONITOR, REST_MANAGER, TUNNELS_COMMUNITY, UPGRADER
-from tribler_core.modules.component import Component
+from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.tunnels import TunnelsComponent
+from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
-from tribler_core.session import Mediator
 
 
-class ResourceMonitorComponent(Component):
-    role = RESOURCE_MONITOR
+class ResourceMonitorComponentImp(ResourceMonitorComponent):
+    async def run(self):
+        await self.use(UpgradeComponent)
+        tunnel_community = (await self.use(TunnelsComponent)).community
 
-    async def run(self, mediator: Mediator):
-        await super().run(mediator)
-        await mediator.optional[UPGRADER]._resource_initialized_event.wait()
-        tunnel_community = await self.use(mediator, TUNNELS_COMMUNITY)
-
-        config = mediator.config
-        notifier = mediator.notifier
+        config = self.session.config
+        notifier = self.session.notifier
 
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         resource_monitor = CoreResourceMonitor(state_dir=config.state_dir,
@@ -21,8 +19,11 @@ class ResourceMonitorComponent(Component):
                                                config=config.resource_monitor,
                                                notifier=notifier)
         resource_monitor.start()
-        self.provide(mediator, resource_monitor)
-        rest_manager = await self.use(mediator, REST_MANAGER)
+        self.resource_monitor = resource_monitor
+
+        # self.provide(mediator, resource_monitor)
+        rest_manager = (await self.use(RESTComponent)).rest_manager
+
         # TODO: Split debug endpoint initialization
         debug_endpoint = rest_manager.get_endpoint('debug')
         debug_endpoint.resource_monitor = resource_monitor
@@ -30,8 +31,6 @@ class ResourceMonitorComponent(Component):
         debug_endpoint.log_dir = log_dir
         debug_endpoint.state_dir = config.state_dir
 
-    async def shutdown(self, mediator):
-        mediator.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
-        await self._provided_object.stop()
-
-        await super().shutdown(mediator)
+    async def shutdown(self):
+        self.session.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
+        await self.resource_monitor.stop()

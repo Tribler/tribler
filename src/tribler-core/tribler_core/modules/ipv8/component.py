@@ -10,30 +10,32 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
-from tribler_core.awaitable_resources import MY_PEER, IPV8_BOOTSTRAPPER, DHT_DISCOVERY_COMMUNITY, \
-    DISCOVERY_COMMUNITY, IPV8_SERVICE, REST_MANAGER
 
-from tribler_core.modules.component import Component
+from tribler_core.components.interfaces.ipv8 import (
+    DHTDiscoveryCommunityComponent,
+    DiscoveryCommunityComponent,
+    Ipv8BootstrapperComponent,
+    Ipv8Component,
+    Ipv8PeerComponent,
+)
+from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.restapi.rest_manager import RESTManager
 from tribler_core.utilities.utilities import froze_it
 
 INFINITE = -1
 
 
 @froze_it
-class Ipv8Component(Component):
-    role = IPV8_SERVICE
+class Ipv8ComponentImp(Ipv8Component):
+    task_manager: TaskManager
+    rest_manager: RESTManager
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._ipv8_tasks = None
-        self._rest_manager = None
+    async def run(self):
+        config = self.session.config
 
-    async def run(self, mediator):
-        await super().run(mediator)
-        config = mediator.config
-
-        rest_manager = self._rest_manager = await self.use(mediator, REST_MANAGER)
-        self._ipv8_tasks = TaskManager()
+        rest_component = await self.use(RESTComponent)
+        rest_manager = self.rest_manager = rest_component.rest_manager
+        self.task_manager = TaskManager()
 
         port = config.ipv8.port
         address = config.ipv8.address
@@ -59,7 +61,8 @@ class Ipv8Component(Component):
                     enable_statistics=config.ipv8.statistics and not config.core_test_mode,
                     endpoint_override=endpoint)
         await ipv8.start()
-        self.provide(mediator, ipv8)
+        self.ipv8 = ipv8
+        # self.provide(mediator, ipv8)
 
         if config.ipv8.statistics and not config.core_test_mode:
             # Enable gathering IPv8 statistics
@@ -70,55 +73,42 @@ class Ipv8Component(Component):
             from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
             IPv8Monitor(ipv8,
                         config.ipv8.walk_interval,
-                        config.ipv8.walk_scaling_upper_limit).start(self._ipv8_tasks)
+                        config.ipv8.walk_scaling_upper_limit).start(self.task_manager)
 
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
-    async def shutdown(self, mediator):
-        self._rest_manager.get_endpoint('statistics').ipv8 = None
-        self.release_dependency(mediator, REST_MANAGER)
+    async def shutdown(self):
+        self.rest_manager.get_endpoint('statistics').ipv8 = None
+        await self.unuse(RESTComponent)
 
-        await self.unused(mediator)
-        mediator.notifier.notify_shutdown_state("Shutting down IPv8...")
-        await self._ipv8_tasks.shutdown_task_manager()
-        await self._provided_object.stop(stop_loop=False)
-
-        await super().shutdown(mediator)
+        await self.unused.wait()
+        self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
+        await self.task_manager.shutdown_task_manager()
+        await self.ipv8.stop(stop_loop=False)
 
 
-class MyPeerComponent(Component):
-    role = MY_PEER
-
-    async def run(self, mediator):
-        await super().run(mediator)
-        peer = Peer(mediator.trustchain_keypair)
-        self.provide(mediator, peer)
+class Ipv8PeerComponentImp(Ipv8PeerComponent):
+    async def run(self):
+        self.peer = Peer(self.session.trustchain_keypair)
+        # self.provide(mediator, peer)
 
 
-class Ipv8BootstrapperComponent(Component):
-    role = IPV8_BOOTSTRAPPER
-
-    async def run(self, mediator):
-        await super().run(mediator)
-
+class Ipv8BootstrapperComponentImp(Ipv8BootstrapperComponent):
+    async def run(self):
         args = DISPERSY_BOOTSTRAPPER['init']
-        if bootstrap_override := mediator.config.ipv8.bootstrap_override:
+        if bootstrap_override := self.session.config.ipv8.bootstrap_override:
             address, port = bootstrap_override.split(':')
             args = {'ip_addresses': [(address, int(port))], 'dns_addresses': []}
 
-        bootstrapper = DispersyBootstrapper(**args)
-        self.provide(mediator, bootstrapper)
+        self.bootstrapper = DispersyBootstrapper(**args)
+        # self.provide(mediator, bootstrapper)
 
 
-class DHTDiscoveryCommunityComponent(Component):
-    role = DHT_DISCOVERY_COMMUNITY
-
-    async def run(self, mediator):
-        await super().run(mediator)
-
-        ipv8 = await self.use(mediator, IPV8_SERVICE)
-        peer = await self.use(mediator, MY_PEER)
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
+class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
+    async def run(self):
+        ipv8 = (await self.use(Ipv8Component)).ipv8
+        peer = (await self.use(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
         ipv8.strategies.append((PingChurn(community), INFINITE))
@@ -127,18 +117,14 @@ class DHTDiscoveryCommunityComponent(Component):
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
-        self.provide(mediator, community)
+        # self.provide(mediator, community)
 
 
-class DiscoveryCommunityComponent(Component):
-    role = DISCOVERY_COMMUNITY
-
-    async def run(self, mediator):
-        await super().run(mediator)
-
-        ipv8 = await self.use(mediator, IPV8_SERVICE)
-        peer = await self.use(mediator, MY_PEER)
-        bootstrapper = await self.use(mediator, IPV8_BOOTSTRAPPER)
+class DiscoveryCommunityComponentImp(DiscoveryCommunityComponent):
+    async def run(self):
+        ipv8 = (await self.use(Ipv8Component)).ipv8
+        peer = (await self.use(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = DiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=100)
         ipv8.strategies.append((RandomChurn(community), INFINITE))
@@ -148,4 +134,4 @@ class DiscoveryCommunityComponent(Component):
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
-        self.provide(mediator, community)
+        # self.provide(mediator, community)
