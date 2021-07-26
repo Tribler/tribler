@@ -44,13 +44,11 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         await super().tearDown()
 
     def create_node(self):
-
-        state_dir = Path.mkdtemp(suffix="_tribler_test_state")
         config = TunnelCommunitySettings()
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
                              settings={'remove_tunnel_delay': 0},
-                             exitnode_cache=state_dir / 'cache.dat',
-                             config=config)
+                             config=config
+                             )
         mock_ipv8.overlay.settings.max_circuits = 1
 
         db = BandwidthDatabase(db_path=":memory:", my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
@@ -249,7 +247,10 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         circuit.state = CIRCUIT_STATE_READY
         circuit.bytes_down = 0
         circuit.last_activity = 0
+        circuit.goal_hops = 1
         self.nodes[0].overlay.circuits[circuit.circuit_id] = circuit
+
+        self.nodes[0].overlay.remove_circuit = Mock()
 
         download = Mock(handle=None)
         download.config.get_hops = lambda: 1
