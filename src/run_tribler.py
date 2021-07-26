@@ -13,31 +13,31 @@ from tribler_common.version_manager import VersionHistory
 
 import tribler_core
 from tribler_core.components.base import Session, set_default_session
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.modules.bandwidth_accounting.component import BandwidthAccountingComponentImp
-from tribler_core.modules.ipv8.component import (
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
+from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
+from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
+from tribler_core.components.implementation.ipv8 import (
     DHTDiscoveryCommunityComponentImp,
     DiscoveryCommunityComponentImp,
     Ipv8BootstrapperComponentImp,
     Ipv8ComponentImp,
     Ipv8PeerComponentImp,
 )
-from tribler_core.modules.libtorrent.component import LibtorrentComponentImp
+from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
+from tribler_core.components.implementation.payout import PayoutComponentImp
+from tribler_core.components.implementation.popularity import PopularityComponentImp
+from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponentImp
+from tribler_core.components.implementation.restapi import RESTComponentImp
+from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponentImp
+from tribler_core.components.implementation.tunnels import TunnelsComponentImp
+from tribler_core.components.implementation.upgrade import UpgradeComponentImp
+from tribler_core.components.implementation.version_check import VersionCheckComponentImp
+from tribler_core.components.implementation.watch_folder import WatchFolderComponentImp
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.metadata_store.community.component import GigaChannelComponentImp
-from tribler_core.modules.metadata_store.component import MetadataStoreComponentImp
-from tribler_core.modules.metadata_store.manager.component import GigachannelManagerComponentImp
-from tribler_core.modules.payout.component import PayoutComponentImp
-from tribler_core.modules.popularity.component import PopularityComponentImp
-from tribler_core.modules.resource_monitor.component import ResourceMonitorComponentImp
-from tribler_core.modules.torrent_checker.component import TorrentCheckerComponentImp
-from tribler_core.modules.tunnel.component import TunnelsComponentImp
-from tribler_core.modules.version_check.component import VersionCheckComponentImp
-from tribler_core.modules.watch_folder.component import WatchFolderComponentImp
-from tribler_core.restapi.component import RESTComponentImp
 from tribler_core.session import core_session
-from tribler_core.upgrade.component import UpgradeComponentImp
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.version import sentry_url, version_id
 
