@@ -71,14 +71,25 @@ class ChannelsPeersMapping:
 class GigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
 
-    def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
+    def create_introduction_response(
+        self,
+        lan_socket_address,
+        socket_address,
+        identifier,
+        introduction=None,
+        extra_bytes=b'',
+        prefix=None,
+        new_style=False,
+    ):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
         # dialect, so that other 7.6+ are able to distinguish between the older and newer versions.
         return super().create_introduction_response(
-            *args,
+            lan_socket_address,
+            socket_address,
+            identifier,
             introduction=introduction,
             prefix=prefix,
-            new_style=new_style
+            new_style=new_style,
         )
 
     def __init__(self, my_peer, endpoint, network, max_peers=None, notifier=None, **kwargs):
