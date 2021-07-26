@@ -6,7 +6,7 @@ from tribler_core.restapi.base_api_test import do_request
 
 
 @pytest.mark.asyncio
-async def test_shutdown(enable_api, session):
+async def test_shutdown(session):
     """
     Testing whether the API triggers a Tribler shutdown
     """

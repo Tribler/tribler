@@ -25,7 +25,7 @@ async def mock_ipv8(session):
 
 
 @pytest.mark.asyncio
-async def test_get_tribler_statistics(enable_chant, enable_api, session):
+async def test_get_tribler_statistics(session):
     """
     Testing whether the API returns a correct Tribler statistics dictionary when requested
     """
@@ -34,7 +34,7 @@ async def test_get_tribler_statistics(enable_chant, enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_get_ipv8_statistics(enable_api, mock_ipv8, session):
+async def test_get_ipv8_statistics(mock_ipv8, session):
     """
     Testing whether the API returns a correct IPv8 statistics dictionary when requested
     """
@@ -43,7 +43,7 @@ async def test_get_ipv8_statistics(enable_api, mock_ipv8, session):
 
 
 @pytest.mark.asyncio
-async def test_get_ipv8_statistics_unavailable(enable_api, session):
+async def test_get_ipv8_statistics_unavailable(session):
     """
     Testing whether the API returns error 500 if IPv8 is not available
     """

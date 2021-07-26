@@ -37,7 +37,7 @@ async def open_events_socket(session, connected_future, events_future):
 
 
 @pytest.mark.asyncio
-async def test_events(enable_api, session):
+async def test_events(session):
     """
     Testing whether various events are coming through the events endpoints
     """

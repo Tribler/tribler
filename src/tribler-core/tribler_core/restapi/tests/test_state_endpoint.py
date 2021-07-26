@@ -4,7 +4,7 @@ from tribler_core.restapi.base_api_test import do_request
 
 
 @pytest.mark.asyncio
-async def test_get_state(enable_api, session):
+async def test_get_state(session):
     """
     Testing whether the API returns a correct state when requested
     """

@@ -7,7 +7,7 @@ from tribler_core.upgrade.upgrader_endpoint import SKIP_DB_UPGRADE_STR
 
 
 @pytest.mark.asyncio
-async def test_upgrader_skip(enable_api, session):
+async def test_upgrader_skip(session):
     """
     Test if the API call sets the "skip DB upgrade" flag in upgrader
     """

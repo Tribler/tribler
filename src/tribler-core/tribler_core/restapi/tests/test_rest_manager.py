@@ -12,13 +12,13 @@ def RaiseException(*args, **kwargs):
 
 
 @pytest.mark.asyncio
-async def test_https(enable_api, enable_https, tribler_config, session):
+async def test_https(enable_https, tribler_config, session):
     port = tribler_config.api.https_port
     await do_request(session, f'https://localhost:{port}/state')
 
 
 @pytest.mark.asyncio
-async def test_api_key_disabled(enable_api, session):
+async def test_api_key_disabled(session):
     session.config.api.key = ''
     await do_request(session, 'state')
     await do_request(session, 'state?apikey=111')
@@ -26,7 +26,7 @@ async def test_api_key_disabled(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_api_key_success(enable_api, session):
+async def test_api_key_success(session):
     api_key = '0' * 32
     session.config.api.key = api_key
     await do_request(session, 'state?apikey=' + api_key)
@@ -34,7 +34,7 @@ async def test_api_key_success(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_api_key_fail(enable_api, session):
+async def test_api_key_fail(session):
     session.config.api.key = '0' * 32
     await do_request(session, 'state', expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
     await do_request(session, 'state?apikey=111',
@@ -44,7 +44,7 @@ async def test_api_key_fail(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_unhandled_exception(enable_api, session):
+async def test_unhandled_exception(session):
     """
     Testing whether the API returns a formatted 500 error if an unhandled Exception is raised
     """
@@ -56,7 +56,7 @@ async def test_unhandled_exception(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_tribler_shutting_down(enable_api, session):
+async def test_tribler_shutting_down(session):
     """
     Testing whether the API returns a formatted 500 error for any request if tribler is shutting down.
     """

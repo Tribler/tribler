@@ -24,7 +24,7 @@ def mock_lt_session(mock_dlmgr, session):
 
 
 @pytest.mark.asyncio
-async def test_get_settings_zero_hop(enable_api, mock_lt_session, session):
+async def test_get_settings_zero_hop(mock_lt_session, session):
     """
     Tests getting session settings for zero hop session.
     By default, there should always be a zero hop session so we should be able to get settings for
@@ -39,7 +39,7 @@ async def test_get_settings_zero_hop(enable_api, mock_lt_session, session):
 
 
 @pytest.mark.asyncio
-async def test_get_settings_for_uninitialized_session(enable_api, mock_dlmgr, session):
+async def test_get_settings_for_uninitialized_session(mock_dlmgr, session):
     """
     Tests getting session for non initialized session.
     By default, anonymous sessions with hops > 1 are not initialized so test is done for
@@ -52,7 +52,7 @@ async def test_get_settings_for_uninitialized_session(enable_api, mock_dlmgr, se
 
 
 @pytest.mark.asyncio
-async def test_get_settings_for_one_session(enable_api, mock_lt_session, session):
+async def test_get_settings_for_one_session(mock_lt_session, session):
     """
     Tests getting session for initialized anonymous session.
     """
@@ -64,7 +64,7 @@ async def test_get_settings_for_one_session(enable_api, mock_lt_session, session
 
 
 @pytest.mark.asyncio
-async def test_get_stats_zero_hop_session(enable_api, mock_lt_session, session):
+async def test_get_stats_zero_hop_session(mock_lt_session, session):
     """
     Tests getting session stats for zero hop session.
     By default, there should always be a zero hop session so we should be able to get stats for this session.
@@ -76,7 +76,7 @@ async def test_get_stats_zero_hop_session(enable_api, mock_lt_session, session):
 
 
 @pytest.mark.asyncio
-async def test_get_stats_for_uninitialized_session(enable_api, mock_dlmgr, session):
+async def test_get_stats_for_uninitialized_session(mock_dlmgr, session):
     """
     Tests getting stats for non initialized session.
     By default, anonymous sessions with hops > 1 are not initialized so test is done for

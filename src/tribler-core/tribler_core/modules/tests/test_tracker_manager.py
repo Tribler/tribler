@@ -58,7 +58,7 @@ def test_update_tracker_info(tracker_manager):
     assert tracker_info['is_alive']
 
 
-def test_get_tracker_for_check(enable_chant, tracker_manager):
+def test_get_tracker_for_check(tracker_manager):
     """
     Test whether the correct tracker is returned when fetching the next eligable tracker for the auto check
     """

@@ -24,7 +24,7 @@ def verify_settings(settings_dict):
 
 
 @pytest.mark.asyncio
-async def test_unicode_chars(enable_api, session):
+async def test_unicode_chars(session):
     """
     Test setting watch_folder to a unicode path.
     """
@@ -39,7 +39,7 @@ async def test_unicode_chars(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_get_settings(enable_api, session):
+async def test_get_settings(session):
     """
     Testing whether the API returns a correct settings dictionary when the settings are requested
     """
@@ -48,7 +48,7 @@ async def test_get_settings(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_set_settings_invalid_dict(enable_api, session):
+async def test_set_settings_invalid_dict(session):
     """
     Testing whether an error is returned if we are passing an invalid dictionary that is too deep
     """
@@ -58,7 +58,7 @@ async def test_set_settings_invalid_dict(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_set_settings_no_key(enable_api, session):
+async def test_set_settings_no_key(session):
     """
     Testing whether an error is returned when we try to set a non-existing key
     """
@@ -73,7 +73,7 @@ async def test_set_settings_no_key(enable_api, session):
 
 
 @pytest.mark.asyncio
-async def test_set_settings(enable_api, mock_dlmgr, session):
+async def test_set_settings(mock_dlmgr, session):
     """
     Testing whether settings in the API can be successfully set
     """
@@ -92,7 +92,7 @@ async def test_set_settings(enable_api, mock_dlmgr, session):
 
 
 @pytest.mark.asyncio
-async def test_set_rate_settings(enable_api, mock_dlmgr, session):
+async def test_set_rate_settings(mock_dlmgr, session):
     """
     Testing whether libtorrent rate limits works for large number without overflow error.
     """

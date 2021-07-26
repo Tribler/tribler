@@ -40,7 +40,6 @@ async def test_load_write(tmpdir):
     config.general.version_checker_enabled = False
     config.libtorrent.port = None
     config.libtorrent.proxy_type = 2
-    config.libtorrent.anon_proxy_server_ports = ['3'] * 5
 
     assert not config.file
     config.write(tmpdir / filename)
@@ -51,7 +50,6 @@ async def test_load_write(tmpdir):
     assert config.general.version_checker_enabled is False
     assert config.libtorrent.port is None
     assert config.libtorrent.proxy_type == 2
-    assert config.libtorrent.anon_proxy_server_ports == ['3'] * 5
     assert config.file == tmpdir / filename
 
 

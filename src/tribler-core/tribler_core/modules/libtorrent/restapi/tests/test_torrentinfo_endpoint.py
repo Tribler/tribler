@@ -20,7 +20,7 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 
 @pytest.mark.asyncio
-async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, file_server, session):
+async def test_get_torrentinfo(mock_dlmgr, tmpdir, file_server, session):
     """
     Testing whether the API returns a correct dictionary with torrent info.
     """
@@ -117,7 +117,7 @@ async def test_get_torrentinfo(enable_chant, enable_api, mock_dlmgr, tmpdir, fil
 
 
 @pytest.mark.asyncio
-async def test_on_got_invalid_metainfo(enable_api, mock_dlmgr, session):
+async def test_on_got_invalid_metainfo(mock_dlmgr, session):
     """
     Test whether the right operations happen when we receive an invalid metainfo object
     """

@@ -1,6 +1,8 @@
 import uuid
 from unittest.mock import Mock
 
+from aiohttp.web_app import Application
+
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 
@@ -9,15 +11,29 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.modules.metadata_store.community.gigachannel_community import ChannelsPeersMapping
+from tribler_core.modules.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 # pylint: disable=unused-argument
 
+@pytest.fixture
+def endpoint():
+    endpoint = RemoteQueryEndpoint()
+    return endpoint
 
-@pytest.mark.asyncio
-async def test_create_remote_search_request(enable_chant, enable_api, session):
+@pytest.fixture
+def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+
+    endpoint = endpoint
+
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/remote_query', endpoint.app)
+    return loop.run_until_complete(aiohttp_client(app))
+
+async def test_create_remote_search_request(session, endpoint):
     """
     Test that remote search call is sent on a REST API search request
     """
@@ -30,8 +46,9 @@ async def test_create_remote_search_request(enable_chant, enable_api, session):
         return request_uuid, peers
 
     # Test querying for keywords
-    session.gigachannel_community = Mock()
-    session.gigachannel_community.send_search_request = mock_send
+    gigachannel_community = Mock()
+    gigachannel_community.send_search_request = mock_send
+    endpoint.gigachannel_community = gigachannel_community
     search_txt = "foo"
     await do_request(
         session,
@@ -51,19 +68,20 @@ async def test_create_remote_search_request(enable_chant, enable_api, session):
     assert hexlify(sent['channel_pk']) == channel_pk
 
 
-@pytest.mark.asyncio
-async def test_get_channels_peers(enable_chant, enable_api, session):
+async def test_get_channels_peers(session, endpoint, metadata_store):
     """
     Test getting debug info about the state of channels to peers mapping
     """
 
-    session.gigachannel_community = Mock()
-    mapping = session.gigachannel_community.channels_peers = ChannelsPeersMapping()
+    gigachannel_community = Mock()
+    endpoint.gigachannel_community = gigachannel_community
+    endpoint.mds = metadata_store
+    mapping = gigachannel_community.channels_peers = ChannelsPeersMapping()
 
     peer_key = default_eccrypto.generate_key("curve25519")
     chan_key = default_eccrypto.generate_key("curve25519")
     with db_session:
-        chan = session.mds.ChannelMetadata(sign_with=chan_key, name="bla", infohash=random_infohash())
+        chan = metadata_store.ChannelMetadata(sign_with=chan_key, name="bla", infohash=random_infohash())
 
     peer = Peer(peer_key, ("1.2.3.4", 5))
     mapping.add(peer, chan.public_key, chan.id_)

@@ -9,7 +9,7 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 
 @pytest.mark.asyncio
-async def test_create_torrent(enable_api, tmpdir, mock_dlmgr, session):
+async def test_create_torrent(tmpdir, mock_dlmgr, session):
     """
     Testing whether the API returns a proper base64 encoded torrent
     """
@@ -36,7 +36,7 @@ async def test_create_torrent(enable_api, tmpdir, mock_dlmgr, session):
     assert start_download.call_args[1]['config'].get_hops() == session.config.download_defaults.number_hops  # pylint: disable=unsubscriptable-object
 
 @pytest.mark.asyncio
-async def test_create_torrent_io_error(enable_api, mock_dlmgr, session):
+async def test_create_torrent_io_error(mock_dlmgr, session):
     """
     Testing whether the API returns a formatted 500 error if IOError is raised
     """
@@ -61,6 +61,6 @@ async def test_create_torrent_io_error(enable_api, mock_dlmgr, session):
 
 
 @pytest.mark.asyncio
-async def test_create_torrent_missing_files_parameter(enable_api, session):
+async def test_create_torrent_missing_files_parameter(session):
     expected_json = {"error": "files parameter missing"}
     await do_request(session, 'createtorrent', expected_code=400, expected_json=expected_json, request_type='POST')

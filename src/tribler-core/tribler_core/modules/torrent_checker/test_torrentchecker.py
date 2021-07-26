@@ -289,7 +289,7 @@ def test_on_health_check_completed(torrent_checker):
         assert previous_check < ts.last_check
 
 
-def test_on_health_check_failed(enable_chant, torrent_checker):
+def test_on_health_check_failed(torrent_checker):
     """
     Check whether there is no crash when the torrent health check failed and the response is None
     No torrent info is added to torrent_checked list.
