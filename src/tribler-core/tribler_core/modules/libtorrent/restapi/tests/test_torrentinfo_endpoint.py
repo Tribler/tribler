@@ -2,7 +2,7 @@ import json
 import shutil
 import urllib
 from binascii import unhexlify
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 from aiohttp.web_app import Application
@@ -34,8 +34,7 @@ def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app.add_subapp('/torrentinfo', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
 
-@pytest.mark.timeout(0)
-async def test_get_torrentinfo(mock_dlmgr, tmp_path, file_server, session, endpoint):
+async def test_get_torrentinfo(mock_dlmgr, tmp_path, session, endpoint):
     """
     Testing whether the API returns a correct dictionary with torrent info.
     """
@@ -70,9 +69,14 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, file_server, session, endpo
     path = "file:" + path_to_url(TESTS_DATA_DIR / "test_rss.xml")
     await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
 
-    # FIXME: !!! HTTP query for torrent produces dicts with unicode. TorrentDef creation can't handle unicode. !!!
-    path = "http://localhost:%d/ubuntu.torrent" % file_server
-    verify_valid_dict(await do_request(session, f'torrentinfo?uri={quote_plus(path)}', expected_code=200))
+    path = "http://localhost:1234/ubuntu.torrent"
+
+    async def mock_http_query(*_):
+        with open(tmp_path / "ubuntu.torrent", 'rb') as f:
+            return f.read()
+
+    with patch("tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
+        verify_valid_dict(await do_request(session, f'torrentinfo?uri={quote_plus(path)}', expected_code=200))
 
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'
                       f'&dn=test torrent&tr=http://ubuntu.org/ann')
@@ -110,6 +114,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, file_server, session, endpo
     path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
     await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
 
+    # FIXME: FFA entries creation check
     #with db_session:
         #assert metadata_store.TorrentMetadata.select().count() == 2
 

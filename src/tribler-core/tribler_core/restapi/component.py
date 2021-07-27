@@ -19,7 +19,7 @@ class RESTComponent(Component):
         shutdown_event = mediator.shutdown_event
 
         root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
-        rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint)
+        rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=config.state_dir)
         # Unfortunately, AIOHTTP endpoints cannot be added after the app has been started.
         # On the other hand, we have to start the state endpoint from the beginning, to
         # communicate with the upgrader. Thus, we start the endpoints immediately and

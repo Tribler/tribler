@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from aiohttp.web_app import Application
+
 from ipv8.test.mocking.ipv8 import MockIPv8
 
 import pytest
@@ -7,42 +9,53 @@ import pytest
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
 
 
 @pytest.fixture
-async def mock_ipv8(session):
+async def mock_ipv8():
     db_path = Path(":memory:")
     ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
                     settings=BandwidthAccountingSettings())
     ipv8.overlays = [ipv8.overlay]
     ipv8.endpoint.bytes_up = 100
     ipv8.endpoint.bytes_down = 20
-    session.ipv8 = ipv8
-    session.config.ipv8.enabled = True
     yield ipv8
-    session.ipv8 = None
     await ipv8.stop()
 
+@pytest.fixture
+def endpoint():
+    endpoint = StatisticsEndpoint()
+    return endpoint
 
-@pytest.mark.asyncio
-async def test_get_tribler_statistics(session):
+@pytest.fixture
+def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/statistics', endpoint.app)
+    return loop.run_until_complete(aiohttp_client(app))
+
+
+async def test_get_tribler_statistics(session, endpoint, metadata_store):
     """
     Testing whether the API returns a correct Tribler statistics dictionary when requested
     """
-    json_data = await do_request(session, 'statistics/tribler', expected_code=200)
-    assert "tribler_statistics" in json_data
+    endpoint.mds = metadata_store
+    stats = (await do_request(session, 'statistics/tribler', expected_code=200))['tribler_statistics']
+    assert 'db_size' in stats
+    assert 'num_channels' in stats
+    assert 'num_channels' in stats
 
 
-@pytest.mark.asyncio
-async def test_get_ipv8_statistics(mock_ipv8, session):
+async def test_get_ipv8_statistics(mock_ipv8, session, endpoint):
     """
     Testing whether the API returns a correct IPv8 statistics dictionary when requested
     """
+    endpoint.ipv8 = mock_ipv8
     json_data = await do_request(session, 'statistics/ipv8', expected_code=200)
     assert json_data["ipv8_statistics"]
 
 
-@pytest.mark.asyncio
 async def test_get_ipv8_statistics_unavailable(session):
     """
     Testing whether the API returns error 500 if IPv8 is not available

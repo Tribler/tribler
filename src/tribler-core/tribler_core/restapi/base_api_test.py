@@ -18,12 +18,11 @@ def path_to_str(obj):
     return obj
 
 
-async def do_old_request(tribler_session, endpoint, expected_code=200, expected_json=None,
-                     request_type='GET', post_data=None, headers=None, json_response=True):
+async def do_real_request(port, endpoint, expected_code=200, expected_json=None,
+                          request_type='GET', post_data=None, headers=None, json_response=True):
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
     is_url = endpoint.startswith('http://') or endpoint.startswith('https://')
-    port = tribler_session.config.api.http_port
     url = endpoint if is_url else f'http://localhost:{port}/{endpoint}'
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
 

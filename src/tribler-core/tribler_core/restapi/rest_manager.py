@@ -17,6 +17,9 @@ from tribler_core.version import version_id
 logger = logging.getLogger(__name__)
 
 
+class ShuttingDownException(Exception):
+    pass
+
 @web.middleware
 class ApiKeyMiddleware:
     def __init__(self, api_key):
@@ -41,12 +44,18 @@ class ApiKeyMiddleware:
 async def error_middleware(request, handler):
     try:
         if os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE":
-            raise Exception('Tribler is shutting down')
+            raise ShuttingDownException('Tribler is shutting down')
         response = await handler(request)
     except HTTPNotFound:
         return RESTResponse({'error': {
             'handled': True,
             'message': f'Could not find {request.path}'
+        }}, status=HTTP_NOT_FOUND)
+    except ShuttingDownException as e:
+        return RESTResponse({"error": {
+            "handled": True,
+            "code": e.__class__.__name__,
+            "message": str(e)
         }}, status=HTTP_NOT_FOUND)
     except Exception as e:
         logger.exception(e)
@@ -64,7 +73,7 @@ class RESTManager:
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """
 
-    def __init__(self, config: APISettings, root_endpoint: RootEndpoint):
+    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = root_endpoint
@@ -72,6 +81,7 @@ class RESTManager:
         self.site = None
         self.site_https = None
         self.config = config
+        self.state_dir = state_dir
 
     def get_endpoint(self, name):
         return self.root_endpoint.endpoints['/' + name]
@@ -131,7 +141,7 @@ class RESTManager:
         if self.config.https_enabled:
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
-            cert = self.config.get_path_as_absolute('https_certfile', self.config.state_dir)
+            cert = self.config.get_path_as_absolute('https_certfile', self.state_dir)
             ssl_context.load_cert_chain(cert)
 
             port = self.config.https_port
