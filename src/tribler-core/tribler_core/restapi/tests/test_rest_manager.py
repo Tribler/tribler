@@ -1,5 +1,6 @@
 import os
 import shutil
+from unittest.mock import patch
 
 import pytest
 
@@ -100,7 +101,8 @@ async def test_tribler_shutting_down(rest_manager, api_port):
     # Indicates tribler is shutting down
     os.environ['TRIBLER_SHUTTING_DOWN'] = 'TRUE'
 
-    error_response = await do_real_request(api_port, 'state', expected_code=404)
+    with patch('tribler_core.restapi.rest_manager.tribler_shutting_down', new=lambda : True):
+        error_response = await do_real_request(api_port, 'state', expected_code=404)
 
     expected_response = {
         "error": {

@@ -17,6 +17,10 @@ from tribler_core.version import version_id
 logger = logging.getLogger(__name__)
 
 
+def tribler_shutting_down():
+    return os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE"
+
+
 class ShuttingDownException(Exception):
     pass
 
@@ -43,7 +47,7 @@ class ApiKeyMiddleware:
 @web.middleware
 async def error_middleware(request, handler):
     try:
-        if os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE":
+        if tribler_shutting_down():
             raise ShuttingDownException('Tribler is shutting down')
         response = await handler(request)
     except HTTPNotFound:
