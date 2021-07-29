@@ -26,9 +26,6 @@ def endpoint():
 
 @pytest.fixture
 def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
-
-    endpoint = endpoint
-
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/remote_query', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))

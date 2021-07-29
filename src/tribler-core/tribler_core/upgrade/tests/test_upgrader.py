@@ -205,7 +205,6 @@ async def test_upgrade_pony_8to10(upgrader, channels_dir, state_dir, trustchain_
     upgrader.upgrade_pony_db_6to7()
     upgrader.upgrade_pony_db_7to8()
     await upgrader.upgrade_pony_db_8to10()
-    channels_dir = upgrader.channels_dir
     mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 10
