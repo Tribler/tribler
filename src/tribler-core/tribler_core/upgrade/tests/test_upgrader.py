@@ -21,14 +21,14 @@ from tribler_core.utilities.configparser import CallbackConfigParser
 
 @pytest.fixture
 def state_dir(tmp_path):
-    os.mkdir(tmp_path / 'sqlite')
+    os.makedirs(tmp_path / 'sqlite')
     return tmp_path
 
 
 @pytest.fixture
 def channels_dir(state_dir):
     channels_dir = state_dir / 'channels'
-    os.mkdir(channels_dir)
+    os.makedirs(channels_dir)
     return channels_dir
 
 

@@ -1,4 +1,4 @@
-import logging
+from typing import Optional
 
 from aiohttp import web
 
@@ -8,7 +8,6 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Float, Integer, List, String
 
-from tribler_common.simpledefs import DOWNLOAD, UPLOAD
 
 from tribler_core.modules.trust_calculation.trust_graph import TrustGraph
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
@@ -22,7 +21,7 @@ class TrustViewEndpoint(RESTEndpoint):
         super().__init__()
 
         self.bandwidth_db = None
-        self.trust_graph = None
+        self.trust_graph: Optional[TrustGraph] = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_view)])
@@ -60,7 +59,7 @@ class TrustViewEndpoint(RESTEndpoint):
         }
     )
     async def get_view(self, request):
-        if not self.trust_graph:
+        if self.trust_graph is not None:
             self.initialize_graph()
             self.trust_graph.compose_graph_data()
 
