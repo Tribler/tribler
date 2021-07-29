@@ -108,18 +108,6 @@ async def test_dump_memory(session, tmp_path, endpoint):
     assert response
 
 
-def fixture_env_state_directory(tribler_root_dir):
-    old_state_dir = os.environ.get('TSTATEDIR', None)
-    os.environ['TSTATEDIR'] = str(tribler_root_dir)
-
-    yield tribler_root_dir
-
-    if old_state_dir:
-        os.environ['TSTATEDIR'] = old_state_dir
-    else:
-        os.environ.pop('TSTATEDIR', None)
-
-
 def create_dummy_logs(log_dir: Path, process: str = 'core', log_message: str = None, num_logs: int = 100):
     """
     Create dummy log lines to test debug log endpoint.
