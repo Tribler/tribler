@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import Mock
 
 from aiohttp.web_app import Application
 
@@ -12,10 +13,9 @@ from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
 
-
 @pytest.fixture
 async def mock_ipv8():
-    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=":memory:",
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
                     settings=BandwidthAccountingSettings())
     ipv8.overlays = [ipv8.overlay]
     ipv8.endpoint.bytes_up = 100

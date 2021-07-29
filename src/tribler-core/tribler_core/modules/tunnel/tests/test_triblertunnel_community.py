@@ -30,6 +30,7 @@ from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettin
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-methods
@@ -52,7 +53,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
                              )
         mock_ipv8.overlay.settings.max_circuits = 1
 
-        db = BandwidthDatabase(db_path=":memory:", my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
+        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
 
         # Load the bandwidth accounting community
         mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(

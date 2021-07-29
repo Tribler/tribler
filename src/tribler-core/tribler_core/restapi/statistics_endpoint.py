@@ -51,7 +51,7 @@ class StatisticsEndpoint(RESTEndpoint):
     async def get_tribler_stats(self, request):
         stats_dict = {}
         if self.mds:
-            db_size = Path(str(self.mds.db_filename)).size() if self.mds else 0
+            db_size = self.mds.get_db_file_size()
             stats_dict = {"db_size": db_size,
                           "num_channels": self.mds.get_num_channels(),
                           "num_torrents": self.mds.get_num_torrents()}

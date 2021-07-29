@@ -16,6 +16,7 @@ from tribler_core.modules.trust_calculation.trust_graph import TrustGraph
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 @pytest.fixture
@@ -43,7 +44,7 @@ def mock_bandwidth_community(mock_ipv8, session):
 
 @pytest.fixture
 async def bandwidth_db(root_key):
-    bandwidth_db = BandwidthDatabase(":memory:", root_key)
+    bandwidth_db = BandwidthDatabase(MEMORY_DB, root_key)
     return bandwidth_db
 
 
