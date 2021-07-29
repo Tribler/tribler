@@ -25,11 +25,6 @@ CHANNEL_METADATA = CHANNEL_DIR / 'channel.mdblob'
 CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 
-@pytest.fixture(scope='session')
-def loop():
-    return asyncio.get_event_loop()
-
-
 @pytest.fixture
 def channel_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')

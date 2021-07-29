@@ -15,8 +15,7 @@ from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
 
 @pytest.fixture
 async def mock_ipv8():
-    db_path = Path(":memory:")
-    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=":memory:",
                     settings=BandwidthAccountingSettings())
     ipv8.overlays = [ipv8.overlay]
     ipv8.endpoint.bytes_up = 100
