@@ -1,13 +1,28 @@
 from unittest.mock import Mock
 
 import pytest
+from aiohttp.web_app import Application
 
 from tribler_core.restapi.base_api_test import do_request
-from tribler_core.upgrade.upgrader_endpoint import SKIP_DB_UPGRADE_STR
+from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.upgrade.upgrader_endpoint import SKIP_DB_UPGRADE_STR, UpgraderEndpoint
 
 
-@pytest.mark.asyncio
-async def test_upgrader_skip(session):
+@pytest.fixture
+def endpoint():
+    endpoint = UpgraderEndpoint()
+    return endpoint
+
+
+@pytest.fixture
+def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/upgrader', endpoint.app)
+    return loop.run_until_complete(aiohttp_client(app))
+
+
+async def test_upgrader_skip(session, endpoint):
     """
     Test if the API call sets the "skip DB upgrade" flag in upgrader
     """
@@ -20,8 +35,8 @@ async def test_upgrader_skip(session):
 
     mock_skip.skip_called = False
 
-    session.upgrader = Mock()
-    session.upgrader.skip = mock_skip
+    endpoint.upgrader = Mock()
+    endpoint.upgrader.skip = mock_skip
 
     await do_request(session, 'upgrader', expected_code=400, expected_json={'error': 'attribute to change is missing'},
                      post_data={}, request_type='POST')

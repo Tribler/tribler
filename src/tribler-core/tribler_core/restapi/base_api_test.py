@@ -42,7 +42,6 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
-
     async with test_client.request(request_type, url, data=data, headers=headers, ssl=False) as response:
         status = response.status
         try:
@@ -56,9 +55,9 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
                 print(response['error']['message'])
             else:
                 print(response['error'])
-        assert status == expected_code, response
+        assert expected_code, response == status
         if response is not None and expected_json is not None:
-            assert expected_json == response
+            assert response == expected_json
         return response
 
 

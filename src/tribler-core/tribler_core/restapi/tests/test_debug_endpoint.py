@@ -10,7 +10,6 @@ from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettin
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.debug_endpoint import DebugEndpoint
 from tribler_core.restapi.rest_manager import error_middleware
-from tribler_core.utilities.osutils import get_root_state_directory
 
 
 @pytest.fixture

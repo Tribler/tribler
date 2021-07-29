@@ -47,7 +47,8 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         config = TunnelCommunitySettings()
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
                              settings={'remove_tunnel_delay': 0},
-                             config=config
+                             config=config,
+                             exitnode_cache=Path(self.temporary_directory()) / "exitnode_cache.dat"
                              )
         mock_ipv8.overlay.settings.max_circuits = 1
 
