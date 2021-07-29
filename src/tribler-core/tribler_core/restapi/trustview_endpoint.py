@@ -59,7 +59,7 @@ class TrustViewEndpoint(RESTEndpoint):
         }
     )
     async def get_view(self, request):
-        if self.trust_graph is not None:
+        if self.trust_graph is None:
             self.initialize_graph()
             self.trust_graph.compose_graph_data()
 
