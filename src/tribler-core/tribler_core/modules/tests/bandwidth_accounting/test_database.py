@@ -19,7 +19,7 @@ def my_key():
 
 @pytest.fixture
 def bandwidth_db(tmpdir, my_key):
-    db = BandwidthDatabase(Path(":memory:"), my_key.pub().key_to_bin())
+    db = BandwidthDatabase(":memory:", my_key.pub().key_to_bin())
     yield db
     db.shutdown()
 
