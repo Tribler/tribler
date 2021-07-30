@@ -359,20 +359,20 @@ async def test_stream_download_out_of_bounds_file(mock_dlmgr, mock_handle, test_
                      headers={'range': 'bytes=0-'}, expected_code=500, request_type='GET')
 
 
-async def test_stream_download(mock_dlmgr, mock_handle, test_download, session, tmpdir):
+async def test_stream_download(mock_dlmgr, mock_handle, test_download, session, tmp_path):
     """
     Testing whether the API returns code 206 if we stream a non-existent download
     """
     mock_dlmgr.get_download = lambda _: test_download
 
-    with open(tmpdir / "dummy.txt", "w") as stream_file:
+    with open(tmp_path / "dummy.txt", "w") as stream_file:
         stream_file.write("a" * 500)
 
     # Prepare a mocked stream
     stream = Mock()
     stream.seek = lambda _: succeed(None)
     stream.closed = False
-    stream.filename = tmpdir / "dummy.txt"
+    stream.filename = tmp_path / "dummy.txt"
     stream.enable = lambda *_, **__: succeed(None)
     stream.filesize = 500
     stream.piecelen = 32

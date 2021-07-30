@@ -41,7 +41,7 @@ def fixture_fake_udp_socket_manager():
 async def bep33_session(mock_dlmgr):
     bep33_dht_session = FakeBep33DHTSession(mock_dlmgr, b'a' * 20, 10)
     yield bep33_dht_session
-    await bep33_dht_session.shutdown_task_manager()
+    await bep33_dht_session.cleanup()
 
 
 @pytest.fixture
