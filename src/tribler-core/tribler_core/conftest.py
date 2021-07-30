@@ -237,6 +237,21 @@ def test_tdef(state_dir):
 
 
 @pytest.fixture
+def loop(event_loop):
+    """
+    _This_ fixture masks the original "loop" fixture from pytest-asyncio,
+    effectively replacing it with the "event_loop" fixture from aiohttp.
+    It solves the following problem:
+    pytest-asyncio provides "loop" fixture for creating the event loop,
+    aiohttp provides "event_loop" fixture for creating the event loop,
+    if you use the "@pytest.mark.asyncio" decorator on a test, it will automatically run the "loop"
+    fixture, which could result in test failure if the test uses Futures created with the fixtures
+    that use the "event_loop" fixture.
+    """
+    return event_loop
+
+
+@pytest.fixture
 async def test_download(mock_dlmgr, test_tdef):
     config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
     download = Download(test_tdef, download_manager=mock_dlmgr, config=config)

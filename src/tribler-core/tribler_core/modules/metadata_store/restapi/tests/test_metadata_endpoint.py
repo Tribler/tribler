@@ -21,26 +21,28 @@ from tribler_core.utilities.utilities import has_bep33_support
 
 # pylint: disable=unused-argument
 
+
 @pytest.fixture
-def session(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
-
-    endpoint = MetadataEndpoint()
-    endpoint.mds = metadata_store
-
+async def torrent_checker(loop, mock_dlmgr, metadata_store):
     # Initialize the torrent checker
     config = TriblerConfig()
     config.tunnel_community.socks5_listen_ports = [2000, 3000]
     tracker_manager = Mock()
     tracker_manager.blacklist = []
     notifier = Mock()
-
     torrent_checker = TorrentChecker(config=config,
                                      download_manager=mock_dlmgr,
                                      tracker_manager=tracker_manager,
                                      metadata_store=metadata_store,
                                      notifier=notifier)
-    loop.run_until_complete(torrent_checker.initialize())
+    await torrent_checker.initialize()
+    yield torrent_checker
+    await torrent_checker.shutdown()
 
+@pytest.fixture
+def session(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
+    endpoint = MetadataEndpoint()
+    endpoint.mds = metadata_store
     endpoint.torrent_checker = torrent_checker
 
     app = Application(middlewares=[error_middleware])
