@@ -684,7 +684,8 @@ class DownloadManager(TaskManager):
         # the removal having finished.
         if handle:
             if handle.is_valid():
-                download.stream.disable()
+                if download.stream is not None:
+                    download.stream.disable()
                 self._logger.debug("Removing handle %s", hexlify(infohash))
                 ltsession = self.get_session(download.config.get_hops())
                 ltsession.remove_torrent(handle, int(remove_content))

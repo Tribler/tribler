@@ -20,12 +20,10 @@ from tribler_core.components.interfaces.ipv8 import (
 )
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
-from tribler_core.utilities.utilities import froze_it
 
 INFINITE = -1
 
 
-@froze_it
 class Ipv8ComponentImp(Ipv8Component):
     task_manager: TaskManager
     rest_manager: RESTManager
@@ -115,8 +113,9 @@ class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
         ipv8.strategies.append((RandomWalk(community), 20))
 
         community.bootstrappers.append(bootstrapper)
-
         ipv8.overlays.append(community)
+
+        self.community = community
         # self.provide(mediator, community)
 
 
@@ -134,4 +133,5 @@ class DiscoveryCommunityComponentImp(DiscoveryCommunityComponent):
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
+        self.community = community
         # self.provide(mediator, community)

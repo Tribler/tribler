@@ -3,15 +3,17 @@ Author(s): Vadim Bulavintsev
 """
 import logging
 import os
+import signal
 import sys
 from typing import List
 
 from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 import tribler_core.utilities.permid as permid_module
-from tribler_core.components.base import Component, Session
+from tribler_core.components.base import Component, Session, set_default_session
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import hexlify
@@ -50,10 +52,13 @@ def init_keypair(state_dir, keypair_filename):
 
 
 async def core_session(
-        session: Session,
+        config: TriblerConfig,
         components: List[Component]
 ):
-    config = session.config
+    session = Session(config, components)
+    signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
+    set_default_session(session)
+
     logger = logging.getLogger("Session")
 
     patch_crypto_be_discovery()
@@ -65,7 +70,7 @@ async def core_session(
         keypair_filename = config.trustchain.ec_keypair_filename
     else:
         keypair_filename = config.trustchain.testnet_keypair_filename
-        
+
     trustchain_keypair = init_keypair(config.state_dir, keypair_filename)
     session.trustchain_keypair = trustchain_keypair
 
@@ -78,8 +83,6 @@ async def core_session(
     if sys.platform == 'darwin':
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
-    for comp in components:
-        comp.register(session)
     await session.start()
 
     # FIXME: workaround for IPv8 initializing all endpoints in one go

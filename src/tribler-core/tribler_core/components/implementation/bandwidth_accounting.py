@@ -8,6 +8,7 @@ from tribler_core.modules.bandwidth_accounting.community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
 )
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.restapi.rest_manager import RESTManager
 
 
@@ -28,15 +29,17 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         else:
             bandwidth_cls = BandwidthAccountingCommunity
 
+        database_path = config.state_dir / "sqlite" / "bandwidth.db"
+        database = BandwidthDatabase(database_path, peer.public_key.key_to_bin())
         community = bandwidth_cls(peer, ipv8.endpoint, ipv8.network,
                                   settings=config.bandwidth_accounting,
-                                  database=config.state_dir / "sqlite" / "bandwidth.db")
-        self.community = community
+                                  database=database)
         ipv8.strategies.append((RandomWalk(community), 20))
 
         community.bootstrappers.append(bootstrapper)
 
         ipv8.overlays.append(community)
+        self.community = community
         # self.provide(mediator, community)
 
         rest_manager.get_endpoint('trustview').bandwidth_db = community.database

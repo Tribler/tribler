@@ -20,8 +20,8 @@ class ResourceMonitorComponentImp(ResourceMonitorComponent):
                                                notifier=notifier)
         resource_monitor.start()
         self.resource_monitor = resource_monitor
-
         # self.provide(mediator, resource_monitor)
+
         rest_manager = (await self.use(RESTComponent)).rest_manager
 
         # TODO: Split debug endpoint initialization
