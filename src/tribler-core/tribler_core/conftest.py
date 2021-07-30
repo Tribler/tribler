@@ -24,8 +24,8 @@ from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.fixture(name="tribler_root_dir")
-def _tribler_root_dir(tmpdir):
-    return Path(tmpdir)
+def _tribler_root_dir(tmp_path):
+    return Path(tmp_path)
 
 
 @pytest.fixture(name="tribler_state_dir")
@@ -63,9 +63,9 @@ def get_free_port():
 
 
 @pytest.fixture
-def seed_config(tribler_config, tmpdir_factory):
+def seed_config(tribler_config, tmp_path_factory):
     config = tribler_config.copy(deep=True)
-    config.set_state_dir(tmpdir_factory.mktemp("seeder"))
+    config.set_state_dir(tmp_path_factory.mktemp("seeder"))
     config.libtorrent.enabled = True
     config.libtorrent.port = get_free_port()
     config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
@@ -147,7 +147,7 @@ def fixture_free_port():
 @pytest.fixture
 async def file_server(tmp_path, free_port):
     """
-    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmpdir.
+    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmp_path
     """
     app = web.Application()
     app.add_routes([web.static('/', tmp_path)])
