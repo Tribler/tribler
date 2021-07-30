@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from asyncio import Event, create_task, gather
+from asyncio import Event, create_task, gather, get_event_loop
 from contextlib import contextmanager
-from inspect import isabstract
-from typing import Dict, Optional, Set, Type, TypeVar
+from typing import Dict, List, Optional, Iterable, Set, Type, TypeVar
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
@@ -19,16 +18,23 @@ class ComponentError(Exception):
 
 
 class Session:
-    def __init__(self, config: TriblerConfig = None, shutdown_event: Event = None, notifier: Notifier = None):
+    def __init__(self, config: TriblerConfig = None, components: Iterable[Component] = (), shutdown_event: Event = None, notifier: Notifier = None):
+        self.waiting_graph = {}
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
         self.trustchain_keypair = None
+        for comp in components:
+            comp.register(self)
 
     async def start(self):
+        loop = get_event_loop()
+        started_events: List[Event] = []
         for comp in self.components.values():
-            await comp.start()
+            loop.create_task(comp.start())
+            started_events.append(comp.started)
+        await gather(*[event.wait() for event in started_events])
 
     async def shutdown(self):
         await gather(*[create_task(component.shutdown()) for component in self.components.values()])
@@ -81,9 +87,10 @@ class Component:
         self.unused = Event()
 
     def _find_interfaces(self):
+        cls = self.__class__
         result = []
         for base in reversed(self.__class__.__mro__):
-            if issubclass(base, Component) and base is not Component and isabstract(base):
+            if issubclass(base, Component) and base not in (Component, cls) and base.__name__.endswith('Component'):
                 result.append(base)
         return result
 
@@ -129,11 +136,29 @@ class Component:
     async def shutdown(self):
         pass
 
+    async def can_use(self, interface: Type[T]) -> bool:
+        if self.session is None:
+            raise ComponentError(f"Component {self.__class__.__name__} is not registered")
+        try:
+            interface.imp()
+        except ComponentError:
+            return False
+        return True
+
     async def use(self, interface: Type[T]) -> T:
         if self.session is None:
             raise ComponentError(f"Component {self.__class__.__name__} is not registered")
         imp = interface.imp()
+        name1 = self.__class__.__name__
+        name2 = imp.__class__.__name__
+        graph = self.session.waiting_graph
+        assert name1 not in graph
+        graph[name1] = name2
+        # print(f'Waiting graph: {self.session.waiting_graph}')
+        if graph.get(name2) == name1:  # TODO: detect longer loops (three components and more)
+            raise SessionError(f'Waiting graph loop detected: {name1} <-> {name2}')
         await imp.started.wait()
+        self.session.waiting_graph.pop(name1)
         self.uses.add(imp)
         imp.used_by.add(self)
         return imp

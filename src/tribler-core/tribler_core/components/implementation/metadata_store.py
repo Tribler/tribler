@@ -4,10 +4,8 @@ from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
-from tribler_core.utilities.utilities import froze_it
 
 
-@froze_it
 class MetadataStoreComponentImp(MetadataStoreComponent):
     endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
     rest_manager: RESTManager
@@ -33,7 +31,7 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         self.mds = metadata_store
         # self.provide(mediator, metadata_store)
 
-        for endpoint in self._endpoints:
+        for endpoint in self.endpoints:
             rest_manager.get_endpoint(endpoint).mds = metadata_store
 
         if config.core_test_mode:
@@ -41,8 +39,8 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
 
     async def shutdown(self):
         # Release endpoints
-        for endpoint in self._endpoints:
-            self._rest_manager.get_endpoint(endpoint).mds = None
+        for endpoint in self.endpoints:
+            self.rest_manager.get_endpoint(endpoint).mds = None
         await self.unuse(RESTComponent)
 
         await self.unused.wait()

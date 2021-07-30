@@ -3,10 +3,8 @@ from tribler_common.simpledefs import STATE_UPGRADING_READABLE
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.upgrade.upgrade import TriblerUpgrader
-from tribler_core.utilities.utilities import froze_it
 
 
-@froze_it
 class UpgradeComponentImp(UpgradeComponent):
     async def run(self):
         config = self.session.config

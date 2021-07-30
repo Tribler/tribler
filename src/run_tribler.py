@@ -1,7 +1,6 @@
 import asyncio
 import logging.config
 import os
-import signal
 import sys
 
 from PyQt5.QtCore import QSettings
@@ -12,7 +11,6 @@ from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 
 import tribler_core
-from tribler_core.components.base import Session, set_default_session
 from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
 from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
 from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
@@ -154,12 +152,9 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-        session = Session(config)
-        set_default_session(session)
-        signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
         # Run until core_session exits
         set_anon_proxy_settings(config)
-        await core_session(session, components=list(components_gen(config)))
+        await core_session(config, components=list(components_gen(config)))
 
         if trace_logger:
             trace_logger.close()

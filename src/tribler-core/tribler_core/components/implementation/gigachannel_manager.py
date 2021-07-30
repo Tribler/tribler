@@ -4,10 +4,8 @@ from tribler_core.components.interfaces.metadata_store import MetadataStoreCompo
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.restapi.rest_manager import RESTManager
-from tribler_core.utilities.utilities import froze_it
 
 
-@froze_it
 class GigachannelManagerComponentImp(GigachannelManagerComponent):
     rest_manager: RESTManager
 
@@ -22,13 +20,13 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
         manager = GigaChannelManager(
             notifier=notifier, metadata_store=metadata_store, download_manager=download_manager
         )
-        self.gigachannel_manager = manager
         if not config.core_test_mode:
             manager.start()
 
         rest_manager.get_endpoint('channels').gigachannel_manager = manager
         rest_manager.get_endpoint('collections').gigachannel_manager = manager
 
+        self.gigachannel_manager = manager
         # self.provide(mediator, manager)
 
     async def shutdown(self):

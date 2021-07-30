@@ -1,4 +1,5 @@
 
+from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peerdiscovery.discovery import RandomWalk
 
@@ -47,8 +48,7 @@ class TunnelsComponentImp(TunnelsComponent):
                                notifier=self.session.notifier,
                                dlmgr=download_manager,
                                bandwidth_community=bandwidth_community,
-                               dht_community=dht_community,
-                               ipv8_port=config.ipv8.port,
+                               dht_provider=DHTCommunityProvider(dht_community, config.ipv8.port),
                                settings=settings)
         await community.wait_for_socks_servers()
         ipv8.strategies.append((RandomWalk(community), 30))
@@ -60,7 +60,6 @@ class TunnelsComponentImp(TunnelsComponent):
 
         self.session.notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, community.monitor_downloads)
         self.community = community
-
         # self.provide(mediator, community)
 
         rest_manager.get_endpoint('downloads').tunnel_community = community
