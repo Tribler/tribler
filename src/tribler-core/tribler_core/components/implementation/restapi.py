@@ -15,21 +15,21 @@ class RESTComponentImp(RESTComponent):
         shutdown_event = session.shutdown_event
 
         root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
-        self.rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=config.state_dir)
+        rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=config.state_dir)
         # Unfortunately, AIOHTTP endpoints cannot be added after the app has been started.
         # On the other hand, we have to start the state endpoint from the beginning, to
         # communicate with the upgrader. Thus, we start the endpoints immediately and
         # then gradually connect them to their respective backends during the core start process.
-        await self.rest_manager.start()
+        await rest_manager.start()
 
-        self.rest_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
-        self.rest_manager.get_endpoint('settings').tribler_config = config
+        rest_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
+        rest_manager.get_endpoint('settings').tribler_config = config
 
-        state_endpoint = self.rest_manager.get_endpoint('state')
+        state_endpoint = rest_manager.get_endpoint('state')
         state_endpoint.connect_notifier(notifier)
         state_endpoint.readable_status = STATE_START_API
 
-        events_endpoint = self.rest_manager.get_endpoint('events')
+        events_endpoint = rest_manager.get_endpoint('events')
         events_endpoint.connect_notifier(notifier)
 
         def report_callback(text_long, sentry_event):
@@ -41,6 +41,7 @@ class RESTComponentImp(RESTComponent):
 
         # We provide the REST API only after the essential endpoints (events, state and shutdown) and
         # the exception handler were initialized
+        self.rest_manager = rest_manager
         # self.provide(mediator, rest_manager)
 
     async def shutdown(self):
