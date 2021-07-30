@@ -62,7 +62,6 @@ async def open_events_socket(rest_manager_, connected_event, events_up):
                     break
 
 
-@pytest.mark.timeout(0)
 @pytest.mark.asyncio
 async def test_events(rest_manager, notifier):
     """

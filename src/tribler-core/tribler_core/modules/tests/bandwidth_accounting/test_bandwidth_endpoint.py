@@ -70,7 +70,6 @@ async def test_get_history_no_community(bw_endpoint, aiohttp_client):
     await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
 
 
-@pytest.mark.timeout(0)
 async def test_get_history(bw_endpoint, bw_community, aiohttp_client):
     """
     Testing whether the API returns the correct bandwidth balance history
