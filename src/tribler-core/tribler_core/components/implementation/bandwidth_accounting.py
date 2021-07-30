@@ -33,7 +33,6 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         database = BandwidthDatabase(database_path, peer.public_key.key_to_bin())
         community = bandwidth_cls(peer, ipv8.endpoint, ipv8.network,
                                   settings=config.bandwidth_accounting,
-                                  database_path=database_path,
                                   database=database)
         ipv8.strategies.append((RandomWalk(community), 20))
 

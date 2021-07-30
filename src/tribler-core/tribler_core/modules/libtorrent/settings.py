@@ -9,6 +9,9 @@ from tribler_core.config.tribler_config_section import TriblerConfigSection
 
 
 # pylint: disable=no-self-argument
+from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
+
+
 @validator('port', 'anon_listen_port')
 def validate_port_with_minus_one(v):
     assert v is None or -1 <= v <= NetworkUtils.MAX_PORT, 'Port must be in range [-1..65535]'
@@ -61,7 +64,7 @@ class DownloadDefaultsSettings(TriblerConfigSection):
     anonymity_enabled: bool = True
     number_hops: int = 1
     safeseeding_enabled: bool = True
-    saveas: Optional[str] = None
+    saveas: Optional[str] = str(get_default_dest_dir())
     seeding_mode: SeedingMode = SeedingMode.forever
     seeding_ratio: float = 2.0
     seeding_time: float = 60
