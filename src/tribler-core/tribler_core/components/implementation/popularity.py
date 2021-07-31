@@ -14,11 +14,11 @@ class PopularityComponentImp(PopularityComponent):
     async def run(self):
         config = self.session.config
 
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        peer = (await self.use(Ipv8PeerComponent)).peer
-        metadata_store = (await self.use(MetadataStoreComponent)).mds
-        torrent_checker = (await self.use(TorrentCheckerComponent)).torrent_checker
-        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
+        ipv8 = (await self.claim(Ipv8Component)).ipv8
+        peer = (await self.claim(Ipv8PeerComponent)).peer
+        metadata_store = (await self.claim(MetadataStoreComponent)).mds
+        torrent_checker = (await self.claim(TorrentCheckerComponent)).torrent_checker
+        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
 
         community = PopularityCommunity(peer, ipv8.endpoint, ipv8.network,
                                         settings=config.popularity_community,

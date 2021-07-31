@@ -16,13 +16,13 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.use(UpgradeComponent)
+        await self.claim(UpgradeComponent)
         config = self.session.config
 
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        peer = (await self.use(Ipv8PeerComponent)).peer
-        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        ipv8 = (await self.claim(Ipv8Component)).ipv8
+        peer = (await self.claim(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
+        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
 
         if config.general.testnet or config.bandwidth_accounting.testnet:
             bandwidth_cls = BandwidthAccountingTestnetCommunity

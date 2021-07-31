@@ -13,9 +13,9 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
         config = self.session.config
         notifier = self.session.notifier
 
-        download_manager = (await self.use(LibtorrentComponent)).download_manager
-        metadata_store = (await self.use(MetadataStoreComponent)).mds
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        download_manager = (await self.claim(LibtorrentComponent)).download_manager
+        metadata_store = (await self.claim(MetadataStoreComponent)).mds
+        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
 
         manager = GigaChannelManager(
             notifier=notifier, metadata_store=metadata_store, download_manager=download_manager
@@ -34,6 +34,6 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
 
         self.rest_manager.get_endpoint('channels').gigachannel_manager = None
         self.rest_manager.get_endpoint('collections').gigachannel_manager = None
-        await self.unuse(RESTComponent)
+        await self.release(RESTComponent)
 
         await self.gigachannel_manager.shutdown()

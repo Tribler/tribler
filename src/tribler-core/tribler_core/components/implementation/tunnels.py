@@ -25,13 +25,13 @@ class TunnelsComponentImp(TunnelsComponent):
     async def run(self):
         config = self.session.config
 
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
-        peer = (await self.use(Ipv8PeerComponent)).peer
-        dht_community = (await self.use(DHTDiscoveryCommunityComponent)).community
-        download_manager = (await self.use(LibtorrentComponent)).download_manager
-        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
-        rest_manager = (await self.use(RESTComponent)).rest_manager
+        ipv8 = (await self.claim(Ipv8Component)).ipv8
+        bandwidth_community = (await self.claim(BandwidthAccountingComponent)).community
+        peer = (await self.claim(Ipv8PeerComponent)).peer
+        dht_community = (await self.claim(DHTDiscoveryCommunityComponent)).community
+        download_manager = (await self.claim(LibtorrentComponent)).download_manager
+        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
+        rest_manager = (await self.claim(RESTComponent)).rest_manager
 
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits

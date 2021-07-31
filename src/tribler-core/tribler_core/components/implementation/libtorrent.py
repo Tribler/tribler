@@ -12,12 +12,12 @@ class LibtorrentComponentImp(LibtorrentComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.use(UpgradeComponent)
+        await self.claim(UpgradeComponent)
 
         config = self.session.config
 
         # TODO: move rest_manager check after download manager init. Use notifier instead of direct call to endpoint
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
         state_endpoint = rest_manager.get_endpoint('state')
 
         state_endpoint.readable_status = STATE_START_LIBTORRENT
@@ -49,7 +49,7 @@ class LibtorrentComponentImp(LibtorrentComponent):
         # Release endpoints
         for endpoint in self.endpoints:
             self.rest_manager.get_endpoint(endpoint).download_manager = None
-        await self.unuse(RESTComponent)
+        await self.release(RESTComponent)
 
         self.download_manager.stop_download_states_callback()
         await self.download_manager.shutdown()
