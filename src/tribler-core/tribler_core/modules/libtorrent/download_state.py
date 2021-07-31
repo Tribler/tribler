@@ -9,9 +9,7 @@ from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 
 from tribler_common.simpledefs import (
     DLSTATUS_ALLOCATING_DISKSPACE,
-    DLSTATUS_CIRCUITS,
     DLSTATUS_DOWNLOADING,
-    DLSTATUS_EXIT_NODES,
     DLSTATUS_HASHCHECKING,
     DLSTATUS_METADATA,
     DLSTATUS_SEEDING,

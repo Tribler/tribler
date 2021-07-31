@@ -30,6 +30,7 @@ from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
+from tribler_common.network_utils import NetworkUtils
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 

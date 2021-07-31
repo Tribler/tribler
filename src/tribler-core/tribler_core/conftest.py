@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from traceback import print_exception
 from unittest.mock import Mock
 
 import pytest
@@ -114,14 +115,13 @@ def video_tdef():
 
 
 @pytest.fixture
-async def video_seeder(tmp_path, video_tdef):
+async def video_seeder(tmp_path_factory, video_tdef):
     config = LibtorrentSettings()
     config.dht = False
     config.upnp = False
     config.natpmp = False
     config.lsd = False
-    seeder_state_dir = tmp_path / 'video_seeder_state_dir'
-    seeder_state_dir.mkdir()
+    seeder_state_dir = tmp_path_factory.mktemp('video_seeder_state_dir', numbered=True)
     dlmgr = DownloadManager(
         config=config,
         state_dir=seeder_state_dir,
