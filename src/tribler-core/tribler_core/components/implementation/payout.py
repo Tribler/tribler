@@ -15,8 +15,8 @@ class PayoutComponentImp(PayoutComponent):
     async def run(self):
         config = self.session.config
 
-        dht_community = (await self.use(DHTDiscoveryCommunityComponent)).community
-        bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
+        dht_community = (await self.claim(DHTDiscoveryCommunityComponent)).community
+        bandwidth_community = (await self.claim(BandwidthAccountingComponent)).community
 
         payout_manager = PayoutManager(bandwidth_community, dht_community)
         self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT, payout_manager.do_payout)

@@ -13,8 +13,8 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
     async def run(self):
         config = self.session.config
 
-        await self.use(UpgradeComponent)
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        await self.claim(UpgradeComponent)
+        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         chant_testnet = config.general.testnet or config.chant.testnet
@@ -41,7 +41,7 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         # Release endpoints
         for endpoint in self.endpoints:
             self.rest_manager.get_endpoint(endpoint).mds = None
-        await self.unuse(RESTComponent)
+        await self.release(RESTComponent)
 
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")

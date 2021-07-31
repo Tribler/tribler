@@ -15,9 +15,9 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
     async def run(self):
         config = self.session.config
 
-        metadata_store = (await self.use(MetadataStoreComponent)).mds
-        download_manager = (await self.use(LibtorrentComponent)).download_manager
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        metadata_store = (await self.claim(MetadataStoreComponent)).mds
+        download_manager = (await self.claim(LibtorrentComponent)).download_manager
+        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
 
         tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store)
         torrent_checker = TorrentChecker(config=config,
@@ -36,6 +36,6 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
         self.rest_manager.get_endpoint('metadata').torrent_checker = None
-        await self.unuse(RESTComponent)
+        await self.release(RESTComponent)
 
         await self.torrent_checker.shutdown()

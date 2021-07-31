@@ -21,11 +21,11 @@ class GigaChannelComponentImp(GigaChannelComponent):
         config = self.session.config
         notifier = self.session.notifier
 
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        metadata_store = (await self.use(MetadataStoreComponent)).mds
-        peer = (await self.use(Ipv8PeerComponent)).peer
-        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        ipv8 = (await self.claim(Ipv8Component)).ipv8
+        metadata_store = (await self.claim(MetadataStoreComponent)).mds
+        peer = (await self.claim(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
+        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
         community = giga_channel_cls(
@@ -56,6 +56,6 @@ class GigaChannelComponentImp(GigaChannelComponent):
         self.rest_manager.get_endpoint('remote_query').gigachannel_community = None
         self.rest_manager.get_endpoint('channels').gigachannel_community = None
         self.rest_manager.get_endpoint('collections').gigachannel_community = None
-        await self.unuse(RESTComponent)
+        await self.release(RESTComponent)
 
         await self.community.unload()

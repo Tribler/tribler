@@ -18,8 +18,8 @@ class ComponentError(Exception):
 
 
 class Session:
-    def __init__(self, config: TriblerConfig = None, components: Iterable[Component] = (), shutdown_event: Event = None, notifier: Notifier = None):
-        self.waiting_graph = {}
+    def __init__(self, config: TriblerConfig = None, components: Iterable[Component] = (), shutdown_event: Event = None,
+                 notifier: Notifier = None):
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
@@ -37,7 +37,8 @@ class Session:
         await gather(*[event.wait() for event in started_events])
 
     async def shutdown(self):
-        await gather(*[create_task(component.shutdown()) for component in self.components.values()])
+        await gather(*[create_task(component.stop()) for component in self.components.values()])
+
 
 _default_session: Optional[Session] = None
 
@@ -69,6 +70,7 @@ def get_session() -> Session:
         return _session_stack[-1]
     return _get_default_session()
 
+
 T = TypeVar('T', bound='Component')
 
 
@@ -81,10 +83,12 @@ class Component:
         self.interfaces = self._find_interfaces()
         if not self.interfaces:
             raise ComponentError(f'Interface class not found for {cls.__name__}')
-        self.uses: Set[Component] = set()
-        self.used_by: Set[Component] = set()
+        self.my_claims: Set[Component] = set()
+        self.in_use_by: Set[Component] = set()
         self.started = Event()
         self.unused = Event()
+        # Every component starts unused, so it does not lock the whole system on shutdown
+        self.unused.set()
 
     def _find_interfaces(self):
         cls = self.__class__
@@ -127,8 +131,11 @@ class Component:
         self.started.set()
 
     async def stop(self):
+        self.logger.info(f"Waiting for other components to release me")
         await self.unused.wait()
+        self.logger.info(f"Component free, shutting down")
         await self.shutdown()
+        await gather(*[self._release_imp(imp) for imp in list(self.my_claims)])
 
     async def run(self):
         pass
@@ -136,36 +143,21 @@ class Component:
     async def shutdown(self):
         pass
 
-    async def can_use(self, interface: Type[T]) -> bool:
-        if self.session is None:
-            raise ComponentError(f"Component {self.__class__.__name__} is not registered")
-        try:
-            interface.imp()
-        except ComponentError:
-            return False
-        return True
+    async def claim(self, dependency: Type[T]) -> T:
+        dep = dependency.imp()
 
-    async def use(self, interface: Type[T]) -> T:
-        if self.session is None:
-            raise ComponentError(f"Component {self.__class__.__name__} is not registered")
-        imp = interface.imp()
-        name1 = self.__class__.__name__
-        name2 = imp.__class__.__name__
-        graph = self.session.waiting_graph
-        assert name1 not in graph
-        graph[name1] = name2
-        # print(f'Waiting graph: {self.session.waiting_graph}')
-        if graph.get(name2) == name1:  # TODO: detect longer loops (three components and more)
-            raise SessionError(f'Waiting graph loop detected: {name1} <-> {name2}')
-        await imp.started.wait()
-        self.session.waiting_graph.pop(name1)
-        self.uses.add(imp)
-        imp.used_by.add(self)
-        return imp
+        self.my_claims.add(dep)
+        await dep.started.wait()
+        dep.in_use_by.add(self)
+        return dep
 
-    async def unuse(self, interface: Type[T]):
-        imp = interface.imp()
-        self.uses.discard(imp)
-        imp.used_by.discard(self)
-        if not imp.used_by:
-            imp.unused.set()
+    async def _release_imp(self, dep: Component):
+        assert (dep in self.my_claims)
+        self.my_claims.discard(dep)
+        dep.in_use_by.discard(self)
+        if not dep.in_use_by:
+            dep.unused.set()
+
+    async def release(self, dependency: Type[T]):
+        dep = dependency.imp()
+        await self._release_imp(dep)

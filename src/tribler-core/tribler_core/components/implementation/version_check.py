@@ -5,7 +5,7 @@ from tribler_core.modules.version_check.versioncheck_manager import VersionCheck
 
 class VersionCheckComponentImp(VersionCheckComponent):
     async def run(self):
-        await self.use(UpgradeComponent)
+        await self.claim(UpgradeComponent)
 
         notifier = self.session.notifier
 
