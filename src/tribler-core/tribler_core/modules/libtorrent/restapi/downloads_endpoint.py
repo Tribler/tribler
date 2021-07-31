@@ -11,8 +11,7 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES, \
-    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_STOPPED
+from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -48,6 +47,7 @@ def _safe_extended_peer_info(ext_peer_info):
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
         return ''.join([chr(c) for c in ext_peer_info])
+
 
 def get_extended_status(tunnel_community, download):
     """

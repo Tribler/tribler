@@ -122,7 +122,6 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, e
         dlmgr = DownloadManager(state_dir=Path.mkdtemp(),
                                 config=dlmgr_settings,
                                 peer_mid=mock_ipv8.my_peer.mid,
-                                tunnel_community=tunnel_community,
                                 notifier=Mock())
         tunnel_community.dlmgr = dlmgr
         dlmgr.initialize()
@@ -131,7 +130,7 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, e
     return tunnel_community
 
 
-def start_anon_download(download_manager: DownloadManager, seed_session, tdef, hops=1):
+def start_anon_download(tunnel_community, download_manager: DownloadManager, seed_session, tdef, hops=1):
     """
     Start an anonymous download in the main Tribler session.
     """
@@ -140,7 +139,7 @@ def start_anon_download(download_manager: DownloadManager, seed_session, tdef, h
     dscfg.set_hops(hops)
     download = download_manager.start_download(tdef=tdef, config=dscfg)
     port = seed_session.config.port
-    download_manager.tunnel_community.bittorrent_peers[download] = [("127.0.0.1", port)]
+    tunnel_community.bittorrent_peers[download] = [("127.0.0.1", port)]
     return download
 
 
@@ -196,7 +195,6 @@ async def my_comm():
 
 
 @pytest.mark.asyncio
-@pytest.mark.tunneltest
 @pytest.mark.timeout(40)
 async def test_anon_download(proxy_factory, video_seeder, video_tdef, logger, download_manager, my_comm):
     """
@@ -207,7 +205,7 @@ async def test_anon_download(proxy_factory, video_seeder, video_tdef, logger, do
     await introduce_peers([my_comm] + relays + exit_nodes)
     dlmgr = my_comm.dlmgr
 
-    download = start_anon_download(dlmgr, video_seeder, video_tdef)
+    download = start_anon_download(my_comm, dlmgr, video_seeder, video_tdef)
     await download.wait_for_status(DLSTATUS_DOWNLOADING)
     dlmgr.set_download_states_callback(dlmgr.sesscb_states_callback, interval=.1)
 

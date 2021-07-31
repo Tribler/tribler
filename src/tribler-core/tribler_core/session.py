@@ -99,7 +99,7 @@ async def core_session(
     await session.shutdown_event.wait()
 
     # Indicates we are shutting down core. With this environment variable set
-    # to 'TRUE', RESTManager will no longer accepts any new requests.
+    # to 'TRUE', RESTManager will no longer accept any new requests.
     os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
 
     await session.shutdown()

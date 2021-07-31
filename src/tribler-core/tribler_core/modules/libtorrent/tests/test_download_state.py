@@ -28,7 +28,6 @@ def mock_download(mock_tdef):
     return mock_download
 
 
-@pytest.mark.skip
 def test_getters_setters_1(mock_download):
     """
     Testing various getters and setters in DownloadState
@@ -40,16 +39,17 @@ def test_getters_setters_1(mock_download):
 
     assert download_state.get_download() == mock_download
     assert download_state.get_progress() == 0
-    assert download_state.get_status() == DLSTATUS_WAITING4HASHCHECK
     assert download_state.get_error() is None
     assert download_state.get_current_speed(UPLOAD) == 0
     assert download_state.get_total_transferred(UPLOAD) == 0
     assert download_state.get_num_seeds_peers() == (0, 0)
     assert download_state.get_peerlist() == []
 
-    mock_download.config.get_hops = lambda: 1
-    download_state = DownloadState(mock_download, None, None)
-    assert download_state.get_status() == DLSTATUS_EXIT_NODES
+    # TODO: move this to do downloads endpoint test, testing get_extended_status
+    #assert download_state.get_status() == DLSTATUS_WAITING4HASHCHECK
+    #mock_download.config.get_hops = lambda: 1
+    #download_state = DownloadState(mock_download, None, None)
+    #assert download_state.get_status() == DLSTATUS_EXIT_NODES
 
 
 def test_getters_setters_2(mock_download, mock_lt_status):
