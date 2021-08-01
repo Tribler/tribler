@@ -58,13 +58,10 @@ class TunnelsComponentImp(TunnelsComponent):
         if bootstrapper:
             community.bootstrappers.append(bootstrapper)
 
-        # TODO: make this into a poller task instead
-        self.session.notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, community.monitor_downloads)
         self.community = community
         # self.provide(mediator, community)
 
         rest_manager.get_endpoint('downloads').tunnel_community = community
 
     async def shutdown(self):
-        self.session.notifier.remove_observer(NTFY.DOWNLOADS_LIST_UPDATE, self.community.monitor_downloads)
         await self.community.unload()

@@ -125,15 +125,13 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, e
         dlmgr_settings = LibtorrentSettings()
         DownloadManager.set_anon_proxy_settings(dlmgr_settings, 2, ("127.0.0.1", tunnel_community_ports))
 
-        notifier = Notifier()
         dlmgr = DownloadManager(state_dir=Path.mkdtemp(),
                                 config=dlmgr_settings,
                                 peer_mid=mock_ipv8.my_peer.mid,
-                                notifier=notifier)
+                                notifier=Mock())
         tunnel_community.dlmgr = dlmgr
         dlmgr.initialize()
         dlmgr.is_shutdown_ready = lambda: True
-        notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, tunnel_community.monitor_downloads)
 
     return tunnel_community
 
@@ -235,7 +233,7 @@ async def test_anon_download(proxy_factory, video_seeder: DownloadManager, video
 
 @pytest.mark.tunneltest
 @pytest.mark.asyncio
-@pytest.mark.timeout(40)
+@pytest.mark.timeout(60)
 async def test_hidden_services(proxy_factory, hidden_seeder_comm, video_tdef, logger):
     """
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
