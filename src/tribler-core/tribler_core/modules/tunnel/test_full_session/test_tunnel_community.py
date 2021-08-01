@@ -44,10 +44,10 @@ class ProxyFactory:
     def __init__(self):
         self.comms = []
 
-    async def get(self, exitnode=False):
+    async def get(self, exitnode=False, start_lt=False):
         ports = [NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port() for _ in range(5)]
         tunn_comm_config = TunnelCommunitySettings(socks5_listen_ports=ports)
-        comm = await create_tunnel_community(tunn_comm_config, exitnode=exitnode)
+        comm = await create_tunnel_community(tunn_comm_config, exitnode=exitnode, start_lt=start_lt)
         self.comms.append(comm)
         return comm
 
@@ -70,9 +70,9 @@ async def proxy_factory():
 
 
 @pytest.fixture
-async def hidden_seeder_comm(video_seeder, video_tdef):
+async def hidden_seeder_comm(proxy_factory, video_seeder, video_tdef):
     # Also load the tunnel community in the seeder session
-    comm = await create_tunnel_community(start_lt=True)
+    comm = await proxy_factory.get(start_lt=True)
     comm.build_tunnels(1)
 
     dscfg_seed = DownloadConfig()
@@ -93,8 +93,7 @@ async def hidden_seeder_comm(video_seeder, video_tdef):
     upload.set_state_callback(seeder_state_callback)
 
     await upload.wait_for_status(DLSTATUS_SEEDING)
-    yield comm
-    await comm.unload()
+    return comm
 
 
 async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, exitnode=False,
@@ -241,7 +240,7 @@ async def test_hidden_services(proxy_factory, hidden_seeder_comm, video_tdef, lo
 
     crash_on_error()
 
-    leecher_comm = await create_tunnel_community(exitnode=False, start_lt=True)
+    leecher_comm = await proxy_factory.get(exitnode=False, start_lt=True)
 
     hidden_seeder_comm.build_tunnels(1)
 
