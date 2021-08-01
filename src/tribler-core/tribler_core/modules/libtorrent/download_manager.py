@@ -102,6 +102,7 @@ class DownloadManager(TaskManager):
         self.lt_session_shutdown_ready = {}
         self._dht_ready_task = None
         self.dht_readiness_timeout = self.config.dht_readiness_timeout if not self.dummy_mode else 0
+        self._last_states_list = []
 
     @property
     def libtorrent_port(self):
@@ -816,8 +817,10 @@ class DownloadManager(TaskManager):
                         self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE, unhexlify(peer["id"]), infohash, peer["dtotal"])
 
         if self.state_cb_count % 4 == 0:
-            if self.notifier:
-                self.notifier.notify(NTFY.DOWNLOADS_LIST_UPDATE, states_list)
+            self._last_states_list = states_list
+
+    def get_last_download_states(self):
+        return self._last_states_list
 
     async def load_checkpoints(self):
         for filename in self.get_checkpoint_dir().glob('*.conf'):

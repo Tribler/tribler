@@ -30,7 +30,6 @@ from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
-from tribler_common.network_utils import NetworkUtils
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
@@ -48,7 +47,6 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
-from tribler_core.utilities import path_util
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
@@ -115,6 +113,23 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.exitnode_cache is not None:
             self.restore_exitnodes_from_disk()
+        if self.dlmgr is not None:
+            downloads_polling_interval = 1.0
+            self.register_task('Poll download manager for new or changed downloads',
+                               self._poll_download_manager,
+                               interval=downloads_polling_interval)
+
+
+
+    async def _poll_download_manager(self):
+        try:
+            dl_states = self.dlmgr.get_last_download_states()
+            self.monitor_downloads(dl_states)
+        except:
+            pass
+
+
+
 
     async def wait_for_socks_servers(self):
         # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.
