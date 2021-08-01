@@ -14,7 +14,10 @@ async def start_bootstrap_download(self):
     infohash = self.config.bootstrap.infohash
     self.bootstrap.start_by_infohash(self.dlmgr.start_download, infohash)
     await self.bootstrap.download.future_finished
-    # Temporarily disabling SQL import for experimental release
+    # Uncommenting the following line makes Tribler start much longer
+    # and does not add anything to security or functionality. So the bootstrap file
+    # is only used for testing hidden seeding speed currently.
+
     # await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
     self.bootstrap.bootstrap_finished = True
 

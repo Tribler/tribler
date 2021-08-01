@@ -1,10 +1,12 @@
 import logging
 import time
-from asyncio import Future, all_tasks, sleep
+from asyncio import Future, all_tasks, sleep, get_event_loop
 from collections import defaultdict
 from itertools import permutations
+from traceback import print_exception
 from typing import List
 
+import pytest
 from asynctest import Mock
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER, PEER_FLAG_EXIT_BT
@@ -13,12 +15,8 @@ from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
-
-import pytest
-
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
-
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.settings import LibtorrentSettings
@@ -26,10 +24,18 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
 from tribler_core.utilities.path_util import Path
+
+
+def crash_on_error():
+    def exception_handler(loop, context):
+        exc = context.get('exception')
+        print_exception(type(exc), exc, exc.__traceback__)
+        exit(1)
+
+    get_event_loop().set_exception_handler(exception_handler)
 
 
 class ProxyFactory:
@@ -64,7 +70,6 @@ async def proxy_factory():
 
 @pytest.fixture
 async def hidden_seeder_comm(video_seeder, video_tdef):
-
     # Also load the tunnel community in the seeder session
     comm = await create_tunnel_community(start_lt=True)
     comm.build_tunnels(1)
@@ -91,13 +96,15 @@ async def hidden_seeder_comm(video_seeder, video_tdef):
     await comm.unload()
 
 
-async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, exitnode=False, start_lt=False) -> TriblerTunnelCommunity:
+async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, exitnode=False,
+                                  start_lt=False) -> TriblerTunnelCommunity:
     """
     Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
     used in Tribler.
     """
-    comm_config = comm_config or TunnelCommunitySettings(socks5_listen_ports=list(range(1080, 1085)))
-    comm_config.exitnode_enabled=exitnode
+    comm_config = comm_config or TunnelCommunitySettings(
+        socks5_listen_ports=[NetworkUtils().get_random_free_port() for _ in range(5)])
+    comm_config.exitnode_enabled = exitnode
     mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, settings={"max_circuits": 1}, config=comm_config)
     tunnel_community = mock_ipv8.overlay
 
@@ -129,13 +136,13 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, e
 
 
 def start_anon_download(tunnel_community: TriblerTunnelCommunity,
-                        download_manager: DownloadManager,
                         seeder_port,
                         tdef: TorrentDef,
                         hops=1):
     """
     Start an anonymous download in the main Tribler session.
     """
+    download_manager = tunnel_community.dlmgr
     dscfg = DownloadConfig()
     dscfg.set_dest_dir(download_manager.state_dir)
     dscfg.set_hops(hops)
@@ -198,16 +205,19 @@ async def my_comm():
 @pytest.mark.tunneltest
 @pytest.mark.asyncio
 @pytest.mark.timeout(40)
-async def test_anon_download(proxy_factory, video_seeder, video_tdef, logger, download_manager, my_comm):
+async def test_anon_download(proxy_factory, video_seeder: DownloadManager, video_tdef: TorrentDef, logger,
+                             download_manager: DownloadManager, my_comm: TriblerTunnelCommunity):
     """
     Testing whether an anonymous download over our tunnels works
     """
+
+    crash_on_error()
 
     relays, exit_nodes = await create_nodes(proxy_factory)
     await introduce_peers([my_comm] + relays + exit_nodes)
     dlmgr = my_comm.dlmgr
 
-    download = start_anon_download(my_comm, dlmgr, video_seeder.config.port, video_tdef)
+    download = start_anon_download(my_comm, video_seeder.libtorrent_port, video_tdef)
     await download.wait_for_status(DLSTATUS_DOWNLOADING)
     dlmgr.set_download_states_callback(dlmgr.sesscb_states_callback, interval=.1)
 
@@ -220,13 +230,17 @@ async def test_anon_download(proxy_factory, video_seeder, video_tdef, logger, do
     assert my_comm.find_circuits()[0].bytes_down > 0
 
 
+@pytest.mark.skip
 @pytest.mark.tunneltest
 @pytest.mark.asyncio
-@pytest.mark.timeout(0)
+@pytest.mark.timeout(40)
 async def test_hidden_services(proxy_factory, hidden_seeder_comm, video_tdef, logger):
     """
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
     """
+
+    crash_on_error()
+
     leecher_comm = await create_tunnel_community(exitnode=False, start_lt=True)
 
     hidden_seeder_comm.build_tunnels(1)
@@ -257,6 +271,6 @@ async def test_hidden_services(proxy_factory, hidden_seeder_comm, video_tdef, lo
         for cid in list(e.exit_sockets.keys()):
             e.exit_sockets[cid] = MockTunnelExitSocket(e.exit_sockets[cid])
 
-    download = start_anon_download(leecher_comm, leecher_comm.dlmgr, hidden_seeder_comm.dlmgr.config.port, video_tdef, hops=1)
+    download = start_anon_download(leecher_comm, hidden_seeder_comm.dlmgr.libtorrent_port, video_tdef, hops=1)
     download.set_state_callback(download_state_callback)
     await progress
