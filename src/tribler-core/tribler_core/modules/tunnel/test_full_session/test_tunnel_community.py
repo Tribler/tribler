@@ -16,13 +16,14 @@ from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_common.network_utils import NetworkUtils
-from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
+from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings, NTFY
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
+from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
@@ -124,13 +125,15 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, e
         dlmgr_settings = LibtorrentSettings()
         DownloadManager.set_anon_proxy_settings(dlmgr_settings, 2, ("127.0.0.1", tunnel_community_ports))
 
+        notifier = Notifier()
         dlmgr = DownloadManager(state_dir=Path.mkdtemp(),
                                 config=dlmgr_settings,
                                 peer_mid=mock_ipv8.my_peer.mid,
-                                notifier=Mock())
+                                notifier=notifier)
         tunnel_community.dlmgr = dlmgr
         dlmgr.initialize()
         dlmgr.is_shutdown_ready = lambda: True
+        notifier.add_observer(NTFY.DOWNLOADS_LIST_UPDATE, tunnel_community.monitor_downloads)
 
     return tunnel_community
 
@@ -206,7 +209,7 @@ async def my_comm():
 @pytest.mark.asyncio
 @pytest.mark.timeout(40)
 async def test_anon_download(proxy_factory, video_seeder: DownloadManager, video_tdef: TorrentDef, logger,
-                             download_manager: DownloadManager, my_comm: TriblerTunnelCommunity):
+                             my_comm: TriblerTunnelCommunity):
     """
     Testing whether an anonymous download over our tunnels works
     """
@@ -230,7 +233,6 @@ async def test_anon_download(proxy_factory, video_seeder: DownloadManager, video
     assert my_comm.find_circuits()[0].bytes_down > 0
 
 
-@pytest.mark.skip
 @pytest.mark.tunneltest
 @pytest.mark.asyncio
 @pytest.mark.timeout(40)
