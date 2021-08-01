@@ -70,7 +70,7 @@ async def proxy_factory():
 
 
 @pytest.fixture
-async def hidden_seeder_comm(proxy_factory, video_seeder, video_tdef):
+async def hidden_seeder_comm(proxy_factory, video_tdef):
     # Also load the tunnel community in the seeder session
     comm = await proxy_factory.get(start_lt=True)
     comm.build_tunnels(1)
@@ -96,7 +96,8 @@ async def hidden_seeder_comm(proxy_factory, video_seeder, video_tdef):
     return comm
 
 
-async def create_tunnel_community(comm_config: TunnelCommunitySettings = None, exitnode=False,
+async def create_tunnel_community(comm_config: TunnelCommunitySettings = None,
+                                  exitnode=False,
                                   start_lt=False) -> TriblerTunnelCommunity:
     """
     Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
