@@ -1,4 +1,3 @@
-import asyncio
 import logging.config
 import os
 import sys
@@ -10,34 +9,6 @@ from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, Sentr
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 
-import tribler_core
-from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
-from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
-from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
-from tribler_core.components.implementation.ipv8 import (
-    DHTDiscoveryCommunityComponentImp,
-    DiscoveryCommunityComponentImp,
-    Ipv8BootstrapperComponentImp,
-    Ipv8ComponentImp,
-    Ipv8PeerComponentImp,
-)
-from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
-from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
-from tribler_core.components.implementation.payout import PayoutComponentImp
-from tribler_core.components.implementation.popularity import PopularityComponentImp
-from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponentImp
-from tribler_core.components.implementation.restapi import RESTComponentImp
-from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponentImp
-from tribler_core.components.implementation.tunnels import TunnelsComponentImp
-from tribler_core.components.implementation.upgrade import UpgradeComponentImp
-from tribler_core.components.implementation.version_check import VersionCheckComponentImp
-from tribler_core.components.implementation.watch_folder import WatchFolderComponentImp
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.session import core_session
-from tribler_core.utilities.osutils import get_root_state_directory
-from tribler_core.version import sentry_url, version_id
 
 import tribler_gui
 from tribler_gui.utilities import get_translator
@@ -49,38 +20,6 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 # pylint: disable=import-outside-toplevel
 
 
-def components_gen(config: TriblerConfig):
-    components_list = [
-        (RESTComponentImp, config.api.http_enabled or config.api.https_enabled),
-        (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
-        (MetadataStoreComponentImp, config.chant.enabled),
-        (DHTDiscoveryCommunityComponentImp, config.ipv8.enabled),
-        (Ipv8PeerComponentImp, config.ipv8.enabled),
-        (Ipv8BootstrapperComponentImp, config.ipv8.enabled),
-        (DiscoveryCommunityComponentImp, config.ipv8.enabled),
-        (Ipv8ComponentImp, config.ipv8.enabled),
-        (LibtorrentComponentImp, config.libtorrent.enabled),
-        (TunnelsComponentImp, config.ipv8.enabled and config.tunnel_community.enabled),
-        (BandwidthAccountingComponentImp, config.ipv8.enabled),
-        (PayoutComponentImp, config.ipv8.enabled),
-        (TorrentCheckerComponentImp, config.torrent_checking.enabled and not config.core_test_mode),
-        (PopularityComponentImp, config.ipv8.enabled and config.popularity_community.enabled),
-        (GigaChannelComponentImp, config.chant.enabled),
-        (WatchFolderComponentImp, config.watch_folder.enabled),
-        (ResourceMonitorComponentImp, config.resource_monitor.enabled and not config.core_test_mode),
-        (VersionCheckComponentImp, config.general.version_checker_enabled and not config.core_test_mode),
-        (GigachannelManagerComponentImp,
-         config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled)
-    ]
-
-    for component, condition in components_list:
-        if condition:
-            yield component()
-        else:
-            mock_comp_implementation_class = type(component.__class__.__name__+'MockImp', (component,), {})
-            yield mock_comp_implementation_class()
-
-
 def set_anon_proxy_settings(config):
     anon_proxy_ports = config.tunnel_community.socks5_listen_ports
     if not anon_proxy_ports:
@@ -89,6 +28,7 @@ def set_anon_proxy_settings(config):
     anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
     logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
 
+    from tribler_core.modules.libtorrent.download_manager import DownloadManager
     DownloadManager.set_anon_proxy_settings(config.libtorrent, 2, anon_proxy_settings)
 
 
@@ -98,6 +38,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
+    import tribler_core
+
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
                 f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
                 f'Core test mode: "{core_test_mode}"')
@@ -105,70 +47,70 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
     tribler_core.load_logger_config(root_state_dir)
 
-    from tribler_core.config.tribler_config import TriblerConfig
-    from tribler_core.modules.process_checker import ProcessChecker
-
-    trace_logger = None
-
-    # TODO for the moment being, we use the SelectorEventLoop on Windows, since with the ProactorEventLoop, ipv8
-    # peer discovery becomes unstable. Also see issue #5485.
-    if sys.platform.startswith('win'):
-        asyncio.set_event_loop(asyncio.SelectorEventLoop())
-
     sys.path.insert(0, base_path)
 
-    async def start_tribler():
-        # Check if we are already running a Tribler instance
-        process_checker = ProcessChecker(root_state_dir)
-        if process_checker.already_running:
-            return
-        process_checker.create_lock_file()
+    # Check if we are already running a Tribler instance
+    from tribler_core.modules.process_checker import ProcessChecker
+    process_checker = ProcessChecker(root_state_dir)
+    if process_checker.already_running:
+        return
+    process_checker.create_lock_file()
 
-        from asyncio import get_event_loop
-        from tribler_core.exception_handler import CoreExceptionHandler
-        get_event_loop().set_exception_handler(CoreExceptionHandler.unhandled_error_observer)
+    # Before any upgrade, prepare a separate state directory for the update version so it does not
+    # affect the older version state directory. This allows for safe rollback.
+    version_history = VersionHistory(root_state_dir)
+    version_history.fork_state_directory_if_necessary()
+    version_history.save_if_necessary()
+    state_dir = version_history.code_version.directory
 
-        # Before any upgrade, prepare a separate state directory for the update version so it does not
-        # affect the older version state directory. This allows for safe rollback.
-        version_history = VersionHistory(root_state_dir)
-        version_history.fork_state_directory_if_necessary()
-        version_history.save_if_necessary()
-        state_dir = version_history.code_version.directory
-        config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
-        config.core_test_mode = core_test_mode
+    from tribler_core.config.tribler_config import TriblerConfig
+    config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
+    config.core_test_mode = core_test_mode
 
-        if not config.error_handling.core_error_reporting_requires_user_consent:
-            SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
+    if not config.error_handling.core_error_reporting_requires_user_consent:
+        SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
-        config.api.http_port = int(api_port)
-        # If the API key is set to an empty string, it will remain disabled
-        if config.api.key not in ('', api_key):
-            config.api.key = api_key
-            config.write()  # Immediately write the API key so other applications can use it
-        config.api.http_enabled = True
+    config.api.http_port = int(api_port)
+    # If the API key is set to an empty string, it will remain disabled
+    if config.api.key not in ('', api_key):
+        config.api.key = api_key
+        config.write()  # Immediately write the API key so other applications can use it
+    config.api.http_enabled = True
 
-        priority_order = config.resource_monitor.cpu_priority
-        set_process_priority(pid=os.getpid(), priority_order=priority_order)
+    priority_order = config.resource_monitor.cpu_priority
+    set_process_priority(pid=os.getpid(), priority_order=priority_order)
 
-        global trace_logger
-        # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
-        log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
-        trace_logger = check_and_enable_code_tracing('core', log_dir)
+    # Enable tracer if --trace-debug or --trace-exceptions flag is present in sys.argv
+    log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
+    trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-        # Run until core_session exits
-        set_anon_proxy_settings(config)
-        await core_session(config, components=list(components_gen(config)))
-
-        if trace_logger:
-            trace_logger.close()
-
-        process_checker.remove_lock_file()
-        # Flush the logs to the file before exiting
-        for handler in logging.getLogger().handlers:
-            handler.flush()
+    # Run until core_session exits
+    set_anon_proxy_settings(config)
+    from tribler_core.components.components_catalog import components_gen
 
     logging.getLogger('asyncio').setLevel(logging.WARNING)
-    asyncio.run(start_tribler())
+
+    import asyncio
+    if sys.platform.startswith('win'):
+        # TODO for the moment being, we use the SelectorEventLoop on Windows, since with the ProactorEventLoop, ipv8
+        # peer discovery becomes unstable. Also see issue #5485.
+        asyncio.set_event_loop(asyncio.SelectorEventLoop())
+
+    from tribler_core.exception_handler import CoreExceptionHandler
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(CoreExceptionHandler.unhandled_error_observer)
+
+    from tribler_core.session import core_session
+    loop.run_until_complete(core_session(config, components=list(components_gen(config))))
+
+    if trace_logger:
+        trace_logger.close()
+
+    process_checker.remove_lock_file()
+    # Flush the logs to the file before exiting
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+
 
 
 def init_sentry_reporter():
@@ -178,6 +120,7 @@ def init_sentry_reporter():
     as a URL for sending sentry's reports while a Tribler client running in
     test mode
     """
+    from tribler_core.version import sentry_url, version_id
     test_sentry_url = os.environ.get('TEST_SENTRY_URL', None)
 
     if not test_sentry_url:
@@ -205,6 +148,8 @@ if __name__ == "__main__":
     init_sentry_reporter()
 
     # Get root state directory (e.g. from environment variable or from system default)
+    from tribler_core.utilities.osutils import get_root_state_directory
+
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')
 
@@ -213,6 +158,7 @@ if __name__ == "__main__":
         logger.info('Running in "core" mode')
 
         # Check for missing Core dependencies
+        from tribler_core.dependencies import check_for_missing_dependencies
         check_for_missing_dependencies(scope='core')
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
@@ -232,6 +178,9 @@ if __name__ == "__main__":
         tribler_gui.load_logger_config(root_state_dir)
 
         # Check for missing both(GUI, Core) dependencies
+        from tribler_core.version import sentry_url, version_id
+
+        from tribler_core.dependencies import check_for_missing_dependencies
         check_for_missing_dependencies(scope='both')
 
         # Do imports only after dependencies check
