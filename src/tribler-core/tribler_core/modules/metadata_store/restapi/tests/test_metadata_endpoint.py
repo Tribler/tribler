@@ -1,7 +1,6 @@
 import json
 from unittest.mock import Mock
 
-import pytask as pytask
 from aiohttp.web_app import Application
 
 from ipv8.util import succeed
