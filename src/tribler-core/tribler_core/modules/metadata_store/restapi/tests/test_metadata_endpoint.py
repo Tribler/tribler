@@ -1,6 +1,7 @@
 import json
 from unittest.mock import Mock
 
+import pytask as pytask
 from aiohttp.web_app import Application
 
 from ipv8.util import succeed
@@ -26,7 +27,7 @@ from tribler_core.utilities.utilities import has_bep33_support
 async def torrent_checker(loop, mock_dlmgr, metadata_store):
     # Initialize the torrent checker
     config = TriblerConfig()
-    config.tunnel_community.socks5_listen_ports = [2000, 3000]
+    config.download_defaults.number_hops = 0
     tracker_manager = Mock()
     tracker_manager.blacklist = []
     notifier = Mock()
@@ -34,7 +35,8 @@ async def torrent_checker(loop, mock_dlmgr, metadata_store):
                                      download_manager=mock_dlmgr,
                                      tracker_manager=tracker_manager,
                                      metadata_store=metadata_store,
-                                     notifier=notifier)
+                                     notifier=notifier,
+                                     socks_listen_ports=[2000, 3000])
     await torrent_checker.initialize()
     yield torrent_checker
     await torrent_checker.shutdown()
@@ -199,6 +201,8 @@ async def test_get_entry_not_found(session, metadata_store):
     await do_request(session, 'metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
 
 
+
+@pytest.mark.skip("Always passes even in previous releases, must be fixed")
 async def test_check_torrent_health(session, mock_dlmgr, udp_tracker, metadata_store):
     """
     Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
@@ -221,7 +225,10 @@ async def test_check_torrent_health(session, mock_dlmgr, udp_tracker, metadata_s
     mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
     # Left for compatibility with other tests in this object
+
+    #FIXME! Disabling this does not affect the test!
     await udp_tracker.start()
+
     json_response = await do_request(session, url)
     assert "health" in json_response
     assert f"udp://localhost:{udp_tracker.port}" in json_response['health']

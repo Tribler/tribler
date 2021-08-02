@@ -3,6 +3,7 @@ import logging
 import random
 import time
 from asyncio import CancelledError, gather
+from typing import Optional, List
 
 from pony.orm import db_session, desc, select
 
@@ -43,7 +44,8 @@ class TorrentChecker(TaskManager):
                  download_manager: DownloadManager,
                  notifier: Notifier,
                  tracker_manager: TrackerManager,
-                 metadata_store: MetadataStore):
+                 metadata_store: MetadataStore,
+                 socks_listen_ports: Optional[List[int]] = None):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tracker_manager = tracker_manager
@@ -51,6 +53,8 @@ class TorrentChecker(TaskManager):
         self.dlmgr = download_manager
         self.notifier = notifier
         self.config = config
+
+        self.socks_listen_ports = socks_listen_ports
 
         self._should_stop = False
         self._session_list = {'DHT': []}
@@ -133,6 +137,8 @@ class TorrentChecker(TaskManager):
 
         try:
             session = self._create_session_for_request(tracker.url, timeout=30)
+            if session is None:
+                return False
         except MalformedTrackerURLException as e:
             # Remove the tracker from the database
             self.remove_tracker(tracker.url)
@@ -155,13 +161,13 @@ class TorrentChecker(TaskManager):
     async def connect_to_tracker(self, session):
         try:
             info_dict = await session.connect_to_tracker()
-            return self._on_result_from_session(session, info_dict)
+            return await self._on_result_from_session(session, info_dict)
         except CancelledError:
             self._logger.info("Tracker session is being cancelled (url %s)", session.tracker_url)
-            self.clean_session(session)
+            await self.clean_session(session)
         except Exception as e:
             self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace('\n]', ']'))
-            self.clean_session(session)
+            await self.clean_session(session)
             self.tracker_manager.update_tracker_info(session.tracker_url, False)
             e.tracker_url = session.tracker_url
             raise e
@@ -337,13 +343,14 @@ class TorrentChecker(TaskManager):
         tasks = []
         for tracker_url in tracker_set:
             session = self._create_session_for_request(tracker_url, timeout=timeout)
+            if session is None:
+                return False
             session.add_infohash(infohash)
             tasks.append(self.connect_to_tracker(session))
 
         if has_bep33_support():
             # Create a (fake) DHT session for the lookup if we have support for BEP33.
             session = FakeBep33DHTSession(self.dlmgr, infohash, timeout)
-
         else:
             # Otherwise, fallback on the normal DHT metainfo lookups.
             session = FakeDHTSession(self.dlmgr, infohash, timeout)
@@ -356,8 +363,10 @@ class TorrentChecker(TaskManager):
 
     def _create_session_for_request(self, tracker_url, timeout=20):
         hops = self.config.download_defaults.number_hops
-        socks_listen_ports = self.config.tunnel_community.socks5_listen_ports
-        proxy = ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
+        if hops > len(self.socks_listen_ports or []):
+            # Proxies never started, dropping the request
+            return None
+        proxy = ('127.0.0.1', self.socks_listen_ports[hops - 1]) if hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
 
         if tracker_url not in self._session_list:
@@ -367,20 +376,20 @@ class TorrentChecker(TaskManager):
         self._logger.debug("Session created for tracker %s", tracker_url)
         return session
 
-    def clean_session(self, session):
+    async def clean_session(self, session):
         self.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
-        self.register_task(f"Stop tracker session {str(session.tracker_address)}-{str(id(session))}", session.cleanup)
-
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
         if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != "DHT":
             del self._session_list[session.tracker_url]
 
-    def _on_result_from_session(self, session, result_list):
+        await session.cleanup()
+
+    async def _on_result_from_session(self, session, result_list):
+        await self.clean_session(session)
+        # FIXME: this should be probably handled by cancel, etc
         if self._should_stop:
             return
-
-        self.clean_session(session)
 
         return result_list
 

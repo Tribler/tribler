@@ -3,6 +3,7 @@ from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
@@ -18,12 +19,14 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
         metadata_store = (await self.claim(MetadataStoreComponent)).mds
         download_manager = (await self.claim(LibtorrentComponent)).download_manager
         rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
+        socks_ports = (await self.claim(SocksServersComponent)).socks_ports
 
         tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store)
         torrent_checker = TorrentChecker(config=config,
                                          download_manager=download_manager,
                                          notifier=self.session.notifier,
                                          tracker_manager=tracker_manager,
+                                         socks_listen_ports=socks_ports,
                                          metadata_store=metadata_store)
         self.torrent_checker = torrent_checker
         # self.provide(mediator, torrent_checker)

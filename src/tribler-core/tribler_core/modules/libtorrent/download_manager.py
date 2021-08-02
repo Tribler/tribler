@@ -10,8 +10,8 @@ import time as timemod
 from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
-from distutils.version import LooseVersion
 from shutil import rmtree
+from typing import Optional, List
 
 from ipv8.taskmanager import TaskManager, task
 from tribler_common.network_utils import NetworkUtils
@@ -29,6 +29,8 @@ from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler_core.version import version_id
+
+SOCKS5_PROXY_DEF = 2
 
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -62,6 +64,7 @@ class DownloadManager(TaskManager):
                  config: LibtorrentSettings = None,
                  download_defaults: DownloadDefaultsSettings = None,
                  bootstrap_infohash=None,
+                 socks_listen_ports: Optional[List[int]] = None,
                  dummy_mode: bool = False):
         super().__init__()
         self.dummy_mode = dummy_mode
@@ -72,6 +75,8 @@ class DownloadManager(TaskManager):
         self.ltsessions = {}
         self.dht_health_manager = None
         self.listen_ports = {}
+
+        self.socks_listen_ports = socks_listen_ports
 
         # TODO: Remove the dependency on notifier and refactor it to instead use callbacks injection
         self.notifier = notifier
@@ -125,7 +130,7 @@ class DownloadManager(TaskManager):
         if self.config.upnp:
             self.get_session().start_upnp()
 
-        if has_bep33_support():
+        if has_bep33_support() and self.download_defaults.number_hops <= len(self.socks_listen_ports or []):
             # Also listen to DHT log notifications - we need the dht_pkt_alert and extract the BEP33 bloom filters
             dht_health_session = self.get_session(self.download_defaults.number_hops)
             dht_health_session.set_alert_mask(self.default_alert_mask | lt.alert.category_t.dht_log_notification)
@@ -198,9 +203,8 @@ class DownloadManager(TaskManager):
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
-        anon_listen_port = self.config.anon_listen_port
-        anon_port = anon_listen_port or NetworkUtils().get_random_free_port()
-        self._logger.info(f'Anon port: {anon_port}. Dummy mode: {self.dummy_mode}. Hops: {hops}')
+
+        self._logger.info(f'Dummy mode: {self.dummy_mode}. Hops: {hops}.')
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
         fingerprint = ['TL'] + [int(x) for x in version_id.split('-')[0].split('.')] + [0]
@@ -222,13 +226,8 @@ class DownloadManager(TaskManager):
             settings['enable_outgoing_utp'] = enable_utp
             settings['enable_incoming_utp'] = enable_utp
 
-            if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-                settings['prefer_rc4'] = True
-                settings["listen_interfaces"] = "0.0.0.0:%d" % libtorrent_port
-            else:
-                pe_settings = lt.pe_settings()
-                pe_settings.prefer_rc4 = True
-                ltsession.set_pe_settings(pe_settings)
+            settings['prefer_rc4'] = True
+            settings["listen_interfaces"] = "0.0.0.0:%d" % libtorrent_port
 
             settings['peer_fingerprint'] = self.peer_mid
             settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(self.peer_mid)
@@ -240,8 +239,8 @@ class DownloadManager(TaskManager):
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
 
-            if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-                settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
+            # Anon listen port is never used anywhere, so we let Libtorrent set it
+            #settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
 
             # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
             self.update_ip_filter(ltsession, ['1.1.1.1'])
@@ -252,9 +251,7 @@ class DownloadManager(TaskManager):
         if hops == 0:
             proxy_settings = DownloadManager.get_libtorrent_proxy_settings(self.config)
         else:
-            proxy_settings = DownloadManager.get_anon_proxy_settings(self.config)
-            proxy_host, proxy_ports = proxy_settings[1]
-            proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
+            proxy_settings = [SOCKS5_PROXY_DEF, ("127.0.0.1", self.socks_listen_ports[hops-1]), None]
         self.set_proxy_settings(ltsession, *proxy_settings)
 
         for extension in extensions:
@@ -275,7 +272,7 @@ class DownloadManager(TaskManager):
             except Exception as exc:
                 self._logger.info(f"could not load libtorrent state, got exception: {exc!r}. starting from scratch")
         else:
-            ltsession.listen_on(anon_port, anon_port + 20)
+            #ltsession.listen_on(anon_port, anon_port + 20)
 
             rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
             download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
@@ -307,31 +304,17 @@ class DownloadManager(TaskManager):
         """
         Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
         """
-        if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-            settings = {}
-            settings["proxy_type"] = ptype
-            settings["proxy_hostnames"] = True
-            settings["proxy_peer_connections"] = True
-            if server and server[0] and server[1]:
-                settings["proxy_hostname"] = server[0]
-                settings["proxy_port"] = int(server[1])
-            if auth:
-                settings["proxy_username"] = auth[0]
-                settings["proxy_password"] = auth[1]
-            self.set_session_settings(ltsession, settings)
-        else:
-            proxy_settings = lt.proxy_settings()
-            proxy_settings.type = lt.proxy_type(ptype)
-            if server and server[0] and server[1]:
-                proxy_settings.hostname = server[0]
-                proxy_settings.port = int(server[1])
-            if auth:
-                proxy_settings.username = auth[0]
-                proxy_settings.password = auth[1]
-            proxy_settings.proxy_hostnames = True
-            proxy_settings.proxy_peer_connections = True
-
-            ltsession.set_proxy(proxy_settings)
+        settings = {}
+        settings["proxy_type"] = ptype
+        settings["proxy_hostnames"] = True
+        settings["proxy_peer_connections"] = True
+        if server and server[0] and server[1]:
+            settings["proxy_hostname"] = server[0]
+            settings["proxy_port"] = int(server[1])
+        if auth:
+            settings["proxy_username"] = auth[0]
+            settings["proxy_password"] = auth[1]
+        self.set_session_settings(ltsession, settings)
 
     def set_max_connections(self, conns, hops=None):
         self._map_call_on_ltsessions(hops, 'set_max_connections', conns)
@@ -499,11 +482,7 @@ class DownloadManager(TaskManager):
     def _request_torrent_updates(self):
         for ltsession in self.ltsessions.values():
             if ltsession:
-                # Newer version of libtorrent require the flags argument in the post_torrent_updates call.
-                if LooseVersion(self.get_libtorrent_version()) >= LooseVersion("1.1.0"):
-                    ltsession.post_torrent_updates(0xffffffff)
-                else:
-                    ltsession.post_torrent_updates()
+                ltsession.post_torrent_updates(0xffffffff)
 
     def _task_process_alerts(self):
         for hops, ltsession in list(self.ltsessions.items()):
@@ -910,28 +889,6 @@ class DownloadManager(TaskManager):
         return [d for d in downloads if d.get_def().get_name_utf8() == torrent_name]
 
     @staticmethod
-    def set_anon_proxy_settings(config: LibtorrentSettings, proxy_type, server=None, auth=None):
-        """
-        :param proxy_type: int (0 = no proxy server,
-                                1 = SOCKS4,
-                                2 = SOCKS5,
-                                3 = SOCKS5 + auth,
-                                4 = HTTP,
-                                5 = HTTP + auth)
-        :param server: (host, [ports]) tuple or None
-        :param auth: (username, password) tuple or None
-        """
-        config.anon_proxy_type = proxy_type
-        if server and proxy_type:
-            config.anon_proxy_server_ip = server[0]
-            config.anon_proxy_server_ports = [str(i) for i in server[1]]
-        else:
-            config.anon_proxy_server_ip = None
-            config.anon_proxy_server_ports = None
-
-        config.anon_proxy_auth = auth if proxy_type in [3, 5] else None
-
-    @staticmethod
     def set_libtorrent_proxy_settings(config: LibtorrentSettings, proxy_type, server=None, auth=None):
         """
         Set which proxy LibTorrent should use (default = 0).
@@ -959,21 +916,6 @@ class DownloadManager(TaskManager):
         proxy_auth = proxy_auth.split(':') if proxy_auth else ['', '']
 
         return config.proxy_type, proxy_server, proxy_auth
-
-    @staticmethod
-    def get_anon_proxy_settings(config: LibtorrentSettings):
-        """
-        Get the anon proxy settings.
-
-        :return: a 4-tuple with the proxytype in int, (ip as string, list of ports in int), auth
-        """
-        server_ports = config.anon_proxy_server_ports
-        server = (
-            config.anon_proxy_server_ip,
-            [int(s) for s in server_ports] if server_ports else None
-        )
-
-        return [config.anon_proxy_type, server, config.anon_proxy_auth]
 
     @staticmethod
     def get_libtorrent_max_upload_rate(config: LibtorrentSettings):

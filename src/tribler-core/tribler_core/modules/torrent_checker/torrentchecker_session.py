@@ -72,10 +72,6 @@ class TrackerSession(TaskManager):
         return f"Tracker[{self.tracker_type}, {self.tracker_url}]"
 
     async def cleanup(self):
-        """
-        Sets the _infohash_list to None and returns a deferred that has succeeded.
-        :return: A deferred that succeeds immediately.
-        """
         await self.shutdown_task_manager()
         self.infohash_list = None
 
@@ -444,6 +440,7 @@ class FakeDHTSession(TrackerSession):
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
+        await super(self).shutdown_task_manager()
         self.infohash_list = None
 
     def add_infohash(self, infohash):

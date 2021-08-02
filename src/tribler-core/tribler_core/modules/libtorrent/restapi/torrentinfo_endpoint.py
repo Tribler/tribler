@@ -59,8 +59,6 @@ class TorrentInfoEndpoint(RESTEndpoint):
             }
         }
     )
-
-
     async def get_torrent_info(self, request):
         args = request.query
 

@@ -6,6 +6,7 @@ from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection, 
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
+from typing import List
 
 import async_timeout
 
@@ -70,6 +71,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.config = kwargs.pop('config', None)
         self.notifier = kwargs.pop('notifier', None)
         self.dlmgr = kwargs.pop('dlmgr', None)
+        self.socks_servers: List[Socks5Server] = kwargs.pop('socks_servers', [])
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
 
@@ -81,8 +83,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
             self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
-        socks_listen_ports = self.config.socks5_listen_ports or range(1080, 1085)
-        self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}
@@ -91,14 +91,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.reject_callback = None  # This callback is invoked with a tuple (time, balance) when we reject a circuit
         self.last_forced_announce = {}
 
-        # Start the SOCKS5 servers
-        self.socks_servers = []
-        for port in socks_listen_ports:
-            socks_server = Socks5Server(port, self.dispatcher)
-            self.register_task('start_socks_%d' % port, socks_server.start)
-            self.socks_servers.append(socks_server)
-
-        self.dispatcher.set_socks_servers(self.socks_servers)
+        if self.socks_servers:
+            self.dispatcher.set_socks_servers(self.socks_servers)
+            for server in self.socks_servers:
+                server.output_stream = self.dispatcher
 
         self.add_message_handler(BandwidthTransactionPayload, self.on_payout)
 
@@ -119,22 +115,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                self._poll_download_manager,
                                interval=downloads_polling_interval)
 
-
-
     async def _poll_download_manager(self):
         try:
             dl_states = self.dlmgr.get_last_download_states()
             self.monitor_downloads(dl_states)
         except:
             pass
-
-
-
-
-    async def wait_for_socks_servers(self):
-        # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.
-        while any([name.startswith('start_socks_') for name in self._pending_tasks.keys()]):
-            await sleep(.05)
 
     def get_available_strategies(self):
         return super().get_available_strategies().update({'GoldenRatioStrategy': GoldenRatioStrategy})
@@ -554,7 +540,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     @task
     async def create_introduction_point(self, info_hash, required_ip=None):
         download = self.get_download(info_hash)
-        if download:
+        if download and self.socks_servers:
             # We now have to associate the SOCKS5 UDP connection with the libtorrent listen port ourselves.
             # The reason for this is that libtorrent does not include the source IP/port in an SOCKS5 ASSOCIATE message.
             # In libtorrent < 1.2.0, we could do so by simply adding an (invalid) peer to the download to enforce
@@ -576,8 +562,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     async def unload(self):
         await self.dispatcher.shutdown_task_manager()
-        for socks_server in self.socks_servers:
-            await socks_server.stop()
 
         if self.exitnode_cache is not None:
             self.cache_exitnodes_to_disk()
