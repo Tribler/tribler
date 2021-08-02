@@ -2,7 +2,7 @@ import ipaddress
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import validator
+from pydantic import validator, BaseSettings
 
 from tribler_common.network_utils import NetworkUtils
 from tribler_core.config.tribler_config_section import TriblerConfigSection
@@ -34,20 +34,9 @@ class LibtorrentSettings(TriblerConfigSection):
     natpmp: bool = True
     lsd: bool = True
 
-    # TODO: remove this stuff completely from config because it should never be set by user
-    anon_listen_port: Optional[int] = None
-    anon_proxy_type = 0
-    anon_proxy_server_ip: str = '127.0.0.1'
-    anon_proxy_server_ports: List[str] = ['-1', '-1', '-1', '-1', '-1']
-    anon_proxy_auth: Optional[str] = None
+    _port_validator = validator('port', allow_reuse=True)(validate_port_with_minus_one)
 
-    _port_validator = validator('port', 'anon_listen_port', allow_reuse=True)(validate_port_with_minus_one)
-
-    @validator('anon_proxy_server_ip')
-    def validate_ip_address(cls, v):
-        return v if ipaddress.IPv4Network(v) else None
-
-    @validator('proxy_type', 'anon_proxy_type')
+    @validator('proxy_type')
     def validate_proxy_type(cls, v):
         assert v is None or 0 <= v <= 5, 'Proxy type must be in range [0..5]'
         return v

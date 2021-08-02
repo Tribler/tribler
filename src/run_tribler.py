@@ -20,17 +20,6 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 # pylint: disable=import-outside-toplevel
 
 
-def set_anon_proxy_settings(config):
-    anon_proxy_ports = config.tunnel_community.socks5_listen_ports
-    if not anon_proxy_ports:
-        anon_proxy_ports = [NetworkUtils().get_random_free_port() for _ in range(5)]
-        config.tunnel_community.socks5_listen_ports = anon_proxy_ports
-    anon_proxy_settings = ("127.0.0.1", anon_proxy_ports)
-    logger.info(f'Set anon proxy settings: {anon_proxy_settings}')
-
-    from tribler_core.modules.libtorrent.download_manager import DownloadManager
-    DownloadManager.set_anon_proxy_settings(config.libtorrent, 2, anon_proxy_settings)
-
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
     """
@@ -38,6 +27,10 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
+    # Check for missing Core dependencies
+    from tribler_core.dependencies import check_for_missing_dependencies
+    check_for_missing_dependencies(scope='core')
+
     import tribler_core
 
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
@@ -84,8 +77,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
     trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-    # Run until core_session exits
-    set_anon_proxy_settings(config)
     from tribler_core.components.components_catalog import components_gen
 
     logging.getLogger('asyncio').setLevel(logging.WARNING)
@@ -110,7 +101,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     # Flush the logs to the file before exiting
     for handler in logging.getLogger().handlers:
         handler.flush()
-
 
 
 def init_sentry_reporter():
@@ -157,9 +147,6 @@ if __name__ == "__main__":
     if 'CORE_PROCESS' in os.environ:
         logger.info('Running in "core" mode')
 
-        # Check for missing Core dependencies
-        from tribler_core.dependencies import check_for_missing_dependencies
-        check_for_missing_dependencies(scope='core')
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
         api_key = os.environ.get('CORE_API_KEY')

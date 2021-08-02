@@ -14,6 +14,7 @@ from tribler_core.components.implementation.payout import PayoutComponentImp
 from tribler_core.components.implementation.popularity import PopularityComponentImp
 from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponentImp
 from tribler_core.components.implementation.restapi import RESTComponentImp
+from tribler_core.components.implementation.socks_configurator import SocksServersComponentImp
 from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponentImp
 from tribler_core.components.implementation.tunnels import TunnelsComponentImp
 from tribler_core.components.implementation.upgrade import UpgradeComponentImp
@@ -24,6 +25,8 @@ from tribler_core.config.tribler_config import TriblerConfig
 
 def components_gen(config: TriblerConfig):
     components_list = [
+        (SocksServersComponentImp,
+         not config.core_test_mode and config.tunnel_community.enabled and config.libtorrent.enabled),
         (RESTComponentImp, config.api.http_enabled or config.api.https_enabled),
         (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponentImp, config.chant.enabled),
@@ -50,5 +53,5 @@ def components_gen(config: TriblerConfig):
         if condition:
             yield component()
         else:
-            mock_comp_implementation_class = type(component.__class__.__name__+'MockImp', (component,), {})
+            mock_comp_implementation_class = type(component.__class__.__name__ + 'MockImp', (component,), {})
             yield mock_comp_implementation_class()

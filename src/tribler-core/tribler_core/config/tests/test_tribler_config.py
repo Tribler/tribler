@@ -104,17 +104,3 @@ async def test_invalid_config_recovers(tmpdir):
     config = TriblerConfig.load(file=default_config_file, state_dir=tmpdir)
     assert not config.error
 
-
-@pytest.mark.asyncio
-async def test_anon_proxy_settings(tribler_config):
-    config = LibtorrentSettings()
-    proxy_type, server, auth = 3, ("33.33.33.33", [2222, 2223, 4443, 58848]), 1
-    DownloadManager.set_anon_proxy_settings(config, proxy_type, server, auth)
-
-    settings = DownloadManager.get_anon_proxy_settings(config)
-    assert settings == [proxy_type, server, auth]
-
-    proxy_type = 1
-    DownloadManager.set_anon_proxy_settings(config, proxy_type, server, auth)
-    settings = DownloadManager.get_anon_proxy_settings(config)
-    assert settings == [proxy_type, server, None]

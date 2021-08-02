@@ -69,7 +69,6 @@ def seed_config(tribler_config, tmp_path_factory):
     config.set_state_dir(tmp_path_factory.mktemp("seeder"))
     config.libtorrent.enabled = True
     config.libtorrent.port = get_free_port()
-    config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
 
     return config
 

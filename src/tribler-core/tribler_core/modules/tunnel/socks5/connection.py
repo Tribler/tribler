@@ -67,7 +67,9 @@ class Socks5Connection(Protocol):
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
             elif self.connect_to:
-                self.socksserver.output_stream.on_socks5_tcp_data(self, self.connect_to, self.buffer)
+                if self.socksserver.output_stream is not None:
+                    # Swallow the data in case the tunnel community has not started yet
+                    self.socksserver.output_stream.on_socks5_tcp_data(self, self.connect_to, self.buffer)
                 self.buffer = b''
             else:
                 self._logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")

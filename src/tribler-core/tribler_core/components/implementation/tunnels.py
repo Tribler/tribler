@@ -14,6 +14,7 @@ from tribler_core.components.interfaces.ipv8 import (
 )
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
@@ -32,6 +33,7 @@ class TunnelsComponentImp(TunnelsComponent):
         download_manager = (await self.claim(LibtorrentComponent)).download_manager
         bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
         rest_manager = (await self.claim(RESTComponent)).rest_manager
+        socks_servers = (await self.claim(SocksServersComponent)).socks_servers
 
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits
@@ -44,13 +46,13 @@ class TunnelsComponentImp(TunnelsComponent):
 
         # TODO: decouple bandwidth community and dlmgr to initiate later
         community = tunnel_cls(peer, ipv8.endpoint, ipv8.network,
+                               socks_servers=socks_servers,
                                config=config.tunnel_community,
                                notifier=self.session.notifier,
                                dlmgr=download_manager,
                                bandwidth_community=bandwidth_community,
                                dht_provider=DHTCommunityProvider(dht_community, config.ipv8.port),
                                settings=settings)
-        await community.wait_for_socks_servers()
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
         ipv8.overlays.append(community)

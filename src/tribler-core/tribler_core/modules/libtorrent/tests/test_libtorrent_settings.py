@@ -28,18 +28,6 @@ async def test_proxy_type_validation():
 
 
 @pytest.mark.asyncio
-async def test_anon_proxy_server_ip_validation():
-    settings = LibtorrentSettings(anon_proxy_server_ip='127.0.0.1')
-    assert settings
-
-    with pytest.raises(ValueError):
-        LibtorrentSettings(anon_proxy_server_ip='')
-
-    with pytest.raises(ValueError):
-        LibtorrentSettings(anon_proxy_server_ip='999.0.0.1')
-
-
-@pytest.mark.asyncio
 async def test_number_hops_validation():
     assert DownloadDefaultsSettings(number_hops=1)
 
