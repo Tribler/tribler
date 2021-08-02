@@ -30,6 +30,8 @@ class Socks5Server:
         server_socket = self.server.sockets[0]
         bind_address, bind_port = server_socket.getsockname()[:2]
         self.port = bind_port
+        self._logger.info("Started SOCKS5 server on port %i" % self.port )
+
 
     async def stop(self):
         """
