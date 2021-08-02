@@ -76,6 +76,9 @@ def components_gen(config: TriblerConfig):
     for component, condition in components_list:
         if condition:
             yield component()
+        else:
+            mock_comp_implementation_class = type(component.__class__.__name__+'MockImp', (component,), {})
+            yield mock_comp_implementation_class()
 
 
 def set_anon_proxy_settings(config):
