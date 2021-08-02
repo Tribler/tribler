@@ -215,6 +215,7 @@ async def my_comm():
     await my_comm.unload()
 
 
+@pytest.mark.tunneltest
 @pytest.mark.asyncio
 @pytest.mark.timeout(40)
 async def test_anon_download(proxy_factory, video_seeder: DownloadManager, video_tdef: TorrentDef, logger,
