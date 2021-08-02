@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 from asyncio import Future, all_tasks, sleep, get_event_loop
 from collections import defaultdict
@@ -34,7 +35,7 @@ def crash_on_error():
     def exception_handler(loop, context):
         exc = context.get('exception')
         print_exception(type(exc), exc, exc.__traceback__)
-        exit(1)
+        sys.exit(-1)
 
     get_event_loop().set_exception_handler(exception_handler)
 
