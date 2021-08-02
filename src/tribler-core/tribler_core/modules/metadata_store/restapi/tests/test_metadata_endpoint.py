@@ -201,8 +201,6 @@ async def test_get_entry_not_found(session, metadata_store):
     await do_request(session, 'metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
 
 
-
-@pytest.mark.skip("Always passes even in previous releases, must be fixed")
 async def test_check_torrent_health(session, mock_dlmgr, udp_tracker, metadata_store):
     """
     Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
@@ -225,8 +223,6 @@ async def test_check_torrent_health(session, mock_dlmgr, udp_tracker, metadata_s
     mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
 
     # Left for compatibility with other tests in this object
-
-    #FIXME! Disabling this does not affect the test!
     await udp_tracker.start()
 
     json_response = await do_request(session, url)

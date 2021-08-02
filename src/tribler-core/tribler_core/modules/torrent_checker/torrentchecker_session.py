@@ -440,7 +440,7 @@ class FakeDHTSession(TrackerSession):
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
-        await super(self).shutdown_task_manager()
+        await super().shutdown_task_manager()
         self.infohash_list = None
 
     def add_infohash(self, infohash):
