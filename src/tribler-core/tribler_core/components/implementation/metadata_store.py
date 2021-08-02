@@ -4,6 +4,7 @@ from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 class MetadataStoreComponentImp(MetadataStoreComponent):
@@ -20,6 +21,10 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         chant_testnet = config.general.testnet or config.chant.testnet
         metadata_db_name = 'metadata.db' if not chant_testnet else 'metadata_testnet.db'
         database_path = config.state_dir / 'sqlite' / metadata_db_name
+        # Note we don't use in-memory database in core test mode, because MDS uses threads,
+        # and SQLite creates a different in-memory DB for each connection by default.
+        # To change this behaviour, we have to use url-based SQLite initialization syntax,
+        # which is not supported by PonyORM yet.
 
         metadata_store = MetadataStore(
             database_path,
