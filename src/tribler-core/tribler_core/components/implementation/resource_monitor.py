@@ -7,8 +7,8 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 class ResourceMonitorComponentImp(ResourceMonitorComponent):
     async def run(self):
-        await self.claim(UpgradeComponent)
-        tunnel_community = (await self.claim(TunnelsComponent)).community
+        await self.use(UpgradeComponent)
+        tunnel_community = (await self.use(TunnelsComponent)).community
 
         config = self.session.config
         notifier = self.session.notifier
@@ -22,7 +22,7 @@ class ResourceMonitorComponentImp(ResourceMonitorComponent):
         self.resource_monitor = resource_monitor
         # self.provide(mediator, resource_monitor)
 
-        rest_manager = (await self.claim(RESTComponent)).rest_manager
+        rest_manager = (await self.use(RESTComponent)).rest_manager
 
         # TODO: Split debug endpoint initialization
         debug_endpoint = rest_manager.get_endpoint('debug')

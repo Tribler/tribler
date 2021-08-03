@@ -10,8 +10,8 @@ class WatchFolderComponentImp(WatchFolderComponent):
     async def run(self):
         config = self.session.config
         notifier = self.session.notifier
-        download_manager = (await self.claim(LibtorrentComponent)).download_manager
-        rest_manager = (await self.claim(RESTComponent)).rest_manager
+        download_manager = (await self.use(LibtorrentComponent)).download_manager
+        rest_manager = (await self.use(RESTComponent)).rest_manager
 
         watch_folder_path = config.watch_folder.get_path_as_absolute('directory', config.state_dir)
         watch_folder = WatchFolder(watch_folder_path=watch_folder_path,

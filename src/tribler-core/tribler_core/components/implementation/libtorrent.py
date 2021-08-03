@@ -13,13 +13,13 @@ class LibtorrentComponentImp(LibtorrentComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.claim(UpgradeComponent)
-        socks_ports = (await self.claim(SocksServersComponent)).socks_ports
+        await self.use(UpgradeComponent)
+        socks_ports = (await self.use(SocksServersComponent)).socks_ports
 
         config = self.session.config
 
         # TODO: move rest_manager check after download manager init. Use notifier instead of direct call to endpoint
-        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
+        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
         state_endpoint = rest_manager.get_endpoint('state')
 
         state_endpoint.readable_status = STATE_START_LIBTORRENT
