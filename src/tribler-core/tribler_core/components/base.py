@@ -83,7 +83,7 @@ class Component:
         self.interfaces = self._find_interfaces()
         if not self.interfaces:
             raise ComponentError(f'Interface class not found for {cls.__name__}')
-        self.my_claims: Set[Component] = set()
+        self.components_used_by_me: Set[Component] = set()
         self.in_use_by: Set[Component] = set()
         self.started = Event()
         self.unused = Event()
@@ -135,7 +135,7 @@ class Component:
         await self.unused.wait()
         self.logger.info(f"Component free, shutting down")
         await self.shutdown()
-        await gather(*[self._release_imp(imp) for imp in list(self.my_claims)])
+        await gather(*[self._release_imp(imp) for imp in list(self.components_used_by_me)])
 
     async def run(self):
         pass
@@ -143,17 +143,17 @@ class Component:
     async def shutdown(self):
         pass
 
-    async def claim(self, dependency: Type[T]) -> T:
+    async def use(self, dependency: Type[T]) -> T:
         dep = dependency.imp()
 
-        self.my_claims.add(dep)
+        self.components_used_by_me.add(dep)
         await dep.started.wait()
         dep.in_use_by.add(self)
         return dep
 
     async def _release_imp(self, dep: Component):
-        assert (dep in self.my_claims)
-        self.my_claims.discard(dep)
+        assert (dep in self.components_used_by_me)
+        self.components_used_by_me.discard(dep)
         dep.in_use_by.discard(self)
         if not dep.in_use_by:
             dep.unused.set()

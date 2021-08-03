@@ -16,10 +16,10 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
     async def run(self):
         config = self.session.config
 
-        metadata_store = (await self.claim(MetadataStoreComponent)).mds
-        download_manager = (await self.claim(LibtorrentComponent)).download_manager
-        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
-        socks_ports = (await self.claim(SocksServersComponent)).socks_ports
+        metadata_store = (await self.use(MetadataStoreComponent)).mds
+        download_manager = (await self.use(LibtorrentComponent)).download_manager
+        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        socks_ports = (await self.use(SocksServersComponent)).socks_ports
 
         tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store)
         torrent_checker = TorrentChecker(config=config,

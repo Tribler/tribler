@@ -31,7 +31,7 @@ class Ipv8ComponentImp(Ipv8Component):
     async def run(self):
         config = self.session.config
 
-        rest_component = await self.claim(RESTComponent)
+        rest_component = await self.use(RESTComponent)
         rest_manager = self.rest_manager = rest_component.rest_manager
         self.task_manager = TaskManager()
 
@@ -104,9 +104,9 @@ class Ipv8BootstrapperComponentImp(Ipv8BootstrapperComponent):
 
 class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
     async def run(self):
-        ipv8 = (await self.claim(Ipv8Component)).ipv8
-        peer = (await self.claim(Ipv8PeerComponent)).peer
-        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
+        ipv8 = (await self.use(Ipv8Component)).ipv8
+        peer = (await self.use(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
         ipv8.strategies.append((PingChurn(community), INFINITE))
@@ -121,9 +121,9 @@ class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
 
 class DiscoveryCommunityComponentImp(DiscoveryCommunityComponent):
     async def run(self):
-        ipv8 = (await self.claim(Ipv8Component)).ipv8
-        peer = (await self.claim(Ipv8PeerComponent)).peer
-        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
+        ipv8 = (await self.use(Ipv8Component)).ipv8
+        peer = (await self.use(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = DiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=100)
         ipv8.strategies.append((RandomChurn(community), INFINITE))

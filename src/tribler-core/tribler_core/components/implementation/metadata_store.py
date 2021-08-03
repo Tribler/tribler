@@ -14,8 +14,8 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
     async def run(self):
         config = self.session.config
 
-        await self.claim(UpgradeComponent)
-        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
+        await self.use(UpgradeComponent)
+        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         chant_testnet = config.general.testnet or config.chant.testnet

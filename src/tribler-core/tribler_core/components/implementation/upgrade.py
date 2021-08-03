@@ -10,7 +10,7 @@ class UpgradeComponentImp(UpgradeComponent):
         config = self.session.config
         notifier = self.session.notifier
         trustchain_keypair = self.session.trustchain_keypair
-        rest_manager = (await self.claim(RESTComponent)).rest_manager
+        rest_manager = (await self.use(RESTComponent)).rest_manager
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
 

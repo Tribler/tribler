@@ -21,11 +21,11 @@ class GigaChannelComponentImp(GigaChannelComponent):
         config = self.session.config
         notifier = self.session.notifier
 
-        ipv8 = (await self.claim(Ipv8Component)).ipv8
-        metadata_store = (await self.claim(MetadataStoreComponent)).mds
-        peer = (await self.claim(Ipv8PeerComponent)).peer
-        bootstrapper = (await self.claim(Ipv8BootstrapperComponent)).bootstrapper
-        rest_manager = self.rest_manager = (await self.claim(RESTComponent)).rest_manager
+        ipv8 = (await self.use(Ipv8Component)).ipv8
+        metadata_store = (await self.use(MetadataStoreComponent)).mds
+        peer = (await self.use(Ipv8PeerComponent)).peer
+        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
+        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
         community = giga_channel_cls(
