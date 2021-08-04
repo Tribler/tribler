@@ -53,7 +53,8 @@ async def test_create_torrent(rest_api, tmp_path, endpoint):
     response_dict = await do_request(rest_api, 'createtorrent?download=1', expected_code=200, request_type='POST',
                                      post_data=post_data)
     assert response_dict["torrent"]
-    assert start_download.call_args[1]['config'].get_hops() == DownloadDefaultsSettings().number_hops  # pylint: disable=unsubscriptable-object
+    assert start_download.call_args[1]['config'].get_hops() == DownloadDefaultsSettings(
+    ).number_hops  # pylint: disable=unsubscriptable-object
 
 
 async def test_create_torrent_io_error(rest_api, endpoint):

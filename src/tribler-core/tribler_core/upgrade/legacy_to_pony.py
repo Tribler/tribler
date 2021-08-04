@@ -168,13 +168,13 @@ class DispersyToPonyMigration:
                 personal_channel_filter = f"AND ct.channel_id {equality_sign} {self.personal_channel_id}"
 
             torrents = []
-            batch_not_empty = False # This is a dumb way to indicate that this batch got zero entries from DB
+            batch_not_empty = False  # This is a dumb way to indicate that this batch got zero entries from DB
 
             for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, \
-                num_leechers, last_tracker_check in cursor.execute(
+                    num_leechers, last_tracker_check in cursor.execute(
                         f"{self.select_full} {personal_channel_filter} group by infohash "
                         f"LIMIT {batch_size} OFFSET {offset}"
-            ):
+                    ):
                 batch_not_empty = True
                 # check if name is valid unicode data
                 try:

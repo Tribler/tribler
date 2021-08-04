@@ -84,6 +84,7 @@ class VersionCheckManager(TaskManager):
         except asyncio.TimeoutError:
             self._logger.warning("Checking for new version failed for %s", version_check_url)
         except ValueError as ve:
-            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}")  # pylint: disable=raise-missing-from
+            raise ValueError(
+                f"Failed to parse Tribler version response.\nError:{ve}")  # pylint: disable=raise-missing-from
 
         return None

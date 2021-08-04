@@ -93,6 +93,7 @@ async def test_convert_legacy_channels(dispersy_to_pony_migrator, metadata_store
         d.delete()
     await check_conversion()
 
+
 @db_session
 def test_update_trackers(dispersy_to_pony_migrator, metadata_store):
     tr = metadata_store.TrackerState(url="http://ipv6.torrent.ubuntu.com:6969/announce")

@@ -15,6 +15,7 @@ class BandwidthEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests for bandwidth accounting data.
     """
+
     def __init__(self):
         super().__init__()
         self.bandwidth_community = None
@@ -52,9 +53,9 @@ class BandwidthEndpoint(RESTEndpoint):
             200: {
                 "schema": schema(BandwidthHistoryResponse={
                     "history": [schema(BandwidthHistoryItem={
-                            "timestamp": Integer,
-                            "balance": Integer
-                        })
+                        "timestamp": Integer,
+                        "balance": Integer
+                    })
                     ]
                 })
             }

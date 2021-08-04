@@ -34,6 +34,7 @@ async def core_resource_monitor(tmp_path):
     yield resource_monitor
     await resource_monitor.stop()
 
+
 @pytest.fixture
 def rest_api(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument
     endpoint.tunnel_community = mock_tunnel_community

@@ -71,7 +71,7 @@ async def test_health_check_blacklisted_trackers(torrent_checker):
     with db_session:
         tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
         torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                 last_check=int(time.time()))
+                                         last_check=int(time.time()))
 
     torrent_checker.tracker_manager.blacklist.append("http://localhost/tracker")
     result = await torrent_checker.check_torrent_health(b'a' * 20)
@@ -88,7 +88,7 @@ async def test_health_check_cached(torrent_checker):
     with db_session:
         tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
         torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                 last_check=int(time.time()))
+                                         last_check=int(time.time()))
 
     result = await torrent_checker.check_torrent_health(b'a' * 20)
     assert 'db' in result
@@ -106,10 +106,10 @@ async def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=
     def save_random_torrent_state(last_checked=0, self_checked=False, count=1):
         for _ in range(count):
             torrent_checker.mds.TorrentState(infohash=secrets.token_bytes(20),
-                                     seeders=random.randint(1, 100),
-                                     leechers=random.randint(1, 100),
-                                     last_check=last_checked,
-                                     self_checked=self_checked)
+                                             seeders=random.randint(1, 100),
+                                             leechers=random.randint(1, 100),
+                                             last_check=last_checked,
+                                             self_checked=self_checked)
 
     now = int(time.time())
     freshness_threshold = now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
@@ -204,7 +204,7 @@ async def test_tracker_test_error_resolve(torrent_checker):
     with db_session:
         tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
         torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                 last_check=int(time.time()))
+                                         last_check=int(time.time()))
     result = await torrent_checker.check_random_tracker()
     assert not result
 
@@ -345,7 +345,7 @@ def test_check_local_torrents(torrent_checker):
     # 2. Older torrents are towards the back
     # Therefore the selection range becomes:
     selection_range = stale_infohashes[0: torrent_checker_module.TORRENT_SELECTION_POOL_SIZE] \
-                      + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
+        + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
 
     for infohash in selected_torrents:
         assert infohash in selection_range

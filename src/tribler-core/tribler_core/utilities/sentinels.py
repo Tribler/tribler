@@ -62,8 +62,8 @@ def sentinel(
 
 
 if hasattr(_sys, '_getframe'):
-    _get_parent_frame = lambda: _sys._getframe(2)
-else:  #pragma: no cover
+    def _get_parent_frame(): return _sys._getframe(2)
+else:  # pragma: no cover
     def _get_parent_frame():
         """Return the frame object for the caller's parent stack frame."""
         try:

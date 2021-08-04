@@ -734,7 +734,7 @@ class MetadataStore:
         :return: A list of class members
         """
         pony_query = self.get_entries_query(**kwargs)
-        result = pony_query[(first or 1) - 1 : last]
+        result = pony_query[(first or 1) - 1: last]
         for entry in result:
             # ACHTUNG! This is necessary in order to load entry.health inside db_session,
             # to be able to perform successfully `entry.to_simple_dict()` later

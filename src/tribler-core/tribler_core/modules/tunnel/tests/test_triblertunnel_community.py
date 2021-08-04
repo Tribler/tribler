@@ -87,7 +87,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Give a node a dedicated exit node to play with.
         """
         exit_node = self.create_node()
-        self.nodes.append(exit_node) # So it could be properly removed on exit
+        self.nodes.append(exit_node)  # So it could be properly removed on exit
         exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
         public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
         self.nodes[node_nr].network.add_verified_peer(public_peer)

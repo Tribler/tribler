@@ -100,8 +100,8 @@ class DownloadManager(TaskManager):
         self.metainfo_cache = {}  # Dictionary that maps infohashes to cached metainfo items
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
-                                  lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
-                                  lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
+            lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
+            lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.session_stats_callback = None
         self.state_cb_count = 0
 
@@ -367,8 +367,8 @@ class DownloadManager(TaskManager):
         download = self.downloads.get(infohash)
         if download:
             is_process_alert = (download.handle and download.handle.is_valid()) \
-                               or (not download.handle and alert_type == 'add_torrent_alert') \
-                               or (download.handle and alert_type == 'torrent_removed_alert')
+                or (not download.handle and alert_type == 'add_torrent_alert') \
+                or (download.handle and alert_type == 'torrent_removed_alert')
             if is_process_alert:
                 download.process_alert(alert, alert_type)
             else:
@@ -795,7 +795,8 @@ class DownloadManager(TaskManager):
             if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.notifier:
                 for peer in download.get_peerlist():
                     if str(peer["extended_version"]).startswith('Tribler'):
-                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE, unhexlify(peer["id"]), infohash, peer["dtotal"])
+                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE,
+                                             unhexlify(peer["id"]), infohash, peer["dtotal"])
 
         if self.state_cb_count % 4 == 0:
             self._last_states_list = states_list

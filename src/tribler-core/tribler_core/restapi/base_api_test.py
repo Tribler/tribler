@@ -37,7 +37,7 @@ async def do_real_request(port, endpoint, expected_code=200, expected_json=None,
 
 
 async def do_request(test_client, url, expected_code=200, expected_json=None,
-                         request_type='GET', post_data=None, headers=None, json_response=True):
+                     request_type='GET', post_data=None, headers=None, json_response=True):
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
@@ -46,7 +46,7 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
         status = response.status
         try:
             response = (await response.json(content_type=None)
-                                                 if json_response else await response.read())
+                        if json_response else await response.read())
         except JSONDecodeError:
             response = None
 

@@ -31,8 +31,6 @@ def cmp_rank(a, b):
     return 1
 
 
-
-
 class Category:
     __size_change = 1024 * 1024
     _logger = logging.getLogger("Category")

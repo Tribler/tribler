@@ -17,6 +17,7 @@ def tribler_config(tmp_path):
     config = TriblerConfig(tmp_path)
     return config
 
+
 @pytest.fixture
 def endpoint(tribler_config):
     endpoint = SettingsEndpoint()

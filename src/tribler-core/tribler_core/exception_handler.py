@@ -82,7 +82,7 @@ class CoreExceptionHandler:
                 cls.report_callback(text_long, sentry_event)
 
             # FIXME: add callbacks to state endpoint
-            #if self.events_endpoint:
+            # if self.events_endpoint:
             #    self.events_endpoint.on_tribler_exception(text_long, sentry_event, cls.report_consent_required)
             #    self.state_endpoint.on_tribler_exception(text_long, sentry_event)
 

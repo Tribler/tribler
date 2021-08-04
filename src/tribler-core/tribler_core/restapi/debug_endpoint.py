@@ -230,7 +230,7 @@ class DebugEndpoint(RESTEndpoint):
             'type': 'string',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'max_lines',
             'description': 'Maximum number of lines to return from the log file',

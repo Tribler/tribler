@@ -41,6 +41,7 @@ def froze_it(cls):
 
     return cls
 
+
 def is_valid_url(url):
     """
     Checks whether the given URL is a valid URL.

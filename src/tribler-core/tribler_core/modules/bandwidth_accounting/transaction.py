@@ -151,8 +151,8 @@ def define_binding(bandwidth_database):
             if not bandwidth_database.store_all_transactions:
                 # Make sure to only store the latest pairwise transaction.
                 for tx in cls.select(
-                        lambda c: c.public_key_a == transaction.public_key_a and
-                                  c.public_key_b == transaction.public_key_b):
+                    lambda c: c.public_key_a == transaction.public_key_a and
+                        c.public_key_b == transaction.public_key_b):
                     tx.delete()
                 db.commit()
                 cls(**transaction.get_db_kwargs())

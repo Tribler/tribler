@@ -15,13 +15,16 @@ from tribler_core.tests.tools.common import TESTS_DIR
 def RaiseException(*args, **kwargs):
     raise TriblerException("Oops! Something went wrong. Please restart Tribler")
 
+
 @pytest.fixture()
 def tribler_config():
     return TriblerConfig()
 
+
 @pytest.fixture()
 def api_port(free_port):
     return free_port
+
 
 @pytest.fixture
 async def rest_manager(request, tribler_config, api_port, tmp_path):
@@ -73,9 +76,9 @@ async def test_api_key_success(rest_manager, api_port):
 async def test_api_key_fail(rest_manager, api_port):
     await do_real_request(api_port, 'state', expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
     await do_real_request(api_port, 'state?apikey=111',
-                     expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
+                          expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
     await do_real_request(api_port, 'state', headers={'X-Api-Key': '111'},
-                     expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
+                          expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
 
 
 @pytest.mark.asyncio
@@ -85,7 +88,7 @@ async def test_unhandled_exception(rest_manager, api_port):
     Testing whether the API returns a formatted 500 error if an unhandled Exception is raised
     """
     response_dict = await do_real_request(api_port, 'settings', expected_code=500, post_data={'general': 'invalid schema'},
-                                     request_type='POST')
+                                          request_type='POST')
     assert response_dict
     assert not response_dict['error']['handled']
     assert response_dict['error']['code'] == "TypeError"
@@ -98,7 +101,7 @@ async def test_tribler_shutting_down(rest_manager, api_port):
     """
 
     # Indicates tribler is shutting down
-    with patch('tribler_core.restapi.rest_manager.tribler_shutting_down', new=lambda : True):
+    with patch('tribler_core.restapi.rest_manager.tribler_shutting_down', new=lambda: True):
         error_response = await do_real_request(api_port, 'state', expected_code=404)
 
     expected_response = {

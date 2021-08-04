@@ -30,6 +30,7 @@ class BandwidthDatabase:
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         # pylint: disable=unused-variable
+
         @self.database.on_connect(provider='sqlite')
         def sqlite_sync_pragmas(_, connection):
             cursor = connection.cursor()

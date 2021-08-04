@@ -14,6 +14,7 @@ def endpoint():
     endpoint = StateEndpoint()
     return endpoint
 
+
 @pytest.fixture
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
 

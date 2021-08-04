@@ -129,7 +129,7 @@ class DownloadState:
         """
         return (1.0 - self.get_progress()) * (float(self.download.get_def().get_length()) /
                                               max(0.000001, self.lt_status.download_rate)) \
-               if self.lt_status else 0.0
+            if self.lt_status else 0.0
 
     def get_num_seeds_peers(self):
         """

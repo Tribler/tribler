@@ -59,7 +59,7 @@ class RootEndpoint(RESTEndpoint):
             '/search': (SearchEndpoint, self.tribler_config.chant.enabled),
             '/remote_query': (RemoteQueryEndpoint, self.tribler_config.chant.enabled),
             '/ipv8': (IPV8RootEndpoint, self.tribler_config.ipv8.enabled)
-            }
+        }
         for path, (ep_cls, enabled) in endpoints.items():
             if enabled:
                 self.add_endpoint(path, ep_cls())

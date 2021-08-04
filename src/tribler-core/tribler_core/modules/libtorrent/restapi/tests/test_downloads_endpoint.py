@@ -277,7 +277,7 @@ async def test_move_to_non_existing_dir(mock_dlmgr, test_download, rest_api, tmp
     """
     mock_dlmgr.get_download = lambda _: test_download
 
-    dest_dir = tmp_path/ "non-existing"
+    dest_dir = tmp_path / "non-existing"
     assert not dest_dir.exists()
     data = {"state": "move_storage", "dest_dir": str(dest_dir)}
 

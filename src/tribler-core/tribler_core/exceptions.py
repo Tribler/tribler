@@ -3,6 +3,8 @@ The Tribler-specifc Exceptions the Core may throw.
 
 Author(s): Arno Bakker
 """
+
+
 class TriblerException(Exception):
     """Super class for all Tribler-specific Exceptions the Tribler Core throws."""
 

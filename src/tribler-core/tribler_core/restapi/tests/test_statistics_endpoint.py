@@ -23,10 +23,12 @@ async def mock_ipv8():
     yield ipv8
     await ipv8.stop()
 
+
 @pytest.fixture
 def endpoint():
     endpoint = StatisticsEndpoint()
     return endpoint
+
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument

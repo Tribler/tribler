@@ -153,8 +153,8 @@ class Download(TaskManager):
         atp = {"save_path": str(save_path),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
-                        | lt.add_torrent_params_flags_t.flag_duplicate_is_error
-                        | lt.add_torrent_params_flags_t.flag_update_subscribe}
+               | lt.add_torrent_params_flags_t.flag_duplicate_is_error
+               | lt.add_torrent_params_flags_t.flag_update_subscribe}
 
         if self.config.get_share_mode():
             atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode

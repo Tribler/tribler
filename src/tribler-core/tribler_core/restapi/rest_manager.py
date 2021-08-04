@@ -30,6 +30,7 @@ def tribler_shutting_down():
 class ShuttingDownException(Exception):
     pass
 
+
 @web.middleware
 class ApiKeyMiddleware:
     def __init__(self, api_key):

@@ -20,6 +20,7 @@ from tribler_core.utilities.unicode import hexlify
 
 SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
+
 @pytest.fixture
 def endpoint():
     endpoint = TorrentInfoEndpoint()
@@ -31,6 +32,7 @@ def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/torrentinfo', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
+
 
 async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     """
@@ -113,8 +115,8 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     # FIXME: FFA entries creation check
-    #with db_session:
-        #assert metadata_store.TorrentMetadata.select().count() == 2
+    # with db_session:
+    #assert metadata_store.TorrentMetadata.select().count() == 2
 
     mock_download = Mock()
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn=test torrent')
