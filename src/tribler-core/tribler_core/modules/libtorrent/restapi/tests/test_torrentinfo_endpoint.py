@@ -43,7 +43,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     shutil.copyfile(TORRENT_UBUNTU_FILE, tmp_path / 'ubuntu.torrent')
 
     def verify_valid_dict(json_data):
-        metainfo_dict = json.loads(unhexlify(json_data['metainfo']), encoding='latin-1')
+        metainfo_dict = json.loads(unhexlify(json_data['metainfo']))
         # FIXME: This check is commented out because json.dump garbles pieces binary data during transfer.
         # To fix it, we must switch to some encoding scheme that is able to encode and decode raw binary
         # fields in the dicts.
