@@ -4,7 +4,6 @@ from tribler_core.components.implementation.gigachannel_manager import Gigachann
 from tribler_core.components.implementation.ipv8 import (
     DHTDiscoveryCommunityComponentImp,
     DiscoveryCommunityComponentImp,
-    Ipv8BootstrapperComponentImp,
     Ipv8ComponentImp,
 )
 from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
@@ -30,7 +29,6 @@ def components_gen(config: TriblerConfig):
         (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponentImp, config.chant.enabled),
         (DHTDiscoveryCommunityComponentImp, config.ipv8.enabled and not config.core_test_mode),
-        (Ipv8BootstrapperComponentImp, config.ipv8.enabled and not config.core_test_mode),
         (DiscoveryCommunityComponentImp, config.ipv8.enabled and not config.core_test_mode),
         (Ipv8ComponentImp, config.ipv8.enabled),
         (LibtorrentComponentImp, config.libtorrent.enabled),

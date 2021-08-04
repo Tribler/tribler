@@ -6,7 +6,6 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import (
     DHTDiscoveryCommunityComponent,
-    Ipv8BootstrapperComponent,
     Ipv8Component,
 )
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
@@ -29,7 +28,6 @@ class TunnelsComponentImp(TunnelsComponent):
         bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
         dht_community = (await self.use(DHTDiscoveryCommunityComponent)).community
         download_manager = (await self.use(LibtorrentComponent)).download_manager
-        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
         rest_manager = (await self.use(RESTComponent)).rest_manager
         socks_servers = (await self.use(SocksServersComponent)).socks_servers
 
@@ -55,8 +53,8 @@ class TunnelsComponentImp(TunnelsComponent):
         ipv8.strategies.append((RemovePeers(community), INFINITE))
         ipv8.overlays.append(community)
 
-        if bootstrapper:
-            community.bootstrappers.append(bootstrapper)
+        if ipv8_component.bootstrapper:
+            community.bootstrappers.append(ipv8_component.bootstrapper)
 
         self.community = community
         # self.provide(mediator, community)
