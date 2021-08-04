@@ -1,7 +1,7 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 
 from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8BootstrapperComponent, Ipv8Component, Ipv8PeerComponent
+from tribler_core.components.interfaces.ipv8 import Ipv8BootstrapperComponent, Ipv8Component
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.modules.metadata_store.community.gigachannel_community import (
@@ -21,11 +21,12 @@ class GigaChannelComponentImp(GigaChannelComponent):
         config = self.session.config
         notifier = self.session.notifier
 
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        metadata_store = (await self.use(MetadataStoreComponent)).mds
-        peer = (await self.use(Ipv8PeerComponent)).peer
+        ipv8_component = await self.use(Ipv8Component)
+        ipv8 = ipv8_component.ipv8
+        peer = ipv8_component.peer
         bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
         rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        metadata_store = (await self.use(MetadataStoreComponent)).mds
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
         community = giga_channel_cls(

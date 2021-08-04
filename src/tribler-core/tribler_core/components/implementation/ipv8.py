@@ -16,7 +16,6 @@ from tribler_core.components.interfaces.ipv8 import (
     DiscoveryCommunityComponent,
     Ipv8BootstrapperComponent,
     Ipv8Component,
-    Ipv8PeerComponent,
 )
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
@@ -60,6 +59,7 @@ class Ipv8ComponentImp(Ipv8Component):
                     endpoint_override=endpoint)
         await ipv8.start()
         self.ipv8 = ipv8
+        self.peer = Peer(self.session.trustchain_keypair)
         # self.provide(mediator, ipv8)
 
         if config.ipv8.statistics and not config.core_test_mode:
@@ -85,12 +85,6 @@ class Ipv8ComponentImp(Ipv8Component):
         await self.ipv8.stop(stop_loop=False)
 
 
-class Ipv8PeerComponentImp(Ipv8PeerComponent):
-    async def run(self):
-        self.peer = Peer(self.session.trustchain_keypair)
-        # self.provide(mediator, peer)
-
-
 class Ipv8BootstrapperComponentImp(Ipv8BootstrapperComponent):
     async def run(self):
         args = DISPERSY_BOOTSTRAPPER['init']
@@ -104,8 +98,9 @@ class Ipv8BootstrapperComponentImp(Ipv8BootstrapperComponent):
 
 class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
     async def run(self):
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        peer = (await self.use(Ipv8PeerComponent)).peer
+        ipv8_component = await self.use(Ipv8Component)
+        ipv8 = ipv8_component.ipv8
+        peer = ipv8_component.peer
         bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
@@ -121,8 +116,9 @@ class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
 
 class DiscoveryCommunityComponentImp(DiscoveryCommunityComponent):
     async def run(self):
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        peer = (await self.use(Ipv8PeerComponent)).peer
+        ipv8_component = await self.use(Ipv8Component)
+        ipv8 = ipv8_component.ipv8
+        peer = ipv8_component.peer
         bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = DiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=100)

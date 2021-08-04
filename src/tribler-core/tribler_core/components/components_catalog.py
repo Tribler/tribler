@@ -6,7 +6,6 @@ from tribler_core.components.implementation.ipv8 import (
     DiscoveryCommunityComponentImp,
     Ipv8BootstrapperComponentImp,
     Ipv8ComponentImp,
-    Ipv8PeerComponentImp,
 )
 from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
 from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
@@ -31,7 +30,6 @@ def components_gen(config: TriblerConfig):
         (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponentImp, config.chant.enabled),
         (DHTDiscoveryCommunityComponentImp, config.ipv8.enabled and not config.core_test_mode),
-        (Ipv8PeerComponentImp, config.ipv8.enabled),
         (Ipv8BootstrapperComponentImp, config.ipv8.enabled and not config.core_test_mode),
         (DiscoveryCommunityComponentImp, config.ipv8.enabled and not config.core_test_mode),
         (Ipv8ComponentImp, config.ipv8.enabled),
