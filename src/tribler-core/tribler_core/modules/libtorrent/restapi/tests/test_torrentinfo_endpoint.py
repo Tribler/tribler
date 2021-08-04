@@ -29,12 +29,12 @@ def endpoint():
 
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/torrentinfo', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
 
-async def test_get_torrentinfo(mock_dlmgr, tmp_path, session, endpoint):
+async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     """
     Testing whether the API returns a correct dictionary with torrent info.
     """
@@ -59,15 +59,15 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, session, endpoint):
     mock_dlmgr.get_channel_downloads = lambda: []
     mock_dlmgr.shutdown = lambda: succeed(None)
 
-    await do_request(session, 'torrentinfo', expected_code=400)
-    await do_request(session, 'torrentinfo?uri=def', expected_code=400)
+    await do_request(rest_api, 'torrentinfo', expected_code=400)
+    await do_request(rest_api, 'torrentinfo?uri=def', expected_code=400)
 
     path = "file:" + path_to_url(TESTS_DATA_DIR / "bak_single.torrent")
-    verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
+    verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
 
     # Corrupt file
     path = "file:" + path_to_url(TESTS_DATA_DIR / "test_rss.xml")
-    await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
+    await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     path = "http://localhost:1234/ubuntu.torrent"
 
@@ -76,7 +76,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, session, endpoint):
             return f.read()
 
     with patch("tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
-        verify_valid_dict(await do_request(session, f'torrentinfo?uri={quote_plus(path)}', expected_code=200))
+        verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={quote_plus(path)}', expected_code=200))
 
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'
                       f'&dn=test torrent&tr=http://ubuntu.org/ann')
@@ -94,25 +94,25 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, session, endpoint):
         return succeed(tdef.get_metainfo())
 
     mock_dlmgr.get_metainfo = get_metainfo
-    verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
+    verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
 
     path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
-    await do_request(session, f'torrentinfo?uri={path}', expected_code=400)
+    await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=400)
 
     path = quote_plus(f"magnet:?xt=urn:btih:{'a' * 40}&dn=test torrent")
     mock_dlmgr.get_metainfo = lambda *_, **__: succeed(None)
-    await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
+    await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     mock_dlmgr.get_metainfo = get_metainfo
-    verify_valid_dict(await do_request(session, f'torrentinfo?uri={path}', expected_code=200))
+    verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
 
-    await do_request(session, f'torrentinfo?uri={path}&hops=0', expected_code=200)
+    await do_request(rest_api, f'torrentinfo?uri={path}&hops=0', expected_code=200)
     assert [0] == hops_list
 
-    await do_request(session, f'torrentinfo?uri={path}&hops=foo', expected_code=400)
+    await do_request(rest_api, f'torrentinfo?uri={path}&hops=foo', expected_code=400)
 
     path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
-    await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
+    await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     # FIXME: FFA entries creation check
     #with db_session:
@@ -121,24 +121,24 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, session, endpoint):
     mock_download = Mock()
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn=test torrent')
     mock_dlmgr.downloads = {UBUNTU_1504_INFOHASH: mock_download}
-    result = await do_request(session, f'torrentinfo?uri={path}', expected_code=200)
+    result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 
     # Check that we do not return "downloads_exists" if the download is metainfo only download
     mock_dlmgr.downloads = {UBUNTU_1504_INFOHASH: mock_download}
     mock_dlmgr.metainfo_requests = {UBUNTU_1504_INFOHASH: [mock_download]}
-    result = await do_request(session, f'torrentinfo?uri={path}', expected_code=200)
+    result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert not result["download_exists"]
 
     # Check that we return "downloads_exists" if there is a metainfo download for the infohash,
     # but there is also a regular download for the same infohash
     mock_dlmgr.downloads = {UBUNTU_1504_INFOHASH: mock_download}
     mock_dlmgr.metainfo_requests = {UBUNTU_1504_INFOHASH: [Mock()]}
-    result = await do_request(session, f'torrentinfo?uri={path}', expected_code=200)
+    result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 
 
-async def test_on_got_invalid_metainfo(mock_dlmgr, session):
+async def test_on_got_invalid_metainfo(mock_dlmgr, rest_api):
     """
     Test whether the right operations happen when we receive an invalid metainfo object
     """
@@ -151,5 +151,5 @@ async def test_on_got_invalid_metainfo(mock_dlmgr, session):
     mock_dlmgr.checkpoint_downloads = lambda: succeed(None)
     path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
 
-    res = await do_request(session, f'torrentinfo?uri={path}', expected_code=500)
+    res = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
     assert "error" in res

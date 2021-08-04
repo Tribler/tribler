@@ -9,7 +9,6 @@ from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.utilities.unicode import hexlify
 
 
-
 @pytest.fixture
 def endpoint(mock_dlmgr, mock_lt_session):
     endpoint = LibTorrentEndpoint()
@@ -19,10 +18,11 @@ def endpoint(mock_dlmgr, mock_lt_session):
 
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/libtorrent', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
+
 
 @pytest.fixture
 def mock_lt_session(mock_dlmgr):
@@ -41,62 +41,62 @@ def mock_lt_session(mock_dlmgr):
     return lt_session
 
 
-async def test_get_settings_zero_hop(session):
+async def test_get_settings_zero_hop(rest_api):
     """
-    Tests getting session settings for zero hop session.
-    By default, there should always be a zero hop session so we should be able to get settings for
-    zero hop session.
+    Tests getting rest_api settings for zero hop rest_api.
+    By default, there should always be a zero hop rest_api so we should be able to get settings for
+    zero hop rest_api.
     """
     hop = 0
-    response_dict = await do_request(session, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
+    response_dict = await do_request(rest_api, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
     settings_dict = response_dict['settings']
     assert response_dict['hop'] == hop
     assert hexlify(b"abcd") == settings_dict["peer_fingerprint"]
     assert "Tribler" in settings_dict['user_agent']
 
 
-async def test_get_settings_for_uninitialized_session(session):
+async def test_get_settings_for_uninitialized_session(rest_api):
     """
-    Tests getting session for non initialized session.
+    Tests getting rest_api for non initialized rest_api.
     By default, anonymous sessions with hops > 1 are not initialized so test is done for
-    a 2 hop session expecting empty stats.
+    a 2 hop rest_api expecting empty stats.
     """
     hop = 2
-    response_dict = await do_request(session, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
+    response_dict = await do_request(rest_api, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
     assert response_dict['hop'] == hop
     assert response_dict['settings'] == {}
 
 
-async def test_get_settings_for_one_session(session):
+async def test_get_settings_for_one_session(rest_api):
     """
-    Tests getting session for initialized anonymous session.
+    Tests getting rest_api for initialized anonymous rest_api.
     """
     hop = 1
-    response_dict = await do_request(session, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
+    response_dict = await do_request(rest_api, 'libtorrent/settings?hop=%d' % hop, expected_code=200)
     settings_dict = response_dict['settings']
     assert response_dict['hop'] == hop
     assert "libtorrent" in settings_dict['user_agent'] or settings_dict['user_agent'] == ''
 
 
-async def test_get_stats_zero_hop_session(session):
+async def test_get_stats_zero_hop_session(rest_api):
     """
-    Tests getting session stats for zero hop session.
-    By default, there should always be a zero hop session so we should be able to get stats for this session.
+    Tests getting rest_api stats for zero hop rest_api.
+    By default, there should always be a zero hop rest_api so we should be able to get stats for this rest_api.
     """
     hop = 0
-    response_dict = await do_request(session, 'libtorrent/session?hop=%d' % hop, expected_code=200)
+    response_dict = await do_request(rest_api, 'libtorrent/session?hop=%d' % hop, expected_code=200)
     assert response_dict['hop'] == hop
     assert response_dict["session"] == {"a": "b"}
 
 
-async def test_get_stats_for_uninitialized_session(session):
+async def test_get_stats_for_uninitialized_session(rest_api):
     """
-    Tests getting stats for non initialized session.
+    Tests getting stats for non initialized rest_api.
     By default, anonymous sessions with hops > 1 are not initialized so test is done for
-    a 2 hop session expecting empty stats.
+    a 2 hop rest_api expecting empty stats.
     """
     hop = 2
 
-    response_dict = await do_request(session, 'libtorrent/session?hop=%d' % hop, expected_code=200)
+    response_dict = await do_request(rest_api, 'libtorrent/session?hop=%d' % hop, expected_code=200)
     assert response_dict['hop'] == hop
     assert response_dict['session'] == {}

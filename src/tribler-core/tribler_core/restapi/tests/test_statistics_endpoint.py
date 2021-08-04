@@ -29,35 +29,35 @@ def endpoint():
     return endpoint
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/statistics', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_get_tribler_statistics(session, endpoint, metadata_store):
+async def test_get_tribler_statistics(rest_api, endpoint, metadata_store):
     """
     Testing whether the API returns a correct Tribler statistics dictionary when requested
     """
     endpoint.mds = metadata_store
-    stats = (await do_request(session, 'statistics/tribler', expected_code=200))['tribler_statistics']
+    stats = (await do_request(rest_api, 'statistics/tribler', expected_code=200))['tribler_statistics']
     assert 'db_size' in stats
     assert 'num_channels' in stats
     assert 'num_channels' in stats
 
 
-async def test_get_ipv8_statistics(mock_ipv8, session, endpoint):
+async def test_get_ipv8_statistics(mock_ipv8, rest_api, endpoint):
     """
     Testing whether the API returns a correct IPv8 statistics dictionary when requested
     """
     endpoint.ipv8 = mock_ipv8
-    json_data = await do_request(session, 'statistics/ipv8', expected_code=200)
+    json_data = await do_request(rest_api, 'statistics/ipv8', expected_code=200)
     assert json_data["ipv8_statistics"]
 
 
-async def test_get_ipv8_statistics_unavailable(session):
+async def test_get_ipv8_statistics_unavailable(rest_api):
     """
     Testing whether the API returns error 500 if IPv8 is not available
     """
-    json_data = await do_request(session, 'statistics/ipv8', expected_code=200)
+    json_data = await do_request(rest_api, 'statistics/ipv8', expected_code=200)
     assert not json_data["ipv8_statistics"]

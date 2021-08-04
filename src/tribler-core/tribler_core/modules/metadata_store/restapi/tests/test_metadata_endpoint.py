@@ -41,7 +41,7 @@ async def torrent_checker(loop, mock_dlmgr, metadata_store):
     await torrent_checker.shutdown()
 
 @pytest.fixture
-def session(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
     endpoint = MetadataEndpoint()
     endpoint.mds = metadata_store
     endpoint.torrent_checker = torrent_checker
@@ -51,16 +51,16 @@ def session(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: d
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrents_channels, session):
+async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrents_channels, rest_api):
     """
     Test updating attributes of several metadata entities at once with a PATCH request to REST API
     """
     # Test handling the wrong/empty JSON gracefully
-    await do_request(session, 'metadata', expected_code=400, request_type='PATCH', post_data='abc')
+    await do_request(rest_api, 'metadata', expected_code=400, request_type='PATCH', post_data='abc')
 
     # Test trying update a non-existing entry
     await do_request(
-        session,
+        rest_api,
         'metadata',
         post_data=[{'public_key': hexlify(b'1' * 64), 'id': 111}],
         expected_code=404,
@@ -76,7 +76,7 @@ async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrent
         {'public_key': hexlify(md1.public_key), 'id': md1.id_, 'title': NEW_NAME1},
         {'public_key': hexlify(md2.public_key), 'id': md2.id_, 'title': NEW_NAME2, 'subscribed': 1},
     ]
-    await do_request(session, 'metadata', post_data=patch_data, expected_code=200, request_type='PATCH')
+    await do_request(rest_api, 'metadata', post_data=patch_data, expected_code=200, request_type='PATCH')
     with db_session:
         entry1 = metadata_store.ChannelNode.get(rowid=md1.rowid)
         assert NEW_NAME1 == entry1.title
@@ -88,7 +88,7 @@ async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrent
         assert entry2.subscribed
 
 
-async def test_delete_multiple_metadata_entries(session, metadata_store):
+async def test_delete_multiple_metadata_entries(rest_api, metadata_store):
     """
     Test deleting multiple entries with JSON REST API
     """
@@ -101,28 +101,28 @@ async def test_delete_multiple_metadata_entries(session, metadata_store):
         {'public_key': hexlify(md1.public_key), 'id': md1.id_},
         {'public_key': hexlify(md2.public_key), 'id': md2.id_},
     ]
-    await do_request(session, 'metadata', post_data=patch_data, expected_code=200, request_type='DELETE')
+    await do_request(rest_api, 'metadata', post_data=patch_data, expected_code=200, request_type='DELETE')
     with db_session:
         assert metadata_store.ChannelNode.select().count() == 0
 
 
-async def test_update_entry_missing_json(metadata_store, session):
+async def test_update_entry_missing_json(metadata_store, rest_api):
     """
     Test whether an error is returned if we try to change entry with the REST API and missing JSON data
     """
     channel_pk = hexlify(metadata_store.ChannelNode._my_key.pub().key_to_bin()[10:])
-    await do_request(session, f'metadata/{channel_pk}/123', expected_code=400, request_type='PATCH', post_data='abc')
+    await do_request(rest_api, f'metadata/{channel_pk}/123', expected_code=400, request_type='PATCH', post_data='abc')
 
 
-async def test_update_entry_not_found(metadata_store, session):
+async def test_update_entry_not_found(metadata_store, rest_api):
     """
     Test whether an error is returned if we try to change some metadata entry that is not there
     """
     patch_params = {'subscribed': '1'}
-    await do_request(session, 'metadata/aa/123', expected_code=404, request_type='PATCH', post_data=patch_params)
+    await do_request(rest_api, 'metadata/aa/123', expected_code=404, request_type='PATCH', post_data=patch_params)
 
 
-async def test_update_entry_status_and_name(metadata_store, session):
+async def test_update_entry_status_and_name(metadata_store, rest_api):
     """
     Test whether an error is returned if try to modify both the status and name of a torrent
     """
@@ -130,7 +130,7 @@ async def test_update_entry_status_and_name(metadata_store, session):
         chan = metadata_store.ChannelMetadata.create_channel(title="bla")
     patch_params = {'status': TODELETE, 'title': 'test'}
     await do_request(
-        session,
+        rest_api,
         'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
         request_type='PATCH',
         post_data=patch_params,
@@ -138,7 +138,7 @@ async def test_update_entry_status_and_name(metadata_store, session):
     )
 
 
-async def test_update_entry(session, metadata_store):
+async def test_update_entry(rest_api, metadata_store):
     """
     Test updating a metadata entry with REST API
     """
@@ -152,7 +152,7 @@ async def test_update_entry(session, metadata_store):
     patch_params = {'title': new_title, 'tags': new_tags}
 
     result = await do_request(
-        session,
+        rest_api,
         'metadata/%s/%i' % (hexlify(chan.public_key), chan.id_),
         request_type='PATCH',
         post_data=patch_params,
@@ -168,7 +168,7 @@ async def test_update_entry(session, metadata_store):
         assert chan.title == new_title
 
 
-async def test_get_entry(session, metadata_store):
+async def test_get_entry(rest_api, metadata_store):
     """
     Test getting an entry with REST API GET request
     """
@@ -187,20 +187,20 @@ async def test_get_entry(session, metadata_store):
             md = md_type(**kwargs)
             md.status = COMMITTED
         await do_request(
-            session,
+            rest_api,
             'metadata/%s/%i' % (hexlify(md.public_key), md.id_),
             expected_json=md.to_simple_dict(),
         )
 
 
-async def test_get_entry_not_found(session, metadata_store):
+async def test_get_entry_not_found(rest_api, metadata_store):
     """
     Test trying to get a non-existing entry with the REST API GET request
     """
-    await do_request(session, 'metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
+    await do_request(rest_api, 'metadata/%s/%i' % (hexlify(b"0" * 64), 123), expected_code=404)
 
 
-async def test_check_torrent_health(session, mock_dlmgr, udp_tracker, metadata_store):
+async def test_check_torrent_health(rest_api, mock_dlmgr, udp_tracker, metadata_store):
     """
     Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
     """
@@ -224,19 +224,19 @@ async def test_check_torrent_health(session, mock_dlmgr, udp_tracker, metadata_s
     # Left for compatibility with other tests in this object
     await udp_tracker.start()
 
-    json_response = await do_request(session, url)
+    json_response = await do_request(rest_api, url)
     assert "health" in json_response
     assert f"udp://localhost:{udp_tracker.port}" in json_response['health']
     if has_bep33_support():
         assert "DHT" in json_response['health']
 
-    json_response = await do_request(session, url + '&nowait=1')
+    json_response = await do_request(rest_api, url + '&nowait=1')
     assert json_response == {'checking': '1'}
 
 
-async def test_check_torrent_query(session, udp_tracker, metadata_store):
+async def test_check_torrent_query(rest_api, udp_tracker, metadata_store):
     """
     Test that the endpoint responds with an error message if the timeout parameter has a wrong value
     """
     infohash = b'a' * 20
-    await do_request(session, f"metadata/torrents/{infohash}/health?timeout=wrong_value&refresh=1", expected_code=400)
+    await do_request(rest_api, f"metadata/torrents/{infohash}/health?timeout=wrong_value&refresh=1", expected_code=400)
