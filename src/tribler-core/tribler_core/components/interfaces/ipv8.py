@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.dht.discovery import DHTDiscoveryCommunity
 from ipv8.peer import Peer
@@ -11,10 +13,7 @@ from tribler_core.components.base import Component
 class Ipv8Component(Component):
     ipv8: IPv8
     peer: Peer
-
-
-class Ipv8BootstrapperComponent(Component):
-    bootstrapper: DispersyBootstrapper
+    bootstrapper: Optional[DispersyBootstrapper]
 
 
 class DHTDiscoveryCommunityComponent(Component):

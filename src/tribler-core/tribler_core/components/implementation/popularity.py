@@ -1,6 +1,6 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 
-from tribler_core.components.interfaces.ipv8 import Ipv8BootstrapperComponent, Ipv8Component
+from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.popularity import PopularityComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
@@ -18,7 +18,6 @@ class PopularityComponentImp(PopularityComponent):
         peer = ipv8_component.peer
         metadata_store = (await self.use(MetadataStoreComponent)).mds
         torrent_checker = (await self.use(TorrentCheckerComponent)).torrent_checker
-        bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
 
         community = PopularityCommunity(peer, ipv8.endpoint, ipv8.network,
                                         settings=config.popularity_community,
@@ -31,7 +30,8 @@ class PopularityComponentImp(PopularityComponent):
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
 
-        community.bootstrappers.append(bootstrapper)
+        if ipv8_component.bootstrapper:
+            community.bootstrappers.append(ipv8_component.bootstrapper)
 
         ipv8.overlays.append(community)
 
