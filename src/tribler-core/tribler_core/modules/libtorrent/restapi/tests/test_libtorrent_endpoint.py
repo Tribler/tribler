@@ -86,7 +86,7 @@ async def test_get_stats_zero_hop_session(rest_api):
     hop = 0
     response_dict = await do_request(rest_api, 'libtorrent/session?hop=%d' % hop, expected_code=200)
     assert response_dict['hop'] == hop
-    assert response_dict["rest_api"] == {"a": "b"}
+    assert response_dict["session"] == {"a": "b"}
 
 
 async def test_get_stats_for_uninitialized_session(rest_api):
@@ -99,4 +99,4 @@ async def test_get_stats_for_uninitialized_session(rest_api):
 
     response_dict = await do_request(rest_api, 'libtorrent/session?hop=%d' % hop, expected_code=200)
     assert response_dict['hop'] == hop
-    assert response_dict['rest_api'] == {}
+    assert response_dict['session'] == {}
