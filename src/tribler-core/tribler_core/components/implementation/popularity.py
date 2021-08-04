@@ -1,6 +1,6 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 
-from tribler_core.components.interfaces.ipv8 import Ipv8BootstrapperComponent, Ipv8Component, Ipv8PeerComponent
+from tribler_core.components.interfaces.ipv8 import Ipv8BootstrapperComponent, Ipv8Component
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.popularity import PopularityComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
@@ -13,9 +13,9 @@ INFINITE = -1
 class PopularityComponentImp(PopularityComponent):
     async def run(self):
         config = self.session.config
-
-        ipv8 = (await self.use(Ipv8Component)).ipv8
-        peer = (await self.use(Ipv8PeerComponent)).peer
+        ipv8_component = await self.use(Ipv8Component)
+        ipv8 = ipv8_component.ipv8
+        peer = ipv8_component.peer
         metadata_store = (await self.use(MetadataStoreComponent)).mds
         torrent_checker = (await self.use(TorrentCheckerComponent)).torrent_checker
         bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
