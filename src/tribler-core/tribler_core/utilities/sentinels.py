@@ -10,7 +10,6 @@ sent2 = sentinel('sent2', repr='test_sentinels.sent2')
 import sys as _sys
 from typing import Optional
 
-
 __all__ = ['sentinel']
 
 

@@ -2,7 +2,7 @@ import hashlib
 import math
 import sys
 import time
-from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection, sleep
+from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion

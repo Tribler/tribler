@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock
 
 from aiohttp.web_app import Application
@@ -12,6 +11,7 @@ from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccounti
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
+
 
 @pytest.fixture
 async def mock_ipv8():

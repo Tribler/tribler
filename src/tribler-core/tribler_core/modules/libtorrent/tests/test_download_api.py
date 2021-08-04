@@ -1,10 +1,8 @@
 import shutil
-from unittest.mock import Mock
 
 import pytest
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
 
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 

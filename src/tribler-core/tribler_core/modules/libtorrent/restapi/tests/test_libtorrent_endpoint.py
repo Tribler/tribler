@@ -1,7 +1,8 @@
 from unittest.mock import Mock
 
-import pytest
 from aiohttp.web_app import Application
+
+import pytest
 
 from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler_core.restapi.base_api_test import do_request

@@ -1,16 +1,16 @@
-from pprint import pprint
 
-import pytest
 from aiohttp.web_app import Application
 
-from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
-from tribler_core.config.tribler_config import TriblerConfig
+import pytest
 
+from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.settings_endpoint import SettingsEndpoint
-from tribler_core.utilities.path_util import Path
+
 
 @pytest.fixture
 def tribler_config(tmp_path):

@@ -1,11 +1,10 @@
 import shutil
 
-import pytest
 from configobj import ParseError
 
+import pytest
+
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 
@@ -103,4 +102,3 @@ async def test_invalid_config_recovers(tmpdir):
     # should work without the reset flag.
     config = TriblerConfig.load(file=default_config_file, state_dir=tmpdir)
     assert not config.error
-

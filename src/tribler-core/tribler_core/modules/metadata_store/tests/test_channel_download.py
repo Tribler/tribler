@@ -1,6 +1,3 @@
-import asyncio
-from asyncio import sleep
-
 from asynctest import Mock
 
 from ipv8.util import succeed
@@ -10,6 +7,7 @@ from pony.orm import db_session
 import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
+
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.settings import LibtorrentSettings
@@ -53,14 +51,17 @@ async def gigachannel_manager(metadata_store, download_manager):
         state_dir=metadata_store.channels_dir.parent,
         download_manager=download_manager,
         metadata_store=metadata_store,
-        notifier=Mock())
+        notifier=Mock(),
+    )
     yield gigachannel_manager
     await gigachannel_manager.shutdown()
 
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(20)
-async def test_channel_update_and_download(channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager):
+async def test_channel_update_and_download(
+    channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
+):
     """
     Test whether we can successfully update a channel and download the new version
     """

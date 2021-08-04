@@ -4,11 +4,9 @@ import sys
 
 from PyQt5.QtCore import QSettings
 
-from tribler_common.network_utils import NetworkUtils
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
-
 
 import tribler_gui
 from tribler_gui.utilities import get_translator
@@ -165,7 +163,6 @@ if __name__ == "__main__":
         tribler_gui.load_logger_config(root_state_dir)
 
         # Check for missing both(GUI, Core) dependencies
-        from tribler_core.version import sentry_url, version_id
 
         from tribler_core.dependencies import check_for_missing_dependencies
         check_for_missing_dependencies(scope='both')

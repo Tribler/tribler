@@ -1,8 +1,9 @@
 import os
 import shutil
 
-import pytest
 from asynctest import Mock
+
+import pytest
 
 from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE

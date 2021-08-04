@@ -11,7 +11,14 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
+from tribler_common.simpledefs import (
+    DLSTATUS_CIRCUITS,
+    DLSTATUS_EXIT_NODES,
+    DLSTATUS_STOPPED,
+    DOWNLOAD,
+    UPLOAD,
+    dlstatus_strings,
+)
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager

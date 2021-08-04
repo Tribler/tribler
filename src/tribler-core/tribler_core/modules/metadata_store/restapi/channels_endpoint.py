@@ -26,7 +26,8 @@ from tribler_core.modules.metadata_store.utils import NoChannelSourcesException,
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import is_infohash, parse_magnetlink, froze_it
+from tribler_core.utilities.utilities import froze_it, is_infohash, parse_magnetlink
+
 
 async def _fetch_uri(uri):
     async with ClientSession() as session:
@@ -240,9 +241,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             if obj is not None:
                 obj.update_properties(obj_properties)
             else:
-                self.mds.ChannelThumbnail(
-                    public_key=channel_pk, origin_id=channel_id, status=NEW, **obj_properties
-                )
+                self.mds.ChannelThumbnail(public_key=channel_pk, origin_id=channel_id, status=NEW, **obj_properties)
         return web.Response(status=201)
 
     @docs(
@@ -361,7 +360,6 @@ class ChannelsEndpoint(MetadataEndpointBase):
             }
         )
     )
-
     async def add_torrent_to_channel(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
@@ -386,10 +384,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 if (
                     xt
                     and is_infohash(codecs.encode(xt, 'hex'))
-                    and (
-                        self.mds.torrent_exists_in_personal_channel(xt)
-                        or channel.copy_torrent_from_infohash(xt)
-                    )
+                    and (self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt))
                 ):
                     return RESTResponse({"added": 1})
 
@@ -464,9 +459,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
     async def is_channel_dirty(self, request):
         channel_pk, _ = self.get_channel_from_request(request)
         with db_session:
-            dirty = self.mds.MetadataNode.exists(
-                lambda g: g.public_key == channel_pk and g.status in DIRTY_STATUSES
-            )
+            dirty = self.mds.MetadataNode.exists(lambda g: g.public_key == channel_pk and g.status in DIRTY_STATUSES)
             return RESTResponse({"dirty": dirty})
 
     @docs(

@@ -57,5 +57,7 @@ def my_channel(metadata_store):
                 origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=random_infohash()
             )
         for ind in range(5, 9):
-            _ = metadata_store.TorrentMetadata(origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash())
+            _ = metadata_store.TorrentMetadata(
+                origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
+            )
         return chan

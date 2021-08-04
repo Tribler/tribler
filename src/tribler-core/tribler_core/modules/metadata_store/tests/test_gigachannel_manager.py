@@ -44,7 +44,8 @@ async def gigachannel_manager(metadata_store):
         state_dir=metadata_store.channels_dir.parent,
         metadata_store=metadata_store,
         download_manager=Mock(),
-        notifier=Mock())
+        notifier=Mock(),
+    )
     yield chanman
     await chanman.shutdown()
 
@@ -195,7 +196,6 @@ async def test_check_channels_updates(personal_channel, gigachannel_manager, met
 
         gigachannel_manager.download_channel = mock_download_channel
 
-
         @db_session
         def fake_get_metainfo(infohash, **_):
             return {'info': {'name': metadata_store.ChannelMetadata.get(infohash=infohash).dirname}}
@@ -326,7 +326,9 @@ initiated_download = False
 
 
 @pytest.mark.asyncio
-async def test_reject_malformed_channel(gigachannel_manager, metadata_store):  # pylint: disable=unused-argument, redefined-outer-name
+async def test_reject_malformed_channel(
+    gigachannel_manager, metadata_store
+):  # pylint: disable=unused-argument, redefined-outer-name
     global initiated_download
     with db_session:
         channel = metadata_store.ChannelMetadata(title="bla1", public_key=b'123', infohash=random_infohash())

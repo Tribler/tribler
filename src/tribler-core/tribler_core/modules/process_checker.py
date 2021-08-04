@@ -3,9 +3,6 @@ from pathlib import Path
 
 import psutil
 
-from tribler_core.utilities import path_util
-from tribler_core.utilities.osutils import get_root_state_directory
-
 LOCK_FILE_NAME = 'triblerd.lock'
 
 

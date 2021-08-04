@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
 from aiohttp.web_app import Application
+
+import pytest
 
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings

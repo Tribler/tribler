@@ -4,18 +4,20 @@ from asyncio import Future
 from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
 from pony.orm import db_session, select
 
-import tribler_core.utilities.permid as permid_module
+import pytest
+
 from tribler_common.simpledefs import NTFY
+
+import tribler_core.utilities.permid as permid_module
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.db8_to_db10 import calc_progress
-from tribler_core.upgrade.upgrade import cleanup_noncompliant_channel_torrents, TriblerUpgrader
+from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 

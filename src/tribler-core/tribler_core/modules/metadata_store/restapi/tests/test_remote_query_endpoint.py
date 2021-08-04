@@ -19,16 +19,19 @@ from tribler_core.utilities.unicode import hexlify
 
 # pylint: disable=unused-argument
 
+
 @pytest.fixture
 def endpoint():
     endpoint = RemoteQueryEndpoint()
     return endpoint
+
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/remote_query', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
+
 
 async def test_create_remote_search_request(rest_api, endpoint):
     """

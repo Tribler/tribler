@@ -1,9 +1,13 @@
 from aiohttp import web
+
 from aiohttp_apispec import docs, json_schema
-from marshmallow.fields import Boolean
 
 from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean
+
 from tribler_common.network_utils import NetworkUtils
+
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.utilities import froze_it
 

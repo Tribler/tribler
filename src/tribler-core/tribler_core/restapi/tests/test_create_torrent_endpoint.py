@@ -1,9 +1,11 @@
 from unittest.mock import Mock
 
-import pytest
 from aiohttp.web_app import Application
 
 from ipv8.util import succeed
+
+import pytest
+
 from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.restapi.base_api_test import do_request

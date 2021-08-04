@@ -7,8 +7,8 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
 from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING, STATE_UPGRADING
-from tribler_core.notifier import Notifier
 
+from tribler_core.notifier import Notifier
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.utilities import froze_it
 

@@ -1,4 +1,3 @@
-import os
 import shutil
 from unittest.mock import patch
 
@@ -6,9 +5,9 @@ import pytest
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.exceptions import TriblerException
-from tribler_core.restapi.base_api_test import do_request, do_real_request
+from tribler_core.restapi.base_api_test import do_real_request
 from tribler_core.restapi.rest_endpoint import HTTP_UNAUTHORIZED
-from tribler_core.restapi.rest_manager import ApiKeyMiddleware, error_middleware, RESTManager
+from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.tests.tools.common import TESTS_DIR
 
@@ -81,7 +80,7 @@ async def test_api_key_fail(rest_manager, api_port):
 
 @pytest.mark.asyncio
 async def test_unhandled_exception(rest_manager, api_port):
-    port = rest_manager.config.http_port
+    rest_manager.config.http_port
     """
     Testing whether the API returns a formatted 500 error if an unhandled Exception is raised
     """

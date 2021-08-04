@@ -18,7 +18,7 @@ from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.unicode import hexlify
 
-    
+
 @pytest.fixture
 def tracker_manager(tmp_path, metadata_store):
     return TrackerManager(state_dir=tmp_path, metadata_store=metadata_store)

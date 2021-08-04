@@ -9,8 +9,6 @@ from aiohttp.web_app import Application
 
 from ipv8.util import succeed
 
-from pony.orm import db_session
-
 import pytest
 
 from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint

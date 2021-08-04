@@ -2,10 +2,11 @@ import heapq
 import random
 from binascii import unhexlify
 
-from pony.orm import db_session
-
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.peerdiscovery.network import Network
+
+from pony.orm import db_session
+
 from tribler_core.modules.popularity.payload import TorrentsHealthPayload
 from tribler_core.modules.popularity.version_community_mixin import VersionCommunityMixin
 from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity

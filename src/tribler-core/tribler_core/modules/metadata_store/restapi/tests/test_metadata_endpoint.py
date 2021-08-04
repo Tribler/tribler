@@ -11,7 +11,7 @@ import pytest
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
-from tribler_core.modules.metadata_store.restapi.metadata_endpoint import TORRENT_CHECK_TIMEOUT, MetadataEndpoint
+from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
@@ -30,15 +30,18 @@ async def torrent_checker(loop, mock_dlmgr, metadata_store):
     tracker_manager = Mock()
     tracker_manager.blacklist = []
     notifier = Mock()
-    torrent_checker = TorrentChecker(config=config,
-                                     download_manager=mock_dlmgr,
-                                     tracker_manager=tracker_manager,
-                                     metadata_store=metadata_store,
-                                     notifier=notifier,
-                                     socks_listen_ports=[2000, 3000])
+    torrent_checker = TorrentChecker(
+        config=config,
+        download_manager=mock_dlmgr,
+        tracker_manager=tracker_manager,
+        metadata_store=metadata_store,
+        notifier=notifier,
+        socks_listen_ports=[2000, 3000],
+    )
     await torrent_checker.initialize()
     yield torrent_checker
     await torrent_checker.shutdown()
+
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
@@ -179,8 +182,11 @@ async def test_get_entry(rest_api, metadata_store):
         ),
         (
             metadata_store.ChannelDescription,
-            {"text": json.dumps({"description_text": "*{{}bla <\\> [)]// /ee2323㋛㋛㋛  ",
-                                 "channel_thumbnail": "ffffff.jpg"})},
+            {
+                "text": json.dumps(
+                    {"description_text": "*{{}bla <\\> [)]// /ee2323㋛㋛㋛  ", "channel_thumbnail": "ffffff.jpg"}
+                )
+            },
         ),
     ):
         with db_session:

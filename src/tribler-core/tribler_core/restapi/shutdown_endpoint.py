@@ -1,5 +1,3 @@
-import logging
-from asyncio import ensure_future, get_event_loop
 
 from aiohttp import web
 
@@ -9,7 +7,6 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Boolean
 
-from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.utilities import froze_it
 

@@ -1,6 +1,6 @@
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-from tribler_core.config.tribler_config import TriblerConfig
 
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from asyncio import Event, create_task, gather, get_event_loop
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Iterable, Set, Type, TypeVar
+from typing import Dict, Iterable, List, Optional, Set, Type, TypeVar
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier

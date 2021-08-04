@@ -17,7 +17,6 @@ from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.modules.remote_query_community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.tribler_community import TriblerCommunity
-
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")

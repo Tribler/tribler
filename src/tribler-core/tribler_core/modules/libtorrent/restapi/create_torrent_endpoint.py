@@ -11,8 +11,6 @@ from marshmallow.fields import String
 
 from tribler_core.exceptions import DuplicateDownloadException
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
