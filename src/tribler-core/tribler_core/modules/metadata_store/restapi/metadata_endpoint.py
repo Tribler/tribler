@@ -52,6 +52,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     #          /torrents
     #          /<public_key>
     """
+
     def __init__(self, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
         self.torrent_checker = None

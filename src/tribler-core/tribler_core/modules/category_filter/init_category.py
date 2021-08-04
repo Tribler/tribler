@@ -13,6 +13,7 @@ def __split_list(string):
         the_list.append(word)
     return the_list
 
+
 INIT_FUNC_DICT = {
     "minfilenumber": int,
     "maxfilenumber": int,

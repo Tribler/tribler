@@ -11,14 +11,18 @@ from tribler_core.components.base import Component
 class Ipv8Component(Component):
     ipv8: IPv8
 
+
 class Ipv8PeerComponent(Component):
     peer: Peer
+
 
 class Ipv8BootstrapperComponent(Component):
     bootstrapper: DispersyBootstrapper
 
+
 class DHTDiscoveryCommunityComponent(Component):
     community: DHTDiscoveryCommunity
+
 
 class DiscoveryCommunityComponent(Component):
     community: DiscoveryCommunity

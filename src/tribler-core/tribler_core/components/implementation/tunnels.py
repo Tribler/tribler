@@ -3,8 +3,6 @@ from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peerdiscovery.discovery import RandomWalk
 
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import (
     DHTDiscoveryCommunityComponent,

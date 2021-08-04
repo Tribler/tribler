@@ -140,7 +140,7 @@ class SignedPayload(Payload):
         for format_str in cls.format_list:
             offset = default_serializer.get_packer_for(format_str).unpack(data, offset, unpack_list)
         if check_signature:
-            signature = data[offset : offset + SIGNATURE_SIZE]
+            signature = data[offset: offset + SIGNATURE_SIZE]
             payload = cls.from_unpack_list(*unpack_list, signature=signature)  # pylint: disable=E1120
         else:
             payload = cls.from_unpack_list(*unpack_list, skip_key_check=True)  # pylint: disable=E1120
@@ -554,6 +554,7 @@ class DeletedMetadataPayload(SignedPayload):
         dct.update({"delete_signature": self.delete_signature})
         return dct
 # fmt: on
+
 
 DISCRIMINATOR_TO_PAYLOAD_CLASS = {
     REGULAR_TORRENT: TorrentMetadataPayload,

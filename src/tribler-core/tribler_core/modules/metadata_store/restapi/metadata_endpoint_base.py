@@ -1,5 +1,4 @@
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import RESTEndpoint
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.

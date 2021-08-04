@@ -1,14 +1,12 @@
-import ipaddress
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
-from pydantic import validator, BaseSettings
+from pydantic import validator
 
 from tribler_common.network_utils import NetworkUtils
-from tribler_core.config.tribler_config_section import TriblerConfigSection
-
 
 # pylint: disable=no-self-argument
+from tribler_core.config.tribler_config_section import TriblerConfigSection
 from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
 
 

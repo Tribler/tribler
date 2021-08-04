@@ -17,7 +17,6 @@ from tribler_core.modules.metadata_store.utils import RequestTimeoutException
 from tribler_core.modules.remote_query_community.eva_protocol import EVAProtocolMixin
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.tribler_community import TriblerCommunity
-
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -128,7 +127,9 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    def __init__(self, my_peer, endpoint, network, rqc_settings: RemoteQueryCommunitySettings = None, metadata_store=None,
+    def __init__(self, my_peer, endpoint, network,
+                 rqc_settings: RemoteQueryCommunitySettings = None,
+                 metadata_store=None,
                  **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 

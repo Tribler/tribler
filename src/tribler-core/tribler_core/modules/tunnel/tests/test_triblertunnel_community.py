@@ -24,8 +24,8 @@ from tribler_common.network_utils import NetworkUtils
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
+from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
@@ -87,7 +87,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Give a node a dedicated exit node to play with.
         """
         exit_node = self.create_node()
-        self.nodes.append(exit_node) # So it could be properly removed on exit
+        self.nodes.append(exit_node)  # So it could be properly removed on exit
         exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
         public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
         self.nodes[node_nr].network.add_verified_peer(public_peer)

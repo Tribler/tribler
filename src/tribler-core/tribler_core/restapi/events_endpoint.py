@@ -13,8 +13,8 @@ from ipv8.taskmanager import TaskManager, task
 from marshmallow.fields import Dict, String
 
 from tribler_common.simpledefs import NTFY
-from tribler_core.notifier import Notifier
 
+from tribler_core.notifier import Notifier
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.restapi.util import fix_unicode_dict
 from tribler_core.utilities.unicode import hexlify

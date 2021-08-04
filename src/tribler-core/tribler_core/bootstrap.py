@@ -21,8 +21,7 @@ async def start_bootstrap_download(self):
     # await get_event_loop().run_in_executor(None, self.import_bootstrap_file)
     self.bootstrap.bootstrap_finished = True
 
-
-    #if self.bootstrap:
+    # if self.bootstrap:
     # We shutdown the bootstrap module before IPv8 since it uses the DHTCommunity.
     # await self.bootstrap.shutdown()
 

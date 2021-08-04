@@ -1,6 +1,7 @@
 import pytest
 
 from tribler_common.network_utils import NetworkUtils
+
 from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings, SeedingMode
 
 

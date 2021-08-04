@@ -7,7 +7,6 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
-from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import froze_it
 
 
@@ -16,6 +15,7 @@ class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = None
@@ -89,6 +89,6 @@ class StatisticsEndpoint(RESTEndpoint):
             stats_dict = {
                 "total_up": self.ipv8.endpoint.bytes_up,
                 "total_down": self.ipv8.endpoint.bytes_down,
-                #"session_uptime": time.time() - self.ipv8_start_time
+                # "session_uptime": time.time() - self.ipv8_start_time
             }
         return RESTResponse({'ipv8_statistics': stats_dict})

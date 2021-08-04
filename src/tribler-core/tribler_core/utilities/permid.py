@@ -25,6 +25,7 @@ def save_keypair_trustchain(keypair, keypairfilename):
         keyfile.write(keypair.key.sk)
         keyfile.write(keypair.key.seed)
 
+
 def save_pub_key_trustchain(keypair, pubkeyfilename):
     with pubkeyfilename.open(mode='wb') as keyfile:
         keyfile.write(keypair.key.pk)

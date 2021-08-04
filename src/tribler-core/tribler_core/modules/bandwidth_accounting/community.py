@@ -2,18 +2,20 @@ from __future__ import annotations
 
 from asyncio import Future
 from binascii import unhexlify
-from pathlib import Path
 from random import Random
 from typing import Dict
 
 from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
 from ipv8.types import Address
+
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.cache import BandwidthTransactionSignCache
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
-from tribler_core.modules.bandwidth_accounting.payload import BandwidthTransactionPayload, \
-    BandwidthTransactionQueryPayload
+from tribler_core.modules.bandwidth_accounting.payload import (
+    BandwidthTransactionPayload,
+    BandwidthTransactionQueryPayload,
+)
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 from tribler_core.modules.tribler_community import TriblerCommunity
 from tribler_core.utilities.unicode import hexlify

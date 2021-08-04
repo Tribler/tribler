@@ -4,7 +4,6 @@ from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
-from tribler_core.utilities.utilities import MEMORY_DB
 
 
 class MetadataStoreComponentImp(MetadataStoreComponent):

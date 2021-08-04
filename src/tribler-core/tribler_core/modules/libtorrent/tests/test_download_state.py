@@ -2,13 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from tribler_common.simpledefs import (
-    DLSTATUS_DOWNLOADING,
-    DLSTATUS_EXIT_NODES,
-    DLSTATUS_WAITING4HASHCHECK,
-    DOWNLOAD,
-    UPLOAD,
-)
+from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DOWNLOAD, UPLOAD
 
 from tribler_core.modules.libtorrent.download_state import DownloadState
 

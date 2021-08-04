@@ -11,10 +11,12 @@ from typing import Optional
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
+
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
+
 from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent import check_handle, require_handle
-from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_state import DownloadState
 from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.modules.libtorrent.stream import Stream
@@ -151,8 +153,8 @@ class Download(TaskManager):
         atp = {"save_path": str(save_path),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
-                        | lt.add_torrent_params_flags_t.flag_duplicate_is_error
-                        | lt.add_torrent_params_flags_t.flag_update_subscribe}
+               | lt.add_torrent_params_flags_t.flag_duplicate_is_error
+               | lt.add_torrent_params_flags_t.flag_update_subscribe}
 
         if self.config.get_share_mode():
             atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode

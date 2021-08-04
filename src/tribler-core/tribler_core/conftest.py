@@ -1,16 +1,18 @@
 import os
 from pathlib import Path
-from traceback import print_exception
 from unittest.mock import Mock
 
-import pytest
 from aiohttp import web
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
+
+import pytest
+
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig

@@ -7,6 +7,7 @@ class LibtorrentFallback:
 
     Any attempt to access any member raises ImportError.
     """
+
     def __getattr__(self, item):
         """
         Raises ImportError on any attempt to access a member of the class that is not explicitly defined.

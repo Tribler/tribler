@@ -2,7 +2,7 @@ import hashlib
 import math
 import sys
 import time
-from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection, sleep
+from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
@@ -116,18 +116,19 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                interval=downloads_polling_interval)
 
     async def _poll_download_manager(self):
+        # This must run in all circumstances, so catch all exceptions
         try:
             dl_states = self.dlmgr.get_last_download_states()
             self.monitor_downloads(dl_states)
-        except:
-            pass
+        except Exception as e:  # pylint: disable=broad-except
+            self.logger.error("Error on polling Download Manager: %s", e)
 
     def get_available_strategies(self):
         return super().get_available_strategies().update({'GoldenRatioStrategy': GoldenRatioStrategy})
 
     def cache_exitnodes_to_disk(self):
         """
-        Wite a copy of the exit_candidates to the file self.exitnode_cache.
+        Write a copy of the exit_candidates to the file self.exitnode_cache.
 
         :returns: None
         """

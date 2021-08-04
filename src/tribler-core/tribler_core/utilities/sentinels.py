@@ -10,7 +10,6 @@ sent2 = sentinel('sent2', repr='test_sentinels.sent2')
 import sys as _sys
 from typing import Optional
 
-
 __all__ = ['sentinel']
 
 
@@ -63,8 +62,8 @@ def sentinel(
 
 
 if hasattr(_sys, '_getframe'):
-    _get_parent_frame = lambda: _sys._getframe(2)
-else:  #pragma: no cover
+    def _get_parent_frame(): return _sys._getframe(2)
+else:  # pragma: no cover
     def _get_parent_frame():
         """Return the frame object for the caller's parent stack frame."""
         try:

@@ -142,7 +142,7 @@ class TestPopularityCommunity(TestBase):
             assert count >= max(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT,
                                 PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT)
             assert count <= PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT \
-                   + PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
+                + PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
 
     async def test_torrents_health_update(self):
         """

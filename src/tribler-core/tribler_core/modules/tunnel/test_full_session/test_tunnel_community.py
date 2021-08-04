@@ -1,13 +1,12 @@
 import logging
 import sys
 import time
-from asyncio import Future, all_tasks, sleep, get_event_loop
+from asyncio import Future, all_tasks, get_event_loop, sleep
 from collections import defaultdict
 from itertools import permutations
 from traceback import print_exception
 from typing import List
 
-import pytest
 from asynctest import Mock
 
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_TYPE_IP_SEEDER, PEER_FLAG_EXIT_BT
@@ -16,7 +15,13 @@ from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
-from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings, NTFY
+
+import pytest
+
+from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
+
+# Pylint does not agree with the way pytest handles fixtures.
+# pylint: disable=W0613,W0621
 from tribler_core.components.implementation.socks_configurator import NUM_SOCKS_PROXIES
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -26,8 +31,6 @@ from tribler_core.modules.tunnel.community.community import TriblerTunnelCommuni
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-# Pylint does not agree with the way pytest handles fixtures.
-# pylint: disable=W0613,W0621
 from tribler_core.utilities.path_util import Path
 
 

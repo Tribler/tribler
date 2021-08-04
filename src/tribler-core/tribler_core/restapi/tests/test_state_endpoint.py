@@ -1,7 +1,9 @@
-import pytest
 from aiohttp.web_app import Application
 
+import pytest
+
 from tribler_common.simpledefs import STATE_EXCEPTION
+
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.state_endpoint import StateEndpoint
@@ -11,6 +13,7 @@ from tribler_core.restapi.state_endpoint import StateEndpoint
 def endpoint():
     endpoint = StateEndpoint()
     return endpoint
+
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument

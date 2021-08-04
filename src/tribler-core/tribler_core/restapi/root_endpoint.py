@@ -1,6 +1,6 @@
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-from tribler_core.config.tribler_config import TriblerConfig
 
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
@@ -59,7 +59,7 @@ class RootEndpoint(RESTEndpoint):
             '/search': (SearchEndpoint, self.tribler_config.chant.enabled),
             '/remote_query': (RemoteQueryEndpoint, self.tribler_config.chant.enabled),
             '/ipv8': (IPV8RootEndpoint, self.tribler_config.ipv8.enabled)
-            }
+        }
         for path, (ep_cls, enabled) in endpoints.items():
             if enabled:
                 self.add_endpoint(path, ep_cls())

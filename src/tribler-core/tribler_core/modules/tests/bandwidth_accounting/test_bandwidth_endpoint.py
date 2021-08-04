@@ -1,6 +1,7 @@
+from ipv8.test.mocking.ipv8 import MockIPv8
+
 import pytest
 
-from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity

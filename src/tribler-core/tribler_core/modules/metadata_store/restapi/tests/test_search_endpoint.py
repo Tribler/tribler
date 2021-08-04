@@ -1,6 +1,8 @@
-import pytest
 from aiohttp.web_app import Application
+
 from pony.orm import db_session
+
+import pytest
 
 from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.restapi.base_api_test import do_request

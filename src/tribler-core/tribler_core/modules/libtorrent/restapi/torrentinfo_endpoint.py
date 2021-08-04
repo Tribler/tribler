@@ -16,7 +16,7 @@ from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
-from tribler_core.utilities.utilities import bdecode_compat, parse_magnetlink, froze_it
+from tribler_core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
 
 
 async def query_http_uri(uri: str) -> bytes:
@@ -111,8 +111,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         # FIXME: FFA entries
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-        #self.session.mds.TorrentMetadata.add_ffa_from_dict(
-            #tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
+        # self.session.mds.TorrentMetadata.add_ffa_from_dict(
+            # tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
         # TODO(Martijn): store the stuff in a database!!!
         # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB
@@ -128,6 +128,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
         # However, this is fine as long as the GUI does not use this field.
         encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')
-        encoded_metainfo = hexlify(json.dumps(recursive_unicode(encoded_metainfo, ignore_errors=True), ensure_ascii=False).encode('utf-8'))
+        encoded_metainfo = hexlify(json.dumps(recursive_unicode(
+            encoded_metainfo, ignore_errors=True), ensure_ascii=False).encode('utf-8'))
         return RESTResponse({"metainfo": encoded_metainfo,
                              "download_exists": download and not download_is_metainfo_request})

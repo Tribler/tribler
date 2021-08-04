@@ -8,7 +8,6 @@ from marshmallow.fields import Boolean
 
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
-from tribler_core.upgrade.upgrade import TriblerUpgrader
 from tribler_core.utilities.utilities import froze_it
 
 SKIP_DB_UPGRADE_STR = "skip_db_upgrade"

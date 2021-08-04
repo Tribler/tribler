@@ -1,10 +1,8 @@
 import base64
 import json
-import shutil
 from binascii import unhexlify
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, patch
 
-from aiohttp import ClientSession
 from aiohttp.web_app import Application
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -15,7 +13,6 @@ from pony.orm import db_session
 import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
-from tribler_core.config.tribler_config import TriblerConfig
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.community.gigachannel_community import NoChannelSourcesException
@@ -37,10 +34,12 @@ PNG_DATA = unhexlify(
 
 # pylint: disable=unused-argument
 
+
 @pytest.fixture
 def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
     mock_gigachannel_manager = Mock()
     mock_gigachannel_community = Mock()
+
     def return_exc(*args, **kwargs):
         raise RequestTimeoutException
 
@@ -140,9 +139,7 @@ async def test_create_channel(rest_api, metadata_store):
         assert metadata_store.ChannelMetadata.get(title="foobar")
 
 
-async def test_get_contents_count(
-    add_fake_torrents_channels, mock_dlmgr, rest_api, metadata_store
-):
+async def test_get_contents_count(add_fake_torrents_channels, mock_dlmgr, rest_api, metadata_store):
     """
     Test getting the total number of items in a specific channel
     """
@@ -186,7 +183,9 @@ async def test_get_channel_contents_remote(metadata_store, add_fake_torrents_cha
     assert json_dict['results'][0]['progress'] == 0.5
 
 
-async def test_get_channel_contents_remote_request_timeout(metadata_store, add_fake_torrents_channels, mock_dlmgr, rest_api):
+async def test_get_channel_contents_remote_request_timeout(
+    metadata_store, add_fake_torrents_channels, mock_dlmgr, rest_api
+):
     """
     Test whether we can query torrents from a channel from a remote peer.
     In case of remote query timeout, the results should still be served from the local DB
@@ -207,7 +206,9 @@ async def test_get_channel_contents_remote_request_timeout(metadata_store, add_f
     assert json_dict['results'][0]['progress'] == 0.5
 
 
-async def test_get_channel_contents_remote_request_no_peers(add_fake_torrents_channels, mock_dlmgr_get_download, rest_api, metadata_store):
+async def test_get_channel_contents_remote_request_no_peers(
+    add_fake_torrents_channels, mock_dlmgr_get_download, rest_api, metadata_store
+):
     """
     Test whether we can query torrents from a channel from a remote peer.
     In case of zero available remote sources for the channel, the results should still be served from the local DB
@@ -417,7 +418,9 @@ async def test_create_subchannel_and_collection(metadata_store, rest_api):
     with db_session:
         channel = metadata_store.ChannelMetadata.get()
         assert channel
-    await do_request(rest_api, 'channels/mychannel/%i/collections' % channel.id_, request_type='POST', expected_code=200)
+    await do_request(
+        rest_api, 'channels/mychannel/%i/collections' % channel.id_, request_type='POST', expected_code=200
+    )
     with db_session:
         collection = metadata_store.CollectionNode.get(lambda g: g.origin_id == channel.id_)
         assert collection

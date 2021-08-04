@@ -191,7 +191,7 @@ class Socks5Connection(Protocol):
         @return Set with destinations using this circuit
         """
         affected_destinations = {destination for destination, tunnel_circuit
-                                    in self.destinations.items() if tunnel_circuit == broken_circuit}
+                                 in self.destinations.items() if tunnel_circuit == broken_circuit}
         counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:

@@ -28,11 +28,13 @@ class GigaChannelManager(TaskManager):
     It provides methods to manage channels, download new channels or remove existing ones.
     """
 
-    def __init__(self,
-                 state_dir: Path = None,
-                 metadata_store: MetadataStore = None,
-                 notifier: Notifier = None,
-                 download_manager:DownloadManager = None):
+    def __init__(
+        self,
+        state_dir: Path = None,
+        metadata_store: MetadataStore = None,
+        notifier: Notifier = None,
+        download_manager: DownloadManager = None,
+    ):
         super().__init__()
         self.notifier = notifier
         self.download_manager = download_manager
@@ -61,9 +63,7 @@ class GigaChannelManager(TaskManager):
         # Test if our channels are there, but we don't share these because Tribler was closed unexpectedly
         try:
             with db_session:
-                for channel in self.mds.ChannelMetadata.get_my_channels().where(
-                    lambda g: g.status == COMMITTED
-                ):
+                for channel in self.mds.ChannelMetadata.get_my_channels().where(lambda g: g.status == COMMITTED):
                     channel_download = self.download_manager.get_download(bytes(channel.infohash))
                     if channel_download is None:
                         self._logger.warning(
@@ -190,7 +190,7 @@ class GigaChannelManager(TaskManager):
             try:
                 if self.download_manager.metainfo_requests.get(bytes(channel.infohash)):
                     continue
-                elif not self.download_manager.download_exists(bytes(channel.infohash)):
+                if not self.download_manager.download_exists(bytes(channel.infohash)):
                     self._logger.info(
                         "Downloading new channel version %s ver %i->%i",
                         channel.dirname,

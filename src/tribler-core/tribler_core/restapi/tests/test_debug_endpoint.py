@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
 from aiohttp.web_app import Application
+
+import pytest
 
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
@@ -32,6 +33,7 @@ async def core_resource_monitor(tmp_path):
                                            log_dir=tmp_path / 'logs')
     yield resource_monitor
     await resource_monitor.stop()
+
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument

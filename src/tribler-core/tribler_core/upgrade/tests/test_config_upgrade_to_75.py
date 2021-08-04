@@ -14,6 +14,7 @@ from tribler_core.upgrade.config_converter import convert_config_to_tribler75
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
+
 def test_convert_state_file_to_conf75_with_parse_error(tmpdir):
     """
     Tests conversion of the conf files (7.4.0) files to .conf files (7.5) when there is parsing error.

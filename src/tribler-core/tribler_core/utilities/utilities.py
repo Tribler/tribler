@@ -7,11 +7,10 @@ import binascii
 import logging
 import re
 from base64 import b32decode
+from functools import wraps
 from urllib.parse import parse_qsl, urlsplit
 
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from functools import wraps
-
 from tribler_core.utilities.sentinels import sentinel
 
 logger = logging.getLogger(__name__)
@@ -41,6 +40,7 @@ def froze_it(cls):
     cls.__init__ = init_decorator(cls.__init__)
 
     return cls
+
 
 def is_valid_url(url):
     """

@@ -1,5 +1,4 @@
 import random
-from pathlib import Path
 
 from ipv8.keyvault.crypto import default_eccrypto
 

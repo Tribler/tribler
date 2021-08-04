@@ -15,8 +15,8 @@ from aiohttp import (
 from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
-from tribler_core.notifier import Notifier
 
+from tribler_core.notifier import Notifier
 from tribler_core.version import version_id
 
 VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
@@ -84,6 +84,6 @@ class VersionCheckManager(TaskManager):
         except asyncio.TimeoutError:
             self._logger.warning("Checking for new version failed for %s", version_check_url)
         except ValueError as ve:
-            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}")  # pylint: disable=raise-missing-from
+            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}") from ve
 
         return None

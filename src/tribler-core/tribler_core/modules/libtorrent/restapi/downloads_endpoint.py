@@ -11,7 +11,14 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings, DLSTATUS_CIRCUITS, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
+from tribler_common.simpledefs import (
+    DLSTATUS_CIRCUITS,
+    DLSTATUS_EXIT_NODES,
+    DLSTATUS_STOPPED,
+    DOWNLOAD,
+    UPLOAD,
+    dlstatus_strings,
+)
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -164,14 +171,14 @@ class DownloadsEndpoint(RESTEndpoint):
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_pieces',
             'description': 'Flag indicating whether or not to include pieces',
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_files',
             'description': 'Flag indicating whether or not to include files',
@@ -223,7 +230,6 @@ class DownloadsEndpoint(RESTEndpoint):
                     "get_pieces flag is set. Note that setting this flag has a negative impact on performance "
                     "and should only be used in situations where this data is required. "
     )
-
     async def get_downloads(self, request):
         get_peers = request.query.get('get_peers', '0') == '1'
         get_pieces = request.query.get('get_pieces', '0') == '1'
@@ -253,9 +259,10 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_name = tdef.get_name_utf8()
             else:
                 download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
-                                tdef.get_name_utf8()
+                    tdef.get_name_utf8()
 
-            download_status = get_extended_status(self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
+            download_status = get_extended_status(
+                self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
 
             download_json = {
                 "name": download_name,
@@ -335,14 +342,14 @@ class DownloadsEndpoint(RESTEndpoint):
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_pieces',
             'description': 'Flag indicating whether or not to include pieces',
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_files',
             'description': 'Flag indicating whether or not to include files',
@@ -543,8 +550,8 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404(request)
 
         return RESTResponse(lt.bencode(torrent), headers={'content-type': 'application/x-bittorrent',
-                                                       'Content-Disposition': 'attachment; filename=%s.torrent'
-                                                                              % hexlify(infohash).encode('utf-8')})
+                                                          'Content-Disposition': 'attachment; filename=%s.torrent'
+                                                          % hexlify(infohash).encode('utf-8')})
 
     @docs(
         tags=["Libtorrent"],
@@ -583,7 +590,7 @@ class DownloadsEndpoint(RESTEndpoint):
             'type': 'string',
             'required': True
         },
-        {
+            {
             'in': 'path',
             'name': 'fileindex',
             'description': 'The fileindex to stream',

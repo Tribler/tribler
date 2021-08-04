@@ -11,16 +11,18 @@ from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from shutil import rmtree
-from typing import Optional, List
+from typing import List, Optional
 
 from ipv8.taskmanager import TaskManager, task
+
 from tribler_common.network_utils import NetworkUtils
-from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR, NTFY
+from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
 from tribler_common.utilities import uri_to_path
+
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.settings import LibtorrentSettings, DownloadDefaultsSettings
+from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
 from tribler_core.utilities import path_util, torrent_utils
@@ -98,8 +100,8 @@ class DownloadManager(TaskManager):
         self.metainfo_cache = {}  # Dictionary that maps infohashes to cached metainfo items
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
-                                  lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
-                                  lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
+            lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
+            lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.session_stats_callback = None
         self.state_cb_count = 0
 
@@ -365,8 +367,8 @@ class DownloadManager(TaskManager):
         download = self.downloads.get(infohash)
         if download:
             is_process_alert = (download.handle and download.handle.is_valid()) \
-                               or (not download.handle and alert_type == 'add_torrent_alert') \
-                               or (download.handle and alert_type == 'torrent_removed_alert')
+                or (not download.handle and alert_type == 'add_torrent_alert') \
+                or (download.handle and alert_type == 'torrent_removed_alert')
             if is_process_alert:
                 download.process_alert(alert, alert_type)
             else:
@@ -793,7 +795,8 @@ class DownloadManager(TaskManager):
             if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.notifier:
                 for peer in download.get_peerlist():
                     if str(peer["extended_version"]).startswith('Tribler'):
-                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE, unhexlify(peer["id"]), infohash, peer["dtotal"])
+                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE,
+                                             unhexlify(peer["id"]), infohash, peer["dtotal"])
 
         if self.state_cb_count % 4 == 0:
             self._last_states_list = states_list

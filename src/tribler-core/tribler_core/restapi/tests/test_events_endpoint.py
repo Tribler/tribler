@@ -2,14 +2,17 @@ import json
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
 
-import pytest
 from aiohttp import ClientSession
 
 from ipv8.messaging.anonymization.tunnel import Circuit
+
+import pytest
+
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
-from tribler_core.restapi.rest_manager import RESTManager, ApiKeyMiddleware, error_middleware
+from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.version import version_id
 

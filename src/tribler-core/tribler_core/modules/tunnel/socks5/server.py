@@ -28,10 +28,9 @@ class Socks5Server:
             return socks5connection
         self.server = await get_event_loop().create_server(build_protocol, '127.0.0.1', self.port)
         server_socket = self.server.sockets[0]
-        bind_address, bind_port = server_socket.getsockname()[:2]
+        _, bind_port = server_socket.getsockname()[:2]
         self.port = bind_port
-        self._logger.info("Started SOCKS5 server on port %i" % self.port )
-
+        self._logger.info("Started SOCKS5 server on port %i", self.port)
 
     async def stop(self):
         """

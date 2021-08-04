@@ -3,28 +3,28 @@ import logging
 import random
 import time
 from asyncio import CancelledError, gather
-from typing import Optional, List
+from typing import List, Optional
+
+from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session, desc, select
 
-from ipv8.taskmanager import TaskManager, task
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     UdpSocketManager,
     create_tracker_session,
 )
-from tribler_core.modules.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES
+from tribler_core.modules.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
-from tribler_core.modules.metadata_store.store import MetadataStore
-
-from tribler_core.notifier import Notifier
 
 TRACKER_SELECTION_INTERVAL = 20  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent

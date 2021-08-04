@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock
 
 from aiohttp.web_app import Application
@@ -13,6 +12,7 @@ from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
 
+
 @pytest.fixture
 async def mock_ipv8():
     ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
@@ -23,10 +23,12 @@ async def mock_ipv8():
     yield ipv8
     await ipv8.stop()
 
+
 @pytest.fixture
 def endpoint():
     endpoint = StatisticsEndpoint()
     return endpoint
+
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument

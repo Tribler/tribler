@@ -3,7 +3,6 @@ import logging
 
 from aiohttp import web
 
-
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
 HTTP_NOT_FOUND = 404

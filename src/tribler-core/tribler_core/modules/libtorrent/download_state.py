@@ -5,8 +5,6 @@ Author(s): Arno Bakker
 """
 import logging
 
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
-
 from tribler_common.simpledefs import (
     DLSTATUS_ALLOCATING_DISKSPACE,
     DLSTATUS_DOWNLOADING,
@@ -131,7 +129,7 @@ class DownloadState:
         """
         return (1.0 - self.get_progress()) * (float(self.download.get_def().get_length()) /
                                               max(0.000001, self.lt_status.download_rate)) \
-               if self.lt_status else 0.0
+            if self.lt_status else 0.0
 
     def get_num_seeds_peers(self):
         """
