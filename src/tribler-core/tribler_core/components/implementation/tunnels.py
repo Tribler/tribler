@@ -8,7 +8,6 @@ from tribler_core.components.interfaces.ipv8 import (
     DHTDiscoveryCommunityComponent,
     Ipv8BootstrapperComponent,
     Ipv8Component,
-    Ipv8PeerComponent,
 )
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
@@ -23,10 +22,11 @@ INFINITE = -1
 class TunnelsComponentImp(TunnelsComponent):
     async def run(self):
         config = self.session.config
+        ipv8_component = await self.use(Ipv8Component)
+        ipv8 = ipv8_component.ipv8
+        peer = ipv8_component.peer
 
-        ipv8 = (await self.use(Ipv8Component)).ipv8
         bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
-        peer = (await self.use(Ipv8PeerComponent)).peer
         dht_community = (await self.use(DHTDiscoveryCommunityComponent)).community
         download_manager = (await self.use(LibtorrentComponent)).download_manager
         bootstrapper = (await self.use(Ipv8BootstrapperComponent)).bootstrapper
