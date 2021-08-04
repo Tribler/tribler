@@ -1,11 +1,7 @@
 from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
 from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
 from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
-from tribler_core.components.implementation.ipv8 import (
-    DHTDiscoveryCommunityComponentImp,
-    DiscoveryCommunityComponentImp,
-    Ipv8ComponentImp,
-)
+from tribler_core.components.implementation.ipv8 import Ipv8ComponentImp
 from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
 from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
 from tribler_core.components.implementation.payout import PayoutComponentImp
@@ -28,8 +24,6 @@ def components_gen(config: TriblerConfig):
         (RESTComponentImp, config.api.http_enabled or config.api.https_enabled),
         (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
         (MetadataStoreComponentImp, config.chant.enabled),
-        (DHTDiscoveryCommunityComponentImp, config.ipv8.enabled and not config.core_test_mode),
-        (DiscoveryCommunityComponentImp, config.ipv8.enabled and not config.core_test_mode),
         (Ipv8ComponentImp, config.ipv8.enabled),
         (LibtorrentComponentImp, config.libtorrent.enabled),
         (TunnelsComponentImp, config.ipv8.enabled and config.tunnel_community.enabled and not config.core_test_mode),

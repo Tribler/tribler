@@ -11,11 +11,7 @@ from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
 
-from tribler_core.components.interfaces.ipv8 import (
-    DHTDiscoveryCommunityComponent,
-    DiscoveryCommunityComponent,
-    Ipv8Component,
-)
+from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
@@ -74,14 +70,37 @@ class Ipv8ComponentImp(Ipv8Component):
 
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
-        self.bootstrapper = None
+        self.bootstrapper = self.peer_discovery_community = self.dht_discovery_community = None
         if not self.session.config.core_test_mode:
+            self.init_bootstrapper()
+            self.init_peer_discovery_community()
+            self.init_dht_discovery_community()
+
+    def init_bootstrapper(self):
             args = DISPERSY_BOOTSTRAPPER['init']
             if bootstrap_override := self.session.config.ipv8.bootstrap_override:
                 address, port = bootstrap_override.split(':')
                 args = {'ip_addresses': [(address, int(port))], 'dns_addresses': []}
-
             self.bootstrapper = DispersyBootstrapper(**args)
+
+    def init_peer_discovery_community(self):
+        ipv8 = self.ipv8
+        community = DiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=100)
+        ipv8.strategies.append((RandomChurn(community), INFINITE))
+        ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
+        ipv8.strategies.append((RandomWalk(community), INFINITE))
+        ipv8.overlays.append(community)
+        community.bootstrappers.append(self.bootstrapper)
+        self.peer_discovery_community = community
+
+    def init_dht_discovery_community(self):
+        ipv8 = self.ipv8
+        community = DHTDiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=60)
+        ipv8.strategies.append((PingChurn(community), INFINITE))
+        ipv8.strategies.append((RandomWalk(community), 20))
+        ipv8.overlays.append(community)
+        community.bootstrappers.append(self.bootstrapper)
+        self.dht_discovery_community = community
 
     async def shutdown(self):
         self.rest_manager.get_endpoint('statistics').ipv8 = None
@@ -91,38 +110,3 @@ class Ipv8ComponentImp(Ipv8Component):
         self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self.task_manager.shutdown_task_manager()
         await self.ipv8.stop(stop_loop=False)
-
-
-class DHTDiscoveryCommunityComponentImp(DHTDiscoveryCommunityComponent):
-    async def run(self):
-        ipv8_component = await self.use(Ipv8Component)
-        ipv8 = ipv8_component.ipv8
-        peer = ipv8_component.peer
-
-        community = DHTDiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=60)
-        ipv8.strategies.append((PingChurn(community), INFINITE))
-        ipv8.strategies.append((RandomWalk(community), 20))
-
-        community.bootstrappers.append(ipv8_component.bootstrapper)
-        ipv8.overlays.append(community)
-
-        self.community = community
-        # self.provide(mediator, community)
-
-
-class DiscoveryCommunityComponentImp(DiscoveryCommunityComponent):
-    async def run(self):
-        ipv8_component = await self.use(Ipv8Component)
-        ipv8 = ipv8_component.ipv8
-        peer = ipv8_component.peer
-
-        community = DiscoveryCommunity(peer, ipv8.endpoint, ipv8.network, max_peers=100)
-        ipv8.strategies.append((RandomChurn(community), INFINITE))
-        ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
-        ipv8.strategies.append((RandomWalk(community), INFINITE))
-
-        community.bootstrappers.append(ipv8_component.bootstrapper)
-
-        ipv8.overlays.append(community)
-        self.community = community
-        # self.provide(mediator, community)

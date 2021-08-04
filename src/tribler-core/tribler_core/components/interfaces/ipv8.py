@@ -14,11 +14,5 @@ class Ipv8Component(Component):
     ipv8: IPv8
     peer: Peer
     bootstrapper: Optional[DispersyBootstrapper]
-
-
-class DHTDiscoveryCommunityComponent(Component):
-    community: DHTDiscoveryCommunity
-
-
-class DiscoveryCommunityComponent(Component):
-    community: DiscoveryCommunity
+    peer_discovery_community: Optional[DiscoveryCommunity]
+    dht_discovery_community: Optional[DHTDiscoveryCommunity]
