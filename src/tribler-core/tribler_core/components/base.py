@@ -131,9 +131,9 @@ class Component:
         self.started.set()
 
     async def stop(self):
-        self.logger.info(f"Waiting for other components to release me")
+        self.logger.info("Waiting for other components to release me")
         await self.unused.wait()
-        self.logger.info(f"Component free, shutting down")
+        self.logger.info("Component free, shutting down")
         await self.shutdown()
         await gather(*[self._release_imp(imp) for imp in list(self.components_used_by_me)])
 
@@ -152,7 +152,7 @@ class Component:
         return dep
 
     async def _release_imp(self, dep: Component):
-        assert (dep in self.components_used_by_me)
+        assert dep in self.components_used_by_me
         self.components_used_by_me.discard(dep)
         dep.in_use_by.discard(self)
         if not dep.in_use_by:

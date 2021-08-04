@@ -20,7 +20,7 @@ class StateEndpoint(RESTEndpoint):
     """
 
     def __init__(self,):
-        super(StateEndpoint, self).__init__()
+        super().__init__()
         self.tribler_state = STATE_STARTING
         self.last_exception = None
         self.sentry_event = None

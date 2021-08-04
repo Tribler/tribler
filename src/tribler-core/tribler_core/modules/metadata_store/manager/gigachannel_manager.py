@@ -190,7 +190,7 @@ class GigaChannelManager(TaskManager):
             try:
                 if self.download_manager.metainfo_requests.get(bytes(channel.infohash)):
                     continue
-                elif not self.download_manager.download_exists(bytes(channel.infohash)):
+                if not self.download_manager.download_exists(bytes(channel.infohash)):
                     self._logger.info(
                         "Downloading new channel version %s ver %i->%i",
                         channel.dirname,

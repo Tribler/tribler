@@ -3,6 +3,7 @@ import logging
 import sys
 from io import StringIO
 from traceback import print_exception
+from typing import Callable, Optional
 
 from _socket import gaierror
 
@@ -39,10 +40,10 @@ class CoreExceptionHandler:
     """
 
     _logger = logging.getLogger("CoreExceptionHandler")
-    report_callback = None
+    report_callback: Optional[Callable] = None
 
     @classmethod
-    def unhandled_error_observer(cls, loop, context):
+    def unhandled_error_observer(cls, loop, context):  # pylint: disable=unused-argument
         """
         This method is called when an unhandled error in Tribler is observed.
         It broadcasts the tribler_exception event.
@@ -80,11 +81,6 @@ class CoreExceptionHandler:
 
             if cls.report_callback is not None:
                 cls.report_callback(text_long, sentry_event)
-
-            # FIXME: add callbacks to state endpoint
-            # if self.events_endpoint:
-            #    self.events_endpoint.on_tribler_exception(text_long, sentry_event, cls.report_consent_required)
-            #    self.state_endpoint.on_tribler_exception(text_long, sentry_event)
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)

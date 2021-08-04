@@ -15,7 +15,8 @@ class BandwidthDatabase:
     CURRENT_DB_VERSION = 9
     MAX_HISTORY_ITEMS = 100  # The maximum number of history items to store.
 
-    def __init__(self, db_path: Union[Path, type(MEMORY_DB)], my_pub_key: bytes, store_all_transactions: bool = False) -> None:
+    def __init__(self, db_path: Union[Path, type(MEMORY_DB)], my_pub_key: bytes,
+                 store_all_transactions: bool = False) -> None:
         """
         Sets up the persistence layer ready for use.
         :param db_path: The full path of the database.

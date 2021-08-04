@@ -46,7 +46,10 @@ def components_gen(config: TriblerConfig):
         (ResourceMonitorComponentImp, config.resource_monitor.enabled and not config.core_test_mode),
         (VersionCheckComponentImp, config.general.version_checker_enabled and not config.core_test_mode),
         (GigachannelManagerComponentImp,
-         config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled and not config.core_test_mode)
+         (config.chant.enabled and
+          config.chant.manager_enabled and
+          config.libtorrent.enabled and
+          not config.core_test_mode))
     ]
 
     for component, condition in components_list:
