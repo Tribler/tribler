@@ -18,13 +18,13 @@ def endpoint():
 
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/createtorrent', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_create_torrent(session, tmp_path, endpoint):
+async def test_create_torrent(rest_api, tmp_path, endpoint):
     """
     Testing whether the API returns a proper base64 encoded torrent
     """
@@ -48,13 +48,13 @@ async def test_create_torrent(session, tmp_path, endpoint):
         "name": "test_torrent",
         "export_dir": str(tmp_path)
     }
-    response_dict = await do_request(session, 'createtorrent?download=1', expected_code=200, request_type='POST',
+    response_dict = await do_request(rest_api, 'createtorrent?download=1', expected_code=200, request_type='POST',
                                      post_data=post_data)
     assert response_dict["torrent"]
     assert start_download.call_args[1]['config'].get_hops() == DownloadDefaultsSettings().number_hops  # pylint: disable=unsubscriptable-object
 
 
-async def test_create_torrent_io_error(session, endpoint):
+async def test_create_torrent_io_error(rest_api, endpoint):
     """
     Testing whether the API returns a formatted 500 error if IOError is raised
     """
@@ -68,7 +68,7 @@ async def test_create_torrent_io_error(session, endpoint):
     post_data = {
         "files": ["non_existing_file.avi"]
     }
-    error_response = await do_request(session, 'createtorrent', expected_code=500, request_type='POST',
+    error_response = await do_request(rest_api, 'createtorrent', expected_code=500, request_type='POST',
                                       post_data=post_data)
     expected_response = {
         "error": {
@@ -80,6 +80,6 @@ async def test_create_torrent_io_error(session, endpoint):
     assert expected_response == error_response
 
 
-async def test_create_torrent_missing_files_parameter(session):
+async def test_create_torrent_missing_files_parameter(rest_api):
     expected_json = {"error": "files parameter missing"}
-    await do_request(session, 'createtorrent', expected_code=400, expected_json=expected_json, request_type='POST')
+    await do_request(rest_api, 'createtorrent', expected_code=400, expected_json=expected_json, request_type='POST')

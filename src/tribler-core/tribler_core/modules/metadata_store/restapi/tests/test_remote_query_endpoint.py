@@ -25,12 +25,12 @@ def endpoint():
     return endpoint
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/remote_query', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
 
-async def test_create_remote_search_request(session, endpoint):
+async def test_create_remote_search_request(rest_api, endpoint):
     """
     Test that remote search call is sent on a REST API search request
     """
@@ -48,7 +48,7 @@ async def test_create_remote_search_request(session, endpoint):
     endpoint.gigachannel_community = gigachannel_community
     search_txt = "foo"
     await do_request(
-        session,
+        rest_api,
         f'remote_query?txt_filter={search_txt}',
         request_type="PUT",
         expected_code=200,
@@ -60,12 +60,12 @@ async def test_create_remote_search_request(session, endpoint):
     # Test querying channel data by public key, e.g. for channel preview purposes
     channel_pk = "ff"
     await do_request(
-        session, f'remote_query?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
+        rest_api, f'remote_query?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
     )
     assert hexlify(sent['channel_pk']) == channel_pk
 
 
-async def test_get_channels_peers(session, endpoint, metadata_store):
+async def test_get_channels_peers(rest_api, endpoint, metadata_store):
     """
     Test getting debug info about the state of channels to peers mapping
     """
@@ -84,7 +84,7 @@ async def test_get_channels_peers(session, endpoint, metadata_store):
     mapping.add(peer, chan.public_key, chan.id_)
 
     result = await do_request(
-        session,
+        rest_api,
         'remote_query/channels_peers',
         request_type="GET",
         expected_code=200,

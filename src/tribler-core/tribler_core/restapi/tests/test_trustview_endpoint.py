@@ -26,7 +26,7 @@ def endpoint():
 
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/trustview', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
@@ -38,8 +38,8 @@ def root_key():
 
 
 @pytest.fixture
-def mock_bandwidth_community(mock_ipv8, session):
-    return session.bandwidth_community
+def mock_bandwidth_community(mock_ipv8, rest_api):
+    return rest_api.bandwidth_community
 
 
 @pytest.fixture
@@ -134,7 +134,7 @@ def test_add_bandwidth_transactions(trust_graph):
         assert False, "Expected to fail but did not."
 
 
-async def test_trustview_response(session, root_key, bandwidth_db, endpoint):
+async def test_trustview_response(rest_api, root_key, bandwidth_db, endpoint):
     """
     Test whether the trust graph response is correctly returned.
 
@@ -194,7 +194,7 @@ async def test_trustview_response(session, root_key, bandwidth_db, endpoint):
             tx3 = BandwidthTransactionData(1, unhexlify(fof), unhexlify(fofof), EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
             bandwidth_db.BandwidthTransaction.insert(tx3)
 
-    response = await do_request(session, 'trustview', expected_code=200)
+    response = await do_request(rest_api, 'trustview', expected_code=200)
     verify_response(response)
 
 
@@ -206,7 +206,7 @@ def insert_node_transactions(root_key, bandwidth_db, node_public_key=None, count
         bandwidth_db.BandwidthTransaction.insert(tx1)
 
 
-async def test_trustview_max_transactions(session, bandwidth_db, root_key, endpoint):
+async def test_trustview_max_transactions(rest_api, bandwidth_db, root_key, endpoint):
     """
     Test whether the max transactions returned is limited.
     """
@@ -219,12 +219,12 @@ async def test_trustview_max_transactions(session, bandwidth_db, root_key, endpo
     insert_node_transactions(root_key, bandwidth_db, count=max_txn + 1)
 
     # The number of transactions should not be returned more than max transactions
-    response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
+    response_json = await do_request(rest_api, 'trustview?refresh=1', expected_code=200)
     assert response_json['graph']
     assert response_json['num_tx'] == max_txn
 
 
-async def test_trustview_max_nodes(session, root_key, bandwidth_db, endpoint):
+async def test_trustview_max_nodes(rest_api, root_key, bandwidth_db, endpoint):
     """
     Test whether the number of nodes returned is limited.
     """
@@ -238,12 +238,12 @@ async def test_trustview_max_nodes(session, root_key, bandwidth_db, endpoint):
         insert_node_transactions(root_key, bandwidth_db)
 
     # The number of nodes should not be returned more than max nodes
-    response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
+    response_json = await do_request(rest_api, 'trustview?refresh=1', expected_code=200)
     assert response_json['graph']
     assert len(response_json['graph']['node']) == max_nodes
 
 
-async def test_trustview_with_refresh(session, root_key, bandwidth_db, endpoint):
+async def test_trustview_with_refresh(rest_api, root_key, bandwidth_db, endpoint):
     """
     Test whether refresh query parameters works as expected.
     If refresh parameter is not set, the cached graph is returned otherwise
@@ -258,7 +258,7 @@ async def test_trustview_with_refresh(session, root_key, bandwidth_db, endpoint)
     # Since graph is not computed yet, freshly computed result is displayed
     # so the number of transactions returned should be equal to above number
     # of transactions added.
-    response_json = await do_request(session, 'trustview', expected_code=200)
+    response_json = await do_request(rest_api, 'trustview', expected_code=200)
     assert response_json['graph']
     assert response_json['num_tx'] == num_tx_set1
 
@@ -269,12 +269,12 @@ async def test_trustview_with_refresh(session, root_key, bandwidth_db, endpoint)
     # At this point, the trust graph should already be computed from the previous API call,
     # since the refresh parameter is not set, the cached result should be returned
     # which is same as the previous result.
-    response_json = await do_request(session, 'trustview', expected_code=200)
+    response_json = await do_request(rest_api, 'trustview', expected_code=200)
     assert response_json['graph']
     assert response_json['num_tx'] == num_tx_set1
 
     # Now if the refresh parameter is set, the graph should be freshly computed and all the
     # transactions should be included. Therefore, showing the correct number of transactions.
-    response_json = await do_request(session, 'trustview?refresh=1', expected_code=200)
+    response_json = await do_request(rest_api, 'trustview?refresh=1', expected_code=200)
     assert response_json['graph']
     assert num_tx_set1 <= response_json['num_tx'] == num_tx_set1 + num_tx_set2

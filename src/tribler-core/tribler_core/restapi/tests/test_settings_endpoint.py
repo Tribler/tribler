@@ -25,7 +25,7 @@ def endpoint(tribler_config):
 
 
 @pytest.fixture
-def session(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/settings', endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
@@ -43,38 +43,38 @@ def verify_settings(settings_dict):
         assert settings_dict['settings'][section]
 
 
-async def test_unicode_chars(session):
+async def test_unicode_chars(rest_api):
     """
     Test setting watch_folder to a unicode path.
     """
     post_data = {'watch_folder': {'directory': '\u2588'}}
 
-    await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
+    await do_request(rest_api, 'settings', expected_code=200, request_type='POST', post_data=post_data)
 
-    settings = await do_request(session, 'settings')
+    settings = await do_request(rest_api, 'settings')
 
     watch_folder = settings['settings']['watch_folder']['directory']
     assert watch_folder == post_data['watch_folder']['directory']
 
 
-async def test_get_settings(session):
+async def test_get_settings(rest_api):
     """
     Testing whether the API returns a correct settings dictionary when the settings are requested
     """
-    response = await do_request(session, 'settings', expected_code=200)
+    response = await do_request(rest_api, 'settings', expected_code=200)
     verify_settings(response)
 
 
-async def test_set_settings_invalid_dict(session):
+async def test_set_settings_invalid_dict(rest_api):
     """
     Testing whether an error is returned if we are passing an invalid dictionary that is too deep
     """
     post_data = {'a': {'b': {'c': 'd'}}}
-    response_dict = await do_request(session, 'settings', expected_code=500, request_type='POST', post_data=post_data)
+    response_dict = await do_request(rest_api, 'settings', expected_code=500, request_type='POST', post_data=post_data)
     assert 'error' in response_dict
 
 
-async def test_set_settings_no_key(session):
+async def test_set_settings_no_key(rest_api):
     """
     Testing whether an error is returned when we try to set a non-existing key
     """
@@ -82,13 +82,13 @@ async def test_set_settings_no_key(session):
         assert 'error' in response_dict
 
     post_data = {'general': {'b': 'c'}}
-    verify_response(await do_request(session, 'settings', expected_code=500, request_type='POST', post_data=post_data))
+    verify_response(await do_request(rest_api, 'settings', expected_code=500, request_type='POST', post_data=post_data))
 
     post_data = {'Tribler': {'b': 'c'}}
-    verify_response(await do_request(session, 'settings', expected_code=500, request_type='POST', post_data=post_data))
+    verify_response(await do_request(rest_api, 'settings', expected_code=500, request_type='POST', post_data=post_data))
 
 
-async def test_set_settings(session, tribler_config):
+async def test_set_settings(rest_api, tribler_config):
     """
     Testing whether settings in the API can be successfully set
     """
@@ -96,13 +96,13 @@ async def test_set_settings(session, tribler_config):
     post_data = {'download_defaults': {'seeding_mode': 'ratio',
                                        'seeding_ratio': 3,
                                        'seeding_time': 123}}
-    await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
+    await do_request(rest_api, 'settings', expected_code=200, request_type='POST', post_data=post_data)
     assert tribler_config.download_defaults.seeding_mode == 'ratio'
     assert tribler_config.download_defaults.seeding_ratio == 3
     assert tribler_config.download_defaults.seeding_time == 123
 
 
-async def test_set_rate_settings(session, tribler_config):
+async def test_set_rate_settings(rest_api, tribler_config):
     """
     Testing whether libtorrent rate limits works for large number without overflow error.
     """
@@ -114,7 +114,7 @@ async def test_set_rate_settings(session, tribler_config):
             'max_upload_rate': MAX_LIBTORRENT_RATE_LIMIT + extra_rate
         }
     }
-    await do_request(session, 'settings', expected_code=200, request_type='POST', post_data=post_data)
+    await do_request(rest_api, 'settings', expected_code=200, request_type='POST', post_data=post_data)
 
     assert DownloadManager.get_libtorrent_max_download_rate(tribler_config.libtorrent) == MAX_LIBTORRENT_RATE_LIMIT
     assert DownloadManager.get_libtorrent_max_upload_rate(tribler_config.libtorrent) == MAX_LIBTORRENT_RATE_LIMIT

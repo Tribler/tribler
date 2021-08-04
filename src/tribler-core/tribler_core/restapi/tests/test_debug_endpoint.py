@@ -34,7 +34,7 @@ async def core_resource_monitor(tmp_path):
     await resource_monitor.stop()
 
 @pytest.fixture
-def session(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument
     endpoint.tunnel_community = mock_tunnel_community
 
     app = Application(middlewares=[error_middleware])
@@ -42,69 +42,69 @@ def session(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: d
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_get_slots(session, mock_tunnel_community):
+async def test_get_slots(rest_api, mock_tunnel_community):
     """
     Test whether we can get slot information from the API
     """
 
     mock_tunnel_community.random_slots = [None, None, None, 12345]
     mock_tunnel_community.competing_slots = [(0, None), (12345, 12345)]
-    response_json = await do_request(session, 'debug/circuits/slots', expected_code=200)
+    response_json = await do_request(rest_api, 'debug/circuits/slots', expected_code=200)
     assert len(response_json["slots"]["random"]) == 4
 
 
-async def test_get_open_files(session, tmp_path):
+async def test_get_open_files(rest_api, tmp_path):
     """
     Test whether the API returns open files
     """
     with open(tmp_path / "test.txt", "w"):
-        response_json = await do_request(session, 'debug/open_files', expected_code=200)
+        response_json = await do_request(rest_api, 'debug/open_files', expected_code=200)
         assert response_json['open_files']
 
 
-async def test_get_open_sockets(session):
+async def test_get_open_sockets(rest_api):
     """
     Test whether the API returns open sockets
     """
-    response_json = await do_request(session, 'debug/open_sockets', expected_code=200)
+    response_json = await do_request(rest_api, 'debug/open_sockets', expected_code=200)
     assert len(response_json['open_sockets']) >= 1
 
 
-async def test_get_threads(session):
+async def test_get_threads(rest_api):
     """
     Test whether the API returns open threads
     """
-    response_json = await do_request(session, 'debug/threads', expected_code=200)
+    response_json = await do_request(rest_api, 'debug/threads', expected_code=200)
     assert len(response_json['threads']) >= 1
 
 
-async def test_get_cpu_history(session, endpoint, core_resource_monitor):
+async def test_get_cpu_history(rest_api, endpoint, core_resource_monitor):
     """
     Test whether the API returns the cpu history
     """
     endpoint.resource_monitor = core_resource_monitor
     core_resource_monitor.check_resources()
-    response_json = await do_request(session, 'debug/cpu/history', expected_code=200)
+    response_json = await do_request(rest_api, 'debug/cpu/history', expected_code=200)
     assert len(response_json['cpu_history']) >= 1
 
 
-async def test_get_memory_history(session, endpoint, core_resource_monitor):
+async def test_get_memory_history(rest_api, endpoint, core_resource_monitor):
     """
     Test whether the API returns the memory history
     """
     endpoint.resource_monitor = core_resource_monitor
     core_resource_monitor.check_resources()
-    response_json = await do_request(session, 'debug/memory/history', expected_code=200)
+    response_json = await do_request(rest_api, 'debug/memory/history', expected_code=200)
     assert len(response_json['memory_history']) >= 1
 
 
 @pytest.mark.skip
-async def test_dump_memory(session, tmp_path, endpoint):
+async def test_dump_memory(rest_api, tmp_path, endpoint):
     """
     Test whether the API returns a memory dump
     """
     endpoint.state_dir = tmp_path
-    response = await do_request(session, 'debug/memory/dump', expected_code=200)
+    response = await do_request(rest_api, 'debug/memory/dump', expected_code=200)
     assert response
 
 
@@ -128,7 +128,7 @@ def create_dummy_logs(log_dir: Path, process: str = 'core', log_message: str = N
             info_log_file.write(f"{log_message} {log_index}\n")
 
 
-async def test_debug_pane_core_logs(session, endpoint, tmp_path):
+async def test_debug_pane_core_logs(rest_api, endpoint, tmp_path):
     """
     Test whether the API returns the logs
     """
@@ -140,7 +140,7 @@ async def test_debug_pane_core_logs(session, endpoint, tmp_path):
 
     create_dummy_logs(log_dir, process='core', log_message=test_core_log_message, num_logs=num_logs)
 
-    json_response = await do_request(session, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
+    json_response = await do_request(rest_api, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
     logs = json_response['content'].strip().split("\n")
 
     # Check number of logs returned is correct
@@ -151,7 +151,7 @@ async def test_debug_pane_core_logs(session, endpoint, tmp_path):
     assert log_exists, "Test log not found in the debug log response"
 
 
-async def test_debug_pane_core_logs_in_root_dir(session, tmp_path, endpoint):
+async def test_debug_pane_core_logs_in_root_dir(rest_api, tmp_path, endpoint):
     """
     Test whether the API returns the logs when logs are present in the root directory.
     """
@@ -167,14 +167,14 @@ async def test_debug_pane_core_logs_in_root_dir(session, tmp_path, endpoint):
     create_dummy_logs(root_state_dir, process=process, num_logs=num_logs)
 
     with patch('tribler_core.restapi.debug_endpoint.get_root_state_directory', new=lambda: root_state_dir):
-        json_response = await do_request(session, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
+        json_response = await do_request(rest_api, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
     logs = json_response['content'].strip().split("\n")
 
     # Check number of logs returned is correct
     assert len(logs) == num_logs
 
 
-async def test_debug_pane_default_num_logs(session, endpoint, tmp_path):
+async def test_debug_pane_default_num_logs(rest_api, endpoint, tmp_path):
     """
     Test whether the API returns the last 100 logs when no max_lines parameter is not provided
     """
@@ -187,12 +187,12 @@ async def test_debug_pane_default_num_logs(session, endpoint, tmp_path):
     create_dummy_logs(log_dir, process=module, log_message=log_dir, num_logs=num_logs_to_write)
     endpoint.log_dir = log_dir
 
-    json_response = await do_request(session, f'debug/log?process={module}&max_lines=', expected_code=200)
+    json_response = await do_request(rest_api, f'debug/log?process={module}&max_lines=', expected_code=200)
     logs = json_response['content'].strip().split("\n")
     assert len(logs) == default_num_logs_returned
 
 
-async def test_debug_pane_no_logs(session, endpoint, tmp_path):
+async def test_debug_pane_no_logs(rest_api, endpoint, tmp_path):
     """
     Test whether the API returns the default response when no log files are found.
     """
@@ -201,22 +201,22 @@ async def test_debug_pane_no_logs(session, endpoint, tmp_path):
 
     module = 'gui'
     with patch('tribler_core.restapi.debug_endpoint.get_root_state_directory', new=lambda: tmp_path / 'nondir'):
-        json_response = await do_request(session, f'debug/log?process={module}&max_lines=', expected_code=200)
+        json_response = await do_request(rest_api, f'debug/log?process={module}&max_lines=', expected_code=200)
 
     assert not json_response['content']
     assert json_response['max_lines'] == 0
 
 
-async def test_get_profiler_state(session, endpoint, core_resource_monitor):
+async def test_get_profiler_state(rest_api, endpoint, core_resource_monitor):
     """
     Test getting the state of the profiler
     """
     endpoint.resource_monitor = core_resource_monitor
-    json_response = await do_request(session, 'debug/profiler', expected_code=200)
+    json_response = await do_request(rest_api, 'debug/profiler', expected_code=200)
     assert 'state' in json_response
 
 
-async def test_start_stop_profiler(session, endpoint, core_resource_monitor):
+async def test_start_stop_profiler(rest_api, endpoint, core_resource_monitor):
     """
     Test starting and stopping the profiler using the API
 
@@ -236,7 +236,7 @@ async def test_start_stop_profiler(session, endpoint, core_resource_monitor):
     endpoint.resource_monitor.profiler.start = mocked_start_profiler
     endpoint.resource_monitor.profiler.stop = mocked_stop_profiler
 
-    await do_request(session, 'debug/profiler', expected_code=200, request_type='PUT')
+    await do_request(rest_api, 'debug/profiler', expected_code=200, request_type='PUT')
     assert endpoint.resource_monitor.profiler.is_running()
-    await do_request(session, 'debug/profiler', expected_code=200, request_type='DELETE')
+    await do_request(rest_api, 'debug/profiler', expected_code=200, request_type='DELETE')
     assert not endpoint.resource_monitor.profiler.is_running()

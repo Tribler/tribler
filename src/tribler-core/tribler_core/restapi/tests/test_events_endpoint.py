@@ -47,8 +47,8 @@ async def open_events_socket(rest_manager_, connected_event, events_up):
     url = f'http://localhost:{port}/events'
     headers = {'User-Agent': 'Tribler ' + version_id}
 
-    async with ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
+    async with ClientSession() as client:
+        async with client.get(url, headers=headers) as response:
             # The first event message is always events_start
             await response.content.readline()
             await response.content.readline()  # Events are separated by 2 newline characters
