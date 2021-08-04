@@ -1,4 +1,4 @@
-from typing import Optional
+from functools import cached_property
 
 from aiohttp import web
 
@@ -21,13 +21,15 @@ class TrustViewEndpoint(RESTEndpoint):
         super().__init__()
 
         self.bandwidth_db = None
-        self.trust_graph: Optional[TrustGraph] = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_view)])
 
-    def initialize_graph(self):
-        self.trust_graph = TrustGraph(self.bandwidth_db.my_pub_key, self.bandwidth_db)
+    @cached_property
+    def trust_graph(self) -> TrustGraph:
+        trust_graph = TrustGraph(self.bandwidth_db.my_pub_key, self.bandwidth_db)
+        trust_graph.compose_graph_data()
+        return trust_graph
 
     @docs(
         tags=["TrustGraph"],
@@ -59,10 +61,6 @@ class TrustViewEndpoint(RESTEndpoint):
         }
     )
     async def get_view(self, request):
-        if self.trust_graph is None:
-            self.initialize_graph()
-            self.trust_graph.compose_graph_data()
-
         refresh_graph = int(request.query.get('refresh', '0'))
         if refresh_graph:
             self.trust_graph.compose_graph_data()

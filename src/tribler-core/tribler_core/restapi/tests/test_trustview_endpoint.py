@@ -211,7 +211,6 @@ async def test_trustview_max_transactions(session, bandwidth_db, root_key, endpo
     Test whether the max transactions returned is limited.
     """
     endpoint.bandwidth_db = bandwidth_db
-    endpoint.initialize_graph()
 
     max_txn = 10
     endpoint.trust_graph.set_limits(max_transactions=max_txn)
@@ -230,7 +229,6 @@ async def test_trustview_max_nodes(session, root_key, bandwidth_db, endpoint):
     Test whether the number of nodes returned is limited.
     """
     endpoint.bandwidth_db = bandwidth_db
-    endpoint.initialize_graph()
 
     max_nodes = 10
     endpoint.trust_graph.set_limits(max_nodes=max_nodes)
