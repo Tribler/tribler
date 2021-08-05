@@ -1,6 +1,7 @@
 from tribler_common.simpledefs import STATE_START_WATCH_FOLDER
 
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.watch_folder import WatchFolderComponent
 from tribler_core.modules.watch_folder.watch_folder import WatchFolder
@@ -8,6 +9,7 @@ from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 
 class WatchFolderComponentImp(WatchFolderComponent):
     async def run(self):
+        await self.use(ReporterComponent)
         config = self.session.config
         notifier = self.session.notifier
         download_manager = (await self.use(LibtorrentComponent)).download_manager

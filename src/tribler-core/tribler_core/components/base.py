@@ -24,7 +24,6 @@ class Session:
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
-        self.trustchain_keypair = None
         for comp_cls, enable in components:
             imp = comp_cls.make_implementation(config, enable)
             self.register(comp_cls, imp)

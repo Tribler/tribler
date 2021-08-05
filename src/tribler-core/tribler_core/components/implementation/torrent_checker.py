@@ -2,6 +2,7 @@ from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
 
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
@@ -14,6 +15,8 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
     rest_manager: RESTManager
 
     async def run(self):
+        await self.use(ReporterComponent)
+
         config = self.session.config
 
         metadata_store = (await self.use(MetadataStoreComponent)).mds

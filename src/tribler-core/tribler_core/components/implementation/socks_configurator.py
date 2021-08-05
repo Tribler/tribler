@@ -1,3 +1,4 @@
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 
@@ -6,6 +7,7 @@ NUM_SOCKS_PROXIES = 5
 
 class SocksServersComponentImp(SocksServersComponent):
     async def run(self):
+        await self.use(ReporterComponent)
         self.socks_servers = []
         self.socks_ports = []
         # Start the SOCKS5 servers

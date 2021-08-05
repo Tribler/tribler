@@ -1,5 +1,6 @@
 from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
@@ -7,6 +8,7 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 class ResourceMonitorComponentImp(ResourceMonitorComponent):
     async def run(self):
+        await self.use(ReporterComponent)
         await self.use(UpgradeComponent)
         tunnel_community = (await self.use(TunnelsComponent)).community
 
