@@ -2,6 +2,7 @@ from tribler_common.simpledefs import STATE_START_API
 
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.exception_handler import CoreExceptionHandler
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 
@@ -9,6 +10,7 @@ from tribler_core.restapi.root_endpoint import RootEndpoint
 class RESTComponentImp(RESTComponent):
 
     async def run(self):
+        await self.use(ReporterComponent)
         session = self.session
         config = session.config
         notifier = session.notifier

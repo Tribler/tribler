@@ -3,6 +3,7 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.modules.metadata_store.community.gigachannel_community import (
     GigaChannelCommunity,
@@ -18,6 +19,8 @@ class GigaChannelComponentImp(GigaChannelComponent):
     rest_manager: RESTManager
 
     async def run(self):
+        await self.use(ReporterComponent)
+
         config = self.session.config
         notifier = self.session.notifier
 

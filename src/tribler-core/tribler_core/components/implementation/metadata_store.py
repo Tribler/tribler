@@ -1,5 +1,7 @@
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.trustchain import TrustchainComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
@@ -11,11 +13,11 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        config = self.session.config
-
+        await self.use(ReporterComponent)
         await self.use(UpgradeComponent)
         rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
 
+        config = self.session.config
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         chant_testnet = config.general.testnet or config.chant.testnet
         metadata_db_name = 'metadata.db' if not chant_testnet else 'metadata_testnet.db'
@@ -25,10 +27,12 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         # To change this behaviour, we have to use url-based SQLite initialization syntax,
         # which is not supported by PonyORM yet.
 
+        trustchain = await self.use(TrustchainComponent)
+
         metadata_store = MetadataStore(
             database_path,
             channels_dir,
-            self.session.trustchain_keypair,
+            trustchain.keypair,
             notifier=self.session.notifier,
             disable_sync=config.core_test_mode,
         )

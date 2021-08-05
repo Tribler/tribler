@@ -2,6 +2,7 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.bandwidth_accounting.community import (
@@ -16,6 +17,7 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
     rest_manager: RESTManager
 
     async def run(self):
+        await self.use(ReporterComponent)
         await self.use(UpgradeComponent)
         config = self.session.config
 
