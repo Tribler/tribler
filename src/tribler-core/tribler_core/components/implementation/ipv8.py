@@ -12,7 +12,9 @@ from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.trustchain import TrustchainComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
@@ -23,6 +25,8 @@ class Ipv8ComponentImp(Ipv8Component):
     rest_manager: RESTManager
 
     async def run(self):
+        await self.use(ReporterComponent)
+
         config = self.session.config
 
         rest_component = await self.use(RESTComponent)
@@ -54,7 +58,10 @@ class Ipv8ComponentImp(Ipv8Component):
                     endpoint_override=endpoint)
         await ipv8.start()
         self.ipv8 = ipv8
-        self.peer = Peer(self.session.trustchain_keypair)
+
+        trustchain = await self.use(TrustchainComponent)
+
+        self.peer = Peer(trustchain.keypair)
         # self.provide(mediator, ipv8)
 
         if config.ipv8.statistics and not config.core_test_mode:

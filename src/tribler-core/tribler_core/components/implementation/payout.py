@@ -6,6 +6,7 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.payout import PayoutComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.modules.payout.payout_manager import PayoutManager
 
 INFINITE = -1
@@ -13,6 +14,8 @@ INFINITE = -1
 
 class PayoutComponentImp(PayoutComponent):
     async def run(self):
+        await self.use(ReporterComponent)
+
         config = self.session.config
 
         dht_discovery_community = (await self.use(Ipv8Component)).dht_discovery_community

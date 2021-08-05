@@ -7,9 +7,11 @@ from tribler_core.components.interfaces.metadata_store import MetadataStoreCompo
 from tribler_core.components.interfaces.payout import PayoutComponent
 from tribler_core.components.interfaces.popularity import PopularityComponent
 from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.interfaces.trustchain import TrustchainComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.components.interfaces.version_check import VersionCheckComponent
@@ -20,9 +22,11 @@ from tribler_core.config.tribler_config import TriblerConfig
 def components_gen(config: TriblerConfig):
     components_list = [
         # core components (run even if config.core_test_mode == True)
+        ReporterComponent,
         RESTComponent,
         MetadataStoreComponent,
         Ipv8Component,
+        TrustchainComponent,
         LibtorrentComponent,
         GigaChannelComponent,
         PopularityComponent,

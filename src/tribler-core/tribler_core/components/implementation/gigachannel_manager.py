@@ -1,6 +1,7 @@
 from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.restapi.rest_manager import RESTManager
@@ -10,6 +11,8 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
     rest_manager: RESTManager
 
     async def run(self):
+        await self.use(ReporterComponent)
+
         config = self.session.config
         notifier = self.session.notifier
 

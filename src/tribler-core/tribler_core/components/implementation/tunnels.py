@@ -6,6 +6,7 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
@@ -17,6 +18,8 @@ INFINITE = -1
 
 class TunnelsComponentImp(TunnelsComponent):
     async def run(self):
+        await self.use(ReporterComponent)
+
         config = self.session.config
         ipv8_component = await self.use(Ipv8Component)
         ipv8 = ipv8_component.ipv8
