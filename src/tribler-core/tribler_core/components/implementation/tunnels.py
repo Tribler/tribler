@@ -1,4 +1,3 @@
-
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peerdiscovery.discovery import RandomWalk
@@ -60,6 +59,7 @@ class TunnelsComponentImp(TunnelsComponent):
         # self.provide(mediator, community)
 
         rest_manager.get_endpoint('downloads').tunnel_community = community
+        rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(ipv8)
 
     async def shutdown(self):
         await self.community.unload()

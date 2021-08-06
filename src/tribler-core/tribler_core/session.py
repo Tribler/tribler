@@ -10,8 +10,6 @@ from typing import List, Tuple, Type
 from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.components.base import Component, Session, set_default_session
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.trustchain import TrustchainComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
@@ -54,10 +52,6 @@ async def core_session(
         os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
     await session.start()
-
-    # FIXME: workaround for IPv8 initializing all endpoints in one go
-    ipv8 = Ipv8Component.imp().ipv8
-    RESTComponent.imp().rest_manager.get_endpoint('ipv8').initialize(ipv8)
 
     session.notifier.notify(NTFY.TRIBLER_STARTED, TrustchainComponent.imp().keypair.key.pk)
 
