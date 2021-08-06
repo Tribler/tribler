@@ -197,8 +197,9 @@ def test_add_torrent_to_channel(metadata_store):
     tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
     channel_metadata.add_torrent_to_channel(tdef, {'description': 'blabla'})
     assert channel_metadata.contents_list
-    with pytest.raises(DuplicateTorrentFileError):
-        channel_metadata.add_torrent_to_channel(tdef, None)
+
+    # Make sure trying to add a duplicate torrent does not result in an error
+    channel_metadata.add_torrent_to_channel(tdef, None)
 
 
 @db_session

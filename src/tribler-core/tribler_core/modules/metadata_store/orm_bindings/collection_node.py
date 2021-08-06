@@ -159,6 +159,7 @@ def define_binding(db):
 
             # See if the torrent is already in the channel
             old_torrent = db.TorrentMetadata.get(public_key=self.public_key, infohash=tdef.get_infohash())
+            torrent_metadata = old_torrent
             if old_torrent:
                 # If it is there, check if we were going to delete it
                 if old_torrent.status == TODELETE:
@@ -168,9 +169,6 @@ def define_binding(db):
                     # As we really don't know what status this torrent had _before_ it got its TODELETE status,
                     # we _must_ set its status to UPDATED, for safety
                     old_torrent.status = UPDATED
-                    torrent_metadata = old_torrent
-                else:
-                    raise DuplicateTorrentFileError()
             else:
                 torrent_metadata = db.TorrentMetadata.from_dict(dict(origin_id=self.id_, **new_entry_dict))
             return torrent_metadata

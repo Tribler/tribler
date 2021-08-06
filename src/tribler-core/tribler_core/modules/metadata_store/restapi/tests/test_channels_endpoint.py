@@ -515,7 +515,7 @@ async def test_add_invalid_torrent(enable_chant, enable_api, my_channel, session
 @pytest.mark.asyncio
 async def test_add_torrent_duplicate(enable_chant, enable_api, my_channel, session):
     """
-    Test whether adding a duplicate torrent to you channel results in an error
+    Test that adding a duplicate torrent to you channel does not result in an error
     """
     with db_session:
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
@@ -530,7 +530,7 @@ async def test_add_torrent_duplicate(enable_chant, enable_api, my_channel, sessi
                 f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
                 request_type='PUT',
                 post_data=post_params,
-                expected_code=500,
+                expected_code=200,
             )
 
 
