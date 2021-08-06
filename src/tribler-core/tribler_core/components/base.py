@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import abstractmethod
 from asyncio import Event, create_task, gather, get_event_loop
 from contextlib import contextmanager
 from typing import Dict, Iterable, List, Optional, Set, Type, TypeVar
@@ -18,15 +19,23 @@ class ComponentError(Exception):
 
 
 class Session:
-    def __init__(self, config: TriblerConfig = None, components: Iterable[Component] = (), shutdown_event: Event = None,
-                 notifier: Notifier = None):
+    def __init__(self, config: TriblerConfig = None, components: List[Tuple[Type[Component], bool]] = (), shutdown_event: Event = None, notifier: Notifier = None):
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
         self.trustchain_keypair = None
-        for comp in components:
-            comp.register(self)
+        for comp_cls, enable in components:
+            imp = comp_cls.make_implementation(config, enable)
+            self.register(comp_cls, imp)
+
+    def register(self, comp_cls: Type[Component], comp: Component):
+        if comp.session is not None:
+            raise ComponentError(f'Component {comp.__class__.__name__} is already registered in session {comp.session}')
+        if comp_cls in self.components:
+            raise ComponentError(f'Component class {comp_cls.__name__} is already registered in session {self}')
+        self.components[comp_cls] = comp
+        comp.session = self
 
     async def start(self):
         loop = get_event_loop()
@@ -75,14 +84,14 @@ T = TypeVar('T', bound='Component')
 
 
 class Component:
+    core = False
+    enabled = True
+
     def __init__(self):
         cls = self.__class__
         self.logger = logging.getLogger(cls.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
-        self.interfaces = self._find_interfaces()
-        if not self.interfaces:
-            raise ComponentError(f'Interface class not found for {cls.__name__}')
         self.components_used_by_me: Set[Component] = set()
         self.in_use_by: Set[Component] = set()
         self.started = Event()
@@ -90,13 +99,14 @@ class Component:
         # Every component starts unused, so it does not lock the whole system on shutdown
         self.unused.set()
 
-    def _find_interfaces(self):
-        cls = self.__class__
-        result = []
-        for base in reversed(self.__class__.__mro__):
-            if issubclass(base, Component) and base not in (Component, cls) and base.__name__.endswith('Component'):
-                result.append(base)
-        return result
+    @classmethod
+    def should_be_enabled(cls, config):
+        return False
+
+    @classmethod
+    @abstractmethod
+    def make_implementation(cls: Type[T], config, enable) -> T:
+        assert False, f"Abstract classmethod make_implementation not implemented in class {cls.__name__}"
 
     @classmethod
     def _find_implementation(cls: Type[T]) -> T:
@@ -109,22 +119,6 @@ class Component:
     @classmethod
     def imp(cls: Type[T]) -> T:
         return cls._find_implementation()
-
-    def register(self, session: Session = None):
-        self.logger.info('Register')
-        if self.session is not None:
-            raise ComponentError(f'Component {self} is already registered at session {self.session}')
-
-        session = session or get_session()
-        self.session = session
-
-        for interface in self.interfaces:
-            if session.components.get(interface, self) is not self:
-                raise ComponentError(f'Component interface {interface.__name__} '
-                                     f'already registered in session {session}')
-
-        for interface in self.interfaces:
-            session.components[interface] = self
 
     async def start(self):
         await self.run()
@@ -161,3 +155,8 @@ class Component:
     async def release(self, dependency: Type[T]):
         dep = dependency.imp()
         await self._release_imp(dep)
+
+
+def testcomponent(component_cls):
+    component_cls.enabled = False
+    return component_cls

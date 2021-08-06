@@ -1,50 +1,46 @@
-from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
-from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
-from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
-from tribler_core.components.implementation.ipv8 import Ipv8ComponentImp
-from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
-from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
-from tribler_core.components.implementation.payout import PayoutComponentImp
-from tribler_core.components.implementation.popularity import PopularityComponentImp
-from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponentImp
-from tribler_core.components.implementation.restapi import RESTComponentImp
-from tribler_core.components.implementation.socks_configurator import SocksServersComponentImp
-from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponentImp
-from tribler_core.components.implementation.tunnels import TunnelsComponentImp
-from tribler_core.components.implementation.upgrade import UpgradeComponentImp
-from tribler_core.components.implementation.version_check import VersionCheckComponentImp
-from tribler_core.components.implementation.watch_folder import WatchFolderComponentImp
+from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
+from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.interfaces.ipv8 import Ipv8Component
+from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.payout import PayoutComponent
+from tribler_core.components.interfaces.popularity import PopularityComponent
+from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
+from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.interfaces.tunnels import TunnelsComponent
+from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.interfaces.version_check import VersionCheckComponent
+from tribler_core.components.interfaces.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 
 
 def components_gen(config: TriblerConfig):
     components_list = [
-        (SocksServersComponentImp,
-         not config.core_test_mode and config.tunnel_community.enabled and config.libtorrent.enabled),
-        (RESTComponentImp, config.api.http_enabled or config.api.https_enabled),
-        (UpgradeComponentImp, config.upgrader_enabled and not config.core_test_mode),
-        (MetadataStoreComponentImp, config.chant.enabled),
-        (Ipv8ComponentImp, config.ipv8.enabled),
-        (LibtorrentComponentImp, config.libtorrent.enabled),
-        (TunnelsComponentImp, config.ipv8.enabled and config.tunnel_community.enabled and not config.core_test_mode),
-        (BandwidthAccountingComponentImp, config.ipv8.enabled and not config.core_test_mode),
-        (PayoutComponentImp, config.ipv8.enabled and not config.core_test_mode),
-        (TorrentCheckerComponentImp, config.torrent_checking.enabled and not config.core_test_mode),
-        (PopularityComponentImp, config.ipv8.enabled and config.popularity_community.enabled),
-        (GigaChannelComponentImp, config.chant.enabled),
-        (WatchFolderComponentImp, config.watch_folder.enabled and not config.core_test_mode),
-        (ResourceMonitorComponentImp, config.resource_monitor.enabled and not config.core_test_mode),
-        (VersionCheckComponentImp, config.general.version_checker_enabled and not config.core_test_mode),
-        (GigachannelManagerComponentImp,
-         (config.chant.enabled and
-          config.chant.manager_enabled and
-          config.libtorrent.enabled and
-          not config.core_test_mode))
-    ]
+        # core components (run even if config.core_test_mode == True)
+        RESTComponent,
+        MetadataStoreComponent,
+        Ipv8Component,
+        LibtorrentComponent,
+        GigaChannelComponent,
+        PopularityComponent,
 
-    for component, condition in components_list:
-        if condition:
-            yield component()
-        else:
-            mock_comp_implementation_class = type(component.__class__.__name__ + 'MockImp', (component,), {})
-            yield mock_comp_implementation_class()
+        # other components
+        SocksServersComponent,
+        UpgradeComponent,
+        TunnelsComponent,
+        BandwidthAccountingComponent,
+        PayoutComponent,
+        TorrentCheckerComponent,
+        WatchFolderComponent,
+        ResourceMonitorComponent,
+        VersionCheckComponent,
+        GigachannelManagerComponent,
+    ]
+    for component in components_list:
+        enable = component.should_be_enabled(config)
+        if config.core_test_mode and not component.core:
+            enable = False
+        yield component, enable

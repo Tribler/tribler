@@ -5,7 +5,7 @@ import logging
 import os
 import signal
 import sys
-from typing import List
+from typing import List, Tuple, Type
 
 from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
@@ -53,7 +53,7 @@ def init_keypair(state_dir, keypair_filename):
 
 async def core_session(
         config: TriblerConfig,
-        components: List[Component]
+        components: List[Tuple[Type[Component], bool]]
 ):
     session = Session(config, components)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
