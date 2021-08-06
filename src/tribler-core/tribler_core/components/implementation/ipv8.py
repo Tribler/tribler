@@ -83,12 +83,19 @@ class Ipv8ComponentImp(Ipv8Component):
             self.init_peer_discovery_community()
             self.init_dht_discovery_community()
 
+        endpoints_to_init = ['/asyncio', '/attestation', '/dht', '/identity',
+                             '/isolation', '/network', '/noblockdht', '/overlays']
+
+        for path, endpoint in rest_manager.get_endpoint('ipv8').endpoints.items():
+            if path in endpoints_to_init:
+                endpoint.initialize(ipv8)
+
     def init_bootstrapper(self):
-            args = DISPERSY_BOOTSTRAPPER['init']
-            if bootstrap_override := self.session.config.ipv8.bootstrap_override:
-                address, port = bootstrap_override.split(':')
-                args = {'ip_addresses': [(address, int(port))], 'dns_addresses': []}
-            self.bootstrapper = DispersyBootstrapper(**args)
+        args = DISPERSY_BOOTSTRAPPER['init']
+        if bootstrap_override := self.session.config.ipv8.bootstrap_override:
+            address, port = bootstrap_override.split(':')
+            args = {'ip_addresses': [(address, int(port))], 'dns_addresses': []}
+        self.bootstrapper = DispersyBootstrapper(**args)
 
     def init_peer_discovery_community(self):
         ipv8 = self.ipv8
