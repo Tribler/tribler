@@ -5,7 +5,7 @@ from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session, delete
 
-from tribler_common.simpledefs import NTFY
+from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR, STATEDIR_CHANNELS_DIR
 
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
@@ -30,7 +30,7 @@ from tribler_core.utilities.configparser import CallbackConfigParser
 
 def cleanup_noncompliant_channel_torrents(state_dir):
     logger = logging.getLogger(__name__)
-    channels_dir = state_dir / "channels"
+    channels_dir = state_dir / STATEDIR_CHANNELS_DIR
     # Remove torrents contents
     if channels_dir.exists():
         for d in channels_dir.iterdir():
@@ -117,7 +117,7 @@ class TriblerUpgrader:
         Version 12 adds index for TorrentState.last_check attribute.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if database_path.exists():
             mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
                                 disable_sync=True, check_tables=False, db_version=12)
@@ -131,7 +131,7 @@ class TriblerUpgrader:
         to TorrentState table if it already does not exist.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
@@ -146,7 +146,7 @@ class TriblerUpgrader:
         already does not exist.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
@@ -162,7 +162,7 @@ class TriblerUpgrader:
         """
         to_version = 9
 
-        database_path = self.state_dir / 'sqlite' / 'bandwidth.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
         if not database_path.exists() or get_db_version(database_path) >= 9:
             return  # No need to update if the database does not exist or is already updated
         db = BandwidthDatabase(database_path, self.trustchain_keypair.key.pk)
@@ -274,7 +274,7 @@ class TriblerUpgrader:
         The code is based on the copy-pasted upgrade_72_to_pony routine which is asynchronous and
         reports progress to the user.
         """
-        database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists() or get_db_version(database_path) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
@@ -317,7 +317,7 @@ class TriblerUpgrader:
         Migration should be relatively fast, so we do it in the foreground.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
@@ -346,7 +346,7 @@ class TriblerUpgrader:
         and breaking it in smaller chunks as we do with 72_to_pony.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
         mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
@@ -388,8 +388,8 @@ class TriblerUpgrader:
         self.notifier.notify(NTFY.UPGRADER_TICK, status_text)
 
     async def upgrade_72_to_pony(self):
-        old_database_path = self.state_dir / 'sqlite' / 'tribler.sdb'
-        new_database_path = self.state_dir / 'sqlite' / 'metadata.db'
+        old_database_path = self.state_dir / STATEDIR_DB_DIR / 'tribler.sdb'
+        new_database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if new_database_path.exists():
             cleanup_pony_experimental_db(str(new_database_path))
             cleanup_noncompliant_channel_torrents(self.state_dir)

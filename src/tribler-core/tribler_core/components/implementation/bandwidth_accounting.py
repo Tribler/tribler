@@ -1,5 +1,6 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 
+from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.reporter import ReporterComponent
@@ -31,7 +32,7 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         else:
             bandwidth_cls = BandwidthAccountingCommunity
 
-        database_path = config.state_dir / "sqlite" / "bandwidth.db"
+        database_path = config.state_dir / STATEDIR_DB_DIR / "bandwidth.db"
         database = BandwidthDatabase(database_path, peer.public_key.key_to_bin())
         community = bandwidth_cls(peer, ipv8.endpoint, ipv8.network,
                                   settings=config.bandwidth_accounting,
