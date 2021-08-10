@@ -60,10 +60,10 @@ if __name__ == "__main__":
         base_path = os.environ['CORE_BASE_PATH']
         api_port = os.environ['CORE_API_PORT']
         api_key = os.environ.get('CORE_API_KEY')
-        core_test_mode = bool(os.environ.get("TRIBLER_CORE_TEST_MODE", False))
+        gui_test_mode = bool(os.environ.get("TRIBLER_GUI_TEST_MODE", False))
 
         from tribler_core.start_core import start_tribler_core
-        start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=core_test_mode)
+        start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mode=gui_test_mode)
     else:
         import tribler_gui
         from tribler_gui.utilities import get_translator

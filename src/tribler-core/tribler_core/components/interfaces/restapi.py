@@ -6,7 +6,7 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class RESTComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     rest_manager: RESTManager
 

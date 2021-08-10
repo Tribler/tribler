@@ -13,7 +13,7 @@ from tribler_core.config.tribler_config import TriblerConfig
 
 
 class Ipv8Component(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     ipv8: IPv8
     peer: Peer

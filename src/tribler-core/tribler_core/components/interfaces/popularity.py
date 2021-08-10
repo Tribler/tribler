@@ -6,7 +6,7 @@ from tribler_core.modules.popularity.community import PopularityCommunity
 
 
 class PopularityComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     community: PopularityCommunity
 

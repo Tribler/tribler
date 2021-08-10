@@ -21,7 +21,7 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 # pylint: disable=import-outside-toplevel
 
-def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_mode=False):
+def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mode=False):
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -32,7 +32,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
 
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
                 f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
-                f'Core test mode: "{core_test_mode}"')
+                f'Core test mode: "{gui_test_mode}"')
 
     tribler_core.load_logger_config(root_state_dir)
 
@@ -52,7 +52,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, core_test_m
     state_dir = version_history.code_version.directory
 
     config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
-    config.core_test_mode = core_test_mode
+    config.gui_test_mode = gui_test_mode
 
     if not config.error_handling.core_error_reporting_requires_user_consent:
         SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED

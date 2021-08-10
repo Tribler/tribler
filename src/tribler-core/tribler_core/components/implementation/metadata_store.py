@@ -34,7 +34,7 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
             channels_dir,
             masterkey.keypair,
             notifier=self.session.notifier,
-            disable_sync=config.core_test_mode,
+            disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
         # self.provide(mediator, metadata_store)
@@ -42,7 +42,7 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         for endpoint in self.endpoints:
             rest_manager.get_endpoint(endpoint).mds = metadata_store
 
-        if config.core_test_mode:
+        if config.gui_test_mode:
             generate_test_channels(metadata_store)
 
     async def shutdown(self):

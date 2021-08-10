@@ -35,7 +35,7 @@ class LibtorrentComponentImp(LibtorrentComponent):
             download_defaults=config.download_defaults,
             bootstrap_infohash=config.bootstrap.infohash,
             socks_listen_ports=socks_ports,
-            dummy_mode=config.core_test_mode)
+            dummy_mode=config.gui_test_mode)
         download_manager.initialize()
 
         state_endpoint.readable_status = STATE_LOAD_CHECKPOINTS
@@ -48,7 +48,7 @@ class LibtorrentComponentImp(LibtorrentComponent):
         for endpoint in self.endpoints:
             rest_manager.get_endpoint(endpoint).download_manager = download_manager
 
-        if config.core_test_mode:
+        if config.gui_test_mode:
             uri = "magnet:?xt=urn:btih:0000000000000000000000000000000000000000"
             await download_manager.start_download_from_uri(uri)
 

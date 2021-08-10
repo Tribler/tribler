@@ -24,7 +24,7 @@ class TriblerConfig(TriblerConfigSections):
 
     # Special configuration options related to the operation mode of the Core
     upgrader_enabled: bool = True
-    core_test_mode: bool = False
+    gui_test_mode: bool = False
 
     def __init__(self, *args, state_dir: Path = None, file: Path = None, error: str = None, **kwargs):
         """ Constructor
@@ -100,7 +100,7 @@ class TriblerConfig(TriblerConfigSections):
 
         dictionary = self.dict(exclude_defaults=True,
                                exclude={'upgrader_enabled': ...,
-                                        'core_test_mode': ...,
+                                        'gui_test_mode': ...,
                                         'tunnel_community': {'socks5_listen_ports': ...},
                                         'libtorrent': {'anon_proxy_server_ports': ...,
                                                        'anon_proxy_type': ...,

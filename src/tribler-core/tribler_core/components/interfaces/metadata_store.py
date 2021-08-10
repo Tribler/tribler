@@ -6,7 +6,7 @@ from tribler_core.modules.metadata_store.store import MetadataStore
 
 
 class MetadataStoreComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     mds: MetadataStore
 
