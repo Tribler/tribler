@@ -6,6 +6,8 @@ import signal
 import sys
 from typing import List, Tuple, Type
 
+from pathlib import Path
+
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.version_manager import VersionHistory
 
@@ -30,19 +32,11 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 # pylint: disable=import-outside-toplevel
 
 
-def create_state_directory_structure(state_dir):
+def create_state_directory_structure(state_dir: Path):
     """Create directory structure of the state directory."""
-
-    def create_dir(path):
-        if not path.is_dir():
-            os.makedirs(path)
-
-    def create_in_state_dir(path):
-        create_dir(state_dir / path)
-
-    create_dir(state_dir)
-    create_in_state_dir(STATEDIR_DB_DIR)
-    create_in_state_dir(STATEDIR_CHANNELS_DIR)
+    state_dir.mkdir(exist_ok=True)
+    (state_dir / STATEDIR_DB_DIR).mkdir(exist_ok=True)
+    (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
 
 
 async def core_session(config: TriblerConfig, components: List[Component]):
