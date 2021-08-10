@@ -19,7 +19,8 @@ class ComponentError(Exception):
 
 
 class Session:
-    def __init__(self, config: TriblerConfig = None, components: List[Component] = (), shutdown_event: Event = None, notifier: Notifier = None):
+    def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
+                 shutdown_event: Event = None, notifier: Notifier = None):
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
@@ -104,7 +105,7 @@ class Component:
         self.unused.set()
 
     @classmethod
-    def should_be_enabled(cls, config: TriblerConfig):
+    def should_be_enabled(cls, config: TriblerConfig):  # pylint: disable=unused-argument
         return False
 
     @classmethod
