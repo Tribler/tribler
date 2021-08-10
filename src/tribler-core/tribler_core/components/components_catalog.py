@@ -21,7 +21,6 @@ from tribler_core.config.tribler_config import TriblerConfig
 
 def components_gen(config: TriblerConfig):
     components_list = [
-        # core components (run even if config.core_test_mode == True)
         ReporterComponent,
         RESTComponent,
         MetadataStoreComponent,
@@ -31,7 +30,7 @@ def components_gen(config: TriblerConfig):
         GigaChannelComponent,
         PopularityComponent,
 
-        # other components
+        # these components are skipped if config.gui_test_mode == True
         SocksServersComponent,
         UpgradeComponent,
         TunnelsComponent,
@@ -45,6 +44,6 @@ def components_gen(config: TriblerConfig):
     ]
     for component in components_list:
         enable = component.should_be_enabled(config)
-        if config.core_test_mode and not component.core:
+        if config.gui_test_mode and not component.enable_in_gui_test_mode:
             enable = False
         yield component, enable

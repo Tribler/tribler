@@ -7,7 +7,7 @@ from tribler_core.modules.libtorrent.download_manager import DownloadManager
 
 
 class LibtorrentComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     download_manager: DownloadManager
     endpoints: List[str]

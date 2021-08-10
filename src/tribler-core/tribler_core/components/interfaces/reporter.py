@@ -2,7 +2,7 @@ from tribler_core.components.base import Component
 from tribler_core.config.tribler_config import TriblerConfig
 
 class ReporterComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     @classmethod
     def should_be_enabled(cls, config: TriblerConfig):

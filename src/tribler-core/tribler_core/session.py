@@ -68,6 +68,6 @@ async def core_session(
 
     await session.shutdown()
 
-    if not config.core_test_mode:
+    if not config.gui_test_mode:
         session.notifier.notify_shutdown_state("Saving configuration...")
         config.write()

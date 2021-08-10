@@ -6,7 +6,7 @@ from tribler_core.modules.metadata_store.community.gigachannel_community import 
 
 
 class GigaChannelComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     community: GigaChannelCommunity
 

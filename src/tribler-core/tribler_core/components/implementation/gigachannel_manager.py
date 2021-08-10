@@ -23,7 +23,7 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
         manager = GigaChannelManager(
             notifier=notifier, metadata_store=metadata_store, download_manager=download_manager
         )
-        if not config.core_test_mode:
+        if not config.gui_test_mode:
             manager.start()
 
         rest_manager.get_endpoint('channels').gigachannel_manager = manager

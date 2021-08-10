@@ -83,7 +83,7 @@ T = TypeVar('T', bound='Component')
 
 
 class Component:
-    core = False
+    enable_in_gui_test_mode = False
     enabled = True
 
     def __init__(self):

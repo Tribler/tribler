@@ -3,7 +3,7 @@ from tribler_core.config.tribler_config import TriblerConfig
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 class MasterKeyComponent(Component):
-    core = True
+    enable_in_gui_test_mode = True
 
     keypair: LibNaCLSK
 

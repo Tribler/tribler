@@ -55,7 +55,7 @@ def tribler_api(api_port, tmpdir_factory):
     core_env.insert("CORE_PROCESS", "1")
     core_env.insert("CORE_API_PORT", f"{api_port}")
     core_env.insert("CORE_API_KEY", "")
-    core_env.insert("TRIBLER_CORE_TEST_MODE", "1")
+    core_env.insert("TRIBLER_GUI_TEST_MODE", "1")
 
     temp_state_dir = tmpdir_factory.mktemp('tribler_state_dir')
     core_env.insert("TSTATEDIR", str(temp_state_dir))

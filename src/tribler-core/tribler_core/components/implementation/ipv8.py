@@ -45,7 +45,7 @@ class Ipv8ComponentImp(Ipv8Component):
                                .set_working_directory(str(config.state_dir))
                                .set_walker_interval(config.ipv8.walk_interval))
 
-        if config.core_test_mode:
+        if config.gui_test_mode:
             endpoint = DispatcherEndpoint([])
         else:
             # IPv8 includes IPv6 support by default.
@@ -54,7 +54,7 @@ class Ipv8ComponentImp(Ipv8Component):
             endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port,
                                                                 'ip': address})
         ipv8 = IPv8(ipv8_config_builder.finalize(),
-                    enable_statistics=config.ipv8.statistics and not config.core_test_mode,
+                    enable_statistics=config.ipv8.statistics and not config.gui_test_mode,
                     endpoint_override=endpoint)
         await ipv8.start()
         self.ipv8 = ipv8
@@ -64,12 +64,12 @@ class Ipv8ComponentImp(Ipv8Component):
         self.peer = Peer(masterkey.keypair)
         # self.provide(mediator, ipv8)
 
-        if config.ipv8.statistics and not config.core_test_mode:
+        if config.ipv8.statistics and not config.gui_test_mode:
             # Enable gathering IPv8 statistics
             for overlay in ipv8.overlays:
                 ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
-        if config.ipv8.walk_scaling_enabled and not config.core_test_mode:
+        if config.ipv8.walk_scaling_enabled and not config.gui_test_mode:
             from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
             IPv8Monitor(ipv8,
                         config.ipv8.walk_interval,
@@ -78,7 +78,7 @@ class Ipv8ComponentImp(Ipv8Component):
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
         self.bootstrapper = self.peer_discovery_community = self.dht_discovery_community = None
-        if not self.session.config.core_test_mode:
+        if not self.session.config.gui_test_mode:
             self.init_bootstrapper()
             self.init_peer_discovery_community()
             self.init_dht_discovery_community()
