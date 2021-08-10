@@ -12,7 +12,7 @@ from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.session import Session
+from tribler_core.start_core import Session
 
 
 class PortAction(argparse.Action):
