@@ -99,7 +99,7 @@ class Component:
         self.unused.set()
 
     @classmethod
-    def should_be_enabled(cls, config):
+    def should_be_enabled(cls, config: TriblerConfig):
         return False
 
     @classmethod
