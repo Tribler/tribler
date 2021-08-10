@@ -24,4 +24,4 @@ class PopularityComponent(Component):
 
 @testcomponent
 class PopularityComponentMock(PopularityComponent):
-    community = Mock
+    community = Mock()
