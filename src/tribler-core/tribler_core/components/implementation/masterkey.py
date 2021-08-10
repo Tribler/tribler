@@ -1,5 +1,5 @@
 from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.trustchain import TrustchainComponent
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 import tribler_core.utilities.permid as permid_module
 
 
@@ -20,7 +20,7 @@ def init_keypair(state_dir, keypair_filename):
     return trustchain_keypair
 
 
-class TrustchainComponentImp(TrustchainComponent):
+class MasterKeyComponentImp(MasterKeyComponent):
     async def run(self):
         config = self.session.config
         if not config.general.testnet:

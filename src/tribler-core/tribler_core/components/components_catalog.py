@@ -11,7 +11,7 @@ from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
-from tribler_core.components.interfaces.trustchain import TrustchainComponent
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.components.interfaces.version_check import VersionCheckComponent
@@ -26,7 +26,7 @@ def components_gen(config: TriblerConfig):
         RESTComponent,
         MetadataStoreComponent,
         Ipv8Component,
-        TrustchainComponent,
+        MasterKeyComponent,
         LibtorrentComponent,
         GigaChannelComponent,
         PopularityComponent,

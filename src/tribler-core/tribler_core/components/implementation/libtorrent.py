@@ -4,7 +4,7 @@ from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.trustchain import TrustchainComponent
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.rest_manager import RESTManager
@@ -18,7 +18,7 @@ class LibtorrentComponentImp(LibtorrentComponent):
         await self.use(ReporterComponent)
         await self.use(UpgradeComponent)
         socks_ports = (await self.use(SocksServersComponent)).socks_ports
-        trustchain = await self.use(TrustchainComponent)
+        masterkey = await self.use(MasterKeyComponent)
 
         config = self.session.config
 
@@ -31,7 +31,7 @@ class LibtorrentComponentImp(LibtorrentComponent):
             config=config.libtorrent,
             state_dir=config.state_dir,
             notifier=self.session.notifier,
-            peer_mid=trustchain.keypair.key_to_hash(),
+            peer_mid=masterkey.keypair.key_to_hash(),
             download_defaults=config.download_defaults,
             bootstrap_infohash=config.bootstrap.infohash,
             socks_listen_ports=socks_ports,
