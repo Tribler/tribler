@@ -29,8 +29,8 @@ class Ipv8Component(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.ipv8 import Ipv8ComponentImp
-            return Ipv8ComponentImp()
-        return Ipv8ComponentMock()
+            return Ipv8ComponentImp(cls)
+        return Ipv8ComponentMock(cls)
 
 
 @testcomponent

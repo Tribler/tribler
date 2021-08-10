@@ -18,8 +18,8 @@ class RESTComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.restapi import RESTComponentImp
-            return RESTComponentImp()
-        return RESTComponentMock()
+            return RESTComponentImp(cls)
+        return RESTComponentMock(cls)
 
 
 @testcomponent

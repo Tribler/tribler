@@ -16,8 +16,8 @@ class TorrentCheckerComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponentImp
-            return TorrentCheckerComponentImp()
-        return TorrentCheckerComponentMock()
+            return TorrentCheckerComponentImp(cls)
+        return TorrentCheckerComponentMock(cls)
 
 
 @testcomponent

@@ -18,8 +18,8 @@ class PopularityComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.popularity import PopularityComponentImp
-            return PopularityComponentImp()
-        return PopularityComponentMock()
+            return PopularityComponentImp(cls)
+        return PopularityComponentMock(cls)
 
 
 @testcomponent

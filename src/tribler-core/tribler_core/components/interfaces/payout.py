@@ -16,8 +16,8 @@ class PayoutComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.payout import PayoutComponentImp
-            return PayoutComponentImp()
-        return PayoutComponentMock()
+            return PayoutComponentImp(cls)
+        return PayoutComponentMock(cls)
 
 
 @testcomponent

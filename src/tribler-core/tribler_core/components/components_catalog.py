@@ -42,8 +42,10 @@ def components_gen(config: TriblerConfig):
         VersionCheckComponent,
         GigachannelManagerComponent,
     ]
-    for component in components_list:
-        enable = component.should_be_enabled(config)
-        if config.gui_test_mode and not component.enable_in_gui_test_mode:
+    for interface in components_list:
+        enable = interface.should_be_enabled(config)
+        if config.gui_test_mode and not interface.enable_in_gui_test_mode:
             enable = False
-        yield component, enable
+
+        implementation = interface.make_implementation(config, enable)
+        yield implementation

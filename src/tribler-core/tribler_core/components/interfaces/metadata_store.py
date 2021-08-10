@@ -18,8 +18,8 @@ class MetadataStoreComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
-            return MetadataStoreComponentImp()
-        return MetadataStoreComponentMock()
+            return MetadataStoreComponentImp(cls)
+        return MetadataStoreComponentMock(cls)
 
 
 @testcomponent

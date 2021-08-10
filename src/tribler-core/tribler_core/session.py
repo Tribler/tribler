@@ -31,10 +31,7 @@ def create_state_directory_structure(state_dir):
     create_in_state_dir(STATEDIR_CHANNELS_DIR)
 
 
-async def core_session(
-        config: TriblerConfig,
-        components: List[Tuple[Type[Component], bool]]
-):
+async def core_session(config: TriblerConfig, components: List[Component]):
     session = Session(config, components)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
     set_default_session(session)

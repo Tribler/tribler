@@ -11,4 +11,4 @@ class ReporterComponent(Component):
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         from tribler_core.components.implementation.reporter import ReporterComponentImp
-        return ReporterComponentImp()
+        return ReporterComponentImp(cls)

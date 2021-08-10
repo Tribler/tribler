@@ -16,8 +16,8 @@ class GigachannelManagerComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
-            return GigachannelManagerComponentImp()
-        return GigachannelManagerComponentMock()
+            return GigachannelManagerComponentImp(cls)
+        return GigachannelManagerComponentMock(cls)
 
 
 @testcomponent

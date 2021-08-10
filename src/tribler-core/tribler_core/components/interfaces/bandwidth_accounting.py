@@ -16,8 +16,8 @@ class BandwidthAccountingComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
-            return BandwidthAccountingComponentImp()
-        return BandwidthAccountingComponentMock()
+            return BandwidthAccountingComponentImp(cls)
+        return BandwidthAccountingComponentMock(cls)
 
 @testcomponent
 class BandwidthAccountingComponentMock(BandwidthAccountingComponent):
