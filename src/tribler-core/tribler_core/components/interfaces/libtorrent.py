@@ -26,5 +26,5 @@ class LibtorrentComponent(Component):
 
 @testcomponent
 class LibtorrentComponentMock(LibtorrentComponent):
-    download_manager = Mock
+    download_manager = Mock()
     endpoints = []

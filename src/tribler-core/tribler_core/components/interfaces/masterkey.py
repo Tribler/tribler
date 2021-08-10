@@ -1,4 +1,6 @@
-from tribler_core.components.base import Component
+from unittest.mock import Mock
+
+from tribler_core.components.base import Component, testcomponent
 from tribler_core.config.tribler_config import TriblerConfig
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
@@ -13,5 +15,11 @@ class MasterKeyComponent(Component):
 
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):
-        from tribler_core.components.implementation.masterkey import MasterKeyComponentImp  # pylint: disable=import-outside-toplevel
-        return MasterKeyComponentImp(cls)
+        if enable:
+            from tribler_core.components.implementation.masterkey import MasterKeyComponentImp
+            return MasterKeyComponentImp(cls)
+        return MasterKeyComponentMock(cls)
+
+@testcomponent
+class MasterKeyComponentMock(MasterKeyComponent):
+    keypair = Mock()

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-import logging
 from abc import abstractmethod
 from asyncio import Event, create_task, gather, get_event_loop
 from contextlib import contextmanager
+from itertools import count
+import logging
+import sys
 from typing import Dict, Iterable, List, Optional, Set, Type, TypeVar
 
+from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
+from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 
 
 class SessionError(Exception):
@@ -18,15 +22,31 @@ class ComponentError(Exception):
     pass
 
 
+def create_state_directory_structure(state_dir: Path):
+    """Create directory structure of the state directory."""
+    state_dir.mkdir(exist_ok=True)
+    (state_dir / STATEDIR_DB_DIR).mkdir(exist_ok=True)
+    (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
+
+
+session_counter = count(1)
+
+
 class Session:
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None):
+        self.id = next(session_counter)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
+        self.failfast = True
         for implementation in components:
             self.register(implementation.interface, implementation)
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__}:{self.id}>'
 
     def register(self, comp_cls: Type[Component], comp: Component):
         if comp.session is not None:
@@ -37,12 +57,16 @@ class Session:
         comp.session = self
 
     async def start(self):
-        loop = get_event_loop()
-        started_events: List[Event] = []
-        for comp in self.components.values():
-            loop.create_task(comp.start())
-            started_events.append(comp.started)
-        await gather(*[event.wait() for event in started_events])
+        self.logger.info("Session is using state directory: %s", self.config.state_dir)
+        create_state_directory_structure(self.config.state_dir)
+        patch_crypto_be_discovery()
+        # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
+        # certificates provided by the system trust store.
+        if sys.platform == 'darwin':
+            os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
+
+        coros = [comp.start() for comp in self.components.values()]
+        await gather(*coros, return_exceptions=not self.failfast)
 
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
@@ -50,7 +74,7 @@ class Session:
     def get(self, interface: Type[T]) -> T:
         imp = self.components.get(interface)
         if imp is None:
-            raise ComponentError(f"Component implementation not found for {interface.__name__} in session {self}")
+            raise ComponentError(f"{interface.__name__} implementation not found in {self}")
         return imp
 
     def __enter__(self):
@@ -100,7 +124,9 @@ class Component:
         self.components_used_by_me: Set[Component] = set()
         self.in_use_by: Set[Component] = set()
         self.started = Event()
+        self.failed = False
         self.unused = Event()
+        self.stopped = False
         # Every component starts unused, so it does not lock the whole system on shutdown
         self.unused.set()
 
@@ -123,7 +149,14 @@ class Component:
         return cls._find_implementation()
 
     async def start(self):
-        await self.run()
+        try:
+            await self.run()
+        except Exception as e:
+            print(f'\n*** Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
+            self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
+            self.failed = True
+            self.started.set()
+            raise
         self.started.set()
 
     async def stop(self):
@@ -131,7 +164,10 @@ class Component:
         await self.unused.wait()
         self.logger.info("Component free, shutting down")
         await self.shutdown()
-        await gather(*[self._release_imp(imp) for imp in list(self.components_used_by_me)])
+        self.stopped = True
+        for dep in list(self.components_used_by_me):
+            self._release_imp(dep)
+        self.logger.info("Component free, shutting down")
 
     async def run(self):
         pass
@@ -141,13 +177,14 @@ class Component:
 
     async def use(self, dependency: Type[T]) -> T:
         dep = dependency.imp()
-
-        self.components_used_by_me.add(dep)
         await dep.started.wait()
+        if dep.failed:
+            raise ComponentError(f'Component {self.__class__.__name__} has failed dependency {dep.__class__.__name__}')
+        self.components_used_by_me.add(dep)
         dep.in_use_by.add(self)
         return dep
 
-    async def _release_imp(self, dep: Component):
+    def _release_imp(self, dep: Component):
         assert dep in self.components_used_by_me
         self.components_used_by_me.discard(dep)
         dep.in_use_by.discard(self)
@@ -156,7 +193,7 @@ class Component:
 
     async def release(self, dependency: Type[T]):
         dep = dependency.imp()
-        await self._release_imp(dep)
+        self._release_imp(dep)
 
 
 def testcomponent(component_cls):

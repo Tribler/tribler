@@ -19,29 +19,31 @@ from tribler_core.components.interfaces.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 
 
-def components_gen(config: TriblerConfig):
-    components_list = [
-        ReporterComponent,
-        RESTComponent,
-        MetadataStoreComponent,
-        Ipv8Component,
-        MasterKeyComponent,
-        LibtorrentComponent,
-        GigaChannelComponent,
-        PopularityComponent,
-        BandwidthAccountingComponent,
+components_list = [
+    ReporterComponent,
+    RESTComponent,
+    MetadataStoreComponent,
+    Ipv8Component,
+    MasterKeyComponent,
+    LibtorrentComponent,
+    GigaChannelComponent,
+    PopularityComponent,
+    BandwidthAccountingComponent,
+    ResourceMonitorComponent,
 
-        # these components are skipped if config.gui_test_mode == True
-        SocksServersComponent,
-        UpgradeComponent,
-        TunnelsComponent,
-        PayoutComponent,
-        TorrentCheckerComponent,
-        WatchFolderComponent,
-        ResourceMonitorComponent,
-        VersionCheckComponent,
-        GigachannelManagerComponent,
-    ]
+    # these components are skipped if config.gui_test_mode == True
+    SocksServersComponent,
+    UpgradeComponent,
+    TunnelsComponent,
+    PayoutComponent,
+    TorrentCheckerComponent,
+    WatchFolderComponent,
+    VersionCheckComponent,
+    GigachannelManagerComponent,
+]
+
+
+def components_gen(config: TriblerConfig):
     for interface in components_list:
         enable = interface.should_be_enabled(config)
         if config.gui_test_mode and not interface.enable_in_gui_test_mode:
