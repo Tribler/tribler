@@ -7,6 +7,7 @@ from tribler_core.modules.bandwidth_accounting.community import BandwidthAccount
 
 class BandwidthAccountingComponent(Component):
     community: BandwidthAccountingCommunity
+    enable_in_gui_test_mode = True
 
     @classmethod
     def should_be_enabled(cls, config: TriblerConfig):

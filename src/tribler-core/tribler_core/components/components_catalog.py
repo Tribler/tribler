@@ -3,15 +3,15 @@ from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
 from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.payout import PayoutComponent
 from tribler_core.components.interfaces.popularity import PopularityComponent
-from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.interfaces.reporter import ReporterComponent
+from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.components.interfaces.version_check import VersionCheckComponent
@@ -29,12 +29,12 @@ def components_gen(config: TriblerConfig):
         LibtorrentComponent,
         GigaChannelComponent,
         PopularityComponent,
+        BandwidthAccountingComponent,
 
         # these components are skipped if config.gui_test_mode == True
         SocksServersComponent,
         UpgradeComponent,
         TunnelsComponent,
-        BandwidthAccountingComponent,
         PayoutComponent,
         TorrentCheckerComponent,
         WatchFolderComponent,

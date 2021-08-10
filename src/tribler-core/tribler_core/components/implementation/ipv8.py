@@ -2,7 +2,9 @@ from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
 from ipv8.dht.churn import PingChurn
 from ipv8.dht.discovery import DHTDiscoveryCommunity
+from ipv8.dht.routing import RoutingTable
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
@@ -12,9 +14,9 @@ from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
@@ -78,10 +80,12 @@ class Ipv8ComponentImp(Ipv8Component):
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
         self.bootstrapper = self.peer_discovery_community = self.dht_discovery_community = None
+        self.init_dht_discovery_community()
         if not self.session.config.gui_test_mode:
             self.init_bootstrapper()
             self.init_peer_discovery_community()
-            self.init_dht_discovery_community()
+        else:
+            self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
         endpoints_to_init = ['/asyncio', '/attestation', '/dht', '/identity',
                              '/isolation', '/network', '/noblockdht', '/overlays']

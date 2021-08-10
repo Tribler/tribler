@@ -6,6 +6,7 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 
 class ResourceMonitorComponent(Component):
+    enable_in_gui_test_mode = True
     resource_monitor: CoreResourceMonitor
 
     @classmethod
