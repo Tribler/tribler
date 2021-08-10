@@ -1,25 +1,88 @@
 import asyncio
+import logging
 import logging.config
 import os
+import signal
 import sys
+from typing import List, Tuple, Type
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.version_manager import VersionHistory
 
+from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 import tribler_core
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
+from tribler_core.components.base import Component, Session, set_default_session
 from tribler_core.components.components_catalog import components_gen
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.session import core_session
+from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
+from tribler_core.utilities.install_dir import get_lib_path
+
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 # pylint: disable=import-outside-toplevel
+
+
+def create_state_directory_structure(state_dir):
+    """Create directory structure of the state directory."""
+
+    def create_dir(path):
+        if not path.is_dir():
+            os.makedirs(path)
+
+    def create_in_state_dir(path):
+        create_dir(state_dir / path)
+
+    create_dir(state_dir)
+    create_in_state_dir(STATEDIR_DB_DIR)
+    create_in_state_dir(STATEDIR_CHANNELS_DIR)
+
+
+async def core_session(config: TriblerConfig, components: List[Component]):
+    session = Session(config, components)
+    signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
+    set_default_session(session)
+
+    logger = logging.getLogger("Session")
+
+    patch_crypto_be_discovery()
+
+    logger.info("Session is using state directory: %s", config.state_dir)
+    create_state_directory_structure(config.state_dir)
+
+    # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
+    # certificates provided by the system trust store.
+    if sys.platform == 'darwin':
+        os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
+
+    await session.start()
+
+    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.imp().keypair.key.pk)
+
+    # If there is a config error, report to the user via GUI notifier
+    if config.error:
+        session.notifier.notify(NTFY.REPORT_CONFIG_ERROR, config.error)
+
+    # SHUTDOWN
+    await session.shutdown_event.wait()
+
+    # Indicates we are shutting down core. With this environment variable set
+    # to 'TRUE', RESTManager will no longer accept any new requests.
+    os.environ['TRIBLER_SHUTTING_DOWN'] = "TRUE"
+
+    await session.shutdown()
+
+    if not config.gui_test_mode:
+        session.notifier.notify_shutdown_state("Saving configuration...")
+        config.write()
+
 
 def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mode=False):
     """
