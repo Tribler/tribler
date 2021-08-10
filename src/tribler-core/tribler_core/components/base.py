@@ -46,6 +46,19 @@ class Session:
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
 
+    def get(self, interface: Type[T]) -> T:
+        imp = self.components.get(interface)
+        if imp is None:
+            raise ComponentError(f"Component implementation not found for {interface.__name__} in session {self}")
+        return imp
+
+    def __enter__(self):
+        _session_stack.append(self)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        assert _session_stack and _session_stack[-1] is self
+        _session_stack.pop()
+
 
 _default_session: Optional[Session] = None
 
@@ -62,14 +75,6 @@ def set_default_session(session: Session):
 
 
 _session_stack = []
-
-
-@contextmanager
-def with_session(session: Session):
-    _session_stack.append(session)
-    yield
-    assert _session_stack and _session_stack[-1] is session
-    _session_stack.pop()
 
 
 def get_session() -> Session:
@@ -110,10 +115,7 @@ class Component:
     @classmethod
     def _find_implementation(cls: Type[T]) -> T:
         session = get_session()
-        imp = session.components.get(cls)
-        if imp is None:
-            raise ComponentError(f"Component implementation not found for {cls.__name__} in session {session}")
-        return imp
+        return session.get(cls)
 
     @classmethod
     def imp(cls: Type[T]) -> T:
