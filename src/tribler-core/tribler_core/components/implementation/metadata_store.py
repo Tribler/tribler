@@ -1,3 +1,4 @@
+from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
@@ -21,7 +22,7 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         chant_testnet = config.general.testnet or config.chant.testnet
         metadata_db_name = 'metadata.db' if not chant_testnet else 'metadata_testnet.db'
-        database_path = config.state_dir / 'sqlite' / metadata_db_name
+        database_path = config.state_dir / STATEDIR_DB_DIR / metadata_db_name
         # Note we don't use in-memory database in core test mode, because MDS uses threads,
         # and SQLite creates a different in-memory DB for each connection by default.
         # To change this behaviour, we have to use url-based SQLite initialization syntax,
