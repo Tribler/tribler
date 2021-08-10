@@ -16,8 +16,8 @@ class ResourceMonitorComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponentImp
-            return ResourceMonitorComponentImp()
-        return ResourceMonitorComponentMock()
+            return ResourceMonitorComponentImp(cls)
+        return ResourceMonitorComponentMock(cls)
 
 
 @testcomponent

@@ -16,8 +16,8 @@ class UpgradeComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.upgrade import UpgradeComponentImp
-            return UpgradeComponentImp()
-        return UpgradeComponentMock()
+            return UpgradeComponentImp(cls)
+        return UpgradeComponentMock(cls)
 
 
 @testcomponent

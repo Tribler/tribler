@@ -16,8 +16,8 @@ class VersionCheckComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.version_check import VersionCheckComponentImp
-            return VersionCheckComponentImp()
-        return VersionCheckComponentMock()
+            return VersionCheckComponentImp(cls)
+        return VersionCheckComponentMock(cls)
 
 
 @testcomponent

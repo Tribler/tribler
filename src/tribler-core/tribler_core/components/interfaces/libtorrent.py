@@ -20,8 +20,8 @@ class LibtorrentComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
-            return LibtorrentComponentImp()
-        return LibtorrentComponentMock()
+            return LibtorrentComponentImp(cls)
+        return LibtorrentComponentMock(cls)
 
 
 @testcomponent

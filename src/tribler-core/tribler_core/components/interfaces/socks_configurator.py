@@ -17,8 +17,8 @@ class SocksServersComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.socks_configurator import SocksServersComponentImp
-            return SocksServersComponentImp()
-        return SocksServersComponentMock()
+            return SocksServersComponentImp(cls)
+        return SocksServersComponentMock(cls)
 
 
 @testcomponent

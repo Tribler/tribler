@@ -19,14 +19,13 @@ class ComponentError(Exception):
 
 
 class Session:
-    def __init__(self, config: TriblerConfig = None, components: List[Tuple[Type[Component], bool]] = (), shutdown_event: Event = None, notifier: Notifier = None):
+    def __init__(self, config: TriblerConfig = None, components: List[Component] = (), shutdown_event: Event = None, notifier: Notifier = None):
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
-        for comp_cls, enable in components:
-            imp = comp_cls.make_implementation(config, enable)
-            self.register(comp_cls, imp)
+        for implementation in components:
+            self.register(implementation.interface, implementation)
 
     def register(self, comp_cls: Type[Component], comp: Component):
         if comp.session is not None:
@@ -86,9 +85,10 @@ class Component:
     enable_in_gui_test_mode = False
     enabled = True
 
-    def __init__(self):
-        cls = self.__class__
-        self.logger = logging.getLogger(cls.__name__)
+    def __init__(self, interface: Type[Component]):
+        assert isinstance(self, interface)
+        self.interface = interface
+        self.logger = logging.getLogger(interface.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
         self.components_used_by_me: Set[Component] = set()

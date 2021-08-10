@@ -16,8 +16,8 @@ class WatchFolderComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.watch_folder import WatchFolderComponentImp
-            return WatchFolderComponentImp()
-        return WatchFolderComponentMock()
+            return WatchFolderComponentImp(cls)
+        return WatchFolderComponentMock(cls)
 
 
 @testcomponent

@@ -18,8 +18,8 @@ class GigaChannelComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
-            return GigaChannelComponentImp()
-        return GigaChannelComponentMock()
+            return GigaChannelComponentImp(cls)
+        return GigaChannelComponentMock(cls)
 
 
 @testcomponent

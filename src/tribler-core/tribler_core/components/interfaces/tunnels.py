@@ -16,8 +16,8 @@ class TunnelsComponent(Component):
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
             from tribler_core.components.implementation.tunnels import TunnelsComponentImp
-            return TunnelsComponentImp()
-        return TunnelsComponentMock()
+            return TunnelsComponentImp(cls)
+        return TunnelsComponentMock(cls)
 
 
 @testcomponent
