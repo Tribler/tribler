@@ -10,7 +10,7 @@ from typing import List, Tuple, Type
 from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.components.base import Component, Session, set_default_session
-from tribler_core.components.interfaces.trustchain import TrustchainComponent
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
@@ -53,7 +53,7 @@ async def core_session(
 
     await session.start()
 
-    session.notifier.notify(NTFY.TRIBLER_STARTED, TrustchainComponent.imp().keypair.key.pk)
+    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.imp().keypair.key.pk)
 
     # If there is a config error, report to the user via GUI notifier
     if config.error:
