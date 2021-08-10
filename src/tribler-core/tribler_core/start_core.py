@@ -4,7 +4,7 @@ import logging.config
 import os
 import signal
 import sys
-from typing import List, Tuple, Type
+from typing import List
 
 from pathlib import Path
 
@@ -43,8 +43,6 @@ async def core_session(config: TriblerConfig, components: List[Component]):
     session = Session(config, components)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
     set_default_session(session)
-
-    logger = logging.getLogger("Session")
 
     patch_crypto_be_discovery()
 
