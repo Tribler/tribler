@@ -176,5 +176,5 @@ class RESTManager:
             await self.site.stop()
         if self.site_https:
             await self.site_https.stop()
-        # FIXME: should the next line be used instead of the above lines?
+        # Should the next line be used instead of the above lines?
         # await self.runner.cleanup()
