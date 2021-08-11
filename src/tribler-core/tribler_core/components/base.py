@@ -5,13 +5,17 @@ from asyncio import Event, create_task, gather, get_event_loop
 from contextlib import contextmanager
 from itertools import count
 import logging
+import os
 import sys
 from typing import Dict, Iterable, List, Optional, Set, Type, TypeVar
+
+from pathlib import Path
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
+from tribler_core.utilities.install_dir import get_lib_path
 
 
 class SessionError(Exception):
@@ -35,6 +39,7 @@ session_counter = count(1)
 class Session:
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None):
+        #  deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
         self.id = next(session_counter)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()

@@ -13,7 +13,7 @@ class ReporterComponent(Component):
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
-            from tribler_core.components.implementation.reporter import ReporterComponentImp
+            from tribler_core.components.implementation.reporter import ReporterComponentImp  # pylint: disable=import-outside-toplevel
             return ReporterComponentImp(cls)
         return ReporterComponentMock(cls)
 

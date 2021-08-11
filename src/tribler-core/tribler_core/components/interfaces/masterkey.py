@@ -16,7 +16,7 @@ class MasterKeyComponent(Component):
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):
         if enable:
-            from tribler_core.components.implementation.masterkey import MasterKeyComponentImp
+            from tribler_core.components.implementation.masterkey import MasterKeyComponentImp  # pylint: disable=import-outside-toplevel
             return MasterKeyComponentImp(cls)
         return MasterKeyComponentMock(cls)
 
