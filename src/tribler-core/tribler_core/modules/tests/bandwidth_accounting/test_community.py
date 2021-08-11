@@ -6,8 +6,10 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.cache import BandwidthTransactionSignCache
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 class TestBandwidthAccountingCommunity(TestBase):
@@ -17,8 +19,13 @@ class TestBandwidthAccountingCommunity(TestBase):
         self.initialize(BandwidthAccountingCommunity, 2)
 
     def create_node(self):
-        return MockIPv8("curve25519", BandwidthAccountingCommunity, database_path=":memory:",
+        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=b"0000")
+        ipv8 = MockIPv8("curve25519", BandwidthAccountingCommunity, database=db,
                         settings=BandwidthAccountingSettings())
+        community = ipv8.get_overlay(BandwidthAccountingCommunity)
+        # Dumb workaround for MockIPv8 not supporting key injection
+        community.database.my_pub_key = ipv8.my_peer.public_key.key_to_bin()
+        return ipv8
 
     async def test_single_transaction(self):
         """

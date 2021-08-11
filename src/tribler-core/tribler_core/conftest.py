@@ -4,10 +4,9 @@ from unittest.mock import Mock
 
 from aiohttp import web
 
+from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
-
-from pony.orm import db_session
 
 import pytest
 
@@ -17,19 +16,19 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.download import Download
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.libtorrent.settings import LibtorrentSettings
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.session import Session
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
-from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.fixture(name="tribler_root_dir")
-def _tribler_root_dir(tmpdir):
-    return Path(tmpdir)
+def _tribler_root_dir(tmp_path):
+    return Path(tmp_path)
 
 
 @pytest.fixture(name="tribler_state_dir")
@@ -67,12 +66,11 @@ def get_free_port():
 
 
 @pytest.fixture
-def seed_config(tribler_config, tmpdir_factory):
+def seed_config(tribler_config, tmp_path_factory):
     config = tribler_config.copy(deep=True)
-    config.set_state_dir(tmpdir_factory.mktemp("seeder"))
+    config.set_state_dir(tmp_path_factory.mktemp("seeder"))
     config.libtorrent.enabled = True
     config.libtorrent.port = get_free_port()
-    config.tunnel_community.socks5_listen_ports = [(get_free_port()) for _ in range(5)]
 
     return config
 
@@ -83,13 +81,10 @@ def download_config():
 
 
 @pytest.fixture
-def state_dir(tribler_config):
-    return tribler_config.state_dir
-
-
-@pytest.fixture
-def enable_libtorrent(tribler_config):
-    tribler_config.libtorrent.enabled = True
+def state_dir(tmp_path):
+    state_dir = tmp_path / 'state_dir'
+    state_dir.mkdir()
+    return state_dir
 
 
 @pytest.fixture
@@ -98,29 +93,21 @@ def enable_ipv8(tribler_config):
 
 
 @pytest.fixture
-def mock_dlmgr(session, mocker, tmpdir):
-    mocker.patch.object(session, 'dlmgr')
-    session.dlmgr.shutdown = lambda: succeed(None)
-    session.dlmgr.get_checkpoint_dir = lambda: tmpdir
+def mock_dlmgr(state_dir):
+    dlmgr = Mock()
+    dlmgr.config = LibtorrentSettings()
+    dlmgr.shutdown = lambda: succeed(None)
+    checkpoints_dir = state_dir / 'dlcheckpoints'
+    checkpoints_dir.mkdir()
+    dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
+    dlmgr.state_dir = state_dir
+    dlmgr.get_downloads = lambda: []
+    return dlmgr
 
 
 @pytest.fixture
-def mock_dlmgr_get_download(session, mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
-    session.dlmgr.get_download = lambda _: None
-
-
-@pytest.fixture(name='session')
-async def _session(tribler_config) -> Session:
-    tribler_config.api.http_port = get_free_port()
-    tribler_config.libtorrent.port = get_free_port()
-    tribler_config.tunnel_community.socks5_listen_ports = [get_free_port() for _ in range(5)]
-
-    session = Session(tribler_config)
-    session.upgrader_enabled = False
-
-    await session.start()
-    yield session
-    await session.shutdown()
+def mock_dlmgr_get_download(mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
+    mock_dlmgr.get_download = lambda _: None
 
 
 @pytest.fixture
@@ -129,34 +116,25 @@ def video_tdef():
 
 
 @pytest.fixture
-async def video_seeder_session(seed_config, video_tdef):
-    seeder_session = Session(seed_config)
-    seeder_session.upgrader_enabled = False
-    await seeder_session.start()
+async def video_seeder(tmp_path_factory, video_tdef):
+    config = LibtorrentSettings()
+    config.dht = False
+    config.upnp = False
+    config.natpmp = False
+    config.lsd = False
+    seeder_state_dir = tmp_path_factory.mktemp('video_seeder_state_dir', numbered=True)
+    dlmgr = DownloadManager(
+        config=config,
+        state_dir=seeder_state_dir,
+        notifier=Mock(),
+        peer_mid=b"0000")
+    dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR)
-    upload = seeder_session.dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
+    upload = dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
     await upload.wait_for_status(DLSTATUS_SEEDING)
-    yield seeder_session
-    await seeder_session.shutdown()
-
-
-@pytest.fixture
-def channel_tdef():
-    return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
-
-
-@pytest.fixture
-async def channel_seeder_session(seed_config, channel_tdef):
-    seeder_session = Session(seed_config)
-    seeder_session.upgrader_enabled = False
-    await seeder_session.start()
-    dscfg_seed = DownloadConfig()
-    dscfg_seed.set_dest_dir(TESTS_DATA_DIR / 'sample_channel')
-    upload = seeder_session.dlmgr.start_download(tdef=channel_tdef, config=dscfg_seed)
-    await upload.wait_for_status(DLSTATUS_SEEDING)
-    yield seeder_session
-    await seeder_session.shutdown()
+    yield dlmgr
+    await dlmgr.shutdown()
 
 
 selected_ports = set()
@@ -168,12 +146,12 @@ def fixture_free_port():
 
 
 @pytest.fixture
-async def file_server(tmpdir, free_port):
+async def file_server(tmp_path, free_port):
     """
-    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmpdir.
+    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmp_path
     """
     app = web.Application()
-    app.add_routes([web.static('/', Path(tmpdir))])
+    app.add_routes([web.static('/', tmp_path)])
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     site = web.TCPSite(runner, 'localhost', free_port)
@@ -209,9 +187,11 @@ TEST_PERSONAL_KEY = LibNaCLSK(
 
 
 @pytest.fixture
-def metadata_store(tmpdir):
-    metadata_store_path = Path(tmpdir) / 'test.db'
-    mds = MetadataStore(metadata_store_path, tmpdir, TEST_PERSONAL_KEY, disable_sync=True)
+def metadata_store(tmp_path):
+    mds = MetadataStore(db_filename=tmp_path / 'test.db',
+                        channels_dir=tmp_path / 'channels',
+                        my_key=TEST_PERSONAL_KEY,
+                        disable_sync=True)
     yield mds
     mds.shutdown()
 
@@ -224,26 +204,12 @@ def dispersy_to_pony_migrator(metadata_store):
     return migrator
 
 
-@pytest.fixture(name='enable_api')
-def _enable_api(tribler_config, free_port):
-    tribler_config.api.http_enabled = True
-    tribler_config.api.http_port = free_port
-    tribler_config.api.retry_port = True
-
-
 @pytest.fixture
 def enable_https(tribler_config, free_port):
     tribler_config.api.put_path_as_relative('https_certfile', TESTS_DIR / 'data' / 'certfile.pem',
                                             tribler_config.state_dir)
     tribler_config.api.https_enabled = True
     tribler_config.api.https_port = free_port
-
-
-@pytest.fixture(name='enable_chant')
-def _enable_chant(tribler_config):
-    tribler_config.chant.enabled = True
-    tribler_config.chant.manager_enabled = True
-    tribler_config.libtorrent.enabled = True
 
 
 @pytest.fixture
@@ -272,9 +238,24 @@ def test_tdef(state_dir):
 
 
 @pytest.fixture
-async def test_download(session, mock_dlmgr, test_tdef):
-    download = Download(session, test_tdef)
-    download.config = DownloadConfig(state_dir=session.config.state_dir)
+def loop(event_loop):
+    """
+    _This_ fixture masks the original "loop" fixture from pytest-asyncio,
+    effectively replacing it with the "event_loop" fixture from aiohttp.
+    It solves the following problem:
+    pytest-asyncio provides "loop" fixture for creating the event loop,
+    aiohttp provides "event_loop" fixture for creating the event loop,
+    if you use the "@pytest.mark.asyncio" decorator on a test, it will automatically run the "loop"
+    fixture, which could result in test failure if the test uses Futures created with the fixtures
+    that use the "event_loop" fixture.
+    """
+    return event_loop
+
+
+@pytest.fixture
+async def test_download(mock_dlmgr, test_tdef):
+    config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
+    download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
     download.infohash = hexlify(test_tdef.get_infohash())
     yield download
     await download.shutdown()
@@ -310,12 +291,22 @@ def mock_handle(mocker, test_download):
 
 
 @pytest.fixture
-def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=unused-argument
-    num_hay = 100
-    with db_session:
-        _ = session.mds.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
-        for x in range(0, num_hay):
-            session.mds.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
-        session.mds.TorrentMetadata(title='needle', infohash=random_infohash())
-        session.mds.TorrentMetadata(title='needle2', infohash=random_infohash())
-    return session
+def peer_key():
+    return default_eccrypto.generate_key("curve25519")
+
+
+@pytest.fixture
+async def download_manager(tmp_path):
+    config = LibtorrentSettings()
+    config.dht = False
+    config.upnp = False
+    config.natpmp = False
+    config.lsd = False
+    download_manager = DownloadManager(
+        config=config,
+        state_dir=tmp_path,
+        notifier=Mock(),
+        peer_mid=b"0000")
+    download_manager.initialize()
+    yield download_manager
+    await download_manager.shutdown()

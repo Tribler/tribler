@@ -127,11 +127,13 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
     Community for general purpose SELECT-like queries into remote Channels database
     """
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, rqc_settings: RemoteQueryCommunitySettings = None,
+    def __init__(self, my_peer, endpoint, network,
+                 rqc_settings: RemoteQueryCommunitySettings = None,
+                 metadata_store=None,
                  **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
-        self.rqc_settings = rqc_settings or RemoteQueryCommunitySettings()
+        self.rqc_settings = rqc_settings
         self.mds: MetadataStore = metadata_store
 
         # This object stores requests for "select" queries that we sent to other hosts.

@@ -13,6 +13,7 @@ from tribler_core.modules.metadata_store.serialization import (
     NULL_KEY,
     REGULAR_TORRENT,
 )
+from tribler_core.utilities.sentinels import sentinel
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -23,7 +24,7 @@ class ObjState(enum.Enum):
     NEW_OBJECT = enum.auto()  # The received object is unknown to us and thus added to ORM
 
 
-CONTINUE = object()  # Sentinel object indicating that the check yielded no result
+CONTINUE = sentinel('CONTINUE')  # Sentinel object indicating that the check yielded no result
 
 
 @dataclass

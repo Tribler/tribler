@@ -16,7 +16,6 @@ class Notifier:
         self.observers = {}
         # We remember the event loop from the thread that runs the Notifier
         # to be able to schedule notifications from external threads
-        self._event_loop = get_event_loop()
 
     def add_observer(self, subject, callback):
         assert isinstance(subject, NTFY)
@@ -36,7 +35,7 @@ class Notifier:
     def notify(self, subject, *args):
         # We have to call the notifier callbacks through call_soon_threadsafe
         # because the notify method could have been called from a non-reactor thread
-        self._event_loop.call_soon_threadsafe(self._notify, subject, *args)
+        get_event_loop().call_soon_threadsafe(self._notify, subject, *args)
 
     def _notify(self, subject, *args):
         if subject not in self.observers:
@@ -44,3 +43,7 @@ class Notifier:
             return
         for callback in self.observers[subject]:
             callback(*args)
+
+    def notify_shutdown_state(self, state):
+        self._logger.info("Tribler shutdown state notification:%s", state)
+        self.notify(NTFY.TRIBLER_SHUTDOWN_STATE, state)

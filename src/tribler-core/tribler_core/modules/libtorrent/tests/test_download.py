@@ -23,8 +23,8 @@ def test_download_properties(test_download, test_tdef):
     assert test_download.tdef, test_tdef
 
 
-def test_download_setup(mock_dlmgr, test_download):
-    assert isinstance(test_download.setup(None, 0), dict)
+def test_download_get_atp(mock_dlmgr, test_download):
+    assert isinstance(test_download.get_atp(), dict)
 
 
 def test_download_resume(mock_handle, mock_download_config, test_download):

@@ -1,16 +1,27 @@
 from aiohttp import web
+
 from aiohttp_apispec import docs, json_schema
-from marshmallow.fields import Boolean
 
 from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean
+
 from tribler_common.network_utils import NetworkUtils
+
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class SettingsEndpoint(RESTEndpoint):
     """
     This endpoint is reponsible for handing all requests regarding settings and configuration.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.tribler_config = None
+        self.download_manager = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_settings),
@@ -30,7 +41,7 @@ class SettingsEndpoint(RESTEndpoint):
     async def get_settings(self, request):
         self._logger.info(f'Get settings. Request: {request}')
         return RESTResponse({
-            "settings": self.session.config.dict(),
+            "settings": self.tribler_config.dict(),
             "ports": list(NetworkUtils.ports_in_use)
         })
 
@@ -47,21 +58,22 @@ class SettingsEndpoint(RESTEndpoint):
     async def update_settings(self, request):
         settings_dict = await request.json()
         await self.parse_settings_dict(settings_dict)
-        self.session.config.write()
+        self.tribler_config.write()
         return RESTResponse({"modified": True})
 
     async def parse_setting(self, section, option, value):
         """
         Set a specific Tribler setting. Throw a ValueError if this setting is not available.
         """
-        # if section in self.session.config.config and option in self.session.config.config[section]:
-        self.session.config.__getattribute__(section).__setattr__(option, value)
+        # if section in self.config.config and option in self.config.config[section]:
+        self.tribler_config.__getattribute__(section).__setattr__(option, value)
         # else:
         #     raise ValueError(f"Section {section} with option {option} does not exist")
 
         # Perform some actions when specific keys are set
         if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            self.session.dlmgr.update_max_rates_from_config()
+            if self.download_manager:
+                self.download_manager.update_max_rates_from_config()
 
     async def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
         """

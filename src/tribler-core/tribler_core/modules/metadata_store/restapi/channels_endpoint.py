@@ -26,14 +26,24 @@ from tribler_core.modules.metadata_store.utils import NoChannelSourcesException,
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import is_infohash, parse_magnetlink
+from tribler_core.utilities.utilities import froze_it, is_infohash, parse_magnetlink
 
 
-class ChannelsEndpointBase(MetadataEndpointBase):
-    pass
+async def _fetch_uri(uri):
+    async with ClientSession() as session:
+        response = await session.get(uri)
+        data = await response.read()
+    return data
 
 
-class ChannelsEndpoint(ChannelsEndpointBase):
+@froze_it
+class ChannelsEndpoint(MetadataEndpointBase):
+    def __init__(self, *args, **kwargs):
+        MetadataEndpointBase.__init__(self, *args, **kwargs)
+        self.download_manager = None
+        self.gigachannel_manager = None
+        self.gigachannel_community = None
+
     def setup_routes(self):
         self.app.add_routes(
             [
@@ -56,13 +66,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     def add_download_progress_to_metadata_list(self, contents_list):
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                dl = self.session.dlmgr.get_download(unhexlify(torrent['infohash']))
-                if dl is not None and dl.tdef.infohash not in self.session.dlmgr.metainfo_requests:
+                dl = self.download_manager.get_download(unhexlify(torrent['infohash']))
+                if dl is not None and dl.tdef.infohash not in self.download_manager.metainfo_requests:
                     torrent['progress'] = dl.get_state().get_progress()
 
     def get_channel_from_request(self, request):
         channel_pk = (
-            self.session.mds.my_key.pub().key_to_bin()[10:]
+            self.mds.my_key.pub().key_to_bin()[10:]
             if request.match_info['channel_pk'] == 'mychannel'
             else unhexlify(request.match_info['channel_pk'])
         )
@@ -95,8 +105,8 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized['metadata_type'] = CHANNEL_TORRENT
 
         with db_session:
-            channels = self.session.mds.get_entries(**sanitized)
-            total = self.session.mds.get_total_count(**sanitized) if include_total else None
+            channels = self.mds.get_entries(**sanitized)
+            total = self.mds.get_total_count(**sanitized) if include_total else None
             channels_list = []
             for channel in channels:
                 channel_dict = channel.to_simple_dict()
@@ -104,7 +114,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                 if channel.subscribed:
                     if channel_dict["state"] == CHANNEL_STATE.UPDATING.value:
                         try:
-                            progress = self.session.mds.compute_channel_update_progress(channel)
+                            progress = self.mds.compute_channel_update_progress(channel)
                             channel_dict["progress"] = progress
                         except (ZeroDivisionError, FileNotFoundError) as e:
                             self._logger.error(
@@ -116,9 +126,9 @@ class ChannelsEndpoint(ChannelsEndpointBase):
                                 channel.local_version,
                             )
                     elif channel_dict["state"] == CHANNEL_STATE.METAINFO_LOOKUP.value:
-                        if not self.session.dlmgr.metainfo_requests.get(
+                        if not self.download_manager.metainfo_requests.get(
                             bytes(channel.infohash)
-                        ) and self.session.dlmgr.download_exists(bytes(channel.infohash)):
+                        ) and self.download_manager.download_exists(bytes(channel.infohash)):
                             channel_dict["state"] = CHANNEL_STATE.DOWNLOADING.value
 
                 channels_list.append(channel_dict)
@@ -163,15 +173,15 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         remote_failed = False
         if remote:
             try:
-                contents_list = await self.session.gigachannel_community.remote_select_channel_contents(**sanitized)
+                contents_list = await self.gigachannel_community.remote_select_channel_contents(**sanitized)
             except (RequestTimeoutException, NoChannelSourcesException, CancelledError):
                 remote_failed = True
 
         if not remote or remote_failed:
             with db_session:
-                contents = self.session.mds.get_entries(**sanitized)
+                contents = self.mds.get_entries(**sanitized)
                 contents_list = [c.to_simple_dict() for c in contents]
-                total = self.session.mds.get_total_count(**sanitized) if include_total else None
+                total = self.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
@@ -188,7 +198,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def get_channel_description(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            channel_description = self.session.mds.ChannelDescription.select(
+            channel_description = self.mds.ChannelDescription.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
 
@@ -200,13 +210,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         request_parsed = await request.json()
         updated_json_text = json.dumps({"description_text": request_parsed["description_text"]})
         with db_session:
-            channel_description = self.session.mds.ChannelDescription.select(
+            channel_description = self.mds.ChannelDescription.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
             if channel_description is not None:
                 channel_description.update_properties({"json_text": updated_json_text})
             else:
-                channel_description = self.session.mds.ChannelDescription(
+                channel_description = self.mds.ChannelDescription(
                     public_key=channel_pk, origin_id=channel_id, json_text=updated_json_text, status=NEW
                 )
         return RESTResponse(json.loads(channel_description.json_text))
@@ -214,7 +224,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def get_channel_thumbnail(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            obj = self.session.mds.ChannelThumbnail.select(
+            obj = self.mds.ChannelThumbnail.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id
             ).first()
         return web.Response(body=obj.binary_data, content_type=obj.data_type) if obj else web.Response(status=400)
@@ -225,15 +235,13 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_pk, channel_id = self.get_channel_from_request(request)
         obj_properties = {"binary_data": post_body, "data_type": content_type}
         with db_session:
-            obj = self.session.mds.ChannelThumbnail.select(
+            obj = self.mds.ChannelThumbnail.select(
                 lambda g: g.public_key == channel_pk and g.origin_id == channel_id,
             ).first()
             if obj is not None:
                 obj.update_properties(obj_properties)
             else:
-                self.session.mds.ChannelThumbnail(
-                    public_key=channel_pk, origin_id=channel_id, status=NEW, **obj_properties
-                )
+                self.mds.ChannelThumbnail(public_key=channel_pk, origin_id=channel_id, status=NEW, **obj_properties)
         return web.Response(status=201)
 
     @docs(
@@ -257,9 +265,9 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def copy_channel(self, request):
         with db_session:
             channel_pk, channel_id = self.get_channel_from_request(request)
-            personal_root = channel_id == 0 and channel_pk == self.session.mds.my_key.pub().key_to_bin()[10:]
+            personal_root = channel_id == 0 and channel_pk == self.mds.my_key.pub().key_to_bin()[10:]
             # TODO: better error handling
-            target_collection = self.session.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
+            target_collection = self.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
             try:
                 request_parsed = await request.json()
             except (ContentTypeError, ValueError):
@@ -270,21 +278,21 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             results_list = []
             for entry in request_parsed:
                 public_key, id_ = unhexlify(entry["public_key"]), entry["id"]
-                source = self.session.mds.ChannelNode.get(public_key=public_key, id_=id_)
+                source = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not source:
                     return RESTResponse({"error": "Source entry not found"}, status=HTTP_BAD_REQUEST)
                 # We must upgrade Collections to Channels when moving them to root channel, and, vice-versa,
                 # downgrade Channels to Collections when moving them into existing channels
-                if isinstance(source, self.session.mds.CollectionNode):
+                if isinstance(source, self.mds.CollectionNode):
                     src_dict = source.to_dict()
                     if channel_id == 0:
-                        rslt = self.session.mds.ChannelMetadata.create_channel(title=source.title)
+                        rslt = self.mds.ChannelMetadata.create_channel(title=source.title)
                     else:
                         dst_dict = {'origin_id': channel_id, "status": NEW}
-                        for k in self.session.mds.CollectionNode.nonpersonal_attributes:
+                        for k in self.mds.CollectionNode.nonpersonal_attributes:
                             dst_dict[k] = src_dict[k]
                         dst_dict.pop("metadata_type")
-                        rslt = self.session.mds.CollectionNode(**dst_dict)
+                        rslt = self.mds.CollectionNode(**dst_dict)
                     for child in source.actual_contents:
                         child.make_copy(rslt.id_)
                 else:
@@ -307,7 +315,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             _, channel_id = self.get_channel_from_request(request)
             request_parsed = await request.json()
             channel_name = request_parsed.get("name", "New channel")
-            md = self.session.mds.ChannelMetadata.create_channel(channel_name, origin_id=channel_id)
+            md = self.mds.ChannelMetadata.create_channel(channel_name, origin_id=channel_id)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
     @docs(
@@ -325,7 +333,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
             _, channel_id = self.get_channel_from_request(request)
             request_parsed = await request.json()
             collection_name = request_parsed.get("name", "New collection")
-            md = self.session.mds.CollectionNode(origin_id=channel_id, title=collection_name, status=NEW)
+            md = self.mds.CollectionNode(origin_id=channel_id, title=collection_name, status=NEW)
             return RESTResponse({"results": [md.to_simple_dict()]})
 
     @docs(
@@ -355,7 +363,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def add_torrent_to_channel(self, request):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
-            channel = self.session.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
+            channel = self.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
         if not channel:
             return RESTResponse({"error": "Unknown channel"}, status=HTTP_NOT_FOUND)
 
@@ -369,23 +377,18 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         if parameters.get('uri', None):
             uri = parameters['uri']
             if uri.startswith("http:") or uri.startswith("https:"):
-                async with ClientSession() as session:
-                    response = await session.get(uri)
-                    data = await response.read()
+                data = await _fetch_uri(uri)
                 tdef = TorrentDef.load_from_memory(data)
             elif uri.startswith("magnet:"):
                 _, xt, _ = parse_magnetlink(uri)
                 if (
                     xt
                     and is_infohash(codecs.encode(xt, 'hex'))
-                    and (
-                        self.session.mds.torrent_exists_in_personal_channel(xt)
-                        or channel.copy_torrent_from_infohash(xt)
-                    )
+                    and (self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt))
                 ):
                     return RESTResponse({"added": 1})
 
-                meta_info = await self.session.dlmgr.get_metainfo(xt, timeout=30, url=uri)
+                meta_info = await self.download_manager.get_metainfo(xt, timeout=30, url=uri)
                 if not meta_info:
                     raise RuntimeError("Metainfo timeout")
                 tdef = TorrentDef.load_from_dict(meta_info)
@@ -436,15 +439,15 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         channel_pk, channel_id = self.get_channel_from_request(request)
         with db_session:
             if channel_id == 0:
-                for t in self.session.mds.CollectionNode.commit_all_channels():
-                    self.session.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(t))
+                for t in self.mds.CollectionNode.commit_all_channels():
+                    self.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(t))
             else:
-                coll = self.session.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
+                coll = self.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
                 if not coll:
                     return RESTResponse({"success": False}, status=HTTP_NOT_FOUND)
                 torrent_dict = coll.commit_channel_torrent()
                 if torrent_dict:
-                    self.session.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
+                    self.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))
 
         return RESTResponse({"success": True})
 
@@ -456,9 +459,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
     async def is_channel_dirty(self, request):
         channel_pk, _ = self.get_channel_from_request(request)
         with db_session:
-            dirty = self.session.mds.MetadataNode.exists(
-                lambda g: g.public_key == channel_pk and g.status in DIRTY_STATUSES
-            )
+            dirty = self.mds.MetadataNode.exists(lambda g: g.public_key == channel_pk and g.status in DIRTY_STATUSES)
             return RESTResponse({"dirty": dirty})
 
     @docs(
@@ -482,7 +483,7 @@ class ChannelsEndpoint(ChannelsEndpointBase):
         sanitized["popular"] = True
 
         with db_session:
-            contents = self.session.mds.get_entries(**sanitized)
+            contents = self.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
         self.add_download_progress_to_metadata_list(contents_list)
 

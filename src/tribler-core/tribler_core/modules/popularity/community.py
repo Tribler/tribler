@@ -30,11 +30,10 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, my_peer, endpoint, network, **kwargs):
-        self.torrent_checker = kwargs.pop('torrent_checker', None)
-
+    def __init__(self, my_peer, endpoint, network, torrent_checker=None, **kwargs):
         # Creating a separate instance of Network for this community to find more peers
         super().__init__(my_peer, endpoint, Network(), **kwargs)
+        self.torrent_checker = torrent_checker
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
@@ -65,7 +64,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         """
         # select the torrents that have seeders
         alive = {(_, seeders, *rest) for (_, seeders, *rest) in torrents
-                    if seeders > 0}
+                 if seeders > 0}
         if not alive:
             return {}, {}
 

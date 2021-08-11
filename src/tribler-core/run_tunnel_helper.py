@@ -16,7 +16,7 @@ from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.session import Session
+from tribler_core.start_core import Session
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
 

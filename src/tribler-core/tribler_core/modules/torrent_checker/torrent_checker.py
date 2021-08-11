@@ -3,6 +3,7 @@ import logging
 import random
 import time
 from asyncio import CancelledError, gather
+from typing import List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
@@ -10,39 +11,56 @@ from pony.orm import db_session, desc, select
 
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     UdpSocketManager,
     create_tracker_session,
 )
-from tribler_core.modules.tracker_manager import MAX_TRACKER_FAILURES
+from tribler_core.modules.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
 
-TRACKER_SELECTION_INTERVAL = 20    # The interval for querying a random tracker
-TORRENT_SELECTION_INTERVAL = 120   # The interval for checking the health of a random torrent
-MIN_TORRENT_CHECK_INTERVAL = 900   # How much time we should wait before checking a torrent again
+TRACKER_SELECTION_INTERVAL = 20  # The interval for querying a random tracker
+TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
+MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
-TORRENT_SELECTION_POOL_SIZE = 2      # How many torrents to check (popular or random) during periodic check
+TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
 HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
-TORRENTS_CHECKED_RETURN_SIZE = 240   # Estimated torrents checked on default 4 hours idle run
+TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
 
 
 class TorrentChecker(TaskManager):
 
-    def __init__(self, session):
+    def __init__(self,
+                 config: TriblerConfig,
+                 download_manager: DownloadManager,
+                 notifier: Notifier,
+                 tracker_manager: TrackerManager,
+                 metadata_store: MetadataStore,
+                 socks_listen_ports: Optional[List[int]] = None):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.tribler_session = session
+        self.tracker_manager = tracker_manager
+        self.mds = metadata_store
+        self.dlmgr = download_manager
+        self.notifier = notifier
+        self.config = config
+
+        self.socks_listen_ports = socks_listen_ports
 
         self._should_stop = False
         self._session_list = {'DHT': []}
 
-        self.socket_mgr = self.udp_transport = None
+        self.socket_mgr = UdpSocketManager()
+        self.udp_transport = None
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
@@ -51,7 +69,6 @@ class TorrentChecker(TaskManager):
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("torrent_check", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
-        self.socket_mgr = UdpSocketManager()
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self):
@@ -120,6 +137,8 @@ class TorrentChecker(TaskManager):
 
         try:
             session = self._create_session_for_request(tracker.url, timeout=30)
+            if session is None:
+                return False
         except MalformedTrackerURLException as e:
             # Remove the tracker from the database
             self.remove_tracker(tracker.url)
@@ -142,14 +161,14 @@ class TorrentChecker(TaskManager):
     async def connect_to_tracker(self, session):
         try:
             info_dict = await session.connect_to_tracker()
-            return self._on_result_from_session(session, info_dict)
+            return await self._on_result_from_session(session, info_dict)
         except CancelledError:
             self._logger.info("Tracker session is being cancelled (url %s)", session.tracker_url)
-            self.clean_session(session)
+            await self.clean_session(session)
         except Exception as e:
             self._logger.warning("Got session error for URL %s: %s", session.tracker_url, str(e).replace('\n]', ']'))
-            self.clean_session(session)
-            self.tribler_session.tracker_manager.update_tracker_info(session.tracker_url, False)
+            await self.clean_session(session)
+            self.tracker_manager.update_tracker_info(session.tracker_url, False)
             e.tracker_url = session.tracker_url
             raise e
 
@@ -162,7 +181,7 @@ class TorrentChecker(TaskManager):
     @db_session
     def load_torrents_checked_from_db(self):
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        checked_torrents = list(self.tribler_session.mds.TorrentState
+        checked_torrents = list(self.mds.TorrentState
                                 .select(lambda g: g.has_data and g.last_check > last_fresh_time and g.self_checked)
                                 .order_by(lambda g: (desc(g.seeders), g.last_check))
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
@@ -186,10 +205,10 @@ class TorrentChecker(TaskManager):
         By old torrents, we refer to those checked quite farther in the past, sorted by the last_check value.
         """
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        popular_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
+        popular_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
                                 order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
 
-        old_torrents = list(self.tribler_session.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
+        old_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
                             order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
         selected_torrents = popular_torrents + old_torrents
@@ -217,23 +236,23 @@ class TorrentChecker(TaskManager):
         return tracker
 
     def get_next_tracker_for_auto_check(self):
-        return self.tribler_session.tracker_manager.get_next_tracker_for_auto_check()
+        return self.tracker_manager.get_next_tracker_for_auto_check()
 
     def remove_tracker(self, tracker_url):
-        self.tribler_session.tracker_manager.remove_tracker(tracker_url)
+        self.tracker_manager.remove_tracker(tracker_url)
 
     def update_tracker_info(self, tracker_url, is_successful):
-        self.tribler_session.tracker_manager.update_tracker_info(tracker_url, is_successful)
+        self.tracker_manager.update_tracker_info(tracker_url, is_successful)
 
     def is_blacklisted_tracker(self, tracker_url):
-        return tracker_url in self.tribler_session.tracker_manager.blacklist
+        return tracker_url in self.tracker_manager.blacklist
 
     @db_session
     def get_valid_trackers_of_torrent(self, torrent_id):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.tribler_session.mds.TorrentState.get(infohash=torrent_id).trackers
+        db_tracker_list = self.mds.TorrentState.get(infohash=torrent_id).trackers
         return {tracker.url for tracker in db_tracker_list
-                    if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
+                if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
     def update_torrents_checked(self, new_result):
         """
@@ -250,12 +269,12 @@ class TorrentChecker(TaskManager):
         final_response = {}
         if not result or not isinstance(result, list):
             self._logger.info("Received invalid torrent checker result")
-            self.tribler_session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
-                                                 {"infohash": hexlify(infohash),
-                                                  "num_seeders": 0,
-                                                  "num_leechers": 0,
-                                                  "last_tracker_check": int(time.time()),
-                                                  "health": "updated"})
+            self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
+                                 {"infohash": hexlify(infohash),
+                                  "num_seeders": 0,
+                                  "num_leechers": 0,
+                                  "last_tracker_check": int(time.time()),
+                                  "health": "updated"})
             return final_response
 
         torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
@@ -282,12 +301,12 @@ class TorrentChecker(TaskManager):
         self.update_torrents_checked(torrent_update_dict)
 
         # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
-        self.tribler_session.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
-                                             {"infohash": hexlify(infohash),
-                                              "num_seeders": torrent_update_dict["seeders"],
-                                              "num_leechers": torrent_update_dict["leechers"],
-                                              "last_tracker_check": torrent_update_dict["last_check"],
-                                              "health": "updated"})
+        self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
+                             {"infohash": hexlify(infohash),
+                              "num_seeders": torrent_update_dict["seeders"],
+                              "num_leechers": torrent_update_dict["leechers"],
+                              "last_tracker_check": torrent_update_dict["last_check"],
+                              "health": "updated"})
         return final_response
 
     @task
@@ -302,7 +321,7 @@ class TorrentChecker(TaskManager):
 
         # We first check whether the torrent is already in the database and checked before
         with db_session:
-            result = self.tribler_session.mds.TorrentState.get(infohash=infohash)
+            result = self.mds.TorrentState.get(infohash=infohash)
             if result:
                 torrent_id = result.infohash
                 last_check = result.last_check
@@ -324,16 +343,17 @@ class TorrentChecker(TaskManager):
         tasks = []
         for tracker_url in tracker_set:
             session = self._create_session_for_request(tracker_url, timeout=timeout)
+            if session is None:
+                return False
             session.add_infohash(infohash)
             tasks.append(self.connect_to_tracker(session))
 
         if has_bep33_support():
             # Create a (fake) DHT session for the lookup if we have support for BEP33.
-            session = FakeBep33DHTSession(self.tribler_session, infohash, timeout)
-
+            session = FakeBep33DHTSession(self.dlmgr, infohash, timeout)
         else:
             # Otherwise, fallback on the normal DHT metainfo lookups.
-            session = FakeDHTSession(self.tribler_session, infohash, timeout)
+            session = FakeDHTSession(self.dlmgr, infohash, timeout)
 
         self._session_list['DHT'].append(session)
         tasks.append(self.connect_to_tracker(session))
@@ -342,9 +362,11 @@ class TorrentChecker(TaskManager):
         return self.on_torrent_health_check_completed(infohash, res)
 
     def _create_session_for_request(self, tracker_url, timeout=20):
-        hops = self.tribler_session.config.download_defaults.number_hops
-        socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
-        proxy = ('127.0.0.1', socks_listen_ports[hops - 1]) if hops > 0 else None
+        hops = self.config.download_defaults.number_hops
+        if hops > len(self.socks_listen_ports or []):
+            # Proxies never started, dropping the request
+            return None
+        proxy = ('127.0.0.1', self.socks_listen_ports[hops - 1]) if hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
 
         if tracker_url not in self._session_list:
@@ -354,20 +376,20 @@ class TorrentChecker(TaskManager):
         self._logger.debug("Session created for tracker %s", tracker_url)
         return session
 
-    def clean_session(self, session):
-        self.tribler_session.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
-        self.register_task(f"Stop tracker session {str(session.tracker_address)}-{str(id(session))}", session.cleanup)
-
+    async def clean_session(self, session):
+        self.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
         # Remove the session from our session list dictionary
         self._session_list[session.tracker_url].remove(session)
         if len(self._session_list[session.tracker_url]) == 0 and session.tracker_url != "DHT":
             del self._session_list[session.tracker_url]
 
-    def _on_result_from_session(self, session, result_list):
+        await session.cleanup()
+
+    async def _on_result_from_session(self, session, result_list):
+        await self.clean_session(session)
+        # FIXME: this should be probably handled by cancel, etc
         if self._should_stop:
             return
-
-        self.clean_session(session)
 
         return result_list
 
@@ -381,7 +403,7 @@ class TorrentChecker(TaskManager):
 
         with db_session:
             # Update torrent state
-            torrent = self.tribler_session.mds.TorrentState.get(infohash=infohash)
+            torrent = self.mds.TorrentState.get(infohash=infohash)
             if not torrent:
                 self._logger.warning(
                     "Tried to update torrent health data in DB for an unknown torrent: %s", hexlify(infohash))

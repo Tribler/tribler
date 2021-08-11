@@ -43,7 +43,7 @@ LZ4_EMPTY_ARCHIVE = unhexlify("04224d184040c000000000")
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
-        yield l[i : i + n]
+        yield l[i: i + n]
 
 
 def create_torrent_from_dir(directory, torrent_filename):

@@ -60,7 +60,7 @@ class NoAvailableStreamError(Exception):
     pass
 
 
-class Stream: # pylint: disable=too-many-instance-attributes
+class Stream:  # pylint: disable=too-many-instance-attributes
     """
     Holds the streaming status of a specific download
     """
@@ -576,6 +576,6 @@ class StreamChunk:
 
         result = self.file.read(self.stream.piecelen)
         self._logger.debug('Chunk %s: Got bytes %s-%s, %s bytes, piecelen: %s',
-                          self.startpos, self.seekpos, self.seekpos + len(result), len(result), self.stream.piecelen)
+                           self.startpos, self.seekpos, self.seekpos + len(result), len(result), self.stream.piecelen)
         self.__seekpos = self.file.tell()
         return result

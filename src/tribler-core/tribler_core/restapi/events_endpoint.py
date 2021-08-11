@@ -14,9 +14,11 @@ from marshmallow.fields import Dict, String
 
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.notifier import Notifier
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.restapi.util import fix_unicode_dict
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 from tribler_core.version import version_id
 
 
@@ -54,6 +56,7 @@ reactions_dict = {
 # pylint: enable=line-too-long
 
 
+@froze_it
 class EventsEndpoint(RESTEndpoint, TaskManager):
     """
     Important events in Tribler are returned over the events endpoint. This connection is held open. Each event is
@@ -61,20 +64,24 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    def __init__(self, session):
-        RESTEndpoint.__init__(self, session)
+    def __init__(self):
+        RESTEndpoint.__init__(self)
         TaskManager.__init__(self)
         self.events_responses = []
         self.app.on_shutdown.append(self.on_shutdown)
+        self.notifier = None
 
         # We need to know that Tribler completed its startup sequence
         self.tribler_started = False
-        self.session.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
+
+    def connect_notifier(self, notifier: Notifier):
+        self.notifier = notifier
+        self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
         for event_type, event_lambda in reactions_dict.items():
-            self.session.notifier.add_observer(event_type,
-                                               lambda *args, el=event_lambda, et=event_type:
-                                               self.write_data({"type": et.value, "event": el(*args)}))
+            self.notifier.add_observer(event_type,
+                                       lambda *args, el=event_lambda, et=event_type:
+                                       self.write_data({"type": et.value, "event": el(*args)}))
 
         def on_circuit_removed(circuit, *args):
             if isinstance(circuit, Circuit):
@@ -85,9 +92,8 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                     "uptime": time.time() - circuit.creation_time
                 }
                 self.write_data({"type": NTFY.TUNNEL_REMOVE.value, "event": event})
-
         # Tribler tunnel circuit has been removed
-        self.session.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
+        self.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
 
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()

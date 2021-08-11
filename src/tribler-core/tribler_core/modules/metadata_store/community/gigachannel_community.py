@@ -24,7 +24,6 @@ max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
 
 
-
 @dataclass
 class ChannelEntry:
     timestamp: float
@@ -67,22 +66,35 @@ class ChannelsPeersMapping:
 class GigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
 
-    def create_introduction_response(self, *args, introduction=None, extra_bytes=b'', prefix=None, new_style=False):
+    def create_introduction_response(
+        self,
+        lan_socket_address,
+        socket_address,
+        identifier,
+        introduction=None,
+        extra_bytes=b'',
+        prefix=None,
+        new_style=False,
+    ):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
         # dialect, so that other 7.6+ are able to distinguish between the older and newer versions.
         return super().create_introduction_response(
-            *args,
+            lan_socket_address,
+            socket_address,
+            identifier,
             introduction=introduction,
             prefix=prefix,
-            new_style=new_style
+            new_style=new_style,
         )
 
-    def __init__(self, my_peer, endpoint, network, metadata_store, **kwargs):
-        self.notifier = kwargs.pop("notifier", None)
-
+    def __init__(
+        self, my_peer, endpoint, network, max_peers=None, notifier=None, **kwargs
+    ):  # pylint: disable=unused-argument
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
-        super().__init__(my_peer, endpoint, Network(), metadata_store, **kwargs)
+        super().__init__(my_peer, endpoint, Network(), max_peers=50, **kwargs)
+
+        self.notifier = notifier
 
         # This set contains all the peers that we queried for subscribed channels over time.
         # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same

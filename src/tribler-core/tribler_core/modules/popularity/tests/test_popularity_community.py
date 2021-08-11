@@ -14,6 +14,7 @@ import pytest
 
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.popularity.community import PopularityCommunity
+from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
@@ -43,8 +44,11 @@ class TestPopularityCommunity(TestBase):
 
         self.count += 1
 
+        rqc_settings = RemoteQueryCommunitySettings()
         return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
-                        torrent_checker=torrent_checker)
+                        torrent_checker=torrent_checker,
+                        rqc_settings=rqc_settings
+                        )
 
     @db_session
     def fill_database(self, metadata_store, last_check_now=False):
@@ -138,7 +142,7 @@ class TestPopularityCommunity(TestBase):
             assert count >= max(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT,
                                 PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT)
             assert count <= PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT \
-                   + PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
+                + PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
 
     async def test_torrents_health_update(self):
         """

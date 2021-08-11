@@ -3,7 +3,9 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 import pytest
 
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
+from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
+from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 from tribler_core.restapi.base_api_test import do_request
@@ -11,35 +13,48 @@ from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-async def mock_ipv8(session):
-    db_path = session.config.state_dir / "bandwidth.db"
-    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database_path=db_path,
+def bandwidth_database(tmp_path, peer_key):
+    return BandwidthDatabase(db_path=tmp_path / "bandwidth.db", my_pub_key=b"0000")
+
+
+@pytest.fixture
+async def bw_community(tmp_path, bandwidth_database):
+    ipv8 = MockIPv8("low", BandwidthAccountingCommunity,
+                    database=bandwidth_database,
                     settings=BandwidthAccountingSettings())
-    session.bandwidth_community = ipv8.overlay
-    yield ipv8
+    community = ipv8.get_overlay(BandwidthAccountingCommunity)
+    # Dumb workaround for MockIPv8 not supporting key injection
+    community.database.my_pub_key = ipv8.my_peer.public_key.key_to_bin()
+    yield community
     await ipv8.stop()
 
 
-@pytest.mark.asyncio
-async def test_get_statistics_no_community(enable_api, session):
+@pytest.fixture
+async def bw_endpoint():
+    endpoint = BandwidthEndpoint()
+    endpoint.setup_routes()
+    return endpoint
+
+
+async def test_get_statistics_no_community(bw_endpoint, aiohttp_client):
     """
     Testing whether the API returns error 404 if no bandwidth community is loaded
     """
-    await do_request(session, 'bandwidth/statistics', expected_code=404)
+    await do_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=404)
 
 
-@pytest.mark.asyncio
-async def test_get_statistics(enable_api, mock_ipv8, session):
+async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
     """
     Testing whether the API returns the correct statistics
     """
-    my_pk = session.bandwidth_community.my_peer.public_key.key_to_bin()
+    bw_endpoint.bandwidth_community = bw_community
+    my_pk = bw_community.database.my_pub_key
     tx1 = BandwidthTransactionData(1, b"a", my_pk, EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
     tx2 = BandwidthTransactionData(1, my_pk, b"a", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 2000)
-    session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
-    session.bandwidth_community.database.BandwidthTransaction.insert(tx2)
+    bw_community.database.BandwidthTransaction.insert(tx1)
+    bw_community.database.BandwidthTransaction.insert(tx2)
 
-    response_dict = await do_request(session, 'bandwidth/statistics', expected_code=200)
+    response_dict = await do_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=200)
     assert "statistics" in response_dict
     stats = response_dict["statistics"]
     assert stats["id"] == hexlify(my_pk)
@@ -49,25 +64,24 @@ async def test_get_statistics(enable_api, mock_ipv8, session):
     assert stats["num_peers_helped_by"] == 1
 
 
-@pytest.mark.asyncio
-async def test_get_history_no_community(enable_api, session):
+async def test_get_history_no_community(bw_endpoint, aiohttp_client):
     """
     Testing whether the API returns error 404 if no bandwidth community is loaded
     """
-    await do_request(session, 'bandwidth/history', expected_code=404)
+    await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
 
 
-@pytest.mark.asyncio
-async def test_get_history(enable_api, mock_ipv8, session):
+async def test_get_history(bw_endpoint, bw_community, aiohttp_client):
     """
     Testing whether the API returns the correct bandwidth balance history
     """
-    my_pk = session.bandwidth_community.my_peer.public_key.key_to_bin()
+    bw_endpoint.bandwidth_community = bw_community
+    my_pk = bw_community.my_peer.public_key.key_to_bin()
     tx1 = BandwidthTransactionData(1, b"a", my_pk, EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)
     tx2 = BandwidthTransactionData(1, my_pk, b"a", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 2000)
-    session.bandwidth_community.database.BandwidthTransaction.insert(tx1)
-    session.bandwidth_community.database.BandwidthTransaction.insert(tx2)
+    bw_community.database.BandwidthTransaction.insert(tx1)
+    bw_community.database.BandwidthTransaction.insert(tx2)
 
-    response_dict = await do_request(session, 'bandwidth/history', expected_code=200)
+    response_dict = await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=200)
     assert "history" in response_dict
     assert len(response_dict["history"]) == 2

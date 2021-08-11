@@ -5,7 +5,7 @@ from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session, delete
 
-from tribler_common.simpledefs import NTFY
+from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR, STATEDIR_CHANNELS_DIR
 
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.category_filter.l2_filter import is_forbidden
@@ -17,6 +17,7 @@ from tribler_core.modules.metadata_store.store import (
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
+from tribler_core.notifier import Notifier
 from tribler_core.upgrade.config_converter import (
     convert_config_to_tribler74,
     convert_config_to_tribler75,
@@ -29,7 +30,7 @@ from tribler_core.utilities.configparser import CallbackConfigParser
 
 def cleanup_noncompliant_channel_torrents(state_dir):
     logger = logging.getLogger(__name__)
-    channels_dir = state_dir / "channels"
+    channels_dir = state_dir / STATEDIR_CHANNELS_DIR
     # Remove torrents contents
     if channels_dir.exists():
         for d in channels_dir.iterdir():
@@ -69,9 +70,12 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 
 class TriblerUpgrader:
 
-    def __init__(self, session):
+    def __init__(self, state_dir, channels_dir, trustchain_keypair, notifier: Notifier):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
+        self.state_dir = state_dir
+        self.notifier = notifier
+        self.channels_dir = channels_dir
+        self.trustchain_keypair = trustchain_keypair
 
         self.notified = False
         self.failed = True
@@ -100,10 +104,9 @@ class TriblerUpgrader:
         self.upgrade_pony_db_7to8()
         await self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
-        state_dir = self.session.config.state_dir
-        convert_config_to_tribler74(state_dir)
-        convert_config_to_tribler75(state_dir)
-        convert_config_to_tribler76(state_dir)
+        convert_config_to_tribler74(self.state_dir)
+        convert_config_to_tribler75(self.state_dir)
+        convert_config_to_tribler76(self.state_dir)
         self.upgrade_bw_accounting_db_8to9()
         self.upgrade_pony_db_11to12()
         self.upgrade_pony_db_12to13()
@@ -114,10 +117,9 @@ class TriblerUpgrader:
         Version 12 adds index for TorrentState.last_check attribute.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if database_path.exists():
-            mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+            mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
                                 disable_sync=True, check_tables=False, db_version=12)
             self.do_upgrade_pony_db_12to13(mds)
             mds.shutdown()
@@ -129,11 +131,10 @@ class TriblerUpgrader:
         to TorrentState table if it already does not exist.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
                             disable_sync=True, check_tables=False, db_version=11)
         self.do_upgrade_pony_db_11to12(mds)
         mds.shutdown()
@@ -145,11 +146,10 @@ class TriblerUpgrader:
         already does not exist.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
                             disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
@@ -162,10 +162,10 @@ class TriblerUpgrader:
         """
         to_version = 9
 
-        database_path = self.session.config.state_dir / 'sqlite' / 'bandwidth.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
         if not database_path.exists() or get_db_version(database_path) >= 9:
             return  # No need to update if the database does not exist or is already updated
-        db = BandwidthDatabase(database_path, self.session.trustchain_keypair.key.pk)
+        db = BandwidthDatabase(database_path, self.trustchain_keypair.key.pk)
 
         # Wipe all transactions and bandwidth history
         with db_session:
@@ -274,7 +274,7 @@ class TriblerUpgrader:
         The code is based on the copy-pasted upgrade_72_to_pony routine which is asynchronous and
         reports progress to the user.
         """
-        database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists() or get_db_version(database_path) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
@@ -287,7 +287,7 @@ class TriblerUpgrader:
             tmp_database_path.unlink()
 
         # Create the new database
-        mds = MetadataStore(tmp_database_path, None, self.session.trustchain_keypair,
+        mds = MetadataStore(tmp_database_path, None, self.trustchain_keypair,
                             disable_sync=True, db_version=10)
         with db_session(ddl=True):
             mds.drop_indexes()
@@ -317,11 +317,10 @@ class TriblerUpgrader:
         Migration should be relatively fast, so we do it in the foreground.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
                             disable_sync=True, check_tables=False, db_version=7)
         self.do_upgrade_pony_db_7to8(mds)
         mds.shutdown()
@@ -347,11 +346,10 @@ class TriblerUpgrader:
         and breaking it in smaller chunks as we do with 72_to_pony.
         """
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.session.config.state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
                             disable_sync=True, check_tables=False, db_version=6)
         self.do_upgrade_pony_db_6to7(mds)
         mds.shutdown()
@@ -387,16 +385,14 @@ class TriblerUpgrader:
         return
 
     def update_status(self, status_text):
-        self.session.notifier.notify(NTFY.UPGRADER_TICK, status_text)
+        self.notifier.notify(NTFY.UPGRADER_TICK, status_text)
 
     async def upgrade_72_to_pony(self):
-        state_dir = self.session.config.state_dir
-        old_database_path = state_dir / 'sqlite' / 'tribler.sdb'
-        new_database_path = state_dir / 'sqlite' / 'metadata.db'
-        channels_dir = self.session.config.chant.get_path_as_absolute('channels_dir', self.session.config.state_dir)
+        old_database_path = self.state_dir / STATEDIR_DB_DIR / 'tribler.sdb'
+        new_database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if new_database_path.exists():
             cleanup_pony_experimental_db(str(new_database_path))
-            cleanup_noncompliant_channel_torrents(state_dir)
+            cleanup_noncompliant_channel_torrents(self.state_dir)
 
         self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
         if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
@@ -406,7 +402,7 @@ class TriblerUpgrader:
         self._dtp72.shutting_down = self.skip_upgrade_called
         self.notify_starting()
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        mds = MetadataStore(new_database_path, channels_dir, self.session.trustchain_keypair,
+        mds = MetadataStore(new_database_path, self.channels_dir, self.trustchain_keypair,
                             disable_sync=True, db_version=6)
         self._dtp72.initialize(mds)
 
@@ -426,10 +422,10 @@ class TriblerUpgrader:
         """
         if not self.notified:
             self.notified = True
-            self.session.notifier.notify(NTFY.UPGRADER_STARTED)
+            self.notifier.notify(NTFY.UPGRADER_STARTED)
 
     def notify_done(self):
         """
         Broadcast a notification (event) that the upgrader is done.
         """
-        self.session.notifier.notify(NTFY.UPGRADER_DONE)
+        self.notifier.notify(NTFY.UPGRADER_DONE)

@@ -3,7 +3,7 @@ import pytest
 
 def pytest_addoption(parser):
     parser.addoption('--tunneltests', action='store_true', dest="tunneltests",
-                 default=False, help="enable tunnel tests")
+                     default=False, help="enable tunnel tests")
 
 
 def pytest_collection_modifyitems(config, items):

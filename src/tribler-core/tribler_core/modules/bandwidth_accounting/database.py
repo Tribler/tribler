@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pony.orm import Database, count, db_session, select, sum
 
 from tribler_core.modules.bandwidth_accounting import history, misc, transaction as db_transaction
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 class BandwidthDatabase:
@@ -14,7 +15,8 @@ class BandwidthDatabase:
     CURRENT_DB_VERSION = 9
     MAX_HISTORY_ITEMS = 100  # The maximum number of history items to store.
 
-    def __init__(self, db_path: Path, my_pub_key: bytes, store_all_transactions: bool = False) -> None:
+    def __init__(self, db_path: Union[Path, type(MEMORY_DB)], my_pub_key: bytes,
+                 store_all_transactions: bool = False) -> None:
         """
         Sets up the persistence layer ready for use.
         :param db_path: The full path of the database.
@@ -22,17 +24,16 @@ class BandwidthDatabase:
         :param store_all_transactions: Whether we store all pairwise transactions in the database. This is disabled by
         default and used for data collection purposes.
         """
-        self.db_path = db_path
         self.my_pub_key = my_pub_key
         self.store_all_transactions = store_all_transactions
-        create_db = str(db_path) == ":memory:" or not self.db_path.is_file()
-        self.database = Database()
 
+        self.database = Database()
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         # pylint: disable=unused-variable
+
         @self.database.on_connect(provider='sqlite')
-        def sqlite_disable_sync(_, connection):
+        def sqlite_sync_pragmas(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")
             cursor.execute("PRAGMA synchronous = 1")
@@ -43,7 +44,14 @@ class BandwidthDatabase:
         self.BandwidthTransaction = db_transaction.define_binding(self)
         self.BandwidthHistory = history.define_binding(self)
 
-        self.database.bind(provider='sqlite', filename=str(db_path), create_db=create_db, timeout=120.0)
+        if db_path is MEMORY_DB:
+            create_db = True
+            db_path_string = ":memory:"
+        else:
+            create_db = not db_path.is_file()
+            db_path_string = str(db_path)
+
+        self.database.bind(provider='sqlite', filename=db_path_string, create_db=create_db, timeout=120.0)
         self.database.generate_mapping(create_tables=create_db)
 
         if create_db:

@@ -7,12 +7,18 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 
 from tribler_core.restapi.rest_endpoint import HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class BandwidthEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests for bandwidth accounting data.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.bandwidth_community = None
 
     def setup_routes(self) -> None:
         self.app.add_routes([web.get('/statistics', self.get_statistics)])
@@ -36,9 +42,9 @@ class BandwidthEndpoint(RESTEndpoint):
         }
     )
     async def get_statistics(self, request) -> RESTResponse:
-        if not self.session.bandwidth_community:
+        if not self.bandwidth_community:
             return RESTResponse({"error": "Bandwidth community not found"}, status=HTTP_NOT_FOUND)
-        return RESTResponse({'statistics': self.session.bandwidth_community.get_statistics()})
+        return RESTResponse({'statistics': self.bandwidth_community.get_statistics()})
 
     @docs(
         tags=["Bandwidth"],
@@ -47,15 +53,15 @@ class BandwidthEndpoint(RESTEndpoint):
             200: {
                 "schema": schema(BandwidthHistoryResponse={
                     "history": [schema(BandwidthHistoryItem={
-                            "timestamp": Integer,
-                            "balance": Integer
-                        })
+                        "timestamp": Integer,
+                        "balance": Integer
+                    })
                     ]
                 })
             }
         }
     )
     async def get_history(self, request) -> RESTResponse:
-        if not self.session.bandwidth_community:
+        if not self.bandwidth_community:
             return RESTResponse({"error": "Bandwidth community not found"}, status=HTTP_NOT_FOUND)
-        return RESTResponse({'history': self.session.bandwidth_community.database.get_history()})
+        return RESTResponse({'history': self.bandwidth_community.database.get_history()})

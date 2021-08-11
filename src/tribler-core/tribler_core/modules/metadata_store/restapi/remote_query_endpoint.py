@@ -15,12 +15,18 @@ from tribler_core.modules.metadata_store.restapi.metadata_endpoint import Metada
 from tribler_core.modules.metadata_store.restapi.metadata_schema import RemoteQueryParameters
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class RemoteQueryEndpoint(MetadataEndpointBase):
     """
     This endpoint fires a remote search in the IPv8 GigaChannel Community.
     """
+
+    def __init__(self, *args, **kwargs):
+        MetadataEndpointBase.__init__(self, *args, **kwargs)
+        self.gigachannel_community = None
 
     def setup_routes(self):
         self.app.add_routes([web.put('', self.create_remote_search_request)])
@@ -50,7 +56,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
 
-        request_uuid, peers_list = self.session.gigachannel_community.send_search_request(**sanitized)
+        request_uuid, peers_list = self.gigachannel_community.send_search_request(**sanitized)
         peers_mid_list = [hexlify(p.mid) for p in peers_list]
 
         return RESTResponse({"request_uuid": str(request_uuid), "peers": peers_mid_list})
@@ -59,11 +65,11 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         # Get debug stats for peers serving channels
         current_time = time.time()
         result = []
-        mapping = self.session.gigachannel_community.channels_peers
+        mapping = self.gigachannel_community.channels_peers
         with db_session:
             for id_tuple, peers in mapping._channels_dict.items():  # pylint:disable=W0212
                 channel_pk, channel_id = id_tuple
-                chan = self.session.mds.ChannelMetadata.get(public_key=channel_pk, id_=channel_id)
+                chan = self.mds.ChannelMetadata.get(public_key=channel_pk, id_=channel_id)
 
                 peers_list = []
                 for p in peers:

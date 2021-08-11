@@ -11,7 +11,7 @@ from tribler_core.utilities.random_utils import random_infohash
 
 
 @pytest.fixture
-def add_fake_torrents_channels(session):
+def add_fake_torrents_channels(metadata_store):
     infohashes = []
 
     torrents_per_channel = 5
@@ -19,7 +19,7 @@ def add_fake_torrents_channels(session):
     with db_session:
         for ind in range(10):
             ext_key = default_eccrypto.generate_key('curve25519')
-            channel = session.mds.ChannelMetadata(
+            channel = metadata_store.ChannelMetadata(
                 title='channel%d' % ind,
                 subscribed=(ind % 2 == 0),
                 num_entries=torrents_per_channel,
@@ -32,7 +32,7 @@ def add_fake_torrents_channels(session):
             for torrent_ind in range(torrents_per_channel):
                 rand_infohash = random_infohash()
                 infohashes.append(rand_infohash)
-                t = session.mds.TorrentMetadata(
+                t = metadata_store.TorrentMetadata(
                     origin_id=channel.id_, title='torrent%d' % torrent_ind, infohash=rand_infohash, sign_with=ext_key
                 )
                 t.health.seeders = int.from_bytes(t.infohash[:2], byteorder="big")
@@ -41,21 +41,23 @@ def add_fake_torrents_channels(session):
 
 
 @pytest.fixture
-def my_channel(session):
+def my_channel(metadata_store):
     with db_session:
-        chan = session.mds.ChannelMetadata.create_channel('test', 'test')
+        chan = metadata_store.ChannelMetadata.create_channel('test', 'test')
         for ind in range(5):
-            _ = session.mds.TorrentMetadata(
+            _ = metadata_store.TorrentMetadata(
                 origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=random_infohash()
             )
         for ind in range(5, 9):
-            _ = session.mds.TorrentMetadata(origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash())
+            _ = metadata_store.TorrentMetadata(origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash())
 
-        chan2 = session.mds.ChannelMetadata.create_channel('test2', 'test2')
+        chan2 = metadata_store.ChannelMetadata.create_channel('test2', 'test2')
         for ind in range(5):
-            _ = session.mds.TorrentMetadata(
+            _ = metadata_store.TorrentMetadata(
                 origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=random_infohash()
             )
         for ind in range(5, 9):
-            _ = session.mds.TorrentMetadata(origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash())
+            _ = metadata_store.TorrentMetadata(
+                origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
+            )
         return chan

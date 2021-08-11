@@ -16,6 +16,7 @@ from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.notifier import Notifier
 from tribler_core.version import version_id
 
 VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
@@ -39,11 +40,11 @@ def get_user_agent_string(tribler_version, platform_module):
 
 class VersionCheckManager(TaskManager):
 
-    def __init__(self, session):
+    def __init__(self, notifier: Notifier):
         super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
+        self.notifier = notifier
 
     def start(self, interval=VERSION_CHECK_INTERVAL):
         if 'GIT' not in version_id:
@@ -70,7 +71,7 @@ class VersionCheckManager(TaskManager):
                 response_dict = await response.json(content_type=None)
                 version = response_dict['name'][1:]
                 if LooseVersion(version) > LooseVersion(version_id):
-                    self.session.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
+                    self.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
                     return True
                 return False
 
@@ -83,6 +84,6 @@ class VersionCheckManager(TaskManager):
         except asyncio.TimeoutError:
             self._logger.warning("Checking for new version failed for %s", version_check_url)
         except ValueError as ve:
-            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}")  # pylint: disable=raise-missing-from
+            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}") from ve
 
         return None

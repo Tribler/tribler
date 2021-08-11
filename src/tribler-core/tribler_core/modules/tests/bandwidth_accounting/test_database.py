@@ -1,5 +1,4 @@
 import random
-from pathlib import Path
 
 from ipv8.keyvault.crypto import default_eccrypto
 
@@ -10,6 +9,7 @@ import pytest
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.utilities.utilities import MEMORY_DB
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def my_key():
 
 @pytest.fixture
 def bandwidth_db(tmpdir, my_key):
-    db = BandwidthDatabase(Path(":memory:"), my_key.pub().key_to_bin())
+    db = BandwidthDatabase(MEMORY_DB, my_key.pub().key_to_bin())
     yield db
     db.shutdown()
 

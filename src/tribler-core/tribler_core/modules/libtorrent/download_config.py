@@ -155,11 +155,11 @@ def get_default_dest_dir():
     """
     tribler_downloads = Path("TriblerDownloads")
     if tribler_downloads.is_dir():
-        return tribler_downloads.absolute()
+        return tribler_downloads.resolve()
 
     home = get_home_dir()
     downloads = home / "Downloads"
     if downloads.is_dir():
-        return (downloads / tribler_downloads).absolute()
+        return (downloads / tribler_downloads).resolve()
 
-    return (home / tribler_downloads).absolute()
+    return (home / tribler_downloads).resolve()

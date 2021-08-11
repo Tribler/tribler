@@ -2,18 +2,20 @@ from __future__ import annotations
 
 from asyncio import Future
 from binascii import unhexlify
-from pathlib import Path
 from random import Random
 from typing import Dict
 
 from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
 from ipv8.types import Address
+
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
 from tribler_core.modules.bandwidth_accounting.cache import BandwidthTransactionSignCache
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
-from tribler_core.modules.bandwidth_accounting.payload import BandwidthTransactionPayload, \
-    BandwidthTransactionQueryPayload
+from tribler_core.modules.bandwidth_accounting.payload import (
+    BandwidthTransactionPayload,
+    BandwidthTransactionQueryPayload,
+)
 from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
 from tribler_core.modules.tribler_community import TriblerCommunity
 from tribler_core.utilities.unicode import hexlify
@@ -33,17 +35,13 @@ class BandwidthAccountingCommunity(TriblerCommunity):
         :param persistence: The database that stores transactions, will be created if not provided.
         :param database_path: The path at which the database will be created. Defaults to the current working directory.
         """
-        self.database = kwargs.pop('database', None)
-        self.database_path = Path(kwargs.pop('database_path', ''))
+        self.database: BandwidthDatabase = kwargs.pop('database', None)
         self.random = Random()
 
         super().__init__(*args, **kwargs)
 
         self.request_cache = RequestCache()
         self.my_pk = self.my_peer.public_key.key_to_bin()
-
-        if not self.database:
-            self.database = BandwidthDatabase(self.database_path, self.my_pk)
 
         self.add_message_handler(BandwidthTransactionPayload, self.received_transaction)
         self.add_message_handler(BandwidthTransactionQueryPayload, self.received_query)

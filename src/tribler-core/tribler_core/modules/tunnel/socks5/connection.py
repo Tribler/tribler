@@ -67,7 +67,9 @@ class Socks5Connection(Protocol):
                 if not self._try_request():
                     break  # Not enough bytes so wait till we got more
             elif self.connect_to:
-                self.socksserver.output_stream.on_socks5_tcp_data(self, self.connect_to, self.buffer)
+                if self.socksserver.output_stream is not None:
+                    # Swallow the data in case the tunnel community has not started yet
+                    self.socksserver.output_stream.on_socks5_tcp_data(self, self.connect_to, self.buffer)
                 self.buffer = b''
             else:
                 self._logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")
@@ -189,7 +191,7 @@ class Socks5Connection(Protocol):
         @return Set with destinations using this circuit
         """
         affected_destinations = {destination for destination, tunnel_circuit
-                                    in self.destinations.items() if tunnel_circuit == broken_circuit}
+                                 in self.destinations.items() if tunnel_circuit == broken_circuit}
         counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:

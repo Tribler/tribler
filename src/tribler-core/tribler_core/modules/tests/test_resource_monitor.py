@@ -9,12 +9,18 @@ import pytest
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
+from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
 
 
 @pytest.fixture(name="resource_monitor")
-async def fixture_resource_monitor(session):
-    session.notifier = Mock()
-    resource_monitor = CoreResourceMonitor(session, history_size=10)
+async def fixture_resource_monitor(tmp_path):
+    config = ResourceMonitorSettings()
+    notifier = Mock()
+    resource_monitor = CoreResourceMonitor(state_dir=tmp_path,
+                                           log_dir=tmp_path,
+                                           config=config,
+                                           notifier=notifier,
+                                           history_size=10)
     yield resource_monitor
     await resource_monitor.stop()
 
@@ -83,7 +89,7 @@ def test_low_disk_notification(resource_monitor):
         assert subject in [NTFY.LOW_SPACE, NTFY.TRIBLER_SHUTDOWN_STATE]
 
     resource_monitor.get_free_disk_space = fake_get_free_disk_space
-    resource_monitor.session.notifier.notify = on_notify
+    resource_monitor.notifier.notify = on_notify
     resource_monitor.check_resources()
 
 

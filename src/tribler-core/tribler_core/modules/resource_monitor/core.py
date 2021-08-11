@@ -10,6 +10,8 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
 from tribler_core.modules.resource_monitor.profiler import YappiProfiler
+from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
+from tribler_core.notifier import Notifier
 
 FREE_DISK_THRESHOLD = 100 * (1024 * 1024)  # 100MB
 DEFAULT_RESOURCE_FILENAME = "resources.log"
@@ -22,26 +24,27 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
     TaskManager to implement start() and stop() methods.
     """
 
-    def __init__(self, session, history_size=CORE_RESOURCE_HISTORY_SIZE):
+    def __init__(self, state_dir, log_dir, config: ResourceMonitorSettings,
+                 notifier: Notifier, history_size=CORE_RESOURCE_HISTORY_SIZE):
         TaskManager.__init__(self)
         ResourceMonitor.__init__(self, history_size=history_size)
 
-        self.session = session
+        self.config = config
+        self.notifier = notifier
         self.disk_usage_data = deque(maxlen=history_size)
 
-        self.state_dir = session.config.state_dir
-        log_dir = self.session.config.general.get_path_as_absolute('log_dir', self.state_dir)
+        self.state_dir = state_dir
         self.resource_log_file = log_dir / DEFAULT_RESOURCE_FILENAME
-        self.resource_log_enabled = session.config.resource_monitor.enabled
+        self.resource_log_enabled = config.enabled
 
         # Setup yappi profiler
-        self.profiler = YappiProfiler(self.session)
+        self.profiler = YappiProfiler(log_dir)
 
     def start(self):
         """
         Start the resource monitoring by scheduling a task in TaskManager.
         """
-        poll_interval = self.session.config.resource_monitor.poll_interval
+        poll_interval = self.config.poll_interval
         self.register_task("check_resources", self.check_resources, interval=poll_interval)
 
     async def stop(self):
@@ -98,11 +101,11 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         # Notify session if less than 100MB of disk space is available
         if disk_usage.free < FREE_DISK_THRESHOLD:
             self._logger.warning("Warning! Less than 100MB of disk space available")
-            if self.session.notifier:
-                self.session.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
+            if self.notifier:
+                self.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
 
     def get_free_disk_space(self):
-        return psutil.disk_usage(str(self.session.config.state_dir))
+        return psutil.disk_usage(str(self.state_dir))
 
     def get_disk_usage(self):
         """

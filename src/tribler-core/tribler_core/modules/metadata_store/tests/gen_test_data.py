@@ -17,6 +17,7 @@ from tribler_core.modules.metadata_store.tests.test_channel_download import (
 )
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
 from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.utilities import MEMORY_DB
 
 DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
 SAMPLE_DIR = DATA_DIR / 'sample_channel'
@@ -77,5 +78,5 @@ def gen_sample_channel(mds):
 
 
 if __name__ == "__main__":
-    mds = MetadataStore(":memory:", SAMPLE_DIR, my_key)
+    mds = MetadataStore(MEMORY_DB, SAMPLE_DIR, my_key)
     gen_sample_channel(mds)

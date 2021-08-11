@@ -17,14 +17,19 @@ from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, recursive_bytes
-from tribler_core.utilities.utilities import bdecode_compat
+from tribler_core.utilities.utilities import bdecode_compat, froze_it
 
 
+@froze_it
 class CreateTorrentEndpoint(RESTEndpoint):
     """
     Create a torrent file from local files.
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
+
+    def __init__(self):
+        super().__init__()
+        self.download_manager = None
 
     def setup_routes(self):
         self.app.add_routes([web.post('', self.create_torrent)])
@@ -92,7 +97,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params['piece length'] = 0  # auto
 
         try:
-            result = await self.session.dlmgr.create_torrent_file(file_path_list, recursive_bytes(params))
+            result = await self.download_manager.create_torrent_file(file_path_list, recursive_bytes(params))
         except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -108,9 +113,9 @@ class CreateTorrentEndpoint(RESTEndpoint):
         if 'download' in request.query and request.query['download'] and request.query['download'] == "1":
             download_config = DownloadConfig()
             download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
-            download_config.set_hops(self.session.config.download_defaults.number_hops)
+            download_config.set_hops(self.download_manager.download_defaults.number_hops)
             try:
-                self.session.dlmgr.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
+                self.download_manager.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
             except DuplicateDownloadException:
                 self._logger.warning("The created torrent is already being downloaded.")
 

@@ -2,13 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from tribler_common.simpledefs import (
-    DLSTATUS_DOWNLOADING,
-    DLSTATUS_EXIT_NODES,
-    DLSTATUS_WAITING4HASHCHECK,
-    DOWNLOAD,
-    UPLOAD,
-)
+from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DOWNLOAD, UPLOAD
 
 from tribler_core.modules.libtorrent.download_state import DownloadState
 
@@ -33,22 +27,23 @@ def test_getters_setters_1(mock_download):
     Testing various getters and setters in DownloadState
     """
     mock_download.get_peerlist = lambda: []
-    mock_download.session.tunnel_community.get_candidates = lambda _: []
+    mock_download.dlmgr.tunnel_community.get_candidates = lambda _: []
     mock_download.config.get_hops = lambda: 0
     download_state = DownloadState(mock_download, None, None)
 
     assert download_state.get_download() == mock_download
     assert download_state.get_progress() == 0
-    assert download_state.get_status() == DLSTATUS_WAITING4HASHCHECK
     assert download_state.get_error() is None
     assert download_state.get_current_speed(UPLOAD) == 0
     assert download_state.get_total_transferred(UPLOAD) == 0
     assert download_state.get_num_seeds_peers() == (0, 0)
     assert download_state.get_peerlist() == []
 
-    mock_download.config.get_hops = lambda: 1
-    download_state = DownloadState(mock_download, None, None)
-    assert download_state.get_status() == DLSTATUS_EXIT_NODES
+    # TODO: move this to do downloads endpoint test, testing get_extended_status
+    #assert download_state.get_status() == DLSTATUS_WAITING4HASHCHECK
+    #mock_download.config.get_hops = lambda: 1
+    #download_state = DownloadState(mock_download, None, None)
+    #assert download_state.get_status() == DLSTATUS_EXIT_NODES
 
 
 def test_getters_setters_2(mock_download, mock_lt_status):

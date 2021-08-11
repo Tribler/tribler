@@ -72,10 +72,6 @@ class TrackerSession(TaskManager):
         return f"Tracker[{self.tracker_type}, {self.tracker_url}]"
 
     async def cleanup(self):
-        """
-        Sets the _infohash_list to None and returns a deferred that has succeeded.
-        :return: A deferred that succeeds immediately.
-        """
         await self.shutdown_task_manager()
         self.infohash_list = None
 
@@ -433,19 +429,19 @@ class FakeDHTSession(TrackerSession):
     Fake TrackerSession that manages DHT requests
     """
 
-    def __init__(self, session, infohash, timeout):
+    def __init__(self, dlmgr, infohash, timeout):
         super().__init__('DHT', 'DHT', 'DHT', 'DHT', timeout)
 
         self.infohash = infohash
-        self._session = session
+        self.dlmgr = dlmgr
 
     async def cleanup(self):
         """
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
+        await super().shutdown_task_manager()
         self.infohash_list = None
-        self._session = None
 
     def add_infohash(self, infohash):
         """
@@ -459,7 +455,7 @@ class FakeDHTSession(TrackerSession):
         Fakely connects to a tracker.
         :return: A deferred that fires with the health information.
         """
-        metainfo = await self._session.dlmgr.get_metainfo(self.infohash, timeout=self.timeout)
+        metainfo = await self.dlmgr.get_metainfo(self.infohash, timeout=self.timeout)
         if not metainfo:
             raise RuntimeError("Metainfo lookup error")
 
@@ -483,6 +479,6 @@ class FakeBep33DHTSession(FakeDHTSession):
         :return: A deferred that fires with the health information.
         """
         try:
-            return await self._session.dlmgr.dht_health_manager.get_health(self.infohash, timeout=self.timeout)
+            return await self.dlmgr.dht_health_manager.get_health(self.infohash, timeout=self.timeout)
         except TimeoutError:
             self.failed(msg='request timed out')

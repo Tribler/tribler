@@ -13,7 +13,7 @@ from socket import inet_aton
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.session import Session
+from tribler_core.start_core import Session
 from tribler_core.utilities.osutils import get_appstate_dir
 from tribler_core.utilities.path_util import Path
 
