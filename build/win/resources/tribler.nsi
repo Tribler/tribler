@@ -31,7 +31,7 @@ SilentInstall normal
 SilentUnInstall normal
 
 ;Remember install folder
-InstallDirRegKey HKCU "Software\${PRODUCT}" ""
+InstallDirRegKey HKLM "Software\${PRODUCT}\InstallPath" ""
 
 ;
 ; Uncomment for smaller file size
@@ -153,6 +153,8 @@ Section "!Main EXE" SecMain
     ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
     IntFmt $0 "0x%08X" $0
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "EstimatedSize" "$0"
+
+    WriteRegStr HKLM "Software\${PRODUCT}" "InstallPath" "$INSTDIR"
 
     ; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
     DeleteRegKey HKEY_CURRENT_USER "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
