@@ -28,4 +28,3 @@ class UpgradeComponentImp(UpgradeComponent):
         await upgrader.run()
 
         self.upgrader = upgrader
-        # self.provide(mediator, UPGRADER)

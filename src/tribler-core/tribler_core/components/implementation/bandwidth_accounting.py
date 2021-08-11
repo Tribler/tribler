@@ -44,7 +44,6 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
 
         ipv8.overlays.append(community)
         self.community = community
-        # self.provide(mediator, community)
 
         rest_manager.get_endpoint('trustview').bandwidth_db = community.database
         rest_manager.get_endpoint('bandwidth').bandwidth_community = community

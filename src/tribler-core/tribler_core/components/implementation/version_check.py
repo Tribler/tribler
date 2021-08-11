@@ -13,7 +13,6 @@ class VersionCheckComponentImp(VersionCheckComponent):
 
         self.version_check_manager = VersionCheckManager(notifier=notifier)
         self.version_check_manager.start()
-        # self.provide(mediator, version_check_manager)
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Version Checker...")

@@ -56,7 +56,6 @@ class TunnelsComponentImp(TunnelsComponent):
             community.bootstrappers.append(ipv8_component.bootstrapper)
 
         self.community = community
-        # self.provide(mediator, community)
 
         rest_manager.get_endpoint('downloads').tunnel_community = community
         rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(ipv8)
