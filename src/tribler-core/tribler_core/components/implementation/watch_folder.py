@@ -24,7 +24,6 @@ class WatchFolderComponentImp(WatchFolderComponent):
 
         watch_folder.start()
         self.watch_folder = watch_folder
-        # self.provide(mediator, watch_folder)
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Watch Folder...")

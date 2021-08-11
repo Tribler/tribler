@@ -26,11 +26,8 @@ class PayoutComponentImp(PayoutComponent):
         self.session.notifier.add_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, payout_manager.update_peer)
 
         assert not config.gui_test_mode
-        # if config.gui_test_mode:
-        #     dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
         self.payout_manager = payout_manager
-        # self.provide(mediator, payout_manager)
 
     async def shutdown(self):
         self.session.notifier.remove_observer(NTFY.PEER_DISCONNECTED_EVENT, self.payout_manager.do_payout)

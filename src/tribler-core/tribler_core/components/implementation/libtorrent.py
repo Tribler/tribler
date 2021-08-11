@@ -43,7 +43,6 @@ class LibtorrentComponentImp(LibtorrentComponent):
         state_endpoint.readable_status = STATE_CHECKPOINTS_LOADED
 
         self.download_manager = download_manager
-        # self.provide(mediator, download_manager)
 
         for endpoint in self.endpoints:
             rest_manager.get_endpoint(endpoint).download_manager = download_manager

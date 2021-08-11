@@ -38,7 +38,6 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
             disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
-        # self.provide(mediator, metadata_store)
 
         for endpoint in self.endpoints:
             rest_manager.get_endpoint(endpoint).mds = metadata_store

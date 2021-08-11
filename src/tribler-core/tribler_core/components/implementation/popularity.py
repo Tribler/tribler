@@ -28,7 +28,6 @@ class PopularityComponentImp(PopularityComponent):
                                         metadata_store=metadata_store,
                                         torrent_checker=torrent_checker)
         self.community = community
-        # self.provide(mediator, community)
 
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))

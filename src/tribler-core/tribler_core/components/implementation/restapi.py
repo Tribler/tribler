@@ -44,7 +44,6 @@ class RESTComponentImp(RESTComponent):
         # We provide the REST API only after the essential endpoints (events, state and shutdown) and
         # the exception handler were initialized
         self.rest_manager = rest_manager
-        # self.provide(mediator, rest_manager)
 
     async def shutdown(self):
         # TODO: disconnect notifier from endpoints

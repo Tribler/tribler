@@ -42,7 +42,6 @@ class GigaChannelComponentImp(GigaChannelComponent):
             max_peers=50,
         )
         self.community = community
-        # self.provide(mediator, community)
 
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))

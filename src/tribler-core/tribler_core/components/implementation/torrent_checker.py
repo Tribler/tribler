@@ -32,7 +32,6 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
                                          socks_listen_ports=socks_ports,
                                          metadata_store=metadata_store)
         self.torrent_checker = torrent_checker
-        # self.provide(mediator, torrent_checker)
 
         rest_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
 

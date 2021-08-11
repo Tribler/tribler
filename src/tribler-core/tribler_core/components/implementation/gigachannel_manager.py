@@ -30,7 +30,6 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
         rest_manager.get_endpoint('collections').gigachannel_manager = manager
 
         self.gigachannel_manager = manager
-        # self.provide(mediator, manager)
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")

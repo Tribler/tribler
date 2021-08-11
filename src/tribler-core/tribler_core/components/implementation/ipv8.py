@@ -64,7 +64,6 @@ class Ipv8ComponentImp(Ipv8Component):
         masterkey = await self.use(MasterKeyComponent)
 
         self.peer = Peer(masterkey.keypair)
-        # self.provide(mediator, ipv8)
 
         if config.ipv8.statistics and not config.gui_test_mode:
             # Enable gathering IPv8 statistics
