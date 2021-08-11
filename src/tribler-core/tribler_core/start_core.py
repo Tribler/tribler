@@ -21,7 +21,6 @@ from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler
 from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.utilities.install_dir import get_lib_path
 
 
 logger = logging.getLogger(__name__)

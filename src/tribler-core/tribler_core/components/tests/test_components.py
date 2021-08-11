@@ -124,6 +124,9 @@ async def test_reporter_component(loop, tribler_config):
         assert comp.stopped
 
 async def test_rest_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
         ReporterComponent.make_implementation(tribler_config, True),
@@ -144,6 +147,9 @@ async def test_rest_component(loop, tribler_config):
 
 
 async def test_upgrade_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
         ReporterComponent.make_implementation(tribler_config, True),
@@ -164,8 +170,10 @@ async def test_upgrade_component(loop, tribler_config):
         assert comp.stopped
 
 
-
 async def test_ipv8_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
@@ -188,6 +196,9 @@ async def test_ipv8_component(loop, tribler_config):
 
 
 async def test_libtorrent_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
     session = Session(tribler_config, [
@@ -213,6 +224,9 @@ async def test_libtorrent_component(loop, tribler_config):
 
 
 async def test_metadata_store_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
     session = Session(tribler_config, [
@@ -237,6 +251,9 @@ async def test_metadata_store_component(loop, tribler_config):
 
 
 async def test_gigachannel_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
@@ -263,7 +280,10 @@ async def test_gigachannel_component(loop, tribler_config):
         assert comp.stopped
 
 
-async def test_popularity_component(loop, tribler_config):
+async def test_popularity_component(loop, tribler_config): ###
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
@@ -292,7 +312,6 @@ async def test_popularity_component(loop, tribler_config):
         await session.shutdown()
         assert comp.stopped
 
-
 async def test_socks_servers_component(loop, tribler_config):
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
@@ -313,7 +332,10 @@ async def test_socks_servers_component(loop, tribler_config):
         assert comp.stopped
 
 
-async def test_tunnels_component(loop, tribler_config):
+async def test_tunnels_component(loop, tribler_config): ###
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
@@ -343,6 +365,9 @@ async def test_tunnels_component(loop, tribler_config):
 
 
 async def test_bandwidth_accounting_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
@@ -367,6 +392,9 @@ async def test_bandwidth_accounting_component(loop, tribler_config):
 
 
 async def test_payout_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
@@ -391,7 +419,10 @@ async def test_payout_component(loop, tribler_config):
         assert comp.stopped
 
 
-async def test_torrent_checker_component(loop, tribler_config):
+async def test_torrent_checker_component(loop, tribler_config): ###
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
     session = Session(tribler_config, [
@@ -419,6 +450,9 @@ async def test_torrent_checker_component(loop, tribler_config):
 
 
 async def test_watch_folder_component(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
     session = Session(tribler_config, [
@@ -444,7 +478,10 @@ async def test_watch_folder_component(loop, tribler_config):
         assert comp.stopped
 
 
-async def test_resourcemonitorcomponent(loop, tribler_config):
+async def test_resourcemonitorcomponent(loop, tribler_config): ###
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
@@ -475,6 +512,9 @@ async def test_resourcemonitorcomponent(loop, tribler_config):
 
 
 async def test_versioncheckcomponent(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     session = Session(tribler_config, [
         MasterKeyComponent.make_implementation(tribler_config, True),
         ReporterComponent.make_implementation(tribler_config, True),
@@ -497,6 +537,9 @@ async def test_versioncheckcomponent(loop, tribler_config):
 
 
 async def test_gigachannelmanagercomponent(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    tribler_config.api.http_enabled = True
+
     tribler_config.libtorrent.enabled = True
     tribler_config.chant.enabled = True
     session = Session(tribler_config, [
