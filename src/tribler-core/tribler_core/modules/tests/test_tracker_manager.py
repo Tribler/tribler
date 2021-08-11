@@ -1,12 +1,14 @@
 import pytest
 
+from tribler_core.modules.tracker_manager import TrackerManager
+
 
 @pytest.fixture
-def tracker_manager(session):
-    return session.tracker_manager
+def tracker_manager(tmp_path, metadata_store):
+    return TrackerManager(state_dir=tmp_path, metadata_store=metadata_store)
 
 
-def test_add_tracker(enable_chant, tracker_manager):
+def test_add_tracker(tracker_manager):
     """
     Test whether adding a tracker works correctly
     """
@@ -17,7 +19,7 @@ def test_add_tracker(enable_chant, tracker_manager):
     assert tracker_manager.get_tracker_info("http://test1.com:80/announce")
 
 
-def test_remove_tracker(enable_chant, tracker_manager):
+def test_remove_tracker(tracker_manager):
     """
     Test whether removing a tracker works correctly
     """
@@ -27,7 +29,7 @@ def test_remove_tracker(enable_chant, tracker_manager):
     assert not tracker_manager.get_tracker_info("http://test1.com:80/announce")
 
 
-def test_get_tracker_info(enable_chant, tracker_manager):
+def test_get_tracker_info(tracker_manager):
     """
     Test whether the correct tracker info is returned when requesting it in the tracker manager
     """
@@ -37,7 +39,7 @@ def test_get_tracker_info(enable_chant, tracker_manager):
     assert tracker_manager.get_tracker_info("http://test1.com:80/announce")
 
 
-def test_update_tracker_info(enable_chant, tracker_manager):
+def test_update_tracker_info(tracker_manager):
     """
     Test whether the tracker info is correctly updated
     """
@@ -66,7 +68,7 @@ def test_get_tracker_for_check(enable_chant, tracker_manager):
     assert tracker_manager.get_next_tracker_for_auto_check().url == 'http://test1.com/announce'
 
 
-def test_get_tracker_for_check_blacklist(enable_chant, tracker_manager):
+def test_get_tracker_for_check_blacklist(tracker_manager):
     """
     Test whether the next tracker for autocheck is not in the blacklist
     """
@@ -77,11 +79,11 @@ def test_get_tracker_for_check_blacklist(enable_chant, tracker_manager):
     assert not tracker_manager.get_next_tracker_for_auto_check()
 
 
-def test_load_blacklist_from_file_none(enable_chant, session, tracker_manager):
+def test_load_blacklist_from_file_none(tracker_manager):
     """
     Test if we correctly load a blacklist without entries
     """
-    blacklist_file = session.config.state_dir / "tracker_blacklist.txt"
+    blacklist_file = tracker_manager.state_dir / "tracker_blacklist.txt"
     with open(blacklist_file, 'w') as f:
         f.write("")
 
@@ -90,11 +92,11 @@ def test_load_blacklist_from_file_none(enable_chant, session, tracker_manager):
     assert not tracker_manager.blacklist
 
 
-def test_load_blacklist_from_file_single(enable_chant, session, tracker_manager):
+def test_load_blacklist_from_file_single(tracker_manager):
     """
     Test if we correctly load a blacklist entry from a file
     """
-    blacklist_file = session.config.state_dir / "tracker_blacklist.txt"
+    blacklist_file = tracker_manager.state_dir / "tracker_blacklist.txt"
     with open(blacklist_file, 'w') as f:
         f.write("http://test1.com/announce")
 
@@ -103,11 +105,11 @@ def test_load_blacklist_from_file_single(enable_chant, session, tracker_manager)
     assert "http://test1.com/announce" in tracker_manager.blacklist
 
 
-def test_load_blacklist_from_file_multiple(enable_chant, session, tracker_manager):
+def test_load_blacklist_from_file_multiple(tracker_manager):
     """
     Test if we correctly load blacklist entries from a file
     """
-    blacklist_file = session.config.state_dir / "tracker_blacklist.txt"
+    blacklist_file = tracker_manager.state_dir / "tracker_blacklist.txt"
     with open(blacklist_file, 'w') as f:
         f.write("http://test1.com/announce\nhttp://test2.com/announce")
 

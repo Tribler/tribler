@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 from aiohttp import web
 
+from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 
@@ -126,24 +127,6 @@ async def video_seeder_session(seed_config, video_tdef):
     await seeder_session.shutdown()
 
 
-@pytest.fixture
-def channel_tdef():
-    return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
-
-
-@pytest.fixture
-async def channel_seeder_session(seed_config, channel_tdef):
-    seeder_session = Session(seed_config)
-    seeder_session.upgrader_enabled = False
-    await seeder_session.start()
-    dscfg_seed = DownloadConfig()
-    dscfg_seed.set_dest_dir(TESTS_DATA_DIR / 'sample_channel')
-    upload = seeder_session.dlmgr.start_download(tdef=channel_tdef, config=dscfg_seed)
-    await upload.wait_for_status(DLSTATUS_SEEDING)
-    yield seeder_session
-    await seeder_session.shutdown()
-
-
 selected_ports = set()
 
 
@@ -194,9 +177,11 @@ TEST_PERSONAL_KEY = LibNaCLSK(
 
 
 @pytest.fixture
-def metadata_store(tmpdir):
-    metadata_store_path = Path(tmpdir) / 'test.db'
-    mds = MetadataStore(metadata_store_path, tmpdir, TEST_PERSONAL_KEY, disable_sync=True)
+def metadata_store(tmp_path):
+    mds = MetadataStore(db_filename=tmp_path / 'test.db',
+                        channels_dir=tmp_path / 'channels',
+                        my_key=TEST_PERSONAL_KEY,
+                        disable_sync=True)
     yield mds
     mds.shutdown()
 
@@ -304,3 +289,10 @@ def needle_in_haystack(enable_chant, enable_api, session):  # pylint: disable=un
         session.mds.TorrentMetadata(title='needle', infohash=random_infohash())
         session.mds.TorrentMetadata(title='needle2', infohash=random_infohash())
     return session
+
+
+@pytest.fixture
+def peer_key():
+    return default_eccrypto.generate_key("curve25519")
+
+

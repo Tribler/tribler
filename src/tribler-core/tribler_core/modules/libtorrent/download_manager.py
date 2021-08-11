@@ -57,11 +57,11 @@ def encode_atp(atp):
 class DownloadManager(TaskManager):
 
     def __init__(self,
-                 config: LibtorrentSettings,
                  state_dir,
                  notifier: Notifier,
-                 trustchain_keypair,
-                 download_defaults: DownloadDefaultsSettings,
+                 peer_mid: bytes,
+                 config: LibtorrentSettings = None,
+                 download_defaults: DownloadDefaultsSettings = None,
                  payout_manager: PayoutManager = None,
                  tunnel_community=None,
                  bootstrap_infohash=None,
@@ -77,12 +77,12 @@ class DownloadManager(TaskManager):
         self.listen_ports = {}
 
         self.notifier = notifier
-        self.trustchain_keypair = trustchain_keypair
-        self.config = config
+        self.peer_mid = peer_mid
+        self.config = config or LibtorrentSettings()
         self.payout_manager = payout_manager
         self.bootstrap_infohash = bootstrap_infohash
         self.tunnel_community = tunnel_community
-        self.download_defaults = download_defaults
+        self.download_defaults = download_defaults or DownloadDefaultsSettings()
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
@@ -116,6 +116,9 @@ class DownloadManager(TaskManager):
             await asyncio.sleep(1)
 
     def initialize(self):
+        # Create the checkpoints directory
+        (self.state_dir / STATEDIR_CHECKPOINT_DIR).mkdir(exist_ok=True)
+
         # Start upnp
         self.get_session().start_upnp()
 
@@ -219,9 +222,8 @@ class DownloadManager(TaskManager):
                 pe_settings.prefer_rc4 = True
                 ltsession.set_pe_settings(pe_settings)
 
-            mid = self.trustchain_keypair.key_to_hash()
-            settings['peer_fingerprint'] = mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(mid)
+            settings['peer_fingerprint'] = self.peer_mid
+            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(self.peer_mid)
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True

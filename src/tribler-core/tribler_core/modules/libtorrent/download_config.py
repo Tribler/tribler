@@ -47,6 +47,7 @@ class DownloadConfig:
 
     def write(self, filename):
         self.config.filename = Path.fix_win_long_file(filename)
+        parent_exists = Path(self.config.filename).parent.exists()
         self.config.write()
 
     def set_dest_dir(self, path):

@@ -13,7 +13,7 @@ class BandwidthEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests for bandwidth accounting data.
     """
-    def __init__(self, bandwidth_community):
+    def __init__(self, bandwidth_community=None):
         super().__init__()
         self.bandwidth_community = bandwidth_community
 

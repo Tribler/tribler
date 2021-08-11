@@ -6,7 +6,6 @@ from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.notifier import Notifier
@@ -65,15 +64,6 @@ class WatchFolder(TaskManager):
 
                 infohash = tdef.get_infohash()
 
-                if not self.dlmgr.download_exists(infohash):
+                if not self.download_manager.download_exists(infohash):
                     self._logger.info("Starting download from torrent file %s", name)
-                    dl_config = DownloadConfig()
-
-                    anon_enabled = config.download_defaults.anonymity_enabled
-                    default_num_hops = config.download_defaults.number_hops
-                    default_destination = config.download_defaults.get_path_as_absolute('saveas', config.state_dir)
-                    destination_dir = default_destination or get_default_dest_dir()
-                    dl_config.set_hops(default_num_hops if anon_enabled else 0)
-                    dl_config.set_safe_seeding(config.download_defaults.safeseeding_enabled)
-                    dl_config.set_dest_dir(destination_dir)
-                    self.dlmgr.start_download(tdef=tdef, config=dl_config)
+                    self.download_manager.start_download(torrent_file=root / name)

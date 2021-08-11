@@ -29,10 +29,10 @@ def torrent_template():
 
 
 @pytest.fixture
-def personal_channel(session):
+def personal_channel(metadata_store):
     global update_metainfo
     with db_session:
-        chan = session.mds.ChannelMetadata.create_channel(title="my test chan", description="test")
+        chan = metadata_store.ChannelMetadata.create_channel(title="my test chan", description="test")
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         chan.add_torrent_to_channel(tdef, None)
         update_metainfo = chan.commit_channel_torrent()
@@ -40,27 +40,29 @@ def personal_channel(session):
 
 
 @pytest.fixture
-async def channel_manager(session):
-    chanman = GigaChannelManager(session)
+async def gigachannel_manager(metadata_store):
+    chanman = GigaChannelManager(
+        state_dir=metadata_store.channels_dir.parent,
+        metadata_store=metadata_store,
+        download_manager=Mock(),
+        notifier=Mock())
     yield chanman
     await chanman.shutdown()
 
 
 @pytest.mark.asyncio
-async def test_regen_personal_channel_no_torrent(enable_chant, personal_channel, channel_manager, mock_dlmgr, session):
+async def test_regen_personal_channel_no_torrent(personal_channel, gigachannel_manager):
     """
     Test regenerating a non-existing personal channel torrent at startup
     """
-    session.dlmgr.get_download = lambda _: None
-    channel_manager.regenerate_channel_torrent = Mock()
-    await channel_manager.check_and_regen_personal_channels()
-    channel_manager.regenerate_channel_torrent.assert_called_once()
+    gigachannel_manager.download_manager.get_download = lambda _: None
+    gigachannel_manager.regenerate_channel_torrent = Mock()
+    await gigachannel_manager.check_and_regen_personal_channels()
+    gigachannel_manager.regenerate_channel_torrent.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_regen_personal_channel_damaged_torrent(
-    enable_chant, personal_channel, channel_manager, mock_dlmgr, session
-):
+async def test_regen_personal_channel_damaged_torrent(personal_channel, gigachannel_manager):
     """
     Test regenerating a damaged personal channel torrent at startup
     """
@@ -69,58 +71,54 @@ async def test_regen_personal_channel_damaged_torrent(
     async def mock_regen(*_, **__):
         complete.set_result(True)
 
-    channel_manager.check_and_regen_personal_channel_torrent = mock_regen
-    channel_manager.start()
+    gigachannel_manager.check_and_regen_personal_channel_torrent = mock_regen
+    gigachannel_manager.start()
     await complete
 
 
 @pytest.mark.asyncio
-async def test_regenerate_channel_torrent(enable_chant, personal_channel, channel_manager, mock_dlmgr, session):
+async def test_regenerate_channel_torrent(personal_channel, metadata_store, gigachannel_manager):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
-        channel_dir = Path(session.mds.ChannelMetadata._channels_dir) / Path(personal_channel.dirname)
+        channel_dir = Path(metadata_store.ChannelMetadata._channels_dir) / Path(personal_channel.dirname)
         for f in channel_dir.iterdir():
             f.unlink()
 
     # Test trying to regenerate a non-existing channel
-    assert await channel_manager.regenerate_channel_torrent(chan_pk, chan_id + 1) is None
+    assert await gigachannel_manager.regenerate_channel_torrent(chan_pk, chan_id + 1) is None
 
     # Mock existing downloads removal-related functions
-    session.dlmgr.get_downloads_by_name = lambda *_: [Mock()]
+    gigachannel_manager.download_manager.get_downloads_by_name = lambda *_: [Mock()]
     downloads_to_remove = []
 
     async def mock_remove_download(download_obj, **_):
         downloads_to_remove.append(download_obj)
 
-    session.dlmgr.remove_download = mock_remove_download
+    gigachannel_manager.download_manager.remove_download = mock_remove_download
 
     # Test regenerating an empty channel
-    session.mds.ChannelMetadata.consolidate_channel_torrent = lambda *_: None
-    assert await channel_manager.regenerate_channel_torrent(chan_pk, chan_id) is None
+    metadata_store.ChannelMetadata.consolidate_channel_torrent = lambda *_: None
+    assert await gigachannel_manager.regenerate_channel_torrent(chan_pk, chan_id) is None
     assert len(downloads_to_remove) == 1
 
     # Test regenerating a non-empty channel
-    channel_manager.updated_my_channel = Mock()
-    session.mds.ChannelMetadata.consolidate_channel_torrent = lambda *_: Mock()
+    gigachannel_manager.updated_my_channel = Mock()
+    metadata_store.ChannelMetadata.consolidate_channel_torrent = lambda *_: Mock()
     with patch("tribler_core.modules.libtorrent.torrentdef.TorrentDef.load_from_dict"):
-        await channel_manager.regenerate_channel_torrent(chan_pk, chan_id)
-        channel_manager.updated_my_channel.assert_called_once()
+        await gigachannel_manager.regenerate_channel_torrent(chan_pk, chan_id)
+        gigachannel_manager.updated_my_channel.assert_called_once()
 
 
-def test_updated_my_channel(enable_chant, personal_channel, channel_manager, mock_dlmgr, session, tmpdir):
+def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
     tdef = TorrentDef.load_from_dict(update_metainfo)
-    session.dlmgr.start_download = Mock()
-    session.dlmgr.download_exists = lambda *_: False
-    session.mds.channels_dir = "bla"
-    session.config.set_state_dir(Path(tmpdir))
-    channel_manager.updated_my_channel(tdef)
-    session.dlmgr.start_download.assert_called_once()
+    gigachannel_manager.download_manager.start_download = Mock()
+    gigachannel_manager.download_manager.download_exists = lambda *_: False
+    gigachannel_manager.updated_my_channel(tdef)
+    gigachannel_manager.download_manager.start_download.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_check_and_regen_personal_channel_torrent(
-    enable_chant, personal_channel, channel_manager, mock_dlmgr, session
-):
+async def test_check_and_regen_personal_channel_torrent(personal_channel, gigachannel_manager):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
         chan_download = Mock()
@@ -130,7 +128,7 @@ async def test_check_and_regen_personal_channel_torrent(
 
         chan_download.wait_for_status = mock_wait
         # Test wait for status OK
-        await channel_manager.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
+        await gigachannel_manager.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
 
         async def mock_wait_2(*_):
             await asyncio.sleep(3)
@@ -143,22 +141,22 @@ async def test_check_and_regen_personal_channel_torrent(
         async def mock_regen(*_):
             f()
 
-        channel_manager.regenerate_channel_torrent = mock_regen
-        await channel_manager.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
+        gigachannel_manager.regenerate_channel_torrent = mock_regen
+        await gigachannel_manager.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
         f.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_check_channels_updates(enable_chant, personal_channel, channel_manager, mock_dlmgr, session):
+async def test_check_channels_updates(personal_channel, gigachannel_manager, metadata_store):
     torrents_added = 0
     # We add our personal channel in an inconsistent state to make sure the GigaChannel Manager will
     # not try to update it in the same way it should update other's channels
     with db_session:
-        my_channel = session.mds.ChannelMetadata.get_my_channels().first()
+        my_channel = metadata_store.ChannelMetadata.get_my_channels().first()
         my_channel.local_version -= 1
 
         # Subscribed, not updated
-        session.mds.ChannelMetadata(
+        metadata_store.ChannelMetadata(
             title="bla1",
             public_key=b'123',
             signature=b'345',
@@ -169,7 +167,7 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
             infohash=random_infohash(),
         )
         # Not subscribed, updated
-        session.mds.ChannelMetadata(
+        metadata_store.ChannelMetadata(
             title="bla2",
             public_key=b'124',
             signature=b'346',
@@ -180,7 +178,7 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
             infohash=random_infohash(),
         )
         # Subscribed, updated - only this one should be downloaded
-        chan3 = session.mds.ChannelMetadata(
+        chan3 = metadata_store.ChannelMetadata(
             title="bla3",
             public_key=b'125',
             signature=b'347',
@@ -196,59 +194,58 @@ async def test_check_channels_updates(enable_chant, personal_channel, channel_ma
             torrents_added += 1
             assert chan1 == chan3
 
-        channel_manager.download_channel = mock_download_channel
+        gigachannel_manager.download_channel = mock_download_channel
+
 
         @db_session
         def fake_get_metainfo(infohash, **_):
-            return {'info': {'name': session.mds.ChannelMetadata.get(infohash=infohash).dirname}}
+            return {'info': {'name': metadata_store.ChannelMetadata.get(infohash=infohash).dirname}}
 
-        session.dlmgr.get_metainfo = fake_get_metainfo
-        session.dlmgr.metainfo_requests = {}
-        session.dlmgr.download_exists = lambda _: False
+        gigachannel_manager.download_manager.get_metainfo = fake_get_metainfo
+        gigachannel_manager.download_manager.metainfo_requests = {}
+        gigachannel_manager.download_manager.download_exists = lambda _: False
 
         # Manually fire the channel updates checking routine
-        channel_manager.check_channels_updates()
+        gigachannel_manager.check_channels_updates()
         # download_channel should only fire once - for the original subscribed channel
         assert torrents_added == 1
 
         # Check that downloaded, but unprocessed channel torrent is added to the processing queue
-        session.dlmgr = MockObject()
-        session.dlmgr.download_exists = lambda _: True
+        gigachannel_manager.download_manager = MockObject()
+        gigachannel_manager.download_manager.download_exists = lambda _: True
 
         mock_download = Mock()
         mock_download.get_state.get_status = DLSTATUS_SEEDING
 
-        session.dlmgr.get_download = lambda _: mock_download
+        gigachannel_manager.download_manager.get_download = lambda _: mock_download
 
         def mock_process_channel_dir(c, _):
             # Only the subscribed, but not processed (with local_version < timestamp) channel should be processed
             assert c == chan3
 
-        channel_manager.process_channel_dir = mock_process_channel_dir
+        gigachannel_manager.process_channel_dir = mock_process_channel_dir
 
         # Manually fire the channel updates checking routine
-        channel_manager.check_channels_updates()
-        await channel_manager.process_queued_channels()
+        gigachannel_manager.check_channels_updates()
+        await gigachannel_manager.process_queued_channels()
 
         # The queue should be empty afterwards
-        assert not channel_manager.channels_processing_queue
+        assert not gigachannel_manager.channels_processing_queue
 
 
 @pytest.mark.asyncio
-async def test_remove_cruft_channels(
-    torrent_template, enable_chant, personal_channel, channel_manager, mock_dlmgr, session
-):
+async def test_remove_cruft_channels(torrent_template, personal_channel, gigachannel_manager, metadata_store):
     remove_list = []
     with db_session:
         # Our personal chan is created, then updated, so there are 2 files on disk and there are 2 torrents:
         # the old one and the new one
-        personal_channel = session.mds.ChannelMetadata.get_my_channels().first()
+        personal_channel = metadata_store.ChannelMetadata.get_my_channels().first()
         my_chan_old_infohash = personal_channel.infohash
-        _ = session.mds.TorrentMetadata.from_dict(dict(torrent_template, origin_id=personal_channel.id_, status=NEW))
+        metadata_store.TorrentMetadata.from_dict(dict(torrent_template, origin_id=personal_channel.id_, status=NEW))
         personal_channel.commit_channel_torrent()
 
         # Now we add an external channel we are subscribed to.
-        chan2 = session.mds.ChannelMetadata(
+        chan2 = metadata_store.ChannelMetadata(
             title="bla1",
             infohash=b'123',
             public_key=b'123',
@@ -260,7 +257,7 @@ async def test_remove_cruft_channels(
         )
 
         # Another external channel, but there is a catch: we recently unsubscribed from it
-        chan3 = session.mds.ChannelMetadata(
+        chan3 = metadata_store.ChannelMetadata(
             title="bla2",
             infohash=b'124',
             public_key=b'124',
@@ -311,11 +308,11 @@ async def test_remove_cruft_channels(
         remove_list.append((infohash, remove_content))
         return d
 
-    session.dlmgr.get_channel_downloads = mock_get_channel_downloads
-    session.dlmgr.remove_download = mock_remove
+    gigachannel_manager.download_manager.get_channel_downloads = mock_get_channel_downloads
+    gigachannel_manager.download_manager.remove_download = mock_remove
 
-    channel_manager.remove_cruft_channels()
-    await channel_manager.process_queued_channels()
+    gigachannel_manager.remove_cruft_channels()
+    await gigachannel_manager.process_queued_channels()
     # We want to remove torrents for (a) deleted channels and (b) unsubscribed channels
     assert remove_list == [
         (mock_dl_list[0], False),
@@ -330,13 +327,10 @@ initiated_download = False
 
 
 @pytest.mark.asyncio
-async def test_reject_malformed_channel(
-    enable_chant, channel_manager, mock_dlmgr, session, tmpdir
-):  # pylint: disable=unused-argument, redefined-outer-name
+async def test_reject_malformed_channel(gigachannel_manager, metadata_store):  # pylint: disable=unused-argument, redefined-outer-name
     global initiated_download
     with db_session:
-        channel = session.mds.ChannelMetadata(title="bla1", public_key=b'123', infohash=random_infohash())
-    session.config = TriblerConfig(state_dir=tmpdir)
+        channel = metadata_store.ChannelMetadata(title="bla1", public_key=b'123', infohash=random_infohash())
 
     def mock_get_metainfo_bad(*args, **kwargs):
         return succeed({b'info': {b'name': b'bla'}})
@@ -353,15 +347,15 @@ async def test_reject_malformed_channel(
         mock_dl.future_finished = succeed(None)
         return mock_dl
 
-    session.dlmgr.start_download = mock_download_from_tdef
+    gigachannel_manager.download_manager.start_download = mock_download_from_tdef
 
     # Check that we skip channels with incorrect dirnames
-    session.dlmgr.get_metainfo = mock_get_metainfo_bad
-    await channel_manager.download_channel(channel)
+    gigachannel_manager.download_manager.get_metainfo = mock_get_metainfo_bad
+    await gigachannel_manager.download_channel(channel)
     assert not initiated_download
 
     with patch.object(TorrentDef, "__init__", lambda *_, **__: None):
         # Check that we download channels with correct dirname
-        session.dlmgr.get_metainfo = mock_get_metainfo_good
-        await channel_manager.download_channel(channel)
+        gigachannel_manager.download_manager.get_metainfo = mock_get_metainfo_good
+        await gigachannel_manager.download_channel(channel)
         assert initiated_download

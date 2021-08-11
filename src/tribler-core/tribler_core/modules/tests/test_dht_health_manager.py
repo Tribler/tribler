@@ -2,15 +2,15 @@ from asyncio import Future
 from binascii import unhexlify
 
 import pytest
+from asynctest import Mock
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
 from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-async def dht_health_manager(session):
-    session.dht_get_peers = lambda _: None
-    manager = DHTHealthManager(session)
+async def dht_health_manager():
+    manager = DHTHealthManager(lt_session=Mock())
     yield manager
     await manager.shutdown_task_manager()
 
