@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Optional
 from unittest.mock import Mock
 
@@ -17,7 +18,6 @@ class Ipv8Component(Component):
 
     ipv8: IPv8
     peer: Peer
-    bootstrapper: Optional[DispersyBootstrapper]
     peer_discovery_community: Optional[DiscoveryCommunity]
     dht_discovery_community: Optional[DHTDiscoveryCommunity]
 
@@ -32,11 +32,17 @@ class Ipv8Component(Component):
             return Ipv8ComponentImp(cls)
         return Ipv8ComponentMock(cls)
 
+    @abstractmethod
+    def make_bootstrapper(self) -> DispersyBootstrapper:
+        pass
+
 
 @testcomponent
 class Ipv8ComponentMock(Ipv8Component):
     ipv8 = Mock()
     peer = Mock()
-    bootstrapper = Mock()
     peer_discovery_community = Mock()
     dht_discovery_community = Mock()
+
+    def make_bootstrapper(self):
+        return Mock()
