@@ -78,10 +78,9 @@ class Ipv8ComponentImp(Ipv8Component):
 
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
-        self.bootstrapper = self.peer_discovery_community = self.dht_discovery_community = None
+        self.peer_discovery_community = self.dht_discovery_community = None
         self.init_dht_discovery_community()
         if not self.session.config.gui_test_mode:
-            self.init_bootstrapper()
             self.init_peer_discovery_community()
         else:
             self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
@@ -93,12 +92,12 @@ class Ipv8ComponentImp(Ipv8Component):
             if path in endpoints_to_init:
                 endpoint.initialize(ipv8)
 
-    def init_bootstrapper(self):
+    def make_bootstrapper(self) -> DispersyBootstrapper:
         args = DISPERSY_BOOTSTRAPPER['init']
         if bootstrap_override := self.session.config.ipv8.bootstrap_override:
             address, port = bootstrap_override.split(':')
             args = {'ip_addresses': [(address, int(port))], 'dns_addresses': []}
-        self.bootstrapper = DispersyBootstrapper(**args)
+        return DispersyBootstrapper(**args)
 
     def init_peer_discovery_community(self):
         ipv8 = self.ipv8
@@ -107,7 +106,7 @@ class Ipv8ComponentImp(Ipv8Component):
         ipv8.strategies.append((PeriodicSimilarity(community), INFINITE))
         ipv8.strategies.append((RandomWalk(community), 20))
         ipv8.overlays.append(community)
-        community.bootstrappers.append(self.bootstrapper)
+        community.bootstrappers.append(self.make_bootstrapper())
         self.peer_discovery_community = community
 
     def init_dht_discovery_community(self):
@@ -116,7 +115,7 @@ class Ipv8ComponentImp(Ipv8Component):
         ipv8.strategies.append((PingChurn(community), INFINITE))
         ipv8.strategies.append((RandomWalk(community), 20))
         ipv8.overlays.append(community)
-        community.bootstrappers.append(self.bootstrapper)
+        community.bootstrappers.append(self.make_bootstrapper())
         self.dht_discovery_community = community
 
     async def shutdown(self):
