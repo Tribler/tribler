@@ -23,39 +23,6 @@ from tribler_core.utilities.path_util import Path
 logger = logging.getLogger(__name__)
 
 
-class PortAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        if not 0 < values < 2**16:
-            raise argparse.ArgumentError(self, "Invalid port number")
-        setattr(namespace, self.dest, values)
-
-
-class IPAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        try:
-            inet_aton(values)
-        except:
-            raise argparse.ArgumentError(self, "Invalid IPv4 address")
-        setattr(namespace, self.dest, values)
-
-
-class IPPortAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        parsed = re.match(r"^([\d\.]+)\:(\d+)$", values)
-        if not parsed:
-            raise argparse.ArgumentError("Invalid address:port")
-
-        ip, port = parsed.group(1), int(parsed.group(2))
-        try:
-            inet_aton(ip)
-        except:
-            raise argparse.ArgumentError("Invalid server address")
-
-        if not (0 < port < 65535):
-            raise argparse.ArgumentError("Invalid server port")
-        setattr(namespace, self.dest, values)
-
-
 class TunnelHelperService(TaskManager):
 
     def __init__(self):
@@ -169,6 +136,39 @@ class TunnelHelperService(TaskManager):
         await self.shutdown_task_manager()
         if self.session:
             return self.session.shutdown()
+
+
+class PortAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if not 0 < values < 2**16:
+            raise argparse.ArgumentError(self, "Invalid port number")
+        setattr(namespace, self.dest, values)
+
+
+class IPAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        try:
+            inet_aton(values)
+        except:
+            raise argparse.ArgumentError(self, "Invalid IPv4 address")
+        setattr(namespace, self.dest, values)
+
+
+class IPPortAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        parsed = re.match(r"^([\d\.]+)\:(\d+)$", values)
+        if not parsed:
+            raise argparse.ArgumentError("Invalid address:port")
+
+        ip, port = parsed.group(1), int(parsed.group(2))
+        try:
+            inet_aton(ip)
+        except:
+            raise argparse.ArgumentError("Invalid server address")
+
+        if not (0 < port < 65535):
+            raise argparse.ArgumentError("Invalid server port")
+        setattr(namespace, self.dest, values)
 
 
 def main(argv):
