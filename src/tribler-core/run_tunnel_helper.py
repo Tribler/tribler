@@ -23,6 +23,53 @@ from tribler_core.utilities.path_util import Path
 logger = logging.getLogger(__name__)
 
 
+def make_config(options) -> TriblerConfig:
+    # Determine ipv8 port
+    ipv8_port = options.ipv8_port
+    if ipv8_port == -1 and "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
+        base_port = int(os.environ["HELPER_BASE"])
+        ipv8_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
+
+    statedir = Path(os.path.join(get_root_state_directory(), "tunnel-%d") % ipv8_port)
+    config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
+    config.tunnel_community.socks5_listen_ports = []
+    config.tunnel_community.random_slots = options.random_slots
+    config.tunnel_community.competing_slots = options.competing_slots
+    config.torrent_checking.enabled = False
+    config.ipv8.enabled = True
+    config.libtorrent.enabled = False
+    config.ipv8.port = ipv8_port
+    config.ipv8.address = options.ipv8_address
+    config.dht.enabled = True
+    config.tunnel_community.exitnode_enabled = bool(options.exit)
+    config.popularity_community.enabled = False
+    config.tunnel_community.testnet = bool(options.testnet)
+    config.chant.enabled = False
+    config.bootstrap.enabled = False
+
+    if not options.no_rest_api:
+        https = bool(options.cert_file)
+        config.api.https_enabled = https
+        config.api.http_enabled = not https
+        config.api.key = options.api_key
+
+        api_port = options.restapi
+        if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
+            api_port = int(os.environ["HELPER_BASE"]) + 10000 + int(os.environ["HELPER_INDEX"])
+        if https:
+            config.api.https_port = api_port
+            config.api.put_path_as_relative('https_certfile', options.cert_file, config.state_dir)
+        else:
+            config.api.http_port = api_port
+    else:
+        config.api.https_enabled = False
+        config.api.http_enabled = False
+
+    if options.ipv8_bootstrap_override is not None:
+        config.ipv8.bootstrap_override = options.ipv8_bootstrap_override
+    return config
+
+
 class TunnelHelperService(TaskManager):
 
     def __init__(self):
@@ -75,50 +122,7 @@ class TunnelHelperService(TaskManager):
                                                      additional_info))
 
     async def start(self, options):
-        # Determine ipv8 port
-        ipv8_port = options.ipv8_port
-        if ipv8_port == -1 and "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
-            base_port = int(os.environ["HELPER_BASE"])
-            ipv8_port = base_port + int(os.environ["HELPER_INDEX"]) * 5
-
-        statedir = Path(os.path.join(get_root_state_directory(), "tunnel-%d") % ipv8_port)
-        config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
-        config.tunnel_community.socks5_listen_ports = []
-        config.tunnel_community.random_slots = options.random_slots
-        config.tunnel_community.competing_slots = options.competing_slots
-        config.torrent_checking.enabled = False
-        config.ipv8.enabled = True
-        config.libtorrent.enabled = False
-        config.ipv8.port = ipv8_port
-        config.ipv8.address = options.ipv8_address
-        config.dht.enabled = True
-        config.tunnel_community.exitnode_enabled = bool(options.exit)
-        config.popularity_community.enabled = False
-        config.tunnel_community.testnet = bool(options.testnet)
-        config.chant.enabled = False
-        config.bootstrap.enabled = False
-
-        if not options.no_rest_api:
-            https = bool(options.cert_file)
-            config.api.https_enabled = https
-            config.api.http_enabled = not https
-            config.api.key = options.api_key
-
-            api_port = options.restapi
-            if "HELPER_INDEX" in os.environ and "HELPER_BASE" in os.environ:
-                api_port = int(os.environ["HELPER_BASE"]) + 10000 + int(os.environ["HELPER_INDEX"])
-            if https:
-                config.api.https_port = api_port
-                config.api.put_path_as_relative('https_certfile', options.cert_file, config.state_dir)
-            else:
-                config.api.http_port = api_port
-        else:
-            config.api.https_enabled = False
-            config.api.http_enabled = False
-
-        if options.ipv8_bootstrap_override is not None:
-            config.ipv8.bootstrap_override = options.ipv8_bootstrap_override
-
+        config = make_config(options)
         self.session = Session(config)
 
         self.log_circuits = options.log_circuits
