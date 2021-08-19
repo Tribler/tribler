@@ -12,7 +12,7 @@ class MetadataStoreComponent(Component):
 
     @classmethod
     def should_be_enabled(cls, config: TriblerConfig):
-        return config.chant.enabled
+        return config.chant.enabled or config.torrent_checking.enabled
 
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):
