@@ -44,8 +44,7 @@ class LibtorrentComponentImp(LibtorrentComponent):
 
         self.download_manager = download_manager
 
-        for endpoint in self.endpoints:
-            rest_manager.get_endpoint(endpoint).download_manager = download_manager
+        rest_manager.set_attr_for_endpoints(self.endpoints, 'download_manager', download_manager, skip_missing=True)
 
         if config.gui_test_mode:
             uri = "magnet:?xt=urn:btih:0000000000000000000000000000000000000000"
@@ -53,8 +52,8 @@ class LibtorrentComponentImp(LibtorrentComponent):
 
     async def shutdown(self):
         # Release endpoints
-        for endpoint in self.endpoints:
-            self.rest_manager.get_endpoint(endpoint).download_manager = None
+        self.rest_manager.set_attr_for_endpoints(self.endpoints, 'download_manager', None, skip_missing=True)
+
         await self.release(RESTComponent)
 
         self.download_manager.stop_download_states_callback()

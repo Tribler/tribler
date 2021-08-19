@@ -38,17 +38,14 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
             disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
-
-        for endpoint in self.endpoints:
-            rest_manager.get_endpoint(endpoint).mds = metadata_store
+        rest_manager.set_attr_for_endpoints(self.endpoints, 'mds', metadata_store, skip_missing=True)
 
         if config.gui_test_mode:
             generate_test_channels(metadata_store)
 
     async def shutdown(self):
         # Release endpoints
-        for endpoint in self.endpoints:
-            self.rest_manager.get_endpoint(endpoint).mds = None
+        self.rest_manager.set_attr_for_endpoints(self.endpoints, 'mds', None, skip_missing=True)
         await self.release(RESTComponent)
 
         await self.unused.wait()
