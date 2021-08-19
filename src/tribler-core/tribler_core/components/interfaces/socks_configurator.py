@@ -11,7 +11,7 @@ class SocksServersComponent(Component):
 
     @classmethod
     def should_be_enabled(cls, config: TriblerConfig):
-        return config.tunnel_community.enabled and config.libtorrent.enabled
+        return config.libtorrent.enabled
 
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):
