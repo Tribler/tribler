@@ -9,7 +9,7 @@ from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 
 class WatchFolderComponentImp(WatchFolderComponent):
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
         config = self.session.config
         notifier = self.session.notifier
         download_manager = (await self.use(LibtorrentComponent)).download_manager

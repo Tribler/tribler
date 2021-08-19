@@ -17,7 +17,7 @@ INFINITE = -1
 
 class TunnelsComponentImp(TunnelsComponent):
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
 
         config = self.session.config
         ipv8_component = await self.use(Ipv8Component)
@@ -25,10 +25,17 @@ class TunnelsComponentImp(TunnelsComponent):
         peer = ipv8_component.peer
         dht_discovery_community = ipv8_component.dht_discovery_community
 
-        bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
-        download_manager = (await self.use(LibtorrentComponent)).download_manager
-        rest_manager = (await self.use(RESTComponent)).rest_manager
-        socks_servers = (await self.use(SocksServersComponent)).socks_servers
+        bandwidth_component = await self.use(BandwidthAccountingComponent, required=False)
+        bandwidth_community = bandwidth_component.community if bandwidth_component.enabled else None
+
+        download_component = await self.use(LibtorrentComponent, required=False)
+        download_manager = download_component.download_manager if download_component.enabled else None
+
+        rest_component = await self.use(RESTComponent, required=False)
+        rest_manager = rest_component.rest_manager if rest_component.enabled else None
+
+        socks_servers_component = await self.use(SocksServersComponent, required=False)
+        socks_servers = socks_servers_component.socks_servers if socks_servers_component.enabled else None
 
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits
@@ -56,8 +63,10 @@ class TunnelsComponentImp(TunnelsComponent):
 
         self.community = community
 
-        rest_manager.get_endpoint('downloads').tunnel_community = community
-        rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(ipv8)
+        if rest_component.enabled:
+            rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(ipv8)
+            if download_component.enabled:
+                rest_manager.get_endpoint('downloads').tunnel_community = community
 
     async def shutdown(self):
         await self.community.unload()

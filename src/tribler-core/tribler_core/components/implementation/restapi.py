@@ -10,7 +10,7 @@ from tribler_core.restapi.root_endpoint import RootEndpoint
 class RESTComponentImp(RESTComponent):
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
         session = self.session
         config = session.config
         notifier = session.notifier

@@ -13,7 +13,7 @@ INFINITE = -1
 
 class PopularityComponentImp(PopularityComponent):
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
 
         config = self.session.config
         ipv8_component = await self.use(Ipv8Component)

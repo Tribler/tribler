@@ -15,8 +15,8 @@ class LibtorrentComponentImp(LibtorrentComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent)
-        await self.use(UpgradeComponent)
+        await self.use(ReporterComponent, required=False)
+        await self.use(UpgradeComponent, required=False)
         socks_ports = (await self.use(SocksServersComponent)).socks_ports
         masterkey = await self.use(MasterKeyComponent)
 

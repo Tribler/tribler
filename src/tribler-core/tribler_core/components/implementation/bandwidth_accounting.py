@@ -18,8 +18,8 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent)
-        await self.use(UpgradeComponent)
+        await self.use(ReporterComponent, required=False)
+        await self.use(UpgradeComponent, required=False)
         config = self.session.config
 
         ipv8_component = await self.use(Ipv8Component)

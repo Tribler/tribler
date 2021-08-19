@@ -8,8 +8,8 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 class ResourceMonitorComponentImp(ResourceMonitorComponent):
     async def run(self):
-        await self.use(ReporterComponent)
-        await self.use(UpgradeComponent)
+        await self.use(ReporterComponent, required=False)
+        await self.use(UpgradeComponent, required=False)
         tunnel_community = (await self.use(TunnelsComponent)).community
 
         config = self.session.config

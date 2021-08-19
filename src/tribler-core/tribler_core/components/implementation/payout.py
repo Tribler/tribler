@@ -11,7 +11,7 @@ INFINITE = -1
 
 class PayoutComponentImp(PayoutComponent):
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
 
         config = self.session.config
 
