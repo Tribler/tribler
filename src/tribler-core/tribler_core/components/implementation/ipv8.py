@@ -79,11 +79,16 @@ class Ipv8ComponentImp(Ipv8Component):
         rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
         self.peer_discovery_community = self.dht_discovery_community = None
-        self.init_dht_discovery_community()
+
+        if config.dht.enabled:
+            self.init_dht_discovery_community()
+
         if not self.session.config.gui_test_mode:
-            self.init_peer_discovery_community()
+            if config.discovery_community.enabled:
+                self.init_peer_discovery_community()
         else:
-            self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
+            if config.dht.enabled:
+                self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
         endpoints_to_init = ['/asyncio', '/attestation', '/dht', '/identity',
                              '/isolation', '/network', '/noblockdht', '/overlays']
