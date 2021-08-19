@@ -46,7 +46,6 @@ class Session:
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
-        self.failfast = True
         for implementation in components:
             self.register(implementation.interface, implementation)
 
@@ -61,7 +60,7 @@ class Session:
         self.components[comp_cls] = comp
         comp.session = self
 
-    async def start(self):
+    async def start(self, failfast=True):
         self.logger.info("Session is using state directory: %s", self.config.state_dir)
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
@@ -71,7 +70,7 @@ class Session:
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         coros = [comp.start() for comp in self.components.values()]
-        await gather(*coros, return_exceptions=not self.failfast)
+        await gather(*coros, return_exceptions=not failfast)
 
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
