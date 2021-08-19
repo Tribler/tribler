@@ -11,7 +11,7 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
 
         config = self.session.config
         notifier = self.session.notifier

@@ -7,7 +7,7 @@ NUM_SOCKS_PROXIES = 5
 
 class SocksServersComponentImp(SocksServersComponent):
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
         self.socks_servers = []
         self.socks_ports = []
         # Start the SOCKS5 servers

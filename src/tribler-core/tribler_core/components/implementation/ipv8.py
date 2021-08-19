@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
 from ipv8.dht.churn import PingChurn
@@ -24,15 +26,16 @@ INFINITE = -1
 
 class Ipv8ComponentImp(Ipv8Component):
     task_manager: TaskManager
-    rest_manager: RESTManager
+    rest_manager: Optional[RESTManager]
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
 
         config = self.session.config
 
-        rest_component = await self.use(RESTComponent)
-        rest_manager = self.rest_manager = rest_component.rest_manager
+        rest_component = await self.use(RESTComponent, required=False)
+        rest_manager = self.rest_manager = rest_component.rest_manager if rest_component.enabled else None
+
         self.task_manager = TaskManager()
 
         port = config.ipv8.port
@@ -76,7 +79,8 @@ class Ipv8ComponentImp(Ipv8Component):
                         config.ipv8.walk_interval,
                         config.ipv8.walk_scaling_upper_limit).start(self.task_manager)
 
-        rest_manager.get_endpoint('statistics').ipv8 = ipv8
+        if rest_manager:
+            rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
         self.peer_discovery_community = self.dht_discovery_community = None
 
@@ -93,9 +97,10 @@ class Ipv8ComponentImp(Ipv8Component):
         endpoints_to_init = ['/asyncio', '/attestation', '/dht', '/identity',
                              '/isolation', '/network', '/noblockdht', '/overlays']
 
-        for path, endpoint in rest_manager.get_endpoint('ipv8').endpoints.items():
-            if path in endpoints_to_init:
-                endpoint.initialize(ipv8)
+        if rest_manager:
+            for path, endpoint in rest_manager.get_endpoint('ipv8').endpoints.items():
+                if path in endpoints_to_init:
+                    endpoint.initialize(ipv8)
 
     def make_bootstrapper(self) -> DispersyBootstrapper:
         args = DISPERSY_BOOTSTRAPPER['init']
@@ -124,7 +129,8 @@ class Ipv8ComponentImp(Ipv8Component):
         self.dht_discovery_community = community
 
     async def shutdown(self):
-        self.rest_manager.get_endpoint('statistics').ipv8 = None
+        if self.rest_manager:
+            self.rest_manager.get_endpoint('statistics').ipv8 = None
         await self.release(RESTComponent)
 
         await self.unused.wait()

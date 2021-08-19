@@ -94,12 +94,6 @@ class Session:
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
 
-    def get(self, interface: Type[T]) -> T:
-        imp = self.components.get(interface)
-        if imp is None:
-            raise ComponentError(f"{interface.__name__} implementation not found in {self}")
-        return imp
-
     def __enter__(self):
         Session._stack.append(self)
 
@@ -140,13 +134,20 @@ class Component:
         assert False, f"Abstract classmethod make_implementation not implemented in class {cls.__name__}"
 
     @classmethod
-    def _find_implementation(cls: Type[T]) -> T:
+    def _find_implementation(cls: Type[T], required=True) -> T:
         session = Session.current()
-        return session.get(cls)
+        imp = session.components.get(cls)
+        if imp is None:
+            if required:
+                raise ComponentError(f"{cls.__name__} implementation not found in {session}")
+            imp = cls.make_implementation(session.config, enable=False)  # dummy implementation
+            session.register(cls, imp)
+            imp.started.set()
+        return imp
 
     @classmethod
-    def imp(cls: Type[T]) -> T:
-        return cls._find_implementation()
+    def imp(cls: Type[T], required=True) -> T:
+        return cls._find_implementation(required=required)
 
     async def start(self):
         try:
@@ -177,8 +178,8 @@ class Component:
     async def shutdown(self):
         pass
 
-    async def use(self, dependency: Type[T]) -> T:
-        dep = dependency.imp()
+    async def use(self, dependency: Type[T], required=True) -> T:
+        dep = dependency.imp(required=required)
         await dep.started.wait()
         if dep.failed:
             raise ComponentError(f'Component {self.__class__.__name__} has failed dependency {dep.__class__.__name__}')

@@ -9,7 +9,7 @@ from tribler_core.upgrade.upgrade import TriblerUpgrader
 
 class UpgradeComponentImp(UpgradeComponent):
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.use(ReporterComponent, required=False)
         config = self.session.config
         notifier = self.session.notifier
         masterkey = await self.use(MasterKeyComponent)
