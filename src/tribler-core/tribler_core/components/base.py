@@ -60,6 +60,13 @@ class Session:
             raise SessionError("Default session was not set")
         return Session._default
 
+    def set_as_default(self):
+        Session._default = self
+
+    @staticmethod
+    def unset_default_session():
+        Session._default = None
+
     def register(self, comp_cls: Type[Component], comp: Component):
         if comp.session is not None:
             raise ComponentError(f'Component {comp.__class__.__name__} is already registered in session {comp.session}')
@@ -95,10 +102,6 @@ class Session:
     def __exit__(self, exc_type, exc_val, exc_tb):
         assert Session._stack and Session._stack[-1] is self
         Session._stack.pop()
-
-
-def set_default_session(session: Session):
-    Session._default = session
 
 
 def get_session() -> Session:
