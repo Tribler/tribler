@@ -54,6 +54,12 @@ class Session:
     def __repr__(self):
         return f'<{self.__class__.__name__}:{self.id}>'
 
+    @staticmethod
+    def _get_default_session() -> Session:
+        if Session._default is None:
+            raise SessionError("Default session was not set")
+        return Session._default
+
     def register(self, comp_cls: Type[Component], comp: Component):
         if comp.session is not None:
             raise ComponentError(f'Component {comp.__class__.__name__} is already registered in session {comp.session}')
@@ -91,12 +97,6 @@ class Session:
         Session._stack.pop()
 
 
-def _get_default_session() -> Session:
-    if Session._default is None:
-        raise SessionError("Default session was not set")
-    return Session._default
-
-
 def set_default_session(session: Session):
     Session._default = session
 
@@ -104,7 +104,7 @@ def set_default_session(session: Session):
 def get_session() -> Session:
     if Session._stack:
         return Session._stack[-1]
-    return _get_default_session()
+    return Session._get_default_session()
 
 
 T = TypeVar('T', bound='Component')
