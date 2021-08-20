@@ -36,6 +36,7 @@ def create_state_directory_structure(state_dir: Path):
 class Session:
     _next_session_id = count(1)
     _default: Optional[Session] = None
+    _stack: List[Session] = []
 
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None):
@@ -83,11 +84,11 @@ class Session:
         return imp
 
     def __enter__(self):
-        _session_stack.append(self)
+        Session._stack.append(self)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        assert _session_stack and _session_stack[-1] is self
-        _session_stack.pop()
+        assert Session._stack and Session._stack[-1] is self
+        Session._stack.pop()
 
 
 def _get_default_session() -> Session:
@@ -100,12 +101,9 @@ def set_default_session(session: Session):
     Session._default = session
 
 
-_session_stack = []
-
-
 def get_session() -> Session:
-    if _session_stack:
-        return _session_stack[-1]
+    if Session._stack:
+        return Session._stack[-1]
     return _get_default_session()
 
 
