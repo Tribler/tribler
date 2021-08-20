@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from asyncio import Event, create_task, gather, get_event_loop
-from contextlib import contextmanager
-from itertools import count
 import logging
 import os
 import sys
-from typing import Dict, Iterable, List, Optional, Set, Type, TypeVar
-
+from abc import abstractmethod
+from asyncio import Event, create_task, gather
+from itertools import count
 from pathlib import Path
+from typing import Dict, List, Optional, Set, Type, TypeVar
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
