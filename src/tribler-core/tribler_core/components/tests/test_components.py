@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.base import Session, SessionError, get_session
+from tribler_core.components.base import Session, SessionError
 from tribler_core.components.components_catalog import components_gen
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
@@ -58,22 +58,22 @@ def test_session_context_manager(loop, tribler_config):
     session3 = Session(tribler_config, [])
 
     with pytest.raises(SessionError, match="Default session was not set"):
-        get_session()
+        Session.current()
 
     session1.set_as_default()
-    assert get_session() is session1
+    assert Session.current() is session1
 
     with session2:
-        assert get_session() is session2
+        assert Session.current() is session2
         with session3:
-            assert get_session() is session3
-        assert get_session() is session2
-    assert get_session() is session1
+            assert Session.current() is session3
+        assert Session.current() is session2
+    assert Session.current() is session1
 
     Session.unset_default_session()
 
     with pytest.raises(SessionError, match="Default session was not set"):
-        get_session()
+        Session.current()
 
 
 def test_components_creation(loop, tribler_config):
