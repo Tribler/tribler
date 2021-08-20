@@ -35,6 +35,7 @@ def create_state_directory_structure(state_dir: Path):
 
 class Session:
     _next_session_id = count(1)
+    _default: Optional[Session] = None
 
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None):
@@ -89,18 +90,14 @@ class Session:
         _session_stack.pop()
 
 
-_default_session: Optional[Session] = None
-
-
 def _get_default_session() -> Session:
-    if _default_session is None:
+    if Session._default is None:
         raise SessionError("Default session was not set")
-    return _default_session
+    return Session._default
 
 
 def set_default_session(session: Session):
-    global _default_session
-    _default_session = session
+    Session._default = session
 
 
 _session_stack = []
