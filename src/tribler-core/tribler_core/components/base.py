@@ -33,14 +33,13 @@ def create_state_directory_structure(state_dir: Path):
     (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
 
 
-session_counter = count(1)
-
-
 class Session:
+    _next_session_id = count(1)
+
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None):
-        #  deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
-        self.id = next(session_counter)
+        # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
+        self.id = next(Session._next_session_id)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
