@@ -152,7 +152,9 @@ class Component:
         try:
             await self.run()
         except Exception as e:
-            print(f'\n*** Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
+            # Writing to stderr is for the case when logger is not configured properly (as my happen in local tests,
+            # for example) to avoid silent suppression of the important exceptions
+            sys.stderr.write(f'\nException in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
             self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
             self.failed = True
             self.started.set()
