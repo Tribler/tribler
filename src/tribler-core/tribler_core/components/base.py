@@ -67,6 +67,12 @@ class Session:
     def unset_default_session():
         Session._default = None
 
+    @staticmethod
+    def current() -> Session:
+        if Session._stack:
+            return Session._stack[-1]
+        return Session._get_default_session()
+
     def register(self, comp_cls: Type[Component], comp: Component):
         if comp.session is not None:
             raise ComponentError(f'Component {comp.__class__.__name__} is already registered in session {comp.session}')
@@ -104,12 +110,6 @@ class Session:
         Session._stack.pop()
 
 
-def get_session() -> Session:
-    if Session._stack:
-        return Session._stack[-1]
-    return Session._get_default_session()
-
-
 T = TypeVar('T', bound='Component')
 
 
@@ -143,7 +143,7 @@ class Component:
 
     @classmethod
     def _find_implementation(cls: Type[T]) -> T:
-        session = get_session()
+        session = Session.current()
         return session.get(cls)
 
     @classmethod
