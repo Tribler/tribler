@@ -14,7 +14,7 @@ from tribler_common.version_manager import VersionHistory
 from tribler_common.simpledefs import NTFY
 import tribler_core
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
-from tribler_core.components.base import Component, Session, set_default_session
+from tribler_core.components.base import Component, Session
 from tribler_core.components.components_catalog import components_gen
 from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.config.tribler_config import TriblerConfig
@@ -33,7 +33,7 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 async def core_session(config: TriblerConfig, components: List[Component]):
     session = Session(config, components)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
-    set_default_session(session)
+    session.set_as_default()
 
     await session.start()
 

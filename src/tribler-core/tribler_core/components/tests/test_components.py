@@ -1,6 +1,5 @@
 import pytest
 
-from tribler_core.components import base
 from tribler_core.components.base import Session, SessionError, get_session
 from tribler_core.components.components_catalog import components_gen
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
@@ -61,7 +60,7 @@ def test_session_context_manager(loop, tribler_config):
     with pytest.raises(SessionError, match="Default session was not set"):
         get_session()
 
-    base.set_default_session(session1)
+    session1.set_as_default()
     assert get_session() is session1
 
     with session2:
@@ -71,7 +70,8 @@ def test_session_context_manager(loop, tribler_config):
         assert get_session() is session2
     assert get_session() is session1
 
-    base.set_default_session(None)
+    Session.unset_default_session()
+
     with pytest.raises(SessionError, match="Default session was not set"):
         get_session()
 
