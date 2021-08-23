@@ -1,5 +1,7 @@
 import pytest
 
+from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
+
 from tribler_core.components.base import Session, SessionError
 from tribler_core.components.components_catalog import components_gen
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
@@ -299,6 +301,42 @@ async def test_ipv8_component_dht_and_peer_discovery(loop, tribler_config):
         assert type(comp.ipv8).__name__ == 'IPv8'
         assert type(comp.peer_discovery_community).__name__ == 'DiscoveryCommunity'
         assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
+
+        # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+
+        session.shutdown_event.set()
+        await session.shutdown()
+        assert comp.stopped
+
+
+async def test_ipv8_component_gui_test_mode(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    # tribler_config.api.http_enabled = True
+
+    tribler_config.ipv8.enabled = True
+    tribler_config.discovery_community.enabled = True
+    tribler_config.dht.enabled = True
+    tribler_config.gui_test_mode = True
+    session = Session(tribler_config, [
+        MasterKeyComponent.make_implementation(tribler_config, True),
+        ReporterComponent.make_implementation(tribler_config, True),
+        RESTComponent.make_implementation(tribler_config, True),
+        Ipv8Component.make_implementation(tribler_config, True),
+    ])
+    with session:
+        comp = Ipv8Component.imp()
+        assert comp.session is session
+        assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
+
+        await session.start()
+        assert comp.started.is_set()
+        assert not comp.failed
+
+        assert type(comp.ipv8).__name__ == 'IPv8'
+        assert comp.peer_discovery_community is None
+        assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
+        assert comp.dht_discovery_community.routing_tables[UDPv4Address].my_node_id == '\x00' * 20
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
         await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
