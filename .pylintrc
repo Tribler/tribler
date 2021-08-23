@@ -11,8 +11,6 @@ init-hook='import sys; import os; sys.path.append(os.path.join("src", "pyipv8"))
 # paths.
 ignore=.git,libnacl,data,.pylint.rc,pyproject.toml
 
-ignore-patterns=test_.*?py
-
 # Pickle collected data for later comparisons.
 persistent=yes
 

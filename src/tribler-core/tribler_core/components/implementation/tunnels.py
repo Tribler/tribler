@@ -52,8 +52,7 @@ class TunnelsComponentImp(TunnelsComponent):
         ipv8.strategies.append((RemovePeers(community), INFINITE))
         ipv8.overlays.append(community)
 
-        if ipv8_component.bootstrapper:
-            community.bootstrappers.append(ipv8_component.bootstrapper)
+        community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         self.community = community
 

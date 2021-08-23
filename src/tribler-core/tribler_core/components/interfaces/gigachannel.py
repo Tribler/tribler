@@ -12,7 +12,7 @@ class GigaChannelComponent(Component):
 
     @classmethod
     def should_be_enabled(cls, config: TriblerConfig):
-        return config.chant.enabled
+        return config.ipv8.enabled and config.chant.enabled
 
     @classmethod
     def make_implementation(cls, config: TriblerConfig, enable: bool):

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from abc import abstractmethod
-from asyncio import Event, create_task, gather, get_event_loop
-from contextlib import contextmanager
-from itertools import count
 import logging
 import os
 import sys
-from typing import Dict, Iterable, List, Optional, Set, Type, TypeVar
-
+from abc import abstractmethod
+from asyncio import Event, create_task, gather
+from itertools import count
 from pathlib import Path
+from typing import Dict, List, Optional, Set, Type, TypeVar
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
@@ -33,25 +32,44 @@ def create_state_directory_structure(state_dir: Path):
     (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
 
 
-session_counter = count(1)
-
-
 class Session:
+    _next_session_id = count(1)
+    _default: Optional[Session] = None
+    _stack: List[Session] = []
+
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None):
-        #  deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
-        self.id = next(session_counter)
+        # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
+        self.id = next(Session._next_session_id)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
-        self.failfast = True
         for implementation in components:
             self.register(implementation.interface, implementation)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}:{self.id}>'
+
+    @staticmethod
+    def _get_default_session() -> Session:
+        if Session._default is None:
+            raise SessionError("Default session was not set")
+        return Session._default
+
+    def set_as_default(self):
+        Session._default = self
+
+    @staticmethod
+    def unset_default_session():
+        Session._default = None
+
+    @staticmethod
+    def current() -> Session:
+        if Session._stack:
+            return Session._stack[-1]
+        return Session._get_default_session()
 
     def register(self, comp_cls: Type[Component], comp: Component):
         if comp.session is not None:
@@ -61,7 +79,7 @@ class Session:
         self.components[comp_cls] = comp
         comp.session = self
 
-    async def start(self):
+    async def start(self, failfast=True):
         self.logger.info("Session is using state directory: %s", self.config.state_dir)
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
@@ -71,7 +89,7 @@ class Session:
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         coros = [comp.start() for comp in self.components.values()]
-        await gather(*coros, return_exceptions=not self.failfast)
+        await gather(*coros, return_exceptions=not failfast)
 
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
@@ -83,34 +101,11 @@ class Session:
         return imp
 
     def __enter__(self):
-        _session_stack.append(self)
+        Session._stack.append(self)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        assert _session_stack and _session_stack[-1] is self
-        _session_stack.pop()
-
-
-_default_session: Optional[Session] = None
-
-
-def _get_default_session() -> Session:
-    if _default_session is None:
-        raise SessionError("Default session was not set")
-    return _default_session
-
-
-def set_default_session(session: Session):
-    global _default_session
-    _default_session = session
-
-
-_session_stack = []
-
-
-def get_session() -> Session:
-    if _session_stack:
-        return _session_stack[-1]
-    return _get_default_session()
+        assert Session._stack and Session._stack[-1] is self
+        Session._stack.pop()
 
 
 T = TypeVar('T', bound='Component')
@@ -146,7 +141,7 @@ class Component:
 
     @classmethod
     def _find_implementation(cls: Type[T]) -> T:
-        session = get_session()
+        session = Session.current()
         return session.get(cls)
 
     @classmethod

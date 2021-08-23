@@ -20,7 +20,9 @@ class PopularityComponentImp(PopularityComponent):
         ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         metadata_store = (await self.use(MetadataStoreComponent)).mds
-        torrent_checker = (await self.use(TorrentCheckerComponent)).torrent_checker
+
+        torrent_checker_component = await self.use(TorrentCheckerComponent)
+        torrent_checker = torrent_checker_component.torrent_checker if torrent_checker_component.enabled else None
 
         community = PopularityCommunity(peer, ipv8.endpoint, ipv8.network,
                                         settings=config.popularity_community,
@@ -32,8 +34,7 @@ class PopularityComponentImp(PopularityComponent):
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
 
-        if ipv8_component.bootstrapper:
-            community.bootstrappers.append(ipv8_component.bootstrapper)
+        community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         ipv8.overlays.append(community)
 

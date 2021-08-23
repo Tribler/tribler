@@ -46,8 +46,7 @@ class GigaChannelComponentImp(GigaChannelComponent):
         ipv8.strategies.append((RandomWalk(community), 30))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
 
-        if ipv8_component.bootstrapper:
-            community.bootstrappers.append(ipv8_component.bootstrapper)
+        community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         ipv8.overlays.append(community)
 

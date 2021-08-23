@@ -39,8 +39,7 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
                                   database=database)
         ipv8.strategies.append((RandomWalk(community), 20))
 
-        if ipv8_component.bootstrapper:
-            community.bootstrappers.append(ipv8_component.bootstrapper)
+        community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         ipv8.overlays.append(community)
         self.community = community

@@ -1,22 +1,23 @@
 import pytest
 
-from tribler_core.components import base
-from tribler_core.components.base import Session, SessionError, get_session
+from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
+
+from tribler_core.components.base import Session, SessionError
 from tribler_core.components.components_catalog import components_gen
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
 from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
+from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
 from tribler_core.components.interfaces.payout import PayoutComponent
 from tribler_core.components.interfaces.popularity import PopularityComponent
-from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.interfaces.reporter import ReporterComponent
+from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.components.interfaces.version_check import VersionCheckComponent
@@ -59,21 +60,22 @@ def test_session_context_manager(loop, tribler_config):
     session3 = Session(tribler_config, [])
 
     with pytest.raises(SessionError, match="Default session was not set"):
-        get_session()
+        Session.current()
 
-    base.set_default_session(session1)
-    assert get_session() is session1
+    session1.set_as_default()
+    assert Session.current() is session1
 
     with session2:
-        assert get_session() is session2
+        assert Session.current() is session2
         with session3:
-            assert get_session() is session3
-        assert get_session() is session2
-    assert get_session() is session1
+            assert Session.current() is session3
+        assert Session.current() is session2
+    assert Session.current() is session1
 
-    base.set_default_session(None)
+    Session.unset_default_session()
+
     with pytest.raises(SessionError, match="Default session was not set"):
-        get_session()
+        Session.current()
 
 
 def test_components_creation(loop, tribler_config):
@@ -195,6 +197,146 @@ async def test_ipv8_component(loop, tribler_config):
         await session.start()
         assert comp.started.is_set()
         assert not comp.failed
+
+        assert type(comp.ipv8).__name__ == 'IPv8'
+        assert comp.peer_discovery_community is None
+        assert comp.dht_discovery_community is None
+
+        # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+
+        session.shutdown_event.set()
+        await session.shutdown()
+        assert comp.stopped
+
+
+async def test_ipv8_component_peer_discovery(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    # tribler_config.api.http_enabled = True
+
+    tribler_config.ipv8.enabled = True
+    tribler_config.discovery_community.enabled = True
+    session = Session(tribler_config, [
+        MasterKeyComponent.make_implementation(tribler_config, True),
+        ReporterComponent.make_implementation(tribler_config, True),
+        RESTComponent.make_implementation(tribler_config, True),
+        Ipv8Component.make_implementation(tribler_config, True),
+    ])
+    with session:
+        comp = Ipv8Component.imp()
+        assert comp.session is session
+        assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
+
+        await session.start()
+        assert comp.started.is_set()
+        assert not comp.failed
+
+        assert type(comp.ipv8).__name__ == 'IPv8'
+        assert type(comp.peer_discovery_community).__name__ == 'DiscoveryCommunity'
+        assert comp.dht_discovery_community is None
+
+        # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+
+        session.shutdown_event.set()
+        await session.shutdown()
+        assert comp.stopped
+
+
+async def test_ipv8_component_dht_discovery(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    # tribler_config.api.http_enabled = True
+
+    tribler_config.ipv8.enabled = True
+    tribler_config.dht.enabled = True
+    session = Session(tribler_config, [
+        MasterKeyComponent.make_implementation(tribler_config, True),
+        ReporterComponent.make_implementation(tribler_config, True),
+        RESTComponent.make_implementation(tribler_config, True),
+        Ipv8Component.make_implementation(tribler_config, True),
+    ])
+    with session:
+        comp = Ipv8Component.imp()
+        assert comp.session is session
+        assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
+
+        await session.start()
+        assert comp.started.is_set()
+        assert not comp.failed
+
+        assert type(comp.ipv8).__name__ == 'IPv8'
+        assert comp.peer_discovery_community is None
+        assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
+
+        # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+
+        session.shutdown_event.set()
+        await session.shutdown()
+        assert comp.stopped
+
+
+async def test_ipv8_component_dht_and_peer_discovery(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    # tribler_config.api.http_enabled = True
+
+    tribler_config.ipv8.enabled = True
+    tribler_config.discovery_community.enabled = True
+    tribler_config.dht.enabled = True
+    session = Session(tribler_config, [
+        MasterKeyComponent.make_implementation(tribler_config, True),
+        ReporterComponent.make_implementation(tribler_config, True),
+        RESTComponent.make_implementation(tribler_config, True),
+        Ipv8Component.make_implementation(tribler_config, True),
+    ])
+    with session:
+        comp = Ipv8Component.imp()
+        assert comp.session is session
+        assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
+
+        await session.start()
+        assert comp.started.is_set()
+        assert not comp.failed
+
+        assert type(comp.ipv8).__name__ == 'IPv8'
+        assert type(comp.peer_discovery_community).__name__ == 'DiscoveryCommunity'
+        assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
+
+        # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+
+        session.shutdown_event.set()
+        await session.shutdown()
+        assert comp.stopped
+
+
+async def test_ipv8_component_gui_test_mode(loop, tribler_config):
+    # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
+    # tribler_config.api.http_enabled = True
+
+    tribler_config.ipv8.enabled = True
+    tribler_config.discovery_community.enabled = True
+    tribler_config.dht.enabled = True
+    tribler_config.gui_test_mode = True
+    session = Session(tribler_config, [
+        MasterKeyComponent.make_implementation(tribler_config, True),
+        ReporterComponent.make_implementation(tribler_config, True),
+        RESTComponent.make_implementation(tribler_config, True),
+        Ipv8Component.make_implementation(tribler_config, True),
+    ])
+    with session:
+        comp = Ipv8Component.imp()
+        assert comp.session is session
+        assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
+
+        await session.start()
+        assert comp.started.is_set()
+        assert not comp.failed
+
+        assert type(comp.ipv8).__name__ == 'IPv8'
+        assert comp.peer_discovery_community is None
+        assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
+        assert comp.dht_discovery_community.routing_tables[UDPv4Address].my_node_id == '\x00' * 20
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
         await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()

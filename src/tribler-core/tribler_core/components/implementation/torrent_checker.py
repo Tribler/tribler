@@ -36,11 +36,12 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
         rest_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
 
         await torrent_checker.initialize()
-        rest_manager.get_endpoint('metadata').torrent_checker = torrent_checker
+        rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', torrent_checker, skip_missing=True)
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
-        self.rest_manager.get_endpoint('metadata').torrent_checker = None
+        self.rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', None, skip_missing=True)
+
         await self.release(RESTComponent)
 
         await self.torrent_checker.shutdown()
