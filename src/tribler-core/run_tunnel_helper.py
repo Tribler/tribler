@@ -2,18 +2,20 @@
 This script enables you to start a tunnel helper headless.
 """
 import argparse
-from ipaddress import IPv4Address, AddressValueError
 import logging
 import os
 import re
 import signal
 import sys
 import time
-from asyncio import ensure_future, get_event_loop, sleep
+from asyncio import ensure_future, get_event_loop
+from ipaddress import AddressValueError, IPv4Address
 
 from ipv8.taskmanager import TaskManager
 
 from tribler_common.simpledefs import NTFY
+
+from tribler_core.components.base import Session
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.masterkey import MasterKeyComponent
@@ -23,7 +25,6 @@ from tribler_core.components.interfaces.socks_configurator import SocksServersCo
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
 from tribler_core.components.interfaces.upgrade import UpgradeComponent
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.components.base import Session
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
 
@@ -205,16 +206,20 @@ class IPPortAction(argparse.Action):
         except AddressValueError as e:
             raise argparse.ArgumentError(self, "Invalid server address") from e
 
-        if not (0 < port < 65535):
+        if not 0 < port < 65535:
             raise argparse.ArgumentError(self, "Invalid server port")
         setattr(namespace, self.dest, values)
 
 
-def main(argv):
-    parser = argparse.ArgumentParser(add_help=False, description=('Tunnel helper script, starts a (hidden) tunnel as a service'))
-    parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
-    parser.add_argument('--ipv8_port', '-d', default=-1, type=int, help='IPv8 port', action=PortAction, metavar='{0..65535}')
-    parser.add_argument('--ipv8_address', '-i', default='0.0.0.0', type=str, help='IPv8 listening address', action=IPAction)
+def main():
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=('Tunnel helper script, starts a (hidden) tunnel as a service'))
+    parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS,
+                        help='Show this help message and exit')
+    parser.add_argument('--ipv8_port', '-d', default=-1, type=int, help='IPv8 port', action=PortAction,
+                        metavar='{0..65535}')
+    parser.add_argument('--ipv8_address', '-i', default='0.0.0.0', type=str, help='IPv8 listening address',
+                        action=IPAction)
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str,
                         help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
     parser.add_argument('--restapi', '-p', default=52194, type=int,
@@ -223,22 +228,24 @@ def main(argv):
     parser.add_argument('--api-key', '-k', help='API key to use. If not given API key protection is disabled.')
     parser.add_argument('--random_slots', '-r', default=10, type=int, help='Specifies the number of random slots')
     parser.add_argument('--competing_slots', '-c', default=20, type=int, help='Specifies the number of competing slots')
-    
-    parser.add_argument('--exit', '-x', action='store_const', default=False, const=True, help='Allow being an exit-node')
+    parser.add_argument('--exit', '-x', action='store_const', default=False, const=True,
+                        help='Allow being an exit-node')
     parser.add_argument('--testnet', '-t', action='store_const', default=False, const=True, help='Join the testnet')
-    parser.add_argument('--no-rest-api', '-a', action='store_const', default=False, const=True, help='Disable the REST api')
+    parser.add_argument('--no-rest-api', '-a', action='store_const', default=False, const=True,
+                        help='Disable the REST api')
     parser.add_argument('--log-rejects', action='store_const', default=False, const=True, help='Log rejects')
-    parser.add_argument('--log-circuits', action='store_const', default=False, const=True, help='Log information about circuits')
+    parser.add_argument('--log-circuits', action='store_const', default=False, const=True,
+                        help='Log information about circuits')
 
-    args = parser.parse_args(sys.argv[1:])    
+    args = parser.parse_args(sys.argv[1:])
     service = TunnelHelperService()
-    
+
     loop = get_event_loop()
     coro = service.start(args)
     ensure_future(coro)
-    
+
     loop.run_forever()
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
