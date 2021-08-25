@@ -196,3 +196,32 @@ async def test_required_dependency_missed(capsys, loop, tribler_config):  # pyli
         captured = capsys.readouterr()
         assert re.match(r'\nException in ComponentBImp.start\(\): '
                         r'ComponentError:ComponentA implementation not found in <Session:\d+>\n', captured.err)
+
+
+async def test_optional_dependency_missed(loop, tribler_config):  # pylint: disable=unused-argument
+    ComponentA, ComponentB = make_test_components()
+    ComponentB.run = lambda self: self.use(ComponentA, required=False)
+
+    session = Session(tribler_config, list(components_gen(tribler_config, [ComponentB])))
+    with session:
+        with pytest.raises(ComponentError, match=r'ComponentA implementation not found in <Session:\d+>'):
+            ComponentA.imp()
+
+        b = ComponentB.imp()
+        assert not b.components_used_by_me
+
+        await session.start()
+
+        a = ComponentA.imp()
+        assert not a.enabled  # A mock version of the component A presents, but it is not marked as enabled
+
+        assert a.started.is_set() and b.started.is_set()
+        assert a in b.components_used_by_me
+        assert b in a.in_use_by
+
+        session.shutdown_event.set()
+        await session.shutdown()
+
+        assert a.started.is_set() and b.started.is_set()
+        assert a.stopped and b.stopped
+        assert not b.components_used_by_me and not a.in_use_by
