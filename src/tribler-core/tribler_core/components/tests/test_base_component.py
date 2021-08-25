@@ -54,7 +54,7 @@ def components_gen(config: TriblerConfig, component_list: List[T]):
         yield cls.make_implementation(config, cls.should_be_enabled(config))
 
 
-async def test_session_start_shutdown(loop, tribler_config):  # pylint: disable=unused-argument
+async def test_session_start_shutdown(tribler_config):
     ComponentA, ComponentB = make_test_components()
 
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentA, ComponentB])))
@@ -88,7 +88,7 @@ async def test_session_start_shutdown(loop, tribler_config):  # pylint: disable=
         assert a.started.is_set() and b.started.is_set()
 
 
-async def test_disabled_component(loop, tribler_config):  # pylint: disable=unused-argument
+async def test_disabled_component(tribler_config):
     ComponentA, ComponentB = make_test_components()
     ComponentA.should_be_enabled_result_value = False
 
@@ -123,7 +123,7 @@ async def test_disabled_component(loop, tribler_config):  # pylint: disable=unus
         assert a.started.is_set() and b.started.is_set()
 
 
-async def test_required_dependency_enabled(loop, tribler_config):  # pylint: disable=unused-argument
+async def test_required_dependency_enabled(tribler_config):
     ComponentA, ComponentB = make_test_components()
     ComponentB.run = lambda self: self.use(ComponentA)
 
@@ -150,7 +150,7 @@ async def test_required_dependency_enabled(loop, tribler_config):  # pylint: dis
         assert not b.components_used_by_me and not a.in_use_by
 
 
-async def test_required_dependency_disabled(loop, tribler_config):  # pylint: disable=unused-argument
+async def test_required_dependency_disabled(tribler_config):
     ComponentA, ComponentB = make_test_components()
     ComponentA.should_be_enabled_result_value = False
     ComponentB.run = lambda self: self.use(ComponentA)
@@ -178,7 +178,7 @@ async def test_required_dependency_disabled(loop, tribler_config):  # pylint: di
         assert not b.components_used_by_me and not a.in_use_by
 
 
-async def test_required_dependency_missed(capsys, loop, tribler_config):  # pylint: disable=unused-argument
+async def test_required_dependency_missed(capsys, tribler_config):
     ComponentA, ComponentB = make_test_components()
     ComponentB.run = lambda self: self.use(ComponentA)
 
@@ -198,7 +198,7 @@ async def test_required_dependency_missed(capsys, loop, tribler_config):  # pyli
                         r'ComponentError:ComponentA implementation not found in <Session:\d+>\n', captured.err)
 
 
-async def test_optional_dependency_missed(loop, tribler_config):  # pylint: disable=unused-argument
+async def test_optional_dependency_missed(tribler_config):
     ComponentA, ComponentB = make_test_components()
     ComponentB.run = lambda self: self.use(ComponentA, required=False)
 
