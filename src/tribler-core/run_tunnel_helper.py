@@ -2,7 +2,7 @@
 This script enables you to start a tunnel helper headless.
 """
 import argparse
-import asyncio
+from ipaddress import IPv4Address, AddressValueError
 import logging
 import os
 import re
@@ -10,7 +10,6 @@ import signal
 import sys
 import time
 from asyncio import ensure_future, get_event_loop, sleep
-from socket import inet_aton
 
 from ipv8.taskmanager import TaskManager
 
@@ -188,9 +187,9 @@ class PortAction(argparse.Action):
 class IPAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         try:
-            inet_aton(values)
-        except:
-            raise argparse.ArgumentError(self, "Invalid IPv4 address")
+            IPv4Address(values)
+        except AddressValueError as e:
+            raise argparse.ArgumentError(self, "Invalid IPv4 address") from e
         setattr(namespace, self.dest, values)
 
 
@@ -198,16 +197,16 @@ class IPPortAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parsed = re.match(r"^([\d\.]+)\:(\d+)$", values)
         if not parsed:
-            raise argparse.ArgumentError("Invalid address:port")
+            raise argparse.ArgumentError(self, "Invalid address:port")
 
         ip, port = parsed.group(1), int(parsed.group(2))
         try:
-            inet_aton(ip)
-        except:
-            raise argparse.ArgumentError("Invalid server address")
+            IPv4Address(ip)
+        except AddressValueError as e:
+            raise argparse.ArgumentError(self, "Invalid server address") from e
 
         if not (0 < port < 65535):
-            raise argparse.ArgumentError("Invalid server port")
+            raise argparse.ArgumentError(self, "Invalid server port")
         setattr(namespace, self.dest, values)
 
 
