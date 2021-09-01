@@ -1,0 +1,72 @@
+tribler (7.10.0-154-gc7e3345f3) UNRELEASED; urgency=medium
+
+  [ sysadmin ]
+  * New upstream release.
+
+  [ Tribler Team ]
+  * New upstream release dch
+  * New upstream release.
+  * New upstream release.
+
+ -- Tribler Team <info@tribler.org>  Wed, 01 Sep 2021 16:40:52 +0200
+
+tribler (7.0.0) unstable; urgency=medium
+
+    * New release
+    * See https://github.com/Tribler/tribler/releases/tag/v7.0.0 for more info.
+
+tribler (6.5.2) unstable; urgency=medium
+
+    * New release
+    * See https://github.com/Tribler/tribler/releases/tag/v6.5.2 for more info.
+    * See https://github.com/Tribler/tribler/releases/tag/v6.5.1 for more info.
+
+ -- whirm <whirm@whirm.eu>  Fri, 13 May 2016 12:04:44 +0200
+
+tribler (6.5.0) unstable; urgency=medium
+
+    * New release
+    * See https://github.com/Tribler/tribler/releases/tag/v6.5.0 for more info.
+
+ -- whirm <whirm@whirm.eu>  Fri, 12 Feb 2016 11:24:43 +0100
+
+tribler (6.2.0) unstable; urgency=low
+
+  * New release.
+
+ -- Elric Milon <e.milon@tudelft.nl>  Wed, 31 Jul 2013 12:31:24 +0200
+
+tribler (6.1) unstable; urgency=low
+
+  * New upstream release.
+  * Faster downloads: We have switched from the old python based bittorrent core to Rasterbar's libtorrent, so expect less resource usage too, we are saturating a symmetric 100Mb/s connection without much trouble.
+  * Less disk and CPU consumption used for community synchronization.
+  * UI improvements (download speed graphs, some new icons, general UI cleanup...)
+  * Throttling (Bandwidth limitation) is working again.
+  * The LibSwift engine has been updated too.
+  * The "Save as" dialog has been modified to improve usability when downloading from magnet links.
+  * Thumbnails for downloaded media: Now when a new video file gets downloaded, Tribler will automatically create a thumbnail and make it available to the rest of peers to be shown on the search results.
+  * Fixed freezing at startup on some machines.
+  * Fixed race conditions and lockups in synchronizations.
+  * Various bug fixes and minor improvements.
+  * Fixes for the bugs reported by the community during beta1 and beta2 (Thanks!)
+
+ -- Elric Milon <e.milon@tudelft.nl>  Thu, 18 Apr 2013 17:39:59 +0200
+
+tribler (6.0.0+svn20121015.r28821-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Tue, 16 Oct 2012 00:45:06 +0800
+
+tribler (5.9.27+svn20120817.r27828-2) unstable; urgency=low
+
+  * Calling dh_link with -ptribler in debian/rules (Closes: #686554)
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Mon, 03 Sep 2012 17:02:09 +0800
+
+tribler (5.9.27+svn20120817.r27828-1) unstable; urgency=low
+
+  * Initial release (Closes: #511381)
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Wed, 22 Aug 2012 00:02:58 +0800

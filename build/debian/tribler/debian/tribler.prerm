@@ -1,0 +1,2 @@
+# Remove the content of the /usr/share/tribler directory
+rm -rf /usr/share/tribler

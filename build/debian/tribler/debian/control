@@ -1,0 +1,28 @@
+Source: tribler
+Section: unknown
+Priority: optional
+Maintainer: Tribler Team <info@tribler.org>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.4.1
+Homepage: https://tribler.org
+Vcs-Browser: https://github.com/trible/tribler
+Vcs-Git: https://github.com/trible/tribler.git
+
+Package: tribler
+Architecture: all
+Depends: libsodium23 | libsodium18 | libsodium13,
+         libx11-6,
+         libxcb-xinerama0
+Description: Python based Bittorrent/Internet TV application
+ It allows you to watch videos and download content. Tribler aims to combine
+ the ease of Youtube.com with the performance of peer-to-peer.
+ .
+ Tribler is backwards compatible with the Bittorrent download protocol. To
+ discover interesting content standard RSS feeds with .torrent links are
+ supported plus the "Tribe protocol" which automatically scans the network for
+ available Bittorrent swarms upon startup. Tribler uses an embedded web
+ browser to access video clips of Youtube.com and Liveleak.com. Other features
+ are "People who like this also like" for recommending related swarms, the
+ ability to make friends, and to donate idle upload capacity to friends. The
+ later can improve download speed by a factor of two on asymmetric Internet
+ links. The fastest way of social file sharing.
