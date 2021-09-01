@@ -30,7 +30,7 @@ pushd build/debian/tribler || exit
 # Compose the changelog using git commits
 git log "$(git describe --tags --abbrev=0)"..HEAD --oneline |
 while IFS= read -r commit; do
-  dch -v $TRIBLER_VERSION $commit
+  dch -v $TRIBLER_VERSION "$commit"
 done
 # Build the package afterwards
 dpkg-buildpackage -b -rfakeroot -us -uc
