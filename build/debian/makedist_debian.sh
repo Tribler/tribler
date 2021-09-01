@@ -23,10 +23,13 @@ python3 -m PyInstaller tribler.spec
 
 cp -r dist/tribler build/debian/tribler/usr/share/tribler
 
-sed -i "s/__VERSION__/$(cat .TriblerVersion)/g" build/debian/tribler/DEBIAN/control
-sed -i "s/__VERSION__/$(cat .TriblerVersion)/g" build/debian/snap/snapcraft.yaml
+TRIBLER_VERSION=$(cat .TriblerVersion)
+sed -i "s/__VERSION__/$TRIBLER_VERSION/g" build/debian/snap/snapcraft.yaml
 
-dpkg-deb -b build/debian/tribler tribler_$(cat .TriblerVersion)_all.deb
+pushd build/debian/tribler || exit
+dch -v $TRIBLER_VERSION New upstream release.
+dpkg-buildpackage -b -rfakeroot -us -uc
+popd || exit
 
 # Build Tribler snap if $BUILD_TRIBLER_SNAP
 if [ "$BUILD_TRIBLER_SNAP" == "false" ]; then

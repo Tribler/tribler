@@ -1,0 +1,109 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: tribler
+Source: http://www.tribler.org/
+
+Files: *
+Copyright: 2005-2011 Delft University of Technology and Vrije Universiteit Amsterdam
+License: LGPL-2.1+
+
+Files: Tribler/*
+Copyright: 2005-2011 Delft University of Technology and Vrije Universiteit Amsterdam
+License: LGPL-2.1+
+
+Files: Tribler/Core/Multicast/* Tribler/Core/Statistics/Status/* Tribler/Core/ClosedSwarm/* Tribler/Plugin/BackgroundProcess-njaal.py Tribler/Test/test_closedswarm.py Tribler/Test/test_status.py Tribler/Tools/createlivestream-njaal.py Tribler/Tools/createpoa.py Tribler/Tools/trial_poa_server.py Tribler/UPnP/* Tribler/Test/test_upnp.py
+Copyright: 2008-2012 Norut AS
+License: LGPL-2.1+
+
+Files: Tribler/Core/NATFirewall/NatCheck.py Tribler/Core/NATFirewall/TimeoutCheck.py Tribler/Core/NATFirewall/NatCheckMsgHandler.py Tribler/Policies/SeedingManager.py Tribler/Core/Statistics/SeedingStatsCrawler.py Tribler/Core/CacheDB/SqliteSeedingStatsCacheDB.py Tribler/Core/BuddyCast/moderationcast.py Tribler/Core/BuddyCast/moderationcast_util.py Tribler/Core/BuddyCast/votecast.py Tribler/Core/CacheDB/maxflow.py Tribler/Core/CacheDB/SqliteVideoPlaybackStatsCacheDB.py Tribler/Core/NATFirewall/ConnectionCheck.py Tribler/Core/NATFirewall/NatTraversal.py Tribler/Core/Search/Reranking.py Tribler/Core/Statistics/tribler_videoplayback_stats.sql Tribler/Core/Statistics/VideoPlaybackCrawler.py Tribler/Core/Utilities/Crypto.py Tribler/Images/* Tribler/Player/BaseApp.py Tribler/Player/EmbeddedPlayer4Frame.py Tribler/Player/PlayerVideoFrame.py Tribler/Plugin/* Tribler/Test/test_multicast.py Tribler/Test/test_na_extend_hs.py Tribler/Test/test_na_extend_hs.sh Tribler/Test/test_sqlitecachedbhandler.sh Tribler/Tools/dirtrackerseeder.py Tribler/Tools/pipe-babscam-h264-nosound-mencoder.sh Tribler/Tools/superpeer.py Tribler/Utilities/LinuxSingleInstanceChecker.py Tribler/Video/Images/* Tribler/Video/VideoFrame.py reset.bat reset-keepid.bat Tribler/Core/Video/PiecePickerSVC.py Tribler/Core/Video/SVCTransporter.py Tribler/Core/Video/SVCVideoStatus.py Tribler/schema_sdb_v5.sql Tribler/Core/APIImplementation/makeurl.py Tribler/Core/BuddyCast/channelcast.py Tribler/Core/DecentralizedTracking/repex.py Tribler/Core/NATFirewall/TimeoutFinder.py Tribler/Core/NATFirewall/UDPPuncture.py Tribler/Core/Statistics/RepexCrawler.py Tribler/Debug/* Tribler/Tools/createtorrent.py Tribler/Tools/pingbackserver.py Tribler/Tools/seeking.py Tribler/Tools/stunserver.py lucid-xpicreate.sh patentfreevlc.bat Tribler/Core/BitTornado/BT1/GetRightHTTPDownloader.py Tribler/Core/BitTornado/BT1/HoffmanHTTPDownloader.py Tribler/Core/CacheDB/MetadataDBHandler.py Tribler/Core/DecentralizedTracking/MagnetLink/* Tribler/Core/Subtitles/* Tribler/Images/SwarmServerIcon.ico Tribler/Main/Build/Ubuntu/tribler.gconf-defaults Tribler/Main/Utility/logging_util.py Tribler/Main/vwxGUI/ChannelsPanel.py Tribler/Main/vwxGUI/images/iconSaved_state4.png Tribler/schema_sdb_v5.sql Tribler/Test/Core/* Tribler/Test/extend_hs_dir/proxyservice.test.torrent Tribler/Test/subtitles_test_res Tribler/Test/test_channelcast_plus_subtitles.py Tribler/Test/test_magnetlink.py Tribler/Test/test_miscutils.py Tribler/Test/test_subtitles.bat Tribler/Test/test_subtitles_isolation.py Tribler/Test/test_subtitles_msgs.py Tribler/Test/test_subtitles.sh Tribler/Test/test_threadpool.py Tribler/Tools/dirtracker.py Tribler/Tools/duration2torrent.py Tribler/Tools/httpseeder.py Tribler/Transport/* Tribler/Video/Ogg.py Tribler/WebUI/* xpitransmakedeb.sh xpitransmakedist.bat xpitransmakedist.sh xpitransmakedistmac.sh xie8transmakedist.bat TUD/swift-spbackend-r1598/*vlc-1.0.5-swarmplugin-switch-kcc-src-aug2010-r16968.patch
+Copyright: 2008-2012 TECHNISCHE UNIVERSITEIT DELFT
+License: LGPL-2.1+
+
+Files: Tribler/Core/DecentralizedTracking/kadtracker/*
+Copyright: 2008-2012 Kungliga Tekniska Högskolan (The Royal Institute of Technology)
+License: LGPL-2.1+
+
+Files: Tribler/Core/ProxyService/* Tribler/Tools/proxy-cmdline.py Tribler/Test/test_proxyservice_as_coord.bat Tribler/Test/test_proxyservice_as_coord.py Tribler/Test/test_proxyservice_as_coord.sh Tribler/Test/test_proxyservice.bat Tribler/Test/test_proxyservice.py Tribler/Test/test_proxyservice.sh Tribler/Test/extend_hs_dir/proxyservice.test.torrent
+Copyright: 2008-2012 University Politehnica Bucharest
+License: LGPL-2.1+
+
+Files: Tribler/Core/BuddyCast/buddycast.py
+Copyright: 2008-2010 Delft University of Technology and Technische Universität Berlin
+License: LGPL-2.1+
+
+Files: Tribler/Core/Search/Reranking.py Tribler/Test/test_buddycast4.py Tribler/Test/test_buddycast4_stresstest.py
+Copyright: 2008-2010 Technische Universität Berlin
+License: LGPL-2.1+
+
+Files: Tribler/Transport/tribeIChannel.idl Tribler/Transport/tribeISwarmTransport.idl Tribler/Transport/components/TribeChannel.js Tribler/Transport/components/TribeProtocolHandler.js Tribler/Transport/components/SwarmTransport.js Tribler/Transport/install.rdf Tribler/Transport/chrome.manifest
+Copyright: 2008-2012 TECHNISCHE UNIVERSITEIT DELFT and Jan Gerber
+License: LGPL-2.1+
+
+Files: Tribler/Core/BitTornado/* Tribler/Core/defaults.py Tribler/Core/APIImplementation/maketorrent.py Tribler/Core/DecentralizedTracking/ut_pex.py Tribler/Core/Overlay/SecureOverlay.py Tribler/Core/NATFirewall/ReturnConnHandler.py Tribler/Main/Dialogs/TorrentMaker.py Tribler/Test/test_permid.py
+Copyright: 2001-2002 Bram Cohen
+License: Expat
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation files
+ (the "Software"), to deal in the Software without restriction,
+ including without limitation the rights to use, copy, modify, merge,
+ publish, distribute, sublicense, and/or sell copies of the Software,
+ and to permit persons to whom the Software is furnished to do so,
+ subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ .
+ The Software is provided "AS IS", without warranty of any kind,
+ express or implied, including but not limited to the warranties of
+ merchantability,  fitness for a particular purpose and
+ noninfringement. In no event shall the  authors or copyright holders
+ be liable for any claim, damages or other liability, whether in an
+ action of contract, tort or otherwise, arising from, out of or in
+ connection with the Software or the use or other dealings in the
+ Software.
+
+Files: debian/*
+Copyright: 2012 Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
+License: LGPL-2.1+
+
+License: LGPL-2.1+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
+
+License: GPL-2+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License along
+ with this program; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ .
+ On Debian systems, the complete text of the GNU General Public
+ License version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: LPPL-1.3
+ This work is distributed under the LaTeX Project Public License (LPPL)
+ ( http://www.latex-project.org/ ) version 1.3, and may be freely used,
+ distributed and modified. A copy of the LPPL, version 1.3, is included
+ in the base LaTeX documentation of all distributions of LaTeX released
+ 2003/12/01 or later.
