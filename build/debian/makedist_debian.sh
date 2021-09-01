@@ -27,7 +27,12 @@ TRIBLER_VERSION=$(cat .TriblerVersion)
 sed -i "s/__VERSION__/$TRIBLER_VERSION/g" build/debian/snap/snapcraft.yaml
 
 pushd build/debian/tribler || exit
-dch -v $TRIBLER_VERSION New upstream release.
+# Compose the changelog using git commits
+git log "$(git describe --tags --abbrev=0)"..HEAD --oneline |
+while IFS= read -r commit; do
+  dch -v $TRIBLER_VERSION $commit
+done
+# Build the package afterwards
 dpkg-buildpackage -b -rfakeroot -us -uc
 popd || exit
 
