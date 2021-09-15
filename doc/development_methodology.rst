@@ -110,6 +110,15 @@ As mentioned before, any requested modifications should come in the form of fixu
 
 Once the final OK is given, all fixup commits should be squashed and the branch will get merged.
 
+Submodule notes
+---------------
+
+- As updated submodules are in detached head state, remember to check out a branch before committing changes on them.
+- If you forgot to check out a branch before doing a commit, you should get a warning telling you about it. To get the commit to a branch just check out the branch and do a git cherry-pick of the commit.
+- Take care of not accidentally committing a submodule revision change with ``git commit -a``.
+- Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
+
+
 Misc guidelines
 ---------------
 
