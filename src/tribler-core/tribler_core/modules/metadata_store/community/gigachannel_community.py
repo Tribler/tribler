@@ -54,7 +54,9 @@ class ChannelsPeersMapping:
 
     def remove_peer(self, peer):
         for id_tuple in self._peers_channels[peer]:
-            self._channels_dict.pop(id_tuple, None)
+            self._channels_dict[id_tuple].discard(peer)
+            if not self._channels_dict[id_tuple]:
+                self._channels_dict.pop(id_tuple)
         self._peers_channels.pop(peer)
 
     def get_last_seen_peers_for_channel(self, channel_pk: bytes, channel_id: int, limit=None):
