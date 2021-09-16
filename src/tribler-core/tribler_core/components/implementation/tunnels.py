@@ -9,8 +9,8 @@ from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
 from tribler_core.components.interfaces.tunnels import TunnelsComponent
-from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
+from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
 INFINITE = -1
 
@@ -62,7 +62,7 @@ class TunnelsComponentImp(TunnelsComponent):
         # This causes a deformed network topology and makes it harder for peers to connect to others.
         # More information: https://github.com/Tribler/py-ipv8/issues/979#issuecomment-896643760
         ipv8.strategies.append((RandomWalk(community), 20))
-        ipv8.strategies.append((RemovePeers(community), INFINITE))
+        ipv8.strategies.append((GoldenRatioStrategy(community), INFINITE))
         ipv8.overlays.append(community)
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
