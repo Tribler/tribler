@@ -55,7 +55,11 @@ class TunnelsComponentImp(TunnelsComponent):
                                bandwidth_community=bandwidth_community,
                                dht_provider=DHTCommunityProvider(dht_discovery_community, config.ipv8.port),
                                settings=settings)
-        ipv8.strategies.append((RandomWalk(community), 30))
+
+        # Value of `target_peers` must not be equal to the value of `max_peers` for this community.
+        # This causes a deformed network topology and makes it harder for peers to connect to others.
+        # More information: https://github.com/Tribler/py-ipv8/issues/979#issuecomment-896643760
+        ipv8.strategies.append((RandomWalk(community), 20))
         ipv8.strategies.append((RemovePeers(community), INFINITE))
         ipv8.overlays.append(community)
 
