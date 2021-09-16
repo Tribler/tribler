@@ -1003,7 +1003,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_debug_panel_button(self, _):
+    def clicked_debug_panel_button(self, *args):   # pylint: disable=unused-argument
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
