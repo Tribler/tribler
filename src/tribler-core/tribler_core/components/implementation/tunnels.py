@@ -46,6 +46,8 @@ class TunnelsComponentImp(TunnelsComponent):
         else:
             tunnel_cls = TriblerTunnelCommunity
 
+        provider = DHTCommunityProvider(dht_discovery_community, config.ipv8.port) if dht_discovery_community else None
+
         # TODO: decouple bandwidth community and dlmgr to initiate later
         community = tunnel_cls(peer, ipv8.endpoint, ipv8.network,
                                socks_servers=socks_servers,
@@ -53,7 +55,7 @@ class TunnelsComponentImp(TunnelsComponent):
                                notifier=self.session.notifier,
                                dlmgr=download_manager,
                                bandwidth_community=bandwidth_community,
-                               dht_provider=DHTCommunityProvider(dht_discovery_community, config.ipv8.port),
+                               dht_provider=provider,
                                settings=settings)
 
         # Value of `target_peers` must not be equal to the value of `max_peers` for this community.
