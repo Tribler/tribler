@@ -3,18 +3,12 @@ Branching model and development methodology
 
 In this post we'll explain the branching model and development methodology we use at `TUDelft <http://www.ewi.tudelft.nl/en/>`_ on the `Tribler <https://github.com/Tribler/tribler>`_ project.
 
-This is mostly targeted at new students joining the team. However, it may give you some useful ideas if you are working on a similar project type.
+This is mostly targeted at new developers joining the team. However, it may give you some useful ideas if you are working on a similar project type.
 
 Branching model
 ---------------
 
-Tribler is developed mainly by university students (mostly MSC and PHDs) that will work on Tribler for a relatively short period of time. So pull requests usually require several review cycles and some of them take a long time to be completed and merged (development of new features are usually part of Master thesis subjects or papers and suchlike). This makes it rather hard to implement anything like traditional unsupervised `continuous integration <https://en.wikipedia.org/wiki/Continuous_integration>`_.
-
-Our branching model follows the GitFlow model described at length in `Vincent Driessen's post <http://nvie.com/posts/a-successful-git-branching-model/>`_.
-
-Our main repository contains 2 permanent branches:
-
-- **main**: The main development branch; all new features and fixes for them belong here. Every time a new release cycle is started, a new **release/X.Y(-abc)** branch is forked from it.
+Our branching model follows the `OneFlow <https://www.endoflineblog.com/oneflow-a-git-branching-model-and-workflow>`_ model.
 
 Release lifecycle
 -----------------
@@ -62,23 +56,7 @@ Every revision that will result in a (pre)release gets tagged with a version num
 Setting up the local repo
 -------------------------
 
-1. `Fork Tribler's upstream repository <https://github.com/Tribler/tribler#fork-destination-box>`_.
-2. Make a local clone of it:
-
-.. code-block:: none
-
-    git clone -o MrStudent --recursive --recurse-submodules --single-branch \
-    git@github.com:MrStudent/tribler
-
-3. Add the upstream remote:
-
-.. code-block:: none
-
-    git remote add upstream https://github.com/Tribler/tribler
-
-Note that an /HTTPS/ URL is used here instead of an /SSH/ one (git@github.com/yadayada). This is done in order to prevent accidental pushes to the main repository. However, it will only work if you don't set up /HTTPS/ auth for github. Any attempt to push something there and git will ask you for credentials.
-
-4. Profit!
+To setting up the local repo, please follow to instructions `here <https://github.com/Tribler/tribler/tree/main/doc/development>`_.
 
 Working on new features or fixes
 --------------------------------
