@@ -74,5 +74,8 @@ class TunnelsComponentImp(TunnelsComponent):
             if download_component.enabled:
                 rest_manager.get_endpoint('downloads').tunnel_community = community
 
+            debug_endpoint = rest_manager.get_endpoint('debug')
+            debug_endpoint.tunnel_community = community
+
     async def shutdown(self):
         await self.community.unload()
