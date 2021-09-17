@@ -1,12 +1,26 @@
 import logging
 from datetime import datetime
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from tribler_common.simpledefs import dlstatus_strings
 
 from tribler_gui.defs import *
 from tribler_gui.utilities import duration_to_string, format_size, format_speed
+
+
+class LoadingDownloadWidgetItem(QTreeWidgetItem):
+    """
+    This class is used for the placeholder "Loading" item for the downloads list
+    """
+
+    def __init__(self):
+        QTreeWidgetItem.__init__(self)
+        self.setFlags(Qt.NoItemFlags)
+
+    def get_raw_download_status(self):
+        return "PLACEHOLDER"
 
 
 class DownloadWidgetItem(QTreeWidgetItem):
