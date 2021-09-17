@@ -2,7 +2,10 @@
 Tribler
 *******
 
-|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0| |downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4| |downloads_7_5| |doi| |openhub|
+|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0|
+|downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4| |downloads_7_5|
+|downloads_7_6| |downloads_7_7| |downloads_7_8| |downloads_7_9| |downloads_7_10|
+|doi| |openhub|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -12,9 +15,6 @@ Tribler includes our own Tor-like onion routing network with hidden services bas
 The aim of Tribler is giving anonymous access to online (streaming) videos. We are trying to make privacy, strong cryptography and authentication the Internet norm.
 
 Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 11 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
-
-**We make use of submodules, so remember using the --recursive argument when cloning this repo.**
-
 
 Obtaining the latest release
 ============================
@@ -37,17 +37,6 @@ Have a look at the `issue tracker <https://github.com/Tribler/tribler/issues>`_ 
 Running Tribler from the repository
 ###################################
 
-First clone the repository:
-
-.. code-block:: bash
-
-    git clone --recursive https://github.com/Tribler/tribler.git
-
-Second, install the `dependencies <doc/development/development_on_linux.rst>`_.
-
-Setting up your development environment
-***************************************
-
 We support development on Linux, macOS and Windows. We have written
 documentation that guides you through installing the required packages when
 setting up a Tribler development environment.
@@ -57,33 +46,16 @@ setting up a Tribler development environment.
 * `macOS <http://tribler.readthedocs.io/en/latest/development/development_on_osx.html>`_
 
 
-Running
-***************************************
-
-Now you can run tribler by executing the ``tribler.sh`` script on the root of the repository:
-
-.. code-block:: bash
-
-    ./src/tribler.sh
-
-On Windows, you can use the following command to run Tribler:
-
-.. code-block:: bash
-
-    python run_tribler.py
 
 Packaging Tribler
 =================
 
-We have written guides on how to package Tribler for distribution on various systems. Please take a look `here <http://tribler.readthedocs.io/en/latest/building/building.html>`_.
+We have written guides on how to package Tribler for distribution on various systems.
 
-Submodule notes
-===============
+* `Linux <http://tribler.readthedocs.io/en/latest/building/building.html>`_
+* `Windows <http://tribler.readthedocs.io/en/latest/building/building_on_windows.html>`_
+* `macOS <http://tribler.readthedocs.io/en/latest/building/building_on_osx.html>`_
 
-- As updated submodules are in detached head state, remember to check out a branch before committing changes on them.
-- If you forgot to check out a branch before doing a commit, you should get a warning telling you about it. To get the commit to a branch just check out the branch and do a git cherry-pick of the commit.
-- Take care of not accidentally committing a submodule revision change with ``git commit -a``.
-- Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
 
 .. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_main/badge/icon
     :target: http://jenkins-ci.tribler.org/job/Test_tribler_main/
@@ -123,6 +95,26 @@ Submodule notes
 .. |downloads_7_5| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.5.1/total.svg?style=flat
      :target: https://github.com/Tribler/tribler/releases
      :alt: Downloads(7.5.1)
+
+.. |downloads_7_6| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.6.1/total.svg?style=flat
+     :target: https://github.com/Tribler/tribler/releases
+     :alt: Downloads(7.6.1)
+
+.. |downloads_7_7| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.7.0/total.svg?style=flat
+     :target: https://github.com/Tribler/tribler/releases
+     :alt: Downloads(7.7.0)
+
+.. |downloads_7_8| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.8.0/total.svg?style=flat
+     :target: https://github.com/Tribler/tribler/releases
+     :alt: Downloads(7.8.0)
+
+.. |downloads_7_9| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.9.0/total.svg?style=flat
+     :target: https://github.com/Tribler/tribler/releases
+     :alt: Downloads(7.9.0)
+
+.. |downloads_7_10| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.10.0/total.svg?style=flat
+     :target: https://github.com/Tribler/tribler/releases
+     :alt: Downloads(7.10.0)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors
