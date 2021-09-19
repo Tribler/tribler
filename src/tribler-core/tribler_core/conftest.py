@@ -264,7 +264,6 @@ async def test_download(mock_dlmgr, test_tdef):
 @pytest.fixture
 def mock_lt_status():
     lt_status = Mock()
-    lt_status.state = 3
     lt_status.upload_rate = 123
     lt_status.download_rate = 43
     lt_status.total_upload = 100
