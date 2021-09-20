@@ -1,8 +1,8 @@
 from tribler_common.simpledefs import STATE_START_API
 
+from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.components.interfaces.restapi import RESTComponent
 from tribler_core.exception_handler import CoreExceptionHandler
-from tribler_core.components.interfaces.reporter import ReporterComponent
 from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 
@@ -33,6 +33,11 @@ class RESTComponentImp(RESTComponent):
 
         events_endpoint = rest_manager.get_endpoint('events')
         events_endpoint.connect_notifier(notifier)
+
+        debug_endpoint = rest_manager.get_endpoint('debug')
+        log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
+        debug_endpoint.log_dir = log_dir
+        debug_endpoint.state_dir = config.state_dir
 
         def report_callback(text_long, sentry_event):
             events_endpoint.on_tribler_exception(text_long, sentry_event,
