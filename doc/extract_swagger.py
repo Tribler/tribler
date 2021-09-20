@@ -6,18 +6,20 @@ from unittest.mock import Mock
 import aiohttp
 
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.restapi.rest_manager import RESTManager
+from tribler_core.restapi.rest_manager import ApiKeyMiddleware, error_middleware, RESTManager
+from tribler_core.restapi.root_endpoint import RootEndpoint
 
 import yaml
 
 
 async def extract_swagger(destination_fn):
-    session = Mock()
-    session.config = TriblerConfig()
-    session.config.api.key = 'apikey'
-    session.config.api.http_enabled = False
-    session.config.api.https_enabled = False
-    api_manager = RESTManager(session)
+    config = TriblerConfig()
+    config.api.key = 'apikey'
+    config.api.http_enabled = False
+    config.api.https_enabled = False
+
+    root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
+    api_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=config.state_dir)
     await api_manager.start()
 
     fp = StringIO()
