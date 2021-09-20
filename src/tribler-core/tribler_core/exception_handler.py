@@ -2,10 +2,9 @@ import errno
 import logging
 import sys
 from io import StringIO
+from socket import gaierror
 from traceback import print_exception
 from typing import Callable, Optional
-
-from _socket import gaierror
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
