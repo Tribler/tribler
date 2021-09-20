@@ -39,12 +39,6 @@ def test_getters_setters_1(mock_download):
     assert download_state.get_num_seeds_peers() == (0, 0)
     assert download_state.get_peerlist() == []
 
-    # TODO: move this to do downloads endpoint test, testing get_extended_status
-    #assert download_state.get_status() == DLSTATUS_WAITING4HASHCHECK
-    #mock_download.config.get_hops = lambda: 1
-    #download_state = DownloadState(mock_download, None, None)
-    #assert download_state.get_status() == DLSTATUS_EXIT_NODES
-
 
 def test_getters_setters_2(mock_download, mock_lt_status):
     """

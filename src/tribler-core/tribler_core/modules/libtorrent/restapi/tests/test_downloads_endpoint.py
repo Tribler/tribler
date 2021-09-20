@@ -1,3 +1,4 @@
+import collections
 import os
 from unittest.mock import Mock
 
@@ -7,8 +8,10 @@ from ipv8.util import fail, succeed
 
 import pytest
 
+from tribler_common.simpledefs import DLSTATUS_CIRCUITS, DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
+
 from tribler_core.modules.libtorrent.download_state import DownloadState
-from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
+from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -28,6 +31,120 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disab
 
 def get_hex_infohash(tdef):
     return hexlify(tdef.get_infohash())
+
+
+ExtendedStatusConfig = collections.namedtuple("ExtendedStatusConfig",
+                                              ["hops", "candidates", "has_status"],
+                                              defaults=[0, 0, True])
+
+
+@pytest.fixture(name="mock_extended_status", scope="function")
+def fixture_extended_status(request, mock_lt_status) -> int:
+    """
+    Fixture to provide an extended status for a DownloadState that uses a mocked TunnelCommunity and a mocked Download.
+
+    Parameterization options:
+
+     - Set Tribler's configured hops through the ``hops`` parameter.
+     - Set the numer of exit candidates for the ``TunnelCommunity`` through the ``candidates`` parameter.
+     - Set whether the DownloadState has a ``lt_status``, that is not ``None``, through the ``has_status``.
+
+    :param request: PyTest's parameterization of this test, using ExtendedStatusConfig.
+    :type request: SubRequest
+    :param mock_lt_status: fixture that provides a mocked libtorrent status.
+    """
+    tunnel_community = Mock()
+    download = Mock()
+    state = DownloadState(download, mock_lt_status, None)
+    download.get_state = lambda: state
+
+    # Test parameterization
+    download.config.get_hops = lambda: request.param.hops
+    if not request.param.has_status:
+        state.lt_status = None
+    tunnel_community.get_candidates = lambda _: request.param.candidates
+
+    return get_extended_status(tunnel_community, download)
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=0, candidates=0, has_status=True)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_downloading_nohops_nocandidates(mock_extended_status):
+    """
+    Testing whether a non-anonymous download with state is considered "DOWNLOADING" without candidates.
+    """
+    assert mock_extended_status == DLSTATUS_DOWNLOADING
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=0, candidates=1, has_status=True)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_downloading_nohops_candidates(mock_extended_status):
+    """
+    Testing whether a non-anonymous download with state is considered "DOWNLOADING" with candidates.
+    """
+    assert mock_extended_status == DLSTATUS_DOWNLOADING
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=1, candidates=0, has_status=True)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_downloading_hops_nocandidates(mock_extended_status):
+    """
+    Testing whether an anonymous download with state is considered "DOWNLOADING" without candidates.
+    """
+    assert mock_extended_status == DLSTATUS_DOWNLOADING
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=1, candidates=1, has_status=True)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_downloading_hops_candidates(mock_extended_status):
+    """
+    Testing whether an anonymous download with state is considered "DOWNLOADING" with candidates.
+    """
+    assert mock_extended_status == DLSTATUS_DOWNLOADING
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=0, candidates=0, has_status=False)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_stopped(mock_extended_status):
+    """
+    Testing whether a non-anonymous download without state is considered "STOPPED" without candidates.
+    """
+    assert mock_extended_status == DLSTATUS_STOPPED
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=0, candidates=1, has_status=False)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_stopped_hascandidates(mock_extended_status):
+    """
+    Testing whether a non-anonymous download without state is considered "STOPPED" with candidates.
+    """
+    assert mock_extended_status == DLSTATUS_STOPPED
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=1, candidates=0, has_status=False)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_exit_nodes(mock_extended_status):
+    """
+    Testing whether an anonymous download without state is considered looking for "EXIT_NODES" without candidates.
+    """
+    assert mock_extended_status == DLSTATUS_EXIT_NODES
+
+
+@pytest.mark.parametrize("mock_extended_status",
+                         [ExtendedStatusConfig(hops=1, candidates=1, has_status=False)],
+                         indirect=["mock_extended_status"])
+def test_get_extended_status_circuits(mock_extended_status):
+    """
+    Testing whether an anonymous download without state is considered looking for "CIRCUITS" with candidates.
+    """
+    assert mock_extended_status == DLSTATUS_CIRCUITS
 
 
 async def test_get_downloads_no_downloads(mock_dlmgr, rest_api):

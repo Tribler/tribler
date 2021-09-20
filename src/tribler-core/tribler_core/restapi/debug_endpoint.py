@@ -323,6 +323,8 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_profiler_state(self, _):
+        if self.resource_monitor is None:
+            return RESTResponse(status=404)
         state = "STARTED" if self.resource_monitor.profiler.is_running() else "STOPPED"
         return RESTResponse({"state": state})
 
