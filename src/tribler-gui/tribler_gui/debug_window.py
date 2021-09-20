@@ -299,22 +299,21 @@ class DebugWindow(QMainWindow):
         # Heading: GUI Settings
         self.create_and_add_widget_item("GUI Settings:", "", self.window().general_tree_widget)
         # Location of the settings file
-        self.create_and_add_widget_item(
-            "Qt file", self.gui_settings.fileName(), self.window().general_tree_widget
-        )
+        self.create_and_add_widget_item("Qt file", self.gui_settings.fileName(), self.window().general_tree_widget)
 
-        selected_settings = {"api_key": lambda val: val.decode('utf-8'),
-                             "api_port": lambda val: val,
-                             "pos": lambda val: f"(x : {val.x()} px,  y : {val.y()} px)",
-                             "size": lambda val: f"(width : {val.width()} px,  height : {val.height()} px)",
-                             "ask_download_settings": lambda val: val,
-                             "autocommit_enabled": lambda val: val,
-                             "debug": lambda val: val,
-                             "family_filter": lambda val: val,
-                             "first_discover": lambda val: val,
-                             "use_monochrome_icon": lambda val: val,
-                             "recent_download_locations": lambda val: [unhexlify(url).decode('utf-8')
-                                                                       for url in val.split(",")]}
+        selected_settings = {
+            "api_key": lambda val: val.decode('utf-8'),
+            "api_port": lambda val: val,
+            "pos": lambda val: f"(x : {val.x()} px,  y : {val.y()} px)",
+            "size": lambda val: f"(width : {val.width()} px,  height : {val.height()} px)",
+            "ask_download_settings": lambda val: val,
+            "autocommit_enabled": lambda val: val,
+            "debug": lambda val: val,
+            "family_filter": lambda val: val,
+            "first_discover": lambda val: val,
+            "use_monochrome_icon": lambda val: val,
+            "recent_download_locations": lambda val: [unhexlify(url).decode('utf-8') for url in val.split(",")],
+        }
 
         # List only selected gui settings
         for key in self.gui_settings.allKeys():
@@ -788,8 +787,8 @@ class DebugWindow(QMainWindow):
     def on_profiler_info(self, data):
         if not data:
             return
-        self.profiler_enabled = data["state"] == "STARTED"
         self.window().toggle_profiler_button.setEnabled(True)
+        self.profiler_enabled = data["state"] == "STARTED"
         self.window().toggle_profiler_button.setText(f"{'Stop' if self.profiler_enabled else 'Start'} profiler")
 
     def on_toggle_profiler_button_clicked(self, checked=False):
