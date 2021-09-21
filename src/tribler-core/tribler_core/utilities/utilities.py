@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 MEMORY_DB = sentinel('MEMORY_DB')
 
 
+# Decorator to prevent creating new object properties at runtime.
+# Copy-pasted from SO post: https://stackoverflow.com/a/29368642
+# (c) Yoann Quenach de Quivillic
 def froze_it(cls):
     cls.__frozen = False
 

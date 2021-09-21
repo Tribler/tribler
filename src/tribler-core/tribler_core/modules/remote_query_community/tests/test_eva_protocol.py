@@ -22,7 +22,7 @@ from tribler_core.modules.remote_query_community.eva_protocol import (
 )
 
 # fmt: off
-
+PYTEST_TIMEOUT_IN_SEC = 60
 
 TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC = 1
 TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC = 0.3
@@ -125,8 +125,11 @@ class TestEVA(TestBase):
         assert len(self.overlay(0).sent_data[self.peer(1)]) == 0
         assert len(self.overlay(1).received_data[self.peer(0)]) == 0
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_one_megabyte_transfer(self):
+        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
+
         data_size = 1024 * 1024
         data = os.urandom(1), os.urandom(data_size), random.randrange(0, 256)
 
@@ -137,7 +140,7 @@ class TestEVA(TestBase):
         assert len(self.overlay(1).most_recent_received_data[1]) == data_size
         assert self.overlay(1).most_recent_received_data == data
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_termination_by_timeout(self):
         # breaks "on_data" function in community2 to make this community silent
 
@@ -232,6 +235,7 @@ class TestEVA(TestBase):
         assert not self.overlay(2).eva_protocol.outgoing
         assert len(self.overlay(0).sent_data[self.peer(2)]) == 0
 
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_duplex(self):
         count = 100
         block_size = 10
@@ -262,7 +266,11 @@ class TestEVA(TestBase):
         assert len(self.overlay(1).sent_data[self.peer(0)]) == 1
         assert len(self.overlay(1).received_data[self.peer(0)]) == 1
 
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_multiply_send(self):
+        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
+
         data_set_count = 100
         data_size = 1024
 
@@ -275,6 +283,7 @@ class TestEVA(TestBase):
         assert self.overlay(1).received_data[self.peer(0)] == data_list
         assert not self.overlay(0).eva_protocol.scheduled
 
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_multiply_duplex(self):
         data_set_count = 10
 
@@ -315,7 +324,7 @@ class TestEVA(TestBase):
 
         assert data_sets_checked == 6
 
-    @pytest.mark.timeout(20)
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_survive_when_multiply_packets_lost(self):
         self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
         self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
@@ -371,7 +380,7 @@ class TestEVA(TestBase):
         assert len(self.overlay(1).received_data[self.peer(0)]) == data_set_count
         assert self.overlay(1).received_data[self.peer(0)] == data
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_dynamically_changed_window_size(self):
         window_size = 5
 
@@ -427,7 +436,7 @@ class TestEVA(TestBase):
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
         assert isinstance(self.overlay(1).most_recent_received_exception, SizeLimitException)
 
-    @pytest.mark.timeout(10)
+    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_wrong_message_order_and_wrong_nonce(self):
         self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
         self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
