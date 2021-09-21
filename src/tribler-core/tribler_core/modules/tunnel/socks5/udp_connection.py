@@ -26,9 +26,8 @@ class SocksUDPConnection(DatagramProtocol):
         if self.remote_udp_address:
             self.transport.sendto(data, self.remote_udp_address)
             return True
-        else:
-            self._logger.error("cannot send data, no clue where to send it to")
-            return False
+        self._logger.error("cannot send data, no clue where to send it to")
+        return False
 
     def datagram_received(self, data, source):
         # If remote_address was not set before, use first one
@@ -43,7 +42,10 @@ class SocksUDPConnection(DatagramProtocol):
                 return False
 
             if request.frag == 0 and request.destination:
-                return self.socksconnection.socksserver.output_stream.on_socks5_udp_data(self, request)
+                output_stream = self.socksconnection.socksserver.output_stream
+                if output_stream is not None:
+                    # Swallow the data in case the tunnel community has not started yet
+                    return output_stream.on_socks5_udp_data(self, request)
             self._logger.debug("No support for fragmented data or without destination host, dropping")
         else:
             self._logger.debug("Ignoring data from %s:%d, is not %s:%d", *source, *self.remote_udp_address)
