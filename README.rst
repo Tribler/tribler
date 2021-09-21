@@ -124,6 +124,6 @@ We have written guides on how to package Tribler for distribution on various sys
     :target: https://zenodo.org/badge/latestdoi/8411137
     :alt: DOI number
 
-.. |docs| image:: https://readthedocs.org/projects/tribler/badge/?version=main
-    :target: https://tribler.readthedocs.io/en/latest/?badge=main
+.. |docs| image:: https://readthedocs.org/projects/tribler/badge/?version=latest
+    :target: https://tribler.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
