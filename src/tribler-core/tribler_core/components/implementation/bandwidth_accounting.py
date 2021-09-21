@@ -1,6 +1,7 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 
 from tribler_common.simpledefs import STATEDIR_DB_DIR
+
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.ipv8 import Ipv8Component
 from tribler_core.components.interfaces.reporter import ReporterComponent
@@ -23,7 +24,7 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         config = self.session.config
 
         ipv8_component = await self.use(Ipv8Component)
-        ipv8 = ipv8_component.ipv8
+        ipv8 = self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
 
@@ -50,4 +51,4 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
     async def shutdown(self):
         self.rest_manager.get_endpoint('trustview').bandwidth_db = None
         self.rest_manager.get_endpoint('bandwidth').bandwidth_community = None
-        await self.community.unload()
+        await self._ipv8.unload_overlay(self.community)
