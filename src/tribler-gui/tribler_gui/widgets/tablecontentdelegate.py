@@ -90,10 +90,13 @@ class CheckClickedMixin:
     def check_clicked(self, event, _, __, index):
         model = index.model()
         data_item = model.data_items[index.row()]
+        if column_position := model.column_position.get(self.column_name) is None:
+            return False
+        attribute_name = model.columns[column_position].dict_key
         if (
             event.type() == QEvent.MouseButtonRelease
-            and model.column_position.get(self.column_name, -1) == index.column()
-            and data_item[index.model().columns[index.model().column_position[self.column_name]].dict_key] != ''
+            and column_position == index.column()
+            and data_item.get(attribute_name, '') != ''
         ):
             self.clicked.emit(index)
             return True
