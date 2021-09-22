@@ -14,6 +14,10 @@ class Notifier:
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.observers = {}
+        # We have to note the event loop reference, because when we call "notify" from an external thread,
+        # we don't know anything about the existence of the event loop, and get_event_loop() can't find
+        # the original event loop from an external thread.
+        self._loop = get_event_loop()
         # We remember the event loop from the thread that runs the Notifier
         # to be able to schedule notifications from external threads
 
@@ -35,7 +39,7 @@ class Notifier:
     def notify(self, subject, *args):
         # We have to call the notifier callbacks through call_soon_threadsafe
         # because the notify method could have been called from a non-reactor thread
-        get_event_loop().call_soon_threadsafe(self._notify, subject, *args)
+        self._loop.call_soon_threadsafe(self._notify, subject, *args)
 
     def _notify(self, subject, *args):
         if subject not in self.observers:
