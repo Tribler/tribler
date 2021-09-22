@@ -39,7 +39,7 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         community = bandwidth_cls(peer, ipv8.endpoint, ipv8.network,
                                   settings=config.bandwidth_accounting,
                                   database=database)
-        ipv8.strategies.append((RandomWalk(community), 20))
+        ipv8.add_strategy(community, RandomWalk(community), 20)
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
