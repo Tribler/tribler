@@ -133,6 +133,10 @@ class Ipv8ComponentImp(Ipv8Component):
             self.rest_manager.get_endpoint('statistics').ipv8 = None
         await self.release(RESTComponent)
 
+        for overlay in (self.dht_discovery_community, self.peer_discovery_community):
+            if overlay:
+                await self.ipv8.unload_overlay(overlay)
+
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self.task_manager.shutdown_task_manager()

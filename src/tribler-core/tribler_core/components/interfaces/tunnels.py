@@ -1,5 +1,7 @@
 from unittest.mock import Mock
 
+from ipv8_service import IPv8
+
 from tribler_core.components.base import Component, testcomponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
@@ -7,6 +9,7 @@ from tribler_core.modules.tunnel.community.community import TriblerTunnelCommuni
 
 class TunnelsComponent(Component):
     community: TriblerTunnelCommunity
+    _ipv8: IPv8
 
     @classmethod
     def should_be_enabled(cls, config: TriblerConfig):
