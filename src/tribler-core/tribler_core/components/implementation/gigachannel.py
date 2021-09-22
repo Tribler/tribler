@@ -25,7 +25,7 @@ class GigaChannelComponentImp(GigaChannelComponent):
         notifier = self.session.notifier
 
         ipv8_component = await self.use(Ipv8Component)
-        ipv8 = ipv8_component.ipv8
+        ipv8 = self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
         metadata_store = (await self.use(MetadataStoreComponent)).mds
@@ -60,4 +60,4 @@ class GigaChannelComponentImp(GigaChannelComponent):
         self.rest_manager.get_endpoint('collections').gigachannel_community = None
         await self.release(RESTComponent)
 
-        await self.community.unload()
+        await self._ipv8.unload_overlay(self.community)

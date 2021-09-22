@@ -21,7 +21,7 @@ class TunnelsComponentImp(TunnelsComponent):
 
         config = self.session.config
         ipv8_component = await self.use(Ipv8Component)
-        ipv8 = ipv8_component.ipv8
+        ipv8 = self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         dht_discovery_community = ipv8_component.dht_discovery_community
 
@@ -80,4 +80,4 @@ class TunnelsComponentImp(TunnelsComponent):
             debug_endpoint.tunnel_community = community
 
     async def shutdown(self):
-        await self.community.unload()
+        await self._ipv8.unload_overlay(self.community)

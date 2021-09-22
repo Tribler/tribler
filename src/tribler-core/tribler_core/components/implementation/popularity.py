@@ -17,7 +17,7 @@ class PopularityComponentImp(PopularityComponent):
 
         config = self.session.config
         ipv8_component = await self.use(Ipv8Component)
-        ipv8 = ipv8_component.ipv8
+        ipv8 = self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         metadata_store = (await self.use(MetadataStoreComponent)).mds
 
@@ -39,4 +39,4 @@ class PopularityComponentImp(PopularityComponent):
         ipv8.overlays.append(community)
 
     async def shutdown(self):
-        await self.community.unload()
+        await self._ipv8.unload_overlay(self.community)
