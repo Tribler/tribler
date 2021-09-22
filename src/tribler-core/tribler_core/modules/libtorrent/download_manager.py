@@ -160,7 +160,8 @@ class DownloadManager(TaskManager):
         self.notifier.notify_shutdown_state("Shutting down Libtorrent Manager...")
         # If libtorrent session has pending disk io, wait until timeout (default: 30 seconds) to let it finish.
         # In between ask for session stats to check if state is clean for shutdown.
-        while not self.is_shutdown_ready() and timeout >= 1:
+        # In dummy mode, we immediately shut down the download manager.
+        while not self.dummy_mode and not self.is_shutdown_ready() and timeout >= 1:
             self.notifier.notify_shutdown_state("Waiting for Libtorrent to finish...")
             self.post_session_stats()
             timeout -= 1

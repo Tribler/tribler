@@ -33,7 +33,8 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         else:
             bandwidth_cls = BandwidthAccountingCommunity
 
-        database_path = config.state_dir / STATEDIR_DB_DIR / "bandwidth.db"
+        db_name = "bandwidth_gui_test.db" if config.gui_test_mode else f"{bandwidth_cls.DB_NAME}.db"
+        database_path = config.state_dir / STATEDIR_DB_DIR / db_name
         database = BandwidthDatabase(database_path, peer.public_key.key_to_bin())
         community = bandwidth_cls(peer, ipv8.endpoint, ipv8.network,
                                   settings=config.bandwidth_accounting,
