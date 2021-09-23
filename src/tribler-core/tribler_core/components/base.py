@@ -123,13 +123,9 @@ class Component:
         self.unused.set()
 
     @classmethod
-    def _find_implementation(cls: Type[T], required=True) -> T:
+    def imp(cls: Type[T], required=True) -> T:
         session = Session.current()
         return session.components.get(cls)
-
-    @classmethod
-    def imp(cls: Type[T], required=True) -> T:
-        return cls._find_implementation(required=required)
 
     async def start(self):
         try:
