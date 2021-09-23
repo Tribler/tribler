@@ -6,15 +6,48 @@ import signal
 import sys
 from typing import List
 
+import tribler_core
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.simpledefs import NTFY
 from tribler_common.version_manager import VersionHistory
-
-import tribler_core
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
 from tribler_core.components.base import Component, Session
-from tribler_core.components.components_catalog import components_gen
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponentImp
+from tribler_core.components.implementation.gigachannel import GigaChannelComponentImp
+from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponentImp
+from tribler_core.components.implementation.ipv8 import Ipv8ComponentImp
+from tribler_core.components.implementation.libtorrent import LibtorrentComponentImp
+from tribler_core.components.implementation.masterkey import MasterKeyComponentImp
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponentImp
+from tribler_core.components.implementation.payout import PayoutComponentImp
+from tribler_core.components.implementation.popularity import PopularityComponentImp
+from tribler_core.components.implementation.reporter import ReporterComponentImp
+from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponentImp
+from tribler_core.components.implementation.restapi import RESTComponentImp
+from tribler_core.components.implementation.socks_configurator import SocksServersComponentImp
+from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponentImp
+from tribler_core.components.implementation.tunnels import TunnelsComponentImp
+from tribler_core.components.implementation.upgrade import UpgradeComponentImp
+from tribler_core.components.implementation.version_check import VersionCheckComponentImp
+from tribler_core.components.implementation.watch_folder import WatchFolderComponentImp
+from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
+from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.interfaces.ipv8 import Ipv8Component
+from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
 from tribler_core.components.interfaces.masterkey import MasterKeyComponent
+from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
+from tribler_core.components.interfaces.payout import PayoutComponent
+from tribler_core.components.interfaces.popularity import PopularityComponent
+from tribler_core.components.interfaces.reporter import ReporterComponent
+from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
+from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.interfaces.tunnels import TunnelsComponent
+from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.interfaces.version_check import VersionCheckComponent
+from tribler_core.components.interfaces.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler
@@ -25,6 +58,50 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 # pylint: disable=import-outside-toplevel
+
+
+def components_gen(config: TriblerConfig):
+    """This function defines components that will be used in Tibler
+    """
+    yield ReporterComponentImp(ReporterComponent)
+    if config.api.http_enabled or config.api.https_enabled:
+        yield RESTComponentImp(RESTComponent)
+    if config.chant.enabled or config.torrent_checking.enabled:
+        yield MetadataStoreComponentImp(MetadataStoreComponent)
+    if config.ipv8.enabled:
+        yield Ipv8ComponentImp(Ipv8Component)
+    yield MasterKeyComponentImp(MasterKeyComponent)
+    if config.libtorrent.enabled:
+        yield LibtorrentComponentImp(LibtorrentComponent)
+    if config.ipv8.enabled and config.chant.enabled:
+        yield GigaChannelComponentImp(GigaChannelComponent)
+    if config.ipv8.enabled and config.popularity_community.enabled:
+        yield PopularityComponentImp(PopularityComponent)
+    if config.ipv8.enabled:
+        yield BandwidthAccountingComponentImp(BandwidthAccountingComponent)
+    if config.resource_monitor.enabled:
+        yield ResourceMonitorComponentImp(ResourceMonitorComponent)
+
+    # The components below are skipped if config.gui_test_mode == True
+    if config.gui_test_mode:
+        return
+
+    if config.libtorrent.enabled:
+        yield SocksServersComponentImp(SocksServersComponent)
+    if config.upgrader_enabled:
+        yield UpgradeComponentImp(UpgradeComponent)
+    if config.ipv8.enabled and config.tunnel_community.enabled:
+        yield TunnelsComponentImp(TunnelsComponent)
+    if config.ipv8.enabled:
+        yield PayoutComponentImp(PayoutComponent)
+    if config.torrent_checking.enabled:
+        yield TorrentCheckerComponentImp(TorrentCheckerComponent)
+    if config.watch_folder.enabled:
+        yield WatchFolderComponentImp(WatchFolderComponent)
+    if config.general.version_checker_enabled:
+        yield VersionCheckComponentImp(VersionCheckComponent)
+    if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled:
+        yield GigachannelManagerComponentImp(GigachannelManagerComponent)
 
 
 async def core_session(config: TriblerConfig, components: List[Component]):

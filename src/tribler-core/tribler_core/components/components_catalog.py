@@ -43,11 +43,4 @@ components_list = [
 ]
 
 
-def components_gen(config: TriblerConfig):
-    for interface in components_list:
-        enable = interface.should_be_enabled(config)
-        if config.gui_test_mode and not interface.enable_in_gui_test_mode:
-            enable = False
 
-        implementation = interface.make_implementation(config, enable)
-        yield implementation
