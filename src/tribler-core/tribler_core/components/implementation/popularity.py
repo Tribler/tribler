@@ -31,12 +31,10 @@ class PopularityComponentImp(PopularityComponent):
                                         torrent_checker=torrent_checker)
         self.community = community
 
-        ipv8.strategies.append((RandomWalk(community), 30))
-        ipv8.strategies.append((RemovePeers(community), INFINITE))
+        ipv8.add_strategy(community, RandomWalk(community), 30)
+        ipv8.add_strategy(community, RemovePeers(community), INFINITE)
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
-
-        ipv8.overlays.append(community)
 
     async def shutdown(self):
         await self._ipv8.unload_overlay(self.community)
