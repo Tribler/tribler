@@ -96,7 +96,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
 
     await session.start()
 
-    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.imp().keypair.key.pk)
+    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.instance().keypair.key.pk)
 
     # If there is a config error, report to the user via GUI notifier
     if config.error:

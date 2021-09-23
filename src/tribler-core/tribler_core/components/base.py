@@ -45,8 +45,8 @@ class Session:
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
-        for implementation in components:
-            self.register(implementation.interface, implementation)
+        for component in components:
+            self.register(component.__class__, component)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}:{self.id}>'
@@ -109,8 +109,7 @@ class Component:
     enabled = True
 
     def __init__(self):
-        self.interface = self.__class__
-        self.logger = logging.getLogger(self.interface.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
         self.components_used_by_me: Set[Component] = set()
@@ -123,7 +122,7 @@ class Component:
         self.unused.set()
 
     @classmethod
-    def imp(cls: Type[T], required=True) -> T:
+    def instance(cls: Type[T]) -> T:
         session = Session.current()
         return session.components.get(cls)
 
@@ -147,7 +146,7 @@ class Component:
         await self.shutdown()
         self.stopped = True
         for dep in list(self.components_used_by_me):
-            self._release_imp(dep)
+            self._release_instance(dep)
         self.logger.info("Component free, shutting down")
 
     async def run(self):
@@ -157,7 +156,7 @@ class Component:
         pass
 
     async def use(self, dependency: Type[T], required=True) -> T:
-        dep = dependency.imp(required=required)
+        dep = dependency.instance()
         await dep.started.wait()
         if dep.failed:
             raise ComponentError(f'Component {self.__class__.__name__} has failed dependency {dep.__class__.__name__}')
@@ -165,7 +164,7 @@ class Component:
         dep.in_use_by.add(self)
         return dep
 
-    def _release_imp(self, dep: Component):
+    def _release_instance(self, dep: Component):
         assert dep in self.components_used_by_me
         self.components_used_by_me.discard(dep)
         dep.in_use_by.discard(self)
@@ -173,5 +172,5 @@ class Component:
             dep.unused.set()
 
     async def release(self, dependency: Type[T]):
-        dep = dependency.imp()
-        self._release_imp(dep)
+        dep = dependency.instance()
+        self._release_instance(dep)

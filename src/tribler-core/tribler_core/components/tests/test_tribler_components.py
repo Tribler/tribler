@@ -93,7 +93,7 @@ async def test_masterkey_component(loop, tribler_config):
         MasterKeyComponent.make_implementation(tribler_config, True)
     ])
     with session:
-        comp = MasterKeyComponent.imp()
+        comp = MasterKeyComponent.instance()
         assert comp.session is session
         assert isinstance(comp, MasterKeyComponent) and comp.__class__.__name__ == 'MasterKeyComponentImp'
 
@@ -112,7 +112,7 @@ async def test_reporter_component(loop, tribler_config):
         ReporterComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = ReporterComponent.imp()
+        comp = ReporterComponent.instance()
         assert comp.session is session
         assert isinstance(comp, ReporterComponent) and comp.__class__.__name__ == 'ReporterComponentImp'
 
@@ -134,7 +134,7 @@ async def test_rest_component(loop, tribler_config):
         RESTComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = RESTComponent.imp()
+        comp = RESTComponent.instance()
         assert comp.session is session
         assert isinstance(comp, RESTComponent) and comp.__class__.__name__ == 'RESTComponentImp'
 
@@ -161,7 +161,7 @@ async def test_upgrade_component(loop, tribler_config):
         UpgradeComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = UpgradeComponent.imp()
+        comp = UpgradeComponent.instance()
         assert comp.session is session
         assert isinstance(comp, UpgradeComponent) and comp.__class__.__name__ == 'UpgradeComponentImp'
 
@@ -170,7 +170,7 @@ async def test_upgrade_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -189,7 +189,7 @@ async def test_ipv8_component(loop, tribler_config):
         Ipv8Component.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = Ipv8Component.imp()
+        comp = Ipv8Component.instance()
         assert comp.session is session
         assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
 
@@ -202,7 +202,7 @@ async def test_ipv8_component(loop, tribler_config):
         assert comp.dht_discovery_community is None
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -222,7 +222,7 @@ async def test_ipv8_component_peer_discovery(loop, tribler_config):
         Ipv8Component.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = Ipv8Component.imp()
+        comp = Ipv8Component.instance()
         assert comp.session is session
         assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
 
@@ -235,7 +235,7 @@ async def test_ipv8_component_peer_discovery(loop, tribler_config):
         assert comp.dht_discovery_community is None
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -255,7 +255,7 @@ async def test_ipv8_component_dht_discovery(loop, tribler_config):
         Ipv8Component.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = Ipv8Component.imp()
+        comp = Ipv8Component.instance()
         assert comp.session is session
         assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
 
@@ -268,7 +268,7 @@ async def test_ipv8_component_dht_discovery(loop, tribler_config):
         assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -289,7 +289,7 @@ async def test_ipv8_component_dht_and_peer_discovery(loop, tribler_config):
         Ipv8Component.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = Ipv8Component.imp()
+        comp = Ipv8Component.instance()
         assert comp.session is session
         assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
 
@@ -302,7 +302,7 @@ async def test_ipv8_component_dht_and_peer_discovery(loop, tribler_config):
         assert type(comp.dht_discovery_community).__name__ == 'DHTDiscoveryCommunity'
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -324,7 +324,7 @@ async def test_ipv8_component_gui_test_mode(loop, tribler_config):
         Ipv8Component.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = Ipv8Component.imp()
+        comp = Ipv8Component.instance()
         assert comp.session is session
         assert isinstance(comp, Ipv8Component) and comp.__class__.__name__ == 'Ipv8ComponentImp'
 
@@ -338,7 +338,7 @@ async def test_ipv8_component_gui_test_mode(loop, tribler_config):
         assert comp.dht_discovery_community.routing_tables[UDPv4Address].my_node_id == '\x00' * 20
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -360,7 +360,7 @@ async def test_libtorrent_component(loop, tribler_config):
         LibtorrentComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = LibtorrentComponent.imp()
+        comp = LibtorrentComponent.instance()
         assert comp.session is session
         assert isinstance(comp, LibtorrentComponent) and comp.__class__.__name__ == 'LibtorrentComponentImp'
 
@@ -369,7 +369,7 @@ async def test_libtorrent_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -390,7 +390,7 @@ async def test_metadata_store_component(loop, tribler_config):
         MetadataStoreComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = MetadataStoreComponent.imp()
+        comp = MetadataStoreComponent.instance()
         assert comp.session is session
         assert isinstance(comp, MetadataStoreComponent) and comp.__class__.__name__ == 'MetadataStoreComponentImp'
 
@@ -399,7 +399,7 @@ async def test_metadata_store_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -423,7 +423,7 @@ async def test_gigachannel_component(loop, tribler_config):
         GigaChannelComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = GigaChannelComponent.imp()
+        comp = GigaChannelComponent.instance()
         assert comp.session is session
         assert isinstance(comp, GigaChannelComponent) and comp.__class__.__name__ == 'GigaChannelComponentImp'
 
@@ -432,7 +432,7 @@ async def test_gigachannel_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -459,7 +459,7 @@ async def test_popularity_component(loop, tribler_config): ###
         PopularityComponent.make_implementation(tribler_config, True)
     ])
     with session:
-        comp = PopularityComponent.imp()
+        comp = PopularityComponent.instance()
         assert comp.session is session
         assert isinstance(comp, PopularityComponent) and comp.__class__.__name__ == 'PopularityComponentImp'
 
@@ -468,7 +468,7 @@ async def test_popularity_component(loop, tribler_config): ###
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -481,7 +481,7 @@ async def test_socks_servers_component(loop, tribler_config):
         SocksServersComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = SocksServersComponent.imp()
+        comp = SocksServersComponent.instance()
         assert comp.session is session
         assert isinstance(comp, SocksServersComponent) and comp.__class__.__name__ == 'SocksServersComponentImp'
 
@@ -513,7 +513,7 @@ async def test_tunnels_component(loop, tribler_config): ###
         TunnelsComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = TunnelsComponent.imp()
+        comp = TunnelsComponent.instance()
         assert comp.session is session
         assert isinstance(comp, TunnelsComponent) and comp.__class__.__name__ == 'TunnelsComponentImp'
 
@@ -522,7 +522,7 @@ async def test_tunnels_component(loop, tribler_config): ###
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -543,7 +543,7 @@ async def test_bandwidth_accounting_component(loop, tribler_config):
         BandwidthAccountingComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = BandwidthAccountingComponent.imp()
+        comp = BandwidthAccountingComponent.instance()
         assert comp.session is session
         assert isinstance(comp, BandwidthAccountingComponent) and comp.__class__.__name__ == 'BandwidthAccountingComponentImp'
 
@@ -552,7 +552,7 @@ async def test_bandwidth_accounting_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -574,7 +574,7 @@ async def test_payout_component(loop, tribler_config):
         PayoutComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = PayoutComponent.imp()
+        comp = PayoutComponent.instance()
         assert comp.session is session
         assert isinstance(comp, PayoutComponent) and comp.__class__.__name__ == 'PayoutComponentImp'
 
@@ -583,7 +583,7 @@ async def test_payout_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -607,7 +607,7 @@ async def test_torrent_checker_component(loop, tribler_config): ###
         TorrentCheckerComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = TorrentCheckerComponent.imp()
+        comp = TorrentCheckerComponent.instance()
         assert comp.session is session
         assert isinstance(comp, TorrentCheckerComponent) and comp.__class__.__name__ == 'TorrentCheckerComponentImp'
 
@@ -616,7 +616,7 @@ async def test_torrent_checker_component(loop, tribler_config): ###
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -639,7 +639,7 @@ async def test_watch_folder_component(loop, tribler_config):
         WatchFolderComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = WatchFolderComponent.imp()
+        comp = WatchFolderComponent.instance()
         assert comp.session is session
         assert isinstance(comp, WatchFolderComponent) and comp.__class__.__name__ == 'WatchFolderComponentImp'
 
@@ -648,7 +648,7 @@ async def test_watch_folder_component(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -675,7 +675,7 @@ async def test_resourcemonitorcomponent(loop, tribler_config): ###
         ResourceMonitorComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = ResourceMonitorComponent.imp()
+        comp = ResourceMonitorComponent.instance()
         assert comp.session is session
         assert isinstance(comp, ResourceMonitorComponent) and comp.__class__.__name__ == 'ResourceMonitorComponentImp'
 
@@ -684,7 +684,7 @@ async def test_resourcemonitorcomponent(loop, tribler_config): ###
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -703,7 +703,7 @@ async def test_versioncheckcomponent(loop, tribler_config):
         VersionCheckComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = VersionCheckComponent.imp()
+        comp = VersionCheckComponent.instance()
         assert comp.session is session
         assert isinstance(comp, VersionCheckComponent) and comp.__class__.__name__ == 'VersionCheckComponentImp'
 
@@ -712,7 +712,7 @@ async def test_versioncheckcomponent(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()
@@ -736,7 +736,7 @@ async def test_gigachannelmanagercomponent(loop, tribler_config):
         GigachannelManagerComponent.make_implementation(tribler_config, True),
     ])
     with session:
-        comp = GigachannelManagerComponent.imp()
+        comp = GigachannelManagerComponent.instance()
         assert comp.session is session
         assert isinstance(comp, GigachannelManagerComponent) and comp.__class__.__name__ == 'GigachannelManagerComponentImp'
 
@@ -745,7 +745,7 @@ async def test_gigachannelmanagercomponent(loop, tribler_config):
         assert not comp.failed
 
         # FIXME: the next line was added to avoid  'Task was destroyed but it is pending!' error
-        await RESTComponent.imp().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
+        await RESTComponent.instance().rest_manager.root_endpoint.endpoints['/events'].shutdown_task_manager()
 
         session.shutdown_event.set()
         await session.shutdown()

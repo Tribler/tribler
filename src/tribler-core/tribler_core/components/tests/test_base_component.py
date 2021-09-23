@@ -59,8 +59,8 @@ async def test_session_start_shutdown(tribler_config):
 
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentA, ComponentB])))
     with session:
-        a = ComponentA.imp()
-        b = ComponentB.imp()
+        a = ComponentA.instance()
+        b = ComponentB.instance()
 
         assert a.enabled and not a.run_was_executed and not a.shutdown_was_executed and not a.stopped
         assert b.enabled and not b.run_was_executed and not b.shutdown_was_executed and not b.stopped
@@ -68,8 +68,8 @@ async def test_session_start_shutdown(tribler_config):
 
         await session.start()
 
-        a2 = ComponentA.imp()
-        b2 = ComponentB.imp()
+        a2 = ComponentA.instance()
+        b2 = ComponentB.instance()
         assert a2 is a and b2 is b
 
         assert a.enabled and a.run_was_executed and not a.shutdown_was_executed and not a.stopped
@@ -79,8 +79,8 @@ async def test_session_start_shutdown(tribler_config):
         session.shutdown_event.set()
         await session.shutdown()
 
-        a3 = ComponentA.imp()
-        b3 = ComponentB.imp()
+        a3 = ComponentA.instance()
+        b3 = ComponentB.instance()
         assert a3 is a and b3 is b
 
         assert a.enabled and a.run_was_executed and a.shutdown_was_executed and a.stopped
@@ -94,8 +94,8 @@ async def test_disabled_component(tribler_config):
 
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentA, ComponentB])))
     with session:
-        a = ComponentA.imp()
-        b = ComponentB.imp()
+        a = ComponentA.instance()
+        b = ComponentB.instance()
 
         assert not a.enabled and not a.run_was_executed and not a.shutdown_was_executed and not a.stopped
         assert b.enabled and not b.run_was_executed and not b.shutdown_was_executed and not b.stopped
@@ -103,8 +103,8 @@ async def test_disabled_component(tribler_config):
 
         await session.start()
 
-        a2 = ComponentA.imp()
-        b2 = ComponentB.imp()
+        a2 = ComponentA.instance()
+        b2 = ComponentB.instance()
         assert a2 is a and b2 is b
 
         assert not a.enabled and a.run_was_executed and not a.shutdown_was_executed and not a.stopped
@@ -114,8 +114,8 @@ async def test_disabled_component(tribler_config):
         session.shutdown_event.set()
         await session.shutdown()
 
-        a3 = ComponentA.imp()
-        b3 = ComponentB.imp()
+        a3 = ComponentA.instance()
+        b3 = ComponentB.instance()
         assert a3 is a and b3 is b
 
         assert not a.enabled and a.run_was_executed and a.shutdown_was_executed and a.stopped
@@ -129,8 +129,8 @@ async def test_required_dependency_enabled(tribler_config):
 
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentA, ComponentB])))
     with session:
-        a = ComponentA.imp()
-        b = ComponentB.imp()
+        a = ComponentA.instance()
+        b = ComponentB.instance()
 
         assert a.enabled and b.enabled
         assert not a.started.is_set() and not b.started.is_set()
@@ -157,8 +157,8 @@ async def test_required_dependency_disabled(tribler_config):
 
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentA, ComponentB])))
     with session:
-        a = ComponentA.imp()
-        b = ComponentB.imp()
+        a = ComponentA.instance()
+        b = ComponentB.instance()
 
         assert not a.enabled and b.enabled
         assert not a.started.is_set() and not b.started.is_set()
@@ -185,9 +185,9 @@ async def test_required_dependency_missed(capsys, tribler_config):
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentB])))
     with session:
         with pytest.raises(ComponentError, match=r'ComponentA implementation not found in <Session:\d+>'):
-            ComponentA.imp()
+            ComponentA.instance()
 
-        b = ComponentB.imp()
+        b = ComponentB.instance()
         assert not b.components_used_by_me
 
         with pytest.raises(ComponentError, match=r'ComponentA implementation not found in <Session:\d+>'):
@@ -205,14 +205,14 @@ async def test_optional_dependency_missed(tribler_config):
     session = Session(tribler_config, list(components_gen(tribler_config, [ComponentB])))
     with session:
         with pytest.raises(ComponentError, match=r'ComponentA implementation not found in <Session:\d+>'):
-            ComponentA.imp()
+            ComponentA.instance()
 
-        b = ComponentB.imp()
+        b = ComponentB.instance()
         assert not b.components_used_by_me
 
         await session.start()
 
-        a = ComponentA.imp()
+        a = ComponentA.instance()
         assert not a.enabled  # A mock version of the component A presents, but it is not marked as enabled
 
         assert a.started.is_set() and b.started.is_set()
