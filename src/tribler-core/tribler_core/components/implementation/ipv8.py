@@ -115,7 +115,6 @@ class Ipv8ComponentImp(Ipv8Component):
         ipv8.add_strategy(community, RandomChurn(community), INFINITE)
         ipv8.add_strategy(community, PeriodicSimilarity(community), INFINITE)
         ipv8.add_strategy(community, RandomWalk(community), 20)
-        ipv8.overlays.append(community)
         community.bootstrappers.append(self.make_bootstrapper())
         self.peer_discovery_community = community
 
@@ -124,7 +123,6 @@ class Ipv8ComponentImp(Ipv8Component):
         community = DHTDiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=60)
         ipv8.add_strategy(community, PingChurn(community), INFINITE)
         ipv8.add_strategy(community, RandomWalk(community), 20)
-        ipv8.overlays.append(community)
         community.bootstrappers.append(self.make_bootstrapper())
         self.dht_discovery_community = community
 

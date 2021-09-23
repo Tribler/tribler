@@ -48,8 +48,6 @@ class GigaChannelComponentImp(GigaChannelComponent):
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
-        ipv8.overlays.append(community)
-
         rest_manager.get_endpoint('remote_query').gigachannel_community = community
         rest_manager.get_endpoint('channels').gigachannel_community = community
         rest_manager.get_endpoint('collections').gigachannel_community = community

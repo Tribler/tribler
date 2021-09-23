@@ -65,7 +65,6 @@ class TunnelsComponentImp(TunnelsComponent):
         # More information: https://github.com/Tribler/py-ipv8/issues/979#issuecomment-896643760
         ipv8.add_strategy(community, RandomWalk(community), 20)
         ipv8.add_strategy(community, GoldenRatioStrategy(community), INFINITE)
-        ipv8.overlays.append(community)
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 

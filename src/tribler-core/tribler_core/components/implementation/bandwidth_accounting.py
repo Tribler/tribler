@@ -43,7 +43,6 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
-        ipv8.overlays.append(community)
         self.community = community
 
         rest_manager.get_endpoint('trustview').bandwidth_db = community.database

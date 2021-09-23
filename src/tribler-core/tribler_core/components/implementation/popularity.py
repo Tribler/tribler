@@ -36,7 +36,5 @@ class PopularityComponentImp(PopularityComponent):
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
-        ipv8.overlays.append(community)
-
     async def shutdown(self):
         await self._ipv8.unload_overlay(self.community)
