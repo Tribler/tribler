@@ -11,8 +11,11 @@ from ipv8.util import succeed
 
 import pytest
 
+from tribler_common.simpledefs import NTFY
+
 from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
@@ -58,6 +61,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     mock_dlmgr.metainfo_requests = {}
     mock_dlmgr.get_channel_downloads = lambda: []
     mock_dlmgr.shutdown = lambda: succeed(None)
+    mock_dlmgr.notifier = Mock()
 
     await do_request(rest_api, 'torrentinfo', expected_code=400)
     await do_request(rest_api, 'torrentinfo?uri=def', expected_code=400)
@@ -83,12 +87,14 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
 
     hops_list = []
 
+    with open(TESTS_DATA_DIR / "ubuntu-15.04-desktop-amd64.iso.torrent", mode='rb') as torrent_file:
+        torrent_data = torrent_file.read()
+        tdef = TorrentDef.load_from_memory(torrent_data)
+    metainfo_dict = tdef_to_metadata_dict(TorrentDef.load_from_memory(torrent_data))
+
     def get_metainfo(infohash, timeout=20, hops=None, url=None):
         if hops is not None:
             hops_list.append(hops)
-        with open(TESTS_DATA_DIR / "ubuntu-15.04-desktop-amd64.iso.torrent", mode='rb') as torrent_file:
-            torrent_data = torrent_file.read()
-        tdef = TorrentDef.load_from_memory(torrent_data)
         assert url
         assert url == unquote_plus(path)
         return succeed(tdef.get_metainfo())
@@ -103,6 +109,9 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     mock_dlmgr.get_metainfo = lambda *_, **__: succeed(None)
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
+    # Ensure that correct torrent metadata was sent through notifier (to MetadataStore)
+    mock_dlmgr.notifier.notify.assert_called_with(NTFY.TORRENT_METADATA_ADDED, metainfo_dict)
+
     mock_dlmgr.get_metainfo = get_metainfo
     verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
 
@@ -113,10 +122,6 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
 
     path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
-
-    # FIXME: FFA entries creation check
-    # with db_session:
-    #assert metadata_store.TorrentMetadata.select().count() == 2
 
     mock_download = Mock()
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn=test torrent')
@@ -136,7 +141,6 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     mock_dlmgr.metainfo_requests = {UBUNTU_1504_INFOHASH: [Mock()]}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
-
 
 async def test_on_got_invalid_metainfo(mock_dlmgr, rest_api):
     """

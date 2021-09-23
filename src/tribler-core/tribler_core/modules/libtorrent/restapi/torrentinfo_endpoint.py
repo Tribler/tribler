@@ -10,9 +10,11 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
+from tribler_common.simpledefs import NTFY
 from tribler_common.utilities import uri_to_path
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
@@ -109,10 +111,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
             self._logger.warning("Received metainfo is not a valid dictionary")
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-        # FIXME: FFA entries
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-        # self.session.mds.TorrentMetadata.add_ffa_from_dict(
-            # tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
+        self.download_manager.notifier.notify(
+            NTFY.TORRENT_METADATA_ADDED,
+            tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
         # TODO(Martijn): store the stuff in a database!!!
         # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB

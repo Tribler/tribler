@@ -103,6 +103,7 @@ class NTFY(Enum):
     REPORT_CONFIG_ERROR = "report_config_error"
     PEER_DISCONNECTED_EVENT = "peer_disconnected"
     TRIBLER_TORRENT_PEER_UPDATE = "tribler_torrent_peer_update"
+    TORRENT_METADATA_ADDED = "torrent_metadata_added"
 
 
 class CHANNEL_STATE(Enum):
