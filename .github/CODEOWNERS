@@ -1,0 +1,8 @@
+# About CODEOWNERS: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# Code owners are automatically requested for review when someone opens a pull request that modifies code that they own
+
+
+# These owners will be the default owners for everything in the repo.
+*       @Tribler/dev
+
+# Order is important; the last matching pattern takes the most precedence.
