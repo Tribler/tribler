@@ -3,7 +3,6 @@ import pytest
 from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
 
 from tribler_core.components.base import Session, SessionError
-from tribler_core.components.components_catalog import components_gen
 from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
 from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent

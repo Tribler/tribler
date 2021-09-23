@@ -125,25 +125,9 @@ class Component:
         self.unused.set()
 
     @classmethod
-    def should_be_enabled(cls, config: TriblerConfig):  # pylint: disable=unused-argument
-        return False
-
-    @classmethod
-    @abstractmethod
-    def make_implementation(cls: Type[T], config, enable) -> T:
-        assert False, f"Abstract classmethod make_implementation not implemented in class {cls.__name__}"
-
-    @classmethod
     def _find_implementation(cls: Type[T], required=True) -> T:
         session = Session.current()
-        imp = session.components.get(cls)
-        if imp is None:
-            if required:
-                raise ComponentError(f"{cls.__name__} implementation not found in {session}")
-            imp = cls.make_implementation(session.config, enable=False)  # dummy implementation
-            session.register(cls, imp)
-            imp.started.set()
-        return imp
+        return session.components.get(cls)
 
     @classmethod
     def imp(cls: Type[T], required=True) -> T:

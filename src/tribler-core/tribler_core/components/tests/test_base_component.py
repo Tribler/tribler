@@ -51,7 +51,7 @@ def make_test_components():
 
 def components_gen(config: TriblerConfig, component_list: List[T]):
     for cls in component_list:
-        yield cls.make_implementation(config, cls.should_be_enabled(config))
+        yield cls.default_implementation(cls)
 
 
 async def test_session_start_shutdown(tribler_config):
