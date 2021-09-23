@@ -1,4 +1,5 @@
 from typing import Optional
+from unittest.mock import Mock
 
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
@@ -12,16 +13,21 @@ from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
-
 from ipv8_service import IPv8
-
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
+
+
+class Ipv8Component(Component):
+    ipv8: IPv8
+    peer: Peer
+    peer_discovery_community: Optional[DiscoveryCommunity]
+    dht_discovery_community: Optional[DHTDiscoveryCommunity]
 
 
 class Ipv8ComponentImp(Ipv8Component):
@@ -139,3 +145,14 @@ class Ipv8ComponentImp(Ipv8Component):
         self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self.task_manager.shutdown_task_manager()
         await self.ipv8.stop(stop_loop=False)
+
+
+@testcomponent
+class Ipv8ComponentMock(Ipv8Component):
+    ipv8 = Mock()
+    peer = Mock()
+    peer_discovery_community = Mock()
+    dht_discovery_community = Mock()
+
+    def make_bootstrapper(self):
+        return Mock()

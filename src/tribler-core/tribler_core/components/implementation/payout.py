@@ -1,12 +1,17 @@
-from tribler_common.simpledefs import NTFY
+from unittest.mock import Mock
 
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.payout import PayoutComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
+from tribler_common.simpledefs import NTFY
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.modules.payout.payout_manager import PayoutManager
 
 INFINITE = -1
+
+
+class PayoutComponent(Component):
+    payout_manager: PayoutManager
 
 
 class PayoutComponentImp(PayoutComponent):
@@ -31,3 +36,8 @@ class PayoutComponentImp(PayoutComponent):
         self.session.notifier.remove_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, self.payout_manager.update_peer)
 
         await self.payout_manager.shutdown()
+
+
+@testcomponent
+class PayoutComponentMock(PayoutComponent):
+    payout_manager = Mock()

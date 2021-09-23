@@ -1,14 +1,19 @@
-from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
+from unittest.mock import Mock
 
-from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
+from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.libtorrent import LibtorrentComponent
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 from tribler_core.restapi.rest_manager import RESTManager
+
+
+class TorrentCheckerComponent(Component):
+    torrent_checker: TorrentChecker
 
 
 class TorrentCheckerComponentImp(TorrentCheckerComponent):
@@ -45,3 +50,8 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
         await self.release(RESTComponent)
 
         await self.torrent_checker.shutdown()
+
+
+@testcomponent
+class TorrentCheckerComponentMock(TorrentCheckerComponent):
+    torrent_checker = Mock()

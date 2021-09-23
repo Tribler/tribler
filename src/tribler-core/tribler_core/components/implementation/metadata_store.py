@@ -10,6 +10,10 @@ from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
 
 
+class MetadataStoreComponent(Component):
+    mds: MetadataStore
+
+
 class MetadataStoreComponentImp(MetadataStoreComponent):
     endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
     rest_manager: RESTManager
@@ -65,3 +69,8 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")
         self.mds.shutdown()
+
+
+@testcomponent
+class MetadataStoreComponentMock(MetadataStoreComponent):
+    mds = Mock()

@@ -1,18 +1,24 @@
+from unittest.mock import Mock
+
 from ipv8.peerdiscovery.discovery import RandomWalk
-
+from ipv8_service import IPv8
 from tribler_common.simpledefs import STATEDIR_DB_DIR
-
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
 from tribler_core.modules.bandwidth_accounting.community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
 )
 from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
 from tribler_core.restapi.rest_manager import RESTManager
+
+
+class BandwidthAccountingComponent(Component):
+    community: BandwidthAccountingCommunity
+    _ipv8: IPv8
 
 
 class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
@@ -52,3 +58,8 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         self.rest_manager.get_endpoint('trustview').bandwidth_db = None
         self.rest_manager.get_endpoint('bandwidth').bandwidth_community = None
         await self._ipv8.unload_overlay(self.community)
+
+
+@testcomponent
+class BandwidthAccountingComponentMock(BandwidthAccountingComponent):
+    community = Mock()

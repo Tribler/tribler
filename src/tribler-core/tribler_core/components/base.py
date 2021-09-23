@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from abc import abstractmethod
 from asyncio import Event, create_task, gather
 from itertools import count
 from pathlib import Path

@@ -1,8 +1,14 @@
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from unittest.mock import Mock
+
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
+
+
+class ResourceMonitorComponent(Component):
+    resource_monitor: CoreResourceMonitor
 
 
 class ResourceMonitorComponentImp(ResourceMonitorComponent):
@@ -27,3 +33,8 @@ class ResourceMonitorComponentImp(ResourceMonitorComponent):
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
         await self.resource_monitor.stop()
+
+
+@testcomponent
+class ResourceMonitorComponentMock(ResourceMonitorComponent):
+    resource_monitor = Mock()

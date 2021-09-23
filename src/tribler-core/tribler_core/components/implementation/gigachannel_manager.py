@@ -1,10 +1,16 @@
-from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
-from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
+from unittest.mock import Mock
+
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.libtorrent import LibtorrentComponent
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
 from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.restapi.rest_manager import RESTManager
+
+
+class GigachannelManagerComponent(Component):
+    gigachannel_manager: GigaChannelManager
 
 
 class GigachannelManagerComponentImp(GigachannelManagerComponent):
@@ -39,3 +45,8 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
         await self.release(RESTComponent)
 
         await self.gigachannel_manager.shutdown()
+
+
+@testcomponent
+class GigachannelManagerComponentMock(GigachannelManagerComponent):
+    gigachannel_manager = Mock()

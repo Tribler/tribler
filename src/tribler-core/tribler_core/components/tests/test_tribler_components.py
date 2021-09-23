@@ -3,24 +3,24 @@ import pytest
 from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
 
 from tribler_core.components.base import Session, SessionError
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
-from tribler_core.components.interfaces.gigachannel_manager import GigachannelManagerComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.payout import PayoutComponent
-from tribler_core.components.interfaces.popularity import PopularityComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
-from tribler_core.components.interfaces.tunnels import TunnelsComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
-from tribler_core.components.interfaces.version_check import VersionCheckComponent
-from tribler_core.components.interfaces.watch_folder import WatchFolderComponent
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.implementation.gigachannel import GigaChannelComponent
+from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.libtorrent import LibtorrentComponent
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
+from tribler_core.components.implementation.payout import PayoutComponent
+from tribler_core.components.implementation.popularity import PopularityComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent
+from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.implementation.tunnels import TunnelsComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
+from tribler_core.components.implementation.version_check import VersionCheckComponent
+from tribler_core.components.implementation.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 
 components_list = [

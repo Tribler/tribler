@@ -1,14 +1,21 @@
-from ipv8.peerdiscovery.discovery import RandomWalk
+from unittest.mock import Mock
 
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.popularity import PopularityComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.torrent_checker import TorrentCheckerComponent
+from ipv8.peerdiscovery.discovery import RandomWalk
+from ipv8_service import IPv8
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent
 from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.popularity.community import PopularityCommunity
 
 INFINITE = -1
+
+
+class PopularityComponent(Component):
+    community: PopularityCommunity
+    _ipv8: IPv8
 
 
 class PopularityComponentImp(PopularityComponent):
@@ -38,3 +45,8 @@ class PopularityComponentImp(PopularityComponent):
 
     async def shutdown(self):
         await self._ipv8.unload_overlay(self.community)
+
+
+@testcomponent
+class PopularityComponentMock(PopularityComponent):
+    community = Mock()

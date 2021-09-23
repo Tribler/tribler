@@ -1,13 +1,20 @@
-from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
+from typing import List
+from unittest.mock import Mock
 
-from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.rest_manager import RESTManager
+
+
+class LibtorrentComponent(Component):
+    download_manager: DownloadManager
+    endpoints: List[str]
 
 
 class LibtorrentComponentImp(LibtorrentComponent):
@@ -58,3 +65,9 @@ class LibtorrentComponentImp(LibtorrentComponent):
 
         self.download_manager.stop_download_states_callback()
         await self.download_manager.shutdown()
+
+
+@testcomponent
+class LibtorrentComponentMock(LibtorrentComponent):
+    download_manager = Mock()
+    endpoints = []

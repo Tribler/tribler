@@ -1,18 +1,25 @@
+from unittest.mock import Mock
+
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 from ipv8.peerdiscovery.discovery import RandomWalk
-
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.libtorrent import LibtorrentComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.tunnels import TunnelsComponent
+from ipv8_service import IPv8
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.libtorrent import LibtorrentComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
 INFINITE = -1
+
+
+class TunnelsComponent(Component):
+    community: TriblerTunnelCommunity
+    _ipv8: IPv8
 
 
 class TunnelsComponentImp(TunnelsComponent):
@@ -80,3 +87,8 @@ class TunnelsComponentImp(TunnelsComponent):
 
     async def shutdown(self):
         await self._ipv8.unload_overlay(self.community)
+
+
+@testcomponent
+class TunnelsComponentMock(TunnelsComponent):
+    community = Mock()

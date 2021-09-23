@@ -1,10 +1,15 @@
-from tribler_common.simpledefs import STATE_UPGRADING_READABLE
+from unittest.mock import Mock
 
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_common.simpledefs import STATE_UPGRADING_READABLE
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
 from tribler_core.upgrade.upgrade import TriblerUpgrader
+
+
+class UpgradeComponent(Component):
+    upgrader: TriblerUpgrader
 
 
 class UpgradeComponentImp(UpgradeComponent):
@@ -28,3 +33,8 @@ class UpgradeComponentImp(UpgradeComponent):
         await upgrader.run()
 
         self.upgrader = upgrader
+
+
+@testcomponent
+class UpgradeComponentMock(UpgradeComponent):
+    upgrader = Mock()

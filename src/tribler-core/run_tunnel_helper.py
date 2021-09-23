@@ -16,14 +16,14 @@ from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.base import Session
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.tunnels import TunnelsComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent
+from tribler_core.components.implementation.tunnels import TunnelsComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path

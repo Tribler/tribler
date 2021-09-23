@@ -1,10 +1,12 @@
-from ipv8.peerdiscovery.discovery import RandomWalk
+from unittest.mock import Mock
 
-from tribler_core.components.interfaces.gigachannel import GigaChannelComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
+from ipv8.peerdiscovery.discovery import RandomWalk
+from ipv8_service import IPv8
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
 from tribler_core.modules.metadata_store.community.gigachannel_community import (
     GigaChannelCommunity,
     GigaChannelTestnetCommunity,
@@ -13,6 +15,11 @@ from tribler_core.modules.metadata_store.community.sync_strategy import RemovePe
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
+
+
+class GigaChannelComponent(Component):
+    community: GigaChannelCommunity
+    _ipv8: IPv8
 
 
 class GigaChannelComponentImp(GigaChannelComponent):
@@ -59,3 +66,8 @@ class GigaChannelComponentImp(GigaChannelComponent):
         await self.release(RESTComponent)
 
         await self._ipv8.unload_overlay(self.community)
+
+
+@testcomponent
+class GigaChannelComponentMock(GigaChannelComponent):
+    community = Mock()

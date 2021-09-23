@@ -1,8 +1,15 @@
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
+from typing import List
+
+from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 
 NUM_SOCKS_PROXIES = 5
+
+
+class SocksServersComponent(Component):
+    socks_ports: List[int]
+    socks_servers: List[Socks5Server]
 
 
 class SocksServersComponentImp(SocksServersComponent):
@@ -22,3 +29,9 @@ class SocksServersComponentImp(SocksServersComponent):
     async def shutdown(self):
         for socks_server in self.socks_servers:
             await socks_server.stop()
+
+
+@testcomponent
+class SocksServersComponentMock(SocksServersComponent):
+    socks_ports = []
+    socks_servers = []
