@@ -1,7 +1,5 @@
-from unittest.mock import Mock
-
 from tribler_common.simpledefs import NTFY
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.implementation.ipv8 import Ipv8Component
 from tribler_core.components.implementation.reporter import ReporterComponent
@@ -36,8 +34,3 @@ class PayoutComponentImp(PayoutComponent):
         self.session.notifier.remove_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, self.payout_manager.update_peer)
 
         await self.payout_manager.shutdown()
-
-
-@testcomponent
-class PayoutComponentMock(PayoutComponent):
-    payout_manager = Mock()

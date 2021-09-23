@@ -1,6 +1,4 @@
-from unittest.mock import Mock
-
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.upgrade import UpgradeComponent
 from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager
@@ -23,8 +21,3 @@ class VersionCheckComponentImp(VersionCheckComponent):
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Version Checker...")
         await self.version_check_manager.stop()
-
-
-@testcomponent
-class VersionCheckComponentMock(VersionCheckComponent):
-    version_check_manager = Mock()

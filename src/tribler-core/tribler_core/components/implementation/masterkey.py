@@ -1,8 +1,6 @@
-from unittest.mock import Mock
-
 import tribler_core.utilities.permid as permid_module
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 
 
 class MasterKeyComponent(Component):
@@ -34,8 +32,3 @@ class MasterKeyComponentImp(MasterKeyComponent):
         permid_module.save_keypair_trustchain(trustchain_keypair, keypair_path)
         permid_module.save_pub_key_trustchain(trustchain_keypair, trustchain_pubfilename)
         return trustchain_keypair
-
-
-@testcomponent
-class MasterKeyComponentMock(MasterKeyComponent):
-    keypair = Mock()

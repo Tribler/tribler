@@ -1,7 +1,5 @@
-from unittest.mock import Mock
-
 from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.libtorrent import LibtorrentComponent
 from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
@@ -50,8 +48,3 @@ class TorrentCheckerComponentImp(TorrentCheckerComponent):
         await self.release(RESTComponent)
 
         await self.torrent_checker.shutdown()
-
-
-@testcomponent
-class TorrentCheckerComponentMock(TorrentCheckerComponent):
-    torrent_checker = Mock()

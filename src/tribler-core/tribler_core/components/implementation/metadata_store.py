@@ -69,8 +69,3 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")
         self.mds.shutdown()
-
-
-@testcomponent
-class MetadataStoreComponentMock(MetadataStoreComponent):
-    mds = Mock()

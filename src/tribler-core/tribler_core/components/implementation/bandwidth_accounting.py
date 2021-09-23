@@ -1,9 +1,7 @@
-from unittest.mock import Mock
-
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
 from tribler_common.simpledefs import STATEDIR_DB_DIR
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.ipv8 import Ipv8Component
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.restapi import RESTComponent
@@ -58,8 +56,3 @@ class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
         self.rest_manager.get_endpoint('trustview').bandwidth_db = None
         self.rest_manager.get_endpoint('bandwidth').bandwidth_community = None
         await self._ipv8.unload_overlay(self.community)
-
-
-@testcomponent
-class BandwidthAccountingComponentMock(BandwidthAccountingComponent):
-    community = Mock()

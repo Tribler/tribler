@@ -180,8 +180,3 @@ class Component:
     async def release(self, dependency: Type[T]):
         dep = dependency.imp()
         self._release_imp(dep)
-
-
-def testcomponent(component_cls):
-    component_cls.enabled = False
-    return component_cls

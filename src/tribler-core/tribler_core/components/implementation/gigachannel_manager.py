@@ -1,6 +1,4 @@
-from unittest.mock import Mock
-
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.libtorrent import LibtorrentComponent
 from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
@@ -45,8 +43,3 @@ class GigachannelManagerComponentImp(GigachannelManagerComponent):
         await self.release(RESTComponent)
 
         await self.gigachannel_manager.shutdown()
-
-
-@testcomponent
-class GigachannelManagerComponentMock(GigachannelManagerComponent):
-    gigachannel_manager = Mock()

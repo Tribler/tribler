@@ -1,8 +1,7 @@
 from typing import List
-from unittest.mock import Mock
 
 from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.masterkey import MasterKeyComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.restapi import RESTComponent
@@ -65,9 +64,3 @@ class LibtorrentComponentImp(LibtorrentComponent):
 
         self.download_manager.stop_download_states_callback()
         await self.download_manager.shutdown()
-
-
-@testcomponent
-class LibtorrentComponentMock(LibtorrentComponent):
-    download_manager = Mock()
-    endpoints = []

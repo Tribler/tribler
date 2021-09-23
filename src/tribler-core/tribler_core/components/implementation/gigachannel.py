@@ -1,8 +1,6 @@
-from unittest.mock import Mock
-
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.ipv8 import Ipv8Component
 from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
@@ -66,8 +64,3 @@ class GigaChannelComponentImp(GigaChannelComponent):
         await self.release(RESTComponent)
 
         await self._ipv8.unload_overlay(self.community)
-
-
-@testcomponent
-class GigaChannelComponentMock(GigaChannelComponent):
-    community = Mock()

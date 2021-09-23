@@ -1,7 +1,5 @@
-from unittest.mock import Mock
-
 from tribler_common.simpledefs import STATE_START_WATCH_FOLDER
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.libtorrent import LibtorrentComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.restapi import RESTComponent
@@ -33,8 +31,3 @@ class WatchFolderComponentImp(WatchFolderComponent):
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Watch Folder...")
         await self.watch_folder.stop()
-
-
-@testcomponent
-class WatchFolderComponentMock(WatchFolderComponent):
-    watch_folder = Mock()

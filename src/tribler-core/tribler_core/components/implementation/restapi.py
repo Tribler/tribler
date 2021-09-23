@@ -1,7 +1,5 @@
-from unittest.mock import Mock
-
 from tribler_common.simpledefs import STATE_START_API
-from tribler_core.components.base import Component, testcomponent
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.exception_handler import CoreExceptionHandler
 from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
@@ -60,8 +58,3 @@ class RESTComponentImp(RESTComponent):
         CoreExceptionHandler.report_callback = None
         self.session.notifier.notify_shutdown_state("Shutting down API Manager...")
         await self.rest_manager.stop()
-
-
-@testcomponent
-class RESTComponentMock(RESTComponent):
-    rest_manager = Mock()
