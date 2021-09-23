@@ -7,8 +7,6 @@ from tribler_core.modules.version_check.versioncheck_manager import VersionCheck
 class VersionCheckComponent(Component):
     version_check_manager: VersionCheckManager
 
-
-class VersionCheckComponentImp(VersionCheckComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
         await self.use(UpgradeComponent, required=False)

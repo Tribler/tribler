@@ -11,12 +11,9 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class MetadataStoreComponent(Component):
-    mds: MetadataStore
-
-
-class MetadataStoreComponentImp(MetadataStoreComponent):
     endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
     rest_manager: RESTManager
+    mds: MetadataStore
 
     async def run(self):
         await self.use(ReporterComponent, required=False)

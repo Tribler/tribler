@@ -19,8 +19,6 @@ class TunnelsComponent(Component):
     community: TriblerTunnelCommunity
     _ipv8: IPv8
 
-
-class TunnelsComponentImp(TunnelsComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
 

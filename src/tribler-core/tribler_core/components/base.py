@@ -108,10 +108,9 @@ class Component:
     enable_in_gui_test_mode = False
     enabled = True
 
-    def __init__(self, interface: Type[Component]):
-        assert isinstance(self, interface)
-        self.interface = interface
-        self.logger = logging.getLogger(interface.__name__)
+    def __init__(self):
+        self.interface = self.__class__
+        self.logger = logging.getLogger(self.interface.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
         self.components_used_by_me: Set[Component] = set()

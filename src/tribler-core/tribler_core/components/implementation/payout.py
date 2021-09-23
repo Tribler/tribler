@@ -11,8 +11,6 @@ INFINITE = -1
 class PayoutComponent(Component):
     payout_manager: PayoutManager
 
-
-class PayoutComponentImp(PayoutComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
 

@@ -16,12 +16,9 @@ INFINITE = -1
 
 
 class GigaChannelComponent(Component):
+    rest_manager: RESTManager
     community: GigaChannelCommunity
     _ipv8: IPv8
-
-
-class GigaChannelComponentImp(GigaChannelComponent):
-    rest_manager: RESTManager
 
     async def run(self):
         await self.use(ReporterComponent, required=False)

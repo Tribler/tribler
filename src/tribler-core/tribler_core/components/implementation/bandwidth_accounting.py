@@ -17,9 +17,6 @@ from tribler_core.restapi.rest_manager import RESTManager
 class BandwidthAccountingComponent(Component):
     community: BandwidthAccountingCommunity
     _ipv8: IPv8
-
-
-class BandwidthAccountingComponentImp(BandwidthAccountingComponent):
     rest_manager: RESTManager
 
     async def run(self):

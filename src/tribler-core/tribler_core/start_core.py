@@ -13,26 +13,26 @@ from tribler_common.version_manager import VersionHistory
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
 from tribler_core.components.base import Component, Session
 from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent, \
-    BandwidthAccountingComponentImp
-from tribler_core.components.implementation.gigachannel import GigaChannelComponent, GigaChannelComponentImp
+    BandwidthAccountingComponent
+from tribler_core.components.implementation.gigachannel import GigaChannelComponent, GigaChannelComponent
 from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponent, \
-    GigachannelManagerComponentImp
-from tribler_core.components.implementation.ipv8 import Ipv8Component, Ipv8ComponentImp
-from tribler_core.components.implementation.libtorrent import LibtorrentComponent, LibtorrentComponentImp
-from tribler_core.components.implementation.masterkey import MasterKeyComponent, MasterKeyComponentImp
-from tribler_core.components.implementation.metadata_store import MetadataStoreComponent, MetadataStoreComponentImp
-from tribler_core.components.implementation.payout import PayoutComponent, PayoutComponentImp
-from tribler_core.components.implementation.popularity import PopularityComponent, PopularityComponentImp
-from tribler_core.components.implementation.reporter import ReporterComponent, ReporterComponentImp
+    GigachannelManagerComponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component, Ipv8Component
+from tribler_core.components.implementation.libtorrent import LibtorrentComponent, LibtorrentComponent
+from tribler_core.components.implementation.masterkey import MasterKeyComponent, MasterKeyComponent
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent, MetadataStoreComponent
+from tribler_core.components.implementation.payout import PayoutComponent, PayoutComponent
+from tribler_core.components.implementation.popularity import PopularityComponent, PopularityComponent
+from tribler_core.components.implementation.reporter import ReporterComponent, ReporterComponent
 from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponent, \
-    ResourceMonitorComponentImp
-from tribler_core.components.implementation.restapi import RESTComponent, RESTComponentImp
-from tribler_core.components.implementation.socks_configurator import SocksServersComponent, SocksServersComponentImp
-from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent, TorrentCheckerComponentImp
-from tribler_core.components.implementation.tunnels import TunnelsComponent, TunnelsComponentImp
-from tribler_core.components.implementation.upgrade import UpgradeComponent, UpgradeComponentImp
-from tribler_core.components.implementation.version_check import VersionCheckComponent, VersionCheckComponentImp
-from tribler_core.components.implementation.watch_folder import WatchFolderComponent, WatchFolderComponentImp
+    ResourceMonitorComponent
+from tribler_core.components.implementation.restapi import RESTComponent, RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent, SocksServersComponent
+from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent, TorrentCheckerComponent
+from tribler_core.components.implementation.tunnels import TunnelsComponent, TunnelsComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent, UpgradeComponent
+from tribler_core.components.implementation.version_check import VersionCheckComponent, VersionCheckComponent
+from tribler_core.components.implementation.watch_folder import WatchFolderComponent, WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler
@@ -48,45 +48,45 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 def components_gen(config: TriblerConfig):
     """This function defines components that will be used in Tibler
     """
-    yield ReporterComponentImp(ReporterComponent)
+    yield ReporterComponent()
     if config.api.http_enabled or config.api.https_enabled:
-        yield RESTComponentImp(RESTComponent)
+        yield RESTComponent()
     if config.chant.enabled or config.torrent_checking.enabled:
-        yield MetadataStoreComponentImp(MetadataStoreComponent)
+        yield MetadataStoreComponent()
     if config.ipv8.enabled:
-        yield Ipv8ComponentImp(Ipv8Component)
-    yield MasterKeyComponentImp(MasterKeyComponent)
+        yield Ipv8Component()
+    yield MasterKeyComponent()
     if config.libtorrent.enabled:
-        yield LibtorrentComponentImp(LibtorrentComponent)
+        yield LibtorrentComponent()
     if config.ipv8.enabled and config.chant.enabled:
-        yield GigaChannelComponentImp(GigaChannelComponent)
+        yield GigaChannelComponent()
     if config.ipv8.enabled and config.popularity_community.enabled:
-        yield PopularityComponentImp(PopularityComponent)
+        yield PopularityComponent()
     if config.ipv8.enabled:
-        yield BandwidthAccountingComponentImp(BandwidthAccountingComponent)
+        yield BandwidthAccountingComponent()
     if config.resource_monitor.enabled:
-        yield ResourceMonitorComponentImp(ResourceMonitorComponent)
+        yield ResourceMonitorComponent()
 
     # The components below are skipped if config.gui_test_mode == True
     if config.gui_test_mode:
         return
 
     if config.libtorrent.enabled:
-        yield SocksServersComponentImp(SocksServersComponent)
+        yield SocksServersComponent()
     if config.upgrader_enabled:
-        yield UpgradeComponentImp(UpgradeComponent)
+        yield UpgradeComponent()
     if config.ipv8.enabled and config.tunnel_community.enabled:
-        yield TunnelsComponentImp(TunnelsComponent)
+        yield TunnelsComponent()
     if config.ipv8.enabled:
-        yield PayoutComponentImp(PayoutComponent)
+        yield PayoutComponent()
     if config.torrent_checking.enabled:
-        yield TorrentCheckerComponentImp(TorrentCheckerComponent)
+        yield TorrentCheckerComponent()
     if config.watch_folder.enabled:
-        yield WatchFolderComponentImp(WatchFolderComponent)
+        yield WatchFolderComponent()
     if config.general.version_checker_enabled:
-        yield VersionCheckComponentImp(VersionCheckComponent)
+        yield VersionCheckComponent()
     if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled:
-        yield GigachannelManagerComponentImp(GigachannelManagerComponent)
+        yield GigachannelManagerComponent()
 
 
 async def core_session(config: TriblerConfig, components: List[Component]):

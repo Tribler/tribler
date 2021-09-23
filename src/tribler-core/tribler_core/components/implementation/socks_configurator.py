@@ -11,8 +11,6 @@ class SocksServersComponent(Component):
     socks_ports: List[int]
     socks_servers: List[Socks5Server]
 
-
-class SocksServersComponentImp(SocksServersComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
         self.socks_servers = []

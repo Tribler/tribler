@@ -15,8 +15,6 @@ class PopularityComponent(Component):
     community: PopularityCommunity
     _ipv8: IPv8
 
-
-class PopularityComponentImp(PopularityComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
 

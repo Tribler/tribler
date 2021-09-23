@@ -1,5 +1,3 @@
-from typing import List
-
 from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
 from tribler_core.components.base import Component
 from tribler_core.components.implementation.masterkey import MasterKeyComponent
@@ -12,13 +10,9 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class LibtorrentComponent(Component):
-    download_manager: DownloadManager
-    endpoints: List[str]
-
-
-class LibtorrentComponentImp(LibtorrentComponent):
     endpoints = ['createtorrent', 'libtorrent', 'torrentinfo', 'downloads', 'channels', 'collections', 'settings']
     rest_manager: RESTManager
+    download_manager: DownloadManager
 
     async def run(self):
         await self.use(ReporterComponent, required=False)

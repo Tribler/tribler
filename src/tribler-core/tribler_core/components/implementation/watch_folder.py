@@ -9,8 +9,6 @@ from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 class WatchFolderComponent(Component):
     watch_folder: WatchFolder
 
-
-class WatchFolderComponentImp(WatchFolderComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
         config = self.session.config

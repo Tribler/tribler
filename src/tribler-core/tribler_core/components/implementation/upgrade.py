@@ -9,8 +9,6 @@ from tribler_core.upgrade.upgrade import TriblerUpgrader
 class UpgradeComponent(Component):
     upgrader: TriblerUpgrader
 
-
-class UpgradeComponentImp(UpgradeComponent):
     async def run(self):
         await self.use(ReporterComponent, required=False)
         config = self.session.config

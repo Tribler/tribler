@@ -8,11 +8,9 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class GigachannelManagerComponent(Component):
+    rest_manager: RESTManager
     gigachannel_manager: GigaChannelManager
 
-
-class GigachannelManagerComponentImp(GigachannelManagerComponent):
-    rest_manager: RESTManager
 
     async def run(self):
         await self.use(ReporterComponent, required=False)

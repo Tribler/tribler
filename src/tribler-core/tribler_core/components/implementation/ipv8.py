@@ -23,15 +23,13 @@ INFINITE = -1
 
 
 class Ipv8Component(Component):
+    task_manager: TaskManager
+    rest_manager: Optional[RESTManager]
+
     ipv8: IPv8
     peer: Peer
     peer_discovery_community: Optional[DiscoveryCommunity]
     dht_discovery_community: Optional[DHTDiscoveryCommunity]
-
-
-class Ipv8ComponentImp(Ipv8Component):
-    task_manager: TaskManager
-    rest_manager: Optional[RESTManager]
 
     async def run(self):
         await self.use(ReporterComponent, required=False)

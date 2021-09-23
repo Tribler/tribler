@@ -6,9 +6,6 @@ from tribler_core.components.base import Component
 class MasterKeyComponent(Component):
     keypair: LibNaCLSK
 
-
-class MasterKeyComponentImp(MasterKeyComponent):
-
     async def run(self):
         config = self.session.config
         if not config.general.testnet:

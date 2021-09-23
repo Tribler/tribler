@@ -11,11 +11,8 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class TorrentCheckerComponent(Component):
-    torrent_checker: TorrentChecker
-
-
-class TorrentCheckerComponentImp(TorrentCheckerComponent):
     rest_manager: RESTManager
+    torrent_checker: TorrentChecker
 
     async def run(self):
         await self.use(ReporterComponent, required=False)
