@@ -21,6 +21,7 @@ from tribler_core.modules.metadata_store.serialization import (
     DeletedMetadataPayload,
     SignedPayload,
     UnknownBlobTypeException,
+    int2time,
 )
 from tribler_core.modules.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -115,12 +116,14 @@ def test_squash_mdblobs(metadata_store):
 
 @db_session
 def test_squash_mdblobs_multiple_chunks(metadata_store):
-    r = random.Random(123)
+    rng = random.Random(123)
     md_list = [
         metadata_store.TorrentMetadata(
-            title=''.join(r.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
-            infohash=random_infohash(),
-            torrent_date=datetime.utcfromtimestamp(100),
+            title=''.join(rng.choice(string.ascii_uppercase + string.digits) for _ in range(20)),
+            infohash=random_infohash(rng),
+            id_=rng.randint(0, 100000000),
+            torrent_date=int2time(rng.randint(0, 4000000)),
+            timestamp=rng.randint(0, 100000000),
         )
         for _ in range(0, 10)
     ]
