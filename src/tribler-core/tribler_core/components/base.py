@@ -123,6 +123,7 @@ class Component:
         return session.components.get(cls)
 
     async def start(self):
+        self.logger.info(f'Start: {self.__class__.__name__}')
         try:
             await self.run()
         except Exception as e:
@@ -136,6 +137,7 @@ class Component:
         self.started.set()
 
     async def stop(self):
+        self.logger.info(f'Stop: {self.__class__.__name__}')
         self.logger.info("Waiting for other components to release me")
         await self.unused.wait()
         self.logger.info("Component free, shutting down")
