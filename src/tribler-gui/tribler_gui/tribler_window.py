@@ -36,9 +36,9 @@ from PyQt5.QtWidgets import (
 )
 
 from tribler_common.network_utils import NetworkUtils
+from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import uri_to_path
 
-from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
 
@@ -1003,7 +1003,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_debug_panel_button(self, *args):   # pylint: disable=unused-argument
+    def clicked_debug_panel_button(self, *args):  # pylint: disable=unused-argument
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
