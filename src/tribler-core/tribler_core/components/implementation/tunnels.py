@@ -29,16 +29,16 @@ class TunnelsComponent(Component):
         dht_discovery_community = ipv8_component.dht_discovery_community
 
         bandwidth_component = await self.use(BandwidthAccountingComponent, required=False)
-        bandwidth_community = bandwidth_component.community if bandwidth_component.enabled else None
+        bandwidth_community = bandwidth_component.community if bandwidth_component else None
 
         download_component = await self.use(LibtorrentComponent, required=False)
-        download_manager = download_component.download_manager if download_component.enabled else None
+        download_manager = download_component.download_manager if download_component else None
 
         rest_component = await self.use(RESTComponent, required=False)
-        rest_manager = rest_component.rest_manager if rest_component.enabled else None
+        rest_manager = rest_component.rest_manager if rest_component else None
 
         socks_servers_component = await self.use(SocksServersComponent, required=False)
-        socks_servers = socks_servers_component.socks_servers if socks_servers_component.enabled else None
+        socks_servers = socks_servers_component.socks_servers if socks_servers_component else None
 
         settings = TunnelSettings()
         settings.min_circuits = config.tunnel_community.min_circuits
@@ -73,9 +73,9 @@ class TunnelsComponent(Component):
 
         self.community = community
 
-        if rest_component.enabled:
+        if rest_component:
             rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(ipv8)
-            if download_component.enabled:
+            if download_component:
                 rest_manager.get_endpoint('downloads').tunnel_community = community
 
             debug_endpoint = rest_manager.get_endpoint('debug')

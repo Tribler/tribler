@@ -25,7 +25,7 @@ class PopularityComponent(Component):
         metadata_store = (await self.use(MetadataStoreComponent)).mds
 
         torrent_checker_component = await self.use(TorrentCheckerComponent)
-        torrent_checker = torrent_checker_component.torrent_checker if torrent_checker_component.enabled else None
+        torrent_checker = torrent_checker_component.torrent_checker if torrent_checker_component else None
 
         community = PopularityCommunity(peer, ipv8.endpoint, ipv8.network,
                                         settings=config.popularity_community,

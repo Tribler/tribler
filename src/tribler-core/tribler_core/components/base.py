@@ -105,9 +105,6 @@ T = TypeVar('T', bound='Component')
 
 
 class Component:
-    enable_in_gui_test_mode = False
-    enabled = True
-
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')

@@ -37,7 +37,7 @@ class Ipv8Component(Component):
         config = self.session.config
 
         rest_component = await self.use(RESTComponent, required=False)
-        rest_manager = self.rest_manager = rest_component.rest_manager if rest_component.enabled else None
+        rest_manager = self.rest_manager = rest_component.rest_manager if rest_component else None
 
         self.task_manager = TaskManager()
 
