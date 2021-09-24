@@ -23,6 +23,7 @@ from tribler_core.components.version_check import VersionCheckComponent
 from tribler_core.components.watch_folder import WatchFolderComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
+pytestmark = pytest.mark.asyncio
 
 # pylint: disable=protected-access
 

@@ -11,6 +11,8 @@ from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTrans
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 def bandwidth_database(tmp_path, peer_key):
@@ -69,7 +71,6 @@ async def test_get_history_no_community(bw_endpoint, aiohttp_client):
     Testing whether the API returns error 404 if no bandwidth community is loaded
     """
     await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
-
 
 async def test_get_history(bw_endpoint, bw_community, aiohttp_client):
     """
