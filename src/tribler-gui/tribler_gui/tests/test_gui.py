@@ -410,8 +410,9 @@ def test_feedback_dialog_report_sent(tribler_api, window):
         screenshot(dialog, name="feedback_dialog")
         dialog.close()
 
-    def on_report_sent(response):
-        assert response["sent"]
+    def on_report_sent():
+        on_report_sent.did_send_report = True
+    on_report_sent.did_send_report = False
 
     dialog = FeedbackDialog(window, "Tribler GUI Test to test sending crash report works", "1.2.3", 23)
     dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
@@ -419,7 +420,7 @@ def test_feedback_dialog_report_sent(tribler_api, window):
     QTest.mouseClick(dialog.send_report_button, Qt.LeftButton)
     QTimer.singleShot(1000, screenshot_dialog)
     dialog.exec_()
-
+    assert on_report_sent.did_send_report
 
 @pytest.mark.guitest
 def test_debug_pane(tribler_api, window):
