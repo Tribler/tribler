@@ -152,12 +152,12 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         self.eva_register_error_callback(self.on_error)
 
     def on_receive(self, peer, binary_info, binary_data, nonce):
-        self.logger.info(f"EVA data received: peer {hexlify(peer.mid)}, info {binary_info}")
+        self.logger.debug(f"EVA data received: peer {hexlify(peer.mid)}, info {binary_info}")
         packet = (peer.address, binary_data)
         self.on_packet(packet)
 
     def on_send_complete(self, peer, binary_info, binary_data, nonce):
-        self.logger.info(f"EVA outgoing transfer complete: peer {hexlify(peer.mid)},  info {binary_info}")
+        self.logger.debug(f"EVA outgoing transfer complete: peer {hexlify(peer.mid)},  info {binary_info}")
 
     def on_error(self, peer, exception):
         self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
@@ -174,7 +174,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         )
         self.request_cache.add(request)
 
-        self.logger.info(f"Select to {hexlify(peer.mid)} with ({kwargs})")
+        self.logger.debug(f"Select to {hexlify(peer.mid)} with ({kwargs})")
         args = (request.number, convert_to_json(kwargs).encode('utf8'))
         if force_eva_response:
             self.ez_send(peer, RemoteSelectPayloadEva(*args))
@@ -241,7 +241,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         and process it by adding the corresponding entries to the MetadataStore database.
         This processes both direct responses and pushback (updates) responses
         """
-        self.logger.info(f"Response from {hexlify(peer.mid)}")
+        self.logger.debug(f"Response from {hexlify(peer.mid)}")
 
         # ACHTUNG! the returned request cache can be any one of SelectRequest, PushbackWindow
         request = self.request_cache.get(hexlify(peer.mid), response_payload.id)
@@ -255,7 +255,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
             self.request_cache.pop(hexlify(peer.mid), response_payload.id)
 
         processing_results = await self.mds.process_compressed_mdblob_threaded(response_payload.raw_blob)
-        self.logger.info(f"Response result: {processing_results}")
+        self.logger.debug(f"Response result: {processing_results}")
 
         if isinstance(request, EvaSelectRequest) and not request.processing_results.done():
             request.processing_results.set_result(processing_results)
@@ -299,7 +299,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
 
     def _on_query_timeout(self, request_cache):
         if not request_cache.peer_responded:
-            self.logger.info(
+            self.logger.debug(
                 "Remote query timeout, deleting peer: %s %s %s",
                 str(request_cache.peer.address),
                 hexlify(request_cache.peer.mid),
