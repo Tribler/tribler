@@ -1,5 +1,5 @@
 from tribler_common.simpledefs import NTFY
-from tribler_core.components.base import Component
+from tribler_core.components.base import Component, ComponentError
 from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.implementation.ipv8 import Ipv8Component
 from tribler_core.components.implementation.reporter import ReporterComponent
@@ -16,10 +16,16 @@ class PayoutComponent(Component):
 
         config = self.session.config
 
-        dht_discovery_community = (await self.use(Ipv8Component)).dht_discovery_community
-        bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
+        ipv8_component = await self.use(Ipv8Component)
+        if not ipv8_component:
+            raise ComponentError(f'Missed dependency: {self.__class__.__name__} requires Ipv8Component to be active')
 
-        payout_manager = PayoutManager(bandwidth_community, dht_discovery_community)
+        bandwidth_accounting_component = await self.use(BandwidthAccountingComponent)
+        if not bandwidth_accounting_component:
+            raise ComponentError(
+                f'Missed dependency: {self.__class__.__name__} requires BandwidthAccountingComponent to be active')
+
+        payout_manager = PayoutManager(bandwidth_accounting_component.community, ipv8_component.dht_discovery_community)
         self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT, payout_manager.do_payout)
         self.session.notifier.add_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, payout_manager.update_peer)
 

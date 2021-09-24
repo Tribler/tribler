@@ -11,14 +11,17 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 class MetadataStoreComponent(Component):
-    endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
-    rest_manager: RESTManager
     mds: MetadataStore
+
+    _rest_manager: RESTManager
+    _endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
 
     async def run(self):
         await self.use(ReporterComponent, required=False)
         await self.use(UpgradeComponent, required=False)
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+
+        rest_component = await self.use(RESTComponent)
+        self._rest_manager = rest_component.rest_manager if rest_component else None
 
         config = self.session.config
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
@@ -60,7 +63,8 @@ class MetadataStoreComponent(Component):
 
     async def shutdown(self):
         # Release endpoints
-        self.rest_manager.set_attr_for_endpoints(self.endpoints, 'mds', None, skip_missing=True)
+        if self._rest_manager:
+            self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', None, skip_missing=True)
         await self.release(RESTComponent)
 
         await self.unused.wait()

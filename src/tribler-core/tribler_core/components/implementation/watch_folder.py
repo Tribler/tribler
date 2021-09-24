@@ -13,15 +13,17 @@ class WatchFolderComponent(Component):
         await self.use(ReporterComponent, required=False)
         config = self.session.config
         notifier = self.session.notifier
-        download_manager = (await self.use(LibtorrentComponent)).download_manager
-        rest_manager = (await self.use(RESTComponent)).rest_manager
+        libtorrent_component = await self.use(LibtorrentComponent)
+        download_manager = libtorrent_component.download_manager if libtorrent_component else None
 
         watch_folder_path = config.watch_folder.get_path_as_absolute('directory', config.state_dir)
         watch_folder = WatchFolder(watch_folder_path=watch_folder_path,
                                    download_manager=download_manager,
                                    notifier=notifier)
 
-        rest_manager.get_endpoint('state').readable_status = STATE_START_WATCH_FOLDER
+        rest_component = await self.use(RESTComponent)
+        if rest_component:
+            rest_component.rest_manager.get_endpoint('state').readable_status = STATE_START_WATCH_FOLDER
 
         watch_folder.start()
         self.watch_folder = watch_folder
