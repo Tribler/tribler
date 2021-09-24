@@ -131,7 +131,7 @@ VIDEO_EXTS = [
 ]
 
 # Tribler shutdown grace period in milliseconds
-SHUTDOWN_WAITING_PERIOD = 120000
+SHUTDOWN_WAITING_PERIOD = 30000
 
 # Torrent commit status constants
 COMMIT_STATUS_NEW = 0
