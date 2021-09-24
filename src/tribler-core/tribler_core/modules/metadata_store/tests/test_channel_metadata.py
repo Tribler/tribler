@@ -3,7 +3,6 @@ from binascii import unhexlify
 from datetime import datetime
 from itertools import combinations
 from pathlib import Path
-from time import sleep
 from unittest.mock import Mock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -16,7 +15,6 @@ import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
     CHANNEL_DIR_NAME_LENGTH,
@@ -321,8 +319,9 @@ def test_correct_commit_of_delete_entries(metadata_store):
         channel.commit_channel_torrent()
 
 
+@pytest.mark.freeze_time('2021-09-24')
 @db_session
-def test_vsids(metadata_store):
+def test_vsids(metadata_store, freezer):
     """
     Test VSIDS-based channel popularity system.
     """
@@ -331,7 +330,7 @@ def test_vsids(metadata_store):
 
     channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
     metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
-    sleep(0.1)  # Necessary mostly on Windows, because of the lower timer resolution
+    freezer.move_to('2021-09-25')
     metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
     assert channel.votes > 0.0
     assert metadata_store.Vsids[0].bump_amount > 1.0
@@ -349,11 +348,10 @@ def test_vsids(metadata_store):
     metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
     assert channel.votes == 2.0
 
-    sleep(0.1)  # Necessary mostly on Windows, because of the lower timer resolution
+    freezer.move_to('2021-09-26')
     # Ensure that a repeated vote supersedes the first vote but does not count as a new one
     metadata_store.vote_bump(channel.public_key, channel.id_, peer_key.pub().key_to_bin()[10:])
-    assert channel.votes > 2.0
-    assert channel.votes < 2.1
+    assert 2.0 < channel.votes < 2.5
 
 
 @db_session
