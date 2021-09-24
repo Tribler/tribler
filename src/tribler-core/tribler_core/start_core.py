@@ -6,6 +6,7 @@ import signal
 import sys
 from typing import List
 
+from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.simpledefs import NTFY
 from tribler_common.version_manager import VersionHistory
@@ -34,7 +35,6 @@ from tribler_core.components.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler
-from tribler_core.modules.process_checker import ProcessChecker
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
