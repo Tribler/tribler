@@ -16,7 +16,6 @@ import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.exceptions import DuplicateTorrentFileError
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
     CHANNEL_DIR_NAME_LENGTH,
@@ -24,7 +23,12 @@ from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import (
     entries_to_chunk,
 )
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.modules.metadata_store.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    int2time,
+)
 from tribler_core.modules.metadata_store.store import HealthItemsPayload
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.utilities.random_utils import random_infohash
@@ -518,13 +522,14 @@ def test_data_dont_fit_in_mdblob(metadata_store):
             title='test' + str(x),
             infohash=random_infohash(rng),
             id_=rng.randint(0, 100000000),
+            torrent_date=int2time(rng.randint(0, 4000000)),
             timestamp=rng.randint(0, 100000000),
         )
         for x in range(0, 1)
     ]
     chunk, index = entries_to_chunk(md_list, chunk_size=1)
     assert index == 1
-    assert len(chunk) == 206
+    assert len(chunk) == 205
 
     # Test corner case of empty list and/or too big index
     with pytest.raises(Exception):
