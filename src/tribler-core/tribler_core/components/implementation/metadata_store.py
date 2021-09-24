@@ -1,10 +1,9 @@
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
-
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.base import Component
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
@@ -54,7 +53,7 @@ class MetadataStoreComponent(Component):
             disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
-        rest_manager.set_attr_for_endpoints(self.endpoints, 'mds', metadata_store, skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', metadata_store, skip_missing=True)
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED,
                                            metadata_store.TorrentMetadata.add_ffa_from_dict)
 
