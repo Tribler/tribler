@@ -13,35 +13,40 @@ class GigachannelManagerComponent(Component):
     _rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.use(ReporterComponent)
 
         config = self.session.config
         notifier = self.session.notifier
 
         libtorrent_component = await self.use(LibtorrentComponent)
+        if not libtorrent_component:
+            self._missed_dependency(LibtorrentComponent.__name__)
+
         download_manager = libtorrent_component.download_manager if libtorrent_component else None
 
         metadata_store_component = await self.use(MetadataStoreComponent)
-        metadata_store = metadata_store_component.mds if metadata_store_component else None
+        if not metadata_store_component:
+            self._missed_dependency(MetadataStoreComponent.__name__)
 
         rest_component = await self.use(RESTComponent)
-        self._rest_manager = rest_component.rest_manager if rest_component else None
+        if not rest_component:
+            self._missed_dependency(RESTComponent.__name__)
+
+        self._rest_manager = rest_component.rest_manager
 
         self.gigachannel_manager = GigaChannelManager(
-            notifier=notifier, metadata_store=metadata_store, download_manager=download_manager
+            notifier=notifier, metadata_store=metadata_store_component.mds, download_manager=download_manager
         )
         if not config.gui_test_mode:
             self.gigachannel_manager.start()
 
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('channels').gigachannel_manager = self.gigachannel_manager
-            self._rest_manager.get_endpoint('collections').gigachannel_manager = self.gigachannel_manager
+        self._rest_manager.get_endpoint('channels').gigachannel_manager = self.gigachannel_manager
+        self._rest_manager.get_endpoint('collections').gigachannel_manager = self.gigachannel_manager
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('channels').gigachannel_manager = None
-            self._rest_manager.get_endpoint('collections').gigachannel_manager = None
+        self._rest_manager.get_endpoint('channels').gigachannel_manager = None
+        self._rest_manager.get_endpoint('collections').gigachannel_manager = None
 
         await self.release(RESTComponent)
 

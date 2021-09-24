@@ -1,5 +1,5 @@
 from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
-from tribler_core.components.base import Component, ComponentError
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.masterkey import MasterKeyComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.restapi import RESTComponent
@@ -16,21 +16,24 @@ class LibtorrentComponent(Component):
     _rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
+        await self.use(ReporterComponent)
+        await self.use(UpgradeComponent)
         socks_servers_component = await self.use(SocksServersComponent)
-        socks_ports = socks_servers_component.socks_ports if socks_servers_component else None
+        if not socks_servers_component:
+            self._missed_dependency(SocksServersComponent.__name__)
 
         master_key_component = await self.use(MasterKeyComponent)
         if not master_key_component:
-            raise ComponentError(
-                f'Missed dependency: {self.__class__.__name__} requires MasterKeyComponent to be active')
+            self._missed_dependency(MasterKeyComponent.__name__)
 
         config = self.session.config
 
         # TODO: move rest_manager check after download manager init. Use notifier instead of direct call to endpoint
         rest_component = await self.use(RESTComponent)
-        self._rest_manager = rest_component.rest_manager if rest_component else None
+        if not rest_component:
+            self._missed_dependency(RESTComponent.__name__)
+
+        self._rest_manager = rest_component.rest_manager
         state_endpoint = self._rest_manager.get_endpoint('state') if self._rest_manager else None
         if state_endpoint:
             state_endpoint.readable_status = STATE_START_LIBTORRENT
@@ -42,7 +45,7 @@ class LibtorrentComponent(Component):
             peer_mid=master_key_component.keypair.key_to_hash(),
             download_defaults=config.download_defaults,
             bootstrap_infohash=config.bootstrap.infohash,
-            socks_listen_ports=socks_ports,
+            socks_listen_ports=socks_servers_component.socks_ports,
             dummy_mode=config.gui_test_mode)
         self.download_manager.initialize()
         if state_endpoint:
@@ -51,17 +54,15 @@ class LibtorrentComponent(Component):
         if state_endpoint:
             state_endpoint.readable_status = STATE_CHECKPOINTS_LOADED
 
-        if self._rest_manager:
-            self._rest_manager.set_attr_for_endpoints(self._endpoints, 'download_manager', self.download_manager,
-                                                      skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'download_manager', self.download_manager,
+                                                  skip_missing=True)
         if config.gui_test_mode:
             uri = "magnet:?xt=urn:btih:0000000000000000000000000000000000000000"
             await self.download_manager.start_download_from_uri(uri)
 
     async def shutdown(self):
         # Release endpoints
-        if self._rest_manager:
-            self._rest_manager.set_attr_for_endpoints(self._endpoints, 'download_manager', None, skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'download_manager', None, skip_missing=True)
 
         await self.release(RESTComponent)
 

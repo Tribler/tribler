@@ -12,7 +12,7 @@ class SocksServersComponent(Component):
     socks_servers: List[Socks5Server]
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.use(ReporterComponent)
         self.socks_servers = []
         self.socks_ports = []
         # Start the SOCKS5 servers

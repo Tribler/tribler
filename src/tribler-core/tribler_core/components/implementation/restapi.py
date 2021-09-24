@@ -10,7 +10,7 @@ class RESTComponent(Component):
     rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.use(ReporterComponent)
         session = self.session
         config = session.config
         notifier = session.notifier

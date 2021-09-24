@@ -8,8 +8,8 @@ class VersionCheckComponent(Component):
     version_check_manager: VersionCheckManager
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
+        await self.use(ReporterComponent)
+        await self.use(UpgradeComponent)
 
         notifier = self.session.notifier
 

@@ -13,7 +13,7 @@ from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
-from tribler_core.components.base import Component, ComponentError
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.masterkey import MasterKeyComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.restapi import RESTComponent
@@ -32,11 +32,11 @@ class Ipv8Component(Component):
     _peer_discovery_community: Optional[DiscoveryCommunity] = None
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.use(ReporterComponent)
 
         config = self.session.config
 
-        rest_component = await self.use(RESTComponent, required=False)
+        rest_component = await self.use(RESTComponent)
         self._rest_manager = rest_component.rest_manager if rest_component else None
 
         self._task_manager = TaskManager()
@@ -69,8 +69,7 @@ class Ipv8Component(Component):
 
         master_key_component = await self.use(MasterKeyComponent)
         if not master_key_component:
-            raise ComponentError(
-                f'Missed dependency: {self.__class__.__name__} requires MasterKeyComponent to be active')
+            self._missed_dependency(MasterKeyComponent.__name__)
 
         self.peer = Peer(master_key_component.keypair)
 

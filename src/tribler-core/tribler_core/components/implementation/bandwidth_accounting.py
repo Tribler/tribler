@@ -1,7 +1,7 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
 from tribler_common.simpledefs import STATEDIR_DB_DIR
-from tribler_core.components.base import Component, ComponentError
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.ipv8 import Ipv8Component
 from tribler_core.components.implementation.reporter import ReporterComponent
 from tribler_core.components.implementation.restapi import RESTComponent
@@ -21,18 +21,21 @@ class BandwidthAccountingComponent(Component):
     _ipv8: IPv8
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
+        await self.use(ReporterComponent)
+        await self.use(UpgradeComponent)
         config = self.session.config
 
         ipv8_component = await self.use(Ipv8Component)
         if not ipv8_component:
-            raise ComponentError(f'Missed dependency: {self.__class__.__name__} requires Ipv8Component to be active')
-        
+            self._missed_dependency(Ipv8Component.__name__)
+
         self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         rest_component = await self.use(RESTComponent)
-        self._rest_manager = rest_component.rest_manager if rest_component else None
+        if not rest_component:
+            self._missed_dependency(RESTComponent.__name__)
+
+        self._rest_manager = rest_component.rest_manager
 
         if config.general.testnet or config.bandwidth_accounting.testnet:
             bandwidth_cls = BandwidthAccountingTestnetCommunity

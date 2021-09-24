@@ -1,6 +1,6 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
-from tribler_core.components.base import Component, ComponentError
+from tribler_core.components.base import Component
 from tribler_core.components.implementation.ipv8 import Ipv8Component
 from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
 from tribler_core.components.implementation.reporter import ReporterComponent
@@ -16,26 +16,28 @@ class PopularityComponent(Component):
     _ipv8: IPv8
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.use(ReporterComponent)
 
         config = self.session.config
         ipv8_component = await self.use(Ipv8Component)
         if not ipv8_component:
-            raise ComponentError(f'Missed dependency: {self.__class__.__name__} requires Ipv8Component to be active')
+            self._missed_dependency(Ipv8Component.__name__)
 
         self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         metadata_store_component = await self.use(MetadataStoreComponent)
-        metadata_store = metadata_store_component.mds if metadata_store_component else None
+        if not metadata_store_component:
+            self._missed_dependency(MetadataStoreComponent.__name__)
 
         torrent_checker_component = await self.use(TorrentCheckerComponent)
-        torrent_checker = torrent_checker_component.torrent_checker if torrent_checker_component else None
+        if not torrent_checker_component:
+            self._missed_dependency(TorrentCheckerComponent.__name__)
 
         community = PopularityCommunity(peer, self._ipv8.endpoint, self._ipv8.network,
                                         settings=config.popularity_community,
                                         rqc_settings=config.remote_query_community,
-                                        metadata_store=metadata_store,
-                                        torrent_checker=torrent_checker)
+                                        metadata_store=metadata_store_component.mds,
+                                        torrent_checker=torrent_checker_component.torrent_checker)
         self.community = community
 
         self._ipv8.add_strategy(community, RandomWalk(community), 30)

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
-
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
@@ -152,8 +151,11 @@ class Component:
     async def shutdown(self):
         pass
 
-    async def use(self, dependency: Type[T], required=True) -> T:
+    async def use(self, dependency: Type[T]) -> Optional[T]:
         dep = dependency.instance()
+        if not dep:
+            return None
+
         await dep.started.wait()
         if dep.failed:
             raise ComponentError(f'Component {self.__class__.__name__} has failed dependency {dep.__class__.__name__}')
@@ -171,3 +173,6 @@ class Component:
     async def release(self, dependency: Type[T]):
         dep = dependency.instance()
         self._release_instance(dep)
+
+    def _missed_dependency(self, component_name):
+        raise ComponentError(f'Missed dependency: {self.__class__.__name__} requires {component_name} to be active')

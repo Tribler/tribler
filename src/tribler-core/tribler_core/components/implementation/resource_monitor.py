@@ -9,8 +9,8 @@ class ResourceMonitorComponent(Component):
     resource_monitor: CoreResourceMonitor
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
+        await self.use(ReporterComponent)
+        await self.use(UpgradeComponent)
 
         config = self.session.config
         notifier = self.session.notifier
@@ -24,8 +24,9 @@ class ResourceMonitorComponent(Component):
         self.resource_monitor = resource_monitor
 
         rest_component = await self.use(RESTComponent)
-        if rest_component:
-            rest_component.rest_manager.get_endpoint('debug').resource_monitor = resource_monitor
+        if not rest_component:
+            self._missed_dependency(RESTComponent.__name__)
+        rest_component.rest_manager.get_endpoint('debug').resource_monitor = resource_monitor
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Resource Monitor...")

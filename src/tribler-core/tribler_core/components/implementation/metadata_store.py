@@ -17,11 +17,14 @@ class MetadataStoreComponent(Component):
     _endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
+        await self.use(ReporterComponent)
+        await self.use(UpgradeComponent)
 
         rest_component = await self.use(RESTComponent)
-        self._rest_manager = rest_component.rest_manager if rest_component else None
+        if not rest_component:
+            self._missed_dependency(RESTComponent.__name__)
+
+        self._rest_manager = rest_component.rest_manager
 
         config = self.session.config
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
@@ -44,12 +47,14 @@ class MetadataStoreComponent(Component):
             self.logger.info("Wiping metadata database in GUI test mode")
             database_path.unlink(missing_ok=True)
 
-        masterkey = await self.use(MasterKeyComponent)
+        master_key_component = await self.use(MasterKeyComponent)
+        if not master_key_component:
+            self._missed_dependency(MasterKeyComponent.__name__)
 
         metadata_store = MetadataStore(
             database_path,
             channels_dir,
-            masterkey.keypair,
+            master_key_component.keypair,
             notifier=self.session.notifier,
             disable_sync=config.gui_test_mode,
         )
@@ -63,8 +68,7 @@ class MetadataStoreComponent(Component):
 
     async def shutdown(self):
         # Release endpoints
-        if self._rest_manager:
-            self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', None, skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', None, skip_missing=True)
         await self.release(RESTComponent)
 
         await self.unused.wait()

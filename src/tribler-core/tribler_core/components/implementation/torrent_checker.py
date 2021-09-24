@@ -16,42 +16,45 @@ class TorrentCheckerComponent(Component):
     _rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.use(ReporterComponent)
 
         config = self.session.config
 
         metadata_store_component = await self.use(MetadataStoreComponent)
-        metadata_store = metadata_store_component.mds if metadata_store_component else None
+        if not metadata_store_component:
+            self._missed_dependency(MetadataStoreComponent.__name__)
 
         libtorrent_component = await self.use(LibtorrentComponent)
-        download_manager = libtorrent_component.download_manager if libtorrent_component else None
+        if not libtorrent_component:
+            self._missed_dependency(LibtorrentComponent.__name__)
 
         rest_component = await self.use(RESTComponent)
-        self._rest_manager = rest_component.rest_manager if rest_component else None
+        if not rest_component:
+            self._missed_dependency(RESTComponent.__name__)
+
+        self._rest_manager = rest_component.rest_manager
 
         socks_servers_component = await self.use(SocksServersComponent)
-        socks_ports = socks_servers_component.socks_ports if socks_servers_component else None
+        if not socks_servers_component:
+            self._missed_dependency(SocksServersComponent.__name__)
 
-        tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store)
+        tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store_component.mds)
         torrent_checker = TorrentChecker(config=config,
-                                         download_manager=download_manager,
+                                         download_manager=libtorrent_component.download_manager,
                                          notifier=self.session.notifier,
                                          tracker_manager=tracker_manager,
-                                         socks_listen_ports=socks_ports,
-                                         metadata_store=metadata_store)
+                                         socks_listen_ports=socks_servers_component.socks_ports,
+                                         metadata_store=metadata_store_component.mds)
         self.torrent_checker = torrent_checker
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
+        self._rest_manager.get_endpoint('state').readable_status = STATE_START_TORRENT_CHECKER
 
         await torrent_checker.initialize()
-        if self._rest_manager:
-            self._rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', torrent_checker,
-                                                      skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', torrent_checker,
+                                                  skip_missing=True)
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
-        if self._rest_manager:
-            self._rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', None, skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', None, skip_missing=True)
 
         await self.release(RESTComponent)
 
