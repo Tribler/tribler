@@ -53,16 +53,15 @@ class GigaChannelComponent(Component):
         self._ipv8.add_strategy(community, RemovePeers(community), INFINITE)
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('remote_query').gigachannel_community = community
-            self._rest_manager.get_endpoint('channels').gigachannel_community = community
-            self._rest_manager.get_endpoint('collections').gigachannel_community = community
+
+        self._rest_manager.get_endpoint('remote_query').gigachannel_community = community
+        self._rest_manager.get_endpoint('channels').gigachannel_community = community
+        self._rest_manager.get_endpoint('collections').gigachannel_community = community
 
     async def shutdown(self):
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('remote_query').gigachannel_community = None
-            self._rest_manager.get_endpoint('channels').gigachannel_community = None
-            self._rest_manager.get_endpoint('collections').gigachannel_community = None
+        self._rest_manager.get_endpoint('remote_query').gigachannel_community = None
+        self._rest_manager.get_endpoint('channels').gigachannel_community = None
+        self._rest_manager.get_endpoint('collections').gigachannel_community = None
         await self.release_component(RESTComponent)
         if self._ipv8:
             await self._ipv8.unload_overlay(self.community)

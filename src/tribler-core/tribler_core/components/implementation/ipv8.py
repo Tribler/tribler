@@ -131,13 +131,11 @@ class Ipv8Component(Component):
             self._rest_manager.get_endpoint('statistics').ipv8 = None
         await self.release_component(RESTComponent)
 
-        if self.dht_discovery_community and self._peer_discovery_community:
-            for overlay in (self.dht_discovery_community, self._peer_discovery_community):
-                if overlay:
-                    await self.ipv8.unload_overlay(overlay)
+        for overlay in (self.dht_discovery_community, self._peer_discovery_community):
+            if overlay:
+                await self.ipv8.unload_overlay(overlay)
 
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self._task_manager.shutdown_task_manager()
-        if self.ipv8:
-            await self.ipv8.stop(stop_loop=False)
+        await self.ipv8.stop(stop_loop=False)

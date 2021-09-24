@@ -48,13 +48,10 @@ class BandwidthAccountingComponent(Component):
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         self.community = community
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('trustview').bandwidth_db = community.database
-            self._rest_manager.get_endpoint('bandwidth').bandwidth_community = community
+        self._rest_manager.get_endpoint('trustview').bandwidth_db = community.database
+        self._rest_manager.get_endpoint('bandwidth').bandwidth_community = community
 
     async def shutdown(self):
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('trustview').bandwidth_db = None
-            self._rest_manager.get_endpoint('bandwidth').bandwidth_community = None
-        if self._ipv8:
-            await self._ipv8.unload_overlay(self.community)
+        self._rest_manager.get_endpoint('trustview').bandwidth_db = None
+        self._rest_manager.get_endpoint('bandwidth').bandwidth_community = None
+        await self._ipv8.unload_overlay(self.community)

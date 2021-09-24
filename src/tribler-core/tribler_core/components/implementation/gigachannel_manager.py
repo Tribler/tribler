@@ -42,5 +42,4 @@ class GigachannelManagerComponent(Component):
 
         await self.release_component(RESTComponent)
 
-        if self.gigachannel_manager:
-            await self.gigachannel_manager.shutdown()
+        await self.gigachannel_manager.shutdown()
