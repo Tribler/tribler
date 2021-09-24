@@ -76,6 +76,10 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         return self.last_search_query is not None
 
     def show_results(self, *_):
+        if self.search_request is None:
+            # Fixes a race condition where the user clicks the show_results button before the search request
+            # has been registered by the Core
+            return
         self.timeout_progress_bar.stop()
         query = self.search_request.query
         self.results_page.initialize_root_model(
