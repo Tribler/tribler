@@ -8,10 +8,9 @@ from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSig
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
+from tribler_common.osutils import get_root_state_directory
 from tribler_common.utilities import is_frozen
 from tribler_common.version_manager import TriblerVersion, VersionHistory
-
-from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest

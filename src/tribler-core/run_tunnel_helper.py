@@ -13,6 +13,7 @@ from ipaddress import AddressValueError, IPv4Address
 
 from ipv8.taskmanager import TaskManager
 
+from tribler_common.osutils import get_root_state_directory
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.base import Session
@@ -25,7 +26,6 @@ from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.components.tunnels import TunnelsComponent
 from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
 
 logger = logging.getLogger(__name__)
