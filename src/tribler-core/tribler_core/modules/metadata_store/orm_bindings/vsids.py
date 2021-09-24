@@ -70,23 +70,34 @@ def define_binding(db):
 
         @db_session
         def bump_channel(self, channel, vote):
+            now = datetime.utcnow()
+
             # Subtract the last vote by the same peer from the total vote amount for this channel.
             # This effectively puts a cap of 1.0 vote from a peer on a channel
             channel.votes -= vote.last_amount
             self.total_activity -= vote.last_amount
 
-            vote.last_amount = self.bump_amount
-            channel.votes += self.bump_amount
-            self.total_activity += self.bump_amount
+            # Next, increase the bump amount based on the time passed since the last bump
+            # (Increasing the bump amount is the equivalent of decaying the values of votes,
+            # cast for all other channels)
+            self.bump_amount *= math.exp((now - self.last_bump).total_seconds() / self.exp_period)
+            self.last_bump = now
 
+            # To cap the future votes from this peer, note the last bump vote
+            # amount added to this channel by the voting peer.
+            vote.last_amount = self.bump_amount
+
+            # Add the vote to the accumulated sum of all votes for the channel
+            channel.votes += self.bump_amount
+
+            # Keep track of total activity and max vote amount to assist with votes scaling/normalization
+            self.total_activity += self.bump_amount
             if channel.votes > self.max_val:
                 self.max_val = channel.votes
             db.ChannelMetadata.votes_scaling = self.max_val
 
-            bump_moment = datetime.utcnow()
-            self.bump_amount *= math.exp((bump_moment - self.last_bump).total_seconds() / self.exp_period)
-            self.last_bump = bump_moment
-
+            # Renormalize all votes in the database if current bump amount is nearing the float
+            # precision threshold
             if self.bump_amount > self.rescale_threshold:
                 self.rescale(self.bump_amount)
 
