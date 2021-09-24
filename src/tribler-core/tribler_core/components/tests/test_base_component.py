@@ -115,9 +115,7 @@ async def test_dependency_missed(tribler_config):
     ComponentA, ComponentB = make_test_components()
 
     async def run(self):
-        compA = await self.get_component(ComponentA)
-        if not compA:
-            self._missed_dependency(ComponentA.__name__)
+        await self.require_component(ComponentA)
 
     ComponentB.run = run
 
