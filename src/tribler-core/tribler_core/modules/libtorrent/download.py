@@ -12,6 +12,7 @@ from typing import Optional
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
 
+from tribler_common.osutils import fix_filebasename
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.exceptions import SaveResumeDataError
@@ -23,7 +24,6 @@ from tribler_core.modules.libtorrent.stream import Stream
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify

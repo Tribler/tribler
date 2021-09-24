@@ -58,6 +58,7 @@ if sys.platform == "win32":
             return path_util.Path(shell.SHGetSpecialFolderPath(0, 0x10))
 
     except ImportError:
+
         def get_home_dir():
             # This will always succeed on python 3.x
             return Path("~").expanduser()
@@ -82,6 +83,7 @@ if sys.platform == "win32":
             home = get_home_dir()
             return home / "Desktop"
 
+
 elif is_android():
 
     def get_home_dir():
@@ -95,6 +97,7 @@ elif is_android():
 
     def get_desktop_dir():
         return get_home_dir()
+
 
 else:
     # linux or darwin (mac)
@@ -121,9 +124,9 @@ invalidlinuxfilenamechars = '/'
 
 
 def fix_filebasename(name, unit=False, maxlen=255):
-    """ Check if str is a valid Windows file name (or unit name if unit is true)
-     * If the filename isn't valid: returns a corrected name
-     * If the filename is valid: returns the filename
+    """Check if str is a valid Windows file name (or unit name if unit is true)
+    * If the filename isn't valid: returns a corrected name
+    * If the filename is valid: returns the filename
     """
     if isinstance(name, Path):
         name = str(name)

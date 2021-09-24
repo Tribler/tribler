@@ -2,11 +2,10 @@ import json
 
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
+from tribler_common.osutils import get_root_state_directory
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler_common.version_manager import VersionHistory, remove_state_dirs
-
-from tribler_core.utilities.osutils import get_root_state_directory
 
 from tribler_gui.defs import (
     DARWIN,

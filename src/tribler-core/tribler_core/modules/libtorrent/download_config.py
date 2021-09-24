@@ -4,10 +4,11 @@ from configobj import ConfigObj
 
 from validate import Validator
 
+from tribler_common.osutils import get_home_dir
+
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.osutils import get_home_dir
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 

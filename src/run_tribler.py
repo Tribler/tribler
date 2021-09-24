@@ -48,7 +48,7 @@ if __name__ == "__main__":
     init_sentry_reporter()
 
     # Get root state directory (e.g. from environment variable or from system default)
-    from tribler_core.utilities.osutils import get_root_state_directory
+    from tribler_common.osutils import get_root_state_directory
 
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')
