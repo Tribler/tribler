@@ -11,7 +11,7 @@ from asyncio import ensure_future, get_event_loop, sleep
 from datetime import date
 from socket import inet_aton
 
-from tribler_common.osutils import get_appstate_dir
+from tribler_common.osutils import get_appstate_dir, get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -73,7 +73,8 @@ class TriblerService:
         config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
 
         # Check if we are already running a Tribler instance
-        self.process_checker = ProcessChecker()
+        root_state_dir = get_root_state_directory()
+        self.process_checker = ProcessChecker(root_state_dir)
         if self.process_checker.already_running:
             print(f"Another Tribler instance is already using statedir {config.state_dir}")
             get_event_loop().stop()

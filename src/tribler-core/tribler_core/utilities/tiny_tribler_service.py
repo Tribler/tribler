@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ipv8.loader import IPv8CommunityLoader
 
+from tribler_common.osutils import get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -73,7 +74,8 @@ class TinyTriblerService:
     def _check_already_running(self):
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.working_dir}')
 
-        self.process_checker = ProcessChecker()
+        root_state_dir = get_root_state_directory()
+        self.process_checker = ProcessChecker(root_state_dir)
         if self.process_checker.already_running:
             self.logger.error(f"Another Tribler instance is already using directory: {self.working_dir}")
             asyncio.get_running_loop().stop()
