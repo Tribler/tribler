@@ -36,6 +36,7 @@ from PyQt5.QtWidgets import (
 )
 
 from tribler_common.network_utils import NetworkUtils
+from tribler_common.osutils import get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import uri_to_path
 
@@ -1085,7 +1086,8 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        process_checker = ProcessChecker()
+        root_state_dir = get_root_state_directory()
+        process_checker = ProcessChecker(root_state_dir)
         if process_checker.already_running:
             core_pid = process_checker.get_pid_from_lock_file()
             os.kill(int(core_pid), 9)
