@@ -305,7 +305,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         switched_level = False
         level = int(level)
         disconnected_current_model = False
-        while level < self.current_level:
+        while 0 <= level < self.current_level:
             switched_level = True
             if not disconnected_current_model:
                 disconnected_current_model = True
