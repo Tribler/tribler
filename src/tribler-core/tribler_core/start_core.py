@@ -12,27 +12,24 @@ from tribler_common.simpledefs import NTFY
 from tribler_common.version_manager import VersionHistory
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
 from tribler_core.components.base import Component, Session
-from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent, \
-    BandwidthAccountingComponent
-from tribler_core.components.implementation.gigachannel import GigaChannelComponent, GigaChannelComponent
-from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponent, \
-    GigachannelManagerComponent
-from tribler_core.components.implementation.ipv8 import Ipv8Component, Ipv8Component
-from tribler_core.components.implementation.libtorrent import LibtorrentComponent, LibtorrentComponent
-from tribler_core.components.implementation.masterkey import MasterKeyComponent, MasterKeyComponent
-from tribler_core.components.implementation.metadata_store import MetadataStoreComponent, MetadataStoreComponent
-from tribler_core.components.implementation.payout import PayoutComponent, PayoutComponent
-from tribler_core.components.implementation.popularity import PopularityComponent, PopularityComponent
-from tribler_core.components.implementation.reporter import ReporterComponent, ReporterComponent
-from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponent, \
-    ResourceMonitorComponent
-from tribler_core.components.implementation.restapi import RESTComponent, RESTComponent
-from tribler_core.components.implementation.socks_configurator import SocksServersComponent, SocksServersComponent
-from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent, TorrentCheckerComponent
-from tribler_core.components.implementation.tunnels import TunnelsComponent, TunnelsComponent
-from tribler_core.components.implementation.upgrade import UpgradeComponent, UpgradeComponent
-from tribler_core.components.implementation.version_check import VersionCheckComponent, VersionCheckComponent
-from tribler_core.components.implementation.watch_folder import WatchFolderComponent, WatchFolderComponent
+from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.implementation.gigachannel import GigaChannelComponent
+from tribler_core.components.implementation.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.implementation.ipv8 import Ipv8Component
+from tribler_core.components.implementation.libtorrent import LibtorrentComponent
+from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
+from tribler_core.components.implementation.payout import PayoutComponent
+from tribler_core.components.implementation.popularity import PopularityComponent
+from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.implementation.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.implementation.socks_configurator import SocksServersComponent
+from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.implementation.tunnels import TunnelsComponent
+from tribler_core.components.implementation.upgrade import UpgradeComponent
+from tribler_core.components.implementation.version_check import VersionCheckComponent
+from tribler_core.components.implementation.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler

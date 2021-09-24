@@ -24,6 +24,8 @@ from tribler_core.components.implementation.watch_folder import WatchFolderCompo
 from tribler_core.restapi.rest_manager import RESTManager
 
 
+# pylint: disable=protected-access
+
 def test_session_context_manager(loop, tribler_config):
     session1 = Session(tribler_config, [])
     session2 = Session(tribler_config, [])

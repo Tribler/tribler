@@ -3,6 +3,9 @@ import pytest
 from tribler_core.components.base import Component, ComponentError, Session, T
 
 
+# pylint: disable=protected-access
+
+
 def make_test_components():
     class TestComponent(Component):
         run_was_executed = False
