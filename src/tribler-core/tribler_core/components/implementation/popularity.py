@@ -16,22 +16,14 @@ class PopularityComponent(Component):
     _ipv8: IPv8
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
-        ipv8_component = await self.use(Ipv8Component)
-        if not ipv8_component:
-            self._missed_dependency(Ipv8Component.__name__)
-
+        ipv8_component = await self.require_component(Ipv8Component)
         self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
-        metadata_store_component = await self.use(MetadataStoreComponent)
-        if not metadata_store_component:
-            self._missed_dependency(MetadataStoreComponent.__name__)
-
-        torrent_checker_component = await self.use(TorrentCheckerComponent)
-        if not torrent_checker_component:
-            self._missed_dependency(TorrentCheckerComponent.__name__)
+        metadata_store_component = await self.require_component(MetadataStoreComponent)
+        torrent_checker_component = await self.require_component(TorrentCheckerComponent)
 
         community = PopularityCommunity(peer, self._ipv8.endpoint, self._ipv8.network,
                                         settings=config.popularity_community,

@@ -61,7 +61,7 @@ async def test_session_start_shutdown(tribler_config):
 
 async def test_required_dependency_enabled(tribler_config):
     ComponentA, ComponentB = make_test_components()
-    ComponentB.run = lambda self: self.use(ComponentA)
+    ComponentB.run = lambda self: self.get_component(ComponentA)
 
     session = Session(tribler_config, [ComponentA(), ComponentB()])
     with session:
@@ -87,7 +87,7 @@ async def test_required_dependency_enabled(tribler_config):
 
 async def test_required_dependency_disabled(tribler_config):
     ComponentA, ComponentB = make_test_components()
-    ComponentB.run = lambda self: self.use(ComponentA)
+    ComponentB.run = lambda self: self.get_component(ComponentA)
 
     session = Session(tribler_config, [ComponentA(), ComponentB()])
     with session:
@@ -115,7 +115,7 @@ async def test_dependency_missed(tribler_config):
     ComponentA, ComponentB = make_test_components()
 
     async def run(self):
-        compA = await self.use(ComponentA)
+        compA = await self.get_component(ComponentA)
         if not compA:
             self._missed_dependency(ComponentA.__name__)
 

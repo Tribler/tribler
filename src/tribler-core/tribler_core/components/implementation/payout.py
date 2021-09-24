@@ -12,17 +12,12 @@ class PayoutComponent(Component):
     payout_manager: PayoutManager
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
 
-        ipv8_component = await self.use(Ipv8Component)
-        if not ipv8_component:
-            self._missed_dependency(Ipv8Component.__name__)
-
-        bandwidth_accounting_component = await self.use(BandwidthAccountingComponent)
-        if not bandwidth_accounting_component:
-            self._missed_dependency(BandwidthAccountingComponent.__name__)
+        ipv8_component = await self.require_component(Ipv8Component)
+        bandwidth_accounting_component = await self.require_component(BandwidthAccountingComponent)
 
         payout_manager = PayoutManager(bandwidth_accounting_component.community, ipv8_component.dht_discovery_community)
         self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT, payout_manager.do_payout)

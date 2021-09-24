@@ -151,17 +151,43 @@ class Component:
     async def shutdown(self):
         pass
 
-    async def use(self, dependency: Type[T]) -> Optional[T]:
+    async def require_component(self, dependency: Type[T]) -> T:
+        """ Resolve the dependency to a component.
+        The method will wait the component to be initialised.
+
+        Returns:    The component instance.
+                    In case of a missed or failed dependency an exception will be raised.
+        """
+        dep = await self.get_component(dependency)
+        if not dep:
+            raise ComponentError(
+                f'Missed dependency: {self.__class__.__name__} requires {dependency.__name__} to be active')
+        return dep
+
+    async def get_component(self, dependency: Type[T]) -> Optional[T]:
+        """ Resolve the dependency to a component.
+        The method will wait the component to be initialised.
+
+        Returns:    The component instance.
+                    In case of a missed or failed dependency None will be returned.
+        """
         dep = dependency.instance()
         if not dep:
             return None
 
         await dep.started.wait()
         if dep.failed:
-            raise ComponentError(f'Component {self.__class__.__name__} has failed dependency {dep.__class__.__name__}')
+            self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
+            return None
+
         self.components_used_by_me.add(dep)
         dep.in_use_by.add(self)
         return dep
+
+    async def release_component(self, dependency: Type[T]):
+        dep = dependency.instance()
+        if dep:
+            self._release_instance(dep)
 
     def _release_instance(self, dep: Component):
         assert dep in self.components_used_by_me
@@ -169,10 +195,3 @@ class Component:
         dep.in_use_by.discard(self)
         if not dep.in_use_by:
             dep.unused.set()
-
-    async def release(self, dependency: Type[T]):
-        dep = dependency.instance()
-        self._release_instance(dep)
-
-    def _missed_dependency(self, component_name):
-        raise ComponentError(f'Missed dependency: {self.__class__.__name__} requires {component_name} to be active')

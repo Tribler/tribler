@@ -17,13 +17,10 @@ class MetadataStoreComponent(Component):
     _endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
 
     async def run(self):
-        await self.use(ReporterComponent)
-        await self.use(UpgradeComponent)
+        await self.get_component(ReporterComponent)
+        await self.get_component(UpgradeComponent)
 
-        rest_component = await self.use(RESTComponent)
-        if not rest_component:
-            self._missed_dependency(RESTComponent.__name__)
-
+        rest_component = await self.require_component(RESTComponent)
         self._rest_manager = rest_component.rest_manager
 
         config = self.session.config
@@ -47,9 +44,7 @@ class MetadataStoreComponent(Component):
             self.logger.info("Wiping metadata database in GUI test mode")
             database_path.unlink(missing_ok=True)
 
-        master_key_component = await self.use(MasterKeyComponent)
-        if not master_key_component:
-            self._missed_dependency(MasterKeyComponent.__name__)
+        master_key_component = await self.require_component(MasterKeyComponent)
 
         metadata_store = MetadataStore(
             database_path,
@@ -69,7 +64,7 @@ class MetadataStoreComponent(Component):
     async def shutdown(self):
         # Release endpoints
         self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', None, skip_missing=True)
-        await self.release(RESTComponent)
+        await self.release_component(RESTComponent)
 
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")

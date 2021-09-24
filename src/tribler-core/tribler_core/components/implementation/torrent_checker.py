@@ -16,27 +16,16 @@ class TorrentCheckerComponent(Component):
     _rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
 
-        metadata_store_component = await self.use(MetadataStoreComponent)
-        if not metadata_store_component:
-            self._missed_dependency(MetadataStoreComponent.__name__)
-
-        libtorrent_component = await self.use(LibtorrentComponent)
-        if not libtorrent_component:
-            self._missed_dependency(LibtorrentComponent.__name__)
-
-        rest_component = await self.use(RESTComponent)
-        if not rest_component:
-            self._missed_dependency(RESTComponent.__name__)
-
+        metadata_store_component = await self.require_component(MetadataStoreComponent)
+        libtorrent_component = await self.require_component(LibtorrentComponent)
+        rest_component = await self.require_component(RESTComponent)
         self._rest_manager = rest_component.rest_manager
 
-        socks_servers_component = await self.use(SocksServersComponent)
-        if not socks_servers_component:
-            self._missed_dependency(SocksServersComponent.__name__)
+        socks_servers_component = await self.require_component(SocksServersComponent)
 
         tracker_manager = TrackerManager(state_dir=config.state_dir, metadata_store=metadata_store_component.mds)
         torrent_checker = TorrentChecker(config=config,
@@ -56,6 +45,6 @@ class TorrentCheckerComponent(Component):
         self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
         self._rest_manager.set_attr_for_endpoints(['metadata'], 'torrent_checker', None, skip_missing=True)
 
-        await self.release(RESTComponent)
+        await self.release_component(RESTComponent)
 
         await self.torrent_checker.shutdown()

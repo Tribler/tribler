@@ -10,22 +10,17 @@ class WatchFolderComponent(Component):
     watch_folder: WatchFolder
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.get_component(ReporterComponent)
         config = self.session.config
         notifier = self.session.notifier
-        libtorrent_component = await self.use(LibtorrentComponent)
-        if not libtorrent_component:
-            self._missed_dependency(LibtorrentComponent.__name__)
+        libtorrent_component = await self.require_component(LibtorrentComponent)
 
         watch_folder_path = config.watch_folder.get_path_as_absolute('directory', config.state_dir)
         watch_folder = WatchFolder(watch_folder_path=watch_folder_path,
                                    download_manager=libtorrent_component.download_manager,
                                    notifier=notifier)
 
-        rest_component = await self.use(RESTComponent)
-        if not rest_component:
-            self._missed_dependency(RESTComponent.__name__)
-
+        rest_component = await self.require_component(RESTComponent)
         rest_component.rest_manager.get_endpoint('state').readable_status = STATE_START_WATCH_FOLDER
 
         watch_folder.start()

@@ -16,23 +16,15 @@ class LibtorrentComponent(Component):
     _rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent)
-        await self.use(UpgradeComponent)
-        socks_servers_component = await self.use(SocksServersComponent)
-        if not socks_servers_component:
-            self._missed_dependency(SocksServersComponent.__name__)
-
-        master_key_component = await self.use(MasterKeyComponent)
-        if not master_key_component:
-            self._missed_dependency(MasterKeyComponent.__name__)
+        await self.get_component(ReporterComponent)
+        await self.get_component(UpgradeComponent)
+        socks_servers_component = await self.require_component(SocksServersComponent)
+        master_key_component = await self.require_component(MasterKeyComponent)
 
         config = self.session.config
 
         # TODO: move rest_manager check after download manager init. Use notifier instead of direct call to endpoint
-        rest_component = await self.use(RESTComponent)
-        if not rest_component:
-            self._missed_dependency(RESTComponent.__name__)
-
+        rest_component = await self.require_component(RESTComponent)
         self._rest_manager = rest_component.rest_manager
         state_endpoint = self._rest_manager.get_endpoint('state') if self._rest_manager else None
         if state_endpoint:
@@ -64,7 +56,7 @@ class LibtorrentComponent(Component):
         # Release endpoints
         self._rest_manager.set_attr_for_endpoints(self._endpoints, 'download_manager', None, skip_missing=True)
 
-        await self.release(RESTComponent)
+        await self.release_component(RESTComponent)
 
         self.download_manager.stop_download_states_callback()
         await self.download_manager.shutdown()

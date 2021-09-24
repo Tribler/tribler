@@ -6,7 +6,7 @@ from tribler_core.utilities.unicode import hexlify
 
 class ReporterComponent(Component):
     async def run(self):
-        master_key_component = await self.use(MasterKeyComponent)
+        master_key_component = await self.get_component(MasterKeyComponent)
         if not master_key_component:
             return
 

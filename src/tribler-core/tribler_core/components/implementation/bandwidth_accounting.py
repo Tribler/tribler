@@ -21,20 +21,15 @@ class BandwidthAccountingComponent(Component):
     _ipv8: IPv8
 
     async def run(self):
-        await self.use(ReporterComponent)
-        await self.use(UpgradeComponent)
+        await self.get_component(ReporterComponent)
+        await self.get_component(UpgradeComponent)
         config = self.session.config
 
-        ipv8_component = await self.use(Ipv8Component)
-        if not ipv8_component:
-            self._missed_dependency(Ipv8Component.__name__)
-
+        ipv8_component = await self.require_component(Ipv8Component)
         self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
-        rest_component = await self.use(RESTComponent)
-        if not rest_component:
-            self._missed_dependency(RESTComponent.__name__)
 
+        rest_component = await self.require_component(RESTComponent)
         self._rest_manager = rest_component.rest_manager
 
         if config.general.testnet or config.bandwidth_accounting.testnet:

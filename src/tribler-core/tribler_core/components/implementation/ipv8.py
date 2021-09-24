@@ -32,11 +32,11 @@ class Ipv8Component(Component):
     _peer_discovery_community: Optional[DiscoveryCommunity] = None
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
 
-        rest_component = await self.use(RESTComponent)
+        rest_component = await self.get_component(RESTComponent)
         self._rest_manager = rest_component.rest_manager if rest_component else None
 
         self._task_manager = TaskManager()
@@ -67,10 +67,7 @@ class Ipv8Component(Component):
         await ipv8.start()
         self.ipv8 = ipv8
 
-        master_key_component = await self.use(MasterKeyComponent)
-        if not master_key_component:
-            self._missed_dependency(MasterKeyComponent.__name__)
-
+        master_key_component = await self.require_component(MasterKeyComponent)
         self.peer = Peer(master_key_component.keypair)
 
         if config.ipv8.statistics and not config.gui_test_mode:
@@ -132,7 +129,7 @@ class Ipv8Component(Component):
     async def shutdown(self):
         if self._rest_manager:
             self._rest_manager.get_endpoint('statistics').ipv8 = None
-        await self.release(RESTComponent)
+        await self.release_component(RESTComponent)
 
         if self.dht_discovery_community and self._peer_discovery_community:
             for overlay in (self.dht_discovery_community, self._peer_discovery_community):

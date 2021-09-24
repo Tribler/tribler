@@ -20,24 +20,21 @@ class TunnelsComponent(Component):
     _ipv8: IPv8
 
     async def run(self):
-        await self.use(ReporterComponent)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
-        ipv8_component = await self.use(Ipv8Component)
-        if not ipv8_component:
-            self._missed_dependency(Ipv8Component.__name__)
-
+        ipv8_component = await self.require_component(Ipv8Component)
         self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
         dht_discovery_community = ipv8_component.dht_discovery_community
 
-        bandwidth_component = await self.use(BandwidthAccountingComponent)
+        bandwidth_component = await self.get_component(BandwidthAccountingComponent)
         bandwidth_community = bandwidth_component.community if bandwidth_component else None
 
-        download_component = await self.use(LibtorrentComponent)
+        download_component = await self.get_component(LibtorrentComponent)
         download_manager = download_component.download_manager if download_component else None
 
-        socks_servers_component = await self.use(SocksServersComponent)
+        socks_servers_component = await self.get_component(SocksServersComponent)
         socks_servers = socks_servers_component.socks_servers if socks_servers_component else None
 
         settings = TunnelSettings()
@@ -73,7 +70,7 @@ class TunnelsComponent(Component):
 
         self.community = community
 
-        rest_component = await self.use(RESTComponent)
+        rest_component = await self.get_component(RESTComponent)
         if rest_component:
             rest_component.rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(self._ipv8)
             if download_component:
