@@ -6,13 +6,14 @@ import signal
 import sys
 from typing import List
 
-import tribler_core
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.simpledefs import NTFY
 from tribler_common.version_manager import VersionHistory
+
+import tribler_core
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
-from tribler_core.components.base import Component, Session
 from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.base import Component, Session
 from tribler_core.components.gigachannel import GigaChannelComponent
 from tribler_core.components.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.ipv8 import Ipv8Component
@@ -54,11 +55,11 @@ def components_gen(config: TriblerConfig):
         yield Ipv8Component()
     yield MasterKeyComponent()
     if config.libtorrent.enabled:
+        yield SocksServersComponent()
+    if config.libtorrent.enabled:
         yield LibtorrentComponent()
     if config.ipv8.enabled and config.chant.enabled:
         yield GigaChannelComponent()
-    if config.ipv8.enabled and config.popularity_community.enabled:
-        yield PopularityComponent()
     if config.ipv8.enabled:
         yield BandwidthAccountingComponent()
     if config.resource_monitor.enabled:
@@ -68,16 +69,16 @@ def components_gen(config: TriblerConfig):
     if config.gui_test_mode:
         return
 
-    if config.libtorrent.enabled:
-        yield SocksServersComponent()
+    if config.torrent_checking.enabled:
+        yield TorrentCheckerComponent()
+    if config.ipv8.enabled and config.popularity_community.enabled:
+        yield PopularityComponent()
     if config.upgrader_enabled:
         yield UpgradeComponent()
     if config.ipv8.enabled and config.tunnel_community.enabled:
         yield TunnelsComponent()
     if config.ipv8.enabled:
         yield PayoutComponent()
-    if config.torrent_checking.enabled:
-        yield TorrentCheckerComponent()
     if config.watch_folder.enabled:
         yield WatchFolderComponent()
     if config.general.version_checker_enabled:
