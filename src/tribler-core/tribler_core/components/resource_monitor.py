@@ -1,7 +1,7 @@
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.reporter import ReporterComponent
-from tribler_core.components.implementation.restapi import RESTComponent
-from tribler_core.components.implementation.upgrade import UpgradeComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 

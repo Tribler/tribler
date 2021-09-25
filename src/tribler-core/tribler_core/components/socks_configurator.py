@@ -1,7 +1,7 @@
 from typing import List
 
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.reporter import ReporterComponent
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
 
 NUM_SOCKS_PROXIES = 5

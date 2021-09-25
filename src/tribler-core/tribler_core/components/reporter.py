@@ -1,6 +1,6 @@
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.masterkey import MasterKeyComponent
+from tribler_core.components.masterkey import MasterKeyComponent
 from tribler_core.utilities.unicode import hexlify
 
 

@@ -1,8 +1,8 @@
 from tribler_common.simpledefs import NTFY
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.implementation.ipv8 import Ipv8Component
-from tribler_core.components.implementation.reporter import ReporterComponent
+from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.reporter import ReporterComponent
 from tribler_core.modules.payout.payout_manager import PayoutManager
 
 INFINITE = -1

@@ -1,10 +1,10 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.ipv8 import Ipv8Component
-from tribler_core.components.implementation.metadata_store import MetadataStoreComponent
-from tribler_core.components.implementation.reporter import ReporterComponent
-from tribler_core.components.implementation.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.torrent_checker import TorrentCheckerComponent
 from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
 from tribler_core.modules.popularity.community import PopularityCommunity
 

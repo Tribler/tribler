@@ -2,10 +2,10 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.ipv8 import Ipv8Component
-from tribler_core.components.implementation.reporter import ReporterComponent
-from tribler_core.components.implementation.restapi import RESTComponent
-from tribler_core.components.implementation.upgrade import UpgradeComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.modules.bandwidth_accounting.community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,

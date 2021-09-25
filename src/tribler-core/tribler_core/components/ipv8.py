@@ -14,9 +14,9 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.masterkey import MasterKeyComponent
-from tribler_core.components.implementation.reporter import ReporterComponent
-from tribler_core.components.implementation.restapi import RESTComponent
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1

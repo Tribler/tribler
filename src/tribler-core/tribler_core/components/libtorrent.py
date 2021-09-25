@@ -1,10 +1,10 @@
 from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
 from tribler_core.components.base import Component
-from tribler_core.components.implementation.masterkey import MasterKeyComponent
-from tribler_core.components.implementation.reporter import ReporterComponent
-from tribler_core.components.implementation.restapi import RESTComponent
-from tribler_core.components.implementation.socks_configurator import SocksServersComponent
-from tribler_core.components.implementation.upgrade import UpgradeComponent
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.restapi.rest_manager import RESTManager
 
