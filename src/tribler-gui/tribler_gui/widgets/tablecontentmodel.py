@@ -365,11 +365,11 @@ class ChannelContentModel(RemoteTableModel):
         if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
             return Qt.DescendingOrder
         if role == Qt.TextAlignmentRole:
-            return (
-                Qt.AlignHCenter
-                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')]
+            alignment = Qt.AlignHCenter \
+                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')] \
                 else Qt.AlignLeft
-            )
+            return alignment | Qt.AlignVCenter
+
         return super().headerData(num, orientation, role)
 
     def rowCount(self, *_, **__):
