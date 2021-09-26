@@ -58,7 +58,7 @@ def define_columns():
         Column.STATUS:     d('status',     "",               sortable=False),
         Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
         Column.TORRENTS:   d('torrents',   tr("Torrents"),   width=90),
-        Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=90),
+        Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=95),
     }
     # pylint: enable=line-too-long
     # fmt:on
