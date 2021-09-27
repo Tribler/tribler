@@ -17,9 +17,9 @@ from ipv8.messaging.serialization import default_serializer
 
 from pony.orm import PrimaryKey, Required, db_session
 
-from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
-from tribler_core.modules.bandwidth_accounting.payload import BandwidthTransactionPayload
+from tribler_core.components.bandwidth_accounting.community.payload import BandwidthTransactionPayload
 
+EMPTY_SIGNATURE = b'0' * 64
 
 @dataclass
 class BandwidthTransactionData:

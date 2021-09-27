@@ -34,7 +34,7 @@ from ipv8.util import succeed
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
-from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher

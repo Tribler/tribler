@@ -10,9 +10,9 @@ from ipv8.loader import IPv8CommunityLoader
 
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.start_core import Session
 
 

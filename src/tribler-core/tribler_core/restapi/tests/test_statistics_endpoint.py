@@ -6,8 +6,8 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 import pytest
 
-from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.components.bandwidth_accounting.community.community import BandwidthAccountingCommunity
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint

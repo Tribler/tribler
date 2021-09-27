@@ -1,6 +1,6 @@
 from pydantic import BaseSettings, Extra
 
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler_core.modules.metadata_store.settings import ChantSettings
 from tribler_core.modules.popularity.settings import PopularityCommunitySettings

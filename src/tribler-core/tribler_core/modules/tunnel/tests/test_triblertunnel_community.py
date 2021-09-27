@@ -21,9 +21,9 @@ from ipv8.util import succeed
 
 from tribler_common.network_utils import NetworkUtils
 
-from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.components.bandwidth_accounting.community.community import BandwidthAccountingCommunity
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.tunnel.community.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
 from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
