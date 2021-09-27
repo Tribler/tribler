@@ -302,9 +302,8 @@ class ContextMenuMixin:
                 changes_list = [
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
-                TriblerNetworkRequest(
-                    "metadata", self.model.remove_items, raw_data=json.dumps(changes_list), method='PATCH'
-                )
+                self.model.remove_items(entries)
+                TriblerNetworkRequest("metadata", lambda _: None, raw_data=json.dumps(changes_list), method='PATCH')
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Move")
