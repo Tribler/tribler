@@ -23,18 +23,6 @@ from tribler_gui.widgets.tablecontentmodel import Column
 HEALTHCHECK_DELAY_MS = 500
 
 
-def sanitize_for_fts(text):
-    return text.translate({ord("\""): "\"\"", ord("\'"): "\'\'"})
-
-
-def to_fts_query(text):
-    if not text:
-        return ""
-    words = text.strip().split(" ")
-    query_list = ['\"' + sanitize_for_fts(word) + '\"*' for word in words]
-    return " AND ".join(query_list)
-
-
 class TriblerTableViewController(QObject):
     """
     Base controller for a table view that displays some data.
@@ -85,7 +73,7 @@ class TriblerTableViewController(QObject):
         return sort_by, sort_asc
 
     def _on_filter_input_change(self, _):
-        self.model.text_filter = to_fts_query(self.filter_input.text().lower())
+        self.model.text_filter = self.filter_input.text().lower()
         self.model.reset()
 
     def brain_dead_refresh(self):
@@ -314,8 +302,9 @@ class ContextMenuMixin:
                 changes_list = [
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
-                TriblerNetworkRequest("metadata", self.model.remove_items,
-                                      raw_data=json.dumps(changes_list), method='PATCH')
+                TriblerNetworkRequest(
+                    "metadata", self.model.remove_items, raw_data=json.dumps(changes_list), method='PATCH'
+                )
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Move")

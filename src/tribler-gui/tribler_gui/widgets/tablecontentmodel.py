@@ -13,7 +13,15 @@ from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, C
 
 from tribler_gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
+from tribler_gui.utilities import (
+    connect,
+    format_size,
+    format_votes,
+    get_votes_rating_description,
+    pretty_date,
+    to_fts_query,
+    tr,
+)
 
 EXPANDING = 0
 
@@ -266,7 +274,7 @@ class RemoteTableModel(QAbstractTableModel):
             kwargs.update({"sort_by": self.sort_by, "sort_desc": self.sort_desc})
 
         if self.text_filter:
-            kwargs.update({"txt_filter": self.text_filter})
+            kwargs.update({"txt_filter": to_fts_query(self.text_filter)})
 
         if self.max_rowid is not None:
             kwargs["max_rowid"] = self.max_rowid
@@ -365,9 +373,11 @@ class ChannelContentModel(RemoteTableModel):
         if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
             return Qt.DescendingOrder
         if role == Qt.TextAlignmentRole:
-            alignment = Qt.AlignHCenter \
-                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')] \
+            alignment = (
+                Qt.AlignHCenter
+                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')]
                 else Qt.AlignLeft
+            )
             return alignment | Qt.AlignVCenter
 
         return super().headerData(num, orientation, role)

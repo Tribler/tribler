@@ -459,3 +459,15 @@ def get_translator(language=None):
     filename = ""
     translator.load(locale, filename, directory=TRANSLATIONS_DIR)
     return translator
+
+
+def sanitize_for_fts(text):
+    return text.translate({ord("\""): "\"\"", ord("\'"): "\'\'"})
+
+
+def to_fts_query(text):
+    if not text:
+        return ""
+    words = text.strip().split(" ")
+    query_list = ['\"' + sanitize_for_fts(word) + '\"*' for word in words]
+    return " AND ".join(query_list)
