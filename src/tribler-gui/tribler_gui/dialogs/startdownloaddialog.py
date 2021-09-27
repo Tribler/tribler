@@ -234,6 +234,8 @@ class StartDownloadDialog(DialogContainer):
         This method is called when user clicks the QLabel text showing loading or error message. Here, we reset
         the number of retries to fetch the metainfo. Note color of QLabel is also reset to white.
         """
+        if self.has_metainfo:
+            return
         self.dialog_widget.loading_files_label.setStyleSheet("color:#ffffff;")
         self.metainfo_retries = 0
         self.perform_files_request()
