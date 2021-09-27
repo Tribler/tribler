@@ -8,6 +8,9 @@ from tribler_core.components.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 
+# pylint: disable=protected-access
+
+
 async def test_bandwidth_accounting_component(tribler_config):
     components = [RESTComponent(), MasterKeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
     session = Session(tribler_config, components)
