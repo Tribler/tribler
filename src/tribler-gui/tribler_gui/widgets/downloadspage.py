@@ -349,6 +349,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if json_result and "removed" in json_result:
             self.load_downloads()
             self.window().download_details_widget.hide()
+            self.window().core_manager.events_manager.node_info_updated.emit(
+                {"infohash": json_result["infohash"], "progress": None}
+            )
 
     def on_force_recheck_download(self, checked):
         for selected_item in self.selected_items:
