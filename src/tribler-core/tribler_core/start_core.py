@@ -12,9 +12,25 @@ from tribler_common.version_manager import VersionHistory
 
 import tribler_core
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
+from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.base import Component, Session
-from tribler_core.components.components_catalog import components_gen
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
+from tribler_core.components.gigachannel import GigaChannelComponent
+from tribler_core.components.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.payout import PayoutComponent
+from tribler_core.components.popularity import PopularityComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.torrent_checker import TorrentCheckerComponent
+from tribler_core.components.tunnels import TunnelsComponent
+from tribler_core.components.upgrade import UpgradeComponent
+from tribler_core.components.version_check import VersionCheckComponent
+from tribler_core.components.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 from tribler_core.exception_handler import CoreExceptionHandler
@@ -27,6 +43,50 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 # pylint: disable=import-outside-toplevel
 
 
+def components_gen(config: TriblerConfig):
+    """This function defines components that will be used in Tibler
+    """
+    yield ReporterComponent()
+    if config.api.http_enabled or config.api.https_enabled:
+        yield RESTComponent()
+    if config.chant.enabled or config.torrent_checking.enabled:
+        yield MetadataStoreComponent()
+    if config.ipv8.enabled:
+        yield Ipv8Component()
+    yield MasterKeyComponent()
+    if config.libtorrent.enabled:
+        yield SocksServersComponent()
+    if config.libtorrent.enabled:
+        yield LibtorrentComponent()
+    if config.ipv8.enabled and config.chant.enabled:
+        yield GigaChannelComponent()
+    if config.ipv8.enabled:
+        yield BandwidthAccountingComponent()
+    if config.resource_monitor.enabled:
+        yield ResourceMonitorComponent()
+
+    # The components below are skipped if config.gui_test_mode == True
+    if config.gui_test_mode:
+        return
+
+    if config.torrent_checking.enabled:
+        yield TorrentCheckerComponent()
+    if config.ipv8.enabled and config.popularity_community.enabled:
+        yield PopularityComponent()
+    if config.upgrader_enabled:
+        yield UpgradeComponent()
+    if config.ipv8.enabled and config.tunnel_community.enabled:
+        yield TunnelsComponent()
+    if config.ipv8.enabled:
+        yield PayoutComponent()
+    if config.watch_folder.enabled:
+        yield WatchFolderComponent()
+    if config.general.version_checker_enabled:
+        yield VersionCheckComponent()
+    if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled:
+        yield GigachannelManagerComponent()
+
+
 async def core_session(config: TriblerConfig, components: List[Component]):
     session = Session(config, components)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
@@ -34,7 +94,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
 
     await session.start()
 
-    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.imp().keypair.key.pk)
+    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.instance().keypair.key.pk)
 
     # If there is a config error, report to the user via GUI notifier
     if config.error:

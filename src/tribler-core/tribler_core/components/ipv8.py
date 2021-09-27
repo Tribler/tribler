@@ -12,31 +12,34 @@ from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
-
 from ipv8_service import IPv8
-
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.base import Component
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
 
 
-class Ipv8ComponentImp(Ipv8Component):
-    task_manager: TaskManager
-    rest_manager: Optional[RESTManager]
+class Ipv8Component(Component):
+    ipv8: IPv8
+    peer: Peer
+    dht_discovery_community: Optional[DHTDiscoveryCommunity] = None
+
+    _task_manager: TaskManager
+    _rest_manager: Optional[RESTManager]
+    _peer_discovery_community: Optional[DiscoveryCommunity] = None
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
 
-        rest_component = await self.use(RESTComponent, required=False)
-        rest_manager = self.rest_manager = rest_component.rest_manager if rest_component.enabled else None
+        rest_component = await self.get_component(RESTComponent)
+        self._rest_manager = rest_component.rest_manager if rest_component else None
 
-        self.task_manager = TaskManager()
+        self._task_manager = TaskManager()
 
         port = config.ipv8.port
         address = config.ipv8.address
@@ -64,9 +67,8 @@ class Ipv8ComponentImp(Ipv8Component):
         await ipv8.start()
         self.ipv8 = ipv8
 
-        masterkey = await self.use(MasterKeyComponent)
-
-        self.peer = Peer(masterkey.keypair)
+        master_key_component = await self.require_component(MasterKeyComponent)
+        self.peer = Peer(master_key_component.keypair)
 
         if config.ipv8.statistics and not config.gui_test_mode:
             # Enable gathering IPv8 statistics
@@ -77,12 +79,10 @@ class Ipv8ComponentImp(Ipv8Component):
             from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
             IPv8Monitor(ipv8,
                         config.ipv8.walk_interval,
-                        config.ipv8.walk_scaling_upper_limit).start(self.task_manager)
+                        config.ipv8.walk_scaling_upper_limit).start(self._task_manager)
 
-        if rest_manager:
-            rest_manager.get_endpoint('statistics').ipv8 = ipv8
-
-        self.peer_discovery_community = self.dht_discovery_community = None
+        if self._rest_manager:
+            self._rest_manager.get_endpoint('statistics').ipv8 = ipv8
 
         if config.dht.enabled:
             self.init_dht_discovery_community()
@@ -97,8 +97,8 @@ class Ipv8ComponentImp(Ipv8Component):
         endpoints_to_init = ['/asyncio', '/attestation', '/dht', '/identity',
                              '/isolation', '/network', '/noblockdht', '/overlays']
 
-        if rest_manager:
-            for path, endpoint in rest_manager.get_endpoint('ipv8').endpoints.items():
+        if self._rest_manager:
+            for path, endpoint in self._rest_manager.get_endpoint('ipv8').endpoints.items():
                 if path in endpoints_to_init:
                     endpoint.initialize(ipv8)
 
@@ -116,7 +116,7 @@ class Ipv8ComponentImp(Ipv8Component):
         ipv8.add_strategy(community, PeriodicSimilarity(community), INFINITE)
         ipv8.add_strategy(community, RandomWalk(community), 20)
         community.bootstrappers.append(self.make_bootstrapper())
-        self.peer_discovery_community = community
+        self._peer_discovery_community = community
 
     def init_dht_discovery_community(self):
         ipv8 = self.ipv8
@@ -127,15 +127,15 @@ class Ipv8ComponentImp(Ipv8Component):
         self.dht_discovery_community = community
 
     async def shutdown(self):
-        if self.rest_manager:
-            self.rest_manager.get_endpoint('statistics').ipv8 = None
-        await self.release(RESTComponent)
+        if self._rest_manager:
+            self._rest_manager.get_endpoint('statistics').ipv8 = None
+        await self.release_component(RESTComponent)
 
-        for overlay in (self.dht_discovery_community, self.peer_discovery_community):
+        for overlay in (self.dht_discovery_community, self._peer_discovery_community):
             if overlay:
                 await self.ipv8.unload_overlay(overlay)
 
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
-        await self.task_manager.shutdown_task_manager()
+        await self._task_manager.shutdown_task_manager()
         await self.ipv8.stop(stop_loop=False)

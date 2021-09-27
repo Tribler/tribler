@@ -1,23 +1,26 @@
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
-
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.metadata_store import MetadataStoreComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.base import Component
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.modules.metadata_store.store import MetadataStore
 from tribler_core.modules.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
 
 
-class MetadataStoreComponentImp(MetadataStoreComponent):
-    endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
-    rest_manager: RESTManager
+class MetadataStoreComponent(Component):
+    mds: MetadataStore
+
+    _rest_manager: RESTManager
+    _endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
-        rest_manager = self.rest_manager = (await self.use(RESTComponent)).rest_manager
+        await self.get_component(ReporterComponent)
+        await self.get_component(UpgradeComponent)
+
+        rest_component = await self.require_component(RESTComponent)
+        self._rest_manager = rest_component.rest_manager
 
         config = self.session.config
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
@@ -40,17 +43,17 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
             self.logger.info("Wiping metadata database in GUI test mode")
             database_path.unlink(missing_ok=True)
 
-        masterkey = await self.use(MasterKeyComponent)
+        master_key_component = await self.require_component(MasterKeyComponent)
 
         metadata_store = MetadataStore(
             database_path,
             channels_dir,
-            masterkey.keypair,
+            master_key_component.keypair,
             notifier=self.session.notifier,
             disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
-        rest_manager.set_attr_for_endpoints(self.endpoints, 'mds', metadata_store, skip_missing=True)
+        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', metadata_store, skip_missing=True)
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED,
                                            metadata_store.TorrentMetadata.add_ffa_from_dict)
 
@@ -59,8 +62,8 @@ class MetadataStoreComponentImp(MetadataStoreComponent):
 
     async def shutdown(self):
         # Release endpoints
-        self.rest_manager.set_attr_for_endpoints(self.endpoints, 'mds', None, skip_missing=True)
-        await self.release(RESTComponent)
+        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', None, skip_missing=True)
+        await self.release_component(RESTComponent)
 
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")

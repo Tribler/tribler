@@ -16,14 +16,14 @@ from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.base import Session
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.masterkey import MasterKeyComponent
-from tribler_core.components.interfaces.resource_monitor import ResourceMonitorComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
-from tribler_core.components.interfaces.socks_configurator import SocksServersComponent
-from tribler_core.components.interfaces.tunnels import TunnelsComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
+from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.tunnels import TunnelsComponent
+from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
@@ -120,7 +120,7 @@ class TunnelHelperService(TaskManager):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        tunnel_community = TunnelsComponent.imp().community
+        tunnel_community = TunnelsComponent.instance().community
         self.register_task("bootstrap",  tunnel_community.bootstrap, interval=30)
 
         # Remove all logging handlers
@@ -130,7 +130,7 @@ class TunnelHelperService(TaskManager):
             root_logger.removeHandler(handler)
         logging.getLogger().setLevel(logging.ERROR)
 
-        ipv8 = Ipv8Component.imp().ipv8
+        ipv8 = Ipv8Component.instance().ipv8
         new_strategies = []
         with ipv8.overlay_lock:
             for strategy, target_peers in ipv8.strategies:
@@ -141,7 +141,7 @@ class TunnelHelperService(TaskManager):
             ipv8.strategies = new_strategies
 
     def circuit_removed(self, circuit, additional_info):
-        ipv8 = Ipv8Component.imp().ipv8
+        ipv8 = Ipv8Component.instance().ipv8
         ipv8.network.remove_by_address(circuit.peer.address)
         if self.log_circuits:
             with open(os.path.join(self.session.config.state_dir, "circuits.log"), 'a') as out_file:
@@ -162,7 +162,7 @@ class TunnelHelperService(TaskManager):
 
         with session:
             if options.log_rejects:
-                tunnels_component = TunnelsComponent.imp()
+                tunnels_component = TunnelsComponent.instance()
                 tunnels_community = tunnels_component.community
                 # We set this after Tribler has started since the tunnel_community won't be available otherwise
                 tunnels_community.reject_callback = self.on_circuit_reject

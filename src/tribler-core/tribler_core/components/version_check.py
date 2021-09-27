@@ -1,13 +1,15 @@
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.upgrade import UpgradeComponent
-from tribler_core.components.interfaces.version_check import VersionCheckComponent
+from tribler_core.components.base import Component
+from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager
 
 
-class VersionCheckComponentImp(VersionCheckComponent):
+class VersionCheckComponent(Component):
+    version_check_manager: VersionCheckManager
+
     async def run(self):
-        await self.use(ReporterComponent, required=False)
-        await self.use(UpgradeComponent, required=False)
+        await self.get_component(ReporterComponent)
+        await self.get_component(UpgradeComponent)
 
         notifier = self.session.notifier
 

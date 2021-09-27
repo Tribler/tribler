@@ -1,16 +1,16 @@
 from tribler_common.simpledefs import STATE_START_API
-
-from tribler_core.components.interfaces.reporter import ReporterComponent
-from tribler_core.components.interfaces.restapi import RESTComponent
+from tribler_core.components.base import Component
+from tribler_core.components.reporter import ReporterComponent
 from tribler_core.exception_handler import CoreExceptionHandler
 from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 
 
-class RESTComponentImp(RESTComponent):
+class RESTComponent(Component):
+    rest_manager: RESTManager
 
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.get_component(ReporterComponent)
         session = self.session
         config = session.config
         notifier = session.notifier

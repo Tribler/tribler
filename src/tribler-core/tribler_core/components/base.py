@@ -3,14 +3,12 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from abc import abstractmethod
 from asyncio import Event, create_task, gather
 from itertools import count
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
-
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
@@ -46,8 +44,8 @@ class Session:
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier()
         self.components: Dict[Type[Component], Component] = {}
-        for implementation in components:
-            self.register(implementation.interface, implementation)
+        for component in components:
+            self.register(component.__class__, component)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}:{self.id}>'
@@ -106,13 +104,8 @@ T = TypeVar('T', bound='Component')
 
 
 class Component:
-    enable_in_gui_test_mode = False
-    enabled = True
-
-    def __init__(self, interface: Type[Component]):
-        assert isinstance(self, interface)
-        self.interface = interface
-        self.logger = logging.getLogger(interface.__name__)
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
         self.components_used_by_me: Set[Component] = set()
@@ -125,31 +118,12 @@ class Component:
         self.unused.set()
 
     @classmethod
-    def should_be_enabled(cls, config: TriblerConfig):  # pylint: disable=unused-argument
-        return False
-
-    @classmethod
-    @abstractmethod
-    def make_implementation(cls: Type[T], config, enable) -> T:
-        assert False, f"Abstract classmethod make_implementation not implemented in class {cls.__name__}"
-
-    @classmethod
-    def _find_implementation(cls: Type[T], required=True) -> T:
+    def instance(cls: Type[T]) -> T:
         session = Session.current()
-        imp = session.components.get(cls)
-        if imp is None:
-            if required:
-                raise ComponentError(f"{cls.__name__} implementation not found in {session}")
-            imp = cls.make_implementation(session.config, enable=False)  # dummy implementation
-            session.register(cls, imp)
-            imp.started.set()
-        return imp
-
-    @classmethod
-    def imp(cls: Type[T], required=True) -> T:
-        return cls._find_implementation(required=required)
+        return session.components.get(cls)
 
     async def start(self):
+        self.logger.info(f'Start: {self.__class__.__name__}')
         try:
             await self.run()
         except Exception as e:
@@ -163,13 +137,14 @@ class Component:
         self.started.set()
 
     async def stop(self):
+        self.logger.info(f'Stop: {self.__class__.__name__}')
         self.logger.info("Waiting for other components to release me")
         await self.unused.wait()
         self.logger.info("Component free, shutting down")
         await self.shutdown()
         self.stopped = True
         for dep in list(self.components_used_by_me):
-            self._release_imp(dep)
+            self._release_instance(dep)
         self.logger.info("Component free, shutting down")
 
     async def run(self):
@@ -178,27 +153,47 @@ class Component:
     async def shutdown(self):
         pass
 
-    async def use(self, dependency: Type[T], required=True) -> T:
-        dep = dependency.imp(required=required)
+    async def require_component(self, dependency: Type[T]) -> T:
+        """ Resolve the dependency to a component.
+        The method will wait the component to be initialised.
+
+        Returns:    The component instance.
+                    In case of a missed or failed dependency an exception will be raised.
+        """
+        dep = await self.get_component(dependency)
+        if not dep:
+            raise ComponentError(
+                f'Missed dependency: {self.__class__.__name__} requires {dependency.__name__} to be active')
+        return dep
+
+    async def get_component(self, dependency: Type[T]) -> Optional[T]:
+        """ Resolve the dependency to a component.
+        The method will wait the component to be initialised.
+
+        Returns:    The component instance.
+                    In case of a missed or failed dependency None will be returned.
+        """
+        dep = dependency.instance()
+        if not dep:
+            return None
+
         await dep.started.wait()
         if dep.failed:
-            raise ComponentError(f'Component {self.__class__.__name__} has failed dependency {dep.__class__.__name__}')
+            self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
+            return None
+
         self.components_used_by_me.add(dep)
         dep.in_use_by.add(self)
         return dep
 
-    def _release_imp(self, dep: Component):
+    async def release_component(self, dependency: Type[T]):
+        dep = dependency.instance()
+        if dep:
+            self._release_instance(dep)
+
+    def _release_instance(self, dep: Component):
         assert dep in self.components_used_by_me
         self.components_used_by_me.discard(dep)
         dep.in_use_by.discard(self)
         if not dep.in_use_by:
             dep.unused.set()
-
-    async def release(self, dependency: Type[T]):
-        dep = dependency.imp()
-        self._release_imp(dep)
-
-
-def testcomponent(component_cls):
-    component_cls.enabled = False
-    return component_cls

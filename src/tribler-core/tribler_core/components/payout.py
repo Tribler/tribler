@@ -1,24 +1,25 @@
 from tribler_common.simpledefs import NTFY
-
-from tribler_core.components.interfaces.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.interfaces.ipv8 import Ipv8Component
-from tribler_core.components.interfaces.payout import PayoutComponent
-from tribler_core.components.interfaces.reporter import ReporterComponent
+from tribler_core.components.base import Component
+from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.reporter import ReporterComponent
 from tribler_core.modules.payout.payout_manager import PayoutManager
 
 INFINITE = -1
 
 
-class PayoutComponentImp(PayoutComponent):
+class PayoutComponent(Component):
+    payout_manager: PayoutManager
+
     async def run(self):
-        await self.use(ReporterComponent, required=False)
+        await self.get_component(ReporterComponent)
 
         config = self.session.config
 
-        dht_discovery_community = (await self.use(Ipv8Component)).dht_discovery_community
-        bandwidth_community = (await self.use(BandwidthAccountingComponent)).community
+        ipv8_component = await self.require_component(Ipv8Component)
+        bandwidth_accounting_component = await self.require_component(BandwidthAccountingComponent)
 
-        payout_manager = PayoutManager(bandwidth_community, dht_discovery_community)
+        payout_manager = PayoutManager(bandwidth_accounting_component.community, ipv8_component.dht_discovery_community)
         self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT, payout_manager.do_payout)
         self.session.notifier.add_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, payout_manager.update_peer)
 
