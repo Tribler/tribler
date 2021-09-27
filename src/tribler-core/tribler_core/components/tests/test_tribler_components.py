@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from tribler_core.components.base import Session, SessionError
-from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
+from tribler_core.components.bandwidth_accounting.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.gigachannel import GigaChannelComponent
 from tribler_core.components.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.ipv8 import Ipv8Component

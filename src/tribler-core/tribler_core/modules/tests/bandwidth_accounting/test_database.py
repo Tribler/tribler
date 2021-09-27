@@ -7,8 +7,8 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
-from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.utilities.utilities import MEMORY_DB
 
 

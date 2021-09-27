@@ -3,11 +3,11 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 import pytest
 
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
-from tribler_core.modules.bandwidth_accounting.bandwidth_endpoint import BandwidthEndpoint
-from tribler_core.modules.bandwidth_accounting.community import BandwidthAccountingCommunity
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
+from tribler_core.components.bandwidth_accounting.community.community import BandwidthAccountingCommunity
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
 

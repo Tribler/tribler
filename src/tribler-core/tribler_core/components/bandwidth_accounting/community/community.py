@@ -10,13 +10,13 @@ from ipv8.requestcache import RequestCache
 from ipv8.types import Address
 
 from tribler_core.modules.bandwidth_accounting import EMPTY_SIGNATURE
-from tribler_core.modules.bandwidth_accounting.cache import BandwidthTransactionSignCache
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
-from tribler_core.modules.bandwidth_accounting.payload import (
+from tribler_core.components.bandwidth_accounting.community.cache import BandwidthTransactionSignCache
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.community.payload import (
     BandwidthTransactionPayload,
     BandwidthTransactionQueryPayload,
 )
-from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.modules.tribler_community import TriblerCommunity
 from tribler_core.utilities.unicode import hexlify
 

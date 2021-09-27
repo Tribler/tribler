@@ -6,11 +6,11 @@ from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.upgrade import UpgradeComponent
-from tribler_core.modules.bandwidth_accounting.community import (
+from tribler_core.components.bandwidth_accounting.community.community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
 )
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.restapi.rest_manager import RESTManager
 
 

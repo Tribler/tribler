@@ -4,7 +4,7 @@ from asyncio import Future
 
 from ipv8.requestcache import RandomNumberCache
 
-from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 
 
 class BandwidthTransactionSignCache(RandomNumberCache):
