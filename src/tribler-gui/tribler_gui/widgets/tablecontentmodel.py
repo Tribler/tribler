@@ -370,12 +370,12 @@ class ChannelContentModel(RemoteTableModel):
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.columns[num].header
-        if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
+        if role == Qt.InitialSortOrderRole and num != self.column_position.get(Column.NAME):
             return Qt.DescendingOrder
         if role == Qt.TextAlignmentRole:
             alignment = (
                 Qt.AlignHCenter
-                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')]
+                if num in [self.column_position.get(Column.SUBSCRIBED), self.column_position.get(Column.TORRENTS)]
                 else Qt.AlignLeft
             )
             return alignment | Qt.AlignVCenter
@@ -428,9 +428,9 @@ class ChannelContentModel(RemoteTableModel):
         if role in (Qt.DisplayRole, Qt.EditRole, Qt.ToolTipRole):
             return self.item_txt(index, role)
         if role == Qt.TextAlignmentRole:
-            if index.column() == self.column_position.get('votes', -1):
+            if index.column() == self.column_position.get(Column.VOTES, -1):
                 return Qt.AlignLeft | Qt.AlignVCenter
-            if index.column() == self.column_position.get('torrents', -1):
+            if index.column() == self.column_position.get(Column.TORRENTS, -1):
                 return Qt.AlignHCenter | Qt.AlignVCenter
         return None
 
