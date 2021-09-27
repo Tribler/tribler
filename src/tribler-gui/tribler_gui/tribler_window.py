@@ -77,11 +77,12 @@ from tribler_gui.utilities import (
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
+    sanitize_for_fts,
     tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
-from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController, sanitize_for_fts
+from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
