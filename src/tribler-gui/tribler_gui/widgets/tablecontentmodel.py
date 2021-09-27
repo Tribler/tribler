@@ -579,10 +579,16 @@ class PersonalChannelsModel(ChannelContentModel):
                     {"public_key": entry['public_key'], "id": entry['id'], "status": COMMIT_STATUS_TODELETE}
                 )
 
-        if patch_data:
-            TriblerNetworkRequest("metadata", self.remove_items, raw_data=json.dumps(patch_data), method='PATCH')
-        if delete_data:
-            TriblerNetworkRequest("metadata", self.remove_items, raw_data=json.dumps(delete_data), method='DELETE')
+        # We don't wait for the Core to report back and emit
+        # the info_changed signal speculativley to prevent the race condition between
+        # Python object deletion and PyQT one. Otherwise, if the users e.g. clicks the back
+        # button, by the moment the request callback triggers some actions on the model,
+        # QT could have already deleted the underlying model object, which will result in
+        # "wrapped C/C++ object has been deleted" error (see e.g. https://github.com/Tribler/tribler/issues/6083)
+        for data, method in ((patch_data, "PATCH"), (delete_data, "DELETE")):
+            if data:
+                self.remove_items(data)
+                TriblerNetworkRequest("metadata", lambda _: None, raw_data=json.dumps(data), method=method)
 
     def create_new_channel(self, channel_name=None):
         url = (
