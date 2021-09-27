@@ -71,8 +71,11 @@ class Service(TinyTriblerService, TaskManager):
         self._graceful_shutdown()
 
     async def run_speed_test(self, direction, circuit, index, size):
-        task = asyncio.create_task(run_speed_test(TunnelsComponent.instance().community,
-                                                  direction, circuit, window=50, size=size))
+        request_size = 0 if direction == ORIGINATOR else 1024
+        response_size = 1024 if direction == ORIGINATOR else 0
+        num_requests = size * 1024
+        task = asyncio.create_task(run_speed_test(TunnelsComponent.instance().community, circuit, request_size,
+                                                  response_size, num_requests, window=50))
         results = []
         prev_transferred = ts = 0
         while not task.done():

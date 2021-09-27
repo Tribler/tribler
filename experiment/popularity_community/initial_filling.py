@@ -127,7 +127,7 @@ def _parse_argv():
 
 
 def _run_tribler(arguments):
-    global interval_in_sec, output_file_path
+    global interval_in_sec, output_file_path  # pylint: disable=global-statement
     working_dir = Path('/tmp/tribler/experiment/popularity_community/initial_filling/.Tribler')
     interval_in_sec = arguments.interval
     output_file_path = arguments.file
