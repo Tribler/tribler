@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import (
@@ -265,7 +266,7 @@ class SubscribedControlMixin:
 
         if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item['status'] == 1000:  # LEGACY ENTRIES!
+        if data_item['status'] == LEGACY_ENTRY:
             return True
         if data_item['state'] == 'Personal':
             return True
@@ -284,7 +285,7 @@ class RatingControlMixin:
 
         if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item['status'] == 1000:  # LEGACY ENTRIES!
+        if data_item['status'] == LEGACY_ENTRY:
             return True
 
         self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'])
