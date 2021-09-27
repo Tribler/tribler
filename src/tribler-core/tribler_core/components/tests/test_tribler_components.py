@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
+from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session, SessionError
-from tribler_core.components.bandwidth_accounting.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.gigachannel import GigaChannelComponent
 from tribler_core.components.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.ipv8 import Ipv8Component
@@ -62,19 +62,6 @@ async def test_masterkey_component(tribler_config):
         await session.shutdown()
 
 
-async def test_bandwidth_accounting_component(tribler_config):
-    components = [RESTComponent(), MasterKeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        comp = BandwidthAccountingComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
-
-            assert comp.community
-            assert comp._rest_manager
-            assert comp._ipv8
-
-            await session.shutdown()
 
 
 async def test_giga_channel_component(tribler_config):
