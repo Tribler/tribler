@@ -2,6 +2,7 @@ from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
+from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import COMMIT_STATUS_COMMITTED
@@ -105,7 +106,7 @@ class TriblerContentTableView(QTableView):
     def on_subscribe_control_clicked(self, index):
         item = index.model().data_items[index.row()]
         # skip LEGACY entries, regular torrents and personal channel
-        if 'subscribed' not in item or item['status'] == 1000 or item['state'] == 'Personal':
+        if 'subscribed' not in item or item['status'] == LEGACY_ENTRY or item['state'] == 'Personal':
             return
 
         status = int(item['subscribed'])
