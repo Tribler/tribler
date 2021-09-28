@@ -25,6 +25,5 @@ async def test_gigachannel_manager_component(tribler_config):
 
         assert comp.started.is_set() and not comp.failed
         assert comp.gigachannel_manager
-        assert comp._rest_manager
 
         await session.shutdown()

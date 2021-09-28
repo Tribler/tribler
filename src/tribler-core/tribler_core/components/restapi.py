@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional, Set, Tuple
+from typing import Set, Tuple
 
 from tribler_common.simpledefs import STATE_START_API
 from tribler_core.components.base import Component
@@ -11,7 +11,6 @@ from tribler_core.restapi.state_endpoint import StateEndpoint
 
 
 class RestfulComponent(Component, ABC):
-    _rest_manager: Optional[RESTManager] = None
     endpoint_attrs: Set[Tuple[str, str]]
 
     def __init__(self):
@@ -24,36 +23,37 @@ class RestfulComponent(Component, ABC):
             state_endpoint: StateEndpoint = rest_component.rest_manager.get_endpoint('state')
             state_endpoint.readable_status = readable_status
 
-    async def init_endpoints(self, endpoints, values, ipv8=None, ipv8_endpoints=()):
+    async def init_endpoints(self, endpoints, values):
         rest_component = await self.get_component(RESTComponent)
         if not rest_component:
             return
 
-        self._rest_manager = rest_component.rest_manager
-
-        if ipv8 and ipv8_endpoints:
-            ipv8_root_endpoint = self._rest_manager.get_endpoint('ipv8')
-            if ipv8_root_endpoint:
-                for path, endpoint in ipv8_root_endpoint.endpoints.items():
-                    if path in ipv8_endpoints:
-                        endpoint.initialize(ipv8)
-
         for endpoint_name in endpoints:
-            endpoint = self._rest_manager.get_endpoint(endpoint_name)
+            endpoint = rest_component.rest_manager.get_endpoint(endpoint_name)
             if endpoint:
                 for attr_name, attr_value in values:
                     setattr(endpoint, attr_name, attr_value)
                     self.endpoint_attrs.add((endpoint_name, attr_name))
 
+    async def init_ipv8_endpoints(self, ipv8, endpoints):
+        rest_component = await self.get_component(RESTComponent)
+        if not rest_component:
+            return
+
+        ipv8_root_endpoint = rest_component.rest_manager.get_endpoint('ipv8')
+        if ipv8_root_endpoint:
+            for path, endpoint in ipv8_root_endpoint.endpoints.items():
+                if path in endpoints:
+                    endpoint.initialize(ipv8)
+
     async def shutdown(self):
-        if not self._rest_manager:
+        rest_component = await self.get_component(RESTComponent)
+        if not rest_component:
             return
 
         for endpoint_name, attr_name in self.endpoint_attrs:
-            endpoint = self._rest_manager.get_endpoint(endpoint_name)
+            endpoint = rest_component.rest_manager.get_endpoint(endpoint_name)
             setattr(endpoint, attr_name, None)
-
-        self.release_component(RESTComponent)
 
 
 class RESTComponent(Component):

@@ -20,6 +20,5 @@ async def test_metadata_store_component(tribler_config):
 
         assert comp.started.is_set() and not comp.failed
         assert comp.mds
-        assert comp._rest_manager
 
         await session.shutdown()
