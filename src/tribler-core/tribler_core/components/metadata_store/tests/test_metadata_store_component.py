@@ -10,14 +10,16 @@ from tribler_core.restapi.rest_manager import RESTManager
 # pylint: disable=protected-access
 
 async def test_metadata_store_component(tribler_config):
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), MetadataStoreComponent()]
     session = Session(tribler_config, components)
     with session:
         comp = MetadataStoreComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        await session.start()
 
-            assert comp.mds
-            assert comp._rest_manager
+        assert comp.started.is_set() and not comp.failed
+        assert comp.mds
+        assert comp._rest_manager
 
-            await session.shutdown()
+        await session.shutdown()

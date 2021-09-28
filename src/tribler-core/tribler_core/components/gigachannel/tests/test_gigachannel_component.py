@@ -13,16 +13,19 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 async def test_giga_channel_component(tribler_config):
+    tribler_config.ipv8.enabled = True
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [MetadataStoreComponent(), RESTComponent(), MasterKeyComponent(), Ipv8Component(),
                   GigaChannelComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = GigaChannelComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.community
+        assert comp._rest_manager
+        assert comp._ipv8
 
-            assert comp.community
-            assert comp._rest_manager
-            assert comp._ipv8
-
-            await session.shutdown()
+        await session.shutdown()

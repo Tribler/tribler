@@ -53,73 +53,80 @@ def test_session_context_manager(loop, tribler_config):
 async def test_masterkey_component(tribler_config):
     session = Session(tribler_config, [MasterKeyComponent()])
     with session:
-        comp = MasterKeyComponent.instance()
         await session.start()
 
+        comp = MasterKeyComponent.instance()
+        assert comp.started.is_set() and not comp.failed
         assert comp.keypair
 
         await session.shutdown()
 
 
 async def test_ipv8_component(tribler_config):
+    tribler_config.ipv8.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), Ipv8Component()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = Ipv8Component.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.ipv8
+        assert comp.peer
+        assert not comp.dht_discovery_community
+        assert comp._task_manager
+        assert comp._rest_manager
+        assert not comp._peer_discovery_community
 
-            assert comp.ipv8
-            assert comp.peer
-            assert not comp.dht_discovery_community
-            assert comp._task_manager
-            assert comp._rest_manager
-            assert not comp._peer_discovery_community
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_libtorrent_component(tribler_config):
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [RESTComponent(), MasterKeyComponent(), SocksServersComponent(), LibtorrentComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = LibtorrentComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.download_manager
+        assert comp._rest_manager
 
-            assert comp.download_manager
-            assert comp._rest_manager
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_payout_component(tribler_config):
+    tribler_config.ipv8.enabled = True
     components = [BandwidthAccountingComponent(), MasterKeyComponent(), RESTComponent(), Ipv8Component(),
                   PayoutComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = PayoutComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.payout_manager
 
-            assert comp.payout_manager
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_popularity_component(tribler_config):
+    tribler_config.ipv8.enabled = True
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [SocksServersComponent(), LibtorrentComponent(), TorrentCheckerComponent(), MetadataStoreComponent(),
                   MasterKeyComponent(), RESTComponent(), Ipv8Component(), PopularityComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = PopularityComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.community
+        assert comp._ipv8
 
-            assert comp.community
-            assert comp._ipv8
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_reporter_component(tribler_config):
@@ -127,113 +134,127 @@ async def test_reporter_component(tribler_config):
     session = Session(tribler_config, components)
     with session:
         await session.start()
+
+        comp = ReporterComponent.instance()
+        assert comp.started.is_set() and not comp.failed
+
         await session.shutdown()
 
 
 async def test_resource_monitor_component(tribler_config):
+    tribler_config.ipv8.enabled = True
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), ResourceMonitorComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = ResourceMonitorComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.resource_monitor
 
-            assert comp.resource_monitor
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_REST_component(tribler_config):
     components = [MasterKeyComponent(), RESTComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = RESTComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.rest_manager
 
-            assert comp.rest_manager
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_socks_servers_component(tribler_config):
     components = [SocksServersComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = SocksServersComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.socks_ports
+        assert comp.socks_servers
 
-            assert comp.socks_ports
-            assert comp.socks_servers
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_torrent_checker_component(tribler_config):
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [SocksServersComponent(), LibtorrentComponent(), MasterKeyComponent(), RESTComponent(),
                   MetadataStoreComponent(), TorrentCheckerComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = TorrentCheckerComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.torrent_checker
+        assert comp._rest_manager
 
-            assert comp.torrent_checker
-            assert comp._rest_manager
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_tunnels_component(tribler_config):
+    tribler_config.ipv8.enabled = True
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [Ipv8Component(), MasterKeyComponent(), RESTComponent(), TunnelsComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = TunnelsComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.community
+        assert comp._ipv8
 
-            assert comp.community
-            assert comp._ipv8
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_upgrade_component(tribler_config):
     components = [MasterKeyComponent(), RESTComponent(), UpgradeComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = UpgradeComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.upgrader
 
-            assert comp.upgrader
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_version_check_component(tribler_config):
     components = [VersionCheckComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = VersionCheckComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.version_check_manager
 
-            assert comp.version_check_manager
-
-            await session.shutdown()
+        await session.shutdown()
 
 
 async def test_watch_folder_component(tribler_config):
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), SocksServersComponent(), LibtorrentComponent(),
                   WatchFolderComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = WatchFolderComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.watch_folder
 
-            assert comp.watch_folder
-
-            await session.shutdown()
+        await session.shutdown()
