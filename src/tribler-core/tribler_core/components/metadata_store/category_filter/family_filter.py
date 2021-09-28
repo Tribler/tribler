@@ -10,7 +10,7 @@ from tribler_core.utilities.install_dir import get_lib_path
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 
-termfilename = get_lib_path() / 'modules' / 'category_filter' / 'filter_terms.filter'
+termfilename = get_lib_path() / 'components' / 'metadata_store' /'category_filter' / 'filter_terms.filter'
 
 
 def initTerms(filename):

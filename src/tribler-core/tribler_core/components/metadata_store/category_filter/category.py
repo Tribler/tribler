@@ -12,7 +12,7 @@ from tribler_core.components.metadata_store.category_filter.init_category import
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import recursive_unicode
 
-CATEGORY_CONFIG_FILE = get_lib_path() / 'modules/category_filter/category.conf'
+CATEGORY_CONFIG_FILE = get_lib_path() / 'components/metadata_store/category_filter/category.conf'
 
 
 def cmp_rank(a, b):
