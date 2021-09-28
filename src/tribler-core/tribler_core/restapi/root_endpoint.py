@@ -6,10 +6,10 @@ from tribler_core.modules.libtorrent.restapi.create_torrent_endpoint import Crea
 from tribler_core.modules.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler_core.modules.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler_core.modules.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
-from tribler_core.modules.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
-from tribler_core.modules.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
-from tribler_core.modules.metadata_store.restapi.search_endpoint import SearchEndpoint
+from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
+from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
+from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
+from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.restapi.debug_endpoint import DebugEndpoint
 from tribler_core.restapi.events_endpoint import EventsEndpoint
 from tribler_core.restapi.rest_endpoint import RESTEndpoint

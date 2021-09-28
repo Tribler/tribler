@@ -10,8 +10,8 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
-from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
+from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade import legacy_to_pony
 from tribler_core.upgrade.legacy_to_pony import (

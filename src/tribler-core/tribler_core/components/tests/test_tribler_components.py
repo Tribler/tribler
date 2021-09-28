@@ -4,12 +4,10 @@ import pytest
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session, SessionError
-from tribler_core.components.gigachannel import GigaChannelComponent
-from tribler_core.components.gigachannel_manager import GigachannelManagerComponent
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.masterkey import MasterKeyComponent
-from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout import PayoutComponent
 from tribler_core.components.popularity import PopularityComponent
 from tribler_core.components.reporter import ReporterComponent
@@ -24,6 +22,7 @@ from tribler_core.components.watch_folder import WatchFolderComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 pytestmark = pytest.mark.asyncio
+
 
 # pylint: disable=protected-access
 
@@ -62,39 +61,6 @@ async def test_masterkey_component(tribler_config):
         await session.shutdown()
 
 
-
-
-async def test_giga_channel_component(tribler_config):
-    components = [MetadataStoreComponent(), RESTComponent(), MasterKeyComponent(), Ipv8Component(),
-                  GigaChannelComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        comp = GigaChannelComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
-
-            assert comp.community
-            assert comp._rest_manager
-            assert comp._ipv8
-
-            await session.shutdown()
-
-
-async def test_gigachannel_manager_component(tribler_config):
-    components = [SocksServersComponent(), MasterKeyComponent(), RESTComponent(), MetadataStoreComponent(),
-                  LibtorrentComponent(), GigachannelManagerComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        comp = GigachannelManagerComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
-
-            assert comp.gigachannel_manager
-            assert comp._rest_manager
-
-            await session.shutdown()
-
-
 async def test_ipv8_component(tribler_config):
     components = [MasterKeyComponent(), RESTComponent(), Ipv8Component()]
     session = Session(tribler_config, components)
@@ -122,20 +88,6 @@ async def test_libtorrent_component(tribler_config):
             await session.start()
 
             assert comp.download_manager
-            assert comp._rest_manager
-
-            await session.shutdown()
-
-
-async def test_metadata_store_component(tribler_config):
-    components = [MasterKeyComponent(), RESTComponent(), MetadataStoreComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        comp = MetadataStoreComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
-
-            assert comp.mds
             assert comp._rest_manager
 
             await session.shutdown()

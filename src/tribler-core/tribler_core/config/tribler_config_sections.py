@@ -2,7 +2,7 @@ from pydantic import BaseSettings, Extra
 
 from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
-from tribler_core.modules.metadata_store.settings import ChantSettings
+from tribler_core.components.gigachannel.community.settings import ChantSettings
 from tribler_core.modules.popularity.settings import PopularityCommunitySettings
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings

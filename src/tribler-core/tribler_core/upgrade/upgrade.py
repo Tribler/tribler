@@ -8,10 +8,10 @@ from pony.orm import db_session, delete
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR, STATEDIR_CHANNELS_DIR
 
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.modules.category_filter.l2_filter import is_forbidden
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT
-from tribler_core.modules.metadata_store.store import (
+from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
+from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
+from tribler_core.components.metadata_store.db.store import (
     MetadataStore,
     sql_create_partial_index_channelnode_metadata_type,
     sql_create_partial_index_channelnode_subscribed,

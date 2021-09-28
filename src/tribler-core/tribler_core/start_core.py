@@ -15,12 +15,12 @@ import tribler_core
 from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Component, Session
-from tribler_core.components.gigachannel import GigaChannelComponent
-from tribler_core.components.gigachannel_manager import GigachannelManagerComponent
+from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
+from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.masterkey import MasterKeyComponent
-from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout import PayoutComponent
 from tribler_core.components.popularity import PopularityComponent
 from tribler_core.components.reporter import ReporterComponent
