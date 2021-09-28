@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal, QEvent
 from PyQt5.QtGui import QGuiApplication, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
@@ -43,9 +43,6 @@ class TriblerContentTableView(QTableView):
     This table view is designed to support lazy loading.
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
-
-    # Probably should add redraw when the mouse leaves the view through the header.
-    # Overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
     channel_clicked = pyqtSignal(dict)
@@ -61,6 +58,9 @@ class TriblerContentTableView(QTableView):
         self.setItemDelegate(self.delegate)
         connect(self.mouse_moved, self.delegate.on_mouse_moved)
         connect(self.delegate.redraw_required, self.redraw)
+
+        # Install an event filter on the horizontal header to catch mouse movements (so we can deselect rows).
+        self.horizontalHeader().installEventFilter(self)
 
         # Stop triggering editor events on doubleclick, because we already use doubleclick to start downloads.
         # Editing should be started manually, from drop-down menu instead.
@@ -91,6 +91,27 @@ class TriblerContentTableView(QTableView):
         self.loading_animation_delay_timer.stop()
         self.loading_animation_widget.qm.stop()
         self.loading_animation_widget.setHidden(True)
+
+    def eventFilter(self, obj, event):
+        if obj == self.horizontalHeader() and event.type() == QEvent.HoverEnter:
+            # Deselect rows when the mouse leaves through the table view header.
+            self.deselect_all_rows()
+        return False
+
+    def deselect_all_rows(self):
+        """
+        Deselect all rows in the table view.
+        """
+        self.delegate.hover_index = self.delegate.no_index
+        self.redraw()
+
+    def leaveEvent(self, event):
+        """
+        The mouse has left the viewport. Make sure that we deselect the currently selected row and redraw.
+        Note that this might fail when moving the mouse very fast.
+        """
+        super().leaveEvent(event)
+        self.deselect_all_rows()
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
