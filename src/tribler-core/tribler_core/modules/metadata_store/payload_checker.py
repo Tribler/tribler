@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 from pony.orm import db_session
 
-from tribler_core.modules.category_filter.l2_filter import is_forbidden
+from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.serialization import (
     CHANNEL_DESCRIPTION,
     CHANNEL_THUMBNAIL,

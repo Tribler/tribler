@@ -1,5 +1,5 @@
-from tribler_core.modules.category_filter.category import cmp_rank, default_category_filter
-from tribler_core.modules.category_filter.family_filter import default_xxx_filter
+from tribler_core.components.metadata_store.category_filter.category import cmp_rank, default_category_filter
+from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 
 
 default_xxx_filter.xxx_terms.add("term1")

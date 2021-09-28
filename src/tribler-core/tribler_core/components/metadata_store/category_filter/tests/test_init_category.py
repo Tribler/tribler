@@ -1,5 +1,5 @@
-from tribler_core.modules.category_filter.category import CATEGORY_CONFIG_FILE
-from tribler_core.modules.category_filter.init_category import INIT_FUNC_DICT, getCategoryInfo
+from tribler_core.components.metadata_store.category_filter.category import CATEGORY_CONFIG_FILE
+from tribler_core.components.metadata_store.category_filter.init_category import INIT_FUNC_DICT, getCategoryInfo
 
 
 def test_split_list():

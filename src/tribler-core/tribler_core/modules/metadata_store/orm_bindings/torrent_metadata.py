@@ -4,8 +4,8 @@ from struct import unpack
 from pony import orm
 from pony.orm import db_session
 
-from tribler_core.modules.category_filter.category import default_category_filter
-from tribler_core.modules.category_filter.family_filter import default_xxx_filter
+from tribler_core.components.metadata_store.category_filter.category import default_category_filter
+from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED
 from tribler_core.modules.metadata_store.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url

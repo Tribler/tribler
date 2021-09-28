@@ -9,7 +9,7 @@ from asyncio import sleep
 from pony import orm
 from pony.orm import db_session
 
-from tribler_core.modules.category_filter.l2_filter import is_forbidden
+from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
 from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import BLOB_EXTENSION
 from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, NEW
 from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import infohash_to_id

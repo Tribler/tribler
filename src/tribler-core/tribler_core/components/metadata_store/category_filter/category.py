@@ -7,8 +7,8 @@ import logging
 import re
 from functools import cmp_to_key
 
-from tribler_core.modules.category_filter.family_filter import default_xxx_filter
-from tribler_core.modules.category_filter.init_category import getCategoryInfo
+from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
+from tribler_core.components.metadata_store.category_filter.init_category import getCategoryInfo
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.unicode import recursive_unicode
 

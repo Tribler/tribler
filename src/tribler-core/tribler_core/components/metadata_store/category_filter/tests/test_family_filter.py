@@ -1,7 +1,7 @@
 import pytest
 
-from tribler_core.modules.category_filter.family_filter import XXXFilter
-from tribler_core.modules.category_filter.l2_filter import is_forbidden
+from tribler_core.components.metadata_store.category_filter.family_filter import XXXFilter
+from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
 
 
 @pytest.fixture
