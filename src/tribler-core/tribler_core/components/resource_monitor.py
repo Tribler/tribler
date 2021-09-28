@@ -1,11 +1,11 @@
 from tribler_core.components.base import Component
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 
-class ResourceMonitorComponent(Component):
+class ResourceMonitorComponent(RestfulComponent):
     resource_monitor: CoreResourceMonitor
 
     async def run(self):
@@ -23,9 +23,11 @@ class ResourceMonitorComponent(Component):
         resource_monitor.start()
         self.resource_monitor = resource_monitor
 
-        rest_component = await self.require_component(RESTComponent)
-        rest_component.rest_manager.get_endpoint('debug').resource_monitor = resource_monitor
+        await self.init_endpoints(['debug'], [('resource_monitor', resource_monitor)])
 
     async def shutdown(self):
+        if self._rest_manager:
+            self._rest_manager.get_endpoint('debug').resource_monitor = None
+
         self.session.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
         await self.resource_monitor.stop()

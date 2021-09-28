@@ -18,8 +18,8 @@ from tribler_core.utilities.utilities import froze_it
 class TrustViewEndpoint(RESTEndpoint):
     def __init__(self):
         super().__init__()
-
         self.bandwidth_db = None
+        self.bandwidth_community = None  # added to simlify the initialization code of BandwidthAccountingComponent
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_view)])

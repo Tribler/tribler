@@ -1,22 +1,23 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
+
 from ipv8_service import IPv8
+
 from tribler_core.components.base import Component
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity, \
     GigaChannelTestnetCommunity
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
 
 
-class GigaChannelComponent(Component):
+class GigaChannelComponent(RestfulComponent):
     community: GigaChannelCommunity
 
-    _rest_manager: RESTManager
     _ipv8: IPv8
 
     async def run(self):
@@ -28,9 +29,6 @@ class GigaChannelComponent(Component):
         ipv8_component = await self.require_component(Ipv8Component)
         self._ipv8 = ipv8_component.ipv8
         peer = ipv8_component.peer
-
-        rest_component = await self.require_component(RESTComponent)
-        self._rest_manager = rest_component.rest_manager
 
         metadata_store_component = await self.require_component(MetadataStoreComponent)
 
@@ -52,14 +50,11 @@ class GigaChannelComponent(Component):
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
-        self._rest_manager.get_endpoint('remote_query').gigachannel_community = community
-        self._rest_manager.get_endpoint('channels').gigachannel_community = community
-        self._rest_manager.get_endpoint('collections').gigachannel_community = community
+        await self.init_endpoints(['remote_query', 'channels', 'collections'], [('gigachannel_community', community)])
+
 
     async def shutdown(self):
-        self._rest_manager.get_endpoint('remote_query').gigachannel_community = None
-        self._rest_manager.get_endpoint('channels').gigachannel_community = None
-        self._rest_manager.get_endpoint('collections').gigachannel_community = None
-        await self.release_component(RESTComponent)
+        self.release_endpoints()
+
         if self._ipv8:
             await self._ipv8.unload_overlay(self.community)

@@ -16,28 +16,24 @@ from ipv8_service import IPv8
 from tribler_core.components.base import Component
 from tribler_core.components.masterkey import MasterKeyComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi import RestfulComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
 
 
-class Ipv8Component(Component):
+class Ipv8Component(RestfulComponent):
     ipv8: IPv8
     peer: Peer
     dht_discovery_community: Optional[DHTDiscoveryCommunity] = None
 
     _task_manager: TaskManager
-    _rest_manager: Optional[RESTManager]
     _peer_discovery_community: Optional[DiscoveryCommunity] = None
 
     async def run(self):
         await self.get_component(ReporterComponent)
 
         config = self.session.config
-
-        rest_component = await self.get_component(RESTComponent)
-        self._rest_manager = rest_component.rest_manager if rest_component else None
 
         self._task_manager = TaskManager()
 
@@ -81,9 +77,6 @@ class Ipv8Component(Component):
                         config.ipv8.walk_interval,
                         config.ipv8.walk_scaling_upper_limit).start(self._task_manager)
 
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('statistics').ipv8 = ipv8
-
         if config.dht.enabled:
             self.init_dht_discovery_community()
 
@@ -94,13 +87,9 @@ class Ipv8Component(Component):
             if config.dht.enabled:
                 self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
-        endpoints_to_init = ['/asyncio', '/attestation', '/dht', '/identity',
-                             '/isolation', '/network', '/noblockdht', '/overlays']
-
-        if self._rest_manager:
-            for path, endpoint in self._rest_manager.get_endpoint('ipv8').endpoints.items():
-                if path in endpoints_to_init:
-                    endpoint.initialize(ipv8)
+        await self.init_endpoints(['statistics'], [('ipv8', ipv8)], ipv8=ipv8, ipv8_endpoints=[
+            '/asyncio', '/attestation', '/dht', '/identity', '/isolation', '/network', '/noblockdht', '/overlays'
+        ])
 
     def make_bootstrapper(self) -> DispersyBootstrapper:
         args = DISPERSY_BOOTSTRAPPER['init']
@@ -127,9 +116,7 @@ class Ipv8Component(Component):
         self.dht_discovery_community = community
 
     async def shutdown(self):
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('statistics').ipv8 = None
-        await self.release_component(RESTComponent)
+        self.release_endpoints()
 
         for overlay in (self.dht_discovery_community, self._peer_discovery_community):
             if overlay:

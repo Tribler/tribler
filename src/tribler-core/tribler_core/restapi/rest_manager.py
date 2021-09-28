@@ -98,17 +98,6 @@ class RESTManager:
     def get_endpoint(self, name):
         return self.root_endpoint.endpoints['/' + name]
 
-    def set_attr_for_endpoints(self, endpoints: List[str], attr_name: str, attr_value, skip_missing=False):
-        """
-        Set attribute value for each endpoint in the list. Can be used for delayed initialization of endpoints.
-        """
-        for endpoint_name in endpoints:
-            endpoint = self.root_endpoint.endpoints.get('/' + endpoint_name)
-            if endpoint is not None:
-                setattr(endpoint, attr_name, attr_value)
-            elif not skip_missing:
-                raise KeyError(f'Endpoint not found: /{endpoint_name}')
-
     async def start(self):
         """
         Starts the HTTP API with the listen port as specified in the session configuration.

@@ -1,26 +1,21 @@
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
+
 from tribler_core.components.base import Component
 from tribler_core.components.masterkey import MasterKeyComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
 
 
-class MetadataStoreComponent(Component):
+class MetadataStoreComponent(RestfulComponent):
     mds: MetadataStore
-
-    _rest_manager: RESTManager
-    _endpoints = ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics']
 
     async def run(self):
         await self.get_component(ReporterComponent)
         await self.get_component(UpgradeComponent)
-
-        rest_component = await self.require_component(RESTComponent)
-        self._rest_manager = rest_component.rest_manager
 
         config = self.session.config
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
@@ -53,7 +48,12 @@ class MetadataStoreComponent(Component):
             disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
-        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', metadata_store, skip_missing=True)
+
+        await self.init_endpoints(
+            ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics'],
+            [('mds', metadata_store)]
+        )
+
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED,
                                            metadata_store.TorrentMetadata.add_ffa_from_dict)
 
@@ -61,10 +61,7 @@ class MetadataStoreComponent(Component):
             generate_test_channels(metadata_store)
 
     async def shutdown(self):
-        # Release endpoints
-        self._rest_manager.set_attr_for_endpoints(self._endpoints, 'mds', None, skip_missing=True)
-        await self.release_component(RESTComponent)
-
+        self.release_endpoints()
         await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")
         self.mds.shutdown()
