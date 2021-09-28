@@ -11,7 +11,7 @@ class WatchFolderComponent(RestfulComponent):
     watch_folder: WatchFolder
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
         config = self.session.config
         notifier = self.session.notifier
         libtorrent_component = await self.require_component(LibtorrentComponent)

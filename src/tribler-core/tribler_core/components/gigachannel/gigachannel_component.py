@@ -21,6 +21,7 @@ class GigaChannelComponent(RestfulComponent):
     _ipv8: IPv8
 
     async def run(self):
+        await super().run()
         await self.get_component(ReporterComponent)
 
         config = self.session.config
@@ -51,7 +52,6 @@ class GigaChannelComponent(RestfulComponent):
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         await self.init_endpoints(['remote_query', 'channels', 'collections'], [('gigachannel_community', community)])
-
 
     async def shutdown(self):
         await super().shutdown()

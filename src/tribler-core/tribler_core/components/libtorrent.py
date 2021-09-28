@@ -14,7 +14,7 @@ class LibtorrentComponent(RestfulComponent):
     download_manager: DownloadManager
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
         await self.get_component(UpgradeComponent)
         socks_servers_component = await self.require_component(SocksServersComponent)
         master_key_component = await self.require_component(MasterKeyComponent)

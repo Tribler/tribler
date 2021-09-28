@@ -23,7 +23,7 @@ class BandwidthAccountingComponent(RestfulComponent):
     _ipv8: IPv8
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
         await self.get_component(UpgradeComponent)
         config = self.session.config
 

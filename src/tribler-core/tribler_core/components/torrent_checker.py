@@ -15,7 +15,7 @@ class TorrentCheckerComponent(RestfulComponent):
     torrent_checker: TorrentChecker
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
 
         config = self.session.config
 

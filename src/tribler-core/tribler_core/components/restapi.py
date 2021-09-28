@@ -47,6 +47,9 @@ class RestfulComponent(Component, ABC):
                 if path in path_set:
                     endpoint.initialize(ipv8)
 
+    async def run(self):
+        await self.get_component(ReporterComponent)
+
     async def shutdown(self):
         rest_component = await self.get_component(RESTComponent)
         if not rest_component:
