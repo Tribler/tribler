@@ -4,6 +4,7 @@ from tribler_core.components.base import Component, ComponentError, Session, T
 
 pytestmark = pytest.mark.asyncio
 
+
 # pylint: disable=protected-access
 
 
