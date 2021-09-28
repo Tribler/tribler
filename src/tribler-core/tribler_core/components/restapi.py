@@ -42,8 +42,9 @@ class RestfulComponent(Component, ABC):
 
         ipv8_root_endpoint = rest_component.rest_manager.get_endpoint('ipv8')
         if ipv8_root_endpoint:
+            path_set = {'/' + name for name in endpoints}
             for path, endpoint in ipv8_root_endpoint.endpoints.items():
-                if path in endpoints:
+                if path in path_set:
                     endpoint.initialize(ipv8)
 
     async def shutdown(self):
