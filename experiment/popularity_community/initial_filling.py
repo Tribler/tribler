@@ -10,13 +10,24 @@ from pathlib import Path
 import sentry_sdk
 from pony.orm import count, db_session
 
-from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.modules.popularity.popularity_community import PopularityCommunity
+from ipv8_service import IPv8
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.popularity import PopularityComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.torrent_checker import TorrentCheckerComponent
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.modules.metadata_store.community.sync_strategy import RemovePeers
+from tribler_core.modules.popularity.community import PopularityCommunity
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
+interval_in_sec = None
+output_file_path = None
 
 TARGET_PEERS_COUNT = 20  # Tribler uses this number for walking strategy
 
@@ -26,10 +37,38 @@ sentry_sdk.init(
 )
 
 
+class ObservablePopularityComponent(PopularityComponent):
+    community: PopularityCommunity
+    _ipv8: IPv8
+
+    async def run(self):
+        config = self.session.config
+        ipv8_component = await self.require_component(Ipv8Component)
+        self._ipv8 = ipv8_component.ipv8
+        peer = ipv8_component.peer
+        metadata_store_component = await self.require_component(MetadataStoreComponent)
+        torrent_checker_component = await self.require_component(TorrentCheckerComponent)
+
+        community = ObservablePopularityCommunity(peer, self._ipv8.endpoint, self._ipv8.network,
+                                                  settings=config.popularity_community,
+                                                  rqc_settings=config.remote_query_community,
+                                                  metadata_store=metadata_store_component.mds,
+                                                  torrent_checker=torrent_checker_component.torrent_checker)
+        self.community = community
+
+        self._ipv8.add_strategy(community, RandomWalk(community), 30)
+        self._ipv8.add_strategy(community, RemovePeers(community), -1)
+
+        community.bootstrappers.append(ipv8_component.make_bootstrapper())
+
+    async def shutdown(self):
+        await self._ipv8.unload_overlay(self.community)
+
+
 class ObservablePopularityCommunity(PopularityCommunity):
 
-    def __init__(self, interval_in_sec, output_file_path, *args, **kwargs):
-        super().__init__(*args, rqc_settings=RemoteQueryCommunitySettings(), **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._start_time = time.time()
@@ -66,37 +105,12 @@ class ObservablePopularityCommunity(PopularityCommunity):
 
 
 class Service(TinyTriblerService):
-    def __init__(self, interval_in_sec, output_file_path, timeout_in_sec, working_dir, config_path):
-        super().__init__(Service.create_config(working_dir, config_path), timeout_in_sec,
-                         working_dir, config_path)
-
-        self._interval_in_sec = interval_in_sec
-        self._output_file_path = output_file_path
-
-    @staticmethod
-    def create_config(working_dir, config_path):
-        config = TinyTriblerService.create_default_config(working_dir, config_path)
-        config.libtorrent.enabled = True
-        config.ipv8.enabled = True
-        config.chant.enabled = True
-        return config
-
-    async def on_tribler_started(self):
-        await super().on_tribler_started()
-
-        session = self.session
-        peer = Peer(session.trustchain_keypair)
-
-        session.popularity_community = ObservablePopularityCommunity(self._interval_in_sec,
-                                                                     self._output_file_path,
-                                                                     peer, session.ipv8.endpoint,
-                                                                     session.ipv8.network,
-                                                                     metadata_store=session.mds,
-                                                                     torrent_checker=session.torrent_checker)
-
-        session.ipv8.overlays.append(session.popularity_community)
-        session.ipv8.strategies.append((RandomWalk(session.popularity_community),
-                                        TARGET_PEERS_COUNT))
+    def __init__(self, timeout_in_sec, working_dir):
+        super().__init__(config=TriblerConfig(state_dir=working_dir), timeout_in_sec=timeout_in_sec,
+                         working_dir=working_dir,
+                         components=[SocksServersComponent(), LibtorrentComponent(), TorrentCheckerComponent(),
+                                     MetadataStoreComponent(), MasterKeyComponent(), RESTComponent(), Ipv8Component(),
+                                     ObservablePopularityComponent()])
 
 
 def _parse_argv():
@@ -113,13 +127,13 @@ def _parse_argv():
 
 
 def _run_tribler(arguments):
+    global interval_in_sec, output_file_path  # pylint: disable=global-statement
     working_dir = Path('/tmp/tribler/experiment/popularity_community/initial_filling/.Tribler')
-
-    service = Service(arguments.interval,
-                      arguments.file,
-                      arguments.timeout,
-                      working_dir=working_dir,
-                      config_path=Path('./tribler.conf'))
+    interval_in_sec = arguments.interval
+    output_file_path = arguments.file
+    service = Service(
+        arguments.timeout,
+        working_dir=working_dir)
 
     loop = asyncio.get_event_loop()
     loop.create_task(service.start_tribler())
