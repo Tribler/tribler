@@ -6,7 +6,7 @@ from tribler_core.components.gigachannel.community.settings import ChantSettings
 from tribler_core.modules.popularity.settings import PopularityCommunitySettings
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
-from tribler_core.modules.settings import BootstrapSettings, DHTSettings, DiscoveryCommunitySettings, Ipv8Settings, \
+from tribler_core.components.masterkey.settings import BootstrapSettings, DHTSettings, DiscoveryCommunitySettings, Ipv8Settings, \
     TrustchainSettings, WatchFolderSettings
 from tribler_core.modules.torrent_checker.settings import TorrentCheckerSettings
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings

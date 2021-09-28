@@ -1,4 +1,4 @@
-import tribler_core.utilities.permid as permid_module
+import tribler_core.components.masterkey.permid as permid_module
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from tribler_core.components.base import Component
 

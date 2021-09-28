@@ -6,7 +6,7 @@ from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component
 from tribler_core.components.base import Session, SessionError
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
-from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout import PayoutComponent
 from tribler_core.components.popularity import PopularityComponent
@@ -50,6 +50,7 @@ def test_session_context_manager(loop, tribler_config):
         Session.current()
 
 
+<<<<<<< main
 async def test_masterkey_component(tribler_config):
     session = Session(tribler_config, [MasterKeyComponent()])
     with session:
@@ -62,6 +63,8 @@ async def test_masterkey_component(tribler_config):
         await session.shutdown()
 
 
+=======
+>>>>>>> Merge masterkey
 async def test_ipv8_component(tribler_config):
     tribler_config.ipv8.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), Ipv8Component()]
