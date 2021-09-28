@@ -6,15 +6,14 @@ from binascii import unhexlify
 from datetime import datetime
 from unittest.mock import patch
 
-from ipv8.keyvault.crypto import default_eccrypto
-
+import pytest
 from pony.orm import db_session
 
-import pytest
-
-from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, entries_to_chunk
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from ipv8.keyvault.crypto import default_eccrypto
 from tribler_core.components.metadata_store.community.payload_checker import ObjState, ProcessingResult
+from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, \
+    entries_to_chunk
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,
     ChannelMetadataPayload,
@@ -27,6 +26,7 @@ from tribler_core.components.metadata_store.tests.test_channel_download import C
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
+
 
 # pylint: disable=protected-access,unused-argument
 
