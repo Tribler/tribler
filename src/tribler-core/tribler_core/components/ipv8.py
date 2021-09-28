@@ -89,7 +89,7 @@ class Ipv8Component(RestfulComponent):
 
         await self.init_endpoints(['statistics'], [('ipv8', ipv8)])
         await self.init_ipv8_endpoints(ipv8, [
-            '/asyncio', '/attestation', '/dht', '/identity', '/isolation', '/network', '/noblockdht', '/overlays'
+            'asyncio', 'attestation', 'dht', 'identity', 'isolation', 'network', 'noblockdht', 'overlays'
         ])
 
     def make_bootstrapper(self) -> DispersyBootstrapper:
