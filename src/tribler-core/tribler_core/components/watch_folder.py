@@ -26,4 +26,5 @@ class WatchFolderComponent(RestfulComponent):
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Watch Folder...")
+        await super().shutdown()
         await self.watch_folder.stop()

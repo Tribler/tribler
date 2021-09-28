@@ -74,5 +74,5 @@ class TunnelsComponent(RestfulComponent):
                                   ipv8=self._ipv8, ipv8_endpoints=['/tunnel'])
 
     async def shutdown(self):
-        self.release_endpoints()
+        await super().shutdown()
         await self._ipv8.unload_overlay(self.community)

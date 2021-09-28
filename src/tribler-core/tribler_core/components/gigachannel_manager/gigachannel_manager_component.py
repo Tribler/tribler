@@ -31,5 +31,5 @@ class GigachannelManagerComponent(RestfulComponent):
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")
-        self.release_endpoints()
+        await super().shutdown()
         await self.gigachannel_manager.shutdown()

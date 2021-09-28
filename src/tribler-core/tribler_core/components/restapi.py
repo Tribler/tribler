@@ -45,7 +45,7 @@ class RestfulComponent(Component, ABC):
                     setattr(endpoint, attr_name, attr_value)
                     self.endpoint_attrs.add((endpoint_name, attr_name))
 
-    def release_endpoints(self):
+    async def shutdown(self):
         if not self._rest_manager:
             return
 

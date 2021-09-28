@@ -54,7 +54,6 @@ class GigaChannelComponent(RestfulComponent):
 
 
     async def shutdown(self):
-        self.release_endpoints()
-
+        await super().shutdown()
         if self._ipv8:
             await self._ipv8.unload_overlay(self.community)

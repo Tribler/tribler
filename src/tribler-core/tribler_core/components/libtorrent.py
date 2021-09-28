@@ -47,6 +47,6 @@ class LibtorrentComponent(RestfulComponent):
             await self.download_manager.start_download_from_uri(uri)
 
     async def shutdown(self):
-        self.release_endpoints()
+        await super().shutdown()
         self.download_manager.stop_download_states_callback()
         await self.download_manager.shutdown()

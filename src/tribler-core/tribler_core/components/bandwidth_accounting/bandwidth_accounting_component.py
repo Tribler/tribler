@@ -51,5 +51,5 @@ class BandwidthAccountingComponent(RestfulComponent):
                                   [('bandwidth_db', community.database), ('bandwidth_community', community)])
 
     async def shutdown(self):
-        self.release_endpoints()
+        await super().shutdown()
         await self._ipv8.unload_overlay(self.community)
