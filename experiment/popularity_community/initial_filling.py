@@ -15,7 +15,7 @@ from ipv8_service import IPv8
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.masterkey import MasterKeyComponent
-from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.popularity import PopularityComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent

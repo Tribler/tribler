@@ -20,7 +20,7 @@ from tribler_core.components.gigachannel_manager import GigachannelManagerCompon
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.masterkey import MasterKeyComponent
-from tribler_core.components.metadata_store import MetadataStoreComponent
+from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout import PayoutComponent
 from tribler_core.components.popularity import PopularityComponent
 from tribler_core.components.reporter import ReporterComponent
