@@ -347,6 +347,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
         self.update_navigation_breadcrumbs()
+        self.controller.table_view.deselect_all_rows()
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()
