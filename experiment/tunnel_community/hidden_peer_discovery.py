@@ -30,7 +30,6 @@ class Service(TinyTriblerService, TaskManager):
     def create_config(working_dir, config_path):
         config = TriblerConfig(state_dir=working_dir, file=config_path)
         config.dht.enabled = True
-        config.torrent_checking.enabled = True
         return config
 
     def _graceful_shutdown(self):
