@@ -1,27 +1,20 @@
-import asyncio
 import logging
 import platform
 from distutils.version import LooseVersion
 
 from aiohttp import (
-    ClientConnectionError,
-    ClientResponseError,
     ClientSession,
     ClientTimeout,
-    ContentTypeError,
-    ServerConnectionError,
 )
 
 from ipv8.taskmanager import TaskManager
-
 from tribler_common.simpledefs import NTFY
-
 from tribler_core.notifier import Notifier
 from tribler_core.version import version_id
 
 VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
                       'https://api.github.com/repos/tribler/tribler/releases/latest']  # Fallback GitHub API
-VERSION_CHECK_INTERVAL = 6*3600  # Six hours
+VERSION_CHECK_INTERVAL = 6 * 3600  # Six hours
 VERSION_CHECK_TIMEOUT = 5  # Five seconds timeout
 
 
@@ -75,15 +68,9 @@ class VersionCheckManager(TaskManager):
                     return True
                 return False
 
-        except (ServerConnectionError, ClientConnectionError) as e:
-            self._logger.error("Error when performing version check request: %s", e)
-        except ContentTypeError:
-            self._logger.warning("Response was not in JSON format")
-        except ClientResponseError as e:
-            self._logger.warning("Got response code %s when performing version check request", e.status)
-        except asyncio.TimeoutError:
-            self._logger.warning("Checking for new version failed for %s", version_check_url)
-        except ValueError as ve:
-            raise ValueError(f"Failed to parse Tribler version response.\nError:{ve}") from ve
+        except Exception as e:  # pylint: disable=broad-except
+            # broad exception handling for preventing an application crash that may follow
+            # the occurrence of an exception in the version check manager
+            self._logger.warning(e)
 
         return None
