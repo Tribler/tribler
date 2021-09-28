@@ -8,7 +8,7 @@ from time import time as now
 
 from pony.orm import db_session
 
-from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.components.metadata_store.db.store import MetadataStore
 
 TABLE_NAMES = (
     "ChannelNode", "TorrentState", "TorrentState_TrackerState", "ChannelPeer", "ChannelVote", "TrackerState", "Vsids")

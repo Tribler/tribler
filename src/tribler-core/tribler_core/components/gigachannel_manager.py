@@ -3,7 +3,7 @@ from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.modules.metadata_store.manager.gigachannel_manager import GigaChannelManager
+from tribler_core.components.metadata_store.manager.gigachannel_manager import GigaChannelManager
 from tribler_core.restapi.rest_manager import RESTManager
 
 

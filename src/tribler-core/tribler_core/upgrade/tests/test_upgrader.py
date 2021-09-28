@@ -12,8 +12,8 @@ from tribler_common.simpledefs import NTFY
 
 import tribler_core.utilities.permid as permid_module
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.modules.metadata_store.store import CURRENT_DB_VERSION, MetadataStore
+from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.db8_to_db10 import calc_progress

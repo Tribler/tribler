@@ -1,0 +1,114 @@
+import math
+from datetime import datetime
+
+from pony import orm
+from pony.orm import db_session
+
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
+
+
+def define_binding(db):
+    # ACHTUNG! This thing should be used as a singleton, i.e. there should be only a single row there!
+    # We store it as a DB object only to make the counters persistent.
+
+    # VSIDS-based votes ratings
+    # We use VSIDS since it provides an efficient way to add temporal decay to the voting system.
+    # Temporal decay is necessary for two reasons:
+    # 1. We do not gossip _unsubscription_ events, but we want votes decline for channels that go out of favor
+    # 2. We want to promote the fresh content
+    #
+    # There are two differences with the classic VSIDS:
+    # a. We scale the bump amount with passage of time, instead of on each bump event.
+    #    By default, the bump amount scales 2.71 per 23hrs. Note though, that we only count Tribler uptime
+    #    for this purpose. This is intentional, so the ratings do not suddenly drop after the user skips a week
+    #    of uptime.
+    # b. Repeated votes by some peer to some channel _do not add up_. Instead, the vote is refreshed by substracting
+    #    the old amount from the current vote (it is stored in the DB), and adding the new one (1.0 votes, scaled). This
+    #    is the reason why we have to keep the old votes in the DB, and normalize the old votes last_amount values - to
+    #    keep them in the same "normalization space" to be compatible with the current votes values.
+
+    # This binding is used to store normalization data and stats for VSIDS
+    class Vsids(db.Entity):
+        """
+        This ORM class is used to hold persistent information for the state of VSIDS scoring system.
+        ACHTUNG! At all times there should be no more than one row/entity of this class. A single entity is
+        enough to keep the information for the whole GigaChannels.
+        In a sense, *this is a singleton*.
+        """
+
+        rowid = orm.PrimaryKey(int)
+        bump_amount = orm.Required(float)
+        total_activity = orm.Required(float)
+        last_bump = orm.Required(datetime)
+        rescale_threshold = orm.Optional(float, default=10.0 ** 100)
+        exp_period = orm.Optional(float, default=24.0 * 60 * 60 * 3)  # decay e times over this period of seconds
+        max_val = orm.Optional(float, default=1.0)
+
+        @db_session
+        def rescale(self, norm):
+            for channel in db.ChannelMetadata.select(lambda g: g.status != LEGACY_ENTRY):
+                channel.votes /= norm
+            for vote in db.ChannelVote.select():
+                vote.last_amount /= norm
+
+            self.max_val /= norm
+            self.total_activity /= norm
+            self.bump_amount /= norm
+            db.ChannelMetadata.votes_scaling = self.max_val
+
+        # Normalization routine should normally be called only in case the values in the DB do not look normal
+        @db_session
+        def normalize(self):
+            # If we run the normalization for the first time during the runtime, we have to gather the activity from DB
+            self.total_activity = self.total_activity or orm.sum(g.votes for g in db.ChannelMetadata)
+            channel_count = orm.count(db.ChannelMetadata.select(lambda g: g.status != LEGACY_ENTRY))
+            if not channel_count:
+                return
+            if self.total_activity > 0.0:
+                self.rescale(self.total_activity / channel_count)
+                self.bump_amount = 1.0
+
+        @db_session
+        def bump_channel(self, channel, vote):
+            now = datetime.utcnow()
+
+            # Subtract the last vote by the same peer from the total vote amount for this channel.
+            # This effectively puts a cap of 1.0 vote from a peer on a channel
+            channel.votes -= vote.last_amount
+            self.total_activity -= vote.last_amount
+
+            # Next, increase the bump amount based on the time passed since the last bump
+            # (Increasing the bump amount is the equivalent of decaying the values of votes,
+            # cast for all other channels)
+            self.bump_amount *= math.exp((now - self.last_bump).total_seconds() / self.exp_period)
+            self.last_bump = now
+
+            # To cap the future votes from this peer, note the last bump vote
+            # amount added to this channel by the voting peer.
+            vote.last_amount = self.bump_amount
+
+            # Add the vote to the accumulated sum of all votes for the channel
+            channel.votes += self.bump_amount
+
+            # Keep track of total activity and max vote amount to assist with votes scaling/normalization
+            self.total_activity += self.bump_amount
+            if channel.votes > self.max_val:
+                self.max_val = channel.votes
+            db.ChannelMetadata.votes_scaling = self.max_val
+
+            # Renormalize all votes in the database if current bump amount is nearing the float
+            # precision threshold
+            if self.bump_amount > self.rescale_threshold:
+                self.rescale(self.bump_amount)
+
+        @classmethod
+        @db_session
+        def create_default_vsids(cls):
+            return cls(
+                rowid=0,
+                bump_amount=1.0,
+                total_activity=(orm.sum(g.votes for g in db.ChannelMetadata) or 0.0),
+                last_bump=datetime.utcnow(),
+            )
+
+    return Vsids

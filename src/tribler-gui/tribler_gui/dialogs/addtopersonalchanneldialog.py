@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTreeWidgetItem
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog

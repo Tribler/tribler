@@ -15,9 +15,9 @@ from pony.orm.dbapiprovider import OperationalError
 
 import pytest
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
-from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity, sanitize_query
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path

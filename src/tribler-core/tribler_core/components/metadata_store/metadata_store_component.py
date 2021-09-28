@@ -4,8 +4,8 @@ from tribler_core.components.masterkey import MasterKeyComponent
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.upgrade import UpgradeComponent
-from tribler_core.modules.metadata_store.store import MetadataStore
-from tribler_core.modules.metadata_store.utils import generate_test_channels
+from tribler_core.components.metadata_store.db.store import MetadataStore
+from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.restapi.rest_manager import RESTManager
 
 

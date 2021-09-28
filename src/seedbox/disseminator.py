@@ -30,8 +30,8 @@ from pony.orm import db_session
 import sentry_sdk
 
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
+from tribler_core.components.metadata_store.community import GigaChannelCommunity
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 # fmt: off
