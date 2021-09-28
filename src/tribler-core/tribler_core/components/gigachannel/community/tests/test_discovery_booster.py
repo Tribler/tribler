@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.metadata_store.community.discovery_booster import DiscoveryBooster
+from tribler_core.components.gigachannel.community.discovery_booster import DiscoveryBooster
 
 TEST_BOOSTER_TIMEOUT_IN_SEC = 10
 TEST_BOOSTER_TAKE_STEP_INTERVAL_IN_SEC = 1

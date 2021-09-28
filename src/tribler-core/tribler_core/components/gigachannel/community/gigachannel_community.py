@@ -11,8 +11,8 @@ from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
-from tribler_core.components.metadata_store.community.discovery_booster import DiscoveryBooster
-from tribler_core.components.metadata_store.community.payload_checker import ObjState
+from tribler_core.components.gigachannel.community.discovery_booster import DiscoveryBooster
+from tribler_core.components.gigachannel.community.payload_checker import ObjState
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler_core.components.metadata_store.utils import NoChannelSourcesException
 from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity

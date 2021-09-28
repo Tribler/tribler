@@ -33,7 +33,7 @@ from tribler_core.components.metadata_store.db.orm_bindings import (
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.components.metadata_store.community.payload_checker import process_payload
+from tribler_core.components.gigachannel.community.payload_checker import process_payload
 from tribler_core.components.metadata_store.db.serialization import (
     BINARY_NODE,
     CHANNEL_DESCRIPTION,

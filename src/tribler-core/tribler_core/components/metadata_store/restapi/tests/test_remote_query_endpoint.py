@@ -10,7 +10,7 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.metadata_store.community.gigachannel_community import ChannelsPeersMapping
+from tribler_core.components.gigachannel.community.gigachannel_community import ChannelsPeersMapping
 from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware

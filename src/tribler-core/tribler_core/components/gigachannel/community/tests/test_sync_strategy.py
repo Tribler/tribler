@@ -3,7 +3,7 @@ from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
 
-from tribler_core.components.metadata_store.community.sync_strategy import RemovePeers
+from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
 
 
 class MockCommunity:

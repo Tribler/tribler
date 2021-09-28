@@ -1,27 +1,28 @@
 from unittest.mock import patch
 
 from tribler_core.components.base import Session
-from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
-from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
+from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.masterkey import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.restapi.rest_manager import RESTManager
 
 
 # pylint: disable=protected-access
 
-async def test_gigachannel_manager_component(tribler_config):
-    components = [SocksServersComponent(), MasterKeyComponent(), RESTComponent(), MetadataStoreComponent(),
-                  LibtorrentComponent(), GigachannelManagerComponent()]
+
+async def test_giga_channel_component(tribler_config):
+    components = [MetadataStoreComponent(), RESTComponent(), MasterKeyComponent(), Ipv8Component(),
+                  GigaChannelComponent()]
     session = Session(tribler_config, components)
     with session:
-        comp = GigachannelManagerComponent.instance()
+        comp = GigaChannelComponent.instance()
         with patch.object(RESTManager, 'get_endpoint'):
             await session.start()
 
-            assert comp.gigachannel_manager
+            assert comp.community
             assert comp._rest_manager
+            assert comp._ipv8
 
             await session.shutdown()

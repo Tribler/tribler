@@ -5,7 +5,7 @@ from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
-from tribler_core.components.metadata_store.community.sync_strategy import RemovePeers
+from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler_core.modules.popularity.community import PopularityCommunity
 
 INFINITE = -1
