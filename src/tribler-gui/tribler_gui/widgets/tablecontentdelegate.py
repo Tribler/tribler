@@ -117,7 +117,7 @@ class CheckClickedMixin:
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):
-    redraw_required = pyqtSignal()
+    redraw_required = pyqtSignal(QModelIndex)
 
     def __init__(self, parent=None):
         QStyledItemDelegate.__init__(self, parent)
@@ -155,8 +155,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             redraw = controls.on_mouse_moved(pos, index) or redraw
 
         if redraw:
-            # TODO: optimize me to only redraw the rows that actually changed!
-            self.redraw_required.emit()
+            self.redraw_required.emit(index)
 
     @staticmethod
     def split_rect_into_squares(r, buttons):
