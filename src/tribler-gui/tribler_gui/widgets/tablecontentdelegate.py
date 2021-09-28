@@ -150,10 +150,6 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
                 redraw = True
                 # Hide the tooltip when cell hover changes
                 QToolTip.hideText()
-        # Redraw when the mouse leaves the table
-        if index.row() == -1 and self.hoverrow != -1:
-            self.hoverrow = -1
-            redraw = True
 
         for controls in self.controls:
             redraw = controls.on_mouse_moved(pos, index) or redraw
