@@ -571,7 +571,7 @@ async def test_add_torrent_from_url(my_channel, tmpdir, rest_api):
         with open(TORRENT_UBUNTU_FILE, 'rb') as f:
             return f.read()
 
-    with patch('tribler_core.modules.metadata_store.restapi.channels_endpoint._fetch_uri', new=_mock_fetch):
+    with patch('tribler_core.components.metadata_store.restapi.channels_endpoint._fetch_uri', new=_mock_fetch):
         await do_request(
             rest_api,
             f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',

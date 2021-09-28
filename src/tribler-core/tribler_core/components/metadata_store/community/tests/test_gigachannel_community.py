@@ -55,7 +55,7 @@ class TestGigaChannelUnits(TestBase):
         kwargs['metadata_store'] = metadata_store
         kwargs['settings'] = ChantSettings()
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
-        with mock.patch('tribler_core.modules.metadata_store.community.gigachannel_community.DiscoveryBooster'):
+        with mock.patch('tribler_core.components.metadata_store.community.gigachannel_community.DiscoveryBooster'):
             node = super().create_node(*args, **kwargs)
         self.count += 1
         return node
