@@ -116,13 +116,12 @@ class Ipv8Component(RestfulComponent):
         self.dht_discovery_community = community
 
     async def shutdown(self):
-        self.release_endpoints()
+        await super().shutdown()
 
         for overlay in (self.dht_discovery_community, self._peer_discovery_community):
             if overlay:
                 await self.ipv8.unload_overlay(overlay)
 
-        await self.unused.wait()
         self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self._task_manager.shutdown_task_manager()
         await self.ipv8.stop(stop_loop=False)

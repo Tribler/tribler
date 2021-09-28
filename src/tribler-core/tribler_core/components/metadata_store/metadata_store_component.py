@@ -61,7 +61,6 @@ class MetadataStoreComponent(RestfulComponent):
             generate_test_channels(metadata_store)
 
     async def shutdown(self):
-        self.release_endpoints()
-        await self.unused.wait()
+        await super().shutdown()
         self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")
         self.mds.shutdown()

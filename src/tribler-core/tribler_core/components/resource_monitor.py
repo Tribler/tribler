@@ -26,8 +26,6 @@ class ResourceMonitorComponent(RestfulComponent):
         await self.init_endpoints(['debug'], [('resource_monitor', resource_monitor)])
 
     async def shutdown(self):
-        if self._rest_manager:
-            self._rest_manager.get_endpoint('debug').resource_monitor = None
-
         self.session.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
+        await super().shutdown()
         await self.resource_monitor.stop()

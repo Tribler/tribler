@@ -36,5 +36,5 @@ class TorrentCheckerComponent(RestfulComponent):
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
-        self.release_endpoints()
+        await super().shutdown()
         await self.torrent_checker.shutdown()
