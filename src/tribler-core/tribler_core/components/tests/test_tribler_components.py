@@ -75,7 +75,6 @@ async def test_ipv8_component(tribler_config):
         assert comp.peer
         assert not comp.dht_discovery_community
         assert comp._task_manager
-        assert comp._rest_manager
         assert not comp._peer_discovery_community
 
         await session.shutdown()
@@ -92,7 +91,6 @@ async def test_libtorrent_component(tribler_config):
         comp = LibtorrentComponent.instance()
         assert comp.started.is_set() and not comp.failed
         assert comp.download_manager
-        assert comp._rest_manager
 
         await session.shutdown()
 
@@ -196,7 +194,6 @@ async def test_torrent_checker_component(tribler_config):
         comp = TorrentCheckerComponent.instance()
         assert comp.started.is_set() and not comp.failed
         assert comp.torrent_checker
-        assert comp._rest_manager
 
         await session.shutdown()
 

@@ -87,7 +87,8 @@ class Ipv8Component(RestfulComponent):
             if config.dht.enabled:
                 self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
 
-        await self.init_endpoints(['statistics'], [('ipv8', ipv8)], ipv8=ipv8, ipv8_endpoints=[
+        await self.init_endpoints(['statistics'], [('ipv8', ipv8)])
+        await self.init_ipv8_endpoints(ipv8, [
             '/asyncio', '/attestation', '/dht', '/identity', '/isolation', '/network', '/noblockdht', '/overlays'
         ])
 

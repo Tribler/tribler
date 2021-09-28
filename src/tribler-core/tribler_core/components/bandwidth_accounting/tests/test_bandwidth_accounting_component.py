@@ -21,7 +21,6 @@ async def test_bandwidth_accounting_component(tribler_config):
         comp = BandwidthAccountingComponent.instance()
         assert comp.started.is_set() and not comp.failed
         assert comp.community
-        assert comp._rest_manager
         assert comp._ipv8
 
         await session.shutdown()
