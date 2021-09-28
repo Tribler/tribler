@@ -5,6 +5,7 @@ from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 

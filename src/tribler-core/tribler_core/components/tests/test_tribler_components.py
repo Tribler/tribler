@@ -4,7 +4,6 @@ import pytest
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session, SessionError
-from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.masterkey import MasterKeyComponent
