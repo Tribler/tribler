@@ -7,7 +7,7 @@ from tribler_core.components.base import Component
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
@@ -15,7 +15,7 @@ from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 INFINITE = -1
 
 
-class TunnelsComponent(Component):
+class TunnelsComponent(RestfulComponent):
     community: TriblerTunnelCommunity
     _ipv8: IPv8
 
@@ -70,14 +70,9 @@ class TunnelsComponent(Component):
 
         self.community = community
 
-        rest_component = await self.get_component(RESTComponent)
-        if rest_component:
-            rest_component.rest_manager.get_endpoint('ipv8').endpoints['/tunnel'].initialize(self._ipv8)
-            if download_component:
-                rest_component.rest_manager.get_endpoint('downloads').tunnel_community = community
-
-            debug_endpoint = rest_component.rest_manager.get_endpoint('debug')
-            debug_endpoint.tunnel_community = community
+        await self.init_endpoints(['downloads', 'debug'], [('tunnel_community', community)],
+                                  ipv8=self._ipv8, ipv8_endpoints=['/tunnel'])
 
     async def shutdown(self):
+        self.release_endpoints()
         await self._ipv8.unload_overlay(self.community)

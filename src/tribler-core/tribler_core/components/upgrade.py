@@ -1,12 +1,13 @@
 from tribler_common.simpledefs import STATE_UPGRADING_READABLE
+
 from tribler_core.components.base import Component
 from tribler_core.components.masterkey import MasterKeyComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi import RestfulComponent
 from tribler_core.upgrade.upgrade import TriblerUpgrader
 
 
-class UpgradeComponent(Component):
+class UpgradeComponent(RestfulComponent):
     upgrader: TriblerUpgrader
 
     async def run(self):
@@ -22,8 +23,9 @@ class UpgradeComponent(Component):
             trustchain_keypair=master_key_component.keypair,
             notifier=notifier)
 
-        rest_component = await self.require_component(RESTComponent)
-        rest_component.rest_manager.get_endpoint('upgrader').upgrader = self.upgrader
-        rest_component.rest_manager.get_endpoint('state').readable_status = STATE_UPGRADING_READABLE
-
+        await self.init_endpoints(['upgrader'], [('upgrader', self.upgrader)])
+        await self.set_readable_status(STATE_UPGRADING_READABLE)
         await self.upgrader.run()
+
+    async def shutdown(self):
+        self.release_endpoints()

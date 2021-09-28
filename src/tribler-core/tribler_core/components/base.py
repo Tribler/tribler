@@ -186,7 +186,7 @@ class Component:
         dep.in_use_by.add(self)
         return dep
 
-    async def release_component(self, dependency: Type[T]):
+    def release_component(self, dependency: Type[T]):
         dep = dependency.instance()
         if dep:
             self._release_instance(dep)
