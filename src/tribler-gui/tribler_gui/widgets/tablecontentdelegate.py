@@ -122,8 +122,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         QStyledItemDelegate.__init__(self, parent)
         self.no_index = QModelIndex()
-        self.hoverrow = None
-        self.hover_index = None
+        self.hover_index = self.no_index
         self.controls = []
         self.column_drawing_actions = []
 
@@ -147,7 +146,6 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         redraw = False
         if self.hover_index != index:
             self.hover_index = index
-            self.hoverrow = index.row()
             if not self.button_box.contains(pos):
                 redraw = True
                 # Hide the tooltip when cell hover changes
@@ -179,7 +177,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         # Draw 'hover' state highlight for every cell of a row
-        if index.row() == self.hoverrow:
+        if index.row() == self.hover_index.row():
             option.state |= QStyle.State_MouseOver
         if not self.paint_exact(painter, option, index):
             # Draw the rest of the columns
@@ -327,7 +325,7 @@ class DownloadControlsMixin:
             option.rect.height() - 2 * border_thickness,
         )
         # When cursor leaves the table, we must "forget" about the button_box
-        if self.hoverrow == -1:
+        if self.hover_index.row() == -1:
             self.button_box = QRect()
 
         progress = data_item.get('progress')
@@ -338,7 +336,7 @@ class DownloadControlsMixin:
                 draw_progress_bar(painter, bordered_rect, progress=progress)
             return True
 
-        if index.row() == self.hoverrow:
+        if index.row() == self.hover_index.row():
             extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
             button_box_extended_rect = option.rect.adjusted(0, -extended_border_height, 0, extended_border_height)
             self.button_box = button_box_extended_rect
