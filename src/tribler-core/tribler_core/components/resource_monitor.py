@@ -9,7 +9,7 @@ class ResourceMonitorComponent(RestfulComponent):
     resource_monitor: CoreResourceMonitor
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
         await self.get_component(UpgradeComponent)
 
         config = self.session.config

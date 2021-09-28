@@ -31,7 +31,7 @@ class Ipv8Component(RestfulComponent):
     _peer_discovery_community: Optional[DiscoveryCommunity] = None
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
 
         config = self.session.config
 

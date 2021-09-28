@@ -20,7 +20,7 @@ class TunnelsComponent(RestfulComponent):
     _ipv8: IPv8
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
 
         config = self.session.config
         ipv8_component = await self.require_component(Ipv8Component)

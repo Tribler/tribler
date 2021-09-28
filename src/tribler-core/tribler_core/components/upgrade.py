@@ -11,7 +11,7 @@ class UpgradeComponent(RestfulComponent):
     upgrader: TriblerUpgrader
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
         config = self.session.config
         notifier = self.session.notifier
         master_key_component = await self.require_component(MasterKeyComponent)

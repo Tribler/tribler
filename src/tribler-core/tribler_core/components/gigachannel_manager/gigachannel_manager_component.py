@@ -11,7 +11,7 @@ class GigachannelManagerComponent(RestfulComponent):
     gigachannel_manager: GigaChannelManager
 
     async def run(self):
-        await self.get_component(ReporterComponent)
+        await super().run()
 
         config = self.session.config
         notifier = self.session.notifier
