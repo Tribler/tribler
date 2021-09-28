@@ -13,15 +13,18 @@ from tribler_core.restapi.rest_manager import RESTManager
 # pylint: disable=protected-access
 
 async def test_gigachannel_manager_component(tribler_config):
+    tribler_config.ipv8.enabled = True
+    tribler_config.libtorrent.enabled = True
+    tribler_config.chant.enabled = True
     components = [SocksServersComponent(), MasterKeyComponent(), RESTComponent(), MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]
     session = Session(tribler_config, components)
     with session:
         comp = GigachannelManagerComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        await session.start()
 
-            assert comp.gigachannel_manager
-            assert comp._rest_manager
+        assert comp.started.is_set() and not comp.failed
+        assert comp.gigachannel_manager
+        assert comp._rest_manager
 
-            await session.shutdown()
+        await session.shutdown()

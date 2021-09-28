@@ -12,15 +12,16 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 
 async def test_bandwidth_accounting_component(tribler_config):
+    tribler_config.ipv8.enabled = True
     components = [RESTComponent(), MasterKeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
     session = Session(tribler_config, components)
     with session:
+        await session.start()
+
         comp = BandwidthAccountingComponent.instance()
-        with patch.object(RESTManager, 'get_endpoint'):
-            await session.start()
+        assert comp.started.is_set() and not comp.failed
+        assert comp.community
+        assert comp._rest_manager
+        assert comp._ipv8
 
-            assert comp.community
-            assert comp._rest_manager
-            assert comp._ipv8
-
-            await session.shutdown()
+        await session.shutdown()
