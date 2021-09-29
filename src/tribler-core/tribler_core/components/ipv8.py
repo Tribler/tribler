@@ -12,12 +12,11 @@ from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
+
 from ipv8_service import IPv8
-from tribler_core.components.base import Component
+
 from tribler_core.components.masterkey import MasterKeyComponent
-from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RestfulComponent
-from tribler_core.restapi.rest_manager import RESTManager
 
 INFINITE = -1
 
