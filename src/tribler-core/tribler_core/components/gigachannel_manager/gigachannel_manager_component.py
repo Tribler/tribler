@@ -1,10 +1,7 @@
-from tribler_core.components.base import Component
+from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler_core.components.libtorrent import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RestfulComponent
-from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
-from tribler_core.restapi.rest_manager import RESTManager
 
 
 class GigachannelManagerComponent(RestfulComponent):

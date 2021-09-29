@@ -4,17 +4,14 @@ from ipv8_service import IPv8
 
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 
-from tribler_core.components.base import Component
-from tribler_core.components.ipv8 import Ipv8Component
-from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RestfulComponent
-from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.components.bandwidth_accounting.community.community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
 )
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.restapi.rest_manager import RESTManager
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.upgrade import UpgradeComponent
 
 
 class BandwidthAccountingComponent(RestfulComponent):
