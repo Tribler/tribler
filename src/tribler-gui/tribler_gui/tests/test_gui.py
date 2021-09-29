@@ -254,11 +254,9 @@ def test_discovered_page(tribler_api, window):
 @pytest.mark.guitest
 def test_popular_page(tribler_api, window):
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
-    # tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
-    widget = window.discovered_page
-    widget_name = "popular_page"
+    widget = window.popular_page
     wait_for_list_populated(widget.content_table)
-    screenshot(window, name=f"{widget_name}-page")
+    screenshot(window, name="popular_page")
 
 
 def wait_for_thumbnail(chan_widget):

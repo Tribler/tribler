@@ -1,3 +1,6 @@
+import random
+import time
+
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
@@ -16,7 +19,14 @@ class NoChannelSourcesException(Exception):
 
 @db_session
 def generate_torrent(metadata_store, parent):
-    metadata_store.TorrentMetadata(title=random_utf8_string(50), infohash=random_infohash(), origin_id=parent.id_)
+    infohash = random_infohash()
+
+    # Give each torrent some health information. For now, we assume all torrents are healthy.
+    now = int(time.time())
+    last_check = now - random.randint(3600, 24 * 3600)
+    torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=10, last_check=last_check)
+    metadata_store.TorrentMetadata(title=random_utf8_string(50), infohash=infohash, origin_id=parent.id_,
+                                   health=torrent_state)
 
 
 @db_session
