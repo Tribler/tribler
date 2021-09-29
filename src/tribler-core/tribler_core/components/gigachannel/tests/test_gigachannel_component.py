@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from tribler_core.components.base import Session
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler_core.components.ipv8 import Ipv8Component
@@ -11,7 +13,7 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 # pylint: disable=protected-access
 
-
+@pytest.mark.asyncio
 async def test_giga_channel_component(tribler_config):
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
