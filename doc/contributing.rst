@@ -36,8 +36,6 @@ Pull requests
 
 When creating a new Pull request, please take note of the following:
   * New features always go to ``main``.
-  * If there is an unreleased ``release-X.Y`` branch, fixes go there.
-  * Otherwise, fixes go to ``main``.
   * Before starting to work on a feature or fix, check that nobody else is
     working on it by assigning yourself the corresponding issue. Create one if it
     doesn't exist. This is also useful to get feedback about if a given feature
@@ -54,13 +52,21 @@ When creating a new Pull request, please take note of the following:
     if possible (For instance for a new community, new GUI stuff, etc.).
   * When you make a change to the user interface, please attach a screenshot of your changes to the pull request. This helps reviewers since it avoids the need for them to manually checkout your code to see what has been changed.
   * Keep a clean and nice git history:
-      * Rebase instead of merging back from the base branch.
       * Squash fixup commits together.
       * Have nice and descriptive commit messages.
   * Do not commit extraneous/auto-generated files.
   * Use Unix style newlines for any new file created.
   * No print statements if it's not really justified (command line tools and such).
-  * Do an ``autopep8`` pass before submitting the pull request.
-  * Do a ``pylint`` pass with the ``.pylintrc`` on the root of the repository and
-    make sure you are not raising the base branch violation count, it's bad enough as it is :).
   * For more PR etiquette have a look `here <https://github.com/blog/1943-how-to-write-the-perfect-pull-request>`_.
+
+
+PR policies
+===========
+* We use `rebase + merge –no–ff <https://www.endoflineblog.com/oneflow-a-git-branching-model-and-workflow#option-3-rebase-merge-no-ff>`_ for merging a branch
+* Responsibility for merging the PR is on the creator of PR
+
+Recommendations:
+
+* Follow the `conventional comments practice <https://conventionalcomments.org/>`_
+* Keep in mind `The Standard of Code Review <https://google.github.io/eng-practices/review/reviewer/standard.html>`_
+
