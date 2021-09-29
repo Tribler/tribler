@@ -143,16 +143,6 @@ async def test_connection_error(version_check_manager):
 
 
 @pytest.mark.asyncio
-async def test_non_json_response(version_check_manager, version_server):
-    global response  # pylint: disable=global-statement
-    response = 'hello world - not json'
-
-    versioncheck_manager.check_failed = False
-    with pytest.raises(ValueError):
-        await version_check_manager.check_new_version()
-
-
-@pytest.mark.asyncio
 async def test_version_check_api_timeout(free_port, version_check_manager, version_server):
     global response, response_lag  # pylint: disable=global-statement
     response = json.dumps({'name': NEW_VERSION_ID})
