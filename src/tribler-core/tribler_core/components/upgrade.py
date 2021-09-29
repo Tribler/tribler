@@ -23,6 +23,6 @@ class UpgradeComponent(RestfulComponent):
             trustchain_keypair=master_key_component.keypair,
             notifier=notifier)
 
-        await self.init_endpoints(['upgrader'], [('upgrader', self.upgrader)])
+        await self.init_endpoints(endpoints=['upgrader'], values={'upgrader': self.upgrader})
         await self.set_readable_status(STATE_UPGRADING_READABLE)
         await self.upgrader.run()

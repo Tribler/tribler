@@ -27,7 +27,8 @@ class GigachannelManagerComponent(RestfulComponent):
         if not config.gui_test_mode:
             self.gigachannel_manager.start()
 
-        await self.init_endpoints(['channels', 'collections'], [('gigachannel_manager', self.gigachannel_manager)])
+        await self.init_endpoints(endpoints=['channels', 'collections'],
+                                  values={'gigachannel_manager': self.gigachannel_manager})
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")

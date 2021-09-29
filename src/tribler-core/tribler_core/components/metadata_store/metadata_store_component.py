@@ -50,8 +50,8 @@ class MetadataStoreComponent(RestfulComponent):
         self.mds = metadata_store
 
         await self.init_endpoints(
-            ['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics'],
-            [('mds', metadata_store)]
+            endpoints=['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics'],
+            values={'mds': metadata_store}
         )
 
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED,

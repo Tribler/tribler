@@ -70,8 +70,8 @@ class TunnelsComponent(RestfulComponent):
 
         self.community = community
 
-        await self.init_endpoints(['downloads', 'debug'], [('tunnel_community', community)])
-        await self.init_ipv8_endpoints(self._ipv8, ['tunnel'])
+        await self.init_endpoints(endpoints=['downloads', 'debug'], values={'tunnel_community': community})
+        await self.init_ipv8_endpoints(self._ipv8, endpoints=['tunnel'])
 
     async def shutdown(self):
         await super().shutdown()

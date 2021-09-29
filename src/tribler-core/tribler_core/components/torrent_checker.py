@@ -32,7 +32,7 @@ class TorrentCheckerComponent(RestfulComponent):
                                          metadata_store=metadata_store_component.mds)
         self.torrent_checker = torrent_checker
         await torrent_checker.initialize()
-        await self.init_endpoints(['metadata'], [('torrent_checker', torrent_checker)])
+        await self.init_endpoints(endpoints=['metadata'], values={'torrent_checker': torrent_checker})
 
     async def shutdown(self):
         self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")

@@ -47,8 +47,8 @@ class BandwidthAccountingComponent(RestfulComponent):
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
         self.community = community
-        await self.init_endpoints(['trustview', 'bandwidth'],
-                                  [('bandwidth_db', community.database), ('bandwidth_community', community)])
+        await self.init_endpoints(endpoints=['trustview', 'bandwidth'],
+                                  values={'bandwidth_db': community.database, 'bandwidth_community': community})
 
     async def shutdown(self):
         await super().shutdown()
