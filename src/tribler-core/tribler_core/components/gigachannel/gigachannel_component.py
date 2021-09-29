@@ -51,7 +51,8 @@ class GigaChannelComponent(RestfulComponent):
 
         community.bootstrappers.append(ipv8_component.make_bootstrapper())
 
-        await self.init_endpoints(['remote_query', 'channels', 'collections'], [('gigachannel_community', community)])
+        await self.init_endpoints(endpoints=['remote_query', 'channels', 'collections'],
+                                  values={'gigachannel_community': community})
 
     async def shutdown(self):
         await super().shutdown()

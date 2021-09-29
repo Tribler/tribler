@@ -1,5 +1,7 @@
 from abc import ABC
-from typing import Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
+
+from ipv8_service import IPv8
 
 from tribler_common.simpledefs import STATE_START_API
 from tribler_core.components.base import Component
@@ -23,7 +25,7 @@ class RestfulComponent(Component, ABC):
             state_endpoint: StateEndpoint = rest_component.rest_manager.get_endpoint('state')
             state_endpoint.readable_status = readable_status
 
-    async def init_endpoints(self, endpoints, values):
+    async def init_endpoints(self, endpoints: List[str], values: Dict[str, Any]):
         rest_component = await self.get_component(RESTComponent)
         if not rest_component:
             return
@@ -31,11 +33,11 @@ class RestfulComponent(Component, ABC):
         for endpoint_name in endpoints:
             endpoint = rest_component.rest_manager.get_endpoint(endpoint_name)
             if endpoint:
-                for attr_name, attr_value in values:
+                for attr_name, attr_value in values.items():
                     setattr(endpoint, attr_name, attr_value)
                     self.endpoint_attrs.add((endpoint_name, attr_name))
 
-    async def init_ipv8_endpoints(self, ipv8, endpoints):
+    async def init_ipv8_endpoints(self, ipv8: IPv8, endpoints: List[str]):
         rest_component = await self.get_component(RESTComponent)
         if not rest_component:
             return

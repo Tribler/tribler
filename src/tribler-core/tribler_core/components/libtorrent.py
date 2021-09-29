@@ -37,10 +37,8 @@ class LibtorrentComponent(RestfulComponent):
         await self.download_manager.load_checkpoints()
         await self.set_readable_status(STATE_CHECKPOINTS_LOADED)
 
-        await self.init_endpoints(
-            ['createtorrent', 'libtorrent', 'torrentinfo', 'downloads', 'channels', 'collections', 'settings'],
-            [('download_manager', self.download_manager)]
-        )
+        endpoints = ['createtorrent', 'libtorrent', 'torrentinfo', 'downloads', 'channels', 'collections', 'settings']
+        await self.init_endpoints(endpoints=endpoints, values={'download_manager': self.download_manager})
 
         if config.gui_test_mode:
             uri = "magnet:?xt=urn:btih:0000000000000000000000000000000000000000"
