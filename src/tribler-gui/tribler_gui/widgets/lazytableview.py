@@ -104,7 +104,7 @@ class TriblerContentTableView(QTableView):
         """
         old_selected = self.delegate.hover_index
         self.delegate.hover_index = self.delegate.no_index
-        self.redraw(old_selected)
+        self.redraw(old_selected, True)
 
     def leaveEvent(self, event):
         """
@@ -118,8 +118,17 @@ class TriblerContentTableView(QTableView):
         index = QModelIndex(self.indexAt(event.pos()))
         self.mouse_moved.emit(event.pos(), index)
 
-    def redraw(self, index):
-        self.model().dataChanged.emit(index, index, [])
+    def redraw(self, index, redraw_whole_row):
+        """
+        Redraw the cell at a particular index.
+        """
+        if redraw_whole_row:
+            for col_ind in range(self.model().columnCount()):
+                index = self.model().index(index.row(), col_ind)
+                self.model().dataChanged.emit(index, index, [])
+        else:
+            self.model().dataChanged.emit(index, index, [])
+
         # This is required to drop the sensitivity zones of the controls,
         # so there are no invisible controls left over from a previous state of the view
         for control in self.delegate.controls:
