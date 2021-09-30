@@ -112,8 +112,6 @@ class CheckClickedMixin:
             # Handle the case when the cursor leaves the table
             if not model or (model.column_position.get(self.column_name, -1) == index.column()):
                 self.last_index = index
-                return True
-        return False
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):
@@ -143,23 +141,14 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
     def on_mouse_moved(self, pos, index):
         # This method controls for which rows the buttons/box should be drawn
-        redraw = False
-        old_hover_index = None
         if self.hover_index != index:
-            old_hover_index = self.hover_index
             self.hover_index = index
             if not self.button_box.contains(pos):
-                redraw = True
                 # Hide the tooltip when cell hover changes
                 QToolTip.hideText()
 
         for controls in self.controls:
-            redraw = controls.on_mouse_moved(pos, index) or redraw
-
-        if redraw:
-            self.redraw_required.emit(index, False)
-            if old_hover_index:
-                self.redraw_required.emit(old_hover_index, True)
+            controls.on_mouse_moved(pos, index)
 
     @staticmethod
     def split_rect_into_squares(r, buttons):

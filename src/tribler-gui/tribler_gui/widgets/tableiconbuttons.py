@@ -42,12 +42,10 @@ class IconButton(QObject):
         return False
 
     def on_mouse_moved(self, pos, _):
-        old_icon_mode = self.icon_mode
         if self.rect.contains(pos):
             self.icon_mode = QIcon.Selected
         else:
             self.icon_mode = QIcon.Normal
-        return old_icon_mode != self.icon_mode
 
     def size_hint(self, _, __):
         return self.size
