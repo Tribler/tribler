@@ -1,9 +1,7 @@
-import hashlib
 import inspect
 import logging
 import math
 import os
-import re
 import sys
 import traceback
 import types
@@ -17,7 +15,7 @@ from PyQt5.QtCore import QCoreApplication, QLocale, QTranslator, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
-from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED, VIDEO_EXTS
+from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 NUM_VOTES_BARS = 8
 
@@ -75,28 +73,6 @@ def string_to_seconds(time_str):
     hours = float(parts[0])
     minutes = float(parts[1])
     return hours * 3600 + minutes * 60
-
-
-def get_color(name):
-    """
-    This method deterministically determines a color of a given name. This is done by taking the MD5 hash of the text.
-    """
-    md5_hash = hashlib.md5()
-    md5_hash.update(name.encode('utf-8'))
-    md5_str_hash = md5_hash.hexdigest()
-
-    red = int(md5_str_hash[0:10], 16) % 128 + 100
-    green = int(md5_str_hash[10:20], 16) % 128 + 100
-    blue = int(md5_str_hash[20:30], 16) % 128 + 100
-
-    return f'#{red:02x}{green:02x}{blue:02x}'
-
-
-def is_video_file(filename):
-    _, ext = os.path.splitext(filename)
-    if ext.startswith('.'):
-        ext = ext[1:]
-    return ext in VIDEO_EXTS
 
 
 def pretty_date(time=False):
@@ -180,11 +156,6 @@ def duration_to_string(seconds):
     if minutes > 0:
         return tr("%(minutes)im %(seconds)is") % data
     return tr("%(seconds)is") % data
-
-
-def split_into_keywords(query):
-    RE_KEYWORD_SPLIT = re.compile(r"[\W_]", re.UNICODE)
-    return [kw for kw in RE_KEYWORD_SPLIT.split(query.lower()) if len(kw) > 0]
 
 
 def get_base_path():
@@ -278,13 +249,6 @@ def quote_plus_unicode(s):
     :return: the safe URI string
     """
     return ''.join([unicode_quoter(c) for c in s])
-
-
-def prec_div(number, precision):
-    """
-    Divide a given number by 10^precision.
-    """
-    return float(number) / float(10 ** precision)
 
 
 def get_health(seeders, leechers, last_tracker_check):
