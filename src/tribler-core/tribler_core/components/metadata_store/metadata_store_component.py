@@ -1,10 +1,6 @@
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
 
-from tribler_core.components.base import Component
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
-from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.restapi import RestfulComponent
-from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.components.restapi import RestfulComponent

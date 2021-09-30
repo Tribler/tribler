@@ -1,8 +1,6 @@
 from tribler_common.simpledefs import STATE_UPGRADING_READABLE
 
-from tribler_core.components.base import Component
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
-from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RestfulComponent
 from tribler_core.upgrade.upgrade import TriblerUpgrader
 
