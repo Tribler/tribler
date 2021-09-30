@@ -98,6 +98,13 @@ class TriblerContentTableView(QTableView):
             self.deselect_all_rows()
         return False
 
+    def wheelEvent(self, event):
+        super().wheelEvent(event)
+
+        # We trigger a mouse movement event to make sure that the whole row remains selected when scrolling.
+        index = QModelIndex(self.indexAt(event.pos()))
+        self.mouse_moved.emit(event.pos(), index)
+
     def deselect_all_rows(self):
         """
         Deselect all rows in the table view.
