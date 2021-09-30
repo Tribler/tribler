@@ -5,7 +5,7 @@ import pytest
 from tribler_core.components.base import Session
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler_core.components.ipv8 import Ipv8Component
-from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.restapi.rest_manager import RESTManager

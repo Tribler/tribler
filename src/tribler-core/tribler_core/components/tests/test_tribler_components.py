@@ -1,12 +1,10 @@
-from unittest.mock import patch
-
 import pytest
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session, SessionError
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.libtorrent import LibtorrentComponent
-from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout import PayoutComponent
 from tribler_core.components.popularity import PopularityComponent
@@ -19,7 +17,6 @@ from tribler_core.components.tunnels import TunnelsComponent
 from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.components.version_check import VersionCheckComponent
 from tribler_core.components.watch_folder import WatchFolderComponent
-from tribler_core.restapi.rest_manager import RESTManager
 
 pytestmark = pytest.mark.asyncio
 
@@ -48,18 +45,6 @@ def test_session_context_manager(loop, tribler_config):
 
     with pytest.raises(SessionError, match="Default session was not set"):
         Session.current()
-
-
-async def test_masterkey_component(tribler_config):
-    session = Session(tribler_config, [MasterKeyComponent()])
-    with session:
-        await session.start()
-
-        comp = MasterKeyComponent.instance()
-        assert comp.started.is_set() and not comp.failed
-        assert comp.keypair
-
-        await session.shutdown()
 
 
 async def test_ipv8_component(tribler_config):
