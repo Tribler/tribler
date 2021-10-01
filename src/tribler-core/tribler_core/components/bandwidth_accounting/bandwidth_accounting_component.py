@@ -4,7 +4,7 @@ from ipv8_service import IPv8
 
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 
-from tribler_core.components.bandwidth_accounting.community.community import (
+from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
 )
