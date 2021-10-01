@@ -2,12 +2,10 @@ import os
 import time
 from collections import deque
 
-from ipv8.taskmanager import TaskManager
-
 import psutil
 
+from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
-
 from tribler_core.modules.resource_monitor.base import ResourceMonitor
 from tribler_core.modules.resource_monitor.profiler import YappiProfiler
 from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
@@ -57,10 +55,11 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         super().check_resources()
         # Additionally, record the disk and notify on low disk space available.
         self.record_disk_usage()
-
-        # Write resource logs
-        if self.resource_log_file:
-            self.write_resource_logs()
+        try:
+            if self.resource_log_file:
+                self.write_resource_logs()
+        except FileNotFoundError as e:
+            self._logger.warning(e)
 
     def write_resource_logs(self):
         if not self.memory_data or not self.cpu_data:
