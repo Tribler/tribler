@@ -27,6 +27,6 @@ async def test_giga_channel_component(tribler_config):
         comp = GigaChannelComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
-        assert comp._ipv8
+        assert comp._ipv8_component
 
         await session.shutdown()

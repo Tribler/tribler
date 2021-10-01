@@ -49,8 +49,7 @@ def test_session_context_manager(loop, tribler_config):
 
 async def test_ipv8_component(tribler_config):
     tribler_config.ipv8.enabled = True
-    components = [MasterKeyComponent(), RESTComponent(), Ipv8Component()]
-    session = Session(tribler_config, components)
+    session = Session(tribler_config, [MasterKeyComponent(), RESTComponent(), Ipv8Component()])
     with session:
         await session.start()
 
@@ -63,6 +62,25 @@ async def test_ipv8_component(tribler_config):
         assert not comp._peer_discovery_community
 
         await session.shutdown()
+
+    # test dht disabled
+    tribler_config.dht.enabled = True
+    session = Session(tribler_config, [MasterKeyComponent(), RESTComponent(), Ipv8Component()])
+    with session:
+        await session.start()
+
+        comp = Ipv8Component.instance()
+        assert comp.dht_discovery_community
+
+    # test discovery_community enabled
+    tribler_config.gui_test_mode = False
+    tribler_config.discovery_community.enabled = True
+    session = Session(tribler_config, [MasterKeyComponent(), RESTComponent(), Ipv8Component()])
+    with session:
+        await session.start()
+
+        comp = Ipv8Component.instance()
+        assert comp._peer_discovery_community
 
 
 async def test_libtorrent_component(tribler_config):
@@ -107,7 +125,7 @@ async def test_popularity_component(tribler_config):
 
         comp = PopularityComponent.instance()
         assert comp.community
-        assert comp._ipv8
+        assert comp._ipv8_component
 
         await session.shutdown()
 
@@ -195,7 +213,7 @@ async def test_tunnels_component(tribler_config):
         comp = TunnelsComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
-        assert comp._ipv8
+        assert comp._ipv8_component
 
         await session.shutdown()
 

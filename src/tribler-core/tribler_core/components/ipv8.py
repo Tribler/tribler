@@ -75,11 +75,11 @@ class Ipv8Component(RestfulComponent):
                         config.ipv8.walk_scaling_upper_limit).start(self._task_manager)
 
         if config.dht.enabled:
-            self.init_dht_discovery_community()
+            self._init_dht_discovery_community()
 
-        if not self.session.config.gui_test_mode:
+        if not config.gui_test_mode:
             if config.discovery_community.enabled:
-                self.init_peer_discovery_community()
+                self._init_peer_discovery_community()
         else:
             if config.dht.enabled:
                 self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
@@ -89,6 +89,18 @@ class Ipv8Component(RestfulComponent):
             'asyncio', 'attestation', 'dht', 'identity', 'isolation', 'network', 'noblockdht', 'overlays'
         ])
 
+    def initialise_community_by_default(self, community):
+        community.bootstrappers.append(self.make_bootstrapper())
+
+        # Value of `target_peers` must not be equal to the value of `max_peers` for this community.
+        # This causes a deformed network topology and makes it harder for peers to connect to others.
+        # More information: https://github.com/Tribler/py-ipv8/issues/979#issuecomment-896643760
+        random_walk_max_peers = max(10, community.max_peers - 10)
+        self.ipv8.add_strategy(community, RandomWalk(community), random_walk_max_peers)
+
+    async def unload_community(self, community):
+        await self.ipv8.unload_overlay(community)
+
     def make_bootstrapper(self) -> DispersyBootstrapper:
         args = DISPERSY_BOOTSTRAPPER['init']
         if bootstrap_override := self.session.config.ipv8.bootstrap_override:
@@ -96,21 +108,21 @@ class Ipv8Component(RestfulComponent):
             args = {'ip_addresses': [(address, int(port))], 'dns_addresses': []}
         return DispersyBootstrapper(**args)
 
-    def init_peer_discovery_community(self):
+    def _init_peer_discovery_community(self):
         ipv8 = self.ipv8
         community = DiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=100)
+        community.bootstrappers.append(self.make_bootstrapper())
         ipv8.add_strategy(community, RandomChurn(community), INFINITE)
         ipv8.add_strategy(community, PeriodicSimilarity(community), INFINITE)
         ipv8.add_strategy(community, RandomWalk(community), 20)
-        community.bootstrappers.append(self.make_bootstrapper())
         self._peer_discovery_community = community
 
-    def init_dht_discovery_community(self):
+    def _init_dht_discovery_community(self):
         ipv8 = self.ipv8
         community = DHTDiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=60)
+        community.bootstrappers.append(self.make_bootstrapper())
         ipv8.add_strategy(community, PingChurn(community), INFINITE)
         ipv8.add_strategy(community, RandomWalk(community), 20)
-        community.bootstrappers.append(self.make_bootstrapper())
         self.dht_discovery_community = community
 
     async def shutdown(self):
