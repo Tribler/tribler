@@ -35,8 +35,9 @@ class WatchFolder(TaskManager):
             return
         path = Path(str(fullpath) + ".corrupt")
         try:
+            path.unlink(missing_ok=True)
             fullpath.rename(path)
-        except PermissionError as e:
+        except (PermissionError, FileExistsError) as e:
             self._logger.warning(f'Cant rename the file to {path}. Exception: {e}')
 
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
