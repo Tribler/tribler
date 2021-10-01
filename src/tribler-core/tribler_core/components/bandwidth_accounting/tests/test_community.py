@@ -4,7 +4,8 @@ from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler_core.components.bandwidth_accounting.community.cache import BandwidthTransactionSignCache
-from tribler_core.components.bandwidth_accounting.community.community import BandwidthAccountingCommunity
+from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community \
+    import BandwidthAccountingCommunity
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
