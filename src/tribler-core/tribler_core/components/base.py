@@ -108,14 +108,14 @@ class Component:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
-        self.components_used_by_me: Set[Component] = set()
-        self.in_use_by: Set[Component] = set()
-        self.started = Event()
+        self.dependencies: Set[Component] = set()
+        self.reverse_dependencies: Set[Component] = set()
+        self.started_event = Event()
         self.failed = False
-        self.unused = Event()
+        self.unused_event = Event()
         self.stopped = False
         # Every component starts unused, so it does not lock the whole system on shutdown
-        self.unused.set()
+        self.unused_event.set()
 
     @classmethod
     def instance(cls: Type[T]) -> T:
@@ -132,20 +132,25 @@ class Component:
             sys.stderr.write(f'\nException in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
             self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
             self.failed = True
-            self.started.set()
+            self.started_event.set()
             raise
-        self.started.set()
+        self.started_event.set()
 
     async def stop(self):
         self.logger.info(f'Stop: {self.__class__.__name__}')
         self.logger.info("Waiting for other components to release me")
-        await self.unused.wait()
+        await self.unused_event.wait()
         self.logger.info("Component free, shutting down")
-        await self.shutdown()
-        self.stopped = True
-        for dep in list(self.components_used_by_me):
-            self._release_instance(dep)
-        self.logger.info("Component free, shutting down")
+        try:
+            await self.shutdown()
+        except Exception as e:
+            self.logger.exception(f"Exception in {self.__class__.__name__}.shutdown(): {type(e).__name__}:{e}")
+            raise
+        finally:
+            self.stopped = True
+            for dep in list(self.dependencies):
+                self._release_instance(dep)
+            self.logger.info("Component free, shutting down")
 
     async def run(self):
         pass
@@ -177,13 +182,15 @@ class Component:
         if not dep:
             return None
 
-        await dep.started.wait()
+        await dep.started_event.wait()
         if dep.failed:
             self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
             return None
 
-        self.components_used_by_me.add(dep)
-        dep.in_use_by.add(self)
+        if dep not in self.dependencies:
+            self.dependencies.add(dep)
+            dep._use_by(self)  # pylint: disable=protected-access
+
         return dep
 
     def release_component(self, dependency: Type[T]):
@@ -192,8 +199,18 @@ class Component:
             self._release_instance(dep)
 
     def _release_instance(self, dep: Component):
-        assert dep in self.components_used_by_me
-        self.components_used_by_me.discard(dep)
-        dep.in_use_by.discard(self)
-        if not dep.in_use_by:
-            dep.unused.set()
+        if dep in self.dependencies:
+            self.dependencies.discard(dep)
+            dep._unuse_by(self)  # pylint: disable=protected-access
+
+    def _use_by(self, component: Component):
+        assert component not in self.reverse_dependencies
+        self.reverse_dependencies.add(component)
+        if len(self.reverse_dependencies) == 1:
+            self.unused_event.clear()
+
+    def _unuse_by(self, component: Component):
+        assert component in self.reverse_dependencies
+        self.reverse_dependencies.remove(component)
+        if not self.reverse_dependencies:
+            self.unused_event.set()
