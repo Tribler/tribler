@@ -73,17 +73,20 @@ async def test_required_dependency(tribler_config):
 
         for component in a, b:
             assert not component.dependencies and not component.reverse_dependencies
+            assert component.unused.is_set()
 
         await session.start()
 
         assert a in b.dependencies and not b.reverse_dependencies
         assert not a.dependencies and b in a.reverse_dependencies
+        assert b.unused.is_set() and not a.unused.is_set()
 
         session.shutdown_event.set()
         await session.shutdown()
 
         for component in a, b:
             assert not component.dependencies and not component.reverse_dependencies
+            assert component.unused.is_set()
 
 
 async def test_required_dependency_missed(tribler_config):
@@ -130,6 +133,8 @@ async def test_component_shutdown_failure(tribler_config):
         b = ComponentB.instance()
 
         await session.start()
+
+        assert not a.unused.is_set()
 
         with pytest.raises(TestException):
             await session.shutdown()

@@ -187,8 +187,10 @@ class Component:
             self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
             return None
 
-        self.dependencies.add(dep)
-        dep.reverse_dependencies.add(self)
+        if dep not in self.dependencies:
+            self.dependencies.add(dep)
+            dep._use_by(self)
+
         return dep
 
     def release_component(self, dependency: Type[T]):
@@ -197,8 +199,18 @@ class Component:
             self._release_instance(dep)
 
     def _release_instance(self, dep: Component):
-        assert dep in self.dependencies
-        self.dependencies.discard(dep)
-        dep.reverse_dependencies.discard(self)
-        if not dep.reverse_dependencies:
-            dep.unused.set()
+        if dep in self.dependencies:
+            self.dependencies.discard(dep)
+            dep._unuse_by(self)
+
+    def _use_by(self, component: Component):
+        assert component not in self.reverse_dependencies
+        self.reverse_dependencies.add(component)
+        if len(self.reverse_dependencies) == 1:
+            self.unused.clear()
+
+    def _unuse_by(self, component: Component):
+        assert component in self.reverse_dependencies
+        self.reverse_dependencies.remove(component)
+        if not self.reverse_dependencies:
+            self.unused.set()
