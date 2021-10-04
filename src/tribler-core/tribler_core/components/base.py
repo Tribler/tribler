@@ -110,12 +110,12 @@ class Component:
         self.session: Optional[Session] = None
         self.dependencies: Set[Component] = set()
         self.reverse_dependencies: Set[Component] = set()
-        self.started = Event()
+        self.started_event = Event()
         self.failed = False
-        self.unused = Event()
+        self.unused_event = Event()
         self.stopped = False
         # Every component starts unused, so it does not lock the whole system on shutdown
-        self.unused.set()
+        self.unused_event.set()
 
     @classmethod
     def instance(cls: Type[T]) -> T:
@@ -132,14 +132,14 @@ class Component:
             sys.stderr.write(f'\nException in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
             self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
             self.failed = True
-            self.started.set()
+            self.started_event.set()
             raise
-        self.started.set()
+        self.started_event.set()
 
     async def stop(self):
         self.logger.info(f'Stop: {self.__class__.__name__}')
         self.logger.info("Waiting for other components to release me")
-        await self.unused.wait()
+        await self.unused_event.wait()
         self.logger.info("Component free, shutting down")
         try:
             await self.shutdown()
@@ -182,7 +182,7 @@ class Component:
         if not dep:
             return None
 
-        await dep.started.wait()
+        await dep.started_event.wait()
         if dep.failed:
             self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
             return None
@@ -207,10 +207,10 @@ class Component:
         assert component not in self.reverse_dependencies
         self.reverse_dependencies.add(component)
         if len(self.reverse_dependencies) == 1:
-            self.unused.clear()
+            self.unused_event.clear()
 
     def _unuse_by(self, component: Component):
         assert component in self.reverse_dependencies
         self.reverse_dependencies.remove(component)
         if not self.reverse_dependencies:
-            self.unused.set()
+            self.unused_event.set()

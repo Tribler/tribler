@@ -26,7 +26,7 @@ async def test_gigachannel_manager_component(tribler_config):
         comp = GigachannelManagerComponent.instance()
         await session.start()
 
-        assert comp.started.is_set() and not comp.failed
+        assert comp.started_event.is_set() and not comp.failed
         assert comp.gigachannel_manager
 
         await session.shutdown()

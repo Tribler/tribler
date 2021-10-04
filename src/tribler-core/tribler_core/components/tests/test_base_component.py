@@ -34,7 +34,7 @@ async def test_session_start_shutdown(tribler_config):
 
         for component in a, b:
             assert not component.run_was_executed
-            assert not component.started.is_set()
+            assert not component.started_event.is_set()
             assert not component.shutdown_was_executed
             assert not component.stopped
 
@@ -43,7 +43,7 @@ async def test_session_start_shutdown(tribler_config):
         assert ComponentA.instance() is a and ComponentB.instance() is b
         for component in a, b:
             assert component.run_was_executed
-            assert component.started.is_set()
+            assert component.started_event.is_set()
             assert not component.shutdown_was_executed
             assert not component.stopped
 
@@ -53,7 +53,7 @@ async def test_session_start_shutdown(tribler_config):
         assert ComponentA.instance() is a and ComponentB.instance() is b
         for component in a, b:
             assert component.run_was_executed
-            assert component.started.is_set()
+            assert component.started_event.is_set()
             assert component.shutdown_was_executed
             assert component.stopped
 
@@ -73,20 +73,20 @@ async def test_required_dependency(tribler_config):
 
         for component in a, b:
             assert not component.dependencies and not component.reverse_dependencies
-            assert component.unused.is_set()
+            assert component.unused_event.is_set()
 
         await session.start()
 
         assert a in b.dependencies and not b.reverse_dependencies
         assert not a.dependencies and b in a.reverse_dependencies
-        assert b.unused.is_set() and not a.unused.is_set()
+        assert b.unused_event.is_set() and not a.unused_event.is_set()
 
         session.shutdown_event.set()
         await session.shutdown()
 
         for component in a, b:
             assert not component.dependencies and not component.reverse_dependencies
-            assert component.unused.is_set()
+            assert component.unused_event.is_set()
 
 
 async def test_required_dependency_missed(tribler_config):
@@ -112,7 +112,7 @@ async def test_required_dependency_missed(tribler_config):
         await session.start(failfast=False)
 
         assert ComponentB.instance() is b
-        assert b.started.is_set()
+        assert b.started_event.is_set()
         assert b.failed
 
 
@@ -134,7 +134,7 @@ async def test_component_shutdown_failure(tribler_config):
 
         await session.start()
 
-        assert not a.unused.is_set()
+        assert not a.unused_event.is_set()
 
         with pytest.raises(TestException):
             await session.shutdown()
@@ -142,5 +142,5 @@ async def test_component_shutdown_failure(tribler_config):
         for component in a, b:
             assert not component.dependencies
             assert not component.reverse_dependencies
-            assert component.unused.is_set()
+            assert component.unused_event.is_set()
             assert component.stopped
