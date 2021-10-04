@@ -5,6 +5,10 @@ from tribler_core.components.base import Component, ComponentError, Session, T
 pytestmark = pytest.mark.asyncio
 
 
+class TestException(Exception):
+    pass
+
+
 async def test_session_start_shutdown(tribler_config):
     class TestComponent(Component):
         def __init__(self):
@@ -107,3 +111,31 @@ async def test_required_dependency_missed(tribler_config):
         assert ComponentB.instance() is b
         assert b.started.is_set()
         assert b.failed
+
+
+async def test_component_shutdown_failure(tribler_config):
+    class ComponentA(Component):
+        pass
+
+    class ComponentB(Component):
+        async def run(self):
+            await self.require_component(ComponentA)
+
+        async def shutdown(self):
+            raise TestException
+
+    session = Session(tribler_config, [ComponentA(), ComponentB()])
+    with session:
+        a = ComponentA.instance()
+        b = ComponentB.instance()
+
+        await session.start()
+
+        with pytest.raises(TestException):
+            await session.shutdown()
+
+        for component in a, b:
+            assert not component.dependencies
+            assert not component.reverse_dependencies
+            assert component.unused.is_set()
+            assert component.stopped

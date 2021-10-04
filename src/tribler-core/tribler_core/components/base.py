@@ -141,11 +141,16 @@ class Component:
         self.logger.info("Waiting for other components to release me")
         await self.unused.wait()
         self.logger.info("Component free, shutting down")
-        await self.shutdown()
-        self.stopped = True
-        for dep in list(self.dependencies):
-            self._release_instance(dep)
-        self.logger.info("Component free, shutting down")
+        try:
+            await self.shutdown()
+        except Exception as e:
+            self.logger.exception(f"Exception in {self.__class__.__name__}.shutdown(): {type(e).__name__}:{e}")
+            raise
+        finally:
+            self.stopped = True
+            for dep in list(self.dependencies):
+                self._release_instance(dep)
+            self.logger.info("Component free, shutting down")
 
     async def run(self):
         pass
