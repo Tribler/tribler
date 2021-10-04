@@ -189,7 +189,7 @@ class Component:
 
         if dep not in self.dependencies:
             self.dependencies.add(dep)
-            dep._use_by(self)
+            dep._use_by(self)  # pylint: disable=protected-access
 
         return dep
 
@@ -201,7 +201,7 @@ class Component:
     def _release_instance(self, dep: Component):
         if dep in self.dependencies:
             self.dependencies.discard(dep)
-            dep._unuse_by(self)
+            dep._unuse_by(self)  # pylint: disable=protected-access
 
     def _use_by(self, component: Component):
         assert component not in self.reverse_dependencies
