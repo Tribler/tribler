@@ -350,3 +350,45 @@ def test_check_local_torrents(torrent_checker):
 
     for infohash in selected_torrents:
         assert infohash in selection_range
+
+
+@db_session
+def test_check_channel_torrents(torrent_checker):
+    """
+    Test that the channel torrents are checked based on last checked time.
+    Only outdated torrents are selected for health checks.
+    """
+
+    def random_infohash():
+        return os.urandom(20)
+
+    def add_torrent_to_channel(infohash, last_check):
+        torrent = torrent_checker.mds.TorrentMetadata(public_key=torrent_checker.mds.my_public_key_bin,
+                                                      infohash=infohash)
+        torrent.health.last_check = last_check
+        return torrent
+
+    # No torrents yet in channel, the selected channel torrents to check should be empty
+    selected_torrents = torrent_checker.channel_torrents_to_check()
+    assert len(selected_torrents) == 0
+
+    num_torrents = 20
+    timestamp_now = int(time.time())
+    timestamp_outdated = timestamp_now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
+
+    # Add some recently checked and outdated torrents to the channel
+    fresh_torrents = []
+    for index in range(0, num_torrents):
+        torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_now)
+        fresh_torrents.append(torrent)
+
+    outdated_torrents = []
+    for index in range(0, num_torrents):
+        torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_outdated)
+        outdated_torrents.append(torrent)
+
+    # Now check that only outdated torrents are selected for check
+    selected_torrents = torrent_checker.channel_torrents_to_check()
+    assert len(selected_torrents) <= torrent_checker_module.CHANNEL_TORRENT_SELECTION_POOL_SIZE
+    for torrent in selected_torrents:
+        assert torrent in outdated_torrents
