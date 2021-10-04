@@ -108,7 +108,7 @@ class Component:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')
         self.session: Optional[Session] = None
-        self.components_used_by_me: Set[Component] = set()
+        self.dependencies: Set[Component] = set()
         self.in_use_by: Set[Component] = set()
         self.started = Event()
         self.failed = False
@@ -143,7 +143,7 @@ class Component:
         self.logger.info("Component free, shutting down")
         await self.shutdown()
         self.stopped = True
-        for dep in list(self.components_used_by_me):
+        for dep in list(self.dependencies):
             self._release_instance(dep)
         self.logger.info("Component free, shutting down")
 
@@ -182,7 +182,7 @@ class Component:
             self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
             return None
 
-        self.components_used_by_me.add(dep)
+        self.dependencies.add(dep)
         dep.in_use_by.add(self)
         return dep
 
@@ -192,8 +192,8 @@ class Component:
             self._release_instance(dep)
 
     def _release_instance(self, dep: Component):
-        assert dep in self.components_used_by_me
-        self.components_used_by_me.discard(dep)
+        assert dep in self.dependencies
+        self.dependencies.discard(dep)
         dep.in_use_by.discard(self)
         if not dep.in_use_by:
             dep.unused.set()

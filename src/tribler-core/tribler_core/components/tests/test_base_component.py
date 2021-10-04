@@ -74,12 +74,12 @@ async def test_required_dependency_enabled(tribler_config):
         b = ComponentB.instance()
 
         assert not a.started.is_set() and not b.started.is_set()
-        assert not b.components_used_by_me and not a.in_use_by
+        assert not b.dependencies and not a.in_use_by
 
         await session.start()
 
         assert a.started.is_set() and b.started.is_set()
-        assert a in b.components_used_by_me
+        assert a in b.dependencies
         assert b in a.in_use_by
 
         session.shutdown_event.set()
@@ -87,7 +87,7 @@ async def test_required_dependency_enabled(tribler_config):
 
         assert a.started.is_set() and b.started.is_set()
         assert a.stopped and b.stopped
-        assert not b.components_used_by_me and not a.in_use_by
+        assert not b.dependencies and not a.in_use_by
 
 
 async def test_required_dependency_disabled(tribler_config):
@@ -100,12 +100,12 @@ async def test_required_dependency_disabled(tribler_config):
         b = ComponentB.instance()
 
         assert not a.started.is_set() and not b.started.is_set()
-        assert not b.components_used_by_me and not a.in_use_by
+        assert not b.dependencies and not a.in_use_by
 
         await session.start()
 
         assert a.started.is_set() and b.started.is_set()
-        assert a in b.components_used_by_me
+        assert a in b.dependencies
         assert b in a.in_use_by
 
         session.shutdown_event.set()
@@ -113,7 +113,7 @@ async def test_required_dependency_disabled(tribler_config):
 
         assert a.started.is_set() and b.started.is_set()
         assert a.stopped and b.stopped
-        assert not b.components_used_by_me and not a.in_use_by
+        assert not b.dependencies and not a.in_use_by
 
 
 async def test_dependency_missed(tribler_config):
@@ -129,6 +129,6 @@ async def test_dependency_missed(tribler_config):
         assert not ComponentA.instance()
 
         b = ComponentB.instance()
-        assert not b.components_used_by_me
+        assert not b.dependencies
         with pytest.raises(ComponentError):
             await session.start()
