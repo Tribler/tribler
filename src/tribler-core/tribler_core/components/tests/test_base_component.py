@@ -74,20 +74,20 @@ async def test_required_dependency_enabled(tribler_config):
         b = ComponentB.instance()
 
         assert not a.started.is_set() and not b.started.is_set()
-        assert not b.dependencies and not a.in_use_by
+        assert not b.dependencies and not a.reverse_dependencies
 
         await session.start()
 
         assert a.started.is_set() and b.started.is_set()
         assert a in b.dependencies
-        assert b in a.in_use_by
+        assert b in a.reverse_dependencies
 
         session.shutdown_event.set()
         await session.shutdown()
 
         assert a.started.is_set() and b.started.is_set()
         assert a.stopped and b.stopped
-        assert not b.dependencies and not a.in_use_by
+        assert not b.dependencies and not a.reverse_dependencies
 
 
 async def test_required_dependency_disabled(tribler_config):
@@ -100,20 +100,20 @@ async def test_required_dependency_disabled(tribler_config):
         b = ComponentB.instance()
 
         assert not a.started.is_set() and not b.started.is_set()
-        assert not b.dependencies and not a.in_use_by
+        assert not b.dependencies and not a.reverse_dependencies
 
         await session.start()
 
         assert a.started.is_set() and b.started.is_set()
         assert a in b.dependencies
-        assert b in a.in_use_by
+        assert b in a.reverse_dependencies
 
         session.shutdown_event.set()
         await session.shutdown()
 
         assert a.started.is_set() and b.started.is_set()
         assert a.stopped and b.stopped
-        assert not b.dependencies and not a.in_use_by
+        assert not b.dependencies and not a.reverse_dependencies
 
 
 async def test_dependency_missed(tribler_config):

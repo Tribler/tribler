@@ -109,7 +109,7 @@ class Component:
         self.logger.info('__init__')
         self.session: Optional[Session] = None
         self.dependencies: Set[Component] = set()
-        self.in_use_by: Set[Component] = set()
+        self.reverse_dependencies: Set[Component] = set()
         self.started = Event()
         self.failed = False
         self.unused = Event()
@@ -183,7 +183,7 @@ class Component:
             return None
 
         self.dependencies.add(dep)
-        dep.in_use_by.add(self)
+        dep.reverse_dependencies.add(self)
         return dep
 
     def release_component(self, dependency: Type[T]):
@@ -194,6 +194,6 @@ class Component:
     def _release_instance(self, dep: Component):
         assert dep in self.dependencies
         self.dependencies.discard(dep)
-        dep.in_use_by.discard(self)
-        if not dep.in_use_by:
+        dep.reverse_dependencies.discard(self)
+        if not dep.reverse_dependencies:
             dep.unused.set()
