@@ -5,15 +5,11 @@ from tribler_core.components.base import Component, ComponentError, Session, T
 pytestmark = pytest.mark.asyncio
 
 
-# pylint: disable=protected-access
-
-
-def make_test_components():
+async def test_session_start_shutdown(tribler_config):
     class TestComponent(Component):
-        run_was_executed = False
-        shutdown_was_executed = False
-        should_be_enabled_result_value = True
-        default_implementation: T
+        def __init__(self):
+            self.run_was_executed = self.shutdown_was_executed = False
+            super().__init__()
 
         async def run(self):
             self.run_was_executed = True
@@ -27,108 +23,87 @@ def make_test_components():
     class ComponentB(TestComponent):
         pass
 
-    return ComponentA, ComponentB
-
-
-async def test_session_start_shutdown(tribler_config):
-    ComponentA, ComponentB = make_test_components()
     session = Session(tribler_config, [ComponentA(), ComponentB()])
     with session:
         a = ComponentA.instance()
         b = ComponentB.instance()
 
-        assert not a.run_was_executed and not a.shutdown_was_executed and not a.stopped
-        assert not b.run_was_executed and not b.shutdown_was_executed and not b.stopped
-
-        assert not a.started.is_set() and not b.started.is_set()
+        for component in a, b:
+            assert not component.run_was_executed
+            assert not component.started.is_set()
+            assert not component.shutdown_was_executed
+            assert not component.stopped
 
         await session.start()
 
-        a2 = ComponentA.instance()
-        b2 = ComponentB.instance()
-        assert a2 is a and b2 is b
-
-        assert a.run_was_executed and not a.shutdown_was_executed and not a.stopped
-        assert b.run_was_executed and not b.shutdown_was_executed and not b.stopped
-        assert a.started.is_set() and b.started.is_set()
+        assert ComponentA.instance() is a and ComponentB.instance() is b
+        for component in a, b:
+            assert component.run_was_executed
+            assert component.started.is_set()
+            assert not component.shutdown_was_executed
+            assert not component.stopped
 
         session.shutdown_event.set()
         await session.shutdown()
 
-        a3 = ComponentA.instance()
-        b3 = ComponentB.instance()
-        assert a3 is a and b3 is b
-
-        assert a.run_was_executed and a.shutdown_was_executed and a.stopped
-        assert b.run_was_executed and b.shutdown_was_executed and b.stopped
-        assert a.started.is_set() and b.started.is_set()
-
-
-async def test_required_dependency_enabled(tribler_config):
-    ComponentA, ComponentB = make_test_components()
-    ComponentB.run = lambda self: self.get_component(ComponentA)
-
-    session = Session(tribler_config, [ComponentA(), ComponentB()])
-    with session:
-        a = ComponentA.instance()
-        b = ComponentB.instance()
-
-        assert not a.started.is_set() and not b.started.is_set()
-        assert not b.dependencies and not a.reverse_dependencies
-
-        await session.start()
-
-        assert a.started.is_set() and b.started.is_set()
-        assert a in b.dependencies
-        assert b in a.reverse_dependencies
-
-        session.shutdown_event.set()
-        await session.shutdown()
-
-        assert a.started.is_set() and b.started.is_set()
-        assert a.stopped and b.stopped
-        assert not b.dependencies and not a.reverse_dependencies
+        assert ComponentA.instance() is a and ComponentB.instance() is b
+        for component in a, b:
+            assert component.run_was_executed
+            assert component.started.is_set()
+            assert component.shutdown_was_executed
+            assert component.stopped
 
 
-async def test_required_dependency_disabled(tribler_config):
-    ComponentA, ComponentB = make_test_components()
-    ComponentB.run = lambda self: self.get_component(ComponentA)
+async def test_required_dependency(tribler_config):
+    class ComponentA(Component):
+        pass
+
+    class ComponentB(Component):
+        async def run(self):
+            await self.require_component(ComponentA)
 
     session = Session(tribler_config, [ComponentA(), ComponentB()])
     with session:
         a = ComponentA.instance()
         b = ComponentB.instance()
 
-        assert not a.started.is_set() and not b.started.is_set()
-        assert not b.dependencies and not a.reverse_dependencies
+        for component in a, b:
+            assert not component.dependencies and not component.reverse_dependencies
 
         await session.start()
 
-        assert a.started.is_set() and b.started.is_set()
-        assert a in b.dependencies
-        assert b in a.reverse_dependencies
+        assert a in b.dependencies and not b.reverse_dependencies
+        assert not a.dependencies and b in a.reverse_dependencies
 
         session.shutdown_event.set()
         await session.shutdown()
 
-        assert a.started.is_set() and b.started.is_set()
-        assert a.stopped and b.stopped
-        assert not b.dependencies and not a.reverse_dependencies
+        for component in a, b:
+            assert not component.dependencies and not component.reverse_dependencies
 
 
-async def test_dependency_missed(tribler_config):
-    ComponentA, ComponentB = make_test_components()
+async def test_required_dependency_missed(tribler_config):
+    class ComponentA(Component):
+        pass
 
-    async def run(self):
-        await self.require_component(ComponentA)
-
-    ComponentB.run = run
+    class ComponentB(Component):
+        async def run(self):
+            await self.require_component(ComponentA)
 
     session = Session(tribler_config, [ComponentB()])
     with session:
-        assert not ComponentA.instance()
-
+        assert ComponentA.instance() is None
         b = ComponentB.instance()
-        assert not b.dependencies
-        with pytest.raises(ComponentError):
-            await session.start()
+
+        with pytest.raises(ComponentError, match='^Missed dependency: ComponentB requires ComponentA to be active$'):
+            await session.start()  # failfast == True
+
+    session = Session(tribler_config, [ComponentB()])
+    with session:
+        b = ComponentB.instance()
+
+        await session.start(failfast=False)
+
+        assert ComponentB.instance() is b
+        assert b.started.is_set()
+        assert b.failed
