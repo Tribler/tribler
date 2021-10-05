@@ -63,7 +63,9 @@ async def test_ipv8_component(tribler_config):
 
         await session.shutdown()
 
-    # test dht disabled
+
+async def test_ipv8_component_dht_disabled(tribler_config):
+    tribler_config.ipv8.enabled = True
     tribler_config.dht.enabled = True
     session = Session(tribler_config, [MasterKeyComponent(), RESTComponent(), Ipv8Component()])
     with session:
@@ -72,7 +74,9 @@ async def test_ipv8_component(tribler_config):
         comp = Ipv8Component.instance()
         assert comp.dht_discovery_community
 
-    # test discovery_community enabled
+
+async def test_ipv8_component_discovery_community_enabled(tribler_config):
+    tribler_config.ipv8.enabled = True
     tribler_config.gui_test_mode = False
     tribler_config.discovery_community.enabled = True
     session = Session(tribler_config, [MasterKeyComponent(), RESTComponent(), Ipv8Component()])

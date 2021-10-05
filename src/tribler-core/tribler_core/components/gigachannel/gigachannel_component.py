@@ -38,12 +38,8 @@ class GigaChannelComponent(RestfulComponent):
             max_peers=50,
         )
         self.community = community
-
-        self._ipv8_component.ipv8.add_strategy(community, RandomWalk(community), 30)
+        self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)
         self._ipv8_component.ipv8.add_strategy(community, RemovePeers(community), INFINITE)
-
-        community.bootstrappers.append(self._ipv8_component.make_bootstrapper())
-
         await self.init_endpoints(endpoints=['remote_query', 'channels', 'collections'],
                                   values={'gigachannel_community': community})
 

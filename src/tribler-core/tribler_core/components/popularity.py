@@ -31,7 +31,7 @@ class PopularityComponent(Component):
                                         torrent_checker=torrent_checker_component.torrent_checker)
         self.community = community
 
-        self._ipv8_component.initialise_community_by_default(community)
+        self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)
         self._ipv8_component.ipv8.add_strategy(community, RemovePeers(community), INFINITE)
 
     async def shutdown(self):
