@@ -1,4 +1,5 @@
 from ipv8.peerdiscovery.discovery import RandomWalk
+from ipv8.peerdiscovery.network import Network
 
 from tribler_core.components.gigachannel.community.gigachannel_community import (
     GigaChannelCommunity,
@@ -30,7 +31,7 @@ class GigaChannelComponent(RestfulComponent):
         community = giga_channel_cls(
             self._ipv8_component.peer,
             self._ipv8_component.ipv8.endpoint,
-            self._ipv8_component.ipv8.network,
+            Network(),
             notifier=notifier,
             settings=config.chant,
             rqc_settings=config.remote_query_community,

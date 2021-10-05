@@ -1,3 +1,4 @@
+from ipv8.peerdiscovery.network import Network
 from tribler_core.components.base import Component
 from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler_core.components.ipv8 import INFINITE, Ipv8Component
@@ -24,7 +25,7 @@ class PopularityComponent(Component):
         config = self.session.config
         community = PopularityCommunity(self._ipv8_component.peer,
                                         self._ipv8_component.ipv8.endpoint,
-                                        self._ipv8_component.ipv8.network,
+                                        Network(),
                                         settings=config.popularity_community,
                                         rqc_settings=config.remote_query_community,
                                         metadata_store=metadata_store_component.mds,
