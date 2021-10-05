@@ -60,7 +60,7 @@ def define_columns():
         Column.CATEGORY:   d('category',   "",               width=30, tooltip_filter=lambda data: data),
         Column.NAME:       d('name',       tr("Name"),       width=EXPANDING),
         Column.SIZE:       d('size',       tr("Size"),       width=90, display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
-        Column.HEALTH:     d('health',     tr("Health"),     width=100, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
+        Column.HEALTH:     d('health',     tr("Health"),     width=120, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
         Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A',),
         Column.VOTES:      d('votes',      tr("Popularity"), width=120, display_filter=format_votes, tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None,),
         Column.STATUS:     d('status',     "",               sortable=False),
