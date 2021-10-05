@@ -14,9 +14,10 @@ from marshmallow.fields import Boolean, Float, Integer, String
 
 import psutil
 
+from tribler_common.osutils import get_root_state_directory
+
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.instrumentation import WatchDog
-from tribler_core.utilities.osutils import get_root_state_directory
 
 HAS_MELIAE = True
 try:
@@ -39,6 +40,13 @@ class DebugEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
+
+    def __init__(self, *args, **kwargs):
+        RESTEndpoint.__init__(self, *args, **kwargs)
+        self.state_dir = None
+        self.log_dir = None
+        self.tunnel_community = None
+        self.resource_monitor = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('/circuits/slots', self.get_circuit_slots),
@@ -71,8 +79,8 @@ class DebugEndpoint(RESTEndpoint):
     async def get_circuit_slots(self, request):
         return RESTResponse({
             "slots": {
-                "random": self.session.tunnel_community.random_slots,
-                "competing": self.session.tunnel_community.competing_slots
+                "random": self.tunnel_community.random_slots,
+                "competing": self.tunnel_community.competing_slots
             }
         })
 
@@ -159,7 +167,7 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_cpu_history(self, request):
-        history = self.session.resource_monitor.get_cpu_history_dict() if self.session.resource_monitor else {}
+        history = self.resource_monitor.get_cpu_history_dict() if self.resource_monitor else {}
         return RESTResponse({"cpu_history": history})
 
     @docs(
@@ -177,7 +185,7 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_memory_history(self, request):
-        history = self.session.resource_monitor.get_memory_history_dict() if self.session.resource_monitor else {}
+        history = self.resource_monitor.get_memory_history_dict() if self.resource_monitor else {}
         return RESTResponse({"memory_history": history})
 
     @docs(
@@ -202,7 +210,7 @@ class DebugEndpoint(RESTEndpoint):
             dump_buffer.close()
         else:
             # On other platforms, simply writing to file is much faster
-            dump_file_path = self.session.config.state_dir / 'memory_dump.json'
+            dump_file_path = self.state_dir / 'memory_dump.json'
             scanner.dump_all_objects(dump_file_path)
             with open(dump_file_path) as dump_file:
                 content = dump_file.read()
@@ -223,7 +231,7 @@ class DebugEndpoint(RESTEndpoint):
             'type': 'string',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'max_lines',
             'description': 'Maximum number of lines to return from the log file',
@@ -249,9 +257,8 @@ class DebugEndpoint(RESTEndpoint):
 
         # Get the location of log file
         param_process = request.query.get('process', 'core')
-        config = self.session.config
         log_name = f'tribler-{param_process}-info.log'
-        log_file_name = config.general.get_path_as_absolute('log_dir', config.state_dir) / log_name
+        log_file_name = self.log_dir / log_name
 
         # If the log file is not present in the versioned state directory, try root state directory location
         if not log_file_name.exists():
@@ -317,8 +324,9 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_profiler_state(self, _):
-        monitor_enabled = self.session.config.resource_monitor.enabled
-        state = "STARTED" if (monitor_enabled and self.session.resource_monitor.profiler.is_running()) else "STOPPED"
+        if self.resource_monitor is None:
+            return RESTResponse(status=404)
+        state = "STARTED" if self.resource_monitor.profiler.is_running() else "STOPPED"
         return RESTResponse({"state": state})
 
     @docs(
@@ -333,7 +341,7 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def start_profiler(self, _):
-        self.session.resource_monitor.profiler.start()
+        self.resource_monitor.profiler.start()
         return RESTResponse({"success": True})
 
     @docs(
@@ -348,5 +356,5 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def stop_profiler(self, _):
-        file_path = self.session.resource_monitor.profiler.stop()
+        file_path = self.resource_monitor.profiler.stop()
         return RESTResponse({"success": True, "profiler_file": str(file_path)})

@@ -70,12 +70,12 @@ STATE_SHUTDOWN = "SHUTDOWN"
 STATE_START_API = 'Starting HTTP API...'
 STATE_UPGRADING_READABLE = 'Upgrading Tribler...'
 STATE_LOAD_CHECKPOINTS = 'Loading download checkpoints...'
+STATE_CHECKPOINTS_LOADED = 'Checkpoints load finished...'
 STATE_START_LIBTORRENT = 'Starting libtorrent...'
 STATE_START_TORRENT_CHECKER = 'Starting torrent checker...'
 STATE_START_API_ENDPOINTS = 'Starting API endpoints...'
 STATE_START_WATCH_FOLDER = 'Starting watch folder...'
 STATE_START_RESOURCE_MONITOR = 'Starting resource monitor...'
-STATE_READABLE_STARTED = 'Started'
 
 
 # This UUID is used to push new channels through the events endpoint. GigaChannel Community
@@ -101,6 +101,9 @@ class NTFY(Enum):
     TRIBLER_EXCEPTION = "tribler_exception"
     POPULARITY_COMMUNITY_ADD_UNKNOWN_TORRENT = "PopularityCommunity:added_unknown_torrent"
     REPORT_CONFIG_ERROR = "report_config_error"
+    PEER_DISCONNECTED_EVENT = "peer_disconnected"
+    TRIBLER_TORRENT_PEER_UPDATE = "tribler_torrent_peer_update"
+    TORRENT_METADATA_ADDED = "torrent_metadata_added"
 
 
 class CHANNEL_STATE(Enum):

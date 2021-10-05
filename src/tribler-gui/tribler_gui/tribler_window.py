@@ -36,9 +36,10 @@ from PyQt5.QtWidgets import (
 )
 
 from tribler_common.network_utils import NetworkUtils
+from tribler_common.osutils import get_root_state_directory
+from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import uri_to_path
 
-from tribler_core.modules.process_checker import ProcessChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
 
@@ -76,11 +77,12 @@ from tribler_gui.utilities import (
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
+    sanitize_for_fts,
     tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
-from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController, sanitize_for_fts
+from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -1003,7 +1005,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_debug_panel_button(self, _):
+    def clicked_debug_panel_button(self, *args):  # pylint: disable=unused-argument
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
@@ -1085,7 +1087,8 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        process_checker = ProcessChecker()
+        root_state_dir = get_root_state_directory()
+        process_checker = ProcessChecker(root_state_dir)
         if process_checker.already_running:
             core_pid = process_checker.get_pid_from_lock_file()
             os.kill(int(core_pid), 9)

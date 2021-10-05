@@ -41,7 +41,7 @@ def recursive_unicode(obj, ignore_errors=False):
     :return: obj: object comprised of lists/dicts/strings
     """
     if isinstance(obj, dict):
-        return {recursive_unicode(k, ignore_errors):recursive_unicode(v, ignore_errors) for k, v in obj.items()}
+        return {recursive_unicode(k, ignore_errors): recursive_unicode(v, ignore_errors) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [recursive_unicode(i, ignore_errors) for i in obj]
     elif isinstance(obj, bytes):
@@ -56,7 +56,7 @@ def recursive_unicode(obj, ignore_errors=False):
 
 def recursive_ungarble_metainfo(obj):
     if isinstance(obj, dict):
-        return {k:recursive_ungarble_metainfo(v) for k, v in obj.items()}
+        return {k: recursive_ungarble_metainfo(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [recursive_ungarble_metainfo(i) for i in obj]
     elif isinstance(obj, str):
@@ -71,12 +71,13 @@ def recursive_bytes(obj):
     :return: obj: object comprised of lists/dicts/bytes
     """
     if isinstance(obj, dict):
-        return {recursive_bytes(k):recursive_bytes(v) for k, v in obj.items()}
+        return {recursive_bytes(k): recursive_bytes(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [recursive_bytes(i) for i in obj]
     elif isinstance(obj, str):
         return obj.encode('utf8')
     return obj
+
 
 def hexlify(binary):
     return binascii.hexlify(binary).decode('utf-8')

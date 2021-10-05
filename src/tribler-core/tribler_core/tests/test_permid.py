@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
-from tribler_core.utilities import permid
+from tribler_core.components.masterkey import permid
 
 
 def test_save_load_keypair_pubkey_trustchain(tmpdir):

@@ -8,12 +8,11 @@ from PyQt5.QtCore import pyqtSignal
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path, tr
+from tribler_gui.utilities import connect, get_ui_file_path, to_fts_query, tr
 from tribler_gui.widgets.tablecontentmodel import SearchResultsModel
-from tribler_gui.widgets.triblertablecontrollers import to_fts_query
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('search_results.ui'))
 
@@ -76,6 +75,10 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         return self.last_search_query is not None
 
     def show_results(self, *_):
+        if self.search_request is None:
+            # Fixes a race condition where the user clicks the show_results button before the search request
+            # has been registered by the Core
+            return
         self.timeout_progress_bar.stop()
         query = self.search_request.query
         self.results_page.initialize_root_model(

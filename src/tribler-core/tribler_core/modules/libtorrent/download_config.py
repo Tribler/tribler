@@ -4,10 +4,11 @@ from configobj import ConfigObj
 
 from validate import Validator
 
+from tribler_common.osutils import get_home_dir
+
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.osutils import get_home_dir
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
@@ -155,11 +156,11 @@ def get_default_dest_dir():
     """
     tribler_downloads = Path("TriblerDownloads")
     if tribler_downloads.is_dir():
-        return tribler_downloads.absolute()
+        return tribler_downloads.resolve()
 
     home = get_home_dir()
     downloads = home / "Downloads"
     if downloads.is_dir():
-        return (downloads / tribler_downloads).absolute()
+        return (downloads / tribler_downloads).resolve()
 
-    return (home / tribler_downloads).absolute()
+    return (home / tribler_downloads).resolve()

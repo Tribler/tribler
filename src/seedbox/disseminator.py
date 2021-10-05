@@ -24,14 +24,20 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import libtorrent
-
+import sentry_sdk
 from pony.orm import db_session
 
-import sentry_sdk
-
+from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
+from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.metadata_store.community.gigachannel_community import GigaChannelCommunity
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 # fmt: off
@@ -157,19 +163,13 @@ class ChannelHelper:
 
 
 class Service(TinyTriblerService):
-    def __init__(self, source_dir, working_dir, config_path):
-        super().__init__(Service.create_config(working_dir, config_path),
+    def __init__(self, source_dir, working_dir):
+        super().__init__(TriblerConfig(state_dir=working_dir),
                          working_dir=working_dir,
-                         config_path=config_path)
+                         components=[RESTComponent(), MasterKeyComponent(), SocksServersComponent(),
+                                     LibtorrentComponent(), Ipv8Component(), MetadataStoreComponent(),
+                                     GigachannelManagerComponent(), GigaChannelComponent()])
         self.source_dir = Path(source_dir)
-
-    @staticmethod
-    def create_config(working_dir, config_path):
-        return TinyTriblerService.create_default_config(working_dir, config_path)\
-            .put('libtorrent', 'enabled', True)\
-            .put('ipv8', 'enabled', True)\
-            .put('chant', 'enabled', True)\
-            .put('chant', 'manager_enabled', True)
 
     def get_torrents_from_source(self):
         return [(file, file.relative_to(self.source_dir)) for file in self.source_dir.rglob('*.torrent')]
@@ -203,15 +203,14 @@ class Service(TinyTriblerService):
 
     async def on_tribler_started(self):
         await super().on_tribler_started()
-        await self.create_channel(self.session.ipv8.get_overlay(GigaChannelCommunity),
-                                  self.session.gigachannel_manager)
+        await self.create_channel(GigaChannelComponent.instance().community,
+                                  GigachannelManagerComponent.instance().gigachannel_manager)
 
 
 def run_tribler(arguments):
     service = Service(
         source_dir=Path(arguments.source),
         working_dir=Path(arguments.tribler_dir),
-        config_path=Path('./tribler.conf')
     )
 
     loop = asyncio.get_event_loop()

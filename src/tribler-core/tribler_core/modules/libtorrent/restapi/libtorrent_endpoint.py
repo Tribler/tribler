@@ -10,12 +10,18 @@ from marshmallow.fields import Integer
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class LibTorrentEndpoint(RESTEndpoint):
     """
     Endpoint for getting information about libtorrent sessions and settings.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.download_manager = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('/settings', self.get_libtorrent_settings),
@@ -45,12 +51,12 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.session.dlmgr.ltsessions:
+        if hop not in self.download_manager.ltsessions:
             return RESTResponse({'hop': hop, "settings": {}})
 
-        lt_session = self.session.dlmgr.ltsessions[hop]
+        lt_session = self.download_manager.ltsessions[hop]
         if hop == 0:
-            lt_settings = self.session.dlmgr.get_session_settings(lt_session)
+            lt_settings = self.download_manager.get_session_settings(lt_session)
             lt_settings['peer_fingerprint'] = hexlify(lt_settings['peer_fingerprint'])
         else:
             lt_settings = lt_session.get_settings()
@@ -87,11 +93,11 @@ class LibTorrentEndpoint(RESTEndpoint):
         if 'hop' in args and args['hop']:
             hop = int(args['hop'])
 
-        if hop not in self.session.dlmgr.ltsessions or \
-                not hasattr(self.session.dlmgr.ltsessions[hop], "post_session_stats"):
+        if hop not in self.download_manager.ltsessions or \
+                not hasattr(self.download_manager.ltsessions[hop], "post_session_stats"):
             return RESTResponse({'hop': hop, 'session': {}})
 
-        self.session.dlmgr.session_stats_callback = on_session_stats_alert_received
-        self.session.dlmgr.ltsessions[hop].post_session_stats()
+        self.download_manager.session_stats_callback = on_session_stats_alert_received
+        self.download_manager.ltsessions[hop].post_session_stats()
         stats = await session_stats
         return RESTResponse({'hop': hop, 'session': stats})

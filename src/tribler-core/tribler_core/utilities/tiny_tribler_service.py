@@ -2,12 +2,12 @@ import asyncio
 import logging
 import signal
 from pathlib import Path
+from typing import List
 
-from ipv8.loader import IPv8CommunityLoader
-
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.process_checker import ProcessChecker
-from tribler_core.session import Session
+from tribler_common.osutils import get_root_state_directory
+from tribler_common.process_checker import ProcessChecker
+from tribler_core.components.base import Component
+from tribler_core.start_core import Session
 
 
 class TinyTriblerService:
@@ -16,17 +16,15 @@ class TinyTriblerService:
     All overlays are disabled by default.
     """
 
-    def __init__(self, config, timeout_in_sec=None, working_dir=Path('/tmp/tribler'),
-                 config_path=Path('tribler.conf'), loader: IPv8CommunityLoader = None):
+    def __init__(self, config, components: List[Component], timeout_in_sec=None, working_dir=Path('/tmp/tribler')):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
         self.process_checker = None
         self.working_dir = working_dir
-        self.config_path = config_path
         self.config = config
         self.timeout_in_sec = timeout_in_sec
-        self.loader = loader
+        self.components = components
 
     async def on_tribler_started(self):
         """Function will calls after the Tribler session is started
@@ -46,25 +44,10 @@ class TinyTriblerService:
         self._enable_graceful_shutdown()
         await self.on_tribler_started()
 
-    @staticmethod
-    def create_default_config(working_dir, config_path) -> TriblerConfig:
-        config = TriblerConfig.load(file=config_path, state_dir=working_dir)
-
-        config.tunnel_community.enabled = False
-        config.popularity_community.enabled = False
-        config.bootstrap.enabled = False
-        config.torrent_checking.enabled = True
-        config.ipv8.enabled = False
-        config.libtorrent.enabled = False
-        config.dht.enabled = False
-        config.chant.enabled = False
-
-        return config
-
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")
-
-        self.session = Session(self.config, community_loader=self.loader)
+        self.session = Session(self.config, self.components)
+        self.session.set_as_default()
         await self.session.start()
 
         self.logger.info("Tribler session started")
@@ -72,7 +55,8 @@ class TinyTriblerService:
     def _check_already_running(self):
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.working_dir}')
 
-        self.process_checker = ProcessChecker()
+        root_state_dir = get_root_state_directory()
+        self.process_checker = ProcessChecker(root_state_dir)
         if self.process_checker.already_running:
             self.logger.error(f"Another Tribler instance is already using directory: {self.working_dir}")
             asyncio.get_running_loop().stop()
@@ -90,9 +74,8 @@ class TinyTriblerService:
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
 
-        if not self.session.shutdownstarttime:
-            task = asyncio.create_task(self.session.shutdown())
-            task.add_done_callback(lambda result: asyncio.get_running_loop().stop())
+        task = asyncio.create_task(self.session.shutdown())
+        task.add_done_callback(lambda result: asyncio.get_running_loop().stop())
 
     async def _terminate_by_timeout(self):
         self.logger.info(f"Scheduling terminating by timeout {self.timeout_in_sec}s from now")

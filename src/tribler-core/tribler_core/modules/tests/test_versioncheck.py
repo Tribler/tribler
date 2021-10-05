@@ -6,8 +6,8 @@ from aiohttp import web
 
 import pytest
 
-from tribler_core.modules import versioncheck_manager
-from tribler_core.modules.versioncheck_manager import VersionCheckManager, get_user_agent_string
+from tribler_core.modules.version_check import versioncheck_manager
+from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager, get_user_agent_string
 from tribler_core.restapi.rest_endpoint import RESTResponse
 from tribler_core.version import version_id
 
@@ -27,16 +27,17 @@ def make_platform_mock():
     platform_mock.architecture = lambda: ('64bit', 'FooBar')  # currently only first item is used
     return platform_mock
 
+
 TEST_USER_AGENT = f'Tribler/{version_id} (machine=Something64; os=OsName 123; python=3.10.1; executable=64bit)'
 
 
 @pytest.fixture(name='version_check_manager')
-async def fixture_version_check_manager(free_port, session):
+async def fixture_version_check_manager(free_port):
     prev_platform = versioncheck_manager.platform
     prev_urls = versioncheck_manager.VERSION_CHECK_URLS
     versioncheck_manager.platform = make_platform_mock()
     versioncheck_manager.VERSION_CHECK_URLS = [f"http://localhost:{free_port}"]
-    version_check_manager = VersionCheckManager(session)
+    version_check_manager = VersionCheckManager(notifier=Mock())
     try:
         yield version_check_manager
     finally:
@@ -89,7 +90,7 @@ async def test_start(version_check_manager, version_server):
     # We only start the version check if GIT is not in the version ID.
     assert not version_check_manager.is_pending_task_active("tribler version check")
 
-    import tribler_core.modules.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
+    import tribler_core.modules.version_check.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
     old_id = vcm.version_id
     vcm.version_id = "7.0.0"
     version_check_manager.start()
@@ -142,22 +143,12 @@ async def test_connection_error(version_check_manager):
 
 
 @pytest.mark.asyncio
-async def test_non_json_response(version_check_manager, version_server):
-    global response  # pylint: disable=global-statement
-    response = 'hello world - not json'
-
-    versioncheck_manager.check_failed = False
-    with pytest.raises(ValueError):
-        await version_check_manager.check_new_version()
-
-
-@pytest.mark.asyncio
 async def test_version_check_api_timeout(free_port, version_check_manager, version_server):
     global response, response_lag  # pylint: disable=global-statement
     response = json.dumps({'name': NEW_VERSION_ID})
     response_lag = 2  # Ensures that it takes 2 seconds to send a response
 
-    import tribler_core.modules.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
+    import tribler_core.modules.version_check.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
     old_timeout = vcm.VERSION_CHECK_TIMEOUT
     vcm.VERSION_CHECK_TIMEOUT = 1  # version checker will wait for 1 second to get response
 
@@ -181,7 +172,7 @@ async def test_fallback_on_multiple_urls(free_port, version_check_manager, versi
     global response  # pylint: disable=global-statement
     response = json.dumps({'name': NEW_VERSION_ID})
 
-    import tribler_core.modules.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
+    import tribler_core.modules.version_check.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
     vcm_old_urls = vcm.VERSION_CHECK_URLS
     vcm.VERSION_CHECK_URLS = ["http://this.will.not.exist", f"http://localhost:{free_port}"]
 

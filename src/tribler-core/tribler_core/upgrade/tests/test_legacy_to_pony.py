@@ -10,8 +10,8 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
-from tribler_core.modules.metadata_store.store import MetadataStore
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
+from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade import legacy_to_pony
 from tribler_core.upgrade.legacy_to_pony import (
@@ -92,6 +92,7 @@ async def test_convert_legacy_channels(dispersy_to_pony_migrator, metadata_store
     for d in metadata_store.TorrentMetadata.select()[:10][:10]:
         d.delete()
     await check_conversion()
+
 
 @db_session
 def test_update_trackers(dispersy_to_pony_migrator, metadata_store):

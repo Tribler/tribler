@@ -95,43 +95,8 @@ DOWNLOADS_FILTER_DEFINITION = {
 BUTTON_TYPE_NORMAL = 0
 BUTTON_TYPE_CONFIRM = 1
 
-VIDEO_EXTS = [
-    'aac',
-    'asf',
-    'avi',
-    'dv',
-    'divx',
-    'flac',
-    'flc',
-    'flv',
-    'mkv',
-    'mpeg',
-    'mpeg4',
-    'mpegts',
-    'mpg4',
-    'mp3',
-    'mp4',
-    'mpg',
-    'mkv',
-    'mov',
-    'm4v',
-    'ogg',
-    'ogm',
-    'ogv',
-    'oga',
-    'ogx',
-    'qt',
-    'rm',
-    'swf',
-    'ts',
-    'vob',
-    'wmv',
-    'wav',
-    'webm',
-]
-
 # Tribler shutdown grace period in milliseconds
-SHUTDOWN_WAITING_PERIOD = 120000
+SHUTDOWN_WAITING_PERIOD = 30000
 
 # Torrent commit status constants
 COMMIT_STATUS_NEW = 0

@@ -2,10 +2,11 @@ import hashlib
 import math
 import sys
 import time
-from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection, sleep
+from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
+from typing import List
 
 import async_timeout
 
@@ -33,7 +34,7 @@ from ipv8.util import succeed
 
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
-from tribler_core.modules.bandwidth_accounting.transaction import BandwidthTransactionData
+from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
@@ -47,7 +48,6 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler_core.modules.tunnel.socks5.server import Socks5Server
-from tribler_core.utilities import path_util
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 
@@ -66,27 +66,23 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
     def __init__(self, *args, **kwargs):
-        self.tribler_session = kwargs.pop('tribler_session', None)
-        num_competing_slots = kwargs.pop('competing_slots', 15)
-        num_random_slots = kwargs.pop('random_slots', 5)
         self.bandwidth_community = kwargs.pop('bandwidth_community', None)
-        socks_listen_ports = kwargs.pop('socks_listen_ports', None)
-        state_path = self.tribler_session.config.state_dir if self.tribler_session else path_util.Path()
-        self.exitnode_cache = kwargs.pop('exitnode_cache', state_path / 'exitnode_cache.dat')
+        self.exitnode_cache = kwargs.pop('exitnode_cache', None)
+        self.config = kwargs.pop('config', None)
+        self.notifier = kwargs.pop('notifier', None)
+        self.dlmgr = kwargs.pop('dlmgr', None)
+        self.socks_servers: List[Socks5Server] = kwargs.pop('socks_servers', [])
+        num_competing_slots = self.config.competing_slots
+        num_random_slots = self.config.random_slots
+
         super().__init__(*args, **kwargs)
         self._use_main_thread = True
 
-        if self.tribler_session:
-            if self.tribler_session.config.tunnel_community.exitnode_enabled:
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
-                self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        if self.config.exitnode_enabled:
+            self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+            self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
+            self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
 
-            if not socks_listen_ports:
-                socks_listen_ports = self.tribler_session.config.tunnel_community.socks5_listen_ports
-        elif socks_listen_ports is None:
-            socks_listen_ports = range(1080, 1085)
-        self.logger.info(f'Socks listen ports: {socks_listen_ports}')
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}
@@ -95,14 +91,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.reject_callback = None  # This callback is invoked with a tuple (time, balance) when we reject a circuit
         self.last_forced_announce = {}
 
-        # Start the SOCKS5 servers
-        self.socks_servers = []
-        for port in socks_listen_ports:
-            socks_server = Socks5Server(port, self.dispatcher)
-            self.register_task('start_socks_%d' % port, socks_server.start)
-            self.socks_servers.append(socks_server)
-
-        self.dispatcher.set_socks_servers(self.socks_servers)
+        if self.socks_servers:
+            self.dispatcher.set_socks_servers(self.socks_servers)
+            for server in self.socks_servers:
+                server.output_stream = self.dispatcher
 
         self.add_message_handler(BandwidthTransactionPayload, self.on_payout)
 
@@ -115,20 +107,28 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         NO_CRYPTO_PACKETS.extend([BalanceRequestPayload.msg_id, BalanceResponsePayload.msg_id])
 
-        if self.exitnode_cache:
+        if self.exitnode_cache is not None:
             self.restore_exitnodes_from_disk()
+        if self.dlmgr is not None:
+            downloads_polling_interval = 1.0
+            self.register_task('Poll download manager for new or changed downloads',
+                               self._poll_download_manager,
+                               interval=downloads_polling_interval)
 
-    async def wait_for_socks_servers(self):
-        # Wait for the socks server to be ready. Otherwise, hidden services downloads may fail.
-        while any([name.startswith('start_socks_') for name in self._pending_tasks.keys()]):
-            await sleep(.05)
+    async def _poll_download_manager(self):
+        # This must run in all circumstances, so catch all exceptions
+        try:
+            dl_states = self.dlmgr.get_last_download_states()
+            self.monitor_downloads(dl_states)
+        except Exception as e:  # pylint: disable=broad-except
+            self.logger.error("Error on polling Download Manager: %s", e)
 
     def get_available_strategies(self):
         return super().get_available_strategies().update({'GoldenRatioStrategy': GoldenRatioStrategy})
 
     def cache_exitnodes_to_disk(self):
         """
-        Wite a copy of the exit_candidates to the file self.exitnode_cache.
+        Write a copy of the exit_candidates to the file self.exitnode_cache.
 
         :returns: None
         """
@@ -378,8 +378,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         circuit = self.circuits[circuit_id]
 
         # Send the notification
-        if self.tribler_session:
-            self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, circuit, additional_info)
+        if self.notifier:
+            self.notifier.notify(NTFY.TUNNEL_REMOVE, circuit, additional_info)
 
         # Ignore circuits that are closing so we do not payout again if we receive a destroy message.
         if circuit.state != CIRCUIT_STATE_CLOSING and self.bandwidth_community:
@@ -402,8 +402,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Make sure the circuit is marked as closing, otherwise we may end up reusing it
         circuit.close()
 
-        if self.tribler_session and self.tribler_session.config.libtorrent.enabled:
-            for download in self.tribler_session.dlmgr.get_downloads():
+        if self.dlmgr:
+            for download in self.dlmgr.get_downloads():
                 self.update_torrent(affected_peers, download)
 
         # Now we actually remove the circuit
@@ -422,14 +422,14 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.clean_from_slots(circuit_id)
 
-        if self.tribler_session:
+        if self.notifier:
             for removed_relay in removed_relays:
-                self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, removed_relay, additional_info)
+                self.notifier.notify(NTFY.TUNNEL_REMOVE, removed_relay, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
-        if circuit_id in self.exit_sockets and self.tribler_session:
+        if circuit_id in self.exit_sockets and self.notifier:
             exit_socket = self.exit_sockets[circuit_id]
-            self.tribler_session.notifier.notify(NTFY.TUNNEL_REMOVE, exit_socket, additional_info)
+            self.notifier.notify(NTFY.TUNNEL_REMOVE, exit_socket, additional_info)
 
         self.clean_from_slots(circuit_id)
 
@@ -520,28 +520,28 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super().on_rendezvous_established(source_address, data, circuit_id)
 
         circuit = self.circuits.get(circuit_id)
-        if circuit and self.tribler_session:
+        if circuit and self.dlmgr:
             self.update_ip_filter(circuit.info_hash)
 
     def update_ip_filter(self, info_hash):
         download = self.get_download(info_hash)
-        lt_session = self.tribler_session.dlmgr.get_session(download.config.get_hops())
+        lt_session = self.dlmgr.get_session(download.config.get_hops())
         ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
                         for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)] + ['1.1.1.1']
-        self.tribler_session.dlmgr.update_ip_filter(lt_session, ip_addresses)
+        self.dlmgr.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash):
-        if not self.tribler_session:
+        if not self.dlmgr:
             return None
 
-        for download in self.tribler_session.dlmgr.get_downloads():
+        for download in self.dlmgr.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
     @task
     async def create_introduction_point(self, info_hash, required_ip=None):
         download = self.get_download(info_hash)
-        if download:
+        if download and self.socks_servers:
             # We now have to associate the SOCKS5 UDP connection with the libtorrent listen port ourselves.
             # The reason for this is that libtorrent does not include the source IP/port in an SOCKS5 ASSOCIATE message.
             # In libtorrent < 1.2.0, we could do so by simply adding an (invalid) peer to the download to enforce
@@ -550,12 +550,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # the connection and the libtorrent listen port.
             # Starting from libtorrent 1.2.4 on Windows, listen_port() returns 0 if used in combination with a
             # SOCKS5 proxy. Therefore on Windows, we resort to using ports received through listen_succeeded_alert.
-            if LooseVersion(self.tribler_session.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+            if LooseVersion(self.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
-                lt_listen_port = self.tribler_session.dlmgr.listen_ports.get(hops)
-                lt_listen_port = lt_listen_port or self.tribler_session.dlmgr.get_session(hops).listen_port()
+                lt_listen_port = self.dlmgr.listen_ports.get(hops)
+                lt_listen_port = lt_listen_port or self.dlmgr.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
                     if session.udp_connection and lt_listen_port:
                         session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
@@ -563,10 +563,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     async def unload(self):
         await self.dispatcher.shutdown_task_manager()
-        for socks_server in self.socks_servers:
-            await socks_server.stop()
 
-        if self.exitnode_cache:
+        if self.exitnode_cache is not None:
             self.cache_exitnodes_to_disk()
 
         await super().unload()

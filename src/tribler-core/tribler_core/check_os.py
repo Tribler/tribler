@@ -7,8 +7,9 @@ import traceback
 
 import psutil
 
+from tribler_common.process_checker import ProcessChecker
+
 from tribler_core.dependencies import _show_system_popup
-from tribler_core.modules.process_checker import ProcessChecker
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
@@ -62,15 +63,15 @@ def check_free_space():
         error_and_exit("Import Error", f"Import error: {ie}")
 
 
-def get_existing_tribler_pid():
+def get_existing_tribler_pid(root_state_dir):
     """ Get PID of existing instance if present from the lock file (if any)"""
-    process_checker = ProcessChecker()
+    process_checker = ProcessChecker(root_state_dir)
     if process_checker.already_running:
         return process_checker.get_pid_from_lock_file()
     return -1
 
 
-def should_kill_other_tribler_instances():
+def should_kill_other_tribler_instances(root_state_dir):
     """ Asks user whether to force restart Tribler if there is more than one instance running.
         This will help user to kill any zombie instances which might have been left behind from
         previous force kill command or some other unexpected exceptions and relaunch Tribler again.
@@ -82,7 +83,7 @@ def should_kill_other_tribler_instances():
     if len(sys.argv) > 1:
         return
 
-    old_pid = get_existing_tribler_pid()
+    old_pid = get_existing_tribler_pid(root_state_dir)
     current_pid = os.getpid()
     logger.info(f'Old PID: {old_pid}. Current PID: {current_pid}')
 

@@ -1,27 +1,34 @@
-from ipv8.util import succeed
+from unittest.mock import Mock
+
+from aiohttp.web_app import Application
 
 import pytest
 
 from tribler_core.restapi.base_api_test import do_request
+from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.restapi.shutdown_endpoint import ShutdownEndpoint
 
 
-@pytest.mark.asyncio
-async def test_shutdown(enable_api, session):
+@pytest.fixture
+def endpoint():
+    endpoint = ShutdownEndpoint()
+    return endpoint
+
+
+@pytest.fixture
+def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/shutdown', endpoint.app)
+    return loop.run_until_complete(aiohttp_client(app))
+
+
+async def test_shutdown(rest_api, endpoint):
     """
     Testing whether the API triggers a Tribler shutdown
     """
-    orig_shutdown = session.shutdown
-
-    def fake_shutdown():
-        # Record session.shutdown was called
-        fake_shutdown.shutdown_called = True
-        # Restore original shutdown for test teardown
-        session.shutdown = orig_shutdown
-        return succeed(True)
-
-    session.shutdown = fake_shutdown
-    fake_shutdown.shutdown_called = False
+    endpoint.shutdown_callback = Mock()
 
     expected_json = {"shutdown": True}
-    await do_request(session, 'shutdown', expected_code=200, expected_json=expected_json, request_type='PUT')
-    assert fake_shutdown.shutdown_called
+    await do_request(rest_api, 'shutdown', expected_code=200, expected_json=expected_json, request_type='PUT')
+    endpoint.shutdown_callback.assert_called()

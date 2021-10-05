@@ -54,7 +54,6 @@ if __name__ == '__main__':
         f.write(version_id)
 
     if sys.platform == 'linux2' or sys.platform == 'linux':
-        run_command('dch -v {} New upstream release.'.format(version_id).split())
         logger.info('Writing AppStream version info.')
         import time
         import xml.etree.ElementTree as xml

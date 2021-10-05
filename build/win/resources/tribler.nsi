@@ -172,9 +172,7 @@ SectionEnd
 
 
 Section "Startmenu Icons" SecStart
-    CreateDirectory "$SMPROGRAMS\${PRODUCT}"
-    CreateShortCut "$SMPROGRAMS\${PRODUCT}\Uninstall ${PRODUCT}.lnk" "$INSTDIR\Uninstall.exe"
-    CreateShortCut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe"
+    CreateShortCut "$SMPROGRAMS\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe"
 SectionEnd
 
 
@@ -224,8 +222,7 @@ Section "Uninstall"
     Delete "$DESKTOP\${PRODUCT}.lnk"
 
     SetShellVarContext all
-    RMDir "$SMPROGRAMS\${PRODUCT}"
-    RMDir /r "$SMPROGRAMS\${PRODUCT}"
+    Delete "$SMPROGRAMS\${PRODUCT}.lnk"
 
     DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
     DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"

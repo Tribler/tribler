@@ -55,7 +55,7 @@ def tribler_api(api_port, tmpdir_factory):
     core_env.insert("CORE_PROCESS", "1")
     core_env.insert("CORE_API_PORT", f"{api_port}")
     core_env.insert("CORE_API_KEY", "")
-    core_env.insert("TRIBLER_CORE_TEST_MODE", "1")
+    core_env.insert("TRIBLER_GUI_TEST_MODE", "1")
 
     temp_state_dir = tmpdir_factory.mktemp('tribler_state_dir')
     core_env.insert("TSTATEDIR", str(temp_state_dir))
@@ -254,11 +254,9 @@ def test_discovered_page(tribler_api, window):
 @pytest.mark.guitest
 def test_popular_page(tribler_api, window):
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
-    # tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
-    widget = window.discovered_page
-    widget_name = "popular_page"
+    widget = window.popular_page
     wait_for_list_populated(widget.content_table)
-    screenshot(window, name=f"{widget_name}-page")
+    screenshot(window, name="popular_page")
 
 
 def wait_for_thumbnail(chan_widget):
@@ -410,8 +408,9 @@ def test_feedback_dialog_report_sent(tribler_api, window):
         screenshot(dialog, name="feedback_dialog")
         dialog.close()
 
-    def on_report_sent(response):
-        assert response["sent"]
+    def on_report_sent():
+        on_report_sent.did_send_report = True
+    on_report_sent.did_send_report = False
 
     dialog = FeedbackDialog(window, "Tribler GUI Test to test sending crash report works", "1.2.3", 23)
     dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
@@ -419,7 +418,7 @@ def test_feedback_dialog_report_sent(tribler_api, window):
     QTest.mouseClick(dialog.send_report_button, Qt.LeftButton)
     QTimer.singleShot(1000, screenshot_dialog)
     dialog.exec_()
-
+    assert on_report_sent.did_send_report
 
 @pytest.mark.guitest
 def test_debug_pane(tribler_api, window):

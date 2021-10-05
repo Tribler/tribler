@@ -25,8 +25,6 @@ for component in tribler_components:
 from tribler_core.version import version_id
 version_str = version_id.split('-')[0]
 
-from tribler_core.modules.ipv8_module_catalog import get_hiddenimports as ipv8_module_imports
-
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
 # See https://github.com/Tribler/tribler/issues/3817
 show_console = os.environ.get('SHOW_CONSOLE', 'false') == 'true'
@@ -98,7 +96,7 @@ hiddenimports = [
     'pkg_resources', 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'requests',
     'PyQt5.QtTest',
-    'pyqtgraph'] + widget_files + pony_deps + list(ipv8_module_imports()) + get_sentry_hooks()
+    'pyqtgraph'] + widget_files + pony_deps + get_sentry_hooks()
 
 
 sys.modules['FixTk'] = None

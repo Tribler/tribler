@@ -30,11 +30,10 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, my_peer, endpoint, network, **kwargs):
-        self.torrent_checker = kwargs.pop('torrent_checker', None)
-
+    def __init__(self, *args, torrent_checker=None, **kwargs):
         # Creating a separate instance of Network for this community to find more peers
-        super().__init__(my_peer, endpoint, Network(), **kwargs)
+        super().__init__(*args, **kwargs)
+        self.torrent_checker = torrent_checker
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
 
@@ -65,7 +64,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         """
         # select the torrents that have seeders
         alive = {(_, seeders, *rest) for (_, seeders, *rest) in torrents
-                    if seeders > 0}
+                 if seeders > 0}
         if not alive:
             return {}, {}
 
@@ -99,13 +98,13 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
                                                                       include_popular=include_popular,
                                                                       include_random=include_random)
         if not popular and not rand:
-            self.logger.info(f'No torrents to gossip. Checked torrents count: '
+            self.logger.debug(f'No torrents to gossip. Checked torrents count: '
                              f'{len(checked)}')
             return
 
         random_peer = random.choice(self.get_peers())
 
-        self.logger.info(
+        self.logger.debug(
             f'Gossip torrent health information for {len(rand)}'
             f' random torrents and {len(popular)} popular torrents')
 
@@ -125,7 +124,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, peer, payload):
-        self.logger.info(f"Received torrent health information for "
+        self.logger.debug(f"Received torrent health information for "
                          f"{len(payload.torrents_checked)} popular torrents and"
                          f" {len(payload.random_torrents)} random torrents")
 

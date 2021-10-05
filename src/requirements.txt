@@ -1,4 +1,4 @@
-PyQt5
+PyQt5>=5.14
 psutil
 configobj
 PyOpenSSL

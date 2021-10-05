@@ -9,12 +9,12 @@ from asyncio import sleep
 from pony import orm
 from pony.orm import db_session
 
-from tribler_core.modules.category_filter.l2_filter import is_forbidden
-from tribler_core.modules.metadata_store.orm_bindings.channel_metadata import BLOB_EXTENSION
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import LEGACY_ENTRY, NEW
-from tribler_core.modules.metadata_store.orm_bindings.torrent_metadata import infohash_to_id
-from tribler_core.modules.metadata_store.serialization import REGULAR_TORRENT, int2time, time2int
-from tribler_core.modules.metadata_store.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
+from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
+from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import BLOB_EXTENSION
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, NEW
+from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import infohash_to_id
+from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT, int2time, time2int
+from tribler_core.components.metadata_store.db.store import BETA_DB_VERSIONS, CURRENT_DB_VERSION
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
 
@@ -168,13 +168,13 @@ class DispersyToPonyMigration:
                 personal_channel_filter = f"AND ct.channel_id {equality_sign} {self.personal_channel_id}"
 
             torrents = []
-            batch_not_empty = False # This is a dumb way to indicate that this batch got zero entries from DB
+            batch_not_empty = False  # This is a dumb way to indicate that this batch got zero entries from DB
 
             for tracker_url, channel_id, name, infohash, length, creation_date, torrent_id, category, num_seeders, \
-                num_leechers, last_tracker_check in cursor.execute(
+                    num_leechers, last_tracker_check in cursor.execute(
                         f"{self.select_full} {personal_channel_filter} group by infohash "
                         f"LIMIT {batch_size} OFFSET {offset}"
-            ):
+                    ):
                 batch_not_empty = True
                 # check if name is valid unicode data
                 try:

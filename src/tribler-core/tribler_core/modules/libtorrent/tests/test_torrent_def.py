@@ -256,5 +256,5 @@ def test_get_files_with_length(tdef):
     assert tdef.get_files_with_length() == [(Path('test?????????????'), 123), (Path('file.txt'), 456)]
 
     tdef.metainfo = {b'info': {b'files': [{b'path.utf-8': [b'test\xff' + name_bytes], b'length': 123},
-                                       {b'path': [b'file.txt'], b'length': 456}]}}
+                                          {b'path': [b'file.txt'], b'length': 456}]}}
     assert tdef.get_files_with_length() == [(Path('file.txt'), 456)]

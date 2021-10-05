@@ -8,12 +8,20 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
+from tribler_gui.utilities import (
+    connect,
+    format_size,
+    format_votes,
+    get_votes_rating_description,
+    pretty_date,
+    to_fts_query,
+    tr,
+)
 
 EXPANDING = 0
 
@@ -58,7 +66,7 @@ def define_columns():
         Column.STATUS:     d('status',     "",               sortable=False),
         Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
         Column.TORRENTS:   d('torrents',   tr("Torrents"),   width=90),
-        Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=90),
+        Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=95),
     }
     # pylint: enable=line-too-long
     # fmt:on
@@ -266,7 +274,7 @@ class RemoteTableModel(QAbstractTableModel):
             kwargs.update({"sort_by": self.sort_by, "sort_desc": self.sort_desc})
 
         if self.text_filter:
-            kwargs.update({"txt_filter": self.text_filter})
+            kwargs.update({"txt_filter": to_fts_query(self.text_filter)})
 
         if self.max_rowid is not None:
             kwargs["max_rowid"] = self.max_rowid
@@ -362,14 +370,16 @@ class ChannelContentModel(RemoteTableModel):
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.columns[num].header
-        if role == Qt.InitialSortOrderRole and num != self.column_position.get('name'):
+        if role == Qt.InitialSortOrderRole and num != self.column_position.get(Column.NAME):
             return Qt.DescendingOrder
         if role == Qt.TextAlignmentRole:
-            return (
+            alignment = (
                 Qt.AlignHCenter
-                if num in [self.column_position.get('subscribed'), self.column_position.get('torrents')]
+                if num in [self.column_position.get(Column.SUBSCRIBED), self.column_position.get(Column.TORRENTS)]
                 else Qt.AlignLeft
             )
+            return alignment | Qt.AlignVCenter
+
         return super().headerData(num, orientation, role)
 
     def rowCount(self, *_, **__):
@@ -418,9 +428,9 @@ class ChannelContentModel(RemoteTableModel):
         if role in (Qt.DisplayRole, Qt.EditRole, Qt.ToolTipRole):
             return self.item_txt(index, role)
         if role == Qt.TextAlignmentRole:
-            if index.column() == self.column_position.get('votes', -1):
+            if index.column() == self.column_position.get(Column.VOTES, -1):
                 return Qt.AlignLeft | Qt.AlignVCenter
-            if index.column() == self.column_position.get('torrents', -1):
+            if index.column() == self.column_position.get(Column.TORRENTS, -1):
                 return Qt.AlignHCenter | Qt.AlignVCenter
         return None
 
@@ -569,10 +579,16 @@ class PersonalChannelsModel(ChannelContentModel):
                     {"public_key": entry['public_key'], "id": entry['id'], "status": COMMIT_STATUS_TODELETE}
                 )
 
-        if patch_data:
-            TriblerNetworkRequest("metadata", self.remove_items, raw_data=json.dumps(patch_data), method='PATCH')
-        if delete_data:
-            TriblerNetworkRequest("metadata", self.remove_items, raw_data=json.dumps(delete_data), method='DELETE')
+        # We don't wait for the Core to report back and emit
+        # the info_changed signal speculativley to prevent the race condition between
+        # Python object deletion and PyQT one. Otherwise, if the users e.g. clicks the back
+        # button, by the moment the request callback triggers some actions on the model,
+        # QT could have already deleted the underlying model object, which will result in
+        # "wrapped C/C++ object has been deleted" error (see e.g. https://github.com/Tribler/tribler/issues/6083)
+        for data, method in ((patch_data, "PATCH"), (delete_data, "DELETE")):
+            if data:
+                self.remove_items(data)
+                TriblerNetworkRequest("metadata", lambda _: None, raw_data=json.dumps(data), method=method)
 
     def create_new_channel(self, channel_name=None):
         url = (

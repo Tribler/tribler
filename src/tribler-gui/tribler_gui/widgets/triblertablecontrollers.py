@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QAction
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -21,18 +21,6 @@ from tribler_gui.utilities import connect, dict_item_is_any_of, get_health, tr
 from tribler_gui.widgets.tablecontentmodel import Column
 
 HEALTHCHECK_DELAY_MS = 500
-
-
-def sanitize_for_fts(text):
-    return text.translate({ord("\""): "\"\"", ord("\'"): "\'\'"})
-
-
-def to_fts_query(text):
-    if not text:
-        return ""
-    words = text.strip().split(" ")
-    query_list = ['\"' + sanitize_for_fts(word) + '\"*' for word in words]
-    return " AND ".join(query_list)
 
 
 class TriblerTableViewController(QObject):
@@ -85,7 +73,7 @@ class TriblerTableViewController(QObject):
         return sort_by, sort_asc
 
     def _on_filter_input_change(self, _):
-        self.model.text_filter = to_fts_query(self.filter_input.text().lower())
+        self.model.text_filter = self.filter_input.text().lower()
         self.model.reset()
 
     def brain_dead_refresh(self):
@@ -314,8 +302,8 @@ class ContextMenuMixin:
                 changes_list = [
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
-                TriblerNetworkRequest("metadata", self.model.remove_items,
-                                      raw_data=json.dumps(changes_list), method='PATCH')
+                self.model.remove_items(entries)
+                TriblerNetworkRequest("metadata", lambda _: None, raw_data=json.dumps(changes_list), method='PATCH')
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Move")

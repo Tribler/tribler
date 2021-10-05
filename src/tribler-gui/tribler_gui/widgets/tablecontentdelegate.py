@@ -5,8 +5,9 @@ from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen
 from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
 
 from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import (
     COMMIT_STATUS_COMMITTED,
@@ -90,10 +91,13 @@ class CheckClickedMixin:
     def check_clicked(self, event, _, __, index):
         model = index.model()
         data_item = model.data_items[index.row()]
+        if column_position := model.column_position.get(self.column_name) is None:
+            return False
+        attribute_name = model.columns[column_position].dict_key
         if (
             event.type() == QEvent.MouseButtonRelease
-            and model.column_position.get(self.column_name, -1) == index.column()
-            and data_item[index.model().columns[index.model().column_position[self.column_name]].dict_key] != ''
+            and column_position == index.column()
+            and data_item.get(attribute_name, '') != ''
         ):
             self.clicked.emit(index)
             return True
@@ -108,18 +112,15 @@ class CheckClickedMixin:
             # Handle the case when the cursor leaves the table
             if not model or (model.column_position.get(self.column_name, -1) == index.column()):
                 self.last_index = index
-                return True
-        return False
 
 
 class TriblerButtonsDelegate(QStyledItemDelegate):
-    redraw_required = pyqtSignal()
+    redraw_required = pyqtSignal(QModelIndex, bool)
 
     def __init__(self, parent=None):
         QStyledItemDelegate.__init__(self, parent)
         self.no_index = QModelIndex()
-        self.hoverrow = None
-        self.hover_index = None
+        self.hover_index = self.no_index
         self.controls = []
         self.column_drawing_actions = []
 
@@ -140,25 +141,14 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
     def on_mouse_moved(self, pos, index):
         # This method controls for which rows the buttons/box should be drawn
-        redraw = False
         if self.hover_index != index:
             self.hover_index = index
-            self.hoverrow = index.row()
             if not self.button_box.contains(pos):
-                redraw = True
                 # Hide the tooltip when cell hover changes
                 QToolTip.hideText()
-        # Redraw when the mouse leaves the table
-        if index.row() == -1 and self.hoverrow != -1:
-            self.hoverrow = -1
-            redraw = True
 
         for controls in self.controls:
-            redraw = controls.on_mouse_moved(pos, index) or redraw
-
-        if redraw:
-            # TODO: optimize me to only redraw the rows that actually changed!
-            self.redraw_required.emit()
+            controls.on_mouse_moved(pos, index)
 
     @staticmethod
     def split_rect_into_squares(r, buttons):
@@ -175,7 +165,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         # Draw 'hover' state highlight for every cell of a row
-        if index.row() == self.hoverrow:
+        if index.row() == self.hover_index.row():
             option.state |= QStyle.State_MouseOver
         if not self.paint_exact(painter, option, index):
             # Draw the rest of the columns
@@ -262,7 +252,7 @@ class SubscribedControlMixin:
 
         if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item['status'] == 1000:  # LEGACY ENTRIES!
+        if data_item['status'] == LEGACY_ENTRY:
             return True
         if data_item['state'] == 'Personal':
             return True
@@ -281,7 +271,7 @@ class RatingControlMixin:
 
         if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
             return True
-        if data_item['status'] == 1000:  # LEGACY ENTRIES!
+        if data_item['status'] == LEGACY_ENTRY:
             return True
 
         self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'])
@@ -323,7 +313,7 @@ class DownloadControlsMixin:
             option.rect.height() - 2 * border_thickness,
         )
         # When cursor leaves the table, we must "forget" about the button_box
-        if self.hoverrow == -1:
+        if self.hover_index.row() == -1:
             self.button_box = QRect()
 
         progress = data_item.get('progress')
@@ -334,7 +324,7 @@ class DownloadControlsMixin:
                 draw_progress_bar(painter, bordered_rect, progress=progress)
             return True
 
-        if index.row() == self.hoverrow:
+        if index.row() == self.hover_index.row():
             extended_border_height = int(option.rect.height() * self.button_box_extended_border_ratio)
             button_box_extended_rect = option.rect.adjusted(0, -extended_border_height, 0, extended_border_height)
             self.button_box = button_box_extended_rect

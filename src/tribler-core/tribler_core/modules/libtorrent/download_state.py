@@ -5,13 +5,9 @@ Author(s): Arno Bakker
 """
 import logging
 
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
-
 from tribler_common.simpledefs import (
     DLSTATUS_ALLOCATING_DISKSPACE,
-    DLSTATUS_CIRCUITS,
     DLSTATUS_DOWNLOADING,
-    DLSTATUS_EXIT_NODES,
     DLSTATUS_HASHCHECKING,
     DLSTATUS_METADATA,
     DLSTATUS_SEEDING,
@@ -70,13 +66,14 @@ class DownloadState:
     def get_status(self):
         """ Returns the status of the torrent.
         @return DLSTATUS_* """
-        if not self.lt_status:
-            return (DLSTATUS_CIRCUITS if not self.download.session.tunnel_community
-                    or self.download.session.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT)
-                    else DLSTATUS_EXIT_NODES) if self.download.config.get_hops() > 0 else DLSTATUS_WAITING4HASHCHECK
-        elif self.get_error():
+
+        if self.lt_status:
+            if self.lt_status.paused:
+                return DLSTATUS_STOPPED
+            return DLSTATUS_MAP[self.lt_status.state]
+        if self.get_error():
             return DLSTATUS_STOPPED_ON_ERROR
-        return DLSTATUS_MAP[self.lt_status.state] if not self.lt_status.paused else DLSTATUS_STOPPED
+        return DLSTATUS_STOPPED
 
     def get_error(self):
         """ Returns the Exception that caused the download to be moved to DLSTATUS_STOPPED_ON_ERROR status.
@@ -132,7 +129,7 @@ class DownloadState:
         """
         return (1.0 - self.get_progress()) * (float(self.download.get_def().get_length()) /
                                               max(0.000001, self.lt_status.download_rate)) \
-               if self.lt_status else 0.0
+            if self.lt_status else 0.0
 
     def get_num_seeds_peers(self):
         """

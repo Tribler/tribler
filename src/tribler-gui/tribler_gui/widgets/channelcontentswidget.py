@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.modules.metadata_store.orm_bindings.channel_node import DIRTY_STATUSES, NEW
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
 from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
@@ -305,7 +305,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         switched_level = False
         level = int(level)
         disconnected_current_model = False
-        while level < self.current_level:
+        while 0 <= level < self.current_level:
             switched_level = True
             if not disconnected_current_model:
                 disconnected_current_model = True
@@ -347,6 +347,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
         self.controller.set_model(self.model)
         self.update_navigation_breadcrumbs()
+        self.controller.table_view.deselect_all_rows()
         self.controller.table_view.resizeEvent(None)
 
         self.content_table.setFocus()

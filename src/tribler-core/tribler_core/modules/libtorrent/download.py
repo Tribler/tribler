@@ -7,21 +7,23 @@ import base64
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
+from typing import Optional
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
 
+from tribler_common.osutils import fix_filebasename
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent import check_handle, require_handle
-from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
+from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_state import DownloadState
+from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.modules.libtorrent.stream import Stream
 from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.utilities import path_util
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.torrent_utils import get_info_from_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
@@ -31,19 +33,27 @@ from tribler_core.utilities.utilities import bdecode_compat
 class Download(TaskManager):
     """ Download subclass that represents a libtorrent download."""
 
-    def __init__(self, session, tdef, dummy=False):
+    def __init__(self,
+                 tdef: TorrentDef,
+                 config: DownloadConfig = None,
+                 download_defaults: DownloadDefaultsSettings = None,
+                 notifier: Notifier = None,
+                 state_dir: Path = None,
+                 download_manager=None,
+                 checkpoint_disabled=False,
+                 hidden=False,
+                 dummy=False):
         super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.dummy = dummy
-        self.session = session
-        self.config = None
         self.tdef = tdef
         self.handle = None
-        self.config = None
-        self.state_dir = self.session.config.state_dir if self.session else None
-        self.dlmgr = self.session.dlmgr if self.session else None
+        self.state_dir = state_dir
+        self.dlmgr = download_manager
+        self.download_defaults = download_defaults or DownloadDefaultsSettings()
+        self.notifier = notifier
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = False
@@ -79,7 +89,15 @@ class Download(TaskManager):
 
         for alert_type, alert_handler in alert_handlers.items():
             self.register_alert_handler(alert_type, alert_handler)
-        self.stream = Stream(self)
+        self.stream: Optional[Stream] = None
+
+        self.hidden = hidden
+        self.checkpoint_disabled = checkpoint_disabled or self.dummy
+        self.config = config or DownloadConfig(state_dir=self.state_dir)
+
+        self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
+
+        self.checkpoint()
 
     def __str__(self):
         return "Download <name: '%s' hops: %d checkpoint_disabled: %d>" % \
@@ -87,6 +105,10 @@ class Download(TaskManager):
 
     def __repr__(self):
         return self.__str__()
+
+    def add_stream(self):
+        assert self.stream is None
+        self.stream = Stream(self)
 
     def get_torrent_data(self):
         """
@@ -126,26 +148,13 @@ class Download(TaskManager):
 
         return self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
 
-    def setup(self, config=None, hidden=False, checkpoint_disabled=False):
-        """
-        Create a Download object. Used internally by Session.
-        @param config DownloadConfig or None (in which case a new DownloadConfig() is created
-        :returns a Deferred to which a callback can be added which returns the result of network_create_engine_wrapper.
-        """
-        self.hidden = hidden
-        self.checkpoint_disabled = checkpoint_disabled or self.dummy
-        self.config = config or DownloadConfig(state_dir=self.session.config.state_dir)
-
-        self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()))
-
-        self.checkpoint()
-
-        save_path = (get_default_dest_dir() / self.config.get_dest_dir()).resolve()
+    def get_atp(self):
+        save_path = self.config.get_dest_dir()
         atp = {"save_path": str(save_path),
                "storage_mode": lt.storage_mode_t.storage_mode_sparse,
                "flags": lt.add_torrent_params_flags_t.flag_paused
-                        | lt.add_torrent_params_flags_t.flag_duplicate_is_error
-                        | lt.add_torrent_params_flags_t.flag_update_subscribe}
+               | lt.add_torrent_params_flags_t.flag_duplicate_is_error
+               | lt.add_torrent_params_flags_t.flag_update_subscribe}
 
         if self.config.get_share_mode():
             atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode
@@ -199,11 +208,7 @@ class Download(TaskManager):
             self.pause_after_next_hashcheck = user_stopped
 
         # Limit the amount of connections if we have specified that
-        self.handle.set_max_connections(self.session.config.libtorrent.max_connections_download)
-
-        # Set limit on download for a bootstrap file
-        if self.config.get_bootstrap_download():
-            self.handle.set_download_limit(self.session.config.bootstrap.max_download_rate)
+        self.handle.set_max_connections(self.dlmgr.config.max_connections_download)
 
         # By default don't apply the IP filter
         self.apply_ip_filter(False)
@@ -246,8 +251,6 @@ class Download(TaskManager):
 
     def on_torrent_error_alert(self, alert):
         self._logger.error("Error during download: %s", alert.error)
-        #FIXME Unused notification
-        #self.session.notifier.notify(NTFY.TORRENT_ERROR, self.tdef.get_infohash(), alert.error, self.hidden)
 
     def on_state_changed_alert(self, alert):
         if not self.handle:
@@ -387,11 +390,11 @@ class Download(TaskManager):
     def on_torrent_finished_alert(self, _):
         self.update_lt_status(self.handle.status())
         self.checkpoint()
-        if self.get_state().get_total_transferred(DOWNLOAD) > 0 \
-                and not self.stream.enabled:
-            self.session.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
-                                         self.tdef.get_name_as_unicode(), self.hidden or
-                                         self.config.get_channel_download())
+        if self.get_state().get_total_transferred(DOWNLOAD) > 0 and self.stream is not None:
+            if self.notifier is not None:
+                self.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
+                                     self.tdef.get_name_as_unicode(), self.hidden or
+                                     self.config.get_channel_download())
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
@@ -401,9 +404,9 @@ class Download(TaskManager):
     def _stop_if_finished(self):
         state = self.get_state()
         if state.get_status() == DLSTATUS_SEEDING:
-            mode = self.session.config.download_defaults.seeding_mode
-            seeding_ratio = self.session.config.download_defaults.seeding_ratio
-            seeding_time = self.session.config.download_defaults.seeding_time
+            mode = self.download_defaults.seeding_mode
+            seeding_ratio = self.download_defaults.seeding_ratio
+            seeding_time = self.download_defaults.seeding_time
             if (mode == 'never' or
                     (mode == 'ratio' and state.get_seeding_ratio() >= seeding_ratio) or
                     (mode == 'time' and state.get_seeding_time() >= seeding_time)):
@@ -411,7 +414,7 @@ class Download(TaskManager):
 
     @check_handle()
     def set_selected_files(self, selected_files=None, prio=4, force=False):
-        if not force and self.stream.enabled:
+        if not force and self.stream is not None:
             return
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
             if selected_files is None:
@@ -583,16 +586,18 @@ class Download(TaskManager):
         async def state_callback_loop():
             if usercallback:
                 when = 1
-                while when and not self.future_removed.done() and not self.session.shutdownstarttime:
+                while when and not self.future_removed.done() and not self.dlmgr._shutdown:
                     result = usercallback(self.get_state())
                     when = (await result) if iscoroutine(result) else result
-                    if when > 0.0 and not self.session.shutdownstarttime:
+                    if when > 0.0 and not self.dlmgr._shutdown:
                         await sleep(when)
+
         return self.register_anonymous_task("downloads_cb", state_callback_loop)
 
     async def shutdown(self):
         self.alert_handlers.clear()
-        self.stream.close()
+        if self.stream is not None:
+            self.stream.close()
         for _, futures in self.futures.items():
             for future, _, _ in futures:
                 future.cancel()
@@ -601,7 +606,8 @@ class Download(TaskManager):
 
     def stop(self, user_stopped=None):
         self._logger.debug("Stopping %s", self.tdef.get_name())
-        self.stream.disable()
+        if self.stream is not None:
+            self.stream.disable()
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
         if self.handle and self.handle.is_valid():

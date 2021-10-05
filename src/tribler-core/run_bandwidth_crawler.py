@@ -8,11 +8,12 @@ from pathlib import Path
 
 from ipv8.loader import IPv8CommunityLoader
 
+from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.bandwidth_accounting.database import BandwidthDatabase
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.modules.bandwidth_accounting.launcher import BandwidthCommunityLauncher
-from tribler_core.modules.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.session import Session
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler_core.start_core import Session
 
 
 class PortAction(argparse.Action):
@@ -27,7 +28,7 @@ class BandwidthCommunityCrawlerLauncher(BandwidthCommunityLauncher):
     def get_kwargs(self, session):
         settings = BandwidthAccountingSettings()
         settings.outgoing_query_interval = 5
-        database = BandwidthDatabase(session.config.state_dir / "sqlite" / "bandwidth.db",
+        database = BandwidthDatabase(session.config.state_dir / STATEDIR_DB_DIR / "bandwidth.db",
                                      session.trustchain_keypair.pub().key_to_bin(), store_all_transactions=True)
 
         return {

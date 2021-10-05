@@ -7,12 +7,19 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.mds = None
+        self.ipv8 = None
 
     def setup_routes(self):
         self.app.add_routes([web.get('/tribler', self.get_tribler_stats),
@@ -42,7 +49,14 @@ class StatisticsEndpoint(RESTEndpoint):
         }
     )
     async def get_tribler_stats(self, request):
-        return RESTResponse({'tribler_statistics': self.session.get_tribler_statistics()})
+        stats_dict = {}
+        if self.mds:
+            db_size = self.mds.get_db_file_size()
+            stats_dict = {"db_size": db_size,
+                          "num_channels": self.mds.get_num_channels(),
+                          "num_torrents": self.mds.get_num_torrents()}
+
+        return RESTResponse({'tribler_statistics': stats_dict})
 
     @docs(
         tags=["General"],
@@ -70,6 +84,11 @@ class StatisticsEndpoint(RESTEndpoint):
                     }
                 }
         """
-        return RESTResponse({
-            'ipv8_statistics': self.session.get_ipv8_statistics()
-        })
+        stats_dict = {}
+        if self.ipv8:
+            stats_dict = {
+                "total_up": self.ipv8.endpoint.bytes_up,
+                "total_down": self.ipv8.endpoint.bytes_down,
+                # "session_uptime": time.time() - self.ipv8_start_time
+            }
+        return RESTResponse({'ipv8_statistics': stats_dict})

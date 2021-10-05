@@ -8,23 +8,30 @@ from marshmallow.fields import String
 
 from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING, STATE_UPGRADING
 
+from tribler_core.notifier import Notifier
 from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.utilities.utilities import froze_it
 
 
+@froze_it
 class StateEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding the state of Tribler.
     """
 
-    def __init__(self, session):
-        super().__init__(session)
+    def __init__(self,):
+        super().__init__()
         self.tribler_state = STATE_STARTING
         self.last_exception = None
         self.sentry_event = None
+        self.notifier = None
+        self.readable_status = None
 
-        self.session.notifier.add_observer(NTFY.UPGRADER_STARTED, self.on_tribler_upgrade_started)
-        self.session.notifier.add_observer(NTFY.UPGRADER_DONE, self.on_tribler_upgrade_finished)
-        self.session.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
+    def connect_notifier(self, notifier: Notifier):
+        self.notifier = notifier
+        self.notifier.add_observer(NTFY.UPGRADER_STARTED, self.on_tribler_upgrade_started)
+        self.notifier.add_observer(NTFY.UPGRADER_DONE, self.on_tribler_upgrade_finished)
+        self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_state)])
@@ -60,5 +67,5 @@ class StateEndpoint(RESTEndpoint):
         return RESTResponse({
             "state": self.tribler_state,
             "last_exception": self.last_exception,
-            "readable_state": self.session.readable_status
+            "readable_state": self.readable_status
         })

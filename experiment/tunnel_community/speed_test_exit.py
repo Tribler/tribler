@@ -5,7 +5,11 @@ from pathlib import Path
 from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.messaging.anonymization.utils import run_speed_test
 from ipv8.taskmanager import TaskManager
-
+from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.tunnels import TunnelsComponent
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 25))
@@ -15,18 +19,17 @@ EXPERIMENT_NUM_HOPS = int(os.environ.get('EXPERIMENT_NUM_HOPS', 1))
 
 class Service(TinyTriblerService, TaskManager):
     def __init__(self, working_dir, config_path):
-        super().__init__(Service.create_config(working_dir, config_path), None, working_dir, config_path)
+        super().__init__(Service.create_config(working_dir, config_path), working_dir=working_dir,
+                         components=[Ipv8Component(), MasterKeyComponent(), RESTComponent(), TunnelsComponent()])
         TaskManager.__init__(self)
         self.results = []
         self.output_file = 'speed_test_exit.txt'
 
     @staticmethod
     def create_config(working_dir, config_path):
-        return TinyTriblerService.create_default_config(working_dir, config_path)\
-            .put('ipv8', 'enabled', True)\
-            .put('tunnel_community', 'enabled', True)\
-            .put('dht', 'enabled', True)\
-            .put('torrent_checking', 'enabled', False)
+        config = TriblerConfig(state_dir=working_dir, file=config_path)
+        config.dht.enabled = True
+        return config
 
     def _graceful_shutdown(self):
         task = asyncio.create_task(self.on_tribler_shutdown())
@@ -55,19 +58,23 @@ class Service(TinyTriblerService, TaskManager):
     async def on_tribler_started(self):
         index = 0
         while index < EXPERIMENT_NUM_CIRCUITS:
-            circuit = self.session.tunnel_community.create_circuit(EXPERIMENT_NUM_HOPS)
+            community = TunnelsComponent.instance().community
+            circuit = community.create_circuit(EXPERIMENT_NUM_HOPS)
             if circuit and (await circuit.ready):
                 index += 1
                 self.results += await self.run_speed_test(ORIGINATOR, circuit, index, EXPERIMENT_NUM_MB)
                 self.results += await self.run_speed_test(EXIT_NODE, circuit, index, EXPERIMENT_NUM_MB)
-                self.session.tunnel_community.remove_circuit(circuit.circuit_id)
+                community.remove_circuit(circuit.circuit_id)
             else:
                 await asyncio.sleep(1)
         self._graceful_shutdown()
 
     async def run_speed_test(self, direction, circuit, index, size):
-        task = asyncio.create_task(run_speed_test(self.session.tunnel_community,
-                                                  direction, circuit, window=50, size=size))
+        request_size = 0 if direction == ORIGINATOR else 1024
+        response_size = 1024 if direction == ORIGINATOR else 0
+        num_requests = size * 1024
+        task = asyncio.create_task(run_speed_test(TunnelsComponent.instance().community, circuit, request_size,
+                                                  response_size, num_requests, window=50))
         results = []
         prev_transferred = ts = 0
         while not task.done():

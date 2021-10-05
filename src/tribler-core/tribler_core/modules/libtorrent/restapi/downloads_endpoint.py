@@ -7,11 +7,18 @@ from aiohttp import web
 from aiohttp_apispec import docs, json_schema
 
 from ipv8.REST.schema import schema
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_BT
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_common.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
+from tribler_common.simpledefs import (
+    DLSTATUS_CIRCUITS,
+    DLSTATUS_EXIT_NODES,
+    DLSTATUS_STOPPED,
+    DOWNLOAD,
+    UPLOAD,
+    dlstatus_strings,
+)
 
 from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.modules.libtorrent.download_manager import DownloadManager
@@ -28,6 +35,7 @@ from tribler_core.restapi.util import return_handled_exception
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
+from tribler_core.utilities.utilities import froze_it
 
 
 def _safe_extended_peer_info(ext_peer_info):
@@ -48,14 +56,39 @@ def _safe_extended_peer_info(ext_peer_info):
         return ''.join([chr(c) for c in ext_peer_info])
 
 
+def get_extended_status(tunnel_community, download):
+    """
+    This function filters the original download status to possibly add tunnel-related status.
+    Extracted from DownloadState to remove coupling between DownloadState and Tunnels.
+    """
+    state = download.get_state()
+    dlstatus = state.get_status()
+
+    # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
+    stopped_by_user = state.lt_status and state.lt_status.paused
+
+    if dlstatus is DLSTATUS_STOPPED and not stopped_by_user:
+        if download.config.get_hops() > 0:
+            if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+                return DLSTATUS_CIRCUITS
+            else:
+                return DLSTATUS_EXIT_NODES
+        return DLSTATUS_STOPPED
+    return dlstatus
+
+
+@froze_it
 class DownloadsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
     starting, pausing and stopping downloads.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self):
+        super().__init__()
+        self.download_manager = None
+        self.mds = None
+        self.tunnel_community = None
 
         self.app.on_shutdown.append(self.on_shutdown)
 
@@ -138,14 +171,14 @@ class DownloadsEndpoint(RESTEndpoint):
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_pieces',
             'description': 'Flag indicating whether or not to include pieces',
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_files',
             'description': 'Flag indicating whether or not to include files',
@@ -203,7 +236,7 @@ class DownloadsEndpoint(RESTEndpoint):
         get_files = request.query.get('get_files', '0') == '1'
 
         downloads_json = []
-        downloads = self.session.dlmgr.get_downloads()
+        downloads = self.download_manager.get_downloads()
         for download in downloads:
             if download.hidden and not download.config.get_channel_download():
                 # We still want to send channel downloads since they are displayed in the GUI
@@ -220,13 +253,16 @@ class DownloadsEndpoint(RESTEndpoint):
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             if download.config.get_channel_download():
-                download_name = self.session.mds.ChannelMetadata.get_channel_name_cached(
+                download_name = self.mds.ChannelMetadata.get_channel_name_cached(
                     tdef.get_name_utf8(), tdef.get_infohash())
-            elif self.session.mds is None:
+            elif self.mds is None:
                 download_name = tdef.get_name_utf8()
             else:
-                download_name = self.session.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
-                                tdef.get_name_utf8()
+                download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
+                    tdef.get_name_utf8()
+
+            download_status = get_extended_status(
+                self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
 
             download_json = {
                 "name": download_name,
@@ -234,7 +270,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "infohash": hexlify(tdef.get_infohash()),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
-                "status": dlstatus_strings[state.get_status()],
+                "status": dlstatus_strings[download_status],
                 "size": tdef.get_length(),
                 "eta": state.get_eta(),
                 "num_peers": num_peers,
@@ -249,20 +285,24 @@ class DownloadsEndpoint(RESTEndpoint):
                 "anon_download": download.get_anon_mode(),
                 "safe_seeding": download.config.get_safe_seeding(),
                 # Maximum upload/download rates are set for entire sessions
-                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.session.config),
-                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.session.config),
+                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.download_manager.config),
+                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.download_manager.config),
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_prebuffering_progress": download.stream.prebuffprogress,
-                "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                "vod_header_progress": download.stream.headerprogress,
-                "vod_footer_progress": download.stream.footerprogress,
-                "vod_mode": download.stream.enabled,
+                "vod_mode": download.stream and download.stream.enabled,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
                 "channel_download": download.config.get_channel_download()
             }
+            if download.stream:
+                download_json.update({
+                    "vod_prebuffering_progress": download.stream.prebuffprogress,
+                    "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
+                    "vod_header_progress": download.stream.headerprogress,
+                    "vod_footer_progress": download.stream.footerprogress,
+
+                })
 
             # Add peers information if requested
             if get_peers:
@@ -272,8 +312,8 @@ class DownloadsEndpoint(RESTEndpoint):
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
                     # Does this peer represent a hidden services circuit?
-                    if peer_info.get('port') == CIRCUIT_ID_PORT:
-                        tc = self.session.tunnel_community
+                    if peer_info.get('port') == CIRCUIT_ID_PORT and self.tunnel_community:
+                        tc = self.tunnel_community
                         circuit_id = tc.ip_to_circuit_id(peer_info['ip'])
                         circuit = tc.circuits.get(circuit_id, None)
                         if circuit:
@@ -302,14 +342,14 @@ class DownloadsEndpoint(RESTEndpoint):
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_pieces',
             'description': 'Flag indicating whether or not to include pieces',
             'type': 'boolean',
             'required': False
         },
-        {
+            {
             'in': 'query',
             'name': 'get_files',
             'description': 'Flag indicating whether or not to include files',
@@ -340,7 +380,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
         try:
-            download = await self.session.dlmgr.start_download_from_uri(parameters['uri'], config=download_config)
+            download = await self.download_manager.start_download_from_uri(parameters['uri'], config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
@@ -372,17 +412,43 @@ class DownloadsEndpoint(RESTEndpoint):
             return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
         try:
-            await self.session.dlmgr.remove_download(download, remove_content=parameters['remove_data'])
+            await self.download_manager.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
 
         return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
+
+    async def vod_response(self, download, parameters, request, vod_mode):
+        modified = False
+        if vod_mode:
+            file_index = parameters.get("fileindex")
+            if file_index is None:
+                return RESTResponse({"error": "fileindex is necessary to enable vod_mode"},
+                                    status=HTTP_BAD_REQUEST)
+            if download.stream is None:
+                download.add_stream()
+            if not download.stream.enabled or download.stream.fileindex != file_index:
+                await wait_for(download.stream.enable(file_index, request.http_range.start or 0), 10)
+                await download.stream.updateprios()
+                modified = True
+
+        elif not vod_mode and download.stream is not None and download.stream.enabled:
+            download.stream.disable()
+            modified = True
+        return RESTResponse({"vod_prebuffering_progress": download.stream.prebuffprogress,
+                             "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
+                             "vod_header_progress": download.stream.headerprogress,
+                             "vod_footer_progress": download.stream.footerprogress,
+                             "vod_mode": download.stream.enabled,
+                             "infohash": hexlify(download.get_def().get_infohash()),
+                             "modified": modified,
+                             })
 
     @docs(
         tags=["Libtorrent"],
@@ -409,7 +475,7 @@ class DownloadsEndpoint(RESTEndpoint):
     }))
     async def update_download(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -419,28 +485,7 @@ class DownloadsEndpoint(RESTEndpoint):
             if not isinstance(vod_mode, bool):
                 return RESTResponse({"error": "vod_mode must be bool flag"},
                                     status=HTTP_BAD_REQUEST)
-            file_index = 0
-            modified = False
-            if vod_mode:
-                file_index = parameters.get("fileindex")
-                if file_index is None:
-                    return RESTResponse({"error": "fileindex is necessary to enable vod_mode"},
-                                        status=HTTP_BAD_REQUEST)
-                if not download.stream.enabled or download.stream.fileindex != file_index:
-                    await wait_for(download.stream.enable(file_index, request.http_range.start or 0), 10)
-                    await download.stream.updateprios()
-                    modified = True
-            elif not vod_mode and download.stream.enabled:
-                download.stream.disable()
-                modified = True
-            return RESTResponse({"vod_prebuffering_progress": download.stream.prebuffprogress,
-                                 "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                                 "vod_header_progress": download.stream.headerprogress,
-                                 "vod_footer_progress": download.stream.footerprogress,
-                                 "vod_mode": download.stream.enabled,
-                                 "infohash": hexlify(download.get_def().get_infohash()),
-                                 "modified": modified,
-                                 })
+            return await self.vod_response(download, parameters, request, vod_mode)
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
             return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
@@ -448,7 +493,7 @@ class DownloadsEndpoint(RESTEndpoint):
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
-                await self.session.dlmgr.update_hops(download, anon_hops)
+                await self.download_manager.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
                 return return_handled_exception(request, e)
@@ -496,7 +541,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_torrent(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -505,8 +550,8 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404(request)
 
         return RESTResponse(lt.bencode(torrent), headers={'content-type': 'application/x-bittorrent',
-                                                       'Content-Disposition': 'attachment; filename=%s.torrent'
-                                                                              % hexlify(infohash).encode('utf-8')})
+                                                          'Content-Disposition': 'attachment; filename=%s.torrent'
+                                                          % hexlify(infohash).encode('utf-8')})
 
     @docs(
         tags=["Libtorrent"],
@@ -530,7 +575,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_files(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
         return RESTResponse({"files": self.get_files_info_json(download)})
@@ -545,7 +590,7 @@ class DownloadsEndpoint(RESTEndpoint):
             'type': 'string',
             'required': True
         },
-        {
+            {
             'in': 'path',
             'name': 'fileindex',
             'description': 'The fileindex to stream',
@@ -558,7 +603,7 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def stream(self, request):
         infohash = unhexlify(request.match_info['infohash'])
-        download = self.session.dlmgr.get_download(infohash)
+        download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
 
@@ -567,6 +612,8 @@ class DownloadsEndpoint(RESTEndpoint):
         http_range = request.http_range
         start = http_range.start or 0
 
+        if download.stream is None:
+            download.add_stream()
         await wait_for(download.stream.enable(file_index, None if start > 0 else 0), 10)
 
         stop = download.stream.filesize if http_range.stop is None else min(http_range.stop, download.stream.filesize)

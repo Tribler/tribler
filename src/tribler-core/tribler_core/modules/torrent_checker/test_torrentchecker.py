@@ -3,6 +3,8 @@ import random
 import secrets
 import time
 
+from asynctest import Mock
+
 from ipv8.util import succeed
 
 from pony.orm import db_session
@@ -12,19 +14,31 @@ import pytest
 import tribler_core.modules.torrent_checker.torrent_checker as torrent_checker_module
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.torrentchecker_session import HttpTrackerSession, UdpSocketManager
+from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.unicode import hexlify
 
 
+@pytest.fixture
+def tracker_manager(tmp_path, metadata_store):
+    return TrackerManager(state_dir=tmp_path, metadata_store=metadata_store)
+
+
 @pytest.fixture(name="torrent_checker")
-async def fixture_torrent_checker(session):
-    torrent_checker = TorrentChecker(session)
+async def fixture_torrent_checker(tribler_config, tracker_manager, metadata_store):
+
+    torrent_checker = TorrentChecker(config=tribler_config,
+                                     download_manager=Mock(),
+                                     notifier=Mock(),
+                                     metadata_store=metadata_store,
+                                     tracker_manager=tracker_manager
+                                     )
     yield torrent_checker
     await torrent_checker.shutdown()
 
 
 @pytest.mark.asyncio
-async def test_initialize(enable_chant, torrent_checker):  # pylint: disable=unused-argument
+async def test_initialize(torrent_checker):  # pylint: disable=unused-argument
     """
     Test the initialization of the torrent checker
     """
@@ -50,16 +64,16 @@ async def test_create_socket_fail(torrent_checker):
 
 
 @pytest.mark.asyncio
-async def test_health_check_blacklisted_trackers(enable_chant, torrent_checker, session):
+async def test_health_check_blacklisted_trackers(torrent_checker):
     """
     Test whether only cached results of a torrent are returned with only blacklisted trackers
     """
     with db_session:
-        tracker = session.mds.TrackerState(url="http://localhost/tracker")
-        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                 last_check=int(time.time()))
+        tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
+        torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                         last_check=int(time.time()))
 
-    session.tracker_manager.blacklist.append("http://localhost/tracker")
+    torrent_checker.tracker_manager.blacklist.append("http://localhost/tracker")
     result = await torrent_checker.check_torrent_health(b'a' * 20)
     assert {'db'} == set(result.keys())
     assert result['db']['seeders'] == 5
@@ -67,14 +81,14 @@ async def test_health_check_blacklisted_trackers(enable_chant, torrent_checker, 
 
 
 @pytest.mark.asyncio
-async def test_health_check_cached(enable_chant, torrent_checker, session):
+async def test_health_check_cached(torrent_checker):
     """
     Test whether cached results of a torrent are returned when fetching the health of a torrent
     """
     with db_session:
-        tracker = session.mds.TrackerState(url="http://localhost/tracker")
-        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                 last_check=int(time.time()))
+        tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
+        torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                         last_check=int(time.time()))
 
     result = await torrent_checker.check_torrent_health(b'a' * 20)
     assert 'db' in result
@@ -83,7 +97,7 @@ async def test_health_check_cached(enable_chant, torrent_checker, session):
 
 
 @pytest.mark.asyncio
-async def test_load_torrents_check_from_db(enable_chant, torrent_checker, session):  # pylint: disable=unused-argument
+async def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused-argument
     """
     Test if the torrents_checked set is properly initialized based on the last_check
     and self_checked values from the database.
@@ -91,11 +105,11 @@ async def test_load_torrents_check_from_db(enable_chant, torrent_checker, sessio
     @db_session
     def save_random_torrent_state(last_checked=0, self_checked=False, count=1):
         for _ in range(count):
-            session.mds.TorrentState(infohash=secrets.token_bytes(20),
-                                     seeders=random.randint(1, 100),
-                                     leechers=random.randint(1, 100),
-                                     last_check=last_checked,
-                                     self_checked=self_checked)
+            torrent_checker.mds.TorrentState(infohash=secrets.token_bytes(20),
+                                             seeders=random.randint(1, 100),
+                                             leechers=random.randint(1, 100),
+                                             last_check=last_checked,
+                                             self_checked=self_checked)
 
     now = int(time.time())
     freshness_threshold = now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
@@ -132,7 +146,7 @@ async def test_load_torrents_check_from_db(enable_chant, torrent_checker, sessio
 
 
 @pytest.mark.asyncio
-async def test_task_select_no_tracker(enable_chant, torrent_checker):
+async def test_task_select_no_tracker(torrent_checker):
     """
     Test whether we are not checking a random tracker if there are no trackers in the database.
     """
@@ -141,7 +155,7 @@ async def test_task_select_no_tracker(enable_chant, torrent_checker):
 
 
 @pytest.mark.asyncio
-async def test_check_random_tracker_shutdown(enable_chant, torrent_checker):
+async def test_check_random_tracker_shutdown(torrent_checker):
     """
     Test whether we are not performing a tracker check if we are shutting down.
     """
@@ -151,26 +165,26 @@ async def test_check_random_tracker_shutdown(enable_chant, torrent_checker):
 
 
 @pytest.mark.asyncio
-async def test_check_random_tracker_not_alive(enable_chant, torrent_checker, session):
+async def test_check_random_tracker_not_alive(torrent_checker):
     """
     Test whether we correctly update the tracker state when the number of failures is too large.
     """
     with db_session:
-        session.mds.TrackerState(url="http://localhost/tracker", failures=1000, alive=True)
+        torrent_checker.mds.TrackerState(url="http://localhost/tracker", failures=1000, alive=True)
 
     result = await torrent_checker.check_random_tracker()
     assert not result
 
     with db_session:
-        tracker = session.tracker_manager.tracker_store.get()
+        tracker = torrent_checker.tracker_manager.tracker_store.get()
         assert not tracker.alive
 
 
 @pytest.mark.asyncio
-async def test_task_select_tracker(enable_chant, torrent_checker, session):
+async def test_task_select_tracker(torrent_checker):
     with db_session:
-        tracker = session.mds.TrackerState(url="http://localhost/tracker")
-        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
+        tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
+        torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
 
     controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5, None)
     controlled_session.connect_to_tracker = lambda: succeed(None)
@@ -183,14 +197,14 @@ async def test_task_select_tracker(enable_chant, torrent_checker, session):
 
 
 @pytest.mark.asyncio
-async def test_tracker_test_error_resolve(enable_chant, torrent_checker, session):
+async def test_tracker_test_error_resolve(torrent_checker):
     """
     Test whether we capture the error when a tracker check fails
     """
     with db_session:
-        tracker = session.mds.TrackerState(url="http://localhost/tracker")
-        session.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
-                                 last_check=int(time.time()))
+        tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
+        torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+                                         last_check=int(time.time()))
     result = await torrent_checker.check_random_tracker()
     assert not result
 
@@ -199,11 +213,11 @@ async def test_tracker_test_error_resolve(enable_chant, torrent_checker, session
 
 
 @pytest.mark.asyncio
-async def test_tracker_no_infohashes(enable_chant, torrent_checker, session):
+async def test_tracker_no_infohashes(torrent_checker):
     """
     Test the check of a tracker without associated torrents
     """
-    session.tracker_manager.add_tracker('http://trackertest.com:80/announce')
+    torrent_checker.tracker_manager.add_tracker('http://trackertest.com:80/announce')
     result = await torrent_checker.check_random_tracker()
     assert not result
 
@@ -232,7 +246,7 @@ def test_get_valid_next_tracker_for_auto_check(torrent_checker):
     assert next_tracker.url == "http://announce.torrentsmd.com:8080/announce"
 
 
-def test_on_health_check_completed(enable_chant, torrent_checker, session):
+def test_on_health_check_completed(torrent_checker):
     tracker1 = 'udp://localhost:2801'
     tracker2 = "http://badtracker.org/announce"
     infohash_bin = b'\xee'*20
@@ -266,7 +280,7 @@ def test_on_health_check_completed(enable_chant, torrent_checker, session):
     assert not torrent_checker.on_torrent_health_check_completed(infohash_bin, None)
 
     with db_session:
-        ts = session.mds.TorrentState(infohash=infohash_bin)
+        ts = torrent_checker.mds.TorrentState(infohash=infohash_bin)
         previous_check = ts.last_check
         torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
         assert 1 == len(torrent_checker.torrents_checked)
@@ -275,7 +289,7 @@ def test_on_health_check_completed(enable_chant, torrent_checker, session):
         assert previous_check < ts.last_check
 
 
-def test_on_health_check_failed(enable_chant, torrent_checker):
+def test_on_health_check_failed(torrent_checker):
     """
     Check whether there is no crash when the torrent health check failed and the response is None
     No torrent info is added to torrent_checked list.
@@ -286,7 +300,7 @@ def test_on_health_check_failed(enable_chant, torrent_checker):
 
 
 @db_session
-def test_check_local_torrents(enable_chant, torrent_checker, session):
+def test_check_local_torrents(torrent_checker):
     """
     Test that the random torrent health checking mechanism picks the right torrents
     """
@@ -306,7 +320,7 @@ def test_check_local_torrents(enable_chant, torrent_checker, session):
     fresh_infohashes = []
     for index in range(0, num_torrents):
         infohash = random_infohash()
-        torrent = session.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
+        torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
         torrent.health.seeders = index
         torrent.health.last_check = int(time_fresh) + index
         fresh_infohashes.append(infohash)
@@ -317,7 +331,7 @@ def test_check_local_torrents(enable_chant, torrent_checker, session):
     max_seeder = 10000  # some random value
     for index in range(0, num_torrents):
         infohash = random_infohash()
-        torrent = session.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
+        torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
         torrent.health.seeders = max_seeder - index     # Note: decreasing trend
         torrent.health.last_check = int(time_stale) - index  # Note: decreasing trend
         stale_infohashes.append(infohash)
@@ -331,7 +345,7 @@ def test_check_local_torrents(enable_chant, torrent_checker, session):
     # 2. Older torrents are towards the back
     # Therefore the selection range becomes:
     selection_range = stale_infohashes[0: torrent_checker_module.TORRENT_SELECTION_POOL_SIZE] \
-                      + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
+        + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
 
     for infohash in selected_torrents:
         assert infohash in selection_range

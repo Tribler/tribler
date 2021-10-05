@@ -1,10 +1,10 @@
 import shutil
 
-import pytest
 from configobj import ParseError
 
+import pytest
+
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 
@@ -39,7 +39,6 @@ async def test_load_write(tmpdir):
     config.general.version_checker_enabled = False
     config.libtorrent.port = None
     config.libtorrent.proxy_type = 2
-    config.libtorrent.anon_proxy_server_ports = ['3'] * 5
 
     assert not config.file
     config.write(tmpdir / filename)
@@ -50,7 +49,6 @@ async def test_load_write(tmpdir):
     assert config.general.version_checker_enabled is False
     assert config.libtorrent.port is None
     assert config.libtorrent.proxy_type == 2
-    assert config.libtorrent.anon_proxy_server_ports == ['3'] * 5
     assert config.file == tmpdir / filename
 
 
@@ -104,17 +102,3 @@ async def test_invalid_config_recovers(tmpdir):
     # should work without the reset flag.
     config = TriblerConfig.load(file=default_config_file, state_dir=tmpdir)
     assert not config.error
-
-
-@pytest.mark.asyncio
-async def test_anon_proxy_settings(tribler_config):
-    proxy_type, server, auth = 3, ("33.33.33.33", [2222, 2223, 4443, 58848]), 1
-    DownloadManager.set_anon_proxy_settings(tribler_config, proxy_type, server, auth)
-
-    settings = DownloadManager.get_anon_proxy_settings(tribler_config)
-    assert settings == [proxy_type, server, auth]
-
-    proxy_type = 1
-    DownloadManager.set_anon_proxy_settings(tribler_config, proxy_type, server, auth)
-    settings = DownloadManager.get_anon_proxy_settings(tribler_config)
-    assert settings == [proxy_type, server, None]

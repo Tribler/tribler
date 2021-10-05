@@ -307,7 +307,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         # register tasks
         community.register_task('scheduled send', self.send_scheduled, interval=scheduled_send_interval_in_sec)
 
-        logger.info(
+        logger.debug(
             f'Initialized. Block size: {block_size}. Window size: {window_size_in_blocks}. '
             f'Start message id: {start_message_id}. Retransmit interval: {retransmit_interval_in_sec}sec. '
             f'Max retransmit attempts: {retransmit_attempt_count}. Timeout: {timeout_interval_in_sec}sec. '
@@ -348,11 +348,11 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
         self._schedule_terminate(self.outgoing, peer, transfer)
 
-        logger.info(f'Write Request. Peer hash: {hash(peer)}. Transfer: {transfer}')
+        logger.debug(f'Write Request. Peer hash: {hash(peer)}. Transfer: {transfer}')
         self.community.eva_send_message(peer, WriteRequest(data_size, nonce, info_binary))
 
     async def on_write_request(self, peer, payload):
-        logger.info(f'On write request. Peer hash: {hash(peer)}. Info: {payload.info_binary}. '
+        logger.debug(f'On write request. Peer hash: {hash(peer)}. Info: {payload.info_binary}. '
                     f'Size: {payload.data_size}')
 
         transfer = Transfer(TransferType.INCOMING, payload.info_binary, b'', payload.nonce)
@@ -442,7 +442,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
     async def on_error(self, peer, payload):
         message = payload.message.decode('utf-8')
-        logger.info(f'On error. Peer hash: {hash(peer)}. Message: "{message}"')
+        logger.debug(f'On error. Peer hash: {hash(peer)}. Message: "{message}"')
         transfer = self.outgoing.get(peer, None)
         if not transfer:
             return
@@ -486,12 +486,12 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
             transfer = self.scheduled[peer].popleft()
 
-            logger.info(f'Scheduled send: {transfer.info_binary}')
+            logger.debug(f'Scheduled send: {transfer.info_binary}')
             self.start_outgoing_transfer(peer, transfer.info_binary, transfer.data_binary, transfer.nonce)
 
     @staticmethod
     def terminate(container, peer, transfer):
-        logger.info(f'Finish. Peer hash: {hash(peer)}. Transfer: {transfer}')
+        logger.debug(f'Finish. Peer hash: {hash(peer)}. Transfer: {transfer}')
 
         transfer.release()
         container.pop(peer, None)

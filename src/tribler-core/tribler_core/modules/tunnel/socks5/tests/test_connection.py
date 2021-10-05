@@ -13,13 +13,13 @@ class MockTransport(MockObject):
     This object mocks the transport of the socks5 connection.
     """
 
-    def __init__(self):
+    def __init__(self, loop):
         self.connected = True
         self.written_data = []
         self.host = '123.123.123.123'
         self.ip = 123
         self.num_messages = 2
-        self.done = Future()
+        self.done = Future(loop=loop)
 
     def close(self):
         self.connected = False
@@ -37,9 +37,9 @@ class MockTransport(MockObject):
 
 
 @pytest.fixture
-def connection():
+def connection(loop):
     connection = Socks5Connection(None)
-    connection.transport = MockTransport()
+    connection.transport = MockTransport(loop)
     yield connection
     if connection.udp_connection:  # Close opened UDP sockets
         connection.udp_connection.close()
@@ -53,6 +53,7 @@ def test_invalid_version(connection):
     assert not connection.transport.connected
 
 
+@pytest.mark.asyncio
 def test_method_request(connection):
     """
     Test sending a method request to the socks5 server

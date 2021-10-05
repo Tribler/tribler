@@ -1,11 +1,14 @@
 -r requirements.txt
 
 pytest
+pytest-aiohttp
 pytest-asyncio                        
 pytest-cov                            
 pytest-mock
 pytest-randomly                        
 pytest-timeout                         
 pytest-xdist
+pytest-freezegun
+freezegun
 
 asynctest

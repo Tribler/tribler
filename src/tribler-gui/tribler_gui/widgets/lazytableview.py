@@ -1,8 +1,9 @@
-from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal, QEvent
 from PyQt5.QtGui import QGuiApplication, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
 
-from tribler_core.modules.metadata_store.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import COMMIT_STATUS_COMMITTED
 from tribler_gui.utilities import connect, data_item2uri, get_image_path, index2uri
@@ -42,9 +43,6 @@ class TriblerContentTableView(QTableView):
     This table view is designed to support lazy loading.
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
-
-    # Probably should add redraw when the mouse leaves the view through the header.
-    # Overloading leaveEvent method could be used for that
     mouse_moved = pyqtSignal(QPoint, QModelIndex)
 
     channel_clicked = pyqtSignal(dict)
@@ -60,6 +58,9 @@ class TriblerContentTableView(QTableView):
         self.setItemDelegate(self.delegate)
         connect(self.mouse_moved, self.delegate.on_mouse_moved)
         connect(self.delegate.redraw_required, self.redraw)
+
+        # Install an event filter on the horizontal header to catch mouse movements (so we can deselect rows).
+        self.horizontalHeader().installEventFilter(self)
 
         # Stop triggering editor events on doubleclick, because we already use doubleclick to start downloads.
         # Editing should be started manually, from drop-down menu instead.
@@ -91,12 +92,50 @@ class TriblerContentTableView(QTableView):
         self.loading_animation_widget.qm.stop()
         self.loading_animation_widget.setHidden(True)
 
+    def eventFilter(self, obj, event):
+        if obj == self.horizontalHeader() and event.type() == QEvent.HoverEnter:
+            # Deselect rows when the mouse leaves through the table view header.
+            self.deselect_all_rows()
+        return False
+
+    def wheelEvent(self, event):
+        super().wheelEvent(event)
+
+        # We trigger a mouse movement event to make sure that the whole row remains selected when scrolling.
+        index = QModelIndex(self.indexAt(event.pos()))
+        self.mouse_moved.emit(event.pos(), index)
+
+    def deselect_all_rows(self):
+        """
+        Deselect all rows in the table view.
+        """
+        old_selected = self.delegate.hover_index
+        self.delegate.hover_index = self.delegate.no_index
+        self.redraw(old_selected, True)
+
+    def leaveEvent(self, event):
+        """
+        The mouse has left the viewport. Make sure that we deselect the currently selected row and redraw.
+        Note that this might fail when moving the mouse very fast.
+        """
+        super().leaveEvent(event)
+        self.deselect_all_rows()
+
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
         self.mouse_moved.emit(event.pos(), index)
 
-    def redraw(self):
-        self.viewport().update()
+    def redraw(self, index, redraw_whole_row):
+        """
+        Redraw the cell at a particular index.
+        """
+        if redraw_whole_row:
+            for col_ind in range(self.model().columnCount()):
+                index = self.model().index(index.row(), col_ind)
+                self.model().dataChanged.emit(index, index, [])
+        else:
+            self.model().dataChanged.emit(index, index, [])
+
         # This is required to drop the sensitivity zones of the controls,
         # so there are no invisible controls left over from a previous state of the view
         for control in self.delegate.controls:
@@ -105,7 +144,7 @@ class TriblerContentTableView(QTableView):
     def on_subscribe_control_clicked(self, index):
         item = index.model().data_items[index.row()]
         # skip LEGACY entries, regular torrents and personal channel
-        if 'subscribed' not in item or item['status'] == 1000 or item['state'] == 'Personal':
+        if 'subscribed' not in item or item['status'] == LEGACY_ENTRY or item['state'] == 'Personal':
             return
 
         status = int(item['subscribed'])

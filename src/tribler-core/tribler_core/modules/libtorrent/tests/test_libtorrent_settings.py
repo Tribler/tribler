@@ -1,6 +1,7 @@
 import pytest
 
 from tribler_common.network_utils import NetworkUtils
+
 from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings, SeedingMode
 
 
@@ -25,18 +26,6 @@ async def test_proxy_type_validation():
 
     with pytest.raises(ValueError):
         LibtorrentSettings(proxy_type=6)
-
-
-@pytest.mark.asyncio
-async def test_anon_proxy_server_ip_validation():
-    settings = LibtorrentSettings(anon_proxy_server_ip='127.0.0.1')
-    assert settings
-
-    with pytest.raises(ValueError):
-        LibtorrentSettings(anon_proxy_server_ip='')
-
-    with pytest.raises(ValueError):
-        LibtorrentSettings(anon_proxy_server_ip='999.0.0.1')
 
 
 @pytest.mark.asyncio
