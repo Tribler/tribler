@@ -5,7 +5,7 @@ from binascii import hexlify, unhexlify
 from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
-from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.tunnels import TunnelsComponent
