@@ -1,7 +1,3 @@
-from ipv8.peerdiscovery.discovery import RandomWalk
-
-from ipv8_service import IPv8
-
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 
 from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
@@ -17,17 +13,14 @@ from tribler_core.components.upgrade import UpgradeComponent
 class BandwidthAccountingComponent(RestfulComponent):
     community: BandwidthAccountingCommunity
 
-    _ipv8: IPv8
+    _ipv8_component: Ipv8Component
 
     async def run(self):
         await super().run()
         await self.get_component(UpgradeComponent)
+        self._ipv8_component = await self.require_component(Ipv8Component)
+
         config = self.session.config
-
-        ipv8_component = await self.require_component(Ipv8Component)
-        self._ipv8 = ipv8_component.ipv8
-        peer = ipv8_component.peer
-
         if config.general.testnet or config.bandwidth_accounting.testnet:
             bandwidth_cls = BandwidthAccountingTestnetCommunity
         else:
@@ -35,18 +28,19 @@ class BandwidthAccountingComponent(RestfulComponent):
 
         db_name = "bandwidth_gui_test.db" if config.gui_test_mode else f"{bandwidth_cls.DB_NAME}.db"
         database_path = config.state_dir / STATEDIR_DB_DIR / db_name
-        database = BandwidthDatabase(database_path, peer.public_key.key_to_bin())
-        community = bandwidth_cls(peer, self._ipv8.endpoint, self._ipv8.network,
-                                  settings=config.bandwidth_accounting,
-                                  database=database)
-        self._ipv8.add_strategy(community, RandomWalk(community), 20)
+        database = BandwidthDatabase(database_path, self._ipv8_component.peer.public_key.key_to_bin())
+        self.community = bandwidth_cls(self._ipv8_component.peer,
+                                       self._ipv8_component.ipv8.endpoint,
+                                       self._ipv8_component.ipv8.network,
+                                       settings=config.bandwidth_accounting,
+                                       database=database)
 
-        community.bootstrappers.append(ipv8_component.make_bootstrapper())
+        self._ipv8_component.initialise_community_by_default(self.community)
 
-        self.community = community
         await self.init_endpoints(endpoints=['trustview', 'bandwidth'],
-                                  values={'bandwidth_db': community.database, 'bandwidth_community': community})
+                                  values={'bandwidth_db': self.community.database,
+                                          'bandwidth_community': self.community})
 
     async def shutdown(self):
         await super().shutdown()
-        await self._ipv8.unload_overlay(self.community)
+        await self._ipv8_component.unload_community(self.community)

@@ -7,7 +7,6 @@ from tribler_core.components.base import Session
 from tribler_core.components.ipv8 import Ipv8Component
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.restapi.rest_manager import RESTManager
 
 
 # pylint: disable=protected-access
@@ -23,6 +22,6 @@ async def test_bandwidth_accounting_component(tribler_config):
         comp = BandwidthAccountingComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
-        assert comp._ipv8
+        assert comp._ipv8_component
 
         await session.shutdown()
