@@ -19,6 +19,8 @@ from tribler_core.components.restapi import RestfulComponent
 INFINITE = -1
 
 
+# pylint: disable=import-outside-toplevel
+
 class Ipv8Component(RestfulComponent):
     ipv8: IPv8
     peer: Peer
