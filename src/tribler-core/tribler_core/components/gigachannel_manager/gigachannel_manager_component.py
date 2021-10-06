@@ -5,7 +5,7 @@ from tribler_core.components.restapi import RestfulComponent
 
 
 class GigachannelManagerComponent(RestfulComponent):
-    gigachannel_manager: GigaChannelManager
+    gigachannel_manager: GigaChannelManager = None
 
     async def run(self):
         await super().run()
@@ -28,6 +28,6 @@ class GigachannelManagerComponent(RestfulComponent):
                                   values={'gigachannel_manager': self.gigachannel_manager})
 
     async def shutdown(self):
-        self.session.notifier.notify_shutdown_state("Shutting down Gigachannel Manager...")
         await super().shutdown()
-        await self.gigachannel_manager.shutdown()
+        if self.gigachannel_manager:
+            await self.gigachannel_manager.shutdown()

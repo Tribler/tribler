@@ -11,9 +11,8 @@ from tribler_core.components.upgrade import UpgradeComponent
 
 
 class BandwidthAccountingComponent(RestfulComponent):
-    community: BandwidthAccountingCommunity
-
-    _ipv8_component: Ipv8Component
+    community: BandwidthAccountingCommunity = None
+    _ipv8_component: Ipv8Component = None
 
     async def run(self):
         await super().run()
@@ -43,4 +42,5 @@ class BandwidthAccountingComponent(RestfulComponent):
 
     async def shutdown(self):
         await super().shutdown()
-        await self._ipv8_component.unload_community(self.community)
+        if self._ipv8_component and self.community:
+            await self._ipv8_component.unload_community(self.community)

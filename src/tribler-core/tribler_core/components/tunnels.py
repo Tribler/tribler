@@ -11,9 +11,9 @@ from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 
 
 class TunnelsComponent(RestfulComponent):
-    community: TriblerTunnelCommunity
+    community: TriblerTunnelCommunity = None
 
-    _ipv8_component: Ipv8Component
+    _ipv8_component: Ipv8Component = None
 
     async def run(self):
         await super().run()
@@ -64,4 +64,5 @@ class TunnelsComponent(RestfulComponent):
 
     async def shutdown(self):
         await super().shutdown()
-        await self._ipv8_component.unload_community(self.community)
+        if self._ipv8_component and self.community:
+            await self._ipv8_component.unload_community(self.community)

@@ -8,7 +8,7 @@ from tribler_core.modules.libtorrent.download_manager import DownloadManager
 
 
 class LibtorrentComponent(RestfulComponent):
-    download_manager: DownloadManager
+    download_manager: DownloadManager = None
 
     async def run(self):
         await super().run()
@@ -43,5 +43,6 @@ class LibtorrentComponent(RestfulComponent):
 
     async def shutdown(self):
         await super().shutdown()
-        self.download_manager.stop_download_states_callback()
-        await self.download_manager.shutdown()
+        if self.download_manager:
+            self.download_manager.stop_download_states_callback()
+            await self.download_manager.shutdown()

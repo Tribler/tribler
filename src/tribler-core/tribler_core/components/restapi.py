@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Set, Tuple
 from ipv8_service import IPv8
 
 from tribler_common.simpledefs import STATE_START_API
+
 from tribler_core.components.base import Component
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.exception_handler import CoreExceptionHandler
@@ -53,9 +54,11 @@ class RestfulComponent(Component, ABC):
                     endpoint.initialize(ipv8)
 
     async def run(self):
+        await super().run()
         await self.get_component(ReporterComponent)
 
     async def shutdown(self):
+        await super().shutdown()
         rest_component = await self.get_component(RESTComponent)
         if not rest_component:
             return
@@ -67,9 +70,10 @@ class RestfulComponent(Component, ABC):
 
 
 class RESTComponent(Component):
-    rest_manager: RESTManager
+    rest_manager: RESTManager = None
 
     async def run(self):
+        await super().run()
         await self.get_component(ReporterComponent)
         session = self.session
         config = session.config
@@ -83,6 +87,7 @@ class RESTComponent(Component):
         # communicate with the upgrader. Thus, we start the endpoints immediately and
         # then gradually connect them to their respective backends during the core start process.
         await rest_manager.start()
+        self.rest_manager = rest_manager
 
         rest_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
         rest_manager.get_endpoint('settings').tribler_config = config
@@ -109,12 +114,8 @@ class RESTComponent(Component):
 
         CoreExceptionHandler.report_callback = report_callback
 
-        # We provide the REST API only after the essential endpoints (events, state and shutdown) and
-        # the exception handler were initialized
-        self.rest_manager = rest_manager
-
     async def shutdown(self):
-        # TODO: disconnect notifier from endpoints
+        await super().shutdown()
         CoreExceptionHandler.report_callback = None
-        self.session.notifier.notify_shutdown_state("Shutting down API Manager...")
-        await self.rest_manager.stop()
+        if self.rest_manager:
+            await self.rest_manager.stop()

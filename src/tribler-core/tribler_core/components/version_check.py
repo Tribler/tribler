@@ -5,9 +5,10 @@ from tribler_core.modules.version_check.versioncheck_manager import VersionCheck
 
 
 class VersionCheckComponent(Component):
-    version_check_manager: VersionCheckManager
+    version_check_manager: VersionCheckManager = None
 
     async def run(self):
+        await super().run()
         await self.get_component(ReporterComponent)
         await self.get_component(UpgradeComponent)
 
@@ -17,5 +18,6 @@ class VersionCheckComponent(Component):
         self.version_check_manager.start()
 
     async def shutdown(self):
-        self.session.notifier.notify_shutdown_state("Shutting down Version Checker...")
-        await self.version_check_manager.stop()
+        await super().shutdown()
+        if self.version_check_manager:
+            await self.version_check_manager.stop()

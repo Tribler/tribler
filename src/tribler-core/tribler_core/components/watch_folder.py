@@ -6,7 +6,7 @@ from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 
 
 class WatchFolderComponent(RestfulComponent):
-    watch_folder: WatchFolder
+    watch_folder: WatchFolder = None
 
     async def run(self):
         await super().run()
@@ -23,6 +23,6 @@ class WatchFolderComponent(RestfulComponent):
         self.watch_folder = watch_folder
 
     async def shutdown(self):
-        self.session.notifier.notify_shutdown_state("Shutting down Watch Folder...")
         await super().shutdown()
-        await self.watch_folder.stop()
+        if self.watch_folder:
+            await self.watch_folder.stop()
