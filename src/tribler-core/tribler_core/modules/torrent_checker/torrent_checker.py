@@ -12,7 +12,7 @@ from pony.orm import db_session, desc, select
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.modules.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,

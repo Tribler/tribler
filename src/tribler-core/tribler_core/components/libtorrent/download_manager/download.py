@@ -17,11 +17,11 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLO
 
 from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.modules.libtorrent import check_handle, require_handle
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.download_state import DownloadState
-from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings
-from tribler_core.modules.libtorrent.stream import Stream
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
+from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings
+from tribler_core.components.libtorrent.download_manager.stream import Stream
+from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path

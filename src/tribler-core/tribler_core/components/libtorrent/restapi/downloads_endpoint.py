@@ -20,9 +20,9 @@ from tribler_common.simpledefs import (
     dlstatus_strings,
 )
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.libtorrent.stream import STREAM_PAUSE_TIME, StreamChunk
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler_core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
 from tribler_core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,

@@ -4,7 +4,7 @@ from configobj import ConfigObjError
 
 import pytest
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig, get_default_dest_dir
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig, get_default_dest_dir
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 

@@ -8,9 +8,9 @@ from pony.orm import db_session
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore

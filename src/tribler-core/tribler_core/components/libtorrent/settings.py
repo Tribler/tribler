@@ -7,7 +7,7 @@ from tribler_common.network_utils import NetworkUtils
 
 # pylint: disable=no-self-argument
 from tribler_core.config.tribler_config_section import TriblerConfigSection
-from tribler_core.modules.libtorrent.download_config import get_default_dest_dir
+from tribler_core.components.libtorrent.download_manager.download_config import get_default_dest_dir
 
 
 @validator('port', 'anon_listen_port')

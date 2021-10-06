@@ -10,8 +10,8 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
 from tribler_core.exceptions import DuplicateDownloadException
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.restapi.util import return_handled_exception

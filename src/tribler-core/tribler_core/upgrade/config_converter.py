@@ -9,8 +9,8 @@ from configobj import ConfigObj, ParseError as ConfigObjParseError
 
 from tribler_common.simpledefs import STATEDIR_CHECKPOINT_DIR
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities.configparser import CallbackConfigParser
 from tribler_core.utilities.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import recursive_ungarble_metainfo

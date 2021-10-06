@@ -1,6 +1,6 @@
 from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
 
-from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.socks_configurator import SocksServersComponent

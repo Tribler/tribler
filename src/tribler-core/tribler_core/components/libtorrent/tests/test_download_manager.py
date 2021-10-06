@@ -9,9 +9,9 @@ import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
-from tribler_core.modules.libtorrent.settings import LibtorrentSettings
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler_core.components.libtorrent.settings import LibtorrentSettings
+from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
