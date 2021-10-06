@@ -35,6 +35,10 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
         if not self.dialog_widget.geometry().contains(qevent.localPos().toPoint()):
             self.close_dialog()
 
+    def showEvent(self, _):
+        # Make sure that the window has proper vertical alignment.
+        self.on_main_window_resize()
+
     def on_main_window_resize(self):
         try:
             if not self or not self.parentWidget():
