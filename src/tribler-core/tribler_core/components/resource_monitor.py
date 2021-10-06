@@ -4,7 +4,7 @@ from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
 
 
 class ResourceMonitorComponent(RestfulComponent):
-    resource_monitor: CoreResourceMonitor
+    resource_monitor: CoreResourceMonitor = None
 
     async def run(self):
         await super().run()
@@ -24,6 +24,6 @@ class ResourceMonitorComponent(RestfulComponent):
         await self.init_endpoints(endpoints=['debug'], values={'resource_monitor': resource_monitor})
 
     async def shutdown(self):
-        self.session.notifier.notify_shutdown_state("Shutting down Resource Monitor...")
         await super().shutdown()
-        await self.resource_monitor.stop()
+        if self.resource_monitor:
+            await self.resource_monitor.stop()

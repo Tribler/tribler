@@ -8,7 +8,7 @@ from tribler_core.components.upgrade import UpgradeComponent
 
 
 class MetadataStoreComponent(RestfulComponent):
-    mds: MetadataStore
+    mds: MetadataStore = None
 
     async def run(self):
         await super().run()
@@ -59,5 +59,5 @@ class MetadataStoreComponent(RestfulComponent):
 
     async def shutdown(self):
         await super().shutdown()
-        self.session.notifier.notify_shutdown_state("Shutting down Metadata Store...")
-        self.mds.shutdown()
+        if self.mds:
+            self.mds.shutdown()

@@ -9,7 +9,7 @@ from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 
 
 class TorrentCheckerComponent(RestfulComponent):
-    torrent_checker: TorrentChecker
+    torrent_checker: TorrentChecker = None
 
     async def run(self):
         await super().run()
@@ -33,6 +33,6 @@ class TorrentCheckerComponent(RestfulComponent):
         await self.init_endpoints(endpoints=['metadata'], values={'torrent_checker': torrent_checker})
 
     async def shutdown(self):
-        self.session.notifier.notify_shutdown_state("Shutting down Torrent Checker...")
         await super().shutdown()
-        await self.torrent_checker.shutdown()
+        if self.torrent_checker:
+            await self.torrent_checker.shutdown()

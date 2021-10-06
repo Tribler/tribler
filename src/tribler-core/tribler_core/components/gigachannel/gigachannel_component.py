@@ -1,4 +1,3 @@
-from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.peerdiscovery.network import Network
 
 from tribler_core.components.gigachannel.community.gigachannel_community import (
@@ -13,9 +12,8 @@ from tribler_core.components.restapi import RestfulComponent
 
 
 class GigaChannelComponent(RestfulComponent):
-    community: GigaChannelCommunity
-
-    _ipv8_component: Ipv8Component
+    community: GigaChannelCommunity = None
+    _ipv8_component: Ipv8Component = None
 
     async def run(self):
         await super().run()
@@ -46,4 +44,5 @@ class GigaChannelComponent(RestfulComponent):
 
     async def shutdown(self):
         await super().shutdown()
-        await self._ipv8_component.unload_community(self.community)
+        if self._ipv8_component and self.community:
+            await self._ipv8_component.unload_community(self.community)

@@ -1,4 +1,5 @@
 from ipv8.peerdiscovery.network import Network
+
 from tribler_core.components.base import Component
 from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler_core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
@@ -8,11 +9,10 @@ from tribler_core.components.torrent_checker import TorrentCheckerComponent
 from tribler_core.modules.popularity.community import PopularityCommunity
 
 
-
 class PopularityComponent(Component):
-    community: PopularityCommunity
+    community: PopularityCommunity = None
 
-    _ipv8_component: Ipv8Component
+    _ipv8_component: Ipv8Component = None
 
     async def run(self):
         await super().run()
@@ -37,4 +37,5 @@ class PopularityComponent(Component):
 
     async def shutdown(self):
         await super().shutdown()
-        await self._ipv8_component.unload_community(self.community)
+        if self._ipv8_component and self.community:
+            await self._ipv8_component.unload_community(self.community)

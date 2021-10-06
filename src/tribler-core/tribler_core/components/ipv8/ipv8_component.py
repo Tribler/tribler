@@ -12,7 +12,9 @@ from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
+
 from ipv8_service import IPv8
+
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.restapi import RestfulComponent
 
@@ -22,7 +24,7 @@ INFINITE = -1
 # pylint: disable=import-outside-toplevel
 
 class Ipv8Component(RestfulComponent):
-    ipv8: IPv8
+    ipv8: IPv8 = None
     peer: Peer
     dht_discovery_community: Optional[DHTDiscoveryCommunity] = None
 
@@ -134,10 +136,12 @@ class Ipv8Component(RestfulComponent):
     async def shutdown(self):
         await super().shutdown()
 
+        if not self.ipv8:
+            return
+
         for overlay in (self.dht_discovery_community, self._peer_discovery_community):
             if overlay:
                 await self.ipv8.unload_overlay(overlay)
 
-        self.session.notifier.notify_shutdown_state("Shutting down IPv8...")
         await self._task_manager.shutdown_task_manager()
         await self.ipv8.stop(stop_loop=False)
