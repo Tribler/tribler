@@ -1,10 +1,9 @@
 import math
 from asyncio import Future
 
-from ipv8.dht.routing import distance
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify
 
 

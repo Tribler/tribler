@@ -32,7 +32,7 @@ from tribler_core.restapi.rest_endpoint import (
     RESTStreamResponse,
 )
 from tribler_core.restapi.util import return_handled_exception
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import froze_it

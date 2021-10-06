@@ -25,8 +25,9 @@ from tribler_core.components.libtorrent.download_manager.download_config import 
 from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
-from tribler_core.utilities import path_util, torrent_utils
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.utilities import path_util
+from tribler_core.components.libtorrent.utils import torrent_utils
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink

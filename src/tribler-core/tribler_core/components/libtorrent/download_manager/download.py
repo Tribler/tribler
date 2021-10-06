@@ -16,16 +16,15 @@ from tribler_common.osutils import fix_filebasename
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.exceptions import SaveResumeDataError
-from tribler_core.modules.libtorrent import check_handle, require_handle
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.components.libtorrent.download_manager.stream import Stream
 from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.torrent_utils import get_info_from_handle
+from tribler_core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import bdecode_compat
 
@@ -750,3 +749,5 @@ class Download(TaskManager):
     @check_handle([])
     def get_file_priorities(self):
         return self.handle.file_priorities()
+
+
