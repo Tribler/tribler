@@ -98,13 +98,13 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
                                                                       include_popular=include_popular,
                                                                       include_random=include_random)
         if not popular and not rand:
-            self.logger.debug(f'No torrents to gossip. Checked torrents count: '
+            self.logger.info(f'No torrents to gossip. Checked torrents count: '
                              f'{len(checked)}')
             return
 
         random_peer = random.choice(self.get_peers())
 
-        self.logger.debug(
+        self.logger.info(
             f'Gossip torrent health information for {len(rand)}'
             f' random torrents and {len(popular)} popular torrents')
 
@@ -124,7 +124,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, peer, payload):
-        self.logger.debug(f"Received torrent health information for "
+        self.logger.info(f"Received torrent health information for "
                          f"{len(payload.torrents_checked)} popular torrents and"
                          f" {len(payload.random_torrents)} random torrents")
 
@@ -137,8 +137,8 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     @db_session
     def process_torrents_health(self, torrent_healths):
         infohashes_to_resolve = set()
-        for infohash, seeders, leechers, last_check in torrent_healths:
-            added = self.mds.process_torrent_health(infohash, seeders, leechers, last_check)
+        for health in torrent_healths:
+            added = self.mds.process_torrent_health(health.infohash, health.seeders, health.leechers, health.timestamp)
             if added:
-                infohashes_to_resolve.add(infohash)
+                infohashes_to_resolve.add(health.infohash)
         return infohashes_to_resolve
