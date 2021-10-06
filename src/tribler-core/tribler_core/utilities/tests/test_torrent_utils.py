@@ -4,7 +4,8 @@ import pytest
 
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
-from tribler_core.components.libtorrent.utils.torrent_utils import commonprefix, create_torrent_file, get_info_from_handle
+from tribler_core.components.libtorrent.utils.torrent_utils import commonprefix, create_torrent_file, \
+    get_info_from_handle
 
 TORRENT_DATA_DIR = TESTS_DATA_DIR / "torrent_creation_files"
 FILE1_NAME = "file1.txt"

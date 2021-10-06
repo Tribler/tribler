@@ -749,5 +749,3 @@ class Download(TaskManager):
     @check_handle([])
     def get_file_priorities(self):
         return self.handle.file_priorities()
-
-
