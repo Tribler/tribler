@@ -375,6 +375,7 @@ def test_check_channel_torrents(torrent_checker):
     selected_torrents = torrent_checker.channel_torrents_to_check()
     assert len(selected_torrents) == 0
 
+    # No health check call are done
     torrent_checker.check_channel_torrents()
     assert check_torrent_health_mock.call_count == len(selected_torrents)
 
@@ -399,5 +400,6 @@ def test_check_channel_torrents(torrent_checker):
     for torrent in selected_torrents:
         assert torrent in outdated_torrents
 
+    # Health check requests are sent for all selected torrents
     torrent_checker.check_channel_torrents()
     assert check_torrent_health_mock.call_count == len(selected_torrents)
