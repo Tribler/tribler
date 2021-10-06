@@ -563,9 +563,6 @@ QListWidget::item:disabled
              <height>16</height>
             </size>
            </property>
-           <property name="itemAlignment">
-            <set>Qt::AlignVCenter</set>
-           </property>
           </widget>
          </item>
          <item>
@@ -1233,6 +1230,9 @@ color: white;margin-top:10px;</string>
                          <height>30</height>
                         </size>
                        </property>
+                       <property name="cursor">
+                        <cursorShape>PointingHandCursor</cursorShape>
+                       </property>
                        <property name="toolTip">
                         <string>Browse download location</string>
                        </property>
@@ -1386,6 +1386,9 @@ color: white;margin-top:10px;</string>
                          <width>50</width>
                          <height>30</height>
                         </size>
+                       </property>
+                       <property name="cursor">
+                        <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="toolTip">
                         <string>Browse watch folder</string>
