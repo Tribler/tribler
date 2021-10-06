@@ -253,7 +253,7 @@ class TorrentChecker(TaskManager):
         """
         channel_torrents = self.channel_torrents_to_check()
         if not channel_torrents:
-            self._logger.info(f"No outdated channel torrents to check")
+            self._logger.info("No outdated channel torrents to check")
 
         for channel_torrent in channel_torrents:
             self.check_torrent_health(bytes(channel_torrent.infohash))
