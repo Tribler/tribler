@@ -6,7 +6,7 @@ from libtorrent import bencode
 
 import pytest
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat

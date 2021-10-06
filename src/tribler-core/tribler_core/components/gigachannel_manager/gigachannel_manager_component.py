@@ -1,5 +1,5 @@
 from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
-from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RestfulComponent
 

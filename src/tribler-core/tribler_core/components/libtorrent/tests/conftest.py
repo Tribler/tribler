@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 
 
 @pytest.fixture

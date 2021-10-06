@@ -4,7 +4,7 @@ from tribler_core.components.masterkey.masterkey_component import MasterKeyCompo
 from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.components.upgrade import UpgradeComponent
-from tribler_core.modules.libtorrent.download_manager import DownloadManager
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 
 
 class LibtorrentComponent(RestfulComponent):

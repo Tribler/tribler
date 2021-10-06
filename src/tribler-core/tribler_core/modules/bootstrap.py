@@ -5,8 +5,8 @@ from binascii import unhexlify
 from ipv8.dht import DHTError
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.torrentdef import TorrentDefNoMetainfo
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.torrentdef import TorrentDefNoMetainfo
 from tribler_core.utilities.unicode import hexlify
 
 

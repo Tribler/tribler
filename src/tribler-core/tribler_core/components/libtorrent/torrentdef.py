@@ -9,9 +9,9 @@ import aiohttp
 from tribler_common.simpledefs import INFOHASH_LENGTH
 
 from tribler_core.utilities import maketorrent, path_util
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.torrent_utils import create_torrent_file
+from tribler_core.components.libtorrent.utils.torrent_utils import create_torrent_file
 from tribler_core.utilities.unicode import ensure_unicode
 from tribler_core.utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
 

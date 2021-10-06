@@ -15,7 +15,7 @@ import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import (
     CHANNEL_DIR_NAME_LENGTH,
     MetadataCompressor,

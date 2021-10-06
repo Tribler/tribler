@@ -2,13 +2,8 @@ import os
 import shutil
 from pathlib import Path
 
-from configobj import ParseError as ConfigObjParseError
-
-import pytest
-
 from tribler_common.simpledefs import STATEDIR_CHECKPOINT_DIR
 
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.config_converter import convert_config_to_tribler75
 

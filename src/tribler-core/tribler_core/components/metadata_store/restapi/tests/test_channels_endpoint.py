@@ -14,7 +14,7 @@ import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
 from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
