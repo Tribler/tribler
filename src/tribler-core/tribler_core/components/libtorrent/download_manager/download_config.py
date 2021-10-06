@@ -13,9 +13,8 @@ from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
-CONFIG_SPEC_PATH = get_lib_path() / 'modules' / 'libtorrent' / SPEC_FILENAME
+CONFIG_SPEC_PATH = get_lib_path() / 'components/libtorrent/download_manager' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {}
-
 
 class DownloadConfig:
     def __init__(self, config=None, state_dir=None):

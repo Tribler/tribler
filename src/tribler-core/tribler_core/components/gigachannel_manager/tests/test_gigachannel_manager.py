@@ -104,7 +104,7 @@ async def test_regenerate_channel_torrent(personal_channel, metadata_store, giga
     # Test regenerating a non-empty channel
     gigachannel_manager.updated_my_channel = Mock()
     metadata_store.ChannelMetadata.consolidate_channel_torrent = lambda *_: Mock()
-    with patch("tribler_core.modules.libtorrent.torrentdef.TorrentDef.load_from_dict"):
+    with patch("tribler_core.components.libtorrent.torrentdef.TorrentDef.load_from_dict"):
         await gigachannel_manager.regenerate_channel_torrent(chan_pk, chan_id)
         gigachannel_manager.updated_my_channel.assert_called_once()
 
