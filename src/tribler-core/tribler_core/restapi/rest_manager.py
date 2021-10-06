@@ -96,7 +96,7 @@ class RESTManager:
         self.state_dir = state_dir
 
     def get_endpoint(self, name):
-        return self.root_endpoint.endpoints['/' + name]
+        return self.root_endpoint.endpoints.get('/' + name)
 
     async def start(self):
         """
