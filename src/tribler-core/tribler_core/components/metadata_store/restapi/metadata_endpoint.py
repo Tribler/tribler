@@ -48,7 +48,6 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     This is the top-level endpoint class that serves other endpoints.
 
     # /metadata
-    #          /channels
     #          /torrents
     #          /<public_key>
     """
