@@ -46,7 +46,6 @@ class ConfirmationDialog(DialogContainer):
         self.dialog_widget.dialog_button_container.layout().addSpacerItem(hspacer_right)
         if hasattr(self.window(), 'escape_pressed'):
             connect(self.window().escape_pressed, self.close_dialog)
-        self.on_main_window_resize()
 
     @classmethod
     def show_error(cls, window, title, error_text):
