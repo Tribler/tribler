@@ -368,9 +368,15 @@ def test_check_channel_torrents(torrent_checker):
         torrent.health.last_check = last_check
         return torrent
 
+    check_torrent_health_mock = Mock(return_value=None)
+    torrent_checker.check_torrent_health = lambda _: check_torrent_health_mock()
+
     # No torrents yet in channel, the selected channel torrents to check should be empty
     selected_torrents = torrent_checker.channel_torrents_to_check()
     assert len(selected_torrents) == 0
+
+    torrent_checker.check_channel_torrents()
+    assert check_torrent_health_mock.call_count == len(selected_torrents)
 
     num_torrents = 20
     timestamp_now = int(time.time())
@@ -378,12 +384,12 @@ def test_check_channel_torrents(torrent_checker):
 
     # Add some recently checked and outdated torrents to the channel
     fresh_torrents = []
-    for index in range(0, num_torrents):
+    for _ in range(num_torrents):
         torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_now)
         fresh_torrents.append(torrent)
 
     outdated_torrents = []
-    for index in range(0, num_torrents):
+    for _ in range(num_torrents):
         torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_outdated)
         outdated_torrents.append(torrent)
 
@@ -392,3 +398,6 @@ def test_check_channel_torrents(torrent_checker):
     assert len(selected_torrents) <= torrent_checker_module.CHANNEL_TORRENT_SELECTION_POOL_SIZE
     for torrent in selected_torrents:
         assert torrent in outdated_torrents
+
+    torrent_checker.check_channel_torrents()
+    assert check_torrent_health_mock.call_count == len(selected_torrents)
