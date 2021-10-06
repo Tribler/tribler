@@ -28,8 +28,38 @@ You can now clone the Tribler source code, and run Tribler by executing the foll
 
     git clone https://github.com/tribler/tribler --recursive
     cd tribler/src
-    ./tribler.sh
+    ./tribler.sh > tribler.log
 
 Alternatively, you can run the latest stable version of Tribler by downloading and installing the .deb file from `here <https://github.com/tribler/tribler/releases/>`__. This option is only recommended for running Tribler and is not suitable for development.
+
+
+Fedora/CentOS/RedHat
+------------------
+First, install the required dependencies by executing the following command in your terminal:
+
+.. code-block:: bash
+
+    sudo dnf install python3-devel
+
+Secondly, install python packages
+
+.. code-block:: bash
+
+    pip3 install aiohttp aiohttp_apispec chardet configobj decorator libnacl matplotlib netifaces networkx pony psutil pyasn1 requests lz4 pyqtgraph pyyaml Faker sentry_sdk lbry-libtorrent yappi
+
+Then, install py-ipv8 python dependencies
+
+.. code-block:: bash
+
+    cd src/pyipv8
+    pip3 install --upgrade -r requirements.txt
+
+You can now clone the Tribler source code, and run Tribler by executing the following commands:
+
+.. code-block:: bash
+
+    git clone https://github.com/tribler/tribler --recursive
+    cd tribler/src
+    ./tribler.sh > tribler.log
 
 If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
