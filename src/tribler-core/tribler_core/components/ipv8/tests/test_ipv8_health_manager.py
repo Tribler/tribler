@@ -10,7 +10,7 @@ import pytest
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.modules.ipv8_health_monitor import IPv8Monitor
+from tribler_core.components.ipv8.ipv8_health_monitor import IPv8Monitor
 
 
 DEFAULT_WALK_INTERVAL = 0.5

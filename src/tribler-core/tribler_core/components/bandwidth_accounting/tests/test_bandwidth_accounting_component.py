@@ -1,10 +1,8 @@
-from unittest.mock import patch
-
 import pytest
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session
-from tribler_core.components.ipv8 import Ipv8Component
+from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.restapi import RESTComponent
 
