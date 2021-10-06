@@ -20,7 +20,7 @@ from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata imp
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, \
     CollectionNodePayload
 from tribler_core.exceptions import DuplicateTorrentFileError
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities.random_utils import random_infohash
 
 

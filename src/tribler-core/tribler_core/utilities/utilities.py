@@ -10,7 +10,7 @@ from base64 import b32decode
 from functools import wraps
 from urllib.parse import parse_qsl, urlsplit
 
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.sentinels import sentinel
 
 logger = logging.getLogger(__name__)

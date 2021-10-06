@@ -6,7 +6,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.tests.test_channel_download import (

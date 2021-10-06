@@ -1,15 +1,12 @@
-from unittest.mock import patch
-
 import pytest
 
 from tribler_core.components.base import Session
 from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
-from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
-from tribler_core.restapi.rest_manager import RESTManager
 
 
 # pylint: disable=protected-access

@@ -8,14 +8,13 @@ from tribler_common.osutils import get_home_dir
 
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities.install_dir import get_lib_path
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
-CONFIG_SPEC_PATH = get_lib_path() / 'modules' / 'libtorrent' / SPEC_FILENAME
+CONFIG_SPEC_PATH = get_lib_path() / 'components/libtorrent/download_manager' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {}
-
 
 class DownloadConfig:
     def __init__(self, config=None, state_dir=None):

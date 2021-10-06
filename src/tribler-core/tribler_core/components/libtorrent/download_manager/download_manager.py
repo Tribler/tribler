@@ -20,13 +20,14 @@ from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMI
 from tribler_common.utilities import uri_to_path
 
 from tribler_core.modules.dht_health_manager import DHTHealthManager
-from tribler_core.modules.libtorrent.download import Download
-from tribler_core.modules.libtorrent.download_config import DownloadConfig
-from tribler_core.modules.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler_core.components.libtorrent.download_manager.download import Download
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
+from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.notifier import Notifier
-from tribler_core.utilities import path_util, torrent_utils
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.utilities import path_util
+from tribler_core.components.libtorrent.utils import torrent_utils
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink

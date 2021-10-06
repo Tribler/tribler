@@ -13,8 +13,8 @@ import pytest
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
@@ -79,7 +79,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
         with open(tmp_path / "ubuntu.torrent", 'rb') as f:
             return f.read()
 
-    with patch("tribler_core.modules.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
+    with patch("tribler_core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
         verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={quote_plus(path)}', expected_code=200))
 
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'

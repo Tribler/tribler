@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import validator
 
 from tribler_core.config.tribler_config_section import TriblerConfigSection
-from tribler_core.modules.libtorrent.settings import validate_port_with_minus_one
+from tribler_core.components.libtorrent.settings import validate_port_with_minus_one
 
 
 class APISettings(TriblerConfigSection):

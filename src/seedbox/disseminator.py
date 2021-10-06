@@ -30,14 +30,14 @@ from pony.orm import db_session
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.libtorrent import LibtorrentComponent
+from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 # fmt: off

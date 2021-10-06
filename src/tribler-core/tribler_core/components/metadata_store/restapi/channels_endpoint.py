@@ -17,7 +17,7 @@ from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.components.metadata_store.restapi.metadata_schema import ChannelSchema

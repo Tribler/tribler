@@ -25,7 +25,7 @@ from tribler_core.components.metadata_store.db.serialization import (
     ChannelMetadataPayload,
     HealthItemsPayload,
 )
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify

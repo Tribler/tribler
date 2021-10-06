@@ -13,10 +13,10 @@ from marshmallow.fields import String
 from tribler_common.simpledefs import NTFY
 from tribler_common.utilities import uri_to_path
 
-from tribler_core.modules.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
-from tribler_core.utilities.libtorrent_helper import libtorrent as lt
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
 from tribler_core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
 
