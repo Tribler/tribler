@@ -7,6 +7,8 @@ from tribler_common.simpledefs import STATE_START_API
 from tribler_core.components.base import Component
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.exception_handler import CoreExceptionHandler
+from tribler_core.restapi.debug_endpoint import DebugEndpoint
+from tribler_core.restapi.events_endpoint import EventsEndpoint
 from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.restapi.root_endpoint import RootEndpoint
 from tribler_core.restapi.state_endpoint import StateEndpoint
@@ -23,7 +25,8 @@ class RestfulComponent(Component, ABC):
         rest_component = await self.get_component(RESTComponent)
         if rest_component:
             state_endpoint: StateEndpoint = rest_component.rest_manager.get_endpoint('state')
-            state_endpoint.readable_status = readable_status
+            if state_endpoint:
+                state_endpoint.readable_status = readable_status
 
     async def init_endpoints(self, endpoints: List[str], values: Dict[str, Any]):
         rest_component = await self.get_component(RESTComponent)
@@ -59,7 +62,8 @@ class RestfulComponent(Component, ABC):
 
         for endpoint_name, attr_name in self.endpoint_attrs:
             endpoint = rest_component.rest_manager.get_endpoint(endpoint_name)
-            setattr(endpoint, attr_name, None)
+            if endpoint:
+                setattr(endpoint, attr_name, None)
 
 
 class RESTComponent(Component):
@@ -83,14 +87,17 @@ class RESTComponent(Component):
         rest_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
         rest_manager.get_endpoint('settings').tribler_config = config
 
-        state_endpoint = rest_manager.get_endpoint('state')
+        state_endpoint: StateEndpoint = rest_manager.get_endpoint('state')
+        assert state_endpoint is not None
         state_endpoint.connect_notifier(notifier)
         state_endpoint.readable_status = STATE_START_API
 
-        events_endpoint = rest_manager.get_endpoint('events')
+        events_endpoint: EventsEndpoint = rest_manager.get_endpoint('events')
+        assert events_endpoint is not None
         events_endpoint.connect_notifier(notifier)
 
-        debug_endpoint = rest_manager.get_endpoint('debug')
+        debug_endpoint: DebugEndpoint = rest_manager.get_endpoint('debug')
+        assert debug_endpoint is not None
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         debug_endpoint.log_dir = log_dir
         debug_endpoint.state_dir = config.state_dir
