@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal, QSize
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 
@@ -58,7 +58,7 @@ def define_columns():
     columns_dict = {
         Column.ACTIONS:    d('',           "",               width=60, sortable=False),
         Column.CATEGORY:   d('category',   "",               width=30, tooltip_filter=lambda data: data),
-        Column.NAME:       d('name',       tr("Name"),       width=EXPANDING),
+        Column.NAME:       d('',           tr("Name"),       width=EXPANDING),
         Column.SIZE:       d('size',       tr("Size"),       width=90, display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
         Column.HEALTH:     d('health',     tr("Health"),     width=120, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
         Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A',),
@@ -338,6 +338,7 @@ class ChannelContentModel(RemoteTableModel):
         RemoteTableModel.__init__(self, parent=None)
 
         self.column_position = {name: i for i, name in enumerate(self.columns_shown)}
+        self.name_column_width = 0
 
         # Remote query (model) parameters
         self.hide_xxx = hide_xxx
@@ -379,7 +380,10 @@ class ChannelContentModel(RemoteTableModel):
                 else Qt.AlignLeft
             )
             return alignment | Qt.AlignVCenter
-
+        if role == Qt.SizeHintRole:
+            # It seems that Qt first queries - this signals that the row height is exclusively decided by the size
+            # hints returned by the data() method.
+            return QSize(0, 0)
         return super().headerData(num, orientation, role)
 
     def rowCount(self, *_, **__):

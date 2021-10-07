@@ -177,6 +177,11 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True)
         )
 
+        # Tags settings
+        self.window().disable_tags_checkbox.setChecked(
+            get_gui_setting(gui_settings, "disable_tags", False, is_bool=True)
+        )
+
         # Log directory
         self.window().log_location_input.setText(settings['general']['log_dir'])
 
@@ -541,6 +546,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             return
         # Now save the GUI settings
         self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
+        self.window().gui_settings.setValue("disable_tags", self.window().disable_tags_checkbox.isChecked())
         self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
         self.window().gui_settings.setValue(
             "ask_download_settings", self.window().always_ask_location_checkbox.isChecked()
