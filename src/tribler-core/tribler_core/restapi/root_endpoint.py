@@ -1,4 +1,5 @@
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
@@ -58,7 +59,8 @@ class RootEndpoint(RESTEndpoint):
             '/collections': (ChannelsEndpoint, self.tribler_config.chant.enabled),
             '/search': (SearchEndpoint, self.tribler_config.chant.enabled),
             '/remote_query': (RemoteQueryEndpoint, self.tribler_config.chant.enabled),
-            '/ipv8': (IPV8RootEndpoint, self.tribler_config.ipv8.enabled)
+            '/ipv8': (IPV8RootEndpoint, self.tribler_config.ipv8.enabled),
+            '/tags': (TagsEndpoint, self.tribler_config.chant.enabled),
         }
         for path, (ep_cls, enabled) in endpoints.items():
             if enabled:

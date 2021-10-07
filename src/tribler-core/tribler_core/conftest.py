@@ -12,6 +12,7 @@ import pytest
 
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
+from tribler_core.components.tag.db.tag_db import TagDatabase
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.libtorrent.download_manager.download import Download
@@ -194,6 +195,13 @@ def metadata_store(tmp_path):
                         disable_sync=True)
     yield mds
     mds.shutdown()
+
+
+@pytest.fixture
+def tags_db():
+    db = TagDatabase()
+    yield db
+    db.shutdown()
 
 
 @pytest.fixture

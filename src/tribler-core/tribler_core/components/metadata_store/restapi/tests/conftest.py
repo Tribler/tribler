@@ -7,6 +7,7 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler_core.components.metadata_store.utils import tag_torrent
 from tribler_core.utilities.random_utils import random_infohash
 
 
@@ -41,23 +42,34 @@ def add_fake_torrents_channels(metadata_store):
 
 
 @pytest.fixture
-def my_channel(metadata_store):
+def my_channel(metadata_store, tags_db):
+    """
+    Generate a channel with some torrents. Also add a few (random) tags to these torrents.
+    """
     with db_session:
         chan = metadata_store.ChannelMetadata.create_channel('test', 'test')
         for ind in range(5):
+            infohash = random_infohash()
             _ = metadata_store.TorrentMetadata(
-                origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=random_infohash()
+                origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=infohash
             )
+            tag_torrent(infohash, tags_db)
         for ind in range(5, 9):
-            _ = metadata_store.TorrentMetadata(origin_id=chan.id_, title='torrent%d' % ind, infohash=random_infohash())
+            infohash = random_infohash()
+            _ = metadata_store.TorrentMetadata(origin_id=chan.id_, title='torrent%d' % ind, infohash=infohash)
+            tag_torrent(infohash, tags_db)
 
         chan2 = metadata_store.ChannelMetadata.create_channel('test2', 'test2')
         for ind in range(5):
+            infohash = random_infohash()
             _ = metadata_store.TorrentMetadata(
-                origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=random_infohash()
+                origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=infohash
             )
+            tag_torrent(infohash, tags_db)
         for ind in range(5, 9):
+            infohash = random_infohash()
             _ = metadata_store.TorrentMetadata(
                 origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
             )
+            tag_torrent(infohash, tags_db)
         return chan

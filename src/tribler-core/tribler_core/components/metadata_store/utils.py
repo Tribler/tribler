@@ -5,8 +5,15 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
+from tribler_core.components.metadata_store.db.store import MetadataStore
+from tribler_core.components.tag.db.tag_db import TagDatabase, Operation
 from tribler_core.tests.tools.common import PNG_FILE
-from tribler_core.utilities.random_utils import random_infohash, random_utf8_string
+from tribler_core.utilities.random_utils import random_infohash, random_string, random_utf8_string
+
+
+# Some random keys used for generating tags.
+random_key_1 = default_eccrypto.generate_key('low')
+random_key_2 = default_eccrypto.generate_key('low')
 
 
 class RequestTimeoutException(Exception):
@@ -17,8 +24,19 @@ class NoChannelSourcesException(Exception):
     pass
 
 
+def tag_torrent(infohash, tags_db):
+    # Give each torrent some tags
+    number_of_tags = random.randint(2, 6)
+
+    for _ in range(number_of_tags):
+        cur_time = int(time.time())
+        tag = random_string(size=random.randint(3, 10))
+        for key in [random_key_1, random_key_2]:  # Each tag should be proposed by two unique users
+            tags_db.add_tag_operation(infohash, tag, Operation.ADD, cur_time, key.pub().key_to_bin(), b"")
+
+
 @db_session
-def generate_torrent(metadata_store, parent):
+def generate_torrent(metadata_store, tags_db, parent):
     infohash = random_infohash()
 
     # Give each torrent some health information. For now, we assume all torrents are healthy.
@@ -28,16 +46,18 @@ def generate_torrent(metadata_store, parent):
     metadata_store.TorrentMetadata(title=random_utf8_string(50), infohash=infohash, origin_id=parent.id_,
                                    health=torrent_state)
 
+    tag_torrent(infohash, tags_db)
+
 
 @db_session
-def generate_collection(metadata_store, parent):
+def generate_collection(metadata_store, tags_db, parent):
     coll = metadata_store.CollectionNode(title=random_utf8_string(50), origin_id=parent.id_)
     for _ in range(0, 3):
-        generate_torrent(metadata_store, coll)
+        generate_torrent(metadata_store, tags_db, coll)
 
 
 @db_session
-def generate_channel(metadata_store, title=None, subscribed=False):
+def generate_channel(metadata_store: MetadataStore, tags_db: TagDatabase, title=None, subscribed=False):
     # Remember and restore the original key
     orig_key = metadata_store.ChannelNode._my_key
 
@@ -48,22 +68,22 @@ def generate_channel(metadata_store, title=None, subscribed=False):
 
     # add some collections to the channel
     for _ in range(0, 3):
-        generate_collection(metadata_store, chan)
+        generate_collection(metadata_store, tags_db, chan)
 
     metadata_store.ChannelNode._my_key = orig_key
 
 
 @db_session
-def generate_test_channels(metadata_store):
+def generate_test_channels(metadata_store, tags_db) -> None:
     # First, generate some foreign channels
     for ind in range(0, 10):
-        generate_channel(metadata_store, subscribed=ind % 2 == 0)
+        generate_channel(metadata_store, tags_db, subscribed=ind % 2 == 0)
 
     # This one is necessary to test filters, etc
-    generate_channel(metadata_store, title="non-random channel name")
+    generate_channel(metadata_store, tags_db, title="non-random channel name")
 
     # The same, but subscribed
-    generate_channel(metadata_store, title="non-random subscribed channel name", subscribed=True)
+    generate_channel(metadata_store, tags_db, title="non-random subscribed channel name", subscribed=True)
 
     # Now generate a couple of personal channels
     chan1 = metadata_store.ChannelMetadata.create_channel(title="personal channel with non-random name")
@@ -74,12 +94,12 @@ def generate_test_channels(metadata_store):
     metadata_store.ChannelDescription(json_text='{"description_text": "# Hi guys"}', origin_id=chan1.id_)
 
     for _ in range(0, 3):
-        generate_collection(metadata_store, chan1)
+        generate_collection(metadata_store, tags_db, chan1)
     chan1.commit_channel_torrent()
 
     chan2 = metadata_store.ChannelMetadata.create_channel(title="personal channel " + random_utf8_string(50))
     for _ in range(0, 3):
-        generate_collection(metadata_store, chan2)
+        generate_collection(metadata_store, tags_db, chan2)
 
     # add 'Tribler' entry to facilitate keyword search tests
-    generate_channel(metadata_store, title="Tribler tribler chan", subscribed=True)
+    generate_channel(metadata_store, tags_db, title="Tribler tribler chan", subscribed=True)

@@ -4,6 +4,7 @@ import json
 from asyncio import CancelledError
 from binascii import unhexlify
 from pathlib import Path
+from typing import Optional
 
 from aiohttp import ClientSession, ContentTypeError, web
 
@@ -16,6 +17,7 @@ from marshmallow.fields import Boolean, Dict, Integer, String
 from pony.orm import db_session
 
 from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.components.tag.db.tag_db import TagDatabase
 
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
@@ -43,6 +45,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         self.download_manager = None
         self.gigachannel_manager = None
         self.gigachannel_community = None
+        self.tags_db: Optional[TagDatabase] = None
 
     def setup_routes(self):
         self.app.add_routes(
@@ -69,6 +72,12 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 dl = self.download_manager.get_download(unhexlify(torrent['infohash']))
                 if dl is not None and dl.tdef.infohash not in self.download_manager.metainfo_requests:
                     torrent['progress'] = dl.get_state().get_progress()
+
+    @db_session
+    def add_tags_to_metadata_list(self, contents_list):
+        for torrent in contents_list:
+            if torrent['type'] == REGULAR_TORRENT:
+                torrent["tags"] = self.tags_db.get_tags(unhexlify(torrent["infohash"]))
 
     def get_channel_from_request(self, request):
         channel_pk = (
@@ -183,6 +192,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 contents_list = [c.to_simple_dict() for c in contents]
                 total = self.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
+        self.add_tags_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],
@@ -486,7 +496,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             contents = self.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
         self.add_download_progress_to_metadata_list(contents_list)
-
+        self.add_tags_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],

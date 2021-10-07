@@ -36,7 +36,7 @@ PNG_DATA = unhexlify(
 
 
 @pytest.fixture
-def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, tags_db):  # pylint: disable=unused-argument
     mock_gigachannel_manager = Mock()
     mock_gigachannel_community = Mock()
 
@@ -48,12 +48,14 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disab
     mock_gigachannel_community.remote_select_channel_contents = return_exc
     collections_endpoint = ChannelsEndpoint()
     collections_endpoint.mds = metadata_store
+    collections_endpoint.tags_db = tags_db
     collections_endpoint.download_manager = mock_dlmgr
     collections_endpoint.gigachannel_manager = mock_gigachannel_manager
     collections_endpoint.gigachannel_community = mock_gigachannel_community
 
     channels_endpoint = ChannelsEndpoint()
     channels_endpoint.mds = metadata_store
+    channels_endpoint.tags_db = tags_db
     channels_endpoint.download_manager = mock_dlmgr
     channels_endpoint.gigachannel_manager = mock_gigachannel_manager
     channels_endpoint.gigachannel_community = mock_gigachannel_community
@@ -700,3 +702,20 @@ async def test_get_channel_thumbnail(rest_api, metadata_store):
             assert response.status == 200
             assert await response.read() == PNG_DATA
             assert response.headers["Content-Type"] == "image/png"
+
+
+async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_channel, rest_api):  # pylint: disable=redefined-outer-name
+    """
+    Test whether tags are correctly returned over the REST API
+    """
+    with db_session:
+        json_dict = await do_request(
+            rest_api,
+            'channels/%s/%d?metadata_type=%d'
+            % (hexlify(my_channel.public_key), my_channel.id_, REGULAR_TORRENT),
+            expected_code=200,
+        )
+
+    assert len(json_dict['results']) == 9
+    for item in json_dict['results']:
+        assert len(item["tags"]) >= 2
