@@ -4,6 +4,7 @@ from tribler_core.components.masterkey.masterkey_component import MasterKeyCompo
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.upgrade import UpgradeComponent
 
 
@@ -50,12 +51,17 @@ class MetadataStoreComponent(RestfulComponent):
             endpoints=['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics'],
             values={'mds': metadata_store}
         )
+        tag_component = await self.require_component(TagComponent)
+        await self.init_endpoints(
+            endpoints=['channels'],
+            values={'tags_db': tag_component.tags_db}
+        )
 
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED,
                                            metadata_store.TorrentMetadata.add_ffa_from_dict)
 
         if config.gui_test_mode:
-            generate_test_channels(metadata_store)
+            generate_test_channels(metadata_store, tag_component.tags_db)
 
     async def shutdown(self):
         await super().shutdown()
