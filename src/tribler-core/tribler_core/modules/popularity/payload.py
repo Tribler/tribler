@@ -1,15 +1,13 @@
 from typing import List, TypeVar
 
-from ipv8.messaging.payload_dataclass import dataclass_payload
+from ipv8.messaging.payload_dataclass import dataclass
 
 timestamp_type = TypeVar('Q')
 
 
-@dataclass_payload
+@dataclass(msg_id=1)
 class TorrentsHealthPayload:
-    msg_id = 1
-
-    @dataclass_payload
+    @dataclass
     class Torrent:
         infohash: bytes
         seeders: int
