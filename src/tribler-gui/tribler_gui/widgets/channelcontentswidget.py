@@ -362,7 +362,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         breadcrumb_text = ''
         breadcrumb_text_undecorated = ''
         path_parts = [(m, model.channel_info["name"]) for m, model in enumerate(self.channels_stack)]
-        slash_separator = '<font color=#CCCCCC>  /  </font>'
+        slash_separator = '<font color=#aaa>  /  </font>'
         for m, channel_name in reversed(path_parts):
             breadcrumb_text_undecorated = " / " + channel_name + breadcrumb_text_undecorated
             breadcrumb_text_elided = self.channel_name_label.fontMetrics().elidedText(
@@ -373,7 +373,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                 channel_name = "..."
             breadcrumb_text = (
                 slash_separator
-                + f'<a style="text-decoration:none;color:#A5A5A5;" href="{m}">{channel_name}</a>'
+                + f'<a style="text-decoration:none;color:#eee;" href="{m}">{channel_name}</a>'
                 + breadcrumb_text
             )
             if must_elide:
