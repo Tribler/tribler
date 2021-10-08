@@ -16,13 +16,13 @@ from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.popularity import PopularityComponent
+from tribler_core.components.popularity.popularity_component import PopularityComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
-from tribler_core.modules.popularity.community import PopularityCommunity
+from tribler_core.components.popularity.community.popularity_community import PopularityCommunity
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)

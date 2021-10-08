@@ -1,12 +1,10 @@
 import pytest
 
-from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session, SessionError
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.popularity import PopularityComponent
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.restapi import RESTComponent
@@ -44,23 +42,6 @@ def test_session_context_manager(loop, tribler_config):
 
     with pytest.raises(SessionError, match="Default session was not set"):
         Session.current()
-
-
-async def test_popularity_component(tribler_config):
-    tribler_config.ipv8.enabled = True
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
-    components = [SocksServersComponent(), LibtorrentComponent(), TorrentCheckerComponent(), MetadataStoreComponent(),
-                  MasterKeyComponent(), RESTComponent(), Ipv8Component(), PopularityComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
-        comp = PopularityComponent.instance()
-        assert comp.community
-        assert comp._ipv8_component
-
-        await session.shutdown()
 
 
 async def test_reporter_component(tribler_config):
