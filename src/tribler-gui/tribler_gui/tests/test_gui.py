@@ -16,6 +16,7 @@ from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 import tribler_gui
 import tribler_gui.core_manager as core_manager
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
+from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
@@ -534,3 +535,12 @@ def test_trust_page(tribler_api, window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
     screenshot(window, name="trust_page_values")
+
+
+@pytest.mark.guitest
+def test_close_dialog_with_esc_button(tribler_api, window):  # pylint: disable=redefined-outer-name, unused-argument
+    QTest.mouseClick(window.left_menu_button_new_channel, Qt.LeftButton)
+    screenshot(window, name="create_new_channel_dialog")
+    assert window.findChildren(NewChannelDialog)
+    QTest.keyPress(window, Qt.Key_Escape)
+    assert not window.findChildren(NewChannelDialog)
