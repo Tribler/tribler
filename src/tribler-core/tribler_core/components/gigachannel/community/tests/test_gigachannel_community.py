@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 from unittest import mock
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
@@ -84,6 +84,14 @@ class TestGigaChannelUnits(TestBase):
         kwargs = self.generate_torrents(server)
         client.get_known_subscribed_peers_for_node = lambda *_: [server.my_peer]
         return client, server, kwargs
+
+    def double_client_server_request_setup(self):
+        client = self.overlay(0)
+        server1 = self.overlay(1)
+        server2 = self.overlay(2)
+        kwargs_server2 = self.generate_torrents(server2)
+        client.get_known_subscribed_peers_for_node = lambda *_: [server1.my_peer, server2.my_peer]
+        return client, server1, server2, kwargs_server2
 
     async def test_gigachannel_search(self):
         """
@@ -358,3 +366,21 @@ class TestGigaChannelUnits(TestBase):
         client.get_known_subscribed_peers_for_node = lambda *_: []
         with pytest.raises(NoChannelSourcesException):
             await client.remote_select_channel_contents(**kwargs)
+
+    async def test_remote_select_channel_contents_happy_eyeballs(self):
+        """
+        Test trying to connect to the first server, then timing out and falling back to the second one
+        """
+        client, server1, server2, kwargs_server2 = self.double_client_server_request_setup()
+        with db_session:
+            results = [p.to_simple_dict() for p in server2.mds.get_entries(**kwargs_server2)]
+
+        # Force the first server to remain silent
+        server1._on_remote_select_basic = AsyncMock()
+
+        # Check that the results came from the second server
+        assert results == await client.remote_select_channel_contents(**kwargs_server2)
+        assert len(results) == 50
+
+        # Check that the first server actually received a call
+        server1._on_remote_select_basic.assert_called_once()

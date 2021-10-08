@@ -4,7 +4,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from random import sample
 
-from ipv8.peerdiscovery.network import Network
+from anyio import Event, create_task_group, move_on_after
+
 from ipv8.types import Peer
 
 from pony.orm import db_session
@@ -22,6 +23,8 @@ minimal_blob_size = 200
 maximum_payload_size = 1024
 max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
+
+happy_eyeballs_delay = 0.3  # Send request to another peer if the answer did not arrive in 0.3s
 
 
 @dataclass
@@ -160,14 +163,40 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         self.send_remote_select(peer, **request_dict, processing_callback=on_packet_callback)
 
     async def remote_select_channel_contents(self, **kwargs):
-
-        peers_to_query = self.get_known_subscribed_peers_for_node(kwargs["channel_pk"], kwargs["origin_id"], 1)
+        peers_to_query = self.get_known_subscribed_peers_for_node(kwargs["channel_pk"], kwargs["origin_id"])
         if not peers_to_query:
             raise NoChannelSourcesException()
 
-        result = await self.send_remote_select(peers_to_query[0], force_eva_response=True, **kwargs).processing_results
-        request_results = [r.md_obj.to_simple_dict() for r in result]
+        result = []
+        async with create_task_group() as tg:
+            got_at_least_one_response = Event()
 
+            async def _send_remote_select(peer):
+                request = self.send_remote_select(peer, force_eva_response=True, **kwargs)
+                await request.processing_results
+
+                # Stop execution if we already received the results from another coroutine
+                if result or got_at_least_one_response.is_set():
+                    return
+
+                result.extend(request.processing_results.result())
+                got_at_least_one_response.set()
+
+            for peer in peers_to_query:
+                # Before issuing another request, check if we possibly already received a response
+                if got_at_least_one_response.is_set():
+                    break
+
+                # Issue a request to another peer
+                tg.start_soon(_send_remote_select, peer)
+                with move_on_after(happy_eyeballs_delay):
+                    await got_at_least_one_response.wait()
+            await got_at_least_one_response.wait()
+
+            # Cancel the remaining requests so we don't have to wait for them to finish
+            tg.cancel_scope.cancel()
+
+        request_results = [r.md_obj.to_simple_dict() for r in result]
         return request_results
 
     def send_search_request(self, **kwargs):
