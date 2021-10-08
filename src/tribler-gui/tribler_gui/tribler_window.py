@@ -256,6 +256,9 @@ class TriblerWindow(QMainWindow):
         )
         self.top_search_bar.setCompleter(completer)
 
+        # This line should be covered
+        self.a = 3
+
         # Start Tribler
         self.core_manager.start(core_args=core_args, core_env=core_env)
 
@@ -348,6 +351,8 @@ class TriblerWindow(QMainWindow):
         make free space.
         :return:
         """
+        # This line should be uncovered
+        self.a = 4
 
         def close_tribler_gui():
             self.close_tribler()
@@ -511,7 +516,6 @@ class TriblerWindow(QMainWindow):
         encoded_destination = hexlify(destination)
         if encoded_destination in recent_locations:
             recent_locations.remove(encoded_destination)
-        recent_locations.insert(0, encoded_destination)
 
         if len(recent_locations) > 5:
             recent_locations = recent_locations[:5]
