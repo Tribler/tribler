@@ -6,7 +6,7 @@ from ipv8.community import Community
 from ipv8.messaging.serialization import default_serializer
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
-from tribler_core.modules.popularity.version_community_mixin import VersionResponse, VersionCommunityMixin
+from tribler_core.components.popularity.community.version_community_mixin import VersionResponse, VersionCommunityMixin
 from tribler_core.version import version_id
 
 

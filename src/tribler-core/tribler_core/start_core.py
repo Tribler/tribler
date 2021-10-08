@@ -22,7 +22,7 @@ from tribler_core.components.libtorrent.libtorrent_component import LibtorrentCo
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout.payout_component import PayoutComponent
-from tribler_core.components.popularity import PopularityComponent
+from tribler_core.components.popularity.popularity_component import PopularityComponent
 from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.restapi import RESTComponent

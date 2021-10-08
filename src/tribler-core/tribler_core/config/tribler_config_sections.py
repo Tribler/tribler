@@ -6,7 +6,7 @@ from tribler_core.components.masterkey.settings import BootstrapSettings, DHTSet
     Ipv8Settings, \
     TrustchainSettings, WatchFolderSettings
 from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
-from tribler_core.modules.popularity.settings import PopularityCommunitySettings
+from tribler_core.components.popularity.settings import PopularityCommunitySettings
 from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
 from tribler_core.modules.torrent_checker.settings import TorrentCheckerSettings
