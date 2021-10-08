@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from typing import List, TypeVar
 
-from ipv8.messaging.payload_dataclass import dataclass
+from ipv8.messaging.payload_dataclass import overwrite_dataclass
 
-timestamp_type = TypeVar('Q')
+dataclass = overwrite_dataclass(dataclass)
+Q = TypeVar('Q')
 
 
 @dataclass(msg_id=1)
@@ -12,7 +14,7 @@ class TorrentsHealthPayload:
         infohash: bytes
         seeders: int
         leechers: int
-        timestamp: timestamp_type
+        timestamp: Q
 
     random_torrents_length: int
     torrents_checked_length: int
