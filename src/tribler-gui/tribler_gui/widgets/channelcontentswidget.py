@@ -86,10 +86,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                     obj.blockSignals(False)
 
         self.freeze_controls = freeze_controls_class
-        self.setStyleSheet("QToolTip { color: #222222; background-color: #eeeeee; border: 0px; }")
         self.channel_description_container.setHidden(True)
 
-        self.explanation_container.setHidden(True)
+        self.explanation_tooltip_button.setHidden(True)
 
     def hide_all_labels(self):
         self.edit_channel_contents_top_bar.setHidden(True)

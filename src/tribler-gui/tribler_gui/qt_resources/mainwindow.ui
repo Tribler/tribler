@@ -102,7 +102,11 @@ color:#B5B5B5;
 }
 
 QCheckBox { color:#B5B5B5; }
-QCheckBox::indicator:unchecked {border: 1px solid #555;}</string>
+QCheckBox::indicator:unchecked {border: 1px solid #555;}
+
+QToolButton QToolTip {
+padding: 4px;
+}</string>
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
@@ -613,7 +617,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>6</number>
         </property>
         <widget class="SearchResultsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
