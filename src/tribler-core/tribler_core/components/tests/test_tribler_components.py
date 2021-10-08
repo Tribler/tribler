@@ -6,7 +6,6 @@ from tribler_core.components.libtorrent.libtorrent_component import LibtorrentCo
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
@@ -52,22 +51,6 @@ async def test_reporter_component(tribler_config):
 
         comp = ReporterComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
-
-        await session.shutdown()
-
-
-async def test_resource_monitor_component(tribler_config):
-    tribler_config.ipv8.enabled = True
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
-    components = [MasterKeyComponent(), RESTComponent(), ResourceMonitorComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
-        comp = ResourceMonitorComponent.instance()
-        assert comp.started_event.is_set() and not comp.failed
-        assert comp.resource_monitor
 
         await session.shutdown()
 

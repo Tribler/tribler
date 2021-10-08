@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
+from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
 
 
 @pytest.mark.asyncio

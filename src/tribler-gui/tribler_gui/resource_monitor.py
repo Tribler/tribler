@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget
 
-from tribler_core.modules.resource_monitor.base import ResourceMonitor
+from tribler_core.components.resource_monitor.implementation.base import ResourceMonitor
 
 GUI_RESOURCE_CHECK_INTERVAL = 5000  # milliseconds
 GUI_RESOURCE_HISTORY_SIZE = 1000
