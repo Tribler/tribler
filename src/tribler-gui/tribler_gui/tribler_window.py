@@ -20,7 +20,7 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt5.QtGui import QDesktopServices, QIcon, QKeySequence, QPixmap
+from PyQt5.QtGui import QDesktopServices, QIcon, QKeyEvent, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -1191,3 +1191,7 @@ class TriblerWindow(QMainWindow):
             "Tribler recovered from a corrupted config. Please check your settings and update if necessary."
         )
         ConfirmationDialog.show_error(self, tr("Tribler config error"), user_message)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.key() == Qt.Key_Escape:
+            self.escape_pressed.emit()
