@@ -6,8 +6,8 @@ from aiohttp.web_app import Application
 
 import pytest
 
-from tribler_core.modules.resource_monitor.core import CoreResourceMonitor
-from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
+from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
+from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.debug_endpoint import DebugEndpoint
 from tribler_core.restapi.rest_manager import error_middleware

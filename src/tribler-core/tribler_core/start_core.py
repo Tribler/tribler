@@ -24,7 +24,7 @@ from tribler_core.components.metadata_store.metadata_store_component import Meta
 from tribler_core.components.payout.payout_component import PayoutComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
 from tribler_core.components.reporter import ReporterComponent
-from tribler_core.components.resource_monitor import ResourceMonitorComponent
+from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent

@@ -6,9 +6,9 @@ import psutil
 
 from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
-from tribler_core.modules.resource_monitor.base import ResourceMonitor
-from tribler_core.modules.resource_monitor.profiler import YappiProfiler
-from tribler_core.modules.resource_monitor.settings import ResourceMonitorSettings
+from tribler_core.components.resource_monitor.implementation.base import ResourceMonitor
+from tribler_core.components.resource_monitor.implementation.profiler import YappiProfiler
+from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler_core.notifier import Notifier
 
 FREE_DISK_THRESHOLD = 100 * (1024 * 1024)  # 100MB
