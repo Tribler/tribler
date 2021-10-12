@@ -12,9 +12,6 @@ from tribler_core.components.restapi import RESTComponent
 
 @pytest.mark.asyncio
 async def test_giga_channel_component(tribler_config):
-    tribler_config.ipv8.enabled = True
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
     components = [MetadataStoreComponent(), RESTComponent(), MasterKeyComponent(), Ipv8Component(),
                   GigaChannelComponent()]
     session = Session(tribler_config, components)

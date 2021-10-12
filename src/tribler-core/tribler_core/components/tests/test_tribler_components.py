@@ -70,8 +70,6 @@ async def test_socks_servers_component(tribler_config):
 
 
 async def test_torrent_checker_component(tribler_config):
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
     components = [SocksServersComponent(), LibtorrentComponent(), MasterKeyComponent(), RESTComponent(),
                   MetadataStoreComponent(), TorrentCheckerComponent()]
     session = Session(tribler_config, components)
@@ -86,9 +84,6 @@ async def test_torrent_checker_component(tribler_config):
 
 
 async def test_tunnels_component(tribler_config):
-    tribler_config.ipv8.enabled = True
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
     components = [Ipv8Component(), MasterKeyComponent(), RESTComponent(), TunnelsComponent()]
     session = Session(tribler_config, components)
     with session:
@@ -129,8 +124,6 @@ async def test_version_check_component(tribler_config):
 
 
 async def test_watch_folder_component(tribler_config):
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), SocksServersComponent(), LibtorrentComponent(),
                   WatchFolderComponent()]
     session = Session(tribler_config, components)
