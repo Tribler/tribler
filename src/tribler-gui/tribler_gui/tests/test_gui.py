@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name
 import os
 import sys
 from pathlib import Path
@@ -32,7 +33,7 @@ def api_port():
 
 
 @pytest.fixture(scope="module")
-def window(api_port):
+def window(api_port, tribler_api):
     core_manager.START_FAKE_API = True
     tribler_gui.defs.DEFAULT_API_PORT = api_port
 
@@ -45,6 +46,12 @@ def window(api_port):
     wait_for_signal(window.core_manager.events_manager.tribler_started)
     window.downloads_page.can_update_items = True
     yield window
+
+    # Shutdown the core and then the GUI application
+    window.close_tribler()
+    screenshot(window, name="tribler_closing")
+    tribler_api.kill()
+    tribler_api.waitForFinished()
     QApplication.quit()
 
 
@@ -74,8 +81,6 @@ def tribler_api(api_port, tmpdir_factory):
     connect(core_process.readyRead, on_core_read_ready)
     core_process.start("python3", [str(RUN_TRIBLER_PY.absolute())])
     yield core_process
-    core_process.kill()
-    core_process.waitForFinished()
 
 
 def no_abort(*args, **kwargs):
@@ -247,13 +252,13 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
 
 
 @pytest.mark.guitest
-def test_discovered_page(tribler_api, window):
+def test_discovered_page(window):
     QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
     tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
 
 
 @pytest.mark.guitest
-def test_popular_page(tribler_api, window):
+def test_popular_page(window):
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
     widget = window.popular_page
     wait_for_list_populated(widget.content_table)
@@ -271,7 +276,7 @@ def wait_for_thumbnail(chan_widget):
 
 
 @pytest.mark.guitest
-def test_edit_channel_torrents(tribler_api, window):
+def test_edit_channel_torrents(window):
     wait_for_list_populated(window.channels_menu_list)
 
     idx = window.channels_menu_list.model().index(0, 0)
@@ -289,7 +294,7 @@ def test_edit_channel_torrents(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_settings(tribler_api, window):
+def test_settings(window):
     QTest.mouseClick(window.settings_button, Qt.LeftButton)
     QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
     screenshot(window, name="settings_not_loaded")
@@ -306,7 +311,7 @@ def test_settings(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_downloads(tribler_api, window):
+def test_downloads(window):
     go_to_and_wait_for_downloads(window)
     screenshot(window, name="downloads_all")
     QTest.mouseClick(window.downloads_downloading_button, Qt.LeftButton)
@@ -322,7 +327,7 @@ def test_downloads(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_download_start_stop_remove_recheck(tribler_api, window):
+def test_download_start_stop_remove_recheck(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
     QTest.mouseClick(window.stop_download_button, Qt.LeftButton)
@@ -333,7 +338,7 @@ def test_download_start_stop_remove_recheck(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_download_details(tribler_api, window):
+def test_download_details(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
     QTest.qWait(500)  # Wait until the details pane shows
@@ -346,7 +351,7 @@ def test_download_details(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_search_suggestions(tribler_api, window):
+def test_search_suggestions(window):
     QTest.keyClick(window.top_search_bar, 't')
     QTest.keyClick(window.top_search_bar, 'r')
     wait_for_signal(window.received_search_completions)
@@ -354,7 +359,7 @@ def test_search_suggestions(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_search(tribler_api, window):
+def test_search(window):
     window.top_search_bar.setText("trib")
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
     wait_for_variable(window, "search_results_page.search_request")
@@ -371,7 +376,7 @@ def test_search(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_add_download_url(tribler_api, window):
+def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
     screenshot(window, name="add_torrent_url_dialog")
@@ -392,7 +397,7 @@ def test_add_download_url(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_feedback_dialog(tribler_api, window):
+def test_feedback_dialog(window):
     def screenshot_dialog():
         screenshot(dialog, name="feedback_dialog")
         dialog.close()
@@ -404,7 +409,7 @@ def test_feedback_dialog(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_feedback_dialog_report_sent(tribler_api, window):
+def test_feedback_dialog_report_sent(window):
     def screenshot_dialog():
         screenshot(dialog, name="feedback_dialog")
         dialog.close()
@@ -422,7 +427,7 @@ def test_feedback_dialog_report_sent(tribler_api, window):
     assert on_report_sent.did_send_report
 
 @pytest.mark.guitest
-def test_debug_pane(tribler_api, window):
+def test_debug_pane(window):
     wait_for_variable(window, "tribler_settings")
     QTest.mouseClick(window.settings_button, Qt.LeftButton)
     QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
@@ -531,14 +536,14 @@ def test_debug_pane(tribler_api, window):
 
 
 @pytest.mark.guitest
-def test_trust_page(tribler_api, window):
+def test_trust_page(window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
     screenshot(window, name="trust_page_values")
 
 
 @pytest.mark.guitest
-def test_close_dialog_with_esc_button(tribler_api, window):  # pylint: disable=redefined-outer-name, unused-argument
+def test_close_dialog_with_esc_button(window):
     QTest.mouseClick(window.left_menu_button_new_channel, Qt.LeftButton)
     screenshot(window, name="create_new_channel_dialog")
     assert window.findChildren(NewChannelDialog)
