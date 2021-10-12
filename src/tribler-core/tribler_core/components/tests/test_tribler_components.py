@@ -5,7 +5,6 @@ from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.reporter import ReporterComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_configurator import SocksServersComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
@@ -41,18 +40,6 @@ def test_session_context_manager(loop, tribler_config):
 
     with pytest.raises(SessionError, match="Default session was not set"):
         Session.current()
-
-
-async def test_reporter_component(tribler_config):
-    components = [ReporterComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
-        comp = ReporterComponent.instance()
-        assert comp.started_event.is_set() and not comp.failed
-
-        await session.shutdown()
 
 
 async def test_REST_component(tribler_config):
