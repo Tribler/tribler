@@ -20,7 +20,7 @@ from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler_core.components.metadata_store.restapi.metadata_schema import ChannelSchema
+from tribler_core.components.metadata_store.restapi.metadata_schema import ChannelSchema, MetadataSchema, TorrentSchema
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.components.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
@@ -150,7 +150,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             200: {
                 'schema': schema(
                     GetChannelContentsResponse={
-                        'results': [Dict()],
+                        'results': [MetadataSchema],
                         'first': Integer(),
                         'last': Integer(),
                         'sort_by': String(),
@@ -306,7 +306,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         responses={
             200: {
                 'description': 'Returns the newly created channel',
-                'schema': schema(CreateChannelResponse={'results': [Dict()]}),
+                'schema': schema(CreateChannelResponse={'results': [ChannelSchema]}),
             }
         },
     )
@@ -324,7 +324,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         responses={
             200: {
                 'description': 'Returns the newly created collection',
-                'schema': schema(CreateCollectionResponse={'results': [Dict()]}),
+                'schema': schema(CreateCollectionResponse={'results': [ChannelSchema]}),
             }
         },
     )
@@ -468,8 +468,8 @@ class ChannelsEndpoint(MetadataEndpointBase):
         responses={
             200: {
                 'schema': schema(
-                    GetChannelContentsResponse={
-                        'results': [Dict()],
+                    GetPopularTorrentsResponse={
+                        'results': [TorrentSchema],
                         'first': Integer(),
                         'last': Integer(),
                     }

@@ -20,45 +20,34 @@ class RemoteQueryParameters(MetadataParameters):
     channel_pk = String()
 
 
-class ChannelSchema(Schema):
+class MetadataSchema(Schema):
     type = Integer()
     id = Integer()
     origin_id = Integer()
     public_key = String()
     name = String()
     category = String()
-    status = Integer()
+    progress = Float(required=False)
+
+
+class CollectionSchema(MetadataSchema):
     torrents = Integer()
     state = String()
-    dirty = Boolean()
+    description_flag = Boolean()
+    thumbnail_flag = Boolean()
+
+
+class TorrentSchema(MetadataSchema):
+    status = Integer()
     infohash = String()
     size = Integer()
     num_seeders = Integer()
     num_leechers = Integer()
     last_tracker_check = Integer()
     updated = Integer()
-    subscribed = Boolean()
-    votes = Float()
-    progress = Float()
 
 
-class TorrentSchema(Schema):
-    type = Integer()
-    id = Integer()
-    origin_id = Integer()
-    public_key = String()
-    name = String()
-    category = String()
-    status = Integer()
-    torrents = Integer()
-    state = String()
+class ChannelSchema(TorrentSchema, CollectionSchema):
     dirty = Boolean()
-    infohash = String()
-    size = Integer()
-    num_seeders = Integer()
-    num_leechers = Integer()
-    last_tracker_check = Integer()
-    updated = Integer()
     subscribed = Boolean()
     votes = Float()
-    progress = Float()
