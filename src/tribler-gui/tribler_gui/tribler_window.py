@@ -81,6 +81,7 @@ from tribler_gui.utilities import (
     tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
+from tribler_gui.widgets.instanttooltipstyle import InstantTooltipStyle
 from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
 from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
@@ -446,10 +447,7 @@ class TriblerWindow(QMainWindow):
         self.popular_page.initialize_root_model(
             PopularTorrentsModel(channel_info={"name": tr("Popular torrents")}, hide_xxx=self.hide_xxx)
         )
-        self.popular_page.explanation_text.setText(
-            tr("This page show the list of popular torrents collected by Tribler during the last 24 hours.")
-        )
-        self.popular_page.explanation_container.setHidden(False)
+        self.popular_page.explanation_tooltip_button.setHidden(False)
 
         self.add_to_channel_dialog.load_channel(0)
 
@@ -466,6 +464,8 @@ class TriblerWindow(QMainWindow):
 
         # Toggle debug if developer mode is enabled
         self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
+
+        QApplication.setStyle(InstantTooltipStyle(QApplication.style()))
 
     @property
     def hide_xxx(self):

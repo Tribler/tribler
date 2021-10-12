@@ -247,6 +247,39 @@ color: #B5B5B5;</string>
        </widget>
       </item>
       <item>
+       <widget class="InstantTooltipButton" name="explanation_tooltip_button">
+        <property name="minimumSize">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
+        <property name="toolTip">
+         <string>This page show the list of popular torrents collected by Tribler during the last 24 hours.</string>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">border: 1px solid white;
+color: white;
+border-radius: 10px;
+</string>
+        </property>
+        <property name="text">
+         <string>i</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer_16">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -488,28 +521,6 @@ QToolButton{border:none;margin-left:16px;}</string>
           </spacer>
          </item>
         </layout>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QWidget" name="explanation_container" native="true">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout2324">
-      <item>
-       <widget class="QLabel" name="explanation_text">
-        <property name="styleSheet">
-         <string notr="true">color: #eee; font-size: 15px; font-style: italic;</string>
-        </property>
-        <property name="text">
-         <string notr="true">explanation text for channel</string>
-        </property>
        </widget>
       </item>
      </layout>
@@ -855,6 +866,11 @@ QTableView::item::hover {
    <class>ChannelDescriptionWidget</class>
    <extends>QWidget</extends>
    <header>tribler_gui.widgets.channeldescriptionwidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>InstantTooltipButton</class>
+   <extends>QToolButton</extends>
+   <header>tribler_gui.widgets.instanttooltipbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
