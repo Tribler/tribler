@@ -13,8 +13,6 @@ from tribler_core.restapi.rest_manager import RESTManager
 
 @pytest.mark.asyncio
 async def test_metadata_store_component(tribler_config):
-    tribler_config.libtorrent.enabled = True
-    tribler_config.chant.enabled = True
     components = [MasterKeyComponent(), RESTComponent(), MetadataStoreComponent()]
     session = Session(tribler_config, components)
     with session:

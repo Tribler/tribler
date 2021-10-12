@@ -11,7 +11,6 @@ from tribler_core.components.restapi import RESTComponent
 
 @pytest.mark.asyncio
 async def test_bandwidth_accounting_component(tribler_config):
-    tribler_config.ipv8.enabled = True
     components = [RESTComponent(), MasterKeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
     session = Session(tribler_config, components)
     with session:

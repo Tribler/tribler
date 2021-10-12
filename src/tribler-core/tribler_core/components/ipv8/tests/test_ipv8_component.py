@@ -10,7 +10,6 @@ pytestmark = pytest.mark.asyncio
 
 # pylint: disable=protected-access
 async def test_ipv8_component(tribler_config):
-    tribler_config.ipv8.enabled = True
     session = Session(tribler_config, [MasterKeyComponent(), RESTComponent(), Ipv8Component()])
     with session:
         await session.start()
