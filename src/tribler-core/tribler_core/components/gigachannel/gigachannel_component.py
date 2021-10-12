@@ -7,7 +7,7 @@ from tribler_core.components.gigachannel.community.gigachannel_community import 
 from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler_core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.reporter import ReporterComponent
+from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.restapi import RestfulComponent
 
 
