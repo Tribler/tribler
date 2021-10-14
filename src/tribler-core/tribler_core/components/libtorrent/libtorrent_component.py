@@ -1,10 +1,10 @@
 from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
 
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.upgrade import UpgradeComponent
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 
 
 class LibtorrentComponent(RestfulComponent):
@@ -38,7 +38,8 @@ class LibtorrentComponent(RestfulComponent):
         await self.init_endpoints(endpoints=endpoints, values={'download_manager': self.download_manager})
 
         if config.gui_test_mode:
-            uri = "magnet:?xt=urn:btih:0000000000000000000000000000000000000000"
+            from tribler_core.tests.tools.common import TORRENT_WITH_DIRS  # pylint: disable=import-outside-toplevel
+            uri = f"file:{TORRENT_WITH_DIRS}"
             await self.download_manager.start_download_from_uri(uri)
 
     async def shutdown(self):

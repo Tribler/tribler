@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>550</height>
+    <height>562</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -52,7 +52,9 @@ padding-right: 4px;
 QToolButton::hover {
 border: 1px solid white;
 color: white;
-}</string>
+}
+
+</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -255,94 +257,6 @@ selection-background-color: #707070;
        </spacer>
       </item>
       <item>
-       <widget class="QWidget" name="download_files_container" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <item>
-          <widget class="QToolButton" name="existing_download_info_label">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">border: None; color: #e67300;</string>
-           </property>
-           <property name="text">
-            <string>Download already exists.</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QToolButton" name="select_all_files_button">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">border: None;</string>
-           </property>
-           <property name="text">
-            <string>Select all</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="deselect_all_files_button">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">border: None;</string>
-           </property>
-           <property name="text">
-            <string>Deselect all</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
        <spacer name="verticalSpacer_2">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -359,9 +273,9 @@ selection-background-color: #707070;
        </spacer>
       </item>
       <item>
-       <widget class="QTreeWidget" name="files_list_view">
+       <widget class="TorrentFileTreeWidget" name="files_list_view">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -379,14 +293,8 @@ selection-background-color: #707070;
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">QTreeWidget {
-border: none;
-font-size: 13px;
-background-color: #444;
-}
-QTreeWidget::item {
-color: white;
-}
+         <string notr="true">
+
 QHeaderView {
 background-color: transparent;
 }
@@ -401,13 +309,20 @@ border-bottom: 1px solid #303030;
 }
 QTableCornerButton::section {
 background-color: transparent;
-}</string>
+}
+
+
+
+QCheckBox{
+background: yellow;
+}
+</string>
         </property>
         <property name="selectionMode">
          <enum>QAbstractItemView::NoSelection</enum>
         </property>
-        <property name="indentation">
-         <number>0</number>
+        <property name="sortingEnabled">
+         <bool>true</bool>
         </property>
         <attribute name="headerDefaultSectionSize">
          <number>150</number>
@@ -417,17 +332,12 @@ background-color: transparent;
         </attribute>
         <column>
          <property name="text">
-          <string>Name</string>
+          <string>NAME</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>Size</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>Included?</string>
+          <string>SIZE</string>
          </property>
         </column>
        </widget>
@@ -648,6 +558,11 @@ background-color: transparent;
    <class>ClickableLabel</class>
    <extends>QLabel</extends>
    <header>tribler_gui.widgets.clickablewidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TorrentFileTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>tribler_gui.widgets.torrentfiletreewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from tribler_common.simpledefs import dlstatus_strings
 
-from tribler_gui.defs import *
+from tribler_gui.defs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_STRINGS
 from tribler_gui.utilities import duration_to_string, format_size, format_speed
 
 
@@ -23,6 +23,36 @@ class LoadingDownloadWidgetItem(QTreeWidgetItem):
         return "PLACEHOLDER"
 
 
+def create_progress_bar_widget() -> (QWidget, QProgressBar):
+    progress_slider = QProgressBar()
+
+    bar_container = QWidget()
+    bar_container.setLayout(QVBoxLayout())
+    bar_container.setStyleSheet("background-color: transparent;")
+
+    # We have to set a zero pixel border to get the background working on Mac.
+    progress_slider.setStyleSheet(
+        """
+    QProgressBar {
+        background-color: white;
+        color: black;
+        font-size: 12px;
+        text-align: center;
+        border: 0px solid transparent;
+    }
+
+    QProgressBar::chunk {
+        background-color: #e67300;
+    }
+    """
+    )
+
+    progress_slider.setAutoFillBackground(True)
+    bar_container.layout().addWidget(progress_slider)
+    bar_container.layout().setContentsMargins(4, 4, 8, 4)
+    return bar_container, progress_slider
+
+
 class DownloadWidgetItem(QTreeWidgetItem):
     """
     This class is responsible for managing the item in the downloads list and fills the item with the relevant data.
@@ -32,35 +62,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         QTreeWidgetItem.__init__(self)
         self.download_info = None
         self._logger = logging.getLogger('TriblerGUI')
-
-        bar_container = QWidget()
-        bar_container.setLayout(QVBoxLayout())
-        bar_container.setStyleSheet("background-color: transparent;")
-
-        self.progress_slider = QProgressBar()
-
-        # We have to set a zero pixel border to get the background working on Mac.
-        self.progress_slider.setStyleSheet(
-            """
-        QProgressBar {
-            background-color: white;
-            color: black;
-            font-size: 12px;
-            text-align: center;
-            border: 0px solid transparent;
-        }
-
-        QProgressBar::chunk {
-            background-color: #e67300;
-        }
-        """
-        )
-
-        bar_container.layout().addWidget(self.progress_slider)
-        bar_container.layout().setContentsMargins(4, 4, 8, 4)
-
-        self.progress_slider.setAutoFillBackground(True)
-        self.bar_container = bar_container
+        self.bar_container, self.progress_slider = create_progress_bar_widget()
 
     def update_with_download(self, download):
         self.download_info = download

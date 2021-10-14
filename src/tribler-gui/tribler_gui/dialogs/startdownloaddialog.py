@@ -4,8 +4,8 @@ from binascii import unhexlify
 from urllib.parse import unquote_plus
 
 from PyQt5 import uic
-from PyQt5.QtCore import QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QTreeWidgetItem
+from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 
 from tribler_common.utilities import uri_to_path
 
@@ -23,11 +23,7 @@ from tribler_gui.utilities import (
     quote_plus_unicode,
     tr,
 )
-
-
-class DownloadFileTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, parent):
-        QTreeWidgetItem.__init__(self, parent)
+from tribler_gui.widgets.torrentfiletreewidget import TORRENT_FILES_TREE_STYLESHEET
 
 
 class StartDownloadDialog(DialogContainer):
@@ -56,10 +52,9 @@ class StartDownloadDialog(DialogContainer):
         connect(self.dialog_widget.browse_dir_button.clicked, self.on_browse_dir_clicked)
         connect(self.dialog_widget.cancel_button.clicked, lambda _: self.button_clicked.emit(0))
         connect(self.dialog_widget.download_button.clicked, self.on_download_clicked)
-        connect(self.dialog_widget.select_all_files_button.clicked, self.on_all_files_selected_clicked)
-        connect(self.dialog_widget.deselect_all_files_button.clicked, self.on_all_files_deselected_clicked)
         connect(self.dialog_widget.loading_files_label.clicked, self.on_reload_torrent_info)
         connect(self.dialog_widget.anon_download_checkbox.clicked, self.on_reload_torrent_info)
+        connect(self.dialog_widget.files_list_view.selected_files_changed, self.update_torrent_size_label)
 
         self.dialog_widget.destination_input.setStyleSheet(
             """
@@ -115,11 +110,12 @@ class StartDownloadDialog(DialogContainer):
 
         self.perform_files_request()
         self.dialog_widget.files_list_view.setHidden(True)
-        self.dialog_widget.download_files_container.setHidden(True)
         self.dialog_widget.adjustSize()
         self.on_anon_download_state_changed(None)
 
         self.on_main_window_resize()
+        self.total_files_size = None
+        self.selected_files_size = None
 
         self.rest_request = None
 
@@ -140,17 +136,8 @@ class StartDownloadDialog(DialogContainer):
 
         super().close_dialog()
 
-    def get_selected_files(self):
-        included_files = []
-        for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
-            item = self.dialog_widget.files_list_view.topLevelItem(ind)
-            if item.checkState(2) == Qt.Checked:
-                included_files.append(ind)
-
-        return included_files
-
     def perform_files_request(self):
-        if self.closed:
+        if self.closed or self.has_metainfo:
             return
 
         direct = not self.dialog_widget.anon_download_checkbox.isChecked()
@@ -179,7 +166,7 @@ class StartDownloadDialog(DialogContainer):
             self.metainfo_retries += 1
 
     def on_received_metainfo(self, response):
-        if not response or not self or self.closed:
+        if not response or not self or self.closed or self.has_metainfo:
             return
 
         if 'error' in response:
@@ -199,35 +186,50 @@ class StartDownloadDialog(DialogContainer):
 
         metainfo = json.loads(unhexlify(response['metainfo']))
         if 'files' in metainfo['info']:  # Multi-file torrent
-            files = metainfo['info']['files']
+            files = [
+                {'path': [metainfo['info']['name'], *file['path']], 'length': file['length']}
+                for file in metainfo['info']['files']
+            ]
         else:
-            files = [{'path': [metainfo['info']['name']], 'length': metainfo['info']['length']}]
+            files = [{'path': metainfo['info']['name'].split('/'), 'length': metainfo['info']['length']}]
+
+        self.dialog_widget.files_list_view.fill_entries(files)
+        # Add a bit of space between the rows
+        self.dialog_widget.files_list_view.setStyleSheet(
+            TORRENT_FILES_TREE_STYLESHEET
+            + """
+            TorrentFileTreeWidget { background-color: #444;}
+            TorrentFileTreeWidget::item { color: white; padding-bottom: 2px; padding-top: 2px;}
+        """
+        )
 
         # Show if the torrent already exists in the downloads
         if response.get('download_exists'):
-            self.dialog_widget.existing_download_info_label.setText(
-                tr("Note: this torrent already exists in the Downloads")
-            )
-        else:
-            self.dialog_widget.existing_download_info_label.setText("")
-
-        self.dialog_widget.files_list_view.clear()
-        for filename in files:
-            item = DownloadFileTreeWidgetItem(self.dialog_widget.files_list_view)
-            item.setText(0, '/'.join(filename['path']))
-            item.setText(1, format_size(float(filename['length'])))
-            item.setData(0, Qt.UserRole, filename)
-            item.setCheckState(2, Qt.Checked)
-            self.dialog_widget.files_list_view.addTopLevelItem(item)
+            self.dialog_widget.loading_files_label.setStyleSheet("color:#e67300;")
+            self.dialog_widget.loading_files_label.setText(tr("Note: this torrent already exists in the Downloads"))
 
         self.has_metainfo = True
-        self.dialog_widget.loading_files_label.setHidden(True)
-        self.dialog_widget.download_files_container.setHidden(False)
         self.dialog_widget.files_list_view.setHidden(False)
         self.dialog_widget.adjustSize()
         self.on_main_window_resize()
 
         self.received_metainfo.emit(metainfo)
+
+    def update_torrent_size_label(self):
+        total_files_size = self.dialog_widget.files_list_view.total_files_size
+        selected_files_size = self.dialog_widget.files_list_view.selected_files_size
+        if total_files_size == selected_files_size:
+            label_text = tr("Torrent size: ") + format_size(total_files_size)
+        else:
+            label_text = (
+                tr("Selected: ")
+                + format_size(selected_files_size)
+                + " / "
+                + tr("Total: ")
+                + format_size(total_files_size)
+            )
+        self.dialog_widget.loading_files_label.setStyleSheet("color:#ffffff;")
+        self.dialog_widget.loading_files_label.setText(label_text)
 
     def on_reload_torrent_info(self, *args):
         """
@@ -264,7 +266,8 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.safe_seed_checkbox.setEnabled(not self.dialog_widget.anon_download_checkbox.isChecked())
 
     def on_download_clicked(self, checked):
-        if self.has_metainfo and len(self.get_selected_files()) == 0:  # User deselected all torrents
+        if self.has_metainfo and len(self.dialog_widget.files_list_view.get_selected_files_indexes()) == 0:
+            # User deselected all torrents
             ConfirmationDialog.show_error(
                 self.window(), tr("No files selected"), tr("Please select at least one file to download.")
             )
@@ -282,13 +285,3 @@ class StartDownloadDialog(DialogContainer):
                 )
             else:
                 self.button_clicked.emit(1)
-
-    def on_all_files_selected_clicked(self, checked):
-        for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
-            item = self.dialog_widget.files_list_view.topLevelItem(ind)
-            item.setCheckState(2, Qt.Checked)
-
-    def on_all_files_deselected_clicked(self, checked):
-        for ind in range(self.dialog_widget.files_list_view.topLevelItemCount()):
-            item = self.dialog_widget.files_list_view.topLevelItem(ind)
-            item.setCheckState(2, Qt.Unchecked)

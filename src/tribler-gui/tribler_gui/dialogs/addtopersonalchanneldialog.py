@@ -2,7 +2,6 @@ import json
 
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QTreeWidgetItem
 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
@@ -10,11 +9,6 @@ from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path
-
-
-class DownloadFileTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, parent):
-        QTreeWidgetItem.__init__(self, parent)
 
 
 class ChannelQTreeWidgetItem(QtWidgets.QTreeWidgetItem):
