@@ -6,7 +6,7 @@ from asyncio import DatagramProtocol, Protocol, Queue, get_event_loop
 from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 from ipv8.messaging.serialization import PackError
 
-from tribler_core.modules.tunnel.socks5.conversion import (
+from tribler_core.components.socks_servers.socks5.conversion import (
     CommandRequest,
     CommandResponse,
     MethodsRequest,

@@ -22,14 +22,14 @@ from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dl
 
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
-from tribler_core.components.socks_configurator import NUM_SOCKS_PROXIES
+from tribler_core.components.socks_servers.socks5.server import Socks5Server
+from tribler_core.components.socks_servers.socks_servers_component import NUM_SOCKS_PROXIES
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
-from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 

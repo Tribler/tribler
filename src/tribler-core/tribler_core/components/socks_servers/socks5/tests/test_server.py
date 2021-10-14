@@ -5,10 +5,10 @@ from aiohttp import ClientSession
 
 import pytest
 
-from tribler_core.modules.tunnel.socks5.aiohttp_connector import Socks5Connector
-from tribler_core.modules.tunnel.socks5.client import Socks5Client, Socks5Error
-from tribler_core.modules.tunnel.socks5.conversion import UdpPacket, socks5_serializer
-from tribler_core.modules.tunnel.socks5.server import Socks5Server
+from tribler_core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
+from tribler_core.components.socks_servers.socks5.client import Socks5Client, Socks5Error
+from tribler_core.components.socks_servers.socks5.conversion import UdpPacket, socks5_serializer
+from tribler_core.components.socks_servers.socks5.server import Socks5Server
 
 
 @pytest.fixture(name='socks5_server')

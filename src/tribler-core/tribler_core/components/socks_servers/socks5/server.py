@@ -3,7 +3,7 @@ from asyncio import get_event_loop
 from typing import Optional
 
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
-from tribler_core.modules.tunnel.socks5.connection import Socks5Connection
+from tribler_core.components.socks_servers.socks5.connection import Socks5Connection
 
 
 class Socks5Server:

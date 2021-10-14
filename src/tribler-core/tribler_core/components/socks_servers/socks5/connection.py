@@ -3,7 +3,7 @@ from asyncio import Protocol, ensure_future
 
 from ipv8.messaging.serialization import PackError
 
-from tribler_core.modules.tunnel.socks5.conversion import (
+from tribler_core.components.socks_servers.socks5.conversion import (
     CommandRequest,
     CommandResponse,
     MethodsRequest,
@@ -16,7 +16,7 @@ from tribler_core.modules.tunnel.socks5.conversion import (
     SOCKS_VERSION,
     socks5_serializer,
 )
-from tribler_core.modules.tunnel.socks5.udp_connection import SocksUDPConnection
+from tribler_core.components.socks_servers.socks5.udp_connection import SocksUDPConnection
 
 
 class ConnectionState:

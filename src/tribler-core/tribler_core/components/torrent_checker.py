@@ -3,7 +3,7 @@ from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RestfulComponent
-from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.modules.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.modules.torrent_checker.tracker_manager import TrackerManager
 

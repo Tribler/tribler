@@ -35,7 +35,7 @@ from tribler_core.components.masterkey.masterkey_component import MasterKeyCompo
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
