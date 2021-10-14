@@ -7,7 +7,7 @@ from tribler_core.components.masterkey.masterkey_component import MasterKeyCompo
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
 
 

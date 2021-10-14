@@ -35,6 +35,7 @@ from ipv8.util import succeed
 from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
 
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
+from tribler_core.components.socks_servers.socks5.server import Socks5Server
 from tribler_core.modules.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
 from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
@@ -47,7 +48,6 @@ from tribler_core.modules.tunnel.community.payload import (
     RelayBalanceRequestPayload,
     RelayBalanceResponsePayload,
 )
-from tribler_core.modules.tunnel.socks5.server import Socks5Server
 from tribler_core.utilities.bencodecheck import is_bencoded
 from tribler_core.utilities.unicode import hexlify
 

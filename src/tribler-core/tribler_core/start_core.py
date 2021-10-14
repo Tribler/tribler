@@ -26,7 +26,7 @@ from tribler_core.components.popularity.popularity_component import PopularityCo
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
 from tribler_core.components.tunnels import TunnelsComponent
 from tribler_core.components.upgrade import UpgradeComponent

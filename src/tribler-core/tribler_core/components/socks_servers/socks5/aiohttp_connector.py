@@ -4,7 +4,7 @@ from asyncio import wait_for
 from aiohttp import TCPConnector
 from aiohttp.abc import AbstractResolver
 
-from tribler_core.modules.tunnel.socks5.client import Socks5Client
+from tribler_core.components.socks_servers.socks5.client import Socks5Client
 
 
 class FakeResolver(AbstractResolver):

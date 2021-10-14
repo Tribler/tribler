@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from tribler_core.modules.tunnel.socks5.connection import ConnectionState, Socks5Connection
+from tribler_core.components.socks_servers.socks5.connection import ConnectionState, Socks5Connection
 from tribler_core.tests.tools.base_test import MockObject
 
 

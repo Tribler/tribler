@@ -12,9 +12,9 @@ from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 import async_timeout
 
 from ipv8.taskmanager import TaskManager
+from tribler_core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
+from tribler_core.components.socks_servers.socks5.client import Socks5Client
 
-from tribler_core.modules.tunnel.socks5.aiohttp_connector import Socks5Connector
-from tribler_core.modules.tunnel.socks5.client import Socks5Client
 from tribler_core.utilities.tracker_utils import add_url_params, parse_tracker_url
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import bdecode_compat

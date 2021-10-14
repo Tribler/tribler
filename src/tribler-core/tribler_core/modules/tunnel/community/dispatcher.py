@@ -10,7 +10,7 @@ from ipv8.messaging.anonymization.tunnel import (
 )
 from ipv8.taskmanager import TaskManager, task
 
-from tribler_core.modules.tunnel.socks5.conversion import UdpPacket, socks5_serializer
+from tribler_core.components.socks_servers.socks5.conversion import UdpPacket, socks5_serializer
 
 
 class TunnelDispatcher(TaskManager):

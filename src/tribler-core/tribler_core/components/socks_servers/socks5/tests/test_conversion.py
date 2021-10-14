@@ -5,8 +5,7 @@ from ipv8.messaging.serialization import PackError
 
 import pytest
 
-from tribler_core.modules.tunnel.socks5.conversion import (
-    ADDRESS_TYPE_DOMAIN_NAME,
+from tribler_core.components.socks_servers.socks5.conversion import (
     CommandRequest,
     CommandResponse,
     UdpPacket,

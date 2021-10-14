@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.modules.tunnel.socks5.udp_connection import SocksUDPConnection
+from tribler_core.components.socks_servers.socks5.udp_connection import SocksUDPConnection
 
 
 @pytest.fixture
