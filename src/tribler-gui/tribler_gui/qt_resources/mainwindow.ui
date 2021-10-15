@@ -106,7 +106,10 @@ QCheckBox::indicator:unchecked {border: 1px solid #555;}
 
 QToolButton QToolTip {
 padding: 4px;
-}</string>
+}
+
+
+</string>
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
@@ -155,7 +158,10 @@ background-color: #303030;
 border: none;
 color: #C0C0C0;
 padding: 4px;
-}</string>
+}
+
+
+</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <property name="leftMargin">
@@ -617,7 +623,7 @@ QListWidget::item:disabled
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>6</number>
+         <number>2</number>
         </property>
         <widget class="SearchResultsWidget" name="search_results_page"/>
         <widget class="SettingsPage" name="settings_page">
@@ -1049,8 +1055,8 @@ border-top: 1px solid #555;
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>854</width>
-               <height>697</height>
+               <width>300</width>
+               <height>506</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -1106,7 +1112,7 @@ QCheckBox{margin-left: 10px;}
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>6</number>
                 </property>
                 <widget class="QWidget" name="settings_general_tab">
                  <property name="sizePolicy">
@@ -3472,7 +3478,7 @@ QTabBar::tab:selected {
 }</string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>1</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -3510,8 +3516,8 @@ QTabBar::tab:selected {
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>308</width>
-                       <height>276</height>
+                       <width>854</width>
+                       <height>378</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -3800,26 +3806,12 @@ margin-right: 10px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QTreeWidget" name="download_files_list">
+                   <widget class="TorrentFileTreeWidget" name="download_files_list">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
                     </property>
                     <property name="styleSheet">
-                     <string notr="true">QTreeWidget {
-border: none;
-font-size: 13px;
-}
-QTreeWidget::item {
-color: white;
-border-bottom: 1px solid #303030;
-}
-QTreeWidget::item:hover {
-background-color: #303030;
-}
-QTreeWidget::item::selected {
-background-color: #444;
-}
-QHeaderView {
+                     <string notr="true">QHeaderView {
 background-color: transparent;
 }
 QHeaderView::section {
@@ -3836,20 +3828,17 @@ color: red;
 QHeaderView::section:hover {
 color: white;
 }
-QTableCornerButton::section {
-background-color: transparent;
-}</string>
-                    </property>
-                    <property name="alternatingRowColors">
-                     <bool>false</bool>
+
+
+</string>
                     </property>
                     <property name="selectionMode">
-                     <enum>QAbstractItemView::ExtendedSelection</enum>
-                    </property>
-                    <property name="indentation">
-                     <number>0</number>
+                     <enum>QAbstractItemView::NoSelection</enum>
                     </property>
                     <property name="sortingEnabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="animated">
                      <bool>true</bool>
                     </property>
                     <property name="allColumnsShowFocus">
@@ -3871,11 +3860,6 @@ background-color: transparent;
                     <column>
                      <property name="text">
                       <string>% DONE</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>INCLUDED</string>
                      </property>
                     </column>
                    </widget>
@@ -5652,6 +5636,11 @@ background: none;</string>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
+  <customwidget>
+   <class>TorrentFileTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>tribler_gui.widgets.torrentfiletreewidget.h</header>
+  </customwidget>
   <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>

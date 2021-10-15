@@ -525,7 +525,6 @@ class TriblerWindow(QMainWindow):
         safe_seeding,
         destination,
         selected_files,
-        total_files=0,
         add_to_channel=False,
         callback=None,
     ):
@@ -541,10 +540,6 @@ class TriblerWindow(QMainWindow):
             )
             return
 
-        selected_files_list = []
-        if len(selected_files) != total_files:  # Not all files included
-            selected_files_list = [filename for filename in selected_files]
-
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
         post_data = {
@@ -552,7 +547,7 @@ class TriblerWindow(QMainWindow):
             "anon_hops": anon_hops,
             "safe_seeding": safe_seeding,
             "destination": destination,
-            "selected_files": selected_files_list,
+            "selected_files": selected_files,
         }
         TriblerNetworkRequest(
             "downloads", callback if callback else self.on_download_added, method='PUT', data=post_data
@@ -827,8 +822,7 @@ class TriblerWindow(QMainWindow):
                     self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                     self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
                     self.dialog.dialog_widget.destination_input.currentText(),
-                    self.dialog.get_selected_files(),
-                    self.dialog.dialog_widget.files_list_view.topLevelItemCount(),
+                    self.dialog.dialog_widget.files_list_view.get_selected_files_indexes(),
                     add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked(),
                 )
             else:

@@ -3,16 +3,16 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt5.QtCore import QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Qt
+from PyQt5.QtCore import QMetaObject, QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget
+from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import pytest
 
 from tribler_common.network_utils import NetworkUtils
 
-from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler_core.tests.tools.common import TORRENT_WITH_DIRS
 
 import tribler_gui
 import tribler_gui.core_manager as core_manager
@@ -23,6 +23,7 @@ from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 from tribler_gui.widgets.tablecontentmodel import Column
+from tribler_gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
 
@@ -126,6 +127,12 @@ def wait_for_variable(window, var, timeout=10, cmp_var=None):
             return
 
     raise TimeoutException(f"Variable {var} within 10 seconds")
+
+
+def clickItem(tree_view, item, checkable_column):
+    state = Qt.Checked if item.checkState(checkable_column) == Qt.Unchecked else Qt.Unchecked
+    item.setCheckState(checkable_column, state)
+    QMetaObject.invokeMethod(tree_view, "itemClicked", Q_ARG(QTreeWidgetItem, item), Q_ARG(int, checkable_column))
 
 
 def screenshot(widget, name=None):
@@ -345,7 +352,23 @@ def test_download_details(window):
     window.download_details_widget.setCurrentIndex(0)
     screenshot(window, name="download_detail")
     window.download_details_widget.setCurrentIndex(1)
+
+    dfl = window.download_files_list
+    wait_for_list_populated(dfl)
+    item = dfl.topLevelItem(0)
+    dfl.expand(dfl.indexFromItem(item))
+    QTest.qWait(100)
     screenshot(window, name="download_files")
+
+    dfl.header().setSortIndicator(0, Qt.AscendingOrder)
+    QTest.qWait(100)
+    dfl.header().setSortIndicator(1, Qt.AscendingOrder)
+    QTest.qWait(100)
+    dfl.header().setSortIndicator(2, Qt.AscendingOrder)
+    QTest.qWait(100)
+    dfl.header().setSortIndicator(3, Qt.AscendingOrder)
+    QTest.qWait(100)
+
     window.download_details_widget.setCurrentIndex(2)
     screenshot(window, name="download_trackers")
 
@@ -380,7 +403,8 @@ def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
     screenshot(window, name="add_torrent_url_dialog")
-    window.dialog.dialog_widget.dialog_input.setText("file:" + str(TORRENT_UBUNTU_FILE))
+
+    window.dialog.dialog_widget.dialog_input.setText("file:" + str(TORRENT_WITH_DIRS))
     QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
     QTest.qWait(200)
     screenshot(window, name="add_torrent_url_startdownload_dialog")
@@ -389,9 +413,16 @@ def test_add_download_url(window):
     download_dir = os.path.join(os.path.expanduser("~"), "downloads")
     window.dialog.dialog_widget.destination_input.setCurrentText(download_dir)
 
-    wait_for_list_populated(window.dialog.dialog_widget.files_list_view)
+    dfl = window.dialog.dialog_widget.files_list_view
+    wait_for_list_populated(dfl)
 
+    item = dfl.topLevelItem(0)
+    dfl.expand(dfl.indexFromItem(item))
+
+    item2 = item.child(0)
+    clickItem(dfl, item2, CHECKBOX_COL)
     screenshot(window, name="add_torrent_url_startdownload_dialog_files")
+
     QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
     wait_for_signal(window.downloads_page.received_downloads)
 
@@ -416,6 +447,7 @@ def test_feedback_dialog_report_sent(window):
 
     def on_report_sent():
         on_report_sent.did_send_report = True
+
     on_report_sent.did_send_report = False
 
     dialog = FeedbackDialog(window, "Tribler GUI Test to test sending crash report works", "1.2.3", 23)
@@ -425,6 +457,7 @@ def test_feedback_dialog_report_sent(window):
     QTimer.singleShot(1000, screenshot_dialog)
     dialog.exec_()
     assert on_report_sent.did_send_report
+
 
 @pytest.mark.guitest
 def test_debug_pane(window):
