@@ -35,9 +35,9 @@ TORRENT_FILES_TREE_STYLESHEET_NO_ITEM = """
     TorrentFileTreeWidget { border: none; font-size: 13px; } 
     TorrentFileTreeWidget::item:hover { background-color: #303030; }
     """ % (
-    get_image_path('toggle-checked.svg'),
-    get_image_path('toggle-unchecked.svg'),
-    get_image_path('toggle-undefined.svg'),
+    get_image_path('toggle-checked.svg', convert_slashes_to_forward=True),
+    get_image_path('toggle-unchecked.svg', convert_slashes_to_forward=True),
+    get_image_path('toggle-undefined.svg', convert_slashes_to_forward=True),
 )
 
 # Note the amount of padding is aligned to the size of progress bars to give both list variants

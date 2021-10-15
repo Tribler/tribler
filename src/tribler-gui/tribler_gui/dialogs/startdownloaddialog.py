@@ -79,7 +79,7 @@ class StartDownloadDialog(DialogContainer):
             image: url('%s');
         }
         """
-            % get_image_path('down_arrow_input.png')
+            % get_image_path('down_arrow_input.png', convert_slashes_to_forward=True)
         )
 
         if self.window().tribler_settings:
