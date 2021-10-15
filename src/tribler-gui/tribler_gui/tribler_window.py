@@ -88,6 +88,22 @@ from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewC
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
 
+CHECKBOX_STYLESHEET = """
+    QCheckBox::indicator { width: 16px; height: 16px;}
+    QCheckBox::indicator:checked { image: url("%s"); }
+    QCheckBox::indicator:unchecked { image: url("%s"); }
+    QCheckBox::indicator:checked::disabled { image: url("%s"); }
+    QCheckBox::indicator:unchecked::disabled { image: url("%s"); }
+    QCheckBox::indicator:indeterminate { image: url("%s"); }
+""" % (
+    get_image_path('toggle-checked.svg'),
+    get_image_path('toggle-unchecked.svg'),
+    get_image_path('toggle-checked-disabled.svg'),
+    get_image_path('toggle-unchecked-disabled.svg'),
+    get_image_path('toggle-undefined.svg'),
+)
+
+
 class MagnetHandler(QObject):
     def __init__(self, window):
         QObject.__init__(self)
@@ -301,6 +317,11 @@ class TriblerWindow(QMainWindow):
         connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
         connect(self.debug_panel_button.clicked, self.clicked_debug_panel_button)
         connect(self.trust_graph_button.clicked, self.clicked_trust_graph_page_button)
+
+        # Apply a custom style to our checkboxes, with custom images.
+        stylesheet = self.styleSheet()
+        stylesheet += CHECKBOX_STYLESHEET
+        self.setStyleSheet(stylesheet)
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions

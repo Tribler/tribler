@@ -101,9 +101,6 @@ QListView {
 color:#B5B5B5;
 }
 
-QCheckBox { color:#B5B5B5; }
-QCheckBox::indicator:unchecked {border: 1px solid #555;}
-
 QToolButton QToolTip {
 padding: 4px;
 }
@@ -1096,7 +1093,7 @@ border-top: 1px solid #555;
                  </size>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">QStackedWidget QLabel, QStackedWidget QRadioButton, QStackedWidget QCheckBox {
+                 <string notr="true">QStackedWidget QLabel, QStackedWidget QRadioButton, QStackedWidget {
 color: #B5B5B5;
 }
 QComboBox {
@@ -1109,6 +1106,7 @@ border: 0px;
 }
 
 QCheckBox{margin-left: 10px;}
+QCheckBox::indicator { margin: 4px; }
 </string>
                 </property>
                 <property name="currentIndex">
