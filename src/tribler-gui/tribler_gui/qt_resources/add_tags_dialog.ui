@@ -78,7 +78,7 @@ margin-top: 4px;
     <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>0</number>
+    <number>10</number>
    </property>
    <item>
     <widget class="QWidget" name="dialog_main_container" native="true">
@@ -99,13 +99,13 @@ margin-top: 4px;
        <enum>QLayout::SetMinimumSize</enum>
       </property>
       <property name="leftMargin">
-       <number>12</number>
+       <number>20</number>
       </property>
       <property name="topMargin">
-       <number>12</number>
+       <number>20</number>
       </property>
       <property name="rightMargin">
-       <number>12</number>
+       <number>20</number>
       </property>
       <property name="bottomMargin">
        <number>12</number>
@@ -298,6 +298,9 @@ margin-top: 4px;
       <string notr="true"/>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
       <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
