@@ -43,6 +43,7 @@ TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DEFAULT_ROW_HEIGHT = 30
+MAX_TAGS_TO_SHOW = 10
 
 
 def draw_text(
@@ -174,7 +175,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         cur_tag_x = 6
         cur_tag_y = TAG_TOP_MARGIN
 
-        for tag_text in data_item["tags"]:   # Show the first three tags to prevent an information overload.
+        for tag_text in data_item["tags"][:MAX_TAGS_TO_SHOW]:
             text_width = self.font_metrics.horizontalAdvance(tag_text)
             tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
 
@@ -365,7 +366,7 @@ class TagsMixin:
             painter.drawText(edit_tags_rect, "Be the first to suggest tags!")
             return
 
-        for tag_text in data_item["tags"]:
+        for tag_text in data_item["tags"][:MAX_TAGS_TO_SHOW]:
             text_width = painter.fontMetrics().horizontalAdvance(tag_text)
             tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
 
