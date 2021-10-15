@@ -1,5 +1,6 @@
 import json
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler_common.osutils import get_root_state_directory
@@ -36,6 +37,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This class is responsible for displaying and adjusting the settings present in Tribler.
     """
+    settings_edited = pyqtSignal()
 
     def __init__(self):
         QWidget.__init__(self)
@@ -559,3 +561,5 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
 
         self.window().fetch_settings()
+
+        self.settings_edited.emit()

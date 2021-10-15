@@ -4,13 +4,14 @@ import sys
 from pathlib import Path
 
 from PyQt5.QtCore import QMetaObject, QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Q_ARG, Qt
-from PyQt5.QtGui import QPixmap, QRegion
+from PyQt5.QtGui import QPixmap, QRegion, QKeySequence
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import pytest
 
 from tribler_common.network_utils import NetworkUtils
+from tribler_common.tag_constants import MIN_TAG_LENGTH
 
 from tribler_core.tests.tools.common import TORRENT_WITH_DIRS
 
@@ -316,6 +317,10 @@ def test_settings(window):
     QTest.mouseClick(window.settings_anonymity_button, Qt.LeftButton)
     screenshot(window, name="settings_anonymity")
 
+    # Test saving the settings
+    QTest.mouseClick(window.settings_save_button, Qt.LeftButton)
+    wait_for_signal(window.settings_page.settings_edited)
+
 
 @pytest.mark.guitest
 def test_downloads(window):
@@ -582,3 +587,114 @@ def test_close_dialog_with_esc_button(window):
     assert window.findChildren(NewChannelDialog)
     QTest.keyPress(window, Qt.Key_Escape)
     assert not window.findChildren(NewChannelDialog)
+
+
+def test_tags_dialog(window):
+    """
+    Test the behaviour of the dialog where a user can edit tags.
+    """
+    QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
+    widget = window.popular_page
+    wait_for_list_populated(widget.content_table)
+
+    # Test the tag modification dialog
+    idx = widget.content_table.model().index(0, 0)
+    widget.content_table.on_edit_tags_clicked(idx)
+    screenshot(window, name="edit_tags_dialog")
+    assert widget.content_table.add_tags_dialog
+
+    # Edit the first tag
+    tags_input = widget.content_table.add_tags_dialog.dialog_widget.edit_tags_input
+    num_tags = len(tags_input.tags) - 1  # To account for the 'dummy' tag at the end of the input field.
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[0].rect.center().toPoint())
+    QTest.keyClick(tags_input, Qt.Key_Home)
+    assert tags_input.editing_index == 0
+    assert tags_input.cursor_ind == 0
+    screenshot(window, name="edit_tags_dialog_edit_first_tag")
+
+    # Test selecting a single character
+    QTest.keyClick(tags_input, Qt.Key_Right)
+    QTest.keySequence(tags_input, QKeySequence.SelectPreviousChar)
+    assert tags_input.select_size == 1
+    QTest.keySequence(tags_input, QKeySequence.SelectNextChar)
+    screenshot(window, name="edit_tags_dialog_first_tag_partial_selection")
+    assert tags_input.select_size == 1
+
+    # Test navigating between the first and second tag using the keyboard buttons
+    QTest.keyClick(tags_input, Qt.Key_Home)
+    for _ in range(len(tags_input.tags[0].text) + 1):
+        QTest.keyClick(tags_input, Qt.Key_Right)
+
+    assert tags_input.editing_index == 1
+    QTest.keyClick(tags_input, Qt.Key_Left)
+    assert tags_input.editing_index == 0
+
+    # Select all text of the first tag
+    QTest.keySequence(tags_input, QKeySequence.SelectAll)
+    screenshot(window, name="edit_tags_dialog_edit_first_tag_selected")
+
+    # Remove the second tag
+    cross_rect = tags_input.compute_cross_rect(tags_input.tags[1].rect)
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=cross_rect.center().toPoint())
+    assert len(tags_input.tags) == num_tags - 1
+    screenshot(window, name="edit_tags_dialog_second_tags_removed")
+
+    # Try saving a tag with too few characters
+    QTest.keyClick(tags_input, Qt.Key_End)
+    QTest.keyClick(tags_input, Qt.Key_Space)
+    for _ in range(MIN_TAG_LENGTH - 1):
+        QTest.keyClick(tags_input, "a")
+    QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
+    screenshot(window, name="edit_tags_dialog_error")
+    assert widget.content_table.add_tags_dialog.dialog_widget.error_text_label.isVisible()
+
+    QTest.keyClick(tags_input, "c")
+    assert tags_input.tags[-1].text == "aac"
+
+    # Test creating a new tag by clicking to the right of the right-most tag
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[-1].rect.topRight().toPoint() + QPoint(10, 0))
+    QTest.keyClick(tags_input, "a")
+    QTest.keyClick(tags_input, "b")
+    QTest.keyClick(tags_input, "c")
+    screenshot(window, name="edit_tags_dialog_created_new_tag")
+
+    # Try to remove the newly created tag
+    cur_editing_index = tags_input.editing_index
+    for _ in range(4):  # This should put us in a state where we edit the previous tag
+        QTest.keyClick(tags_input, Qt.Key_Backspace)
+    assert tags_input.editing_index == cur_editing_index - 1
+
+    # Try adding a tag that overflows to the next line
+    for _ in range(70):
+        QTest.keyClick(tags_input, "b")
+
+    QTest.qWait(100)  # Let the dialog resize
+    screenshot(window, name="edit_tags_dialog_two_lines")
+
+    # We now remove focus from the input area
+    QTest.keyClick(tags_input, Qt.Key_Home)
+    QTest.keyClick(tags_input, Qt.Key_Tab)
+    screenshot(window, name="edit_tags_dialog_out_of_focus")
+    assert not tags_input.hasFocus()
+
+    QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
+    wait_for_signal(widget.content_table.edited_tags)
+    QTest.qWait(200)  # It can take a bit of time to hide the dialog
+
+
+def test_no_tags(window):
+    """
+    Test removing all tags from a content item.
+    """
+    QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
+    widget = window.popular_page
+    wait_for_list_populated(widget.content_table)
+
+    idx = widget.content_table.model().index(0, 0)
+    widget.content_table.save_edited_tags(idx, [])  # Remove all tags
+    wait_for_signal(widget.content_table.edited_tags)
+    screenshot(window, name="content_item_no_tags")
+
+    # Put some tags back (so further tests do not fail)
+    widget.content_table.save_edited_tags(idx, ["abc", "def"])
+    wait_for_signal(widget.content_table.edited_tags)
