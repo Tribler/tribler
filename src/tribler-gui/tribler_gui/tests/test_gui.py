@@ -360,7 +360,7 @@ def test_search_suggestions(window):
 
 @pytest.mark.guitest
 def test_search(window):
-    window.top_search_bar.setText("trib")
+    window.top_search_bar.setText("a")  # This is likely to trigger some search results
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
     wait_for_variable(window, "search_results_page.search_request")
     screenshot(window, name="search_loading_page")

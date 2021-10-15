@@ -7,6 +7,7 @@ from tribler_core.components.masterkey.masterkey_component import MasterKeyCompo
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.torrent_checker import TorrentCheckerComponent
 from tribler_core.components.tunnels import TunnelsComponent
 from tribler_core.components.upgrade import UpgradeComponent
@@ -57,7 +58,7 @@ async def test_REST_component(tribler_config):
 
 async def test_torrent_checker_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), MasterKeyComponent(), RESTComponent(),
-                  MetadataStoreComponent(), TorrentCheckerComponent()]
+                  Ipv8Component(), TagComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]
     session = Session(tribler_config, components)
     with session:
         await session.start()

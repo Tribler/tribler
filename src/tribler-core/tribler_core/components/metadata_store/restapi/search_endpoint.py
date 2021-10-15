@@ -4,12 +4,12 @@ from aiohttp_apispec import docs, querystring_schema
 
 from ipv8.REST.schema import schema
 
-from marshmallow.fields import Boolean, Integer, String
+from marshmallow.fields import Integer, String
 
 from pony.orm import db_session
 
 from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
-from tribler_core.components.metadata_store.restapi.metadata_schema import MetadataParameters
+from tribler_core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.utilities.utilities import froze_it
@@ -42,26 +42,12 @@ class SearchEndpoint(MetadataEndpointBase):
             200: {
                 'schema': schema(
                     SearchResponse={
-                        'torrents': [
-                            schema(
-                                Torrent={
-                                    'commit_status': Integer,
-                                    'num_leechers': Integer,
-                                    'date': Integer,
-                                    'relevance_score': Integer,
-                                    'id': Integer,
-                                    'size': Integer,
-                                    'category': String,
-                                    'public_key': String,
-                                    'name': String,
-                                    'last_tracker_check': Integer,
-                                    'infohash': String,
-                                    'num_seeders': Integer,
-                                    'type': String,
-                                }
-                            )
-                        ],
-                        'chant_dirty': Boolean,
+                        'results': [MetadataSchema],
+                        'first': Integer(),
+                        'last': Integer(),
+                        'sort_by': String(),
+                        'sort_desc': Integer(),
+                        'total': Integer(),
                     }
                 )
             }
@@ -97,6 +83,8 @@ class SearchEndpoint(MetadataEndpointBase):
         except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
             self._logger.error("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
+
+        self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
 
         response_dict = {
             "results": search_results,

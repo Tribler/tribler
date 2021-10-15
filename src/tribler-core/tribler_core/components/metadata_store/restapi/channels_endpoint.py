@@ -11,7 +11,7 @@ from aiohttp_apispec import docs, json_schema
 
 from ipv8.REST.schema import schema
 
-from marshmallow.fields import Boolean, Dict, Integer, String
+from marshmallow.fields import Boolean, Integer, String
 
 from pony.orm import db_session
 
@@ -183,6 +183,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 contents_list = [c.to_simple_dict() for c in contents]
                 total = self.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
+        self.add_tags_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],
@@ -486,7 +487,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             contents = self.mds.get_entries(**sanitized)
             contents_list = [c.to_simple_dict() for c in contents]
         self.add_download_progress_to_metadata_list(contents_list)
-
+        self.add_tags_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],

@@ -1,4 +1,11 @@
+from binascii import unhexlify
+from typing import Optional
+
+from pony.orm import db_session
+
+from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.tag.db.tag_db import TagDatabase
 from tribler_core.restapi.rest_endpoint import RESTEndpoint
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
@@ -32,6 +39,7 @@ class MetadataEndpointBase(RESTEndpoint):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = None
+        self.tags_db: Optional[TagDatabase] = None
 
     @classmethod
     def sanitize_parameters(cls, parameters):
@@ -56,3 +64,12 @@ class MetadataEndpointBase(RESTEndpoint):
                 mtypes.extend(metadata_type_to_search_scope[arg])
             sanitized['metadata_type'] = frozenset(mtypes)
         return sanitized
+
+    @db_session
+    def add_tags_to_metadata_list(self, contents_list, hide_xxx=False):
+        for torrent in contents_list:
+            if torrent['type'] == REGULAR_TORRENT:
+                tags = self.tags_db.get_tags(unhexlify(torrent["infohash"]))
+                if hide_xxx:
+                    tags = [tag.lower() for tag in tags if not default_xxx_filter.isXXX(tag, isFilename=False)]
+                torrent["tags"] = tags

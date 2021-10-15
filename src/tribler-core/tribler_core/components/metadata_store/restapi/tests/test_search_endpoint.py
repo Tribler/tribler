@@ -9,8 +9,11 @@ from tribler_core.restapi.base_api_test import do_request
 from tribler_core.utilities.random_utils import random_infohash
 
 
+# pylint: disable=unused-argument, redefined-outer-name
+
+
 @pytest.fixture
-def needle_in_haystack_mds(metadata_store):  # pylint: disable=unused-argument
+def needle_in_haystack_mds(metadata_store):
     num_hay = 100
     with db_session:
         _ = metadata_store.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
@@ -22,22 +25,23 @@ def needle_in_haystack_mds(metadata_store):  # pylint: disable=unused-argument
 
 
 @pytest.fixture
-def rest_api(loop, needle_in_haystack_mds, aiohttp_client):  # pylint: disable=unused-argument
+def rest_api(loop, needle_in_haystack_mds, aiohttp_client, tags_db):
     channels_endpoint = SearchEndpoint()
     channels_endpoint.mds = needle_in_haystack_mds
+    channels_endpoint.tags_db = tags_db
     app = Application()
     app.add_subapp('/search', channels_endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_search_no_query(rest_api):  # pylint: disable=unused-argument
+async def test_search_no_query(rest_api):
     """
     Testing whether the API returns an error 400 if no query is passed when doing a search
     """
     await do_request(rest_api, 'search', expected_code=400)
 
 
-async def test_search_wrong_mdtype(rest_api):  # pylint: disable=unused-argument
+async def test_search_wrong_mdtype(rest_api):
     """
     Testing whether the API returns an error 400 if wrong metadata type is passed in the query
     """
@@ -106,14 +110,14 @@ async def test_search_with_include_total_and_max_rowid(rest_api):
     assert len(parsed["results"]) == 1
 
 
-async def test_completions_no_query(rest_api):  # pylint: disable=unused-argument
+async def test_completions_no_query(rest_api):
     """
     Testing whether the API returns an error 400 if no query is passed when getting search completion terms
     """
     await do_request(rest_api, 'search/completions', expected_code=400)
 
 
-async def test_completions(rest_api):  # pylint: disable=unused-argument
+async def test_completions(rest_api):
     """
     Testing whether the API returns the right terms when getting search completion terms
     """
