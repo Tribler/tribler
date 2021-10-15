@@ -233,6 +233,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
         self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
 
+        self.window().settings_stacked_widget.setCurrentIndex(0)
+
     def _version_dir_checkbox(self, state_dir, enabled=True):
         dir_size = sum(f.stat().st_size for f in state_dir.glob('**/*'))
         text = f"{state_dir}   {format_size(dir_size)}"
