@@ -169,7 +169,7 @@ margin-top: 4px;
          <string notr="true">color: white;</string>
         </property>
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;To organize the content in Tribler, this item would benefit from tags. You can help by suggesting two to three tags below that accurately describe this item (e.g., &lt;span style=&quot; font-style:italic;&quot;&gt;thriller&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;To organize the content in Tribler, this item would benefit from tags.&lt;br/&gt;You can help by suggesting two to three tags below that accurately describe this item (e.g., &lt;span style=&quot; font-style:italic;&quot;&gt;thriller&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -180,7 +180,6 @@ margin-top: 4px;
        <widget class="QLabel" name="content_name_label">
         <property name="font">
          <font>
-          <weight>50</weight>
           <italic>true</italic>
           <bold>false</bold>
          </font>
