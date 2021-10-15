@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from tribler_core.components.base import Session
@@ -14,7 +12,7 @@ from tribler_core.components.tag.tag_component import TagComponent
 
 @pytest.mark.asyncio
 async def test_metadata_store_component(tribler_config):
-    components = [MasterKeyComponent(), RESTComponent(), MetadataStoreComponent()]
+    components = [TagComponent(), Ipv8Component(), MasterKeyComponent(), RESTComponent(), MetadataStoreComponent()]
     session = Session(tribler_config, components)
     with session:
         comp = MetadataStoreComponent.instance()

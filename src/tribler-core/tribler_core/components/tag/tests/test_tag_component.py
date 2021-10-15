@@ -6,14 +6,14 @@ from tribler_core.components.masterkey.masterkey_component import MasterKeyCompo
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.tag.tag_component import TagComponent
 
-
 # pylint: disable=protected-access
+
+COMPONENTS = []
 
 
 @pytest.mark.asyncio
 async def test_tag_component(tribler_config):
-    components = [MasterKeyComponent(), Ipv8Component(), RESTComponent(), TagComponent()]
-    session = Session(tribler_config, components)
+    session = Session(tribler_config, [MasterKeyComponent(), Ipv8Component(), RESTComponent(), TagComponent()])
     with session:
         comp = TagComponent.instance()
         await session.start()

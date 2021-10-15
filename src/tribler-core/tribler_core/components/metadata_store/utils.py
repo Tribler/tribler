@@ -1,4 +1,5 @@
 import random
+import string
 import time
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -6,7 +7,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.tag.db.tag_db import TagDatabase, Operation
+from tribler_core.components.tag.community.tag_payload import TagOperation
+from tribler_core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
 from tribler_core.tests.tools.common import PNG_FILE
 from tribler_core.utilities.random_utils import random_infohash, random_string, random_utf8_string
 
@@ -24,15 +26,17 @@ class NoChannelSourcesException(Exception):
     pass
 
 
-def tag_torrent(infohash, tags_db):
-    # Give each torrent some tags
-    number_of_tags = random.randint(2, 6)
+def tag_torrent(infohash, tags_db, tags=None):
+    tags = tags or [random_string(size=random.randint(3, 10), chars=string.ascii_lowercase)
+                    for _ in range(random.randint(2, 6))]
 
-    for _ in range(number_of_tags):
-        cur_time = int(time.time())
-        tag = random_string(size=random.randint(3, 10))
+    # Give each torrent some tags
+    for tag in tags:
         for key in [random_key_1, random_key_2]:  # Each tag should be proposed by two unique users
-            tags_db.add_tag_operation(infohash, tag, Operation.ADD, cur_time, key.pub().key_to_bin(), b"")
+            counter = tags_db.get_next_operation_counter()
+            operation = TagOperation(infohash=infohash, tag=tag, operation=TagOperationEnum.ADD, timestamp=counter,
+                                   creator_public_key=key.pub().key_to_bin())
+            tags_db.add_tag_operation(operation, b"")
 
 
 @db_session

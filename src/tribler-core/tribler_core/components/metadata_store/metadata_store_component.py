@@ -53,7 +53,7 @@ class MetadataStoreComponent(RestfulComponent):
         )
         tag_component = await self.require_component(TagComponent)
         await self.init_endpoints(
-            endpoints=['channels'],
+            endpoints=['channels', 'search'],
             values={'tags_db': tag_component.tags_db}
         )
 

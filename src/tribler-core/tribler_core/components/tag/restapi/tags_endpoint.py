@@ -1,5 +1,4 @@
 import binascii
-import time
 from binascii import unhexlify
 from typing import Optional, Set
 
@@ -9,10 +8,10 @@ from marshmallow.fields import Boolean
 from pony.orm import db_session
 
 from ipv8.REST.schema import schema
-from ipv8.types import Key
 from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
-from tribler_core.components.tag.community.tag_crypto import TagCrypto
-from tribler_core.components.tag.db.tag_db import Operation, TagDatabase
+from tribler_core.components.tag.community.tag_community import TagCommunity
+from tribler_core.components.tag.community.tag_payload import TagOperation
+from tribler_core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
 from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.utilities import froze_it
@@ -26,8 +25,8 @@ class TagsEndpoint(RESTEndpoint):
 
     def __init__(self, *args, **kwargs):
         RESTEndpoint.__init__(self, *args, **kwargs)
-        self.tags_db: Optional[TagDatabase] = None
-        self.key: Optional[Key] = None
+        self.db: Optional[TagDatabase] = None
+        self.community: Optional[TagCommunity] = None
 
     def setup_routes(self):
         self.app.add_routes(
@@ -57,12 +56,14 @@ class TagsEndpoint(RESTEndpoint):
         except binascii.Error:
             return RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
 
+        tags = {tag.lower() for tag in params["tags"]}
+
         # Validate whether the size of the tag is within the allowed range
-        for tag in set(params["tags"]):
+        for tag in tags:
             if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
                 return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
 
-        self.modify_tags(infohash, set(params["tags"]))
+        self.modify_tags(infohash, tags)
 
         return RESTResponse({"success": True})
 
@@ -71,19 +72,20 @@ class TagsEndpoint(RESTEndpoint):
         """
         Modify the tags of a particular content item.
         """
-        if not self.tags_db or not self.key:
+        if not self.db or not self.community:
             return
 
         # First, get the current tags and compute the diff between the old and new tags
-        old_tags = set(self.tags_db.get_tags(infohash))
+        old_tags = set(self.db.get_tags(infohash))
         added_tags = new_tags - old_tags
         removed_tags = old_tags - new_tags
 
         # Create individual tag operations for the added/removed tags
-        cur_time = int(time.time())
-        public_key = self.key.pub().key_to_bin()
+        public_key = self.community.my_peer.key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
-            operation = Operation.ADD if tag in added_tags else Operation.REMOVE
-            signature = TagCrypto.sign(infohash, tag, operation, cur_time, public_key, self.key)
-            self.tags_db.add_tag_operation(infohash, tag, operation, cur_time, public_key, signature,
-                                           is_local_peer=True)
+            operation = TagOperationEnum.ADD if tag in added_tags else TagOperationEnum.REMOVE
+            counter = self.db.get_next_operation_counter()
+            operation = TagOperation(infohash=infohash, operation=operation, timestamp=counter,
+                                     creator_public_key=public_key, tag=tag)
+            signature = self.community.sign(operation)
+            self.db.add_tag_operation(operation, signature, is_local_peer=True)

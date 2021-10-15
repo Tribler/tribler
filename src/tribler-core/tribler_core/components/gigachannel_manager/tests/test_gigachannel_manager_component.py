@@ -7,7 +7,7 @@ from tribler_core.components.libtorrent.libtorrent_component import LibtorrentCo
 from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
-from tribler_core.components.socks_configurator import SocksServersComponent
+from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.tag.tag_component import TagComponent
 
 
@@ -16,7 +16,8 @@ from tribler_core.components.tag.tag_component import TagComponent
 
 @pytest.mark.asyncio
 async def test_gigachannel_manager_component(tribler_config):
-    components = [SocksServersComponent(), MasterKeyComponent(), RESTComponent(), MetadataStoreComponent(),
+    components = [Ipv8Component(), TagComponent(), SocksServersComponent(), MasterKeyComponent(), RESTComponent(),
+                  MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]
     session = Session(tribler_config, components)
     with session:

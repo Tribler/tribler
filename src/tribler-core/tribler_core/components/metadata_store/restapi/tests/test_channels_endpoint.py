@@ -16,9 +16,11 @@ from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
+from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.components.metadata_store.utils import RequestTimeoutException
+from tribler_core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
 from tribler_core.restapi.base_api_test import do_request
 from tribler_core.restapi.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
@@ -719,3 +721,28 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
     assert len(json_dict['results']) == 9
     for item in json_dict['results']:
         assert len(item["tags"]) >= 2
+
+
+async def test_get_my_channel_tags_xxx(metadata_store, tags_db, mock_dlmgr_get_download, my_channel, rest_api):  # pylint: disable=redefined-outer-name
+    """
+    Test whether XXX tags are correctly filtered
+    """
+    with db_session:
+        chan = metadata_store.ChannelMetadata.create_channel('test', 'test')
+        infohash = random_infohash()
+        _ = metadata_store.TorrentMetadata(origin_id=chan.id_, title='taggedtorrent', status=NEW, infohash=infohash)
+        default_xxx_filter.xxx_terms = {"wrongterm"}
+
+        # Add a few tags to our new torrent
+        tags = ["totally safe", "wrongterm", "wRonGtErM", "a wrongterm b"]
+        tag_torrent(infohash, tags_db, tags=tags)
+
+        json_dict = await do_request(
+            rest_api,
+            'channels/%s/%d?metadata_type=%d&hide_xxx=1'
+            % (hexlify(my_channel.public_key), chan.id_, REGULAR_TORRENT),
+            expected_code=200,
+        )
+
+    assert len(json_dict['results']) == 1
+    assert len(json_dict['results'][0]["tags"]) == 1

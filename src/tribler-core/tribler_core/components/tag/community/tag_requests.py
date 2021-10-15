@@ -5,7 +5,7 @@ class PeerValidationError(ValueError):
     ...
 
 
-class TagRequestController:
+class TagRequests:
     """ This class is design for controlling requests during pull-based gossip.
 
     The main idea:
@@ -13,6 +13,7 @@ class TagRequestController:
         * While a response, the controller decrements number of expected responses for this peer
         * The controller validates response by checking that expected responses for this peer is greater then 0
     """
+
     def __init__(self):
         self.requests = defaultdict(int)
 
@@ -21,7 +22,7 @@ class TagRequestController:
 
     def validate_peer(self, peer):
         if self.requests[peer] <= 0:
-            raise PeerValidationError('Peer has exhausted his response count')
+            raise PeerValidationError(f'Peer has exhausted his response count {peer}')
 
         self.requests[peer] -= 1
 
