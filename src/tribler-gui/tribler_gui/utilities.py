@@ -191,8 +191,18 @@ def get_ui_file_path(filename):
     return os.path.join(get_base_path(), 'qt_resources', filename)
 
 
-def get_image_path(filename):
-    return os.path.join(get_base_path(), 'images', filename)
+def get_image_path(filename: str, convert_slashes_to_forward: bool = False) -> str:
+    """
+    Return a path to a particular file in the image directory.
+
+    If convert_slashes_to_forward is set to True, backward slashes are converted to forward slashes.
+    This can be used to ensure that images on Windows can be correctly loaded.
+    Also see https://stackoverflow.com/questions/26121737/qt-stylesheet-background-image-from-filepath.
+    """
+    path = os.path.join(get_base_path(), 'images', filename)
+    if convert_slashes_to_forward:
+        path = path.replace("\\", "/")
+    return path
 
 
 def get_gui_setting(gui_settings, value, default, is_bool=False):

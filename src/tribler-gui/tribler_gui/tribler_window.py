@@ -96,11 +96,11 @@ CHECKBOX_STYLESHEET = """
     QCheckBox::indicator:unchecked::disabled { image: url("%s"); }
     QCheckBox::indicator:indeterminate { image: url("%s"); }
 """ % (
-    get_image_path('toggle-checked.svg'),
-    get_image_path('toggle-unchecked.svg'),
-    get_image_path('toggle-checked-disabled.svg'),
-    get_image_path('toggle-unchecked-disabled.svg'),
-    get_image_path('toggle-undefined.svg'),
+    get_image_path('toggle-checked.svg', convert_slashes_to_forward=True),
+    get_image_path('toggle-unchecked.svg', convert_slashes_to_forward=True),
+    get_image_path('toggle-checked-disabled.svg', convert_slashes_to_forward=True),
+    get_image_path('toggle-unchecked-disabled.svg', convert_slashes_to_forward=True),
+    get_image_path('toggle-undefined.svg', convert_slashes_to_forward=True),
 )
 
 
