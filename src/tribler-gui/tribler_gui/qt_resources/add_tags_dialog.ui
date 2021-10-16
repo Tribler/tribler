@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>304</height>
+    <height>288</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -216,7 +216,7 @@ margin-top: 4px;
         <item>
          <widget class="TagsLineEdit" name="edit_tags_input">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -230,7 +230,7 @@ margin-top: 4px;
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>30</height>
+            <height>16777215</height>
            </size>
           </property>
           <property name="styleSheet">
