@@ -35,21 +35,19 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+import lz4
+import sentry_sdk
+from pony.orm import Database, Required, db_session
+
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
-
-import lz4
-
-from pony.orm import Database, Required, db_session
-
-import sentry_sdk
-
-from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity, RemoteSelectPayload, \
+from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity, \
+    RemoteSelectPayload, \
     SelectRequest, \
     SelectResponsePayload
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
 from tribler_core.utilities.unicode import hexlify
 
@@ -218,9 +216,9 @@ class Service(TinyTriblerService):
 
     @staticmethod
     def create_config(working_dir, config_path):
-        return TinyTriblerService.create_default_config(working_dir, config_path)\
-            .put('ipv8', 'enabled', True)\
-            .put('ipv8', 'walk_interval', IPV8_WALK_INTERVAL)\
+        return TinyTriblerService.create_default_config(working_dir, config_path) \
+            .put('ipv8', 'enabled', True) \
+            .put('ipv8', 'walk_interval', IPV8_WALK_INTERVAL) \
             .put('chant', 'enabled', True)
 
     async def on_tribler_started(self):

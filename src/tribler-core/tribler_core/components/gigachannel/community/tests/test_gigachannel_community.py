@@ -18,8 +18,8 @@ from tribler_core.components.gigachannel.community.gigachannel_community import 
 )
 from tribler_core.components.gigachannel.community.settings import ChantSettings
 from tribler_core.components.metadata_store.db.store import MetadataStore
+from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.components.metadata_store.utils import RequestTimeoutException
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
@@ -28,7 +28,7 @@ EMPTY_BLOB = b""
 
 # pylint:disable=protected-access
 
-BASE_PATH = 'tribler_core.modules.remote_query_community.community'
+BASE_PATH = 'tribler_core.components.metadata_store.remote_query_community.remote_query_community'
 
 
 class TestGigaChannelUnits(TestBase):

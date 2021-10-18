@@ -18,8 +18,9 @@ import pytest
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity, sanitize_query
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity, \
+    sanitize_query
+from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
@@ -526,7 +527,7 @@ class TestRemoteQueryCommunity(TestBase):
 
         kwargs_dict = {"txt_filter": "ubuntu*"}
 
-        basic_path = 'tribler_core.modules.remote_query_community.community'
+        basic_path = 'tribler_core.components.metadata_store.remote_query_community.remote_query_community'
 
         with patch(basic_path + '.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
             # Change query timeout to a really low value

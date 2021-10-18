@@ -13,8 +13,8 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.components.metadata_store.db.store import MetadataStore
+from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.components.popularity.community.popularity_community import PopularityCommunity
-from tribler_core.modules.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
