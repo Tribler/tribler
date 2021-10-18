@@ -8,7 +8,7 @@ from pony.orm import db_session
 
 from tribler_core.components.popularity.community.payload import TorrentsHealthPayload
 from tribler_core.components.popularity.community.version_community_mixin import VersionCommunityMixin
-from tribler_core.modules.remote_query_community.community import RemoteQueryCommunity
+from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler_core.utilities.unicode import hexlify
 
 

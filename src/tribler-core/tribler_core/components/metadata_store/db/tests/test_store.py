@@ -10,7 +10,7 @@ import pytest
 from pony.orm import db_session
 
 from ipv8.keyvault.crypto import default_eccrypto
-from tribler_core.components.gigachannel.community.payload_checker import ObjState, ProcessingResult
+from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState, ProcessingResult
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH, \
     entries_to_chunk
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
