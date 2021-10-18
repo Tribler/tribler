@@ -1,8 +1,10 @@
+from typing import Dict
+
 from math import floor
 
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen
-from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal, QPointF
+from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen, QPainterPath, QCursor
+from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip, QApplication, QStyleOptionViewItem
 
 from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
@@ -22,9 +24,14 @@ from tribler_gui.defs import (
     HEALTH_GOOD,
     HEALTH_MOOT,
     HEALTH_UNCHECKED,
+    TAG_BACKGROUND_COLOR,
+    TAG_HEIGHT,
+    TAG_HORIZONTAL_MARGIN,
+    TAG_TEXT_HORIZONTAL_PADDING,
+    TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler_gui.utilities import format_votes, get_health, get_image_path
+from tribler_gui.utilities import format_votes, get_health, get_image_path, get_gui_setting
 from tribler_gui.widgets.tablecontentmodel import Column
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -34,6 +41,9 @@ TRIBLER_NEUTRAL = QColor("#B5B5B5")
 TRIBLER_ORANGE = QColor("#e67300")
 TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
+
+DEFAULT_ROW_HEIGHT = 30
+MAX_TAGS_TO_SHOW = 10
 
 
 def draw_text(
@@ -123,6 +133,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.hover_index = self.no_index
         self.controls = []
         self.column_drawing_actions = []
+        self.font_metrics = None
+
+        self.hovering_over_tag_edit_button = False
 
         # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
@@ -136,6 +149,49 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.button_box = QRect()
         self.button_box_extended_border_ratio = float(1.0)
 
+    def get_bool_gui_setting(self, setting_name: str, default: bool=False):
+        """
+        Get a particular boolean GUI setting.
+        The reason why this is a separate method is that there are some additional checks that need to be done
+        when accessing the GUI settings in the window.
+        """
+        try:
+            return get_gui_setting(self.table_view.window().gui_settings, setting_name, False, is_bool=True)
+        except AttributeError:
+            # It could happen that the window is unloaded, e.g., when closing down Tribler.
+            return default
+
+    def sizeHint(self, _, index: QModelIndex) -> QSize:
+        """
+        Estimate the height of the row. This is mostly dependent on the tags attached to each item.
+        """
+        data_item = index.model().data_items[index.row()]
+
+        tags_disabled = self.get_bool_gui_setting("disable_tags")
+        if data_item["type"] != REGULAR_TORRENT or tags_disabled:
+            return QSize(0, DEFAULT_ROW_HEIGHT)
+
+        name_column_width = index.model().name_column_width
+        cur_tag_x = 6
+        cur_tag_y = TAG_TOP_MARGIN
+
+        for tag_text in data_item["tags"][:MAX_TAGS_TO_SHOW]:
+            text_width = self.font_metrics.horizontalAdvance(tag_text)
+            tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
+
+            # Check whether this tag is going to overflow
+            if cur_tag_x + tag_box_width >= name_column_width:
+                cur_tag_x = 6
+                cur_tag_y += 30
+
+            cur_tag_x += tag_box_width + TAG_HORIZONTAL_MARGIN
+
+        # Account for the 'edit tags' button
+        if cur_tag_x + TAG_HEIGHT >= name_column_width:
+            cur_tag_y += 30
+
+        return QSize(0, cur_tag_y + 30)
+
     def paint_empty_background(self, painter, option):
         super().paint(painter, option, self.no_index)
 
@@ -147,8 +203,25 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
                 # Hide the tooltip when cell hover changes
                 QToolTip.hideText()
 
+        # Check if we hover over the 'edit tags' button
+        new_hovering_state = False
+        if self.hover_index != self.no_index and \
+                self.hover_index.column() == index.model().column_position[Column.NAME]:
+            data_item = index.model().data_items[index.row()]
+            if data_item and "edit_tags_button_rect" in data_item:
+                if data_item["edit_tags_button_rect"].contains(pos):
+                    QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
+                    new_hovering_state = True
+
+        if new_hovering_state != self.hovering_over_tag_edit_button:
+            self.redraw_required.emit(index, False)
+        self.hovering_over_tag_edit_button = new_hovering_state
+
         for controls in self.controls:
             controls.on_mouse_moved(pos, index)
+
+    def on_mouse_left(self) -> None:
+        self.hovering_over_tag_edit_button = False
 
     @staticmethod
     def split_rect_into_squares(r, buttons):
@@ -264,6 +337,74 @@ class SubscribedControlMixin:
         return True
 
 
+class TagsMixin:
+    edit_tags_icon = QIcon(get_image_path("edit_white.png"))
+    edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
+
+    def draw_title_and_tags(self, painter: QPainter, option: QStyleOptionViewItem,
+                            index: QModelIndex, data_item: Dict) -> None:
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        title_text_pos = option.rect.topLeft()
+        painter.setPen(Qt.white)
+        painter.drawText(QRectF(title_text_pos.x() + 6, title_text_pos.y(), option.rect.width() - 6, 28),
+                         Qt.AlignVCenter, data_item["name"])
+
+        cur_tag_x = option.rect.x() + 6
+        cur_tag_y = option.rect.y() + TAG_TOP_MARGIN
+
+        tags_disabled = self.get_bool_gui_setting("disable_tags")
+        if data_item["type"] != REGULAR_TORRENT or tags_disabled:
+            return
+
+        edit_tags_button_hovered = self.hovering_over_tag_edit_button and self.hover_index == index
+
+        # If there are no tags (yet), ask the user to add some tags
+        if len(data_item["tags"]) == 0:
+            painter.setPen(QColor(TRIBLER_ORANGE) if edit_tags_button_hovered else QColor("#aaa"))
+            edit_tags_rect = QRectF(title_text_pos.x() + 6, title_text_pos.y() + 34, option.rect.width() - 6, 28)
+            data_item["edit_tags_button_rect"] = edit_tags_rect
+            painter.drawText(edit_tags_rect, "Be the first to suggest tags!")
+            return
+
+        for tag_text in data_item["tags"][:MAX_TAGS_TO_SHOW]:
+            text_width = painter.fontMetrics().horizontalAdvance(tag_text)
+            tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
+
+            # Check whether this tag is going to overflow to the next row
+            if cur_tag_x + tag_box_width >= option.rect.x() + option.rect.width():
+                cur_tag_x = option.rect.x() + 6
+                cur_tag_y += 30
+
+            # Draw tag
+            painter.setPen(TAG_BACKGROUND_COLOR)
+            path = QPainterPath()
+            rect = QRectF(cur_tag_x, cur_tag_y, tag_box_width, TAG_HEIGHT)
+            path.addRoundedRect(rect, TAG_HEIGHT / 2, TAG_HEIGHT / 2)
+            painter.fillPath(path, TAG_BACKGROUND_COLOR)
+            painter.drawPath(path)
+
+            painter.setPen(Qt.white)
+            text_pos = rect.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING,
+                                                painter.fontMetrics().ascent() +
+                                                ((rect.height() - painter.fontMetrics().height()) / 2) - 1)
+            painter.drawText(text_pos, tag_text)
+
+            cur_tag_x += rect.width() + TAG_HORIZONTAL_MARGIN
+
+        # Draw the 'edit tags' button
+        if cur_tag_x + TAG_HEIGHT >= option.rect.x() + option.rect.width():
+            cur_tag_x = option.rect.x() + 6
+            cur_tag_y += 30
+
+        edit_rect = QRect(cur_tag_x + 4, cur_tag_y, TAG_HEIGHT, TAG_HEIGHT)
+        data_item["edit_tags_button_rect"] = edit_rect
+
+        if edit_tags_button_hovered:
+            self.edit_tags_icon_hover.paint(painter, edit_rect)
+        else:
+            self.edit_tags_icon.paint(painter, edit_rect)
+
+
 class RatingControlMixin:
     def draw_rating_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -358,8 +499,9 @@ class TriblerContentDelegate(
     HealthLabelMixin,
     ChannelStateMixin,
     SubscribedControlMixin,
+    TagsMixin,
 ):
-    def __init__(self, parent=None):
+    def __init__(self, table_view, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(Column.SUBSCRIBED)
@@ -379,6 +521,7 @@ class TriblerContentDelegate(
         ]
         self.column_drawing_actions = [
             (Column.SUBSCRIBED, self.draw_subscribed_control),
+            (Column.NAME, self.draw_title_and_tags),
             (Column.VOTES, self.draw_rating_control),
             (Column.ACTIONS, self.draw_action_column),
             (Column.CATEGORY, self.draw_category_label),
@@ -386,6 +529,7 @@ class TriblerContentDelegate(
             (Column.STATUS, self.draw_commit_status_column),
             (Column.STATE, self.draw_channel_state),
         ]
+        self.table_view = table_view
 
     def draw_action_column(self, painter, option, index, data_item):
         if data_item['type'] == REGULAR_TORRENT:

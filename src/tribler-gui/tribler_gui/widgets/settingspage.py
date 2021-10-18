@@ -1,5 +1,6 @@
 import json
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler_common.osutils import get_root_state_directory
@@ -36,6 +37,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This class is responsible for displaying and adjusting the settings present in Tribler.
     """
+    settings_edited = pyqtSignal()
 
     def __init__(self):
         QWidget.__init__(self)
@@ -175,6 +177,11 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         # Channel settings
         self.window().channel_autocommit_checkbox.setChecked(
             get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True)
+        )
+
+        # Tags settings
+        self.window().disable_tags_checkbox.setChecked(
+            get_gui_setting(gui_settings, "disable_tags", False, is_bool=True)
         )
 
         # Log directory
@@ -541,6 +548,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             return
         # Now save the GUI settings
         self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
+        self.window().gui_settings.setValue("disable_tags", self.window().disable_tags_checkbox.isChecked())
         self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
         self.window().gui_settings.setValue(
             "ask_download_settings", self.window().always_ask_location_checkbox.isChecked()
@@ -553,3 +561,5 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
 
         self.window().fetch_settings()
+
+        self.settings_edited.emit()

@@ -1,11 +1,16 @@
-from PyQt5.QtCore import QModelIndex, QPoint, QRect, QTimer, Qt, pyqtSignal, QEvent
-from PyQt5.QtGui import QGuiApplication, QMovie
-from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView
+import json
+from typing import List
+
+from PyQt5.QtCore import QModelIndex, QRect, QTimer, Qt, pyqtSignal, QEvent
+from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
+from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView, QHeaderView, QApplication
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import COMMIT_STATUS_COMMITTED
+from tribler_gui.dialogs.addtagsdialog import AddTagsDialog
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, data_item2uri, get_image_path, index2uri
 from tribler_gui.widgets.tablecontentdelegate import TriblerContentDelegate
 from tribler_gui.widgets.tablecontentmodel import Column, EXPANDING
@@ -43,20 +48,20 @@ class TriblerContentTableView(QTableView):
     This table view is designed to support lazy loading.
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
-    mouse_moved = pyqtSignal(QPoint, QModelIndex)
-
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
+    edited_tags = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
+        self.add_tags_dialog = None
         self.setMouseTracking(True)
 
-        self.delegate = TriblerContentDelegate()
+        self.delegate = TriblerContentDelegate(self)
+        self.delegate.font_metrics = self.fontMetrics()  # Required to estimate the height of a row.
 
         self.setItemDelegate(self.delegate)
-        connect(self.mouse_moved, self.delegate.on_mouse_moved)
         connect(self.delegate.redraw_required, self.redraw)
 
         # Install an event filter on the horizontal header to catch mouse movements (so we can deselect rows).
@@ -79,6 +84,9 @@ class TriblerContentTableView(QTableView):
         connect(self.loading_animation_delay_timer.timeout, self.show_loading_animation)
 
         self.hide_loading_animation()
+
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.horizontalHeader().setFixedHeight(40)
 
     def show_loading_animation_delayed(self):
         self.loading_animation_delay_timer.start(self.loading_animation_delay)
@@ -103,7 +111,22 @@ class TriblerContentTableView(QTableView):
 
         # We trigger a mouse movement event to make sure that the whole row remains selected when scrolling.
         index = QModelIndex(self.indexAt(event.pos()))
-        self.mouse_moved.emit(event.pos(), index)
+        self.delegate.on_mouse_moved(event.pos(), index)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        should_select_row = True
+        index = self.indexAt(event.pos())
+        if index != self.delegate.no_index:
+            data_item = self.model().data_items[index.row()]
+
+            # Check if we are clicking the 'edit tags' button
+            if data_item and "edit_tags_button_rect" in data_item:
+                if data_item["edit_tags_button_rect"].contains(event.pos()):
+                    should_select_row = False
+                    self.on_edit_tags_clicked(index)
+
+        if should_select_row:
+            super().mousePressEvent(event)
 
     def deselect_all_rows(self):
         """
@@ -120,10 +143,13 @@ class TriblerContentTableView(QTableView):
         """
         super().leaveEvent(event)
         self.deselect_all_rows()
+        QApplication.restoreOverrideCursor()
+        self.delegate.on_mouse_left()
 
     def mouseMoveEvent(self, event):
         index = QModelIndex(self.indexAt(event.pos()))
-        self.mouse_moved.emit(event.pos(), index)
+        QApplication.restoreOverrideCursor()
+        self.delegate.on_mouse_moved(event.pos(), index)
 
     def redraw(self, index, redraw_whole_row):
         """
@@ -153,6 +179,16 @@ class TriblerContentTableView(QTableView):
             self.window().on_channel_unsubscribe(item)
         else:
             self.window().on_channel_subscribe(item)
+
+    def on_edit_tags_clicked(self, index: QModelIndex) -> None:
+        self.add_tags_dialog = AddTagsDialog(self.window())
+        data_item = index.model().data_items[index.row()]
+        self.add_tags_dialog.index = index
+        if data_item["tags"]:
+            self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item["tags"])
+        self.add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
+        self.add_tags_dialog.show()
+        connect(self.add_tags_dialog.save_button_clicked, self.save_edited_tags)
 
     def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection
@@ -208,8 +244,30 @@ class TriblerContentTableView(QTableView):
             )
         self.loading_animation_widget.update_position()
 
+        name_column_pos = self.model().column_position.get(Column.NAME)
+        self.model().name_column_width = self.columnWidth(name_column_pos)
+
     def start_download_from_index(self, index):
         self.window().start_download_from_uri(index2uri(index))
 
     def start_download_from_dataitem(self, data_item):
         self.window().start_download_from_uri(data_item2uri(data_item))
+
+    def on_tags_edited(self, index, tags):
+        if self.add_tags_dialog:
+            self.add_tags_dialog.close_dialog()
+            self.add_tags_dialog = None
+
+        data_item = self.model().data_items[index.row()]
+        data_item["tags"] = tags
+        self.redraw(index, True)
+
+        self.edited_tags.emit(data_item)
+
+    def save_edited_tags(self, index: QModelIndex, tags: List[str]):
+        data_item = self.model().data_items[index.row()]
+        TriblerNetworkRequest(f"tags/{data_item['infohash']}",
+                              lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
+                              raw_data=json.dumps({"tags": tags}),
+                              method='PATCH',
+        )

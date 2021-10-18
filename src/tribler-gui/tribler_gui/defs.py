@@ -4,6 +4,8 @@ This file contains various definitions used by the Tribler GUI.
 import sys
 from collections import namedtuple
 
+from PyQt5.QtGui import QColor
+
 DEFAULT_API_PROTOCOL = "http"
 DEFAULT_API_HOST = "localhost"
 DEFAULT_API_PORT = 52194
@@ -191,3 +193,12 @@ PB = 1024 * TB
 
 DARWIN = sys.platform == 'darwin'
 WINDOWS = sys.platform == 'win32'
+
+
+# Constants related to the tag widgets
+TAG_BACKGROUND_COLOR = QColor("#484848")
+EDIT_TAGS_BUTTON_COLOR = QColor("#fc9268")
+TAG_HEIGHT = 20
+TAG_TEXT_HORIZONTAL_PADDING = 6
+TAG_TOP_MARGIN = 32
+TAG_HORIZONTAL_MARGIN = 6
