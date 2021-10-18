@@ -7,7 +7,7 @@ from tribler_gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 
-INCLUDED_FILES_CHANGE_DELAY = 3000  # milliseconds
+INCLUDED_FILES_CHANGE_DELAY = 1000  # milliseconds
 PROGRESS_BAR_DRAW_LIMIT = 1000  # Don't draw progress bars for files in torrents that have more than this many files
 
 
@@ -69,6 +69,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def update_with_download(self, download):
         did_change = self.current_download != download
+        # When we switch to another download, we want to fixate the changes user did to selected files.
+        # Also, we have to stop the change batching time to prevent carrying the event to the new download
+        if did_change and self._batch_changes_timer.isActive():
+            self._batch_changes_timer.stop()
+            self.set_included_files()
         self.current_download = download
         self.update_pages(new_download=did_change)
 
