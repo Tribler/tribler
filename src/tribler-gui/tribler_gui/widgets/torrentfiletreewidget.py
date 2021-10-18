@@ -208,6 +208,12 @@ class TorrentFileTreeWidget(QTreeWidget):
         for ind in range(self.topLevelItemCount()):
             self.topLevelItem(ind).fill_directory_sizes()
 
+        # Automatically open the toplevel item
+        if self.topLevelItemCount() == 1:
+            item = self.topLevelItem(0)
+            if item.childCount() > 0:
+                self.expandItem(item)
+
         self.blockSignals(False)
         self.selected_files_size = sum(
             item.file_size for item in self.get_selected_items() if item.file_index is not None
