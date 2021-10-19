@@ -121,7 +121,7 @@ class TriblerContentTableView(QTableView):
 
             # Check if we are clicking the 'edit tags' button
             if data_item and "edit_tags_button_rect" in data_item:
-                if data_item["edit_tags_button_rect"].contains(event.pos()):
+                if data_item["edit_tags_button_rect"].contains(event.pos()) and event.button() != Qt.RightButton:
                     should_select_row = False
                     self.on_edit_tags_clicked(index)
 

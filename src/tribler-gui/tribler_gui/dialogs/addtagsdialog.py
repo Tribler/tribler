@@ -25,6 +25,7 @@ class AddTagsDialog(DialogContainer):
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         connect(self.dialog_widget.close_button.clicked, self.close_dialog)
         connect(self.dialog_widget.save_button.clicked, self.on_save_tags_button_clicked)
+        connect(self.dialog_widget.edit_tags_input.enter_pressed, lambda: self.on_save_tags_button_clicked(None))
         connect(self.dialog_widget.edit_tags_input.escape_pressed, self.close_dialog)
 
         self.dialog_widget.edit_tags_input.setFocus()

@@ -28,6 +28,7 @@ class TagsLineEdit(QLineEdit):
     Ported C++ implementation, see https://github.com/nicktrandafil/tags.
     """
     escape_pressed = pyqtSignal()
+    enter_pressed = pyqtSignal()
 
     def __init__(self, parent):
         QLineEdit.__init__(self, parent)
@@ -434,6 +435,10 @@ class TagsLineEdit(QLineEdit):
                 event.accept()
             elif event.key() == Qt.Key_Escape:
                 self.escape_pressed.emit()
+                event.accept()
+
+            elif event.key() == Qt.Key_Return:
+                self.enter_pressed.emit()
                 event.accept()
             else:
                 unknown = True
