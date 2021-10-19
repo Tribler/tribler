@@ -182,15 +182,15 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             # Check whether this tag is going to overflow
             if cur_tag_x + tag_box_width >= name_column_width:
                 cur_tag_x = 6
-                cur_tag_y += 30
+                cur_tag_y += TAG_HEIGHT + 10
 
             cur_tag_x += tag_box_width + TAG_HORIZONTAL_MARGIN
 
         # Account for the 'edit tags' button
         if cur_tag_x + TAG_HEIGHT >= name_column_width:
-            cur_tag_y += 30
+            cur_tag_y += TAG_HEIGHT + 10
 
-        return QSize(0, cur_tag_y + 30)
+        return QSize(0, cur_tag_y + TAG_HEIGHT + 10)
 
     def paint_empty_background(self, painter, option):
         super().paint(painter, option, self.no_index)
@@ -373,7 +373,7 @@ class TagsMixin:
             # Check whether this tag is going to overflow to the next row
             if cur_tag_x + tag_box_width >= option.rect.x() + option.rect.width():
                 cur_tag_x = option.rect.x() + 6
-                cur_tag_y += 30
+                cur_tag_y += TAG_HEIGHT + 10
 
             # Draw tag
             painter.setPen(TAG_BACKGROUND_COLOR)
@@ -394,7 +394,7 @@ class TagsMixin:
         # Draw the 'edit tags' button
         if cur_tag_x + TAG_HEIGHT >= option.rect.x() + option.rect.width():
             cur_tag_x = option.rect.x() + 6
-            cur_tag_y += 30
+            cur_tag_y += TAG_HEIGHT + 10
 
         edit_rect = QRect(cur_tag_x + 4, cur_tag_y, TAG_HEIGHT, TAG_HEIGHT)
         data_item["edit_tags_button_rect"] = edit_rect
