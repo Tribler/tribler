@@ -9,7 +9,7 @@ from tribler_core.components.key.settings import TrustchainSettings
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.components.popularity.settings import PopularityCommunitySettings
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
-from tribler_core.modules.torrent_checker.settings import TorrentCheckerSettings
+from tribler_core.components.torrent_checker.settings import TorrentCheckerSettings
 from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
 from tribler_core.modules.watch_folder.settings import WatchFolderSettings
 from tribler_core.restapi.settings import APISettings
