@@ -644,7 +644,7 @@ def test_tags_dialog(window):
     QTest.keyClick(tags_input, Qt.Key_Space)
     for _ in range(MIN_TAG_LENGTH - 1):
         QTest.keyClick(tags_input, "a")
-    QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
+    QTest.keyClick(tags_input, Qt.Key_Return)
     screenshot(window, name="edit_tags_dialog_error")
     assert widget.content_table.add_tags_dialog.dialog_widget.error_text_label.isVisible()
 
