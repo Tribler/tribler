@@ -1,5 +1,6 @@
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
+from tribler_core.components.key.key_component import KeyComponent
 
 from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.tag.community.tag_community import TagCommunity
@@ -15,6 +16,7 @@ class TagComponent(RestfulComponent):
         await super().run()
 
         self._ipv8_component = await self.require_component(Ipv8Component)
+        key_component = await self.require_component(KeyComponent)
 
         db_name = "tags_gui_test.db" if self.session.config.gui_test_mode else "tags.db"
         db_path = self.session.config.state_dir / STATEDIR_DB_DIR / db_name
@@ -30,6 +32,7 @@ class TagComponent(RestfulComponent):
             self._ipv8_component.ipv8.endpoint,
             self._ipv8_component.ipv8.network,
             db=self.tags_db,
+            tags_key=key_component.secondary_key
         )
 
         await self.init_endpoints(

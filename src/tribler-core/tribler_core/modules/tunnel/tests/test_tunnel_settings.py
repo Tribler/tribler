@@ -1,7 +1,7 @@
 import pytest
 
 from tribler_common.network_utils import NetworkUtils
-from tribler_core.components.masterkey.settings import Ipv8Settings
+from tribler_core.components.ipv8.settings import Ipv8Settings
 
 
 @pytest.mark.asyncio

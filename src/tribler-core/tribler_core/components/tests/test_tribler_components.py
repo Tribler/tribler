@@ -3,7 +3,7 @@ import pytest
 from tribler_core.components.base import Session, SessionError
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
@@ -44,7 +44,7 @@ def test_session_context_manager(loop, tribler_config):
 
 
 async def test_REST_component(tribler_config):
-    components = [MasterKeyComponent(), RESTComponent()]
+    components = [KeyComponent(), RESTComponent()]
     session = Session(tribler_config, components)
     with session:
         await session.start()
@@ -57,7 +57,7 @@ async def test_REST_component(tribler_config):
 
 
 async def test_torrent_checker_component(tribler_config):
-    components = [SocksServersComponent(), LibtorrentComponent(), MasterKeyComponent(), RESTComponent(),
+    components = [SocksServersComponent(), LibtorrentComponent(), KeyComponent(), RESTComponent(),
                   Ipv8Component(), TagComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]
     session = Session(tribler_config, components)
     with session:
@@ -71,7 +71,7 @@ async def test_torrent_checker_component(tribler_config):
 
 
 async def test_tunnels_component(tribler_config):
-    components = [Ipv8Component(), MasterKeyComponent(), RESTComponent(), TunnelsComponent()]
+    components = [Ipv8Component(), KeyComponent(), RESTComponent(), TunnelsComponent()]
     session = Session(tribler_config, components)
     with session:
         await session.start()
@@ -85,7 +85,7 @@ async def test_tunnels_component(tribler_config):
 
 
 async def test_upgrade_component(tribler_config):
-    components = [MasterKeyComponent(), RESTComponent(), UpgradeComponent()]
+    components = [KeyComponent(), RESTComponent(), UpgradeComponent()]
     session = Session(tribler_config, components)
     with session:
         await session.start()
@@ -111,7 +111,7 @@ async def test_version_check_component(tribler_config):
 
 
 async def test_watch_folder_component(tribler_config):
-    components = [MasterKeyComponent(), RESTComponent(), SocksServersComponent(), LibtorrentComponent(),
+    components = [KeyComponent(), RESTComponent(), SocksServersComponent(), LibtorrentComponent(),
                   WatchFolderComponent()]
     session = Session(tribler_config, components)
     with session:

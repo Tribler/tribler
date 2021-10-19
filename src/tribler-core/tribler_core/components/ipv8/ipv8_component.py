@@ -15,7 +15,7 @@ from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
 
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi import RestfulComponent
 
 INFINITE = -1
@@ -64,8 +64,8 @@ class Ipv8Component(RestfulComponent):
         await ipv8.start()
         self.ipv8 = ipv8
 
-        master_key_component = await self.require_component(MasterKeyComponent)
-        self.peer = Peer(master_key_component.keypair)
+        key_component = await self.require_component(KeyComponent)
+        self.peer = Peer(key_component.primary_key)
 
         if config.ipv8.statistics and not config.gui_test_mode:
             # Enable gathering IPv8 statistics

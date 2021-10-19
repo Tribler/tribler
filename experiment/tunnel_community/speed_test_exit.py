@@ -6,7 +6,7 @@ from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.messaging.anonymization.utils import run_speed_test
 from ipv8.taskmanager import TaskManager
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.tunnels import TunnelsComponent
 from tribler_core.config.tribler_config import TriblerConfig
@@ -20,7 +20,7 @@ EXPERIMENT_NUM_HOPS = int(os.environ.get('EXPERIMENT_NUM_HOPS', 1))
 class Service(TinyTriblerService, TaskManager):
     def __init__(self, working_dir, config_path):
         super().__init__(Service.create_config(working_dir, config_path), working_dir=working_dir,
-                         components=[Ipv8Component(), MasterKeyComponent(), RESTComponent(), TunnelsComponent()])
+                         components=[Ipv8Component(), KeyComponent(), RESTComponent(), TunnelsComponent()])
         TaskManager.__init__(self)
         self.results = []
         self.output_file = 'speed_test_exit.txt'
