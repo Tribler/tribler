@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>538</width>
-    <height>288</height>
+    <height>360</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -78,7 +78,7 @@ margin-top: 4px;
     <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>10</number>
+    <number>6</number>
    </property>
    <item>
     <widget class="QWidget" name="dialog_main_container" native="true">
@@ -160,10 +160,22 @@ margin-top: 4px;
       <item>
        <widget class="QLabel" name="main_text_label">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>60</height>
+         </size>
         </property>
         <property name="styleSheet">
          <string notr="true">color: white;</string>
@@ -178,6 +190,18 @@ margin-top: 4px;
       </item>
       <item>
        <widget class="QLabel" name="content_name_label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <weight>50</weight>
@@ -207,39 +231,29 @@ margin-top: 4px;
        </spacer>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="edit_tags_input_container">
-        <property name="spacing">
-         <number>0</number>
+       <widget class="TagsLineEdit" name="edit_tags_input">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="topMargin">
-         <number>0</number>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>32</height>
+         </size>
         </property>
-        <item>
-         <widget class="TagsLineEdit" name="edit_tags_input">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>32</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background-color: #ccc;</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: #ccc;</string>
+        </property>
+       </widget>
       </item>
       <item>
        <spacer name="verticalSpacer">
@@ -258,7 +272,81 @@ margin-top: 4px;
        </spacer>
       </item>
       <item>
+       <widget class="QWidget" name="suggestions_container" native="true">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="suggestions_label">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Need inspiration?&lt;/span&gt; Below are some suggestions (click on a tag to add it).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QWidget" name="suggestions" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="error_text_label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <italic>true</italic>

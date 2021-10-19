@@ -227,6 +227,19 @@ class TestTagDB(TestBase):
         assert self.db.get_tags(b'infohash1') == []
 
     @db_session
+    async def test_suggestions(self):
+        # Test whether the database returns the right suggestions.
+        # Suggestions are tags that have not gathered enough support for display yet.
+        self.add_operation(b'infohash', 'tag1', b'peer1')
+        assert self.db.get_suggestions(b'infohash') == ["tag1"]
+
+        self.add_operation(b'infohash', 'tag1', b'peer2')
+        assert self.db.get_suggestions(b'infohash') == []  # This tag now has enough support
+
+        self.add_operation(b'infohash', 'tag1', b'peer3', operation=TagOperationEnum.REMOVE)
+        assert self.db.get_suggestions(b'infohash') == ["tag1"]
+
+    @db_session
     async def test_get_next_operation_counter(self):
         assert self.db.get_next_operation_counter() == 1
         assert self.db.get_next_operation_counter() == 2

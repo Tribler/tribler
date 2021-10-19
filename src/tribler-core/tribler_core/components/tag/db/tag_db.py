@@ -1,11 +1,15 @@
 import datetime
 import logging
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from pony import orm
+from pony.utils import between
 
 from tribler_core.components.tag.community.tag_payload import TagOperationEnum, TagOperation
 from tribler_core.utilities.unicode import hexlify
+
+
+SHOW_THRESHOLD = 2
 
 
 class TagDatabase:
@@ -135,6 +139,20 @@ class TagDatabase:
         op.set(operation=operation.operation, timestamp=operation.timestamp, signature=signature,
                updated_at=datetime.datetime.utcnow())
 
+    def _get_tags(self, infohash: bytes, condition: Callable[[], bool]) -> List[str]:
+        """
+        Get tags that satisfy a given condition.
+
+        Returns: A list of tags that satisfy the given condition.
+        """
+        torrent = self.instance.Torrent.get(infohash=infohash)
+        if not torrent:
+            return []
+
+        query = torrent.tags.select(condition)
+        query = orm.select(tt.tag.name for tt in query)
+        return list(query)
+
     def get_tags(self, infohash: bytes) -> List[str]:
         """ Get all tags for this particular torrent.
 
@@ -142,17 +160,25 @@ class TagDatabase:
         """
         self.logger.debug(f'Get tags. Infohash: {hexlify(infohash)}')
 
-        torrent = self.instance.Torrent.get(infohash=infohash)
-        if not torrent:
-            return []
-
         def show_condition(torrent_tag):
             return torrent_tag.local_operation == TagOperationEnum.ADD.value or \
-                   not torrent_tag.local_operation and torrent_tag.added_count >= 2
+                   not torrent_tag.local_operation and torrent_tag.added_count >= SHOW_THRESHOLD
 
-        query = torrent.tags.select(show_condition)
-        query = orm.select(tt.tag.name for tt in query)
-        return list(query)
+        return self._get_tags(infohash, show_condition)
+
+    def get_suggestions(self, infohash: bytes) -> List[str]:
+        """
+        Get all suggestions for a particular torrent.
+
+        Returns: A list of suggestions.
+        """
+        self.logger.debug(f"Getting tag suggestions for infohash {hexlify(infohash)}")
+
+        def show_suggestions_condition(torrent_tag):
+            return not torrent_tag.local_operation and \
+                   between(torrent_tag.added_count - torrent_tag.removed_count, 0, SHOW_THRESHOLD - 1)
+
+        return self._get_tags(infohash, show_suggestions_condition)
 
     def get_next_operation_counter(self) -> int:
         """ Get counter of last operation and increment this counter in DB.

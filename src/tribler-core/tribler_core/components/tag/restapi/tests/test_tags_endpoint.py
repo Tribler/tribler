@@ -5,6 +5,9 @@ from aiohttp.web_app import Application
 from freezegun import freeze_time
 from pony.orm import db_session
 
+from ipv8.keyvault.crypto import default_eccrypto
+
+from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler_core.conftest import TEST_PERSONAL_KEY
 from tribler_core.restapi.base_api_test import do_request
@@ -85,3 +88,33 @@ async def test_modify_tags_no_community(tags_db, tags_endpoint):
         tags = tags_db.get_tags(infohash)
 
     assert len(tags) == 0
+
+
+async def test_get_suggestions_invalid_infohash(rest_api):
+    """
+    Test whether an error is returned if we fetch suggestions from content with an invalid infohash
+    """
+    post_data = {"tags": ["abc", "def"]}
+    await do_request(rest_api, 'tags/3f3/suggestions', expected_code=400, post_data=post_data)
+    await do_request(rest_api, 'tags/3f3f/suggestions', expected_code=400, post_data=post_data)
+
+
+async def test_get_suggestions(rest_api, tags_db):
+    """
+    Test whether we can successfully fetch suggestions from content
+    """
+    infohash = b'a' * 20
+    response = await do_request(rest_api, f'tags/{hexlify(infohash)}/suggestions')
+    assert "suggestions" in response
+    assert not response["suggestions"]
+
+    # Add a suggestion to the database
+    with db_session:
+        random_key = default_eccrypto.generate_key('low')
+        counter = tags_db.get_next_operation_counter()
+        operation = TagOperation(infohash=infohash, tag="test", operation=TagOperationEnum.ADD, timestamp=counter,
+                                 creator_public_key=random_key.pub().key_to_bin())
+        tags_db.add_tag_operation(operation, b"")
+
+    response = await do_request(rest_api, f'tags/{hexlify(infohash)}/suggestions')
+    assert response["suggestions"] == ["test"]

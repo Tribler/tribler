@@ -24,6 +24,7 @@ from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loading_list_item import LoadingListItem
 from tribler_gui.widgets.tablecontentmodel import Column
+from tribler_gui.widgets.tagbutton import TagButton
 from tribler_gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
@@ -602,6 +603,7 @@ def test_tags_dialog(window):
     widget.content_table.on_edit_tags_clicked(idx)
     screenshot(window, name="edit_tags_dialog")
     assert widget.content_table.add_tags_dialog
+    wait_for_signal(widget.content_table.add_tags_dialog.suggestions_loaded)
 
     # Edit the first tag
     tags_input = widget.content_table.add_tags_dialog.dialog_widget.edit_tags_input
@@ -676,6 +678,12 @@ def test_tags_dialog(window):
     QTest.keyClick(tags_input, Qt.Key_Tab)
     screenshot(window, name="edit_tags_dialog_out_of_focus")
     assert not tags_input.hasFocus()
+
+    # Click on a suggestion
+    tag_suggestion_buttons = widget.content_table.add_tags_dialog.dialog_widget.suggestions.findChildren(TagButton)
+    assert tag_suggestion_buttons
+    QTest.mouseClick(tag_suggestion_buttons[0], Qt.LeftButton)
+    screenshot(window, name="edit_tags_dialog_suggestion_clicked")
 
     QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
     wait_for_signal(widget.content_table.edited_tags)

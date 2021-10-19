@@ -16,6 +16,7 @@ from tribler_core.utilities.random_utils import random_infohash, random_string, 
 # Some random keys used for generating tags.
 random_key_1 = default_eccrypto.generate_key('low')
 random_key_2 = default_eccrypto.generate_key('low')
+random_key_3 = default_eccrypto.generate_key('low')
 
 
 class RequestTimeoutException(Exception):
@@ -26,17 +27,26 @@ class NoChannelSourcesException(Exception):
     pass
 
 
-def tag_torrent(infohash, tags_db, tags=None):
+def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
     tags = tags or [random_string(size=random.randint(3, 10), chars=string.ascii_lowercase)
                     for _ in range(random.randint(2, 6))]
+    suggested_tags = suggested_tags or [random_string(size=random.randint(3, 10), chars=string.ascii_lowercase)
+                                        for _ in range(random.randint(1, 3))]
 
     # Give each torrent some tags
     for tag in tags:
         for key in [random_key_1, random_key_2]:  # Each tag should be proposed by two unique users
             counter = tags_db.get_next_operation_counter()
             operation = TagOperation(infohash=infohash, tag=tag, operation=TagOperationEnum.ADD, timestamp=counter,
-                                   creator_public_key=key.pub().key_to_bin())
+                                     creator_public_key=key.pub().key_to_bin())
             tags_db.add_tag_operation(operation, b"")
+
+    # Make sure we have some suggestions
+    for tag in suggested_tags:
+        counter = tags_db.get_next_operation_counter()
+        operation = TagOperation(infohash=infohash, tag=tag, operation=TagOperationEnum.ADD, timestamp=counter,
+                                 creator_public_key=random_key_3.pub().key_to_bin())
+        tags_db.add_tag_operation(operation, b"")
 
 
 @db_session

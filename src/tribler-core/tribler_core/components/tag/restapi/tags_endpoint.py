@@ -1,10 +1,10 @@
 import binascii
 from binascii import unhexlify
-from typing import Optional, Set
+from typing import Optional, Set, Tuple
 
 from aiohttp import web
 from aiohttp_apispec import docs
-from marshmallow.fields import Boolean
+from marshmallow.fields import Boolean, List, String
 from pony.orm import db_session
 
 from ipv8.REST.schema import schema
@@ -28,10 +28,22 @@ class TagsEndpoint(RESTEndpoint):
         self.db: Optional[TagDatabase] = None
         self.community: Optional[TagCommunity] = None
 
+    @staticmethod
+    def validate_infohash(infohash: str) -> Tuple[bool, Optional[RESTResponse]]:
+        try:
+            infohash = unhexlify(infohash)
+            if len(infohash) != 20:
+                return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+        except binascii.Error:
+            return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+
+        return True, None
+
     def setup_routes(self):
         self.app.add_routes(
             [
                 web.patch('/{infohash}', self.update_tags_entries),
+                web.get('/{infohash}/suggestions', self.get_suggestions),
             ]
         )
 
@@ -49,12 +61,10 @@ class TagsEndpoint(RESTEndpoint):
     )
     async def update_tags_entries(self, request):
         params = await request.json()
-        try:
-            infohash = unhexlify(request.match_info['infohash'])
-            if len(infohash) != 20:
-                return RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
-        except binascii.Error:
-            return RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+        infohash = request.match_info["infohash"]
+        ih_valid, error_response = TagsEndpoint.validate_infohash(infohash)
+        if not ih_valid:
+            return error_response
 
         tags = {tag.lower() for tag in params["tags"]}
 
@@ -63,7 +73,7 @@ class TagsEndpoint(RESTEndpoint):
             if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
                 return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
 
-        self.modify_tags(infohash, tags)
+        self.modify_tags(unhexlify(infohash), tags)
 
         return RESTResponse({"success": True})
 
@@ -89,3 +99,27 @@ class TagsEndpoint(RESTEndpoint):
                                      creator_public_key=public_key, tag=tag)
             signature = self.community.sign(operation)
             self.db.add_tag_operation(operation, signature, is_local_peer=True)
+
+    @docs(
+        tags=["General"],
+        summary="Get tag suggestions for a torrent with a particular infohash.",
+        responses={
+            200: {
+                "schema": schema(SuggestedTagsResponse={'suggestions': List(String)})
+            },
+            HTTP_BAD_REQUEST: {
+                "schema": HandledErrorSchema, 'example': {"error": "Invalid infohash"}},
+        },
+        description="This endpoint updates a particular torrent with the provided tags."
+    )
+    async def get_suggestions(self, request):
+        """
+        Get suggestions for a particular tag.
+        """
+        infohash = request.match_info["infohash"]
+        ih_valid, error_response = TagsEndpoint.validate_infohash(infohash)
+        if not ih_valid:
+            return error_response
+
+        with db_session:
+            return RESTResponse({"suggestions": self.db.get_suggestions(unhexlify(infohash))})

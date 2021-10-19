@@ -197,6 +197,7 @@ WINDOWS = sys.platform == 'win32'
 
 # Constants related to the tag widgets
 TAG_BACKGROUND_COLOR = QColor("#484848")
+SUGGESTED_TAG_BACKGROUND_COLOR = QColor("#616161")
 EDIT_TAGS_BUTTON_COLOR = QColor("#fc9268")
 TAG_HEIGHT = 20
 TAG_TEXT_HORIZONTAL_PADDING = 6
