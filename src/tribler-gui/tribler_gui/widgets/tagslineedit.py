@@ -319,7 +319,7 @@ class TagsLineEdit(QLineEdit):
 
         if self.cursor_is_visible():
             r = self.current_rect()
-            txt_p = r.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING, 2)
+            txt_p = r.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING, 4)
 
             # Draw the tags up to the current point where we are editing.
             self.draw_tags(p, 0, self.editing_index)
