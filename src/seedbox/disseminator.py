@@ -31,7 +31,7 @@ from tribler_core.components.gigachannel.gigachannel_component import GigaChanne
 from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.restapi import RESTComponent
@@ -166,7 +166,7 @@ class Service(TinyTriblerService):
     def __init__(self, source_dir, working_dir):
         super().__init__(TriblerConfig(state_dir=working_dir),
                          working_dir=working_dir,
-                         components=[RESTComponent(), MasterKeyComponent(), SocksServersComponent(),
+                         components=[RESTComponent(), KeyComponent(), SocksServersComponent(),
                                      LibtorrentComponent(), Ipv8Component(), MetadataStoreComponent(),
                                      GigachannelManagerComponent(), GigaChannelComponent()])
         self.source_dir = Path(source_dir)

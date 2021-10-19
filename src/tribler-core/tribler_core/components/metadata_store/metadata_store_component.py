@@ -1,6 +1,6 @@
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
 
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.components.restapi import RestfulComponent
@@ -36,12 +36,12 @@ class MetadataStoreComponent(RestfulComponent):
             self.logger.info("Wiping metadata database in GUI test mode")
             database_path.unlink(missing_ok=True)
 
-        master_key_component = await self.require_component(MasterKeyComponent)
+        key_component = await self.require_component(KeyComponent)
 
         metadata_store = MetadataStore(
             database_path,
             channels_dir,
-            master_key_component.keypair,
+            key_component.primary_key,
             notifier=self.session.notifier,
             disable_sync=config.gui_test_mode,
         )

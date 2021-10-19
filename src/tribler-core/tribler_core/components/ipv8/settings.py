@@ -1,13 +1,14 @@
 from typing import Optional
 
-from pydantic import Field, validator
+from pydantic import validator
 
 from tribler_common.network_utils import NetworkUtils
-
 from tribler_core.config.tribler_config_section import TriblerConfigSection
 
 
 # pylint: disable=no-self-argument
+
+
 class BootstrapSettings(TriblerConfigSection):
     enabled: bool = True
     max_download_rate: int = 1000000
@@ -36,14 +37,3 @@ class DiscoveryCommunitySettings(TriblerConfigSection):
 
 class DHTSettings(TriblerConfigSection):
     enabled: bool = True
-
-
-class TrustchainSettings(TriblerConfigSection):
-    ec_keypair_filename: str = 'ec_multichain.pem'
-    testnet_keypair_filename: str = 'ec_trustchain_testnet.pem'
-    testnet: bool = Field(default=False, env='TRUSTCHAIN_TESTNET')
-
-
-class WatchFolderSettings(TriblerConfigSection):
-    enabled: bool = False
-    directory: str = ''

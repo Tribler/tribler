@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock
 from cryptography.exceptions import InvalidSignature
 from pony.orm import db_session
 
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler_core.components.tag.community.tag_community import TagCommunity
@@ -23,14 +24,15 @@ class TestTagCommunity(TestBase):
         await super().tearDown()
 
     def create_node(self, *args, **kwargs):
-        return MockIPv8("curve25519", TagCommunity, db=TagDatabase(), request_interval=REQUEST_INTERVAL_FOR_RANDOM_TAGS)
+        return MockIPv8("curve25519", TagCommunity, db=TagDatabase(), tags_key=LibNaCLSK(),
+                        request_interval=REQUEST_INTERVAL_FOR_RANDOM_TAGS)
 
     def create_message(self, tag=''):
         community = self.overlay(0)
         return TagOperation(infohash=b'1' * 20,
                             operation=TagOperationEnum.ADD,
                             timestamp=community.db.get_next_operation_counter(),
-                            creator_public_key=community.my_peer.public_key.key_to_bin(),
+                            creator_public_key=community.tags_key.pub().key_to_bin(),
                             tag=tag)
 
     @db_session

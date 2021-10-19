@@ -1,7 +1,7 @@
 from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.upgrade import UpgradeComponent
@@ -14,7 +14,7 @@ class LibtorrentComponent(RestfulComponent):
         await super().run()
         await self.get_component(UpgradeComponent)
         socks_servers_component = await self.require_component(SocksServersComponent)
-        master_key_component = await self.require_component(MasterKeyComponent)
+        key_component = await self.require_component(KeyComponent)
 
         config = self.session.config
 
@@ -23,7 +23,7 @@ class LibtorrentComponent(RestfulComponent):
             config=config.libtorrent,
             state_dir=config.state_dir,
             notifier=self.session.notifier,
-            peer_mid=master_key_component.keypair.key_to_hash(),
+            peer_mid=key_component.primary_key.key_to_hash(),
             download_defaults=config.download_defaults,
             bootstrap_infohash=config.bootstrap.infohash,
             socks_listen_ports=socks_servers_component.socks_ports,

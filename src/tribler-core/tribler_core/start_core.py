@@ -19,7 +19,7 @@ from tribler_core.components.gigachannel.gigachannel_component import GigaChanne
 from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout.payout_component import PayoutComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
@@ -55,7 +55,7 @@ def components_gen(config: TriblerConfig):
     if config.ipv8.enabled:
         yield Ipv8Component()
 
-    yield MasterKeyComponent()
+    yield KeyComponent()
     yield TagComponent()
 
     if config.libtorrent.enabled:
@@ -98,7 +98,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
 
     await session.start()
 
-    session.notifier.notify(NTFY.TRIBLER_STARTED, MasterKeyComponent.instance().keypair.key.pk)
+    session.notifier.notify(NTFY.TRIBLER_STARTED, KeyComponent.instance().primary_key.key.pk)
 
     # If there is a config error, report to the user via GUI notifier
     if config.error:

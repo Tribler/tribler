@@ -14,7 +14,7 @@ from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.masterkey.masterkey_component import MasterKeyComponent
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
 from tribler_core.components.restapi import RESTComponent
@@ -109,7 +109,7 @@ class Service(TinyTriblerService):
         super().__init__(config=TriblerConfig(state_dir=working_dir), timeout_in_sec=timeout_in_sec,
                          working_dir=working_dir,
                          components=[SocksServersComponent(), LibtorrentComponent(), TorrentCheckerComponent(),
-                                     MetadataStoreComponent(), MasterKeyComponent(), RESTComponent(), Ipv8Component(),
+                                     MetadataStoreComponent(), KeyComponent(), RESTComponent(), Ipv8Component(),
                                      ObservablePopularityComponent()])
 
 

@@ -19,7 +19,7 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.components.base import Session
 from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
 from tribler_core.components.ipv8 import Ipv8Component
-from tribler_core.components.masterkey import MasterKeyComponent
+from tribler_core.components.key import MasterKeyComponent
 from tribler_core.components.resource_monitor import ResourceMonitorComponent
 from tribler_core.components.restapi import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent

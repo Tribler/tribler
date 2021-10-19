@@ -4,13 +4,11 @@ from asyncio import Future
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
 from pony.orm import db_session, select
 
-import pytest
-
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from tribler_common.simpledefs import NTFY
-
-import tribler_core.components.masterkey.permid as permid_module
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
@@ -36,7 +34,7 @@ def channels_dir(state_dir):
 
 @pytest.fixture
 def trustchain_keypair():
-    return permid_module.generate_keypair_trustchain()
+    return LibNaCLSK()
 
 
 @pytest.fixture

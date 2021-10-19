@@ -4,6 +4,7 @@ from binascii import unhexlify
 from cryptography.exceptions import InvalidSignature
 from pony.orm import db_session
 
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.types import Key
 from tribler_core.components.tag.community.tag_payload import RawTagOperationMessage, RequestTagOperationMessage, \
@@ -28,10 +29,11 @@ class TagCommunity(TriblerCommunity):
 
     community_id = unhexlify('042020c5e5e2ee0727fe99d704b430698e308d98')
 
-    def __init__(self, *args, db: TagDatabase, request_interval=REQUEST_INTERVAL,
+    def __init__(self, *args, db: TagDatabase, tags_key: LibNaCLSK, request_interval=REQUEST_INTERVAL,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.db = db
+        self.tags_key = tags_key
         self.requests = TagRequests()
 
         self.add_message_handler(RawTagOperationMessage, self.on_message)
@@ -106,4 +108,4 @@ class TagCommunity(TriblerCommunity):
 
     def sign(self, operation: TagOperation) -> bytes:
         packed = self.serializer.pack_serializable(operation)
-        return self.crypto.create_signature(self.my_peer.key, packed)
+        return self.crypto.create_signature(self.tags_key, packed)
