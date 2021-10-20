@@ -49,3 +49,8 @@ async def test_contain_upper_case():
 async def test_contain_upper_case_not_latin():
     with pytest.raises(AssertionError):
         create_message(tag='Тэг').validate()
+
+
+async def test_contain_any_space():
+    with pytest.raises(AssertionError):
+        create_message(tag="tag with space").validate()
