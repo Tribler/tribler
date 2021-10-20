@@ -636,7 +636,9 @@ class MetadataStore:
                     health
                     for health in self.TorrentState
                     if health.last_check >= t and (health.seeders > 0 or health.leechers > 0)
-                ).order_by(lambda health: (health.seeders, health.leechers, health.last_check))[:POPULAR_TORRENTS_COUNT]
+                ).order_by(
+                    lambda health: (desc(health.seeders), desc(health.leechers), desc(health.last_check))
+                )[:POPULAR_TORRENTS_COUNT]
             )
             pony_query = pony_query.where(lambda g: g.health in health_list)
 
