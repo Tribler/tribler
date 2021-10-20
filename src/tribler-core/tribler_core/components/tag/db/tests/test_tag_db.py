@@ -3,7 +3,7 @@ import datetime
 from pony.orm import commit, db_session
 
 from ipv8.test.base import TestBase
-from tribler_core.components.tag.community.tag_payload import TagOperationEnum, TagOperation
+from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.components.tag.db.tag_db import TagDatabase
 
 
@@ -25,7 +25,7 @@ class TestTagDB(TestBase):
 
         return torrent_tag
 
-    def add_operation(self, infohash=b'', tag='', peer=b'', operation=TagOperationEnum.ADD,
+    def add_operation(self, infohash=b'infohash', tag='', peer=b'', operation=TagOperationEnum.ADD,
                       is_local_peer=False, timestamp=None):
         timestamp = timestamp or self.db.get_next_operation_counter()
         message = TagOperation(infohash=infohash, tag=tag, operation=operation,
@@ -182,25 +182,22 @@ class TestTagDB(TestBase):
         # Test that only tags above a threshold (2) is shown
 
         # peer1
-        self.add_operation(b'infohash1', 'tag1', b'peer1')
-        self.add_operation(b'infohash1', 'tag2', b'peer1')
-        self.add_operation(b'infohash1', 'tag3', b'peer1')
-
-        self.add_operation(b'infohash2', 'tag4', b'peer1')
-        self.add_operation(b'infohash2', 'tag5', b'peer1')
-        self.add_operation(b'infohash2', 'tag6', b'peer1')
+        self.add_operation(tag='tag1', peer=b'1')
+        self.add_operation(tag='tag2', peer=b'1')
+        self.add_operation(tag='tag3', peer=b'1')
 
         # peer2
-        self.add_operation(b'infohash1', 'tag1', b'peer2')
-        self.add_operation(b'infohash1', 'tag2', b'peer2')
+        self.add_operation(tag='tag2', peer=b'2')
+        self.add_operation(tag='tag3', peer=b'2')
 
-        # peer3
-        self.add_operation(b'infohash2', 'tag1', b'peer3')
-        self.add_operation(b'infohash2', 'tag2', b'peer3')
+        # peer 3
+        self.add_operation(tag='tag2', peer=b'3')
+        self.add_operation(tag='tag3', peer=b'3')
 
-        assert self.db.get_tags(b'infohash1') == ['tag1', 'tag2']
-        assert self.db.get_tags(b'infohash2') == []
-        assert self.db.get_tags(b'infohash3') == []
+        # peer 4
+        self.add_operation(tag='tag2', peer=b'4', operation=TagOperationEnum.REMOVE)
+
+        assert self.db.get_tags(b'infohash') == ['tag3', 'tag2']
 
     @db_session
     async def test_show_local_tags(self):
@@ -230,14 +227,19 @@ class TestTagDB(TestBase):
     async def test_suggestions(self):
         # Test whether the database returns the right suggestions.
         # Suggestions are tags that have not gathered enough support for display yet.
-        self.add_operation(b'infohash', 'tag1', b'peer1')
+        self.add_operation(tag='tag1', peer=b'1')
         assert self.db.get_suggestions(b'infohash') == ["tag1"]
 
-        self.add_operation(b'infohash', 'tag1', b'peer2')
+        self.add_operation(tag='tag1', peer=b'2')
         assert self.db.get_suggestions(b'infohash') == []  # This tag now has enough support
 
-        self.add_operation(b'infohash', 'tag1', b'peer3', operation=TagOperationEnum.REMOVE)
+        self.add_operation(tag='tag1', peer=b'3', operation=TagOperationEnum.REMOVE)  # score:1
         assert self.db.get_suggestions(b'infohash') == ["tag1"]
+
+        self.add_operation(tag='tag1', peer=b'4', operation=TagOperationEnum.REMOVE)  # score:0
+        self.add_operation(tag='tag1', peer=b'5', operation=TagOperationEnum.REMOVE)  # score:-1
+        self.add_operation(tag='tag1', peer=b'6', operation=TagOperationEnum.REMOVE)  # score:-2
+        assert not self.db.get_suggestions(b'infohash')  # below the threshold
 
     @db_session
     async def test_get_next_operation_counter(self):

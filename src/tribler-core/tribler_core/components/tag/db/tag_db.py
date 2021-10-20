@@ -5,11 +5,11 @@ from typing import Callable, List, Optional
 from pony import orm
 from pony.utils import between
 
-from tribler_core.components.tag.community.tag_payload import TagOperationEnum, TagOperation
+from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.utilities.unicode import hexlify
 
-
 SHOW_THRESHOLD = 2
+HIDE_THRESHOLD = -2
 
 
 class TagDatabase:
@@ -48,6 +48,10 @@ class TagDatabase:
             local_operation = orm.Optional(int)  # in case user don't (or do) want to see it locally
 
             orm.composite_key(torrent, tag)
+
+            @property
+            def score(self):
+                return self.added_count - self.removed_count
 
             def update_counter(self, operation: TagOperationEnum, increment: int = 1, is_local_peer: bool = False):
                 """ Update TorrentTag's counter
@@ -150,6 +154,7 @@ class TagDatabase:
             return []
 
         query = torrent.tags.select(condition)
+        query = query.order_by(lambda tt: orm.desc(tt.score))
         query = orm.select(tt.tag.name for tt in query)
         return list(query)
 
@@ -162,7 +167,7 @@ class TagDatabase:
 
         def show_condition(torrent_tag):
             return torrent_tag.local_operation == TagOperationEnum.ADD.value or \
-                   not torrent_tag.local_operation and torrent_tag.added_count >= SHOW_THRESHOLD
+                   not torrent_tag.local_operation and torrent_tag.score >= SHOW_THRESHOLD
 
         return self._get_tags(infohash, show_condition)
 
@@ -176,7 +181,7 @@ class TagDatabase:
 
         def show_suggestions_condition(torrent_tag):
             return not torrent_tag.local_operation and \
-                   between(torrent_tag.added_count - torrent_tag.removed_count, 0, SHOW_THRESHOLD - 1)
+                   between(torrent_tag.score, HIDE_THRESHOLD + 1, SHOW_THRESHOLD - 1)
 
         return self._get_tags(infohash, show_suggestions_condition)
 
