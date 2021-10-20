@@ -11,7 +11,7 @@ from libtorrent import bencode
 
 import pytest
 
-from tribler_core.modules.torrent_checker.torrentchecker_session import (
+from tribler_core.components.torrent_checker.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     HttpTrackerSession,
