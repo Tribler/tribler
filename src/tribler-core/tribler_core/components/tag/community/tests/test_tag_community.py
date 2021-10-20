@@ -27,13 +27,12 @@ class TestTagCommunity(TestBase):
         return MockIPv8("curve25519", TagCommunity, db=TagDatabase(), tags_key=LibNaCLSK(),
                         request_interval=REQUEST_INTERVAL_FOR_RANDOM_TAGS)
 
-    def create_message(self, tag=''):
+    def create_operation(self, tag=''):
         community = self.overlay(0)
-        return TagOperation(infohash=b'1' * 20,
-                            operation=TagOperationEnum.ADD,
-                            timestamp=community.db.get_next_operation_counter(),
-                            creator_public_key=community.tags_key.pub().key_to_bin(),
-                            tag=tag)
+        operation = TagOperation(infohash=b'1' * 20, operation=TagOperationEnum.ADD, clock=0,
+                                 creator_public_key=community.tags_key.pub().key_to_bin(), tag=tag)
+        operation.clock = community.db.get_clock(operation) + 1
+        return operation
 
     @db_session
     async def fill_db(self):
@@ -42,7 +41,7 @@ class TestTagCommunity(TestBase):
         # next 5 of them are incorrect
         community = self.overlay(0)
         for i in range(10):
-            message = self.create_message(f'{i}' * 3)
+            message = self.create_operation(f'{i}' * 3)
             signature = community.sign(message)
             # 5 of them are signed incorrectly
             if i >= 5:

@@ -93,10 +93,10 @@ class TagsEndpoint(RESTEndpoint):
         # Create individual tag operations for the added/removed tags
         public_key = self.community.my_peer.key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
-            operation = TagOperationEnum.ADD if tag in added_tags else TagOperationEnum.REMOVE
-            counter = self.db.get_next_operation_counter()
-            operation = TagOperation(infohash=infohash, operation=operation, timestamp=counter,
+            type_of_operation = TagOperationEnum.ADD if tag in added_tags else TagOperationEnum.REMOVE
+            operation = TagOperation(infohash=infohash, operation=type_of_operation, clock=0,
                                      creator_public_key=public_key, tag=tag)
+            operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)
             self.db.add_tag_operation(operation, signature, is_local_peer=True)
 

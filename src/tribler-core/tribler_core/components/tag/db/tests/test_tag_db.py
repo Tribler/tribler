@@ -25,12 +25,15 @@ class TestTagDB(TestBase):
 
         return torrent_tag
 
-    def add_operation(self, infohash=b'infohash', tag='', peer=b'', operation=TagOperationEnum.ADD,
-                      is_local_peer=False, timestamp=None):
-        timestamp = timestamp or self.db.get_next_operation_counter()
-        message = TagOperation(infohash=infohash, tag=tag, operation=operation,
-                               timestamp=timestamp, creator_public_key=peer)
-        self.db.add_tag_operation(message, signature=b'', is_local_peer=is_local_peer)
+    @staticmethod
+    def create_operation(infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD, clock=0):
+        return TagOperation(infohash=infohash, tag=tag, operation=operation, clock=clock, creator_public_key=peer)
+
+    def add_operation(self, infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD,
+                      is_local_peer=False, clock=None):
+        operation = self.create_operation(infohash, tag, peer, operation, clock)
+        operation.clock = clock or self.db.get_clock(operation) + 1
+        self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
         commit()
 
     @db_session
@@ -71,7 +74,7 @@ class TestTagDB(TestBase):
         assert not torrent_tag.local_operation
 
     @db_session
-    async def test_update_counter_Local(self):
+    async def test_update_counter_local(self):
         torrent_tag = self.create_torrent_tag()
 
         # let's update local operation
@@ -98,11 +101,11 @@ class TestTagDB(TestBase):
         assert_all_tables_have_the_only_one_entity()
 
         # add an operation from the past
-        self.add_operation(b'infohash', 'tag', b'peer1', timestamp=0)
+        self.add_operation(b'infohash', 'tag', b'peer1', clock=0)
         assert_all_tables_have_the_only_one_entity()
 
         # add a duplicate operation but from the future
-        self.add_operation(b'infohash', 'tag', b'peer1', timestamp=1000)
+        self.add_operation(b'infohash', 'tag', b'peer1', clock=1000)
         assert_all_tables_have_the_only_one_entity()
 
         assert self.db.instance.TorrentTagOp.get().operation == TagOperationEnum.ADD
@@ -110,7 +113,7 @@ class TestTagDB(TestBase):
         assert self.db.instance.TorrentTag.get().removed_count == 0
 
         # add a unique operation from the future
-        self.add_operation(b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE, timestamp=1001)
+        self.add_operation(b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE, clock=1001)
         assert_all_tables_have_the_only_one_entity()
         assert self.db.instance.TorrentTagOp.get().operation == TagOperationEnum.REMOVE
         assert self.db.instance.TorrentTag.get().added_count == 0
@@ -242,9 +245,12 @@ class TestTagDB(TestBase):
         assert not self.db.get_suggestions(b'infohash')  # below the threshold
 
     @db_session
-    async def test_get_next_operation_counter(self):
-        assert self.db.get_next_operation_counter() == 1
-        assert self.db.get_next_operation_counter() == 2
+    async def test_get_clock_of_operation(self):
+        operation = self.create_operation(tag='tag1')
+        assert self.db.get_clock(operation) == 0
+
+        self.add_operation(infohash=operation.infohash, tag=operation.tag, peer=operation.creator_public_key, clock=1)
+        assert self.db.get_clock(operation) == 1
 
     @db_session
     async def test_get_tags_operations_for_gossip(self):
