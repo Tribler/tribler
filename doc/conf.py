@@ -51,7 +51,7 @@ class Mock(MagicMock):
 
 
 # Mock everything except aiohttp/aiohttp_apispec, since we need the libraries to extract the Swagger docs.
-MOCK_MODULES = ['libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core', 'lz4', 'lz4.frame', 'psutil',
+MOCK_MODULES = ['libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core', 'pony.utils', 'lz4', 'lz4.frame', 'psutil',
                 'meliae', 'libnacl', 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public',
                 'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
                 'networkx', 'validate', 'ipv8_service', 'ipv8.REST.root_endpoint', 'faker', 'sentry_sdk',

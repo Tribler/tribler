@@ -319,7 +319,7 @@ class TagsLineEdit(QLineEdit):
 
         if self.cursor_is_visible():
             r = self.current_rect()
-            txt_p = r.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING, 2)
+            txt_p = r.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING, 4)
 
             # Draw the tags up to the current point where we are editing.
             self.draw_tags(p, 0, self.editing_index)
@@ -466,3 +466,18 @@ class TagsLineEdit(QLineEdit):
                 return
 
         self.setCursor(Qt.IBeamCursor)
+
+    def add_tag(self, tag_text: str) -> None:
+        """
+        Add a particular tag to the end.
+        """
+        if self.editing_index == len(self.tags) - 1 and not self.tags[self.editing_index].text:
+            self.tags[self.editing_index].text = tag_text
+            self.edit_new_tag()
+        else:
+            self.tags.append(Tag(tag_text, QRectF()))
+
+        self.update_display_text()
+        self.compute_tag_rects()
+        self.update_cursor_blinking()
+        self.update()

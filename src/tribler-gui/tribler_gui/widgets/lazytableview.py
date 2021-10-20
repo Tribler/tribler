@@ -181,8 +181,8 @@ class TriblerContentTableView(QTableView):
             self.window().on_channel_subscribe(item)
 
     def on_edit_tags_clicked(self, index: QModelIndex) -> None:
-        self.add_tags_dialog = AddTagsDialog(self.window())
         data_item = index.model().data_items[index.row()]
+        self.add_tags_dialog = AddTagsDialog(self.window(), data_item["infohash"])
         self.add_tags_dialog.index = index
         if data_item["tags"]:
             self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item["tags"])
