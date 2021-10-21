@@ -3,7 +3,7 @@ from json import JSONDecodeError
 
 from aiohttp import ClientSession
 
-from tribler_core.restapi import get_param
+from tribler_core.components.restapi.rest import get_param
 from tribler_core.utilities.path_util import Path
 from tribler_core.version import version_id
 

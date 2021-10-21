@@ -8,7 +8,7 @@ from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
-from tribler_core.restapi.base_api_test import do_request
+from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
 
 pytestmark = pytest.mark.asyncio

@@ -3,7 +3,7 @@ from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
-from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.upgrade import UpgradeComponent
 

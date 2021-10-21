@@ -21,8 +21,8 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify

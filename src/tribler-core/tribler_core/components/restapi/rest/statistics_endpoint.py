@@ -6,7 +6,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer, String
 
-from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.utilities import froze_it
 
 

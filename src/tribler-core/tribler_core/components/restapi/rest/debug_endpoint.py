@@ -16,7 +16,7 @@ import psutil
 
 from tribler_common.osutils import get_root_state_directory
 
-from tribler_core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.instrumentation import WatchDog
 
 HAS_MELIAE = True

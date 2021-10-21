@@ -3,7 +3,7 @@ from aiohttp import web
 
 from libtorrent import bencode
 
-from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.tests.tools.tracker.tracker_info import TrackerInfo
 
 

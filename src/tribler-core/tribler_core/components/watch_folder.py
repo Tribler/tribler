@@ -1,7 +1,7 @@
 from tribler_common.simpledefs import STATE_START_WATCH_FOLDER
 
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.modules.watch_folder.watch_folder import WatchFolder
 
 

@@ -4,9 +4,9 @@ import pytest
 
 from tribler_common.simpledefs import STATE_EXCEPTION
 
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.rest_manager import error_middleware
-from tribler_core.restapi.state_endpoint import StateEndpoint
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
 
 
 @pytest.fixture

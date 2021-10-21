@@ -6,7 +6,7 @@ from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting
 )
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.upgrade import UpgradeComponent
 
 

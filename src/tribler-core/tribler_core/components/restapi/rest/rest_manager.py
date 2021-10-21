@@ -2,7 +2,6 @@ import logging
 import os
 import ssl
 import traceback
-from typing import List
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPNotFound
@@ -11,14 +10,14 @@ from aiohttp_apispec import AiohttpApiSpec
 
 from apispec.core import VALID_METHODS_OPENAPI_V2
 
-from tribler_core.restapi.rest_endpoint import (
+from tribler_core.components.restapi.rest.rest_endpoint import (
     HTTP_INTERNAL_SERVER_ERROR,
     HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED,
     RESTResponse,
 )
-from tribler_core.restapi.root_endpoint import RootEndpoint
-from tribler_core.restapi.settings import APISettings
+from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler_core.components.restapi.rest.settings import APISettings
 from tribler_core.version import version_id
 
 logger = logging.getLogger(__name__)

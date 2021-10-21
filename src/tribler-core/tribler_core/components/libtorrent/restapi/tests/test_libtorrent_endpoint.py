@@ -5,8 +5,8 @@ from aiohttp.web_app import Application
 import pytest
 
 from tribler_core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.utilities.unicode import hexlify
 
 

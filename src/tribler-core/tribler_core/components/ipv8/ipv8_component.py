@@ -16,7 +16,7 @@ from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 
 from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.restapi.restapi_component import RestfulComponent
 
 INFINITE = -1
 

@@ -25,7 +25,7 @@ from tribler_core.components.payout.payout_component import PayoutComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent

@@ -13,7 +13,7 @@ from pony.orm import db_session
 
 from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.components.metadata_store.restapi.metadata_schema import RemoteQueryParameters
-from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it
 

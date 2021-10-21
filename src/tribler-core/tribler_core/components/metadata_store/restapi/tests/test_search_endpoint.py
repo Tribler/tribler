@@ -5,7 +5,7 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler_core.restapi.base_api_test import do_request
+from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.utilities.random_utils import random_infohash
 
 
