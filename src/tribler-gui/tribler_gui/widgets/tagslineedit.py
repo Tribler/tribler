@@ -6,7 +6,8 @@ from PyQt5.QtGui import QPainter, QGuiApplication, QTextLayout, QPalette, QColor
     QMouseEvent, QKeyEvent
 from PyQt5.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame
 
-from tribler_gui.defs import TAG_TEXT_HORIZONTAL_PADDING, TAG_HEIGHT, TAG_BACKGROUND_COLOR
+from tribler_gui.defs import EDIT_TAG_BACKGROUND_COLOR, EDIT_TAG_BORDER_COLOR, EDIT_TAG_TEXT_COLOR, TAG_HEIGHT, \
+    TAG_TEXT_HORIZONTAL_PADDING
 
 
 @dataclass
@@ -176,11 +177,14 @@ class TagsLineEdit(QLineEdit):
                         (i_r.height() - self.fontMetrics().height()) / 2))
 
             # draw rect
+            painter.setPen(EDIT_TAG_BORDER_COLOR)
             path = QPainterPath()
             path.addRoundedRect(i_r, TAG_HEIGHT / 2, TAG_HEIGHT / 2)
-            painter.fillPath(path, TAG_BACKGROUND_COLOR)
+            painter.fillPath(path, EDIT_TAG_BACKGROUND_COLOR)
+            painter.drawPath(path)
 
             # draw text
+            painter.setPen(EDIT_TAG_TEXT_COLOR)
             painter.drawText(text_pos, self.tags[ind].text)
 
             # calc cross rect
@@ -189,11 +193,9 @@ class TagsLineEdit(QLineEdit):
             pen = painter.pen()
             pen.setWidth(2)
 
-            painter.save()
             painter.setPen(pen)
             painter.drawLine(QLineF(i_cross_r.topLeft(), i_cross_r.bottomRight()))
             painter.drawLine(QLineF(i_cross_r.bottomLeft(), i_cross_r.topRight()))
-            painter.restore()
 
     def input_field_rect(self) -> QRectF:
         panel = QStyleOptionFrame()
