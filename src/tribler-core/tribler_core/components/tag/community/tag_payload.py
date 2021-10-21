@@ -18,7 +18,7 @@ class TagOperation:
     """
     infohash: type_from_format('20s')
     operation: int
-    timestamp: int
+    clock: int  # this is the lamport-like clock that unique for each triple {public_key, infohash, tag}
     creator_public_key: type_from_format('74s')
     tag: str
 

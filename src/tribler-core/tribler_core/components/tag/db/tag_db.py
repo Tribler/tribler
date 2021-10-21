@@ -22,9 +22,6 @@ class TagDatabase:
 
     @staticmethod
     def define_binding(db):
-        class LocalPeer(db.Entity):  # pylint: disable=unused-variable
-            counter = orm.Required(int, default=0, size=64)
-
         class Peer(db.Entity):
             id = orm.PrimaryKey(int, auto=True)
             public_key = orm.Required(bytes, unique=True)
@@ -83,7 +80,7 @@ class TagDatabase:
             peer = orm.Required(lambda: Peer)
 
             operation = orm.Required(int)
-            timestamp = orm.Required(int)
+            clock = orm.Required(int)
             signature = orm.Required(bytes)
             updated_at = orm.Required(datetime.datetime, default=datetime.datetime.utcnow)
 
@@ -125,12 +122,12 @@ class TagDatabase:
 
         if not op:  # then insert
             self.instance.TorrentTagOp(torrent_tag=torrent_tag, peer=peer, operation=operation.operation,
-                                       timestamp=operation.timestamp, signature=signature)
+                                       clock=operation.clock, signature=signature)
             torrent_tag.update_counter(operation.operation, is_local_peer=is_local_peer)
             return
 
         # if it is a message from the past, then return
-        if operation.timestamp <= op.timestamp:
+        if operation.clock <= op.clock:
             return
 
         # To prevent endless incrementing of the operation, we apply the following logic:
@@ -140,7 +137,7 @@ class TagDatabase:
         # 2. Increment new operation
         torrent_tag.update_counter(operation.operation, is_local_peer=is_local_peer)
         # 3. Update the operation entity
-        op.set(operation=operation.operation, timestamp=operation.timestamp, signature=signature,
+        op.set(operation=operation.operation, clock=operation.clock, signature=signature,
                updated_at=datetime.datetime.utcnow())
 
     def _get_tags(self, infohash: bytes, condition: Callable[[], bool]) -> List[str]:
@@ -185,15 +182,21 @@ class TagDatabase:
 
         return self._get_tags(infohash, show_suggestions_condition)
 
-    def get_next_operation_counter(self) -> int:
-        """ Get counter of last operation and increment this counter in DB.
-        Returns: Counter that represented by integer (starts from 1).
+    def get_clock(self, operation: TagOperation) -> int:
+        """ Get the clock (int) of operation.
         """
-        local_peer = self._get_or_create(self.instance.LocalPeer)
-        next_operation_counter = local_peer.counter + 1
-        local_peer.set(counter=next_operation_counter)
+        peer = self.instance.Peer.get(public_key=operation.creator_public_key)
+        tag = self.instance.Tag.get(name=operation.tag)
+        torrent = self.instance.Torrent.get(infohash=operation.infohash)
+        if not torrent or not tag:
+            return 0
 
-        return next_operation_counter
+        torrent_tag = self.instance.TorrentTag.get(tag=tag, torrent=torrent)
+        if not torrent_tag or not peer:
+            return 0
+
+        op = self.instance.TorrentTagOp.get(torrent_tag=torrent_tag, peer=peer)
+        return op.clock if op else 0
 
     def get_tags_operations_for_gossip(self, time_delta, count: int = 10) -> List:
         """ Get random operations from the DB that older than time_delta.

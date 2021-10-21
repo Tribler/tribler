@@ -7,8 +7,7 @@ pytestmark = pytest.mark.asyncio
 
 
 def create_message(operation: int = TagOperationEnum.ADD, tag: str = 'tag') -> TagOperation:
-    return TagOperation(infohash=b'infohash', operation=operation, timestamp=0,
-                        creator_public_key=b'creator_public_key', tag=tag)
+    return TagOperation(infohash=b'infohash', operation=operation, clock=0, creator_public_key=b'peer', tag=tag)
 
 
 async def test_correct_tag_size():

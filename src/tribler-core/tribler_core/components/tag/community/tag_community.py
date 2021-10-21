@@ -92,7 +92,7 @@ class TagCommunity(TriblerCommunity):
                     operation = TagOperation(
                         infohash=tag_operation.torrent_tag.torrent.infohash,
                         operation=tag_operation.operation,
-                        timestamp=tag_operation.timestamp,
+                        clock=tag_operation.clock,
                         creator_public_key=tag_operation.peer.public_key,
                         tag=tag_operation.torrent_tag.tag.name,
                     )
