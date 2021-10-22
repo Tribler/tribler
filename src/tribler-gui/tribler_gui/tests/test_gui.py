@@ -423,9 +423,9 @@ def test_add_download_url(window):
     wait_for_list_populated(dfl)
 
     item = dfl.topLevelItem(0)
-    dfl.expand(dfl.indexFromItem(item))
 
     item2 = item.child(0)
+    dfl.expand(dfl.indexFromItem(item2))
     clickItem(dfl, item2, CHECKBOX_COL)
     screenshot(window, name="add_torrent_url_startdownload_dialog_files")
 
