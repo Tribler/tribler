@@ -25,9 +25,10 @@ from tribler_gui.defs import (
     HEALTH_MOOT,
     HEALTH_UNCHECKED,
     TAG_BACKGROUND_COLOR,
+    TAG_BORDER_COLOR,
     TAG_HEIGHT,
     TAG_HORIZONTAL_MARGIN,
-    TAG_TEXT_HORIZONTAL_PADDING,
+    TAG_TEXT_COLOR, TAG_TEXT_HORIZONTAL_PADDING,
     TAG_TOP_MARGIN,
     WINDOWS,
 )
@@ -376,7 +377,7 @@ class TagsMixin:
                 cur_tag_y += TAG_HEIGHT + 10
 
             # Draw tag
-            painter.setPen(TAG_BACKGROUND_COLOR)
+            painter.setPen(TAG_BORDER_COLOR)
             path = QPainterPath()
             rect = QRectF(cur_tag_x, cur_tag_y, tag_box_width, TAG_HEIGHT)
             path.addRoundedRect(rect, TAG_HEIGHT / 2, TAG_HEIGHT / 2)
@@ -387,6 +388,7 @@ class TagsMixin:
             text_pos = rect.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING,
                                                 painter.fontMetrics().ascent() +
                                                 ((rect.height() - painter.fontMetrics().height()) / 2) - 1)
+            painter.setPen(TAG_TEXT_COLOR)
             painter.drawText(text_pos, tag_text)
 
             cur_tag_x += rect.width() + TAG_HORIZONTAL_MARGIN
