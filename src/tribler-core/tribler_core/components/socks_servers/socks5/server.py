@@ -2,8 +2,8 @@ import logging
 from asyncio import get_event_loop
 from typing import Optional
 
-from tribler_core.components.tunnel.community.dispatcher import TunnelDispatcher
 from tribler_core.components.socks_servers.socks5.connection import Socks5Connection
+from tribler_core.components.tunnel.community.dispatcher import TunnelDispatcher
 
 
 class Socks5Server:

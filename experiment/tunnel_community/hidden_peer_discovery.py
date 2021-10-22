@@ -5,6 +5,7 @@ from binascii import hexlify, unhexlify
 from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
+
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi.restapi_component import RESTComponent

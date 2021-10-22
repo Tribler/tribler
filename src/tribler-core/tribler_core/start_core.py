@@ -18,11 +18,12 @@ from tribler_core.components.base import Component, Session
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.key.key_component import KeyComponent
+from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout.payout_component import PayoutComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
+from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi.restapi_component import RESTComponent
@@ -35,7 +36,6 @@ from tribler_core.components.version_check import VersionCheckComponent
 from tribler_core.components.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
