@@ -4,16 +4,15 @@ import sys
 from pathlib import Path
 
 from PyQt5.QtCore import QMetaObject, QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Q_ARG, Qt
-from PyQt5.QtGui import QPixmap, QRegion, QKeySequence
+from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import pytest
 
+import tribler_common
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.tag_constants import MIN_TAG_LENGTH
-
-from tribler_core.tests.tools.common import TORRENT_WITH_DIRS
 
 import tribler_gui
 import tribler_gui.core_manager as core_manager
@@ -28,6 +27,8 @@ from tribler_gui.widgets.tagbutton import TagButton
 from tribler_gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
+COMMON_DATA_DIR = Path(tribler_common.__file__).parent / "data"
+TORRENT_WITH_DIRS = COMMON_DATA_DIR / "multi_entries.torrent"
 
 
 @pytest.fixture(scope="module")
@@ -423,9 +424,9 @@ def test_add_download_url(window):
     wait_for_list_populated(dfl)
 
     item = dfl.topLevelItem(0)
-    dfl.expand(dfl.indexFromItem(item))
 
     item2 = item.child(0)
+    dfl.expand(dfl.indexFromItem(item2))
     clickItem(dfl, item2, CHECKBOX_COL)
     screenshot(window, name="add_torrent_url_startdownload_dialog_files")
 
