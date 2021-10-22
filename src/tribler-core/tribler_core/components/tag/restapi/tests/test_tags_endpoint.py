@@ -6,11 +6,11 @@ from freezegun import freeze_time
 from pony.orm import db_session
 
 from ipv8.keyvault.crypto import default_eccrypto
+from tribler_core.components.restapi.rest.base_api_test import do_request
 
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler_core.conftest import TEST_PERSONAL_KEY
-from tribler_core.restapi.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
 
 

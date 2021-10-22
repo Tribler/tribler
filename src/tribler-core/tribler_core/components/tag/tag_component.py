@@ -2,7 +2,7 @@ from tribler_common.simpledefs import STATEDIR_DB_DIR
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.key.key_component import KeyComponent
 
-from tribler_core.components.restapi import RestfulComponent
+from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.tag.community.tag_community import TagCommunity
 from tribler_core.components.tag.db.tag_db import TagDatabase
 

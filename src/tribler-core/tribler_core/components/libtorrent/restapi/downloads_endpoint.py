@@ -23,16 +23,11 @@ from tribler_common.simpledefs import (
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
-from tribler_core.restapi.rest_endpoint import (
-    HTTP_BAD_REQUEST,
-    HTTP_INTERNAL_SERVER_ERROR,
-    HTTP_NOT_FOUND,
-    RESTEndpoint,
-    RESTResponse,
-    RESTStreamResponse,
-)
-from tribler_core.restapi.util import return_handled_exception
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, \
+    HTTP_NOT_FOUND, RESTEndpoint, \
+    RESTResponse, RESTStreamResponse
+from tribler_core.components.restapi.rest.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import froze_it

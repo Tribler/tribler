@@ -60,7 +60,7 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 sys.modules['psutil'].boot_time = lambda: 0
 
 # Ignore ipv8/anydex/wallet endpoints
-from tribler_core.restapi.root_endpoint import RootEndpoint
+from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint  # pylint: disable=wrong-import-position
 add_endpoint = RootEndpoint.add_endpoint
 RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
                                                    if path not in ['/ipv8', '/market', '/wallets'] else None

@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from tribler_core.restapi.util import fix_unicode_array, fix_unicode_dict, get_parameter
+from tribler_core.components.restapi.rest.util import fix_unicode_array, fix_unicode_dict, get_parameter
 
 
 def test_get_parameter():

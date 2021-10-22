@@ -9,9 +9,9 @@ import pytest
 from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community \
     import BandwidthAccountingCommunity
 from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.rest_manager import error_middleware
-from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 
 
 @pytest.fixture

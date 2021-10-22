@@ -9,11 +9,11 @@ from pony.orm import db_session
 
 from ipv8.REST.schema import schema
 from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
+from tribler_core.components.restapi.rest.schema import HandledErrorSchema
 from tribler_core.components.tag.community.tag_community import TagCommunity
 from tribler_core.components.tag.community.tag_payload import TagOperation
 from tribler_core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
-from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
-from tribler_core.restapi.schema import HandledErrorSchema
 from tribler_core.utilities.utilities import froze_it
 
 

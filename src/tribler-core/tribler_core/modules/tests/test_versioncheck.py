@@ -6,9 +6,9 @@ from aiohttp import web
 
 import pytest
 
+from tribler_core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler_core.modules.version_check import versioncheck_manager
 from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager, get_user_agent_string
-from tribler_core.restapi.rest_endpoint import RESTResponse
 from tribler_core.version import version_id
 
 # pylint: disable=unused-argument

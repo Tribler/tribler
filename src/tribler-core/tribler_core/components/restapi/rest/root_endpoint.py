@@ -11,14 +11,14 @@ from tribler_core.components.metadata_store.restapi.channels_endpoint import Cha
 from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
 from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler_core.restapi.debug_endpoint import DebugEndpoint
-from tribler_core.restapi.events_endpoint import EventsEndpoint
-from tribler_core.restapi.rest_endpoint import RESTEndpoint
-from tribler_core.restapi.settings_endpoint import SettingsEndpoint
-from tribler_core.restapi.shutdown_endpoint import ShutdownEndpoint
-from tribler_core.restapi.state_endpoint import StateEndpoint
-from tribler_core.restapi.statistics_endpoint import StatisticsEndpoint
-from tribler_core.restapi.trustview_endpoint import TrustViewEndpoint
+from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
+from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
+from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
+from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
+from tribler_core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
+from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
+from tribler_core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
+from tribler_core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
 from tribler_core.upgrade.upgrader_endpoint import UpgraderEndpoint
 from tribler_core.utilities.utilities import froze_it
 

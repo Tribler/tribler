@@ -5,10 +5,10 @@ import pytest
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.exceptions import TriblerException
-from tribler_core.restapi.base_api_test import do_real_request
-from tribler_core.restapi.rest_endpoint import HTTP_UNAUTHORIZED
-from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.restapi.root_endpoint import RootEndpoint
+from tribler_core.components.restapi.rest.base_api_test import do_real_request
+from tribler_core.components.restapi.rest.rest_endpoint import HTTP_UNAUTHORIZED
+from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler_core.tests.tools.common import TESTS_DIR
 
 
@@ -101,7 +101,7 @@ async def test_tribler_shutting_down(rest_manager, api_port):
     """
 
     # Indicates tribler is shutting down
-    with patch('tribler_core.restapi.rest_manager.tribler_shutting_down', new=lambda: True):
+    with patch('tribler_core.components.restapi.rest.rest_manager.tribler_shutting_down', new=lambda: True):
         error_response = await do_real_request(api_port, 'state', expected_code=404)
 
     expected_response = {

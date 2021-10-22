@@ -7,9 +7,9 @@ from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.rest_manager import error_middleware
-from tribler_core.restapi.settings_endpoint import SettingsEndpoint
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
 
 
 @pytest.fixture

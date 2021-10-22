@@ -12,8 +12,8 @@ from tribler_common.simpledefs import DLSTATUS_CIRCUITS, DLSTATUS_DOWNLOADING, D
 
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler_core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.unicode import hexlify
 

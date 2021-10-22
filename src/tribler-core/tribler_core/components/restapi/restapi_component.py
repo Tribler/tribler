@@ -8,11 +8,11 @@ from tribler_common.simpledefs import STATE_START_API
 from tribler_core.components.base import Component
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
-from tribler_core.restapi.debug_endpoint import DebugEndpoint
-from tribler_core.restapi.events_endpoint import EventsEndpoint
-from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.restapi.root_endpoint import RootEndpoint
-from tribler_core.restapi.state_endpoint import StateEndpoint
+from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
+from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
+from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
 
 
 class RestfulComponent(Component, ABC):

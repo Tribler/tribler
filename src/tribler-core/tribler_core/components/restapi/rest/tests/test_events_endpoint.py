@@ -12,8 +12,8 @@ from tribler_common.simpledefs import NTFY
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
-from tribler_core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.restapi.root_endpoint import RootEndpoint
+from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler_core.version import version_id
 
 messages_to_wait_for = set()

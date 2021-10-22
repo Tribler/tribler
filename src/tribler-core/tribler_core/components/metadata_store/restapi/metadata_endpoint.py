@@ -4,6 +4,7 @@ from aiohttp import ContentTypeError, web
 
 from aiohttp_apispec import docs
 
+from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND
 from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer, String
@@ -12,8 +13,8 @@ from pony.orm import db_session
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler_core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
-from tribler_core.restapi.schema import HandledErrorSchema
+from tribler_core.components.restapi.rest.rest_endpoint import RESTResponse
+from tribler_core.components.restapi.rest.schema import HandledErrorSchema
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it
 

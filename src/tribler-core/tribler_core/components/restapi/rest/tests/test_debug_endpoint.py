@@ -8,9 +8,9 @@ import pytest
 
 from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
-from tribler_core.restapi.base_api_test import do_request
-from tribler_core.restapi.debug_endpoint import DebugEndpoint
-from tribler_core.restapi.rest_manager import error_middleware
+from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
+from tribler_core.components.restapi.rest.rest_manager import error_middleware
 
 
 @pytest.fixture
@@ -167,8 +167,8 @@ async def test_debug_pane_core_logs_in_root_dir(rest_api, tmp_path, endpoint):
     num_logs = 100
 
     create_dummy_logs(root_state_dir, process=process, num_logs=num_logs)
-
-    with patch('tribler_core.restapi.debug_endpoint.get_root_state_directory', new=lambda: root_state_dir):
+    with patch('tribler_core.components.restapi.rest.debug_endpoint.get_root_state_directory',
+               new=lambda: root_state_dir):
         json_response = await do_request(rest_api, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
     logs = json_response['content'].strip().split("\n")
 
@@ -202,7 +202,8 @@ async def test_debug_pane_no_logs(rest_api, endpoint, tmp_path):
     endpoint.log_dir = log_dir
 
     module = 'gui'
-    with patch('tribler_core.restapi.debug_endpoint.get_root_state_directory', new=lambda: tmp_path / 'nondir'):
+    with patch('tribler_core.components.restapi.rest.debug_endpoint.get_root_state_directory',
+               new=lambda: tmp_path / 'nondir'):
         json_response = await do_request(rest_api, f'debug/log?process={module}&max_lines=', expected_code=200)
 
     assert not json_response['content']
