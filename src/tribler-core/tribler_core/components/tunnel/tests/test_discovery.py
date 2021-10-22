@@ -5,7 +5,7 @@ from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
-from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
+from tribler_core.components.tunnel.community.discovery import GoldenRatioStrategy
 
 
 class FakeOverlay:

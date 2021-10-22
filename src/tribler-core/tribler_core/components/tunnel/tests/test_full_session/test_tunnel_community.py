@@ -28,8 +28,8 @@ from tribler_core.components.libtorrent.download_manager.download_config import 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity
-from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
+from tribler_core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
+from tribler_core.components.tunnel.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
 

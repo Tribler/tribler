@@ -6,8 +6,9 @@ from tribler_core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.modules.tunnel.community.community import TriblerTunnelCommunity, TriblerTunnelTestnetCommunity
-from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
+from tribler_core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity, \
+    TriblerTunnelTestnetCommunity
+from tribler_core.components.tunnel.community.discovery import GoldenRatioStrategy
 
 
 class TunnelsComponent(RestfulComponent):

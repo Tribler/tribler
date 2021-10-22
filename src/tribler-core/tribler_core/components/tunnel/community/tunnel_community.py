@@ -36,10 +36,10 @@ from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, D
 
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.components.socks_servers.socks5.server import Socks5Server
-from tribler_core.modules.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
-from tribler_core.modules.tunnel.community.discovery import GoldenRatioStrategy
-from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
-from tribler_core.modules.tunnel.community.payload import (
+from tribler_core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
+from tribler_core.components.tunnel.community.discovery import GoldenRatioStrategy
+from tribler_core.components.tunnel.community.dispatcher import TunnelDispatcher
+from tribler_core.components.tunnel.community.payload import (
     BalanceRequestPayload,
     BalanceResponsePayload,
     BandwidthTransactionPayload,

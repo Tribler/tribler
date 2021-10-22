@@ -16,14 +16,14 @@ from ipv8.taskmanager import TaskManager
 from tribler_common.osutils import get_root_state_directory
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session
-from tribler_core.components.bandwidth_accounting import BandwidthAccountingComponent
-from tribler_core.components.ipv8 import Ipv8Component
-from tribler_core.components.key import MasterKeyComponent
-from tribler_core.components.resource_monitor import ResourceMonitorComponent
-from tribler_core.components.restapi import RESTComponent
+from tribler_core.components.ipv8.ipv8_component import Ipv8Component
+from tribler_core.components.key.key_component import KeyComponent
+from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
+from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.tunnels import TunnelsComponent
+from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.path_util import Path
@@ -31,22 +31,15 @@ from tribler_core.utilities.path_util import Path
 logger = logging.getLogger(__name__)
 
 
-interfaces = [
-    MasterKeyComponent,
-    UpgradeComponent,
-    RESTComponent,
-    Ipv8Component,
-    ResourceMonitorComponent,
-    BandwidthAccountingComponent,
-    SocksServersComponent,
-    TunnelsComponent,
-]
-
-
-def components_gen(config: TriblerConfig):
-    for interface in interfaces:
-        implementation = interface.make_implementation(config, True)
-        yield implementation
+def components_gen():
+    yield KeyComponent()
+    yield UpgradeComponent()
+    yield RESTComponent()
+    yield Ipv8Component()
+    yield ResourceMonitorComponent()
+    yield BandwidthAccountingComponent()
+    yield SocksServersComponent()
+    yield TunnelsComponent()
 
 
 def make_config(options) -> TriblerConfig:
@@ -121,7 +114,7 @@ class TunnelHelperService(TaskManager):
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
         tunnel_community = TunnelsComponent.instance().community
-        self.register_task("bootstrap",  tunnel_community.bootstrap, interval=30)
+        self.register_task("bootstrap", tunnel_community.bootstrap, interval=30)
 
         # Remove all logging handlers
         root_logger = logging.getLogger()
@@ -151,7 +144,7 @@ class TunnelHelperService(TaskManager):
 
     async def start(self, options):
         config = make_config(options)
-        components = list(components_gen(config))
+        components = list(components_gen())
         session = self.session = Session(config, components)
         session.set_as_default()
 
@@ -180,7 +173,7 @@ class TunnelHelperService(TaskManager):
 
 class PortAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if not 0 < values < 2**16:
+        if not 0 < values < 2 ** 16:
             raise argparse.ArgumentError(self, "Invalid port number")
         setattr(namespace, self.dest, values)
 
