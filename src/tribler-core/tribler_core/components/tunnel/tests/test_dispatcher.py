@@ -5,7 +5,7 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_core.modules.tunnel.community.dispatcher import TunnelDispatcher
+from tribler_core.components.tunnel.community.dispatcher import TunnelDispatcher
 
 
 @pytest.fixture(name='dispatcher')

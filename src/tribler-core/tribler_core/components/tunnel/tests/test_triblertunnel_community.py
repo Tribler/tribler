@@ -25,9 +25,9 @@ from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting
     import BandwidthAccountingCommunity
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.modules.tunnel.community.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
-from tribler_core.modules.tunnel.community.payload import BandwidthTransactionPayload
-from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
+from tribler_core.components.tunnel.community.tunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
+from tribler_core.components.tunnel.community.payload import BandwidthTransactionPayload
+from tribler_core.components.tunnel.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler_core.utilities.path_util import Path

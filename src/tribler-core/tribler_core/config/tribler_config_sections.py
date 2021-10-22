@@ -11,7 +11,7 @@ from tribler_core.components.popularity.settings import PopularityCommunitySetti
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler_core.components.restapi.rest.settings import APISettings
 from tribler_core.components.torrent_checker.settings import TorrentCheckerSettings
-from tribler_core.modules.tunnel.community.settings import TunnelCommunitySettings
+from tribler_core.components.tunnel.settings import TunnelCommunitySettings
 from tribler_core.modules.watch_folder.settings import WatchFolderSettings
 from tribler_core.settings import ErrorHandlingSettings, GeneralSettings
 

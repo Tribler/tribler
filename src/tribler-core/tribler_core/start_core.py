@@ -29,7 +29,7 @@ from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
-from tribler_core.components.tunnels import TunnelsComponent
+from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.components.version_check import VersionCheckComponent
 from tribler_core.components.watch_folder import WatchFolderComponent
