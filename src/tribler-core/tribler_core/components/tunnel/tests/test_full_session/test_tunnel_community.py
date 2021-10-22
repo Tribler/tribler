@@ -22,12 +22,12 @@ from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dl
 
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
-from tribler_core.components.socks_servers.socks5.server import Socks5Server
-from tribler_core.components.socks_servers.socks_servers_component import NUM_SOCKS_PROXIES
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.socks_servers.socks5.server import Socks5Server
+from tribler_core.components.socks_servers.socks_servers_component import NUM_SOCKS_PROXIES
 from tribler_core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
 from tribler_core.components.tunnel.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
@@ -122,6 +122,7 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None,
         # it will never recover (on Mac/Linux with Libtorrent >=1.2.0). Therefore, we start
         # libtorrent afterwards.
         dlmgr_settings = LibtorrentSettings()
+        dlmgr_settings.dht = False
 
         dlmgr = DownloadManager(state_dir=Path.mkdtemp(),
                                 config=dlmgr_settings,
@@ -247,10 +248,9 @@ async def test_anon_download(proxy_factory, video_seeder: DownloadManager, video
     assert my_comm.find_circuits()[0].bytes_down > 0
 
 
-@pytest.mark.skip("Broken after moving SOCK5 in a separate component. Also, always failed on some machine even before")
 @pytest.mark.tunneltest
 @pytest.mark.asyncio
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(40)
 async def test_hidden_services(proxy_factory, hidden_seeder_comm, video_tdef, logger):
     """
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
@@ -280,13 +280,13 @@ async def test_hidden_services(proxy_factory, hidden_seeder_comm, video_tdef, lo
 
     leecher_comm.build_tunnels(1)
 
-    while not hidden_seeder_comm.find_circuits(ctype=CIRCUIT_TYPE_IP_SEEDER):
-        await sleep(0.5)
-    await sleep(0.5)
+    class MockExitDict(dict):
+        def __getitem__(self, key):
+            value = super().__getitem__(key)
+            return value if isinstance(value, MockTunnelExitSocket) else MockTunnelExitSocket(value)
 
     for e in exit_nodes:
-        for cid in list(e.exit_sockets.keys()):
-            e.exit_sockets[cid] = MockTunnelExitSocket(e.exit_sockets[cid])
+        e.exit_sockets = MockExitDict(e.exit_sockets)
 
     download = start_anon_download(leecher_comm, hidden_seeder_comm.dlmgr.libtorrent_port, video_tdef, hops=1)
     download.set_state_callback(download_state_callback)
