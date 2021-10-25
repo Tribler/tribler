@@ -122,4 +122,5 @@ class TagsEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            return RESTResponse({"suggestions": self.db.get_suggestions(unhexlify(infohash))})
+            suggestions = [] if self.db is None else self.db.get_suggestions(unhexlify(infohash))
+            return RESTResponse({"suggestions": suggestions})

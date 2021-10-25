@@ -175,7 +175,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         cur_tag_x = 6
         cur_tag_y = TAG_TOP_MARGIN
 
-        for tag_text in data_item["tags"][:MAX_TAGS_TO_SHOW]:
+        for tag_text in data_item.get("tags", ())[:MAX_TAGS_TO_SHOW]:
             text_width = self.font_metrics.horizontalAdvance(tag_text)
             tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
 
@@ -359,14 +359,14 @@ class TagsMixin:
         edit_tags_button_hovered = self.hovering_over_tag_edit_button and self.hover_index == index
 
         # If there are no tags (yet), ask the user to add some tags
-        if len(data_item["tags"]) == 0:
+        if len(data_item.get("tags", ())) == 0:
             painter.setPen(QColor(TRIBLER_ORANGE) if edit_tags_button_hovered else QColor("#aaa"))
             edit_tags_rect = QRectF(title_text_pos.x() + 6, title_text_pos.y() + 34, option.rect.width() - 6, 28)
             index.model().edit_tags_rects[index] = edit_tags_rect
             painter.drawText(edit_tags_rect, "Be the first to suggest tags!")
             return
 
-        for tag_text in data_item["tags"][:MAX_TAGS_TO_SHOW]:
+        for tag_text in data_item.get("tags", ())[:MAX_TAGS_TO_SHOW]:
             text_width = painter.fontMetrics().horizontalAdvance(tag_text)
             tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
 

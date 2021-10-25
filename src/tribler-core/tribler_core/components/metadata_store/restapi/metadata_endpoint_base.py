@@ -67,6 +67,9 @@ class MetadataEndpointBase(RESTEndpoint):
 
     @db_session
     def add_tags_to_metadata_list(self, contents_list, hide_xxx=False):
+        if self.tags_db is None:
+            self._logger.error(f'Cannot add tags to metadata list: tags_db is not set in {self.__class__.__name__}')
+            return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
                 tags = self.tags_db.get_tags(unhexlify(torrent["infohash"]))
