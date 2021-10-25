@@ -5,7 +5,6 @@ from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.components.version_check import VersionCheckComponent
 from tribler_core.components.watch_folder import WatchFolderComponent
 
@@ -36,19 +35,6 @@ def test_session_context_manager(loop, tribler_config):
 
     with pytest.raises(SessionError, match="Default session was not set"):
         Session.current()
-
-
-async def test_upgrade_component(tribler_config):
-    components = [KeyComponent(), RESTComponent(), UpgradeComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
-        comp = UpgradeComponent.instance()
-        assert comp.started_event.is_set() and not comp.failed
-        assert comp.upgrader
-
-        await session.shutdown()
 
 
 async def test_version_check_component(tribler_config):

@@ -12,18 +12,18 @@ import pytest
 
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
-from tribler_core.components.tag.db.tag_db import TagDatabase
 
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.libtorrent.download_manager.download import Download
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.store import MetadataStore
+from tribler_core.components.tag.db.tag_db import TagDatabase
+from tribler_core.components.upgrade.implementation.legacy_to_pony import DispersyToPonyMigration
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
-from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration
 from tribler_core.utilities.unicode import hexlify
 
 
