@@ -8,6 +8,7 @@ from typing import Callable, Optional
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
+from tribler_core.components.base import ComponentStartupException
 from tribler_core.utilities.utilities import froze_it
 
 if sys.platform == 'win32':
@@ -50,7 +51,12 @@ class CoreExceptionHandler:
         try:
             SentryReporter.ignore_logger(cls._logger.name)
 
+            should_stop = True
             exception = context.get('exception')
+            if isinstance(exception, ComponentStartupException):
+                should_stop = exception.component.tribler_should_stop_on_component_error
+                exception = exception.__cause__
+
             ignored_message = None
             try:
                 ignored_message = IGNORED_ERRORS.get(
@@ -68,10 +74,9 @@ class CoreExceptionHandler:
                 cls._logger.error("Invalid info-hash found")
                 return
             text_long = text
-            exc = context.get('exception')
-            if exc:
+            if isinstance(exception, Exception):
                 with StringIO() as buffer:
-                    print_exception(type(exc), exc, exc.__traceback__, file=buffer)
+                    print_exception(type(exception), exception, exception.__traceback__, file=buffer)
                     text_long = text_long + "\n--LONG TEXT--\n" + buffer.getvalue()
             text_long = text_long + "\n--CONTEXT--\n" + str(context)
             cls._logger.error("Unhandled exception occurred! %s", text_long, exc_info=None)
@@ -79,7 +84,7 @@ class CoreExceptionHandler:
             sentry_event = SentryReporter.event_from_exception(exception)
 
             if cls.report_callback is not None:
-                cls.report_callback(text_long, sentry_event)
+                cls.report_callback(text_long, sentry_event, should_stop=should_stop)
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)

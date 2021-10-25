@@ -8,6 +8,8 @@ from tribler_core.components.tag.db.tag_db import TagDatabase
 
 
 class TagComponent(RestfulComponent):
+    tribler_should_stop_on_component_error = False
+
     community: TagCommunity = None
     tags_db: TagDatabase = None
     _ipv8_component: Ipv8Component = None

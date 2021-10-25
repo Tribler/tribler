@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.base import Component, ComponentError, Session, SessionError
+from tribler_core.components.base import Component, ComponentError, MissedDependency, Session, SessionError
 
 pytestmark = pytest.mark.asyncio
 
@@ -102,14 +102,14 @@ async def test_required_dependency_missed(tribler_config):
         assert ComponentA.instance() is None
         b = ComponentB.instance()
 
-        with pytest.raises(ComponentError, match='^Missed dependency: ComponentB requires ComponentA to be active$'):
-            await session.start()  # failfast == True
+        with pytest.raises(MissedDependency, match='^Missed dependency: ComponentB requires ComponentA to be active$'):
+            await session.start()
 
-    session = Session(tribler_config, [ComponentB()])
+    session = Session(tribler_config, [ComponentB()], failfast=False)
     with session:
         b = ComponentB.instance()
 
-        await session.start(failfast=False)
+        await session.start()
 
         assert ComponentB.instance() is b
         assert b.started_event.is_set()

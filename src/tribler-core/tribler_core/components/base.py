@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from asyncio import Event, create_task, gather
+from asyncio import Event, create_task, gather, get_event_loop
 from itertools import count
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar
@@ -21,6 +21,13 @@ class SessionError(Exception):
 
 class ComponentError(Exception):
     pass
+
+
+class ComponentStartupException(ComponentError):
+    def __init__(self, component: Component, cause: Exception):
+        super().__init__(component.__class__.__name__)
+        self.component = component
+        self.__cause__ = cause
 
 
 class MissedDependency(ComponentError):
@@ -42,11 +49,13 @@ class Session:
     _next_session_id = count(1)
     _default: Optional[Session] = None
     _stack: List[Session] = []
+    _startup_exception: Optional[Exception] = None
 
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
-                 shutdown_event: Event = None, notifier: Notifier = None):
+                 shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
         self.id = next(Session._next_session_id)
+        self.failfast = failfast
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
@@ -85,7 +94,7 @@ class Session:
         self.components[comp_cls] = comp
         comp.session = self
 
-    async def start(self, failfast=True):
+    async def start(self):
         self.logger.info("Session is using state directory: %s", self.config.state_dir)
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
@@ -95,7 +104,19 @@ class Session:
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         coros = [comp.start() for comp in self.components.values()]
-        await gather(*coros, return_exceptions=not failfast)
+        await gather(*coros, return_exceptions=not self.failfast)
+        if self._startup_exception:
+            self._reraise_startup_exception_in_separate_task()
+
+    def _reraise_startup_exception_in_separate_task(self):
+        async def exception_reraiser():
+            # the exception should be intercepted by event loop exception handler
+            raise self._startup_exception
+        get_event_loop().create_task(exception_reraiser())
+
+    def set_startup_exception(self, exc: Exception):
+        if not self._startup_exception:
+            self._startup_exception = exc
 
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
@@ -112,6 +133,8 @@ T = TypeVar('T', bound='Component')
 
 
 class Component:
+    tribler_should_stop_on_component_error = True
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')
@@ -145,7 +168,9 @@ class Component:
                 self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
             self.failed = True
             self.started_event.set()
-            raise
+            if self.session.failfast:
+                raise e
+            self.session.set_startup_exception(ComponentStartupException(self, e))
         self.started_event.set()
 
     async def stop(self):
