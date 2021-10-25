@@ -9,14 +9,14 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
 from pony.orm.dbapiprovider import OperationalError
 
+from tribler_core.components.ipv8.tribler_community import TriblerCommunity
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
-from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.metadata_store.utils import RequestTimeoutException
 from tribler_core.components.metadata_store.remote_query_community.eva_protocol import EVAProtocolMixin
+from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.modules.tribler_community import TriblerCommunity
+from tribler_core.components.metadata_store.utils import RequestTimeoutException
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")

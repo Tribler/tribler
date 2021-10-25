@@ -5,7 +5,7 @@ from asynctest import Mock
 
 import pytest
 
-from tribler_core.modules.dht_health_manager import DHTHealthManager
+from tribler_core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
 from tribler_core.utilities.unicode import hexlify
 
 
