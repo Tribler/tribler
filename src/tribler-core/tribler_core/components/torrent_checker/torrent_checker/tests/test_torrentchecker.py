@@ -372,11 +372,11 @@ def test_check_channel_torrents(torrent_checker):
     torrent_checker.check_torrent_health = lambda _: check_torrent_health_mock()
 
     # No torrents yet in channel, the selected channel torrents to check should be empty
-    selected_torrents = torrent_checker.channel_torrents_to_check()
+    selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
     assert len(selected_torrents) == 0
 
     # No health check call are done
-    torrent_checker.check_channel_torrents()
+    torrent_checker.check_torrents_in_user_channel()
     assert check_torrent_health_mock.call_count == len(selected_torrents)
 
     num_torrents = 20
@@ -395,11 +395,11 @@ def test_check_channel_torrents(torrent_checker):
         outdated_torrents.append(torrent)
 
     # Now check that only outdated torrents are selected for check
-    selected_torrents = torrent_checker.channel_torrents_to_check()
-    assert len(selected_torrents) <= torrent_checker_module.CHANNEL_TORRENT_SELECTION_POOL_SIZE
+    selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
+    assert len(selected_torrents) <= torrent_checker_module.USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE
     for torrent in selected_torrents:
         assert torrent in outdated_torrents
 
     # Health check requests are sent for all selected torrents
-    torrent_checker.check_channel_torrents()
+    torrent_checker.check_torrents_in_user_channel()
     assert check_torrent_health_mock.call_count == len(selected_torrents)

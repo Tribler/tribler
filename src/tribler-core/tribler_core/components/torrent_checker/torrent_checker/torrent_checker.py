@@ -28,13 +28,13 @@ from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
 
 TRACKER_SELECTION_INTERVAL = 20  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
-CHANNEL_SELECTION_INTERVAL = 15  # The interval for checking the health of a channel torrent
+USER_CHANNEL_TORRENT_SELECTION_INTERVAL = 15  # The interval for checking the health of torrents in user's channel.
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
 TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
-CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many channel torrents to check during periodic check
+USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
 HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
 TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
 
@@ -71,7 +71,8 @@ class TorrentChecker(TaskManager):
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("torrent_check", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
-        self.register_task("channel_torrent_check", self.check_channel_torrents, interval=CHANNEL_SELECTION_INTERVAL)
+        self.register_task("user_channel_torrent_check", self.check_torrents_in_user_channel,
+                           interval=USER_CHANNEL_TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self):
@@ -232,7 +233,7 @@ class TorrentChecker(TaskManager):
         return infohashes
 
     @db_session
-    def channel_torrents_to_check(self):
+    def torrents_to_check_in_user_channel(self):
         """
         Returns a list of outdated torrents of user's channel which
         has not been checked recently.
@@ -242,21 +243,17 @@ class TorrentChecker(TaskManager):
             lambda g: g.public_key == self.mds.my_public_key_bin
                       and g.metadata_type == REGULAR_TORRENT
                       and g.health.last_check < last_fresh_time)
-            .order_by(lambda g: desc(g.health.last_check))
-            .limit(CHANNEL_TORRENT_SELECTION_POOL_SIZE))
+                                .order_by(lambda g: desc(g.health.last_check))
+                                .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
         return channel_torrents
 
     @db_session
-    def check_channel_torrents(self):
+    def check_torrents_in_user_channel(self):
         """
         Perform a full health check of torrents in user's channel
         """
-        channel_torrents = self.channel_torrents_to_check()
-        if not channel_torrents:
-            self._logger.info("No outdated channel torrents to check")
-
-        for channel_torrent in channel_torrents:
-            self.check_torrent_health(bytes(channel_torrent.infohash))
+        for channel_torrent in self.torrents_to_check_in_user_channel():
+            self.check_torrent_health(channel_torrent.infohash)
 
     def get_valid_next_tracker_for_auto_check(self):
         tracker = self.get_next_tracker_for_auto_check()
