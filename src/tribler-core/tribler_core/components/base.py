@@ -23,6 +23,14 @@ class ComponentError(Exception):
     pass
 
 
+class MissedDependency(ComponentError):
+    def __init__(self, component: Component, dependency: Type[Component]):
+        msg = f'Missed dependency: {component.__class__.__name__} requires {dependency.__name__} to be active'
+        super().__init__(msg)
+        self.component = component
+        self.dependency = dependency
+
+
 def create_state_directory_structure(state_dir: Path):
     """Create directory structure of the state directory."""
     state_dir.mkdir(exist_ok=True)
@@ -130,7 +138,11 @@ class Component:
             # Writing to stderr is for the case when logger is not configured properly (as my happen in local tests,
             # for example) to avoid silent suppression of the important exceptions
             sys.stderr.write(f'\nException in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
-            self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
+            if isinstance(e, MissedDependency):
+                # Use logger.error instead of logger.exception here to not spam log with multiple error tracebacks
+                self.logger.error(e)
+            else:
+                self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
             self.failed = True
             self.started_event.set()
             raise
@@ -167,8 +179,7 @@ class Component:
         """
         dep = await self.get_component(dependency)
         if not dep:
-            raise ComponentError(
-                f'Missed dependency: {self.__class__.__name__} requires {dependency.__name__} to be active')
+            raise MissedDependency(self, dependency)
         return dep
 
     async def get_component(self, dependency: Type[T]) -> Optional[T]:
