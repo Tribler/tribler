@@ -1,7 +1,7 @@
 from tribler_core.components.base import Component
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
-from tribler_core.modules.version_check.versioncheck_manager import VersionCheckManager
+from tribler_core.components.version_check.versioncheck_manager import VersionCheckManager
 
 
 class VersionCheckComponent(Component):
