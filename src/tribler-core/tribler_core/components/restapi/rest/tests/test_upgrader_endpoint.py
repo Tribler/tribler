@@ -6,7 +6,7 @@ import pytest
 
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.upgrade.upgrader_endpoint import SKIP_DB_UPGRADE_STR, UpgraderEndpoint
+from tribler_core.components.upgrade.implementation.upgrader_endpoint import SKIP_DB_UPGRADE_STR, UpgraderEndpoint
 
 
 @pytest.fixture

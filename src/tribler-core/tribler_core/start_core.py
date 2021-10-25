@@ -31,7 +31,7 @@ from tribler_core.components.socks_servers.socks_servers_component import SocksS
 from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.components.upgrade import UpgradeComponent
+from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 from tribler_core.components.version_check import VersionCheckComponent
 from tribler_core.components.watch_folder import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig

@@ -1,6 +1,6 @@
 from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler_core.components.restapi.restapi_component import RestfulComponent
-from tribler_core.components.upgrade import UpgradeComponent
+from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 
 
 class ResourceMonitorComponent(RestfulComponent):

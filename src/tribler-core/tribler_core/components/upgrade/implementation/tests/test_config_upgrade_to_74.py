@@ -7,10 +7,10 @@ from configobj import ParseError as ConfigObjParseError
 import pytest
 
 from tribler_common.simpledefs import STATEDIR_CHECKPOINT_DIR
+from tribler_core.components.upgrade.implementation.config_converter import convert_state_file_to_conf_74
 
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade import config_converter
-from tribler_core.upgrade.config_converter import convert_state_file_to_conf_74
+from tribler_core.components.upgrade.implementation import config_converter
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 

@@ -5,7 +5,7 @@ from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.tag.tag_component import TagComponent
-from tribler_core.components.upgrade import UpgradeComponent
+from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 
 
 class MetadataStoreComponent(RestfulComponent):

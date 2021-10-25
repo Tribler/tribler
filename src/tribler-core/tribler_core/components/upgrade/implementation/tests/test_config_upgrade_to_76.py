@@ -1,8 +1,8 @@
 import shutil
 
+from tribler_core.components.upgrade.implementation.config_converter import convert_config_to_tribler76
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.config_converter import convert_config_to_tribler76
 
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"

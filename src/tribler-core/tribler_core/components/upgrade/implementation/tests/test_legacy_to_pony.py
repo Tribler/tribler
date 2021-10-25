@@ -12,19 +12,14 @@ import pytest
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, LEGACY_ENTRY
 from tribler_core.components.metadata_store.db.store import MetadataStore
+from tribler_core.components.upgrade.implementation.legacy_to_pony import CONVERSION_FINISHED, \
+    CONVERSION_FROM_72, CONVERSION_FROM_72_CHANNELS, CONVERSION_FROM_72_DISCOVERED, CONVERSION_FROM_72_PERSONAL, \
+    CONVERSION_STARTED, \
+    already_upgraded, new_db_version_ok, old_db_version_ok
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade import legacy_to_pony
-from tribler_core.upgrade.legacy_to_pony import (
-    CONVERSION_FINISHED,
-    CONVERSION_FROM_72,
-    CONVERSION_FROM_72_CHANNELS,
-    CONVERSION_FROM_72_DISCOVERED,
-    CONVERSION_FROM_72_PERSONAL,
-    CONVERSION_STARTED,
-    already_upgraded,
+from tribler_core.components.upgrade.implementation import legacy_to_pony
+from tribler_core.components.upgrade.implementation.upgrade import (
     cleanup_pony_experimental_db,
-    new_db_version_ok,
-    old_db_version_ok,
     should_upgrade,
 )
 

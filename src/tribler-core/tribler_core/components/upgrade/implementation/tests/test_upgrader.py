@@ -12,10 +12,11 @@ from tribler_common.simpledefs import NTFY
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
+from tribler_core.components.upgrade.implementation.db8_to_db10 import calc_progress
+from tribler_core.components.upgrade.implementation.upgrade import TriblerUpgrader, \
+    cleanup_noncompliant_channel_torrents
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.db8_to_db10 import calc_progress
-from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 

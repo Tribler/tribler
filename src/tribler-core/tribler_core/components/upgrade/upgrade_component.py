@@ -2,7 +2,7 @@ from tribler_common.simpledefs import STATE_UPGRADING_READABLE
 
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi.restapi_component import RestfulComponent
-from tribler_core.upgrade.upgrade import TriblerUpgrader
+from tribler_core.components.upgrade.implementation.upgrade import TriblerUpgrader
 
 
 class UpgradeComponent(RestfulComponent):

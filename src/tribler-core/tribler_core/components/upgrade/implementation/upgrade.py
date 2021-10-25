@@ -17,14 +17,12 @@ from tribler_core.components.metadata_store.db.store import (
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
+from tribler_core.components.upgrade.implementation.config_converter import convert_config_to_tribler74, \
+    convert_config_to_tribler75, convert_config_to_tribler76
+from tribler_core.components.upgrade.implementation.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler_core.components.upgrade.implementation.legacy_to_pony import DispersyToPonyMigration, \
+    cleanup_pony_experimental_db, should_upgrade
 from tribler_core.notifier import Notifier
-from tribler_core.upgrade.config_converter import (
-    convert_config_to_tribler74,
-    convert_config_to_tribler75,
-    convert_config_to_tribler76,
-)
-from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
-from tribler_core.upgrade.legacy_to_pony import DispersyToPonyMigration, cleanup_pony_experimental_db, should_upgrade
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 

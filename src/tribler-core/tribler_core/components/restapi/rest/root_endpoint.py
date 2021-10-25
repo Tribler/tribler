@@ -1,7 +1,5 @@
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
 
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
@@ -19,7 +17,9 @@ from tribler_core.components.restapi.rest.shutdown_endpoint import ShutdownEndpo
 from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
 from tribler_core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 from tribler_core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
-from tribler_core.upgrade.upgrader_endpoint import UpgraderEndpoint
+from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
+from tribler_core.components.upgrade.implementation.upgrader_endpoint import UpgraderEndpoint
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.utilities import froze_it
 
 
