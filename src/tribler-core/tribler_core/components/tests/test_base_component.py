@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.base import Component, ComponentError, Session, T
+from tribler_core.components.base import Component, ComponentError, Session, SessionError
 
 pytestmark = pytest.mark.asyncio
 
@@ -144,3 +144,27 @@ async def test_component_shutdown_failure(tribler_config):
             assert not component.reverse_dependencies
             assert component.unused_event.is_set()
             assert component.stopped
+
+
+def test_session_context_manager(loop, tribler_config):   # pylint: disable=unused-argument
+    session1 = Session(tribler_config, [])
+    session2 = Session(tribler_config, [])
+    session3 = Session(tribler_config, [])
+
+    with pytest.raises(SessionError, match="Default session was not set"):
+        Session.current()
+
+    session1.set_as_default()
+    assert Session.current() is session1
+
+    with session2:
+        assert Session.current() is session2
+        with session3:
+            assert Session.current() is session3
+        assert Session.current() is session2
+    assert Session.current() is session1
+
+    Session.unset_default_session()
+
+    with pytest.raises(SessionError, match="Default session was not set"):
+        Session.current()

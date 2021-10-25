@@ -33,7 +33,7 @@ from tribler_core.components.torrent_checker.torrent_checker_component import To
 from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 from tribler_core.components.version_check.version_check_component import VersionCheckComponent
-from tribler_core.components.watch_folder import WatchFolderComponent
+from tribler_core.components.watch_folder.watch_folder_component import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.dependencies import check_for_missing_dependencies
 
