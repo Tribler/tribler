@@ -5,6 +5,7 @@ import random
 from collections import defaultdict
 from itertools import permutations
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from ipv8.community import Community
 from ipv8.test.base import TestBase
@@ -12,16 +13,21 @@ from ipv8.test.base import TestBase
 import pytest
 
 from tribler_core.components.metadata_store.remote_query_community.eva_protocol import (
+    Acknowledgement,
+    EVAProtocol,
     EVAProtocolMixin,
     Error,
-    SizeLimitException,
+    SizeException,
     TimeoutException,
     Transfer,
     TransferException,
     TransferType,
+    WriteRequest,
 )
 
 # fmt: off
+# pylint: disable=redefined-outer-name
+
 PYTEST_TIMEOUT_IN_SEC = 60
 
 TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC = 0.2
@@ -30,9 +36,10 @@ TEST_DEFAULT_SEGMENT_SIZE = 1200
 TEST_START_MESSAGE_ID = 100
 
 
-def create_transfer(time):
+def create_transfer(block_count: int = 0, updated: int = 0) -> Transfer:
     transfer = Transfer(TransferType.INCOMING, b'', b'', 0)
-    transfer.updated = time
+    transfer.updated = updated
+    transfer.block_count = block_count
     return transfer
 
 
@@ -214,7 +221,7 @@ class TestEVA(TestBase):
 
         await drain_loop(asyncio.get_event_loop())
 
-        assert isinstance(self.overlay(2).most_recent_received_exception, SizeLimitException)
+        assert isinstance(self.overlay(2).most_recent_received_exception, SizeException)
         assert not self.overlay(2).eva_protocol.outgoing
         assert not self.overlay(0).eva_protocol.incoming
         assert len(self.overlay(0).received_data[self.peer(1)]) == 0
@@ -229,7 +236,7 @@ class TestEVA(TestBase):
         await drain_loop(asyncio.get_event_loop())
 
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
-        assert isinstance(self.overlay(2).most_recent_received_exception, SizeLimitException)
+        assert isinstance(self.overlay(2).most_recent_received_exception, SizeException)
         assert not self.overlay(2).eva_protocol.incoming
         assert not self.overlay(2).eva_protocol.outgoing
         assert len(self.overlay(0).sent_data[self.peer(2)]) == 0
@@ -422,7 +429,7 @@ class TestEVA(TestBase):
         await drain_loop(asyncio.get_event_loop())
 
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
-        assert isinstance(self.overlay(1).most_recent_received_exception, SizeLimitException)
+        assert isinstance(self.overlay(1).most_recent_received_exception, SizeException)
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_wrong_message_order_and_wrong_nonce(self):
@@ -501,3 +508,39 @@ class TestEVA(TestBase):
 
         assert not self.overlay(0).most_recent_received_exception
         assert not self.overlay(1).most_recent_received_exception
+
+
+@pytest.fixture
+def eva():
+    return EVAProtocol(Mock())
+
+
+@pytest.fixture
+def peer():
+    return Mock()
+
+
+@pytest.mark.asyncio
+async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
+    # validate that data_size can not be less or equal to 0
+    with patch.object(EVAProtocol, '_incoming_error') as method_mock:
+        await eva.on_write_request(peer, WriteRequest(0, 0, b''))
+        await eva.on_write_request(peer, WriteRequest(-1, 0, b''))
+        assert peer not in eva.incoming
+        assert method_mock.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_on_acknowledgement_window_size_attr(eva: EVAProtocol, peer):
+    transfer = create_transfer(block_count=10)
+    eva.outgoing[peer] = transfer
+    window_size = 0
+
+    # validate that window_size can not be less or equal to 0
+    await eva.on_acknowledgement(peer, Acknowledgement(1, window_size, 0))
+    assert transfer.window_size == eva.MIN_WINDOWS_SIZE
+
+    # validate that window_size can not be greater than binary_size_limit
+    window_size = eva.binary_size_limit + 1
+    await eva.on_acknowledgement(peer, Acknowledgement(1, window_size, 0))
+    assert transfer.window_size == eva.binary_size_limit

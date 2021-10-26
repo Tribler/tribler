@@ -35,9 +35,11 @@ from collections import defaultdict, deque
 from enum import Enum, auto
 from random import randint
 from types import SimpleNamespace
+from typing import Dict, Optional
 
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+from ipv8.types import Peer
 
 logger = logging.getLogger('EVA')
 
@@ -68,22 +70,6 @@ class Data(VariablePayload):
 class Error(VariablePayload):
     format_list = ['raw']
     names = ['message']
-
-
-class TransferException(Exception):
-    def __init__(self, transfer_type, info_binary, nonce, message):
-        super().__init__(message)
-        self.transfer_type = transfer_type
-        self.info_binary = info_binary
-        self.nonce = nonce
-
-
-class SizeLimitException(TransferException):
-    pass
-
-
-class TimeoutException(TransferException):
-    pass
 
 
 class EVAProtocolMixin:
@@ -275,7 +261,28 @@ class Transfer:  # pylint: disable=too-many-instance-attributes
         )
 
 
+class TransferException(Exception):
+    def __init__(self, message: str, transfer: Optional[Transfer] = None):
+        super().__init__(message)
+        self.transfer = transfer
+        self.message = message
+
+
+class SizeException(TransferException):
+    pass
+
+
+class TimeoutException(TransferException):
+    pass
+
+
+class ValueException(TransferException):
+    pass
+
+
 class EVAProtocol:  # pylint: disable=too-many-instance-attributes
+    MIN_WINDOWS_SIZE = 1
+
     def __init__(  # pylint: disable=too-many-arguments
             self,
             community,
@@ -304,8 +311,8 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self.receive_callbacks = set()
         self.error_callbacks = set()
 
-        self.incoming = dict()
-        self.outgoing = dict()
+        self.incoming: Dict[Peer, Transfer] = dict()
+        self.outgoing: Dict[Peer, Transfer] = dict()
 
         self.retransmit_enabled = True
         self.terminate_by_timeout_enabled = terminate_by_timeout_enabled
@@ -344,7 +351,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         data_size = len(data_binary)
         if data_size > self.binary_size_limit:
             message = f'Current data size limit({self.binary_size_limit}) has been exceeded'
-            self._notify_error(peer, SizeLimitException(transfer.type, transfer.info_binary, transfer.nonce, message))
+            self._notify_error(peer, SizeException(message, transfer))
             return
 
         transfer.block_count = math.ceil(data_size / self.block_size)
@@ -357,16 +364,21 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         logger.debug(f'Write Request. Peer hash: {hash(peer)}. Transfer: {transfer}')
         self.community.eva_send_message(peer, WriteRequest(data_size, nonce, info_binary))
 
-    async def on_write_request(self, peer, payload):
+    async def on_write_request(self, peer: Peer, payload: WriteRequest):
         logger.debug(f'On write request. Peer hash: {hash(peer)}. Info: {payload.info_binary}. '
                      f'Size: {payload.data_size}')
+
+        if payload.data_size <= 0:
+            self._incoming_error(peer, None, ValueException('Data size can not be less or equal to 0'))
+            return
 
         transfer = Transfer(TransferType.INCOMING, payload.info_binary, b'', payload.nonce)
         transfer.window_size = self.window_size
         transfer.attempt = 0
 
         if payload.data_size > self.binary_size_limit:
-            self._incoming_error_size_limit_exceeded(peer, transfer)
+            e = SizeException(f'Current data size limit({self.binary_size_limit}) has been exceeded', transfer)
+            self._incoming_error(peer, transfer, e)
             return
 
         self.incoming[peer] = transfer
@@ -376,7 +388,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
         self.send_acknowledgement(peer, transfer)
 
-    async def on_acknowledgement(self, peer, payload):
+    async def on_acknowledgement(self, peer: Peer, payload: Acknowledgement):
         logger.debug(f'On acknowledgement({payload.number}). Window size: {payload.window_size}. '
                      f'Peer hash: {hash(peer)}.')
 
@@ -393,7 +405,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             self.finish_outgoing_transfer(peer, transfer)
             return
 
-        transfer.window_size = payload.window_size
+        transfer.window_size = max(self.MIN_WINDOWS_SIZE, min(payload.window_size, self.binary_size_limit))
         transfer.updated = time.time()
 
         for block_number in range(transfer.block_number, transfer.block_number + transfer.window_size):
@@ -426,7 +438,8 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
         data_size = len(transfer.data_binary) + len(payload.data_binary)
         if data_size > self.binary_size_limit:
-            self._incoming_error_size_limit_exceeded(peer, transfer)
+            e = SizeException(f'Current data size limit({self.binary_size_limit}) has been exceeded', transfer)
+            self._incoming_error(peer, transfer, e)
             return
 
         transfer.data_binary += payload.data_binary
@@ -455,7 +468,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
         EVAProtocol.terminate(self.outgoing, peer, transfer)
 
-        self._notify_error(peer, TransferException(transfer.type, transfer.info_binary, transfer.nonce, message))
+        self._notify_error(peer, TransferException(message, transfer))
         self.send_scheduled()
 
     def finish_incoming_transfer(self, peer, transfer):
@@ -502,12 +515,11 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         transfer.release()
         container.pop(peer, None)
 
-    def _incoming_error_size_limit_exceeded(self, peer, transfer):
-        EVAProtocol.terminate(self.incoming, peer, transfer)
-
-        message = f'Current data size limit({self.binary_size_limit}) has been exceeded'
-        self.community.eva_send_message(peer, Error(message.encode('utf-8')))
-        self._notify_error(peer, SizeLimitException(transfer.type, transfer.info_binary, transfer.nonce, message))
+    def _incoming_error(self, peer: Peer, transfer: Optional[Transfer], e: TransferException):
+        if transfer:
+            self.terminate(self.incoming, peer, transfer)
+        self.community.eva_send_message(peer, Error(e.message.encode('utf-8')))
+        self._notify_error(peer, e)
 
     def _notify_error(self, peer, exception):
         logger.warning(f'Exception.Peer hash {hash(peer)}: "{exception}"')
@@ -535,8 +547,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             return
 
         EVAProtocol.terminate(container, peer, transfer)
-        message = f'Terminated by timeout. Timeout is: {timeout} sec'
-        self._notify_error(peer, TimeoutException(transfer.type, transfer.info_binary, transfer.nonce, message))
+        self._notify_error(peer, TimeoutException(f'Terminated by timeout. Timeout is: {timeout} sec', transfer))
 
     def _schedule_resend_acknowledge(self, peer, transfer):
         if not self.retransmit_enabled:
