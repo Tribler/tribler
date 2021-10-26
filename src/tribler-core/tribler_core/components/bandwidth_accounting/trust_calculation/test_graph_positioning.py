@@ -2,7 +2,7 @@ import networkx as nx
 
 import pytest
 
-from tribler_core.modules.trust_calculation.graph_positioning import GraphPositioning
+from tribler_core.components.bandwidth_accounting.trust_calculation.graph_positioning import GraphPositioning
 
 
 def test_graph_positioning_not_tree():

@@ -2,17 +2,23 @@ import random
 from binascii import unhexlify
 
 from cryptography.exceptions import InvalidSignature
-from pony.orm import db_session
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.types import Key
-from tribler_core.components.tag.community.tag_payload import RawTagOperationMessage, RequestTagOperationMessage, \
-    TagOperation, \
-    TagOperationMessage, TagOperationSignature
+
+from pony.orm import db_session
+
+from tribler_core.components.ipv8.tribler_community import TriblerCommunity
+from tribler_core.components.tag.community.tag_payload import (
+    RawTagOperationMessage,
+    RequestTagOperationMessage,
+    TagOperation,
+    TagOperationMessage,
+    TagOperationSignature,
+)
 from tribler_core.components.tag.community.tag_requests import PeerValidationError, TagRequests
 from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.modules.tribler_community import TriblerCommunity
 
 REQUESTED_TAGS_COUNT = 10
 

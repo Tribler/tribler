@@ -8,7 +8,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Float, Integer, List, String
 
-from tribler_core.modules.trust_calculation.trust_graph import TrustGraph
+from tribler_core.components.bandwidth_accounting.trust_calculation.trust_graph import TrustGraph
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it

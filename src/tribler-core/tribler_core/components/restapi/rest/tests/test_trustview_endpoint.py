@@ -8,13 +8,13 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 import pytest
 
-from tribler_core.exceptions import TrustGraphException
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
-from tribler_core.modules.trust_calculation.trust_graph import TrustGraph
+from tribler_core.components.bandwidth_accounting.trust_calculation.trust_graph import TrustGraph
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
+from tribler_core.exceptions import TrustGraphException
 from tribler_core.utilities.utilities import MEMORY_DB
 
 
