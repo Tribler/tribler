@@ -35,7 +35,7 @@ from collections import defaultdict, deque
 from enum import Enum, auto
 from random import randint
 from types import SimpleNamespace
-from typing import Optional
+from typing import Dict, Optional
 
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
@@ -311,8 +311,8 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self.receive_callbacks = set()
         self.error_callbacks = set()
 
-        self.incoming: dict[Peer, Transfer] = dict()
-        self.outgoing: dict[Peer, Transfer] = dict()
+        self.incoming: Dict[Peer, Transfer] = dict()
+        self.outgoing: Dict[Peer, Transfer] = dict()
 
         self.retransmit_enabled = True
         self.terminate_by_timeout_enabled = terminate_by_timeout_enabled

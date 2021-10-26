@@ -7,21 +7,26 @@ from itertools import permutations
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-import pytest
-
 from ipv8.community import Community
 from ipv8.test.base import TestBase
+
+import pytest
+
 from tribler_core.components.metadata_store.remote_query_community.eva_protocol import (
-    Acknowledgement, EVAProtocol, EVAProtocolMixin,
+    Acknowledgement,
+    EVAProtocol,
+    EVAProtocolMixin,
     Error,
     SizeException,
     TimeoutException,
     Transfer,
     TransferException,
-    TransferType, WriteRequest,
+    TransferType,
+    WriteRequest,
 )
 
 # fmt: off
+# pylint: disable=redefined-outer-name
 
 PYTEST_TIMEOUT_IN_SEC = 60
 
