@@ -244,7 +244,7 @@ class TorrentChecker(TaskManager):
             lambda g: g.public_key == self.mds.my_public_key_bin
                       and g.metadata_type == REGULAR_TORRENT
                       and g.health.last_check < last_fresh_time)
-                                .order_by(lambda g: desc(g.health.last_check))
+                                .order_by(lambda g: g.health.last_check)
                                 .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
         return channel_torrents
 
