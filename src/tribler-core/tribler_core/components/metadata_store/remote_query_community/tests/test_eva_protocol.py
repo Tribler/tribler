@@ -12,7 +12,7 @@ import pytest
 from ipv8.community import Community
 from ipv8.test.base import TestBase
 from tribler_core.components.metadata_store.remote_query_community.eva_protocol import (
-    EVAProtocol, EVAProtocolMixin,
+    Acknowledgement, EVAProtocol, EVAProtocolMixin,
     Error,
     SizeException,
     TimeoutException,
@@ -31,9 +31,10 @@ TEST_DEFAULT_SEGMENT_SIZE = 1200
 TEST_START_MESSAGE_ID = 100
 
 
-def create_transfer(time):
+def create_transfer(block_count: int = 0, updated: int = 0) -> Transfer:
     transfer = Transfer(TransferType.INCOMING, b'', b'', 0)
-    transfer.updated = time
+    transfer.updated = updated
+    transfer.block_count = block_count
     return transfer
 
 
@@ -515,8 +516,26 @@ def peer():
 
 
 @pytest.mark.asyncio
-async def test_eva_on_write_request_negative_data_size(eva, peer):
+async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
+    # validate that data_size can not be less or equal to 0
     with patch.object(EVAProtocol, '_incoming_error') as method_mock:
+        await eva.on_write_request(peer, WriteRequest(0, 0, b''))
         await eva.on_write_request(peer, WriteRequest(-1, 0, b''))
         assert peer not in eva.incoming
-        method_mock.assert_called_once()
+        assert method_mock.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_on_acknowledgement_window_size_attr(eva: EVAProtocol, peer):
+    transfer = create_transfer(block_count=10)
+    eva.outgoing[peer] = transfer
+    window_size = 0
+
+    # validate that window_size can not be less or equal to 0
+    await eva.on_acknowledgement(peer, Acknowledgement(1, window_size, 0))
+    assert transfer.window_size == eva.MIN_WINDOWS_SIZE
+
+    # validate that window_size can not be greater than binary_size_limit
+    window_size = eva.binary_size_limit + 1
+    await eva.on_acknowledgement(peer, Acknowledgement(1, window_size, 0))
+    assert transfer.window_size == eva.binary_size_limit

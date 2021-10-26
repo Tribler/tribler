@@ -281,6 +281,8 @@ class ValueException(TransferException):
 
 
 class EVAProtocol:  # pylint: disable=too-many-instance-attributes
+    MIN_WINDOWS_SIZE = 1
+
     def __init__(  # pylint: disable=too-many-arguments
             self,
             community,
@@ -386,7 +388,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
         self.send_acknowledgement(peer, transfer)
 
-    async def on_acknowledgement(self, peer, payload):
+    async def on_acknowledgement(self, peer: Peer, payload: Acknowledgement):
         logger.debug(f'On acknowledgement({payload.number}). Window size: {payload.window_size}. '
                      f'Peer hash: {hash(peer)}.')
 
@@ -403,7 +405,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             self.finish_outgoing_transfer(peer, transfer)
             return
 
-        transfer.window_size = payload.window_size
+        transfer.window_size = max(self.MIN_WINDOWS_SIZE, min(payload.window_size, self.binary_size_limit))
         transfer.updated = time.time()
 
         for block_number in range(transfer.block_number, transfer.block_number + transfer.window_size):
