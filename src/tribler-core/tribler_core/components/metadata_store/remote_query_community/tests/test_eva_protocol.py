@@ -5,23 +5,24 @@ import random
 from collections import defaultdict
 from itertools import permutations
 from types import SimpleNamespace
-
-from ipv8.community import Community
-from ipv8.test.base import TestBase
+from unittest.mock import Mock, patch
 
 import pytest
 
+from ipv8.community import Community
+from ipv8.test.base import TestBase
 from tribler_core.components.metadata_store.remote_query_community.eva_protocol import (
-    EVAProtocolMixin,
+    EVAProtocol, EVAProtocolMixin,
     Error,
-    SizeLimitException,
+    SizeException,
     TimeoutException,
     Transfer,
     TransferException,
-    TransferType,
+    TransferType, WriteRequest,
 )
 
 # fmt: off
+
 PYTEST_TIMEOUT_IN_SEC = 60
 
 TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC = 0.2
@@ -214,7 +215,7 @@ class TestEVA(TestBase):
 
         await drain_loop(asyncio.get_event_loop())
 
-        assert isinstance(self.overlay(2).most_recent_received_exception, SizeLimitException)
+        assert isinstance(self.overlay(2).most_recent_received_exception, SizeException)
         assert not self.overlay(2).eva_protocol.outgoing
         assert not self.overlay(0).eva_protocol.incoming
         assert len(self.overlay(0).received_data[self.peer(1)]) == 0
@@ -229,7 +230,7 @@ class TestEVA(TestBase):
         await drain_loop(asyncio.get_event_loop())
 
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
-        assert isinstance(self.overlay(2).most_recent_received_exception, SizeLimitException)
+        assert isinstance(self.overlay(2).most_recent_received_exception, SizeException)
         assert not self.overlay(2).eva_protocol.incoming
         assert not self.overlay(2).eva_protocol.outgoing
         assert len(self.overlay(0).sent_data[self.peer(2)]) == 0
@@ -422,7 +423,7 @@ class TestEVA(TestBase):
         await drain_loop(asyncio.get_event_loop())
 
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
-        assert isinstance(self.overlay(1).most_recent_received_exception, SizeLimitException)
+        assert isinstance(self.overlay(1).most_recent_received_exception, SizeException)
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_wrong_message_order_and_wrong_nonce(self):
@@ -501,3 +502,21 @@ class TestEVA(TestBase):
 
         assert not self.overlay(0).most_recent_received_exception
         assert not self.overlay(1).most_recent_received_exception
+
+
+@pytest.fixture
+def eva():
+    return EVAProtocol(Mock())
+
+
+@pytest.fixture
+def peer():
+    return Mock()
+
+
+@pytest.mark.asyncio
+async def test_eva_on_write_request_negative_data_size(eva, peer):
+    with patch.object(EVAProtocol, '_incoming_error') as method_mock:
+        await eva.on_write_request(peer, WriteRequest(-1, 0, b''))
+        assert peer not in eva.incoming
+        method_mock.assert_called_once()
