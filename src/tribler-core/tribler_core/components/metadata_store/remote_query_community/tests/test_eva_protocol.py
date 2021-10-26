@@ -24,8 +24,8 @@ from tribler_core.components.metadata_store.remote_query_community.eva_protocol 
 # fmt: off
 PYTEST_TIMEOUT_IN_SEC = 60
 
-TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC = 1
-TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC = 0.3
+TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC = 0.2
+TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC = 0.1
 TEST_DEFAULT_SEGMENT_SIZE = 1200
 TEST_START_MESSAGE_ID = 100
 
@@ -60,6 +60,7 @@ class MockCommunity(EVAProtocolMixin, Community):  # pylint: disable=too-many-an
             timeout_interval_in_sec=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC,
             retransmit_interval_in_sec=TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC,
             start_message_id=TEST_START_MESSAGE_ID,
+            terminate_by_timeout_enabled=False  # by default disable the termination
         )
 
         self.eva_register_receive_callback(self.on_receive)
@@ -127,9 +128,6 @@ class TestEVA(TestBase):
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_one_megabyte_transfer(self):
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
-
         data_size = 1024 * 1024
         data = os.urandom(1), os.urandom(data_size), random.randrange(0, 256)
 
@@ -142,24 +140,27 @@ class TestEVA(TestBase):
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_termination_by_timeout(self):
+        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = True
+        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = True
+
         # breaks "on_data" function in community2 to make this community silent
 
         self.overlay(0).eva_protocol.window_size = 10
-        self.overlay(2).eva_protocol.window_size = 20
+        self.overlay(1).eva_protocol.window_size = 20
 
         async def void(*_):
             await asyncio.sleep(0)
 
-        self.overlay(2).eva_protocol.on_data = void
+        self.overlay(1).eva_protocol.on_data = void
 
-        self.overlay(0).eva_send_binary(self.peer(2), b'info', b'data')
+        self.overlay(0).eva_send_binary(self.peer(1), b'info', b'data')
 
-        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC + 1)
+        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC * 3)
 
-        assert len(self.overlay(2).eva_protocol.incoming) == 0
-        assert isinstance(self.overlay(2).most_recent_received_exception, TimeoutException)
+        assert len(self.overlay(1).eva_protocol.incoming) == 0
+        assert isinstance(self.overlay(1).most_recent_received_exception, TimeoutException)
 
-        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC + 1)
+        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC * 3)
 
         assert len(self.overlay(0).eva_protocol.outgoing) == 0
         assert isinstance(self.overlay(0).most_recent_received_exception, TimeoutException)
@@ -167,8 +168,8 @@ class TestEVA(TestBase):
     async def test_retransmit(self):
         attempts = 2
 
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(0).eva_protocol.retransmit_interval_in_sec = 0
+        self.overlay(1).eva_protocol.retransmit_interval_in_sec = 0
         self.overlay(1).eva_protocol.retransmit_attempt_count = attempts
 
         # breaks "acknowledgement" function in community0 to make this community silent
@@ -178,8 +179,7 @@ class TestEVA(TestBase):
         self.overlay(0).eva_protocol.on_acknowledgement = void
 
         self.overlay(0).eva_send_binary(self.peer(1), b'info', b'data')
-
-        await self.deliver_messages(timeout=(attempts + 1) * TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC)
+        await drain_loop(asyncio.get_event_loop())
 
         assert len(self.overlay(0).eva_protocol.outgoing) == 1
         assert len(self.overlay(1).eva_protocol.incoming) == 1
@@ -187,10 +187,10 @@ class TestEVA(TestBase):
         assert self.overlay(1).eva_protocol.incoming[self.peer(0)].attempt == attempts
 
     async def test_retransmit_disabled(self):
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
         self.overlay(0).eva_protocol.retransmit_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
         self.overlay(1).eva_protocol.retransmit_enabled = False
+        self.overlay(0).eva_protocol.retransmit_interval_in_sec = 0
+        self.overlay(1).eva_protocol.retransmit_interval_in_sec = 0
 
         # breaks "acknowledgement" function in community0 to make this community silent
         async def void(*_):
@@ -199,8 +199,7 @@ class TestEVA(TestBase):
         self.overlay(0).eva_protocol.on_acknowledgement = void
 
         self.overlay(0).eva_send_binary(self.peer(1), b'info', b'data')
-
-        await self.deliver_messages(timeout=2 * TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC + 1)
+        await drain_loop(asyncio.get_event_loop())
 
         assert len(self.overlay(0).eva_protocol.outgoing) == 1
         assert len(self.overlay(1).eva_protocol.incoming) == 1
@@ -240,9 +239,6 @@ class TestEVA(TestBase):
         count = 100
         block_size = 10
 
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
-
         self.overlay(0).eva_protocol.block_size = block_size
         self.overlay(1).eva_protocol.block_size = block_size
 
@@ -268,10 +264,7 @@ class TestEVA(TestBase):
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_multiply_send(self):
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
-
-        data_set_count = 100
+        data_set_count = 10
         data_size = 1024
 
         data_list = [(os.urandom(1), os.urandom(data_size), random.randrange(0, 256)) for _ in range(data_set_count)]
@@ -285,10 +278,8 @@ class TestEVA(TestBase):
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_multiply_duplex(self):
-        data_set_count = 10
+        data_set_count = 5
 
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
         self.overlay(2).eva_protocol.terminate_by_timeout_enabled = False
 
         self.overlay(0).eva_protocol.block_size = 10
@@ -303,7 +294,7 @@ class TestEVA(TestBase):
         ]
 
         data = [
-            (p, list((os.urandom(1), os.urandom(100), random.randrange(0, 256)) for _ in range(data_set_count)))
+            (p, list((os.urandom(1), os.urandom(50), random.randrange(0, 256)) for _ in range(data_set_count)))
             for p in permutations(participants, 2)
         ]
 
@@ -326,8 +317,8 @@ class TestEVA(TestBase):
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_survive_when_multiply_packets_lost(self):
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(0).eva_protocol.retransmit_interval_in_sec = 0
+        self.overlay(1).eva_protocol.retransmit_interval_in_sec = 0
 
         lost_packets_count_estimation = 5
         data_set_count = 3
@@ -370,8 +361,7 @@ class TestEVA(TestBase):
         for d in data:
             self.overlay(0).eva_send_binary(self.peer(1), *d)
 
-        timeout = 1 + lost_packets_count_estimation * TEST_DEFAULT_RETRANSMIT_INTERVAL_IN_SEC * 2
-        await self.deliver_messages(timeout=timeout)
+        await drain_loop(asyncio.get_event_loop())
 
         logging.info(f'Estimated packet lost block_count/probability: '
                      f'{lost_packets_count_estimation}/{packet_loss_probability}')
@@ -391,10 +381,8 @@ class TestEVA(TestBase):
 
         self.overlay(0).eva_protocol.block_size = block_size
         self.overlay(1).eva_protocol.window_size = window_size
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
 
-        data = os.urandom(1), os.urandom(block_size * 1024), 42
+        data = os.urandom(1), os.urandom(block_size * 100), 42
 
         real_on_send_acknowledgement1 = self.overlay(1).eva_protocol.send_acknowledgement
 
@@ -438,8 +426,8 @@ class TestEVA(TestBase):
 
     @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_wrong_message_order_and_wrong_nonce(self):
-        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = False
-        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = False
+        self.overlay(0).eva_protocol.retransmit_interval_in_sec = 0
+        self.overlay(1).eva_protocol.retransmit_interval_in_sec = 0
         self.overlay(1).eva_protocol.retransmit_attempt_count = 5
 
         data_set_count = 1
@@ -479,22 +467,25 @@ class TestEVA(TestBase):
 
         for d in data:
             self.overlay(0).eva_send_binary(self.peer(1), *d)
+        await drain_loop(asyncio.get_event_loop())
 
-        await self.deliver_messages(timeout=5)
         assert len(self.overlay(1).received_data[self.peer(0)]) == data_set_count
         assert self.overlay(1).received_data[self.peer(0)] == data
 
     async def test_received_packet_that_have_no_transfer(self):
+        self.overlay(0).eva_protocol.terminate_by_timeout_enabled = True
+        self.overlay(1).eva_protocol.terminate_by_timeout_enabled = True
+
         self.overlay(0).eva_protocol.timeout_interval_in_sec = 0
         self.overlay(1).eva_protocol.timeout_interval_in_sec = 0
 
         # wait to new timeout will be set up
-        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC * 2)
+        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC * 3)
 
         # try to send data with 0 timeout
         # it should lead to packet's send without presented transfer
         self.overlay(0).eva_send_binary(self.peer(1), b'', os.urandom(1000))
-        await self.deliver_messages(timeout=1)
+        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC * 3)
 
         assert len(self.overlay(0).eva_protocol.outgoing) == 0
         assert isinstance(self.overlay(0).most_recent_received_exception, TimeoutException)
@@ -506,7 +497,7 @@ class TestEVA(TestBase):
         self.overlay(1).most_recent_received_exception = None
 
         self.overlay(0).eva_send_message(self.peer(1), Error('message'.encode('utf-8')))
-        await self.deliver_messages(timeout=0.1)
+        await self.deliver_messages(timeout=TEST_DEFAULT_TERMINATE_INTERVAL_IN_SEC * 3)
 
         assert not self.overlay(0).most_recent_received_exception
         assert not self.overlay(1).most_recent_received_exception

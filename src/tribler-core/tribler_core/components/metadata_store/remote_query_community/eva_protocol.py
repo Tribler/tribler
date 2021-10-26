@@ -43,6 +43,7 @@ logger = logging.getLogger('EVA')
 
 MAX_U64 = 0xFFFFFFFF
 
+
 # fmt: off
 
 @vp_compile
@@ -108,6 +109,7 @@ class EVAProtocolMixin:
             retransmit_attempt_count=3,
             timeout_interval_in_sec=10,
             binary_size_limit=1024 * 1024 * 1024,
+            terminate_by_timeout_enabled=True
     ):
         """Init should be called manually within his parent class.
 
@@ -125,6 +127,8 @@ class EVAProtocolMixin:
             binary_size_limit: limit for binary data size. If this limit will be
                 exceeded, the exception will be returned through a registered
                 error handler
+            terminate_by_timeout_enabled: the flag indicating is termination-by-timeout
+                mechanism enabled or not
         """
         self.last_message_id = start_message_id
         self.eva_messages = dict()
@@ -138,6 +142,7 @@ class EVAProtocolMixin:
             scheduled_send_interval_in_sec=5,
             timeout_interval_in_sec=timeout_interval_in_sec,
             binary_size_limit=binary_size_limit,
+            terminate_by_timeout_enabled=terminate_by_timeout_enabled,
         )
 
         # note:
@@ -282,6 +287,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             scheduled_send_interval_in_sec=5,
             timeout_interval_in_sec=10,
             binary_size_limit=1024 * 1024 * 1024,
+            terminate_by_timeout_enabled=True
     ):
         self.community = community
 
@@ -302,7 +308,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self.outgoing = dict()
 
         self.retransmit_enabled = True
-        self.terminate_by_timeout_enabled = True
+        self.terminate_by_timeout_enabled = terminate_by_timeout_enabled
 
         # register tasks
         community.register_task('scheduled send', self.send_scheduled, interval=scheduled_send_interval_in_sec)
@@ -353,7 +359,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
     async def on_write_request(self, peer, payload):
         logger.debug(f'On write request. Peer hash: {hash(peer)}. Info: {payload.info_binary}. '
-                    f'Size: {payload.data_size}')
+                     f'Size: {payload.data_size}')
 
         transfer = Transfer(TransferType.INCOMING, payload.info_binary, b'', payload.nonce)
         transfer.window_size = self.window_size
