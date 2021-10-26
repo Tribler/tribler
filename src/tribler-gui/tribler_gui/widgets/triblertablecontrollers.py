@@ -284,6 +284,9 @@ class ContextMenuMixin:
 
         def on_add_to_channel(_):
             def on_confirm_clicked(channel_id):
+                for entry in entries:
+                    entry.pop("edit_tags_button_rect", None)  # We do not want to send this over the REST API
+
                 TriblerNetworkRequest(
                     f"collections/mychannel/{channel_id}/copy",
                     lambda _: self.table_view.window().tray_show_message(
