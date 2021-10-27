@@ -1,9 +1,9 @@
 import json
 from typing import List
 
-from PyQt5.QtCore import QModelIndex, QRect, QTimer, Qt, pyqtSignal, QEvent
+from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
-from PyQt5.QtWidgets import QAbstractItemView, QLabel, QTableView, QHeaderView, QApplication
+from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -117,11 +117,10 @@ class TriblerContentTableView(QTableView):
         should_select_row = True
         index = self.indexAt(event.pos())
         if index != self.delegate.no_index:
-            data_item = self.model().data_items[index.row()]
-
             # Check if we are clicking the 'edit tags' button
-            if data_item and "edit_tags_button_rect" in data_item:
-                if data_item["edit_tags_button_rect"].contains(event.pos()) and event.button() != Qt.RightButton:
+            if index in index.model().edit_tags_rects:
+                rect = index.model().edit_tags_rects[index]
+                if rect.contains(event.pos()) and event.button() != Qt.RightButton:
                     should_select_row = False
                     self.on_edit_tags_clicked(index)
 
