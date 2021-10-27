@@ -35,7 +35,8 @@ def initTerms(filename):
 class XXXFilter:
     _logger = logging.getLogger("XXXFilter")
 
-    xxx_terms, xxx_searchterms = initTerms(termfilename)
+    def __init__(self):
+        self.xxx_terms, self.xxx_searchterms = initTerms(termfilename)
 
     def _getWords(self, string):
         return [a.lower() for a in WORDS_REGEXP.findall(string)]
