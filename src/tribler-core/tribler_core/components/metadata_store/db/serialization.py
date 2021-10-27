@@ -74,10 +74,6 @@ def read_payload_with_offset(data, offset=0):
     raise UnknownBlobTypeException
 
 
-def read_payload(data):
-    return read_payload_with_offset(data)[0]
-
-
 class SignedPayload(Payload):
     """
     Payload for metadata.

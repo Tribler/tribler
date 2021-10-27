@@ -9,12 +9,11 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
+from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.components.restapi.rest.schema import HandledErrorSchema
 from tribler_core.components.restapi.rest.util import return_handled_exception
-from tribler_core.exceptions import DuplicateDownloadException
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, recursive_bytes
 from tribler_core.utilities.utilities import bdecode_compat, froze_it
@@ -114,9 +113,6 @@ class CreateTorrentEndpoint(RESTEndpoint):
             download_config = DownloadConfig()
             download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
             download_config.set_hops(self.download_manager.download_defaults.number_hops)
-            try:
-                self.download_manager.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
-            except DuplicateDownloadException:
-                self._logger.warning("The created torrent is already being downloaded.")
+            self.download_manager.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
 
         return RESTResponse(json.dumps({"torrent": base64.b64encode(result['metainfo']).decode('utf-8')}))

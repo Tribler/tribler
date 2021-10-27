@@ -7,11 +7,13 @@ from pathlib import Path
 import yaml
 
 
+# note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
 class InfoFilter(logging.Filter):
     def filter(self, rec):
         return rec.levelno == logging.INFO
 
 
+# note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
 class ErrorFilter(logging.Filter):
     def filter(self, rec):
         return rec.levelno == logging.ERROR

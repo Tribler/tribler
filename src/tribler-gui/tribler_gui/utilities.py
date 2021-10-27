@@ -53,12 +53,6 @@ def format_speed(num):
     return f"{format_size(num)}/s"
 
 
-def seconds_to_string(seconds):
-    minutes = seconds // 60
-    seconds_left = seconds % 60
-    return "%d:%02d" % (minutes, seconds_left)
-
-
 def seconds_to_hhmm_string(seconds):
     hours = int(seconds) // 3600
     seconds -= hours * 3600

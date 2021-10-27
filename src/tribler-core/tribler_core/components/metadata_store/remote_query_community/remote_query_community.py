@@ -20,7 +20,6 @@ from tribler_core.components.metadata_store.utils import RequestTimeoutException
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
-NO_RESPONSE = unhexlify("7ca1e9e922895a477a52cc9d6031020355eb172735bf83c058cb03ddcc9c6408")
 
 
 def sanitize_query(query_dict, cap=100):
