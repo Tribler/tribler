@@ -167,7 +167,6 @@ COLOR_NEUTRAL = "#cdcdcd"
 COLOR_DEFAULT = "#150507"
 COLOR_ROOT = "#FE6D01"
 COLOR_SELECTED = "#5c58ee"
-COLOR_BACKGROUND = "#202020"
 HTML_SPACE = '&nbsp;'
 TRUST_GRAPH_PEER_LEGENDS = (
     "<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
@@ -189,7 +188,6 @@ KB = 1024
 MB = 1024 * KB
 GB = 1024 * MB
 TB = 1024 * GB
-PB = 1024 * TB
 
 DARWIN = sys.platform == 'darwin'
 WINDOWS = sys.platform == 'win32'
@@ -208,7 +206,6 @@ EDIT_TAG_BACKGROUND_COLOR = QColor("#3B2D06")
 EDIT_TAG_BORDER_COLOR = QColor("#271E04")
 EDIT_TAG_TEXT_COLOR = SUGGESTED_TAG_TEXT_COLOR
 
-EDIT_TAGS_BUTTON_COLOR = QColor("#fc9268")
 TAG_HEIGHT = 22
 TAG_TEXT_HORIZONTAL_PADDING = 10
 TAG_TOP_MARGIN = 32

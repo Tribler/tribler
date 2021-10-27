@@ -3,17 +3,12 @@ from unittest.mock import patch
 
 import pytest
 
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.exceptions import TriblerException
 from tribler_core.components.restapi.rest.base_api_test import do_real_request
 from tribler_core.components.restapi.rest.rest_endpoint import HTTP_UNAUTHORIZED
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.tests.tools.common import TESTS_DIR
-
-
-def RaiseException(*args, **kwargs):
-    raise TriblerException("Oops! Something went wrong. Please restart Tribler")
 
 
 @pytest.fixture()

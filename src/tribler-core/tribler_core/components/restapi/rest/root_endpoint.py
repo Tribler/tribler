@@ -65,7 +65,3 @@ class RootEndpoint(RESTEndpoint):
         for path, (ep_cls, enabled) in endpoints.items():
             if enabled:
                 self.add_endpoint(path, ep_cls())
-
-    def set_ipv8_session(self, ipv8_session):
-        if '/ipv8' in self.endpoints:
-            self.endpoints['/ipv8'].initialize(ipv8_session)

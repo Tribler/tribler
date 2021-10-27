@@ -5,11 +5,11 @@ from datetime import datetime
 from lz4.frame import LZ4FrameCompressor
 
 from pony import orm
-from pony.orm import db_session, desc, raw_sql, select
+from pony.orm import db_session, raw_sql, select
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (
     CHANNEL_DESCRIPTION_FLAG,
     CHANNEL_THUMBNAIL_FLAG,
@@ -20,12 +20,12 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
     TODELETE,
     UPDATED,
 )
+from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,
     ChannelMetadataPayload,
     HealthItemsPayload,
 )
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
@@ -446,11 +446,6 @@ def define_binding(db):  # pylint: disable=R0915
         @db_session
         def get_channel_with_infohash(cls, infohash):
             return cls.get(infohash=infohash)
-
-        @classmethod
-        @db_session
-        def get_recent_channel_with_public_key(cls, public_key):
-            return cls.select(lambda g: g.public_key == public_key).sort_by(lambda g: desc(g.id_)).first() or None
 
         @classmethod
         @db_session

@@ -6,9 +6,9 @@ from validate import Validator
 
 from tribler_common.osutils import get_home_dir
 
+from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.exceptions import InvalidConfigException
 from tribler_core.utilities.install_dir import get_lib_path
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import bdecode_compat
 
@@ -34,7 +34,7 @@ class DownloadConfig:
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(msg=f"DownloadConfig is invalid: {str(validation_result)}")
+            raise InvalidConfigException(f"DownloadConfig is invalid: {str(validation_result)}")
 
     @staticmethod
     def load(config_path=None):

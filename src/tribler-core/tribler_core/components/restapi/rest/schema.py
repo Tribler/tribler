@@ -6,7 +6,3 @@ from marshmallow.fields import Boolean, Integer, String
 
 class HandledErrorSchema(Schema):
     error = String(description='Optional field describing any failures that may have occurred', required=True)
-
-
-class UnhandledErrorSchema(Schema):
-    error = schema(DetailedErrorSchema={'handled': Boolean, 'code': Integer, 'message': String})

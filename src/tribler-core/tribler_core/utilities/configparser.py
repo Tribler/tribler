@@ -83,11 +83,3 @@ class CallbackConfigParser(RawConfigParser):
             return ast.literal_eval(value)
         except (ValueError, SyntaxError, TypeError):
             return value
-
-    def get_config_as_json(self):
-        json_dict = {}
-        for section in self.sections():
-            json_dict[section] = {}
-            for option, value in self.items(section):
-                json_dict[section][option] = CallbackConfigParser.get_literal_value(value)
-        return json_dict

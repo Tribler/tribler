@@ -5,6 +5,8 @@ from pony import orm
 from pony.orm import db_session, select
 
 from tribler_common.simpledefs import CHANNEL_STATE
+
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import chunks
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (
     CHANNEL_DESCRIPTION_FLAG,
@@ -17,12 +19,12 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
 )
 from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, \
-    CollectionNodePayload
-from tribler_core.exceptions import DuplicateTorrentFileError
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
+from tribler_core.components.metadata_store.db.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    CollectionNodePayload,
+)
 from tribler_core.utilities.random_utils import random_infohash
-
 
 # pylint: disable=too-many-statements
 
@@ -126,10 +128,6 @@ def define_binding(db):
         def actual_contents(self):
             return self.contents.where(lambda g: g.status != TODELETE)
 
-        @db_session
-        def get_random_contents(self, limit):
-            return self.contents.where(lambda g: g.status not in [NEW, TODELETE]).random(limit)
-
         @property
         @db_session
         def contents_list(self):
@@ -215,8 +213,6 @@ def define_binding(db):
                 for f in chunk:
                     try:
                         self.add_torrent_to_channel(TorrentDef.load(f))
-                    except DuplicateTorrentFileError:
-                        pass
                     except Exception:  # pylint: disable=W0703
                         # Have to use the broad exception clause because Py3 versions of libtorrent
                         # generate generic Exceptions

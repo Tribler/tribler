@@ -6,9 +6,8 @@ from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.tag.tag_component import TagComponent
 
-# pylint: disable=protected-access
 
-COMPONENTS = []
+# pylint: disable=protected-access
 
 
 @pytest.mark.asyncio

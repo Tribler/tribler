@@ -40,26 +40,6 @@ STATEDIR_DB_DIR = "sqlite"
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
 
-# SIGNALS (for internal use)
-SIGNAL_ALLCHANNEL_COMMUNITY = 'signal_allchannel_community'
-SIGNAL_CHANNEL_COMMUNITY = 'signal_channel_community'
-SIGNAL_SEARCH_COMMUNITY = 'signal_search_community'
-SIGNAL_GIGACHANNEL_COMMUNITY = 'signal_gigachannel_community'
-
-SIGNAL_ON_SEARCH_RESULTS = 'signal_on_search_results'
-SIGNAL_ON_TORRENT_UPDATED = 'signal_on_torrent_updated'
-
-# SIGNALS (for common use, like APIs)
-SIGNAL_TORRENT = 'signal_torrent'
-SIGNAL_CHANNEL = 'signal_channel'
-SIGNAL_RSS_FEED = 'signal_rss_feed'
-
-SIGNAL_ON_CREATED = 'signal_on_created'
-SIGNAL_ON_UPDATED = 'signal_on_updated'
-
-SIGNAL_RESOURCE_CHECK = 'signal_resource_check'
-SIGNAL_LOW_SPACE = 'signal_low_space'
-
 # Tribler Core states
 STATE_STARTING = "STARTING"
 STATE_UPGRADING = "UPGRADING"
