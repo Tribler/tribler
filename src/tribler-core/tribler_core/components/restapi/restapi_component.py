@@ -6,8 +6,8 @@ from ipv8_service import IPv8
 from tribler_common.simpledefs import STATE_START_API
 
 from tribler_core.components.base import Component
-from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
+from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware

@@ -14,9 +14,9 @@ from marshmallow.fields import Dict, String
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.notifier import Notifier
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.components.restapi.rest.util import fix_unicode_dict
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it
 from tribler_core.version import version_id
