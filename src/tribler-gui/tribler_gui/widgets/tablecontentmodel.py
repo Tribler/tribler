@@ -2,9 +2,9 @@ import json
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable
+from typing import Callable, Dict
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, pyqtSignal, QSize
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 
@@ -348,6 +348,9 @@ class ChannelContentModel(RemoteTableModel):
         self.type_filter = type_filter
         self.category_filter = None
 
+        # Stores metadata of the 'edit tags' button in each cell.
+        self.edit_tags_rects: Dict[QModelIndex, QRectF] = {}
+
         # Current channel attributes. This is intentionally NOT copied, so local changes
         # can propagate to the origin, e.g. parent channel.
         self.channel_info = channel_info or {"name": "My channels", "status": 123}
@@ -440,6 +443,7 @@ class ChannelContentModel(RemoteTableModel):
 
     def reset(self):
         self.item_uid_map.clear()
+        self.edit_tags_rects.clear()
         super().reset()
 
     def update_node_info(self, update_dict):

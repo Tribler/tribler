@@ -1,14 +1,13 @@
+from math import floor
 from typing import Dict
 
-from math import floor
-
-from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QRectF, QSize, Qt, pyqtSignal, QPointF
-from PyQt5.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPalette, QPen, QPainterPath, QCursor
-from PyQt5.QtWidgets import QComboBox, QStyle, QStyledItemDelegate, QToolTip, QApplication, QStyleOptionViewItem
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, QSize, Qt, pyqtSignal
+from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
+from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
 
 from tribler_common.simpledefs import CHANNEL_STATE
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import (
@@ -32,7 +31,7 @@ from tribler_gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler_gui.utilities import format_votes, get_health, get_image_path, get_gui_setting
+from tribler_gui.utilities import format_votes, get_gui_setting, get_health, get_image_path
 from tribler_gui.widgets.tablecontentmodel import Column
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -208,9 +207,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         new_hovering_state = False
         if self.hover_index != self.no_index and \
                 self.hover_index.column() == index.model().column_position[Column.NAME]:
-            data_item = index.model().data_items[index.row()]
-            if data_item and "edit_tags_button_rect" in data_item:
-                if data_item["edit_tags_button_rect"].contains(pos):
+            if index in index.model().edit_tags_rects:
+                rect = index.model().edit_tags_rects[index]
+                if rect.contains(pos):
                     QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
                     new_hovering_state = True
 
@@ -363,7 +362,7 @@ class TagsMixin:
         if len(data_item["tags"]) == 0:
             painter.setPen(QColor(TRIBLER_ORANGE) if edit_tags_button_hovered else QColor("#aaa"))
             edit_tags_rect = QRectF(title_text_pos.x() + 6, title_text_pos.y() + 34, option.rect.width() - 6, 28)
-            data_item["edit_tags_button_rect"] = edit_tags_rect
+            index.model().edit_tags_rects[index] = edit_tags_rect
             painter.drawText(edit_tags_rect, "Be the first to suggest tags!")
             return
 
@@ -399,7 +398,7 @@ class TagsMixin:
             cur_tag_y += TAG_HEIGHT + 10
 
         edit_rect = QRect(cur_tag_x + 4, cur_tag_y, TAG_HEIGHT, TAG_HEIGHT)
-        data_item["edit_tags_button_rect"] = edit_rect
+        index.model().edit_tags_rects[index] = edit_rect
 
         if edit_tags_button_hovered:
             self.edit_tags_icon_hover.paint(painter, edit_rect)
