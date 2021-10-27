@@ -120,7 +120,8 @@ class EventRequestManager(QNetworkAccessManager):
                         reaction()
                 elif event_type == NTFY.TRIBLER_EXCEPTION.value:
                     self.error_handler.core_error(
-                        text=json_dict["event"]["text"],
+                        exc_type_name=json_dict["exc_type_name"],
+                        exc_long_text=json_dict["exc_long_text"],
                         sentry_event=json_dict['sentry_event'],
                         error_reporting_requires_user_consent=json_dict['error_reporting_requires_user_consent'],
                         should_stop=json_dict['should_stop'],

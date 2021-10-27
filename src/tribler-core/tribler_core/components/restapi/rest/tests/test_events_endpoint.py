@@ -96,7 +96,7 @@ async def test_events(rest_manager, notifier):
             notifier.notify(subject, *data)
         else:
             notifier.notify(subject)
-    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi", None, False)
+    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception("exc_type", "exc_text", None, False)
     await events_up.wait()
 
     event_socket_task.cancel()
