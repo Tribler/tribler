@@ -48,21 +48,22 @@ class ErrorHandler:
             retrieve_error_message_from_stacktrace=is_core_timeout_exception
         ).show()
 
-    def core_error(self, text, core_event):
+    def core_error(self, text, sentry_event, error_reporting_requires_user_consent, should_stop=True):
         if self._tribler_stopped:
             return
 
         self._logger.error(text)
 
-        self._stop_tribler(text)
+        if should_stop:
+            self._stop_tribler(text)
 
         FeedbackDialog(
             parent=self.tribler_window,
             exception_text=text,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
-            sentry_event=core_event['sentry_event'],
-            error_reporting_requires_user_consent=core_event['error_reporting_requires_user_consent'],
+            sentry_event=sentry_event,
+            error_reporting_requires_user_consent=error_reporting_requires_user_consent,
             stop_application_on_close=self._tribler_stopped,
             additional_tags={'source': 'core'}
         ).show()

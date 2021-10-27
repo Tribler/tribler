@@ -107,9 +107,10 @@ class RESTComponent(Component):
         debug_endpoint.log_dir = log_dir
         debug_endpoint.state_dir = config.state_dir
 
-        def report_callback(text_long, sentry_event):
+        def report_callback(text_long, sentry_event, should_stop=True):
             events_endpoint.on_tribler_exception(text_long, sentry_event,
-                                                 config.error_handling.core_error_reporting_requires_user_consent)
+                                                 config.error_handling.core_error_reporting_requires_user_consent,
+                                                 should_stop=should_stop)
             state_endpoint.on_tribler_exception(text_long, sentry_event)
 
         CoreExceptionHandler.report_callback = report_callback
