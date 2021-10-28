@@ -9,8 +9,8 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import TODELETE
+from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
@@ -160,17 +160,53 @@ def test_get_autocomplete_terms(metadata_store):
     """
     Test fetching autocompletion terms from the database
     """
-    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
-    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
-
-    autocomplete_terms = metadata_store.get_auto_complete_terms("shee", 10)
-    assert 'sheep' in autocomplete_terms
-
-    autocomplete_terms = metadata_store.get_auto_complete_terms("shee", 10)
-    assert 'sheepish' in autocomplete_terms
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo: bar baz", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo - bar, xyz", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="barbarian xyz!", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="n.a.m.e: foobar", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xyz n.a.m.e", tags="video"))
 
     autocomplete_terms = metadata_store.get_auto_complete_terms("", 10)
-    assert [] == autocomplete_terms
+    assert autocomplete_terms == []
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("foo", 10)
+    assert set(autocomplete_terms) == {"foo: bar", "foo - bar", "foobar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("foo: bar", 10)
+    assert set(autocomplete_terms) == {"foo: bar baz", "foo: bar, xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("foo ", 10)
+    assert set(autocomplete_terms) == {"foo bar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("bar", 10)
+    assert set(autocomplete_terms) == {"bar baz", "bar, xyz", "barbarian"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barb", 10)
+    assert set(autocomplete_terms) == {"barbarian"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barbarian", 10)
+    assert set(autocomplete_terms) == {"barbarian xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barbarian ", 10)
+    assert set(autocomplete_terms) == {"barbarian xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barbarian x", 10)
+    assert set(autocomplete_terms) == {"barbarian xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.e", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e", "n.a.m.e: foobar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.e ", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e ", "n.a.m.e foobar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.e f", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e foobar"}
 
 
 @db_session

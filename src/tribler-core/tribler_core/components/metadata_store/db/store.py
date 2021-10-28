@@ -1,4 +1,5 @@
 import logging
+import re
 import threading
 from asyncio import get_event_loop
 from datetime import datetime, timedelta
@@ -12,7 +13,6 @@ from pony.orm import db_session, desc, left_join, raw_sql, select
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.components.metadata_store.db.orm_bindings import (
     binary_node,
     channel_description,
@@ -33,7 +33,6 @@ from tribler_core.components.metadata_store.db.orm_bindings import (
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
 from tribler_core.components.metadata_store.db.serialization import (
     BINARY_NODE,
     CHANNEL_DESCRIPTION,
@@ -47,6 +46,8 @@ from tribler_core.components.metadata_store.db.serialization import (
     REGULAR_TORRENT,
     read_payload_with_offset,
 )
+from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
+from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import MEMORY_DB
@@ -762,22 +763,44 @@ class MetadataStore:
     def get_max_rowid(self):
         return select(max(obj.rowid) for obj in self.ChannelNode).get() or 0
 
-    def get_auto_complete_terms(self, keyword, max_terms, limit=10):
-        if not keyword:
+    fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
+
+    def get_auto_complete_terms(self, text, max_terms, limit=10):
+        if not text:
             return []
 
-        with db_session:
-            result = self.search_keyword("\"" + keyword + "\"*", lim=limit)[:]
-        titles = [g.title.lower() for g in result]
+        words = self.fts_keyword_search_re.findall(text)
+        if not words:
+            return ""
 
-        # Copy-pasted from the old DBHandler (almost) completely
-        all_terms = set()
-        for line in titles:
-            if len(all_terms) >= max_terms:
-                break
-            i1 = line.find(keyword)
-            i2 = line.find(' ', i1 + len(keyword))
-            term = line[i1:i2] if i2 >= 0 else line[i1:]
-            if term != keyword:
-                all_terms.add(term)
-        return list(all_terms)
+        fts_query = '"%s"*' % ' '.join(f'{word}' for word in words)  # pylint: disable=unused-variable
+        suggestion_pattern = r'\W+'.join(word for word in words) + r'(\W*)((?:[.-]?\w)*)'
+        suggestion_re = re.compile(suggestion_pattern, re.UNICODE)
+
+        with db_session:
+            titles = self._db.select("""
+                cn.title
+                FROM ChannelNode cn
+                INNER JOIN FtsIndex ON cn.rowid = FtsIndex.rowid
+                LEFT JOIN TorrentState ts ON cn.health = ts.rowid
+                WHERE FtsIndex MATCH $fts_query
+                ORDER BY coalesce(ts.seeders, 0) DESC
+                LIMIT $limit
+            """)
+
+        result = []
+        for title in titles:
+            title = title.lower()
+            match = suggestion_re.search(title)
+            if match:
+                # group(2) is the ending of the last word (if the word is not finished) or the next word
+                continuation = match.group(2)
+                if re.match(r'^.*\w$', text) and match.group(1):  # group(1) is non-word symbols (spaces, commas, etc.)
+                    continuation = match.group(1) + continuation
+                suggestion = text + continuation
+                if suggestion not in result:
+                    result.append(suggestion)
+                    if len(result) >= max_terms:
+                        break
+
+        return result
