@@ -13,7 +13,6 @@ from pony.orm import db_session, desc, left_join, raw_sql, select
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.components.metadata_store.db.orm_bindings import (
     binary_node,
     channel_description,
@@ -34,7 +33,6 @@ from tribler_core.components.metadata_store.db.orm_bindings import (
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
 from tribler_core.components.metadata_store.db.serialization import (
     BINARY_NODE,
     CHANNEL_DESCRIPTION,
@@ -48,6 +46,8 @@ from tribler_core.components.metadata_store.db.serialization import (
     REGULAR_TORRENT,
     read_payload_with_offset,
 )
+from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
+from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import MEMORY_DB
@@ -773,7 +773,7 @@ class MetadataStore:
         if not words:
             return ""
 
-        fts_query = '"%s"*' % ' '.join(f'{word}' for word in words)
+        fts_query = '"%s"*' % ' '.join(f'{word}' for word in words)  # pylint: disable=unused-variable
         suggestion_pattern = r'\W+'.join(word for word in words) + r'(\W*)((?:[.-]?\w)*)'
         suggestion_re = re.compile(suggestion_pattern, re.UNICODE)
 

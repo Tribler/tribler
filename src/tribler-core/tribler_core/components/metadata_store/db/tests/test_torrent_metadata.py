@@ -9,8 +9,8 @@ from pony.orm import db_session
 import pytest
 
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import TODELETE
+from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
