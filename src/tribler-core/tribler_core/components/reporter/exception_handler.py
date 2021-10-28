@@ -87,7 +87,7 @@ class CoreExceptionHandler:
             sentry_event = SentryReporter.event_from_exception(exception)
 
             if cls.report_callback is not None:
-                cls.report_callback(exc_type_name, exc_long_text, sentry_event, should_stop=should_stop)
+                cls.report_callback(exc_type_name, exc_long_text, sentry_event, should_stop=should_stop)  # pylint: disable=not-callable
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)

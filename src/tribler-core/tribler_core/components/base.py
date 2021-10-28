@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery

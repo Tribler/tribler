@@ -1,4 +1,5 @@
 from tribler_common.simpledefs import STATEDIR_DB_DIR
+
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi.restapi_component import RestfulComponent
