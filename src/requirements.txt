@@ -1,25 +1,2 @@
-PyQt5>=5.14
-psutil
-configobj
-PyOpenSSL
-chardet
-libnacl
-pyasn1
-lz4
-pony
-service_identity
-decorator
-networkx
-cryptography
-aiohttp
-aiohttp_apispec
-pyyaml
-marshmallow
-sentry_sdk
-Faker
-Pillow
-netifaces
-pyqtgraph
-yappi
-pydantic
-anyio
+-r tribler-core/tribler_core/requirements.txt
+-r tribler-gui/tribler_gui/requirements.txt

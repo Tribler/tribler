@@ -8,8 +8,7 @@ import traceback
 import psutil
 
 from tribler_common.process_checker import ProcessChecker
-
-from tribler_core.dependencies import _show_system_popup
+from tribler_common.utilities import show_system_popup
 
 FORCE_RESTART_MESSAGE = "An existing Tribler core process (PID:%s) is already running. \n\n" \
                         "Do you want to stop the process and do a clean restart instead?"
@@ -24,7 +23,7 @@ def error_and_exit(title, main_text):
     :param title: the short error description
     :param main_text: the long error description
     """
-    _show_system_popup(title, main_text)
+    show_system_popup(title, main_text)
 
     # Exit the program
     sys.exit(1)
