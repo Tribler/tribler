@@ -2,6 +2,7 @@ import inspect
 import logging
 import math
 import os
+import re
 import sys
 import traceback
 import types
@@ -428,14 +429,10 @@ def get_translator(language=None):
     translator.load(locale, filename, directory=TRANSLATIONS_DIR)
     return translator
 
-
-def sanitize_for_fts(text):
-    return text.translate({ord("\""): "\"\"", ord("\'"): "\'\'"})
-
+fts_query_re = re.compile(r'\w+', re.UNICODE)
 
 def to_fts_query(text):
     if not text:
         return ""
-    words = text.strip().split(" ")
-    query_list = ['\"' + sanitize_for_fts(word) + '\"*' for word in words]
-    return " AND ".join(query_list)
+    words = fts_query_re.findall(text)
+    return ' '.join(f'"{word}"' for word in words) + '*'

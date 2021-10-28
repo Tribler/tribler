@@ -77,7 +77,6 @@ from tribler_gui.utilities import (
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
-    sanitize_for_fts,
     tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
@@ -648,7 +647,7 @@ class TriblerWindow(QMainWindow):
         if len(text) < 2:
             return
         TriblerNetworkRequest(
-            "search/completions", self.on_received_search_completions, url_params={'q': sanitize_for_fts(text)}
+            "search/completions", self.on_received_search_completions, url_params={'q': text}
         )
 
     def on_received_search_completions(self, completions):

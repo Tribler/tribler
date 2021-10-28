@@ -8,6 +8,7 @@ from tribler_core.components.metadata_store.restapi.search_endpoint import Searc
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.utilities.random_utils import random_infohash
 
+from tribler_gui.utilities import to_fts_query
 
 # pylint: disable=unused-argument, redefined-outer-name
 
@@ -123,3 +124,30 @@ async def test_completions(rest_api):
     """
     json_response = await do_request(rest_api, 'search/completions?q=tribler', expected_code=200)
     assert json_response['completions'] == []
+
+
+async def test_search_with_space(rest_api, metadata_store):
+    with db_session:
+        _ = metadata_store.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
+        metadata_store.TorrentMetadata(title='abc', infohash=random_infohash())
+        metadata_store.TorrentMetadata(title='abc.def', infohash=random_infohash())
+        metadata_store.TorrentMetadata(title='abc def', infohash=random_infohash())
+        metadata_store.TorrentMetadata(title='abcxyz def', infohash=random_infohash())
+        metadata_store.TorrentMetadata(title='abc defxyz', infohash=random_infohash())
+
+    s1 = to_fts_query("abc")
+    assert s1 == '"abc"*'
+
+    s2 = to_fts_query("abc def")
+    assert s2 == '"abc" "def"*'
+
+    ss2 = to_fts_query(s2)
+    assert ss2 == s2
+
+    parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
+    results = {item["name"] for item in parsed["results"]}
+    assert results == {'abc', 'abc.def', 'abc def', 'abc defxyz', 'abcxyz def'}
+
+    parsed = await do_request(rest_api, f'search?txt_filter={s2}', expected_code=200)
+    results = {item["name"] for item in parsed["results"]}
+    assert results == {'abc.def', 'abc def', 'abc defxyz'}  # but not 'abcxyz def'
