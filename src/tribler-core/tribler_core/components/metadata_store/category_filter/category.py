@@ -35,15 +35,17 @@ class Category:
     __size_change = 1024 * 1024
     _logger = logging.getLogger("Category")
 
-    category_info = getCategoryInfo(CATEGORY_CONFIG_FILE)
-    category_info.sort(key=cmp_to_key(cmp_rank))
+    def __init__(self, xxx_filter=default_xxx_filter):
+        self.category_info = getCategoryInfo(CATEGORY_CONFIG_FILE)
+        self.category_info.sort(key=cmp_to_key(cmp_rank))
+        self.xxx_filter = xxx_filter
 
     def calculateCategory(self, torrent_dict, display_name):
         """
         Calculate the category for a given torrent_dict of a torrent file.
         :return a list of categories this torrent belongs to.
         """
-        is_xxx = default_xxx_filter.isXXXTorrent(
+        is_xxx = self.xxx_filter.isXXXTorrent(
             files_list=recursive_unicode(torrent_dict[b'info']["files"] if "files" in torrent_dict[b'info'] else []),
             torrent_name=torrent_dict[b'info'].get(b"name", b'').decode('utf-8'),
             tracker=torrent_dict[b'info'].get(b"announce", b'').decode('utf-8'))
