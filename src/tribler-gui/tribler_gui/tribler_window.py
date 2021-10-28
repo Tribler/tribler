@@ -288,13 +288,13 @@ class TriblerWindow(QMainWindow):
 
         signal.signal(signal.SIGINT, sigint_handler)
 
-        # Resize the window according to the settings
-        center = QApplication.desktop().availableGeometry(self).center()
-        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
+        # Resize and move the window according to the settings
         size = self.gui_settings.value("size", self.size())
-
-        self.move(pos)
         self.resize(size)
+
+        center = QApplication.desktop().availableGeometry(self).center()
+        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() / 2, center.y() - self.height() / 2))
+        self.move(pos)
 
         self.show()
 
