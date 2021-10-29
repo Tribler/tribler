@@ -5,6 +5,8 @@ from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, Q
 from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
 
+from psutil import LINUX
+
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
@@ -562,7 +564,15 @@ class CategoryLabel(QObject):
         text_flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextSingleLine
         text_box = painter.boundingRect(option.rect, text_flags, self.category)
 
-        painter.drawText(text_box, text_flags, self.category)
+        if LINUX:
+            # On Linux, the default font sometimes does not contain the emoji characters.
+            current_font = painter.font()
+            painter.setFont(QFont("Noto Color Emoji"))
+            painter.drawText(text_box, text_flags, self.category)
+            painter.setFont(current_font)
+        else:
+            painter.drawText(text_box, text_flags, self.category)
+
         if draw_border:
             bezel_thickness = 4
             bezel_box = QRect(
