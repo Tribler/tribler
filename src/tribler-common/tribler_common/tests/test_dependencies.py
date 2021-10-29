@@ -51,7 +51,16 @@ async def test_get_dependencies():
     # check that libraries are differ from different scopes
     gui_dependencies = list(get_dependencies(Scope.gui))
     core_dependencies = list(get_dependencies(Scope.core))
-    assert len(core_dependencies) > len(gui_dependencies)
+    common_dependencies = list(get_dependencies(Scope.common))
+
+    assert gui_dependencies
+    assert core_dependencies
+    assert common_dependencies
+
+
+async def test_get_dependencies_wrong_scope():
+    with pytest.raises(ValueError):
+        get_dependencies(scope=100)
 
 
 @patch('pkg_resources.working_set', new_callable=MagicMock)

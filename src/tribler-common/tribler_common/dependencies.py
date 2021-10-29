@@ -18,7 +18,7 @@ from tribler_core.utilities.path_util import Path
 
 logger = logging.getLogger(__name__)
 
-Scope = Enum('Scope', 'core gui')
+Scope = Enum('Scope', 'core gui common')
 
 
 # pylint: disable=import-outside-toplevel
@@ -66,9 +66,15 @@ def get_dependencies(scope: Scope) -> Iterator[str]:
         import tribler_core
 
         return _get_pip_dependencies(Path(tribler_core.__file__).parent / requirements)
-    import tribler_gui
+    if scope == Scope.gui:
+        import tribler_gui
 
-    return _get_pip_dependencies(Path(tribler_gui.__file__).parent / requirements)
+        return _get_pip_dependencies(Path(tribler_gui.__file__).parent / requirements)
+    if scope == Scope.common:
+        import tribler_common
+
+        return _get_pip_dependencies(Path(tribler_common.__file__).parent / requirements)
+    raise ValueError(f'Scope should be one of {list(Scope)}')
 
 
 def get_missed(scope: Scope) -> Iterator[str]:
@@ -86,7 +92,7 @@ def get_missed(scope: Scope) -> Iterator[str]:
 def _extract_libraries_from_requirements(text: str) -> Iterator[str]:
     logger.debug(f'requirements.txt content: {text}')
     for library in filter(None, text.split('\n')):
-        yield re.split(r'[><=]', library, maxsplit=1)[0]
+        yield re.split(r'[><=~]', library, maxsplit=1)[0]
 
 
 def _get_pip_dependencies(path_to_requirements: Path) -> Iterator[str]:

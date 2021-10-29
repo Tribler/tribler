@@ -20,8 +20,7 @@ import asyncio
 import os
 import sys
 
-from mock import Mock as MagicMock
-
+# pylint: disable=wrong-import-position
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__name__), '..'))
 tribler_components = [
     os.path.join(root_dir, "src", "pyipv8"),
@@ -34,43 +33,21 @@ tribler_components = [
 for component in tribler_components:
     sys.path.append(str(component))
 
-# Mock various libraries
-_classnames = {
-    'Response', 'StreamResponse',  # needed to mock web.Response and web.StreamResponse
-    'DiGraph'  # Needed for networkx.DiGraph
-}
+from tribler_common.dependencies import Scope, get_dependencies
+from tribler_common.mock_import import mock_import
 
+packages_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent'}
 
-class Mock(MagicMock):
-
-    @classmethod
-    def __getattr__(cls, name):
-        if name == '__version__':
-            return "0.0.0"
-        return Mock if name in _classnames else Mock()
-
-
-# Mock everything except aiohttp/aiohttp_apispec, since we need the libraries to extract the Swagger docs.
-MOCK_MODULES = ['libtorrent', 'treq', 'pony', 'pony.orm', 'pony.orm.core', 'pony.utils', 'lz4', 'lz4.frame', 'psutil',
-                'meliae', 'libnacl', 'decorator', 'libnacl.dual', 'libnacl.sign', 'libnacl.encode', 'libnacl.public',
-                'netifaces', 'ipv8.messaging.anonymization.tunnel', 'Tribler.community.gigachannel.community',
-                'networkx', 'validate', 'ipv8_service', 'ipv8.REST.root_endpoint', 'faker', 'sentry_sdk',
-                'sentry_sdk.integrations.logging', 'sentry_sdk.integrations.threading']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-sys.modules['psutil'].boot_time = lambda: 0
-
-# Ignore ipv8/anydex/wallet endpoints
-from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint  # pylint: disable=wrong-import-position
+with mock_import(packages=packages_to_mock):
+    from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 add_endpoint = RootEndpoint.add_endpoint
 RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
-                                                   if path not in ['/ipv8', '/market', '/wallets'] else None
+    if path not in ['/ipv8', '/market', '/wallets'] else None
 
 # Extract Swagger docs
-from extract_swagger import extract_swagger
-asyncio.run(extract_swagger('restapi/swagger.yaml'))
+from extract_swagger import extract_swagger  # noqa: I100
 
-MOCK_MODULES = ['aiohttp', 'aiohttp_apispec']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+asyncio.run(extract_swagger('restapi/swagger.yaml'))
 
 # -- General configuration ------------------------------------------------
 
@@ -173,7 +150,6 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
-
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -213,7 +189,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-#html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
