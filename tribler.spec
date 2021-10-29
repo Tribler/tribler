@@ -62,6 +62,11 @@ if sys.platform.startswith('darwin'):
     with open('build/mac/resources/Info.plist', 'w') as f:
         f.write(content)
 
+# Embed the "Noto Color Emoji" font on Linux
+ttf_path = os.path.join("/usr", "share", "fonts", "truetype", "noto", "NotoColorEmoji.ttf")
+if sys.platform.startswith('linux') and os.path.exists(ttf_path):
+    data_to_copy += [(ttf_path, 'fonts')]
+
 excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import

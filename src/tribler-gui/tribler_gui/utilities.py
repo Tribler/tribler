@@ -200,6 +200,13 @@ def get_image_path(filename: str, convert_slashes_to_forward: bool = False) -> s
     return path
 
 
+def get_font_path(filename: str) -> str:
+    """
+    Return a path to a particular font in the fonts directory.
+    """
+    return os.path.join(get_base_path(), 'fonts', filename)
+
+
 def get_gui_setting(gui_settings, value, default, is_bool=False):
     """
     Utility method to get a specific GUI setting. The is_bool flag defines whether we expect a boolean so we convert it
