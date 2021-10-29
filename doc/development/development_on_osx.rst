@@ -74,13 +74,6 @@ There are a bunch of other packages that can easily be installed using pip and b
     brew install gmp mpfr libmpc libsodium
     cd src && python3 -m pip install -r requirements.txt
 
-
-To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is experimental):
-
-.. code-block:: bash
-
-    python3 -m pip install bitcoinlib==0.4.10
-
 Tribler
 -------
 

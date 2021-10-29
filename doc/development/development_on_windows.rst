@@ -64,12 +64,6 @@ There are some additional packages which should be installed. They can easily be
     pip install aiohttp aiohttp_apispec cffi chardet configobj cryptography decorator gmpy2 idna libnacl lz4 \
     netifaces networkx numpy pillow psutil pyasn1 PyQt5 pyqtgraph pywin32 pyyaml
 
-To enable Bitcoin wallet management (optional), you should install the bitcoinlib library (support for this wallet is highly experimental):
-
-.. code-block:: bash
-
-    pip install bitcoinlib==0.4.10
-
 Running Tribler
 ---------------
 
