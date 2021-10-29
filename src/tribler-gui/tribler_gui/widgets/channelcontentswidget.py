@@ -5,6 +5,8 @@ from PyQt5.QtCore import QDir, QTimer, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 
+from psutil import LINUX
+
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import CHANNEL_STATE
 
@@ -130,12 +132,17 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.hide_xxx = hide_xxx
         self.initialized = True
+
         self.category_selector.addItems(CATEGORY_SELECTOR_ITEMS)
         connect(self.category_selector.currentIndexChanged, self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
         connect(self.channel_back_button.clicked, self.go_back)
         connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
         self.commit_control_bar.setHidden(True)
+
+        if LINUX:
+            # On Linux, the default font sometimes does not contain the emoji characters.
+            self.category_selector.setStyleSheet("font-family: Noto Color Emoji")
 
         self.controller = controller_class(self.content_table, filter_input=self.channel_torrents_filter_input)
 

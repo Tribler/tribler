@@ -46,14 +46,6 @@ data_to_copy = [
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]
 
-# For bitcoinlib, we have to copy the data directory to the root directory of the installation dir, otherwise
-# the library is unable to find the data files.
-try:
-    bitcoinlib_dir = imp.find_module('bitcoinlib')[1]
-    data_to_copy += [(bitcoinlib_dir, 'bitcoinlib')]
-except ImportError:
-    pass
-
 # Importing lib2to3 as hidden import does not import all the necessary files for some reason so had to import as data.
 try:
     lib2to3_dir = imp.find_module('lib2to3')[1]
@@ -70,7 +62,12 @@ if sys.platform.startswith('darwin'):
     with open('build/mac/resources/Info.plist', 'w') as f:
         f.write(content)
 
-excluded_libs = ['wx', 'bitcoinlib', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
+# Embed the "Noto Color Emoji" font on Linux
+ttf_path = os.path.join("/usr", "share", "fonts", "truetype", "noto", "NotoColorEmoji.ttf")
+if sys.platform.startswith('linux') and os.path.exists(ttf_path):
+    data_to_copy += [(ttf_path, 'fonts')]
+
+excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']

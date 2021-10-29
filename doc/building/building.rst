@@ -21,7 +21,7 @@ Run the following commands in your terminal:
 
 .. code-block:: none
 
-    sudo apt-get install devscripts python-setuptools
+    sudo apt-get install devscripts python-setuptools fonts-noto-color-emoji
     cd tribler
     build/update_version_from_git.py
     python3 -m PyInstaller tribler.spec

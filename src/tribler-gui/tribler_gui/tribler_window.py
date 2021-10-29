@@ -21,7 +21,7 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt5.QtGui import QDesktopServices, QIcon, QKeyEvent, QKeySequence, QPixmap
+from PyQt5.QtGui import QDesktopServices, QFontDatabase, QIcon, QKeyEvent, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -35,6 +35,8 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QTreeWidget,
 )
+
+from psutil import LINUX
 
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.osutils import get_root_state_directory
@@ -74,6 +76,7 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRe
 from tribler_gui.utilities import (
     connect,
     disconnect,
+    get_font_path,
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
@@ -158,6 +161,17 @@ class TriblerWindow(QMainWindow):
         self.token_refresh_timer = None
         self.shutdown_timer = None
         self.add_torrent_url_dialog_active = False
+
+        # We use colored Emojis at several locations in our user interface. Not all Linux distributions have a font
+        # available to render these characters. If we are on Linux, try to load the .ttf file from the Tribler data
+        # directory, if the font is not installed yet. This font should be embedded by PyInstaller when building the
+        # executable.
+        if LINUX and "Noto Color Emoji" not in QFontDatabase().families():
+            emoji_ttf_path = get_font_path("NotoColorEmoji.ttf")
+            if os.path.exists(emoji_ttf_path):
+                result = QFontDatabase.addApplicationFont(emoji_ttf_path)
+                if result == -1:
+                    self.logger.warning("Failed to load font %s!", emoji_ttf_path)
 
         sys.excepthook = self.error_handler.gui_error
 

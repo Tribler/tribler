@@ -56,9 +56,10 @@ def generate_torrent(metadata_store, tags_db, parent):
     # Give each torrent some health information. For now, we assume all torrents are healthy.
     now = int(time.time())
     last_check = now - random.randint(3600, 24 * 3600)
+    category = random.choice(["Video", "Audio", "Documents", "Compressed", "Books", "Science"])
     torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=10, last_check=last_check)
     metadata_store.TorrentMetadata(title=random_utf8_string(50), infohash=infohash, origin_id=parent.id_,
-                                   health=torrent_state)
+                                   health=torrent_state, tags=category)
 
     tag_torrent(infohash, tags_db)
 
