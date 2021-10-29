@@ -183,8 +183,8 @@ class TriblerContentTableView(QTableView):
         data_item = index.model().data_items[index.row()]
         self.add_tags_dialog = AddTagsDialog(self.window(), data_item["infohash"])
         self.add_tags_dialog.index = index
-        if data_item["tags"]:
-            self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item["tags"])
+        if data_item.get("tags", ()):
+            self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item.get("tags", ()))
         self.add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
         self.add_tags_dialog.show()
         connect(self.add_tags_dialog.save_button_clicked, self.save_edited_tags)

@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from asyncio import Event, create_task, gather
+from asyncio import Event, create_task, gather, get_event_loop
 from itertools import count
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
@@ -23,6 +24,21 @@ class ComponentError(Exception):
     pass
 
 
+class ComponentStartupException(ComponentError):
+    def __init__(self, component: Component, cause: Exception):
+        super().__init__(component.__class__.__name__)
+        self.component = component
+        self.__cause__ = cause
+
+
+class MissedDependency(ComponentError):
+    def __init__(self, component: Component, dependency: Type[Component]):
+        msg = f'Missed dependency: {component.__class__.__name__} requires {dependency.__name__} to be active'
+        super().__init__(msg)
+        self.component = component
+        self.dependency = dependency
+
+
 def create_state_directory_structure(state_dir: Path):
     """Create directory structure of the state directory."""
     state_dir.mkdir(exist_ok=True)
@@ -34,11 +50,13 @@ class Session:
     _next_session_id = count(1)
     _default: Optional[Session] = None
     _stack: List[Session] = []
+    _startup_exception: Optional[Exception] = None
 
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
-                 shutdown_event: Event = None, notifier: Notifier = None):
+                 shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
         self.id = next(Session._next_session_id)
+        self.failfast = failfast
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
@@ -77,7 +95,7 @@ class Session:
         self.components[comp_cls] = comp
         comp.session = self
 
-    async def start(self, failfast=True):
+    async def start(self):
         self.logger.info("Session is using state directory: %s", self.config.state_dir)
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
@@ -87,7 +105,19 @@ class Session:
             os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
 
         coros = [comp.start() for comp in self.components.values()]
-        await gather(*coros, return_exceptions=not failfast)
+        await gather(*coros, return_exceptions=not self.failfast)
+        if self._startup_exception:
+            self._reraise_startup_exception_in_separate_task()
+
+    def _reraise_startup_exception_in_separate_task(self):
+        async def exception_reraiser():
+            # the exception should be intercepted by event loop exception handler
+            raise self._startup_exception
+        get_event_loop().create_task(exception_reraiser())
+
+    def set_startup_exception(self, exc: Exception):
+        if not self._startup_exception:
+            self._startup_exception = exc
 
     async def shutdown(self):
         await gather(*[create_task(component.stop()) for component in self.components.values()])
@@ -104,6 +134,8 @@ T = TypeVar('T', bound='Component')
 
 
 class Component:
+    tribler_should_stop_on_component_error = True
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info('__init__')
@@ -130,10 +162,16 @@ class Component:
             # Writing to stderr is for the case when logger is not configured properly (as my happen in local tests,
             # for example) to avoid silent suppression of the important exceptions
             sys.stderr.write(f'\nException in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
-            self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
+            if isinstance(e, MissedDependency):
+                # Use logger.error instead of logger.exception here to not spam log with multiple error tracebacks
+                self.logger.error(e)
+            else:
+                self.logger.exception(f'Exception in {self.__class__.__name__}.start(): {type(e).__name__}:{e}')
             self.failed = True
             self.started_event.set()
-            raise
+            if self.session.failfast:
+                raise e
+            self.session.set_startup_exception(ComponentStartupException(self, e))
         self.started_event.set()
 
     async def stop(self):
@@ -167,8 +205,7 @@ class Component:
         """
         dep = await self.get_component(dependency)
         if not dep:
-            raise ComponentError(
-                f'Missed dependency: {self.__class__.__name__} requires {dependency.__name__} to be active')
+            raise MissedDependency(self, dependency)
         return dep
 
     async def get_component(self, dependency: Type[T]) -> Optional[T]:

@@ -3,12 +3,17 @@ from binascii import unhexlify
 from typing import Optional, Set, Tuple
 
 from aiohttp import web
+
 from aiohttp_apispec import docs
-from marshmallow.fields import Boolean, List, String
-from pony.orm import db_session
 
 from ipv8.REST.schema import schema
+
+from marshmallow.fields import Boolean, List, String
+
+from pony.orm import db_session
+
 from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+
 from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.components.restapi.rest.schema import HandledErrorSchema
 from tribler_core.components.tag.community.tag_community import TagCommunity
@@ -122,4 +127,5 @@ class TagsEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            return RESTResponse({"suggestions": self.db.get_suggestions(unhexlify(infohash))})
+            suggestions = [] if self.db is None else self.db.get_suggestions(unhexlify(infohash))
+            return RESTResponse({"suggestions": suggestions})

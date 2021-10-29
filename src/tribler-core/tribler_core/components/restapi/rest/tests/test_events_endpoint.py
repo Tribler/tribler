@@ -10,10 +10,10 @@ import pytest
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.notifier import Notifier
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.notifier import Notifier
 from tribler_core.version import version_id
 
 messages_to_wait_for = set()
@@ -96,7 +96,7 @@ async def test_events(rest_manager, notifier):
             notifier.notify(subject, *data)
         else:
             notifier.notify(subject)
-    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception("hi", None, False)
+    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception("exc_type", "exc_text", None, False)
     await events_up.wait()
 
     event_socket_task.cancel()

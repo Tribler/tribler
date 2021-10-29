@@ -3,9 +3,11 @@ import os
 import traceback
 
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.event_request_manager import CoreConnectTimeoutError
 
+# fmt: off
 
 class ErrorHandler:
     def __init__(self, tribler_window):
@@ -48,21 +50,24 @@ class ErrorHandler:
             retrieve_error_message_from_stacktrace=is_core_timeout_exception
         ).show()
 
-    def core_error(self, text, core_event):
-        if self._tribler_stopped:
+    def core_error(self, exc_type_name, exc_long_text, sentry_event, error_reporting_requires_user_consent,
+                   should_stop=True):
+        if self._tribler_stopped or exc_type_name in self._handled_exceptions:
             return
+        self._handled_exceptions.add(exc_type_name)
 
-        self._logger.error(text)
+        self._logger.error(exc_long_text)
 
-        self._stop_tribler(text)
+        if should_stop:
+            self._stop_tribler(exc_long_text)
 
         FeedbackDialog(
             parent=self.tribler_window,
-            exception_text=text,
+            exception_text=exc_long_text,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
-            sentry_event=core_event['sentry_event'],
-            error_reporting_requires_user_consent=core_event['error_reporting_requires_user_consent'],
+            sentry_event=sentry_event,
+            error_reporting_requires_user_consent=error_reporting_requires_user_consent,
             stop_application_on_close=self._tribler_stopped,
             additional_tags={'source': 'core'}
         ).show()

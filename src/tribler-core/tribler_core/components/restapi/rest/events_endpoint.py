@@ -14,9 +14,9 @@ from marshmallow.fields import Dict, String
 
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.notifier import Notifier
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.components.restapi.rest.util import fix_unicode_dict
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it
 from tribler_core.version import version_id
@@ -123,12 +123,15 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
     # An exception has occurred in Tribler. The event includes a readable
     # string of the error and a Sentry event.
-    def on_tribler_exception(self, exception_text, sentry_event, error_reporting_requires_user_consent):
+    def on_tribler_exception(self, exc_type_name, exc_long_text, sentry_event, error_reporting_requires_user_consent,
+                             should_stop=True):
         self.write_data({
             "type": NTFY.TRIBLER_EXCEPTION.value,
-            "event": {"text": exception_text},
+            "exc_type_name": exc_type_name,
+            "exc_long_text": exc_long_text,
             "sentry_event": sentry_event,
-            "error_reporting_requires_user_consent": error_reporting_requires_user_consent
+            "error_reporting_requires_user_consent": error_reporting_requires_user_consent,
+            "should_stop": should_stop,
         })
 
     @docs(

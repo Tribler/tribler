@@ -92,7 +92,7 @@ def components_gen(config: TriblerConfig):
 
 
 async def core_session(config: TriblerConfig, components: List[Component]):
-    session = Session(config, components)
+    session = Session(config, components, failfast=False)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
     session.set_as_default()
 

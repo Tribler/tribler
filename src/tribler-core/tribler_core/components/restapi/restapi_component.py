@@ -6,8 +6,8 @@ from ipv8_service import IPv8
 from tribler_common.simpledefs import STATE_START_API
 
 from tribler_core.components.base import Component
-from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
+from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
@@ -107,10 +107,11 @@ class RESTComponent(Component):
         debug_endpoint.log_dir = log_dir
         debug_endpoint.state_dir = config.state_dir
 
-        def report_callback(text_long, sentry_event):
-            events_endpoint.on_tribler_exception(text_long, sentry_event,
-                                                 config.error_handling.core_error_reporting_requires_user_consent)
-            state_endpoint.on_tribler_exception(text_long, sentry_event)
+        def report_callback(exc_type_name, exc_long_text, sentry_event, should_stop=True):
+            events_endpoint.on_tribler_exception(exc_type_name, exc_long_text, sentry_event,
+                                                 config.error_handling.core_error_reporting_requires_user_consent,
+                                                 should_stop=should_stop)
+            state_endpoint.on_tribler_exception(exc_long_text, sentry_event)
 
         CoreExceptionHandler.report_callback = report_callback
 
