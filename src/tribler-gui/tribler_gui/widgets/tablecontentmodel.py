@@ -7,6 +7,7 @@ from typing import Callable, Dict
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
 
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
+from tribler_common.utilities import to_fts_query
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -19,7 +20,6 @@ from tribler_gui.utilities import (
     format_votes,
     get_votes_rating_description,
     pretty_date,
-    to_fts_query,
     tr,
 )
 
