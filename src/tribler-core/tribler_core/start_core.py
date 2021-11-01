@@ -125,6 +125,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
     through the HTTP API.
     """
     # Check for missing Core dependencies
+
+    check_for_missing_dependencies(scope=Scope.common)
     check_for_missing_dependencies(scope=Scope.core)
 
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '

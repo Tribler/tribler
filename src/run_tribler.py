@@ -81,6 +81,7 @@ if __name__ == "__main__":
         # Check for missing both(GUI, Core) dependencies
 
         from tribler_common.dependencies import Scope, check_for_missing_dependencies
+        check_for_missing_dependencies(scope=Scope.common)
         check_for_missing_dependencies(scope=Scope.core)
         check_for_missing_dependencies(scope=Scope.gui)
 
