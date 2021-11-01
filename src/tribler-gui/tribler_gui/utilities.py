@@ -2,7 +2,6 @@ import inspect
 import logging
 import math
 import os
-import re
 import sys
 import traceback
 import types
@@ -435,11 +434,3 @@ def get_translator(language=None):
     filename = ""
     translator.load(locale, filename, directory=TRANSLATIONS_DIR)
     return translator
-
-fts_query_re = re.compile(r'\w+', re.UNICODE)
-
-def to_fts_query(text):
-    if not text:
-        return ""
-    words = fts_query_re.findall(text)
-    return ' '.join(f'"{word}"' for word in words) + '*'
