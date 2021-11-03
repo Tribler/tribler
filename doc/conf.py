@@ -34,11 +34,11 @@ for component in tribler_components:
     sys.path.append(str(component))
 
 from tribler_common.dependencies import Scope, get_dependencies
-from tribler_common.mock_import import mock_import
+from tribler_common.patch_import import patch_import
 
-packages_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
+modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
 
-with mock_import(packages=packages_to_mock):
+with patch_import(modules=modules_to_mock):
     from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 add_endpoint = RootEndpoint.add_endpoint
 RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \

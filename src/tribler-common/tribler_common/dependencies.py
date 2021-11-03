@@ -29,9 +29,9 @@ def get_dependencies(scope: Scope) -> Iterator[str]:
             import tribler_gui
             return Path(tribler_gui.__file__).parent / requirements_txt
         if scope == Scope.common:
-            import tribler_gui
-            return Path(tribler_gui.__file__).parent / requirements_txt
-        return None
+            import tribler_common
+            return Path(tribler_common.__file__).parent / requirements_txt
+        raise AttributeError(f'Scope is {scope} but should be in {[s for s in Scope]}')  # pylint: disable=unnecessary-comprehension
 
     return _get_pip_dependencies(_get_path_to_requirements_txt())
 

@@ -12,16 +12,16 @@ from typing import List
 import mock
 
 
-__all__ = ['mock_import']
+__all__ = ['patch_import']
 
 _builtins_import = builtins.__import__
 
 
-def mock_import(packages=List[str], **mock_kwargs):
+def patch_import(modules=List[str], **mock_kwargs):
     """
     Mocks import statement, and disable ImportError if a module
     could not be imported.
-    :param packages: a list of prefixes of modules that should
+    :param modules: a list of prefixes of modules that should
         be mocked, and an ImportError could not be raised for.
     :param mock_kwargs: kwargs for MagicMock object.
     :return: patch object
@@ -31,7 +31,7 @@ def mock_import(packages=List[str], **mock_kwargs):
         try:
             return _builtins_import(module_name, *args, **kwargs)
         except:
-            if any((module_name == prefix or module_name.startswith(prefix + '.') for prefix in packages)):
+            if any((module_name == prefix or module_name.startswith(prefix + '.') for prefix in modules)):
                 return mock.MagicMock(**mock_kwargs)
             raise
 

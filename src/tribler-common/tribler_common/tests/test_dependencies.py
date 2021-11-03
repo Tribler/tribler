@@ -1,8 +1,5 @@
-from unittest.mock import patch
-
 import pytest
 
-from tribler_common import dependencies
 from tribler_common.dependencies import (
     Scope,
     _extract_libraries_from_requirements,
@@ -19,11 +16,6 @@ pytestmark = pytest.mark.asyncio
 # pylint: disable=protected-access
 
 # fmt: off
-
-def patch_dependencies_module(target, **kwargs):
-    """Patch functions from dependencies module"""
-    return patch(f'{dependencies.__name__}.{target.__name__}', **kwargs)
-
 
 async def test_extract_libraries_from_requirements():
     # check that libraries extracts from text correctly
@@ -46,3 +38,9 @@ async def test_get_dependencies():
     assert list(get_dependencies(Scope.gui))
     assert list(get_dependencies(Scope.core))
     assert list(get_dependencies(Scope.common))
+
+
+async def test_get_dependencies_wrong_scope():
+    # test that get_dependencies raises AttributeError in case of wrong scope
+    with pytest.raises(AttributeError):
+        get_dependencies(100)
