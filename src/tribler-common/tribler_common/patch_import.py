@@ -30,7 +30,7 @@ def patch_import(modules=List[str], **mock_kwargs):
     def try_import(module_name, *args, **kwargs):
         try:
             return _builtins_import(module_name, *args, **kwargs)
-        except:
+        except ImportError:
             if any((module_name == prefix or module_name.startswith(prefix + '.') for prefix in modules)):
                 return mock.MagicMock(**mock_kwargs)
             raise
