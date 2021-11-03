@@ -6,7 +6,6 @@ import signal
 import sys
 from typing import List
 
-from tribler_common.dependencies import Scope, check_for_missing_dependencies
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.simpledefs import NTFY
@@ -124,11 +123,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
-    # Check for missing Core dependencies
-
-    check_for_missing_dependencies(scope=Scope.common)
-    check_for_missing_dependencies(scope=Scope.core)
-
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
                 f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
                 f'Core test mode: "{gui_test_mode}"')

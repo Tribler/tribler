@@ -1,10 +1,11 @@
 import os
-import re
 import platform
+import re
 import sys
-from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import url2pathname
+
+from tribler_core.utilities.path_util import Path
 
 
 def is_frozen():
@@ -50,12 +51,15 @@ def show_system_popup(title, text):
     try:
         if system == 'Windows':
             import win32api
+
             win32api.MessageBox(0, text, title)
         elif system == 'Linux':
             import subprocess
+
             subprocess.Popen(['xmessage', '-center', text])
         elif system == 'Darwin':
             import subprocess
+
             subprocess.Popen(['/usr/bin/osascript', '-e', text])
         else:
             print(f'cannot create native pop-up for system {system}')  # noqa: T001

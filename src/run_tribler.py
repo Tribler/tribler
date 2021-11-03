@@ -78,14 +78,6 @@ if __name__ == "__main__":
         # Set up logging
         tribler_gui.load_logger_config(root_state_dir)
 
-        # Check for missing both(GUI, Core) dependencies
-
-        from tribler_common.dependencies import Scope, check_for_missing_dependencies
-        check_for_missing_dependencies(scope=Scope.common)
-        check_for_missing_dependencies(scope=Scope.core)
-        check_for_missing_dependencies(scope=Scope.gui)
-
-        # Do imports only after dependencies check
         from tribler_core.check_os import check_and_enable_code_tracing, check_environment, check_free_space, \
             enable_fault_handler, error_and_exit, should_kill_other_tribler_instances
         from tribler_core.exceptions import TriblerException

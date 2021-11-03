@@ -1,6 +1,6 @@
-PyQt5>=5.14
 configobj
 networkx
 Pillow
 psutil
+PyQt5>=5.14
 pyqtgraph

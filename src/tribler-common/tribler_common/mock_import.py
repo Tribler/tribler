@@ -6,16 +6,15 @@ to allow `mock_import` ignore only packages included to the `packages` list.
 
 Original module distributes under Apache License 2.0.
 """
+import builtins
 from typing import List
 
 import mock
 
-import six
-
 
 __all__ = ['mock_import']
 
-_builtins_import = six.moves.builtins.__import__
+_builtins_import = builtins.__import__
 
 
 def mock_import(packages=List[str], **mock_kwargs):
@@ -36,4 +35,4 @@ def mock_import(packages=List[str], **mock_kwargs):
                 return mock.MagicMock(**mock_kwargs)
             raise
 
-    return mock.patch('six.moves.builtins.__import__', try_import)
+    return mock.patch('builtins.__import__', try_import)

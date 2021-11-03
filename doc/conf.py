@@ -36,7 +36,7 @@ for component in tribler_components:
 from tribler_common.dependencies import Scope, get_dependencies
 from tribler_common.mock_import import mock_import
 
-packages_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent'}
+packages_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
 
 with mock_import(packages=packages_to_mock):
     from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
