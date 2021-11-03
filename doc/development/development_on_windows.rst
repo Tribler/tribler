@@ -60,9 +60,11 @@ Additional Packages
 There are some additional packages which should be installed. They can easily be installed using pip:
 
 .. code-block:: bash
+    cd src
+    pip install --upgrade -r requirements.txt
 
-    pip install aiohttp aiohttp_apispec cffi chardet configobj cryptography decorator gmpy2 idna libnacl lz4 \
-    netifaces networkx numpy pillow psutil pyasn1 PyQt5 pyqtgraph pywin32 pyyaml
+    cd src/pyipv8
+    pip install --upgrade -r requirements.txt
 
 Running Tribler
 ---------------

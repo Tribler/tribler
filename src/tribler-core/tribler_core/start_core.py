@@ -35,7 +35,6 @@ from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 from tribler_core.components.version_check.version_check_component import VersionCheckComponent
 from tribler_core.components.watch_folder.watch_folder_component import WatchFolderComponent
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.dependencies import check_for_missing_dependencies
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -124,9 +123,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
     """
-    # Check for missing Core dependencies
-    check_for_missing_dependencies(scope='core')
-
     logger.info(f'Start tribler core. Base path: "{base_path}". API port: "{api_port}". '
                 f'API key: "{api_key}". Root state dir: "{root_state_dir}". '
                 f'Core test mode: "{gui_test_mode}"')

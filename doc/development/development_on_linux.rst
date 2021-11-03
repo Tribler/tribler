@@ -13,7 +13,9 @@ Secondly, install python packages
 
 .. code-block:: bash
 
-    pip3 install aiohttp aiohttp_apispec chardet configobj decorator libnacl matplotlib netifaces networkx pony psutil pyasn1 requests lz4 pyqtgraph pyyaml
+    cd src
+    pip3 install --upgrade -r requirements.txt
+
 
 Then, install py-ipv8 python dependencies
 
