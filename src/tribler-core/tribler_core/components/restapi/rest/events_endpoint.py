@@ -2,6 +2,7 @@ import json
 import time
 from asyncio import CancelledError
 from dataclasses import asdict
+from typing import List, Optional
 
 from aiohttp import web
 
@@ -71,9 +72,10 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     def __init__(self):
         RESTEndpoint.__init__(self)
         TaskManager.__init__(self)
-        self.events_responses = []
+        self.events_responses: List[RESTStreamResponse] = []
         self.app.on_shutdown.append(self.on_shutdown)
         self.notifier = None
+        self.undelivered_error: Optional[dict] = None
 
         # We need to know that Tribler completed its startup sequence
         self.tribler_started = False
@@ -109,30 +111,51 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
-    @task
-    async def write_data(self, message):
-        """
-        Write data over the event socket if it's open.
-        """
-        if not self.events_responses:
-            return
+    def initial_message(self) -> dict:
+        return {
+            "type": NTFY.EVENTS_START.value,
+            "event": {"tribler_started": self.tribler_started, "version": version_id}
+        }
+
+    def error_message(self, reported_error: ReportedError) -> dict:
+        return {
+            "type": NTFY.TRIBLER_EXCEPTION.value,
+            "event": asdict(reported_error),
+        }
+
+    def encode_message(self, message: dict) -> bytes:
         try:
             message = json.dumps(message)
         except UnicodeDecodeError:
             # The message contains invalid characters; fix them
             self._logger.error("Event contains non-unicode characters, fixing")
             message = json.dumps(fix_unicode_dict(message))
-        message_bytes = b'data: ' + message.encode('utf-8') + b'\n\n'
-        for request in self.events_responses:
-            await request.write(message_bytes)
+        return b'data: ' + message.encode('utf-8') + b'\n\n'
+
+    def has_connection_to_gui(self):
+        return bool(self.events_responses)
+
+    @task
+    async def write_data(self, message):
+        """
+        Write data over the event socket if it's open.
+        """
+        if not self.has_connection_to_gui():
+            return
+
+        message_bytes = self.encode_message(message)
+        for response in self.events_responses:
+            await response.write(message_bytes)
 
     # An exception has occurred in Tribler. The event includes a readable
     # string of the error and a Sentry event.
     def on_tribler_exception(self, reported_error: ReportedError):
-        self.write_data({
-            "type": NTFY.TRIBLER_EXCEPTION.value,
-            "error": asdict(reported_error),
-        })
+        message = self.error_message(reported_error)
+        if self.has_connection_to_gui():
+            self.write_data(message)
+        elif not self.undelivered_error:
+            # If there are several undelivered errors, we store the first error as more important and skip other
+            self.undelivered_error = message
 
     @docs(
         tags=["General"],
@@ -164,11 +187,15 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                                                'Cache-Control': 'no-cache',
                                                'Connection': 'keep-alive'})
         await response.prepare(request)
-        # FIXME: Proper start check!
-        await response.write(b'data: ' + json.dumps({"type": NTFY.EVENTS_START.value,
-                                                     "event": {"tribler_started": self.tribler_started,
-                                                               "version": version_id}}).encode('utf-8') + b'\n\n')
+        await response.write(self.encode_message(self.initial_message()))
+
+        if self.undelivered_error:
+            error = self.undelivered_error
+            self.undelivered_error = None
+            await response.write(self.encode_message(error))
+
         self.events_responses.append(response)
+
         try:
             while True:
                 await self.register_anonymous_task('event_sleep', lambda: None, delay=3600)
