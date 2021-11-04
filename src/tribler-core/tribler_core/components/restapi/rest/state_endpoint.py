@@ -8,8 +8,8 @@ from marshmallow.fields import String
 
 from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING, STATE_UPGRADING
 
-from tribler_core.notifier import Notifier
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.utilities import froze_it
 
 
@@ -23,7 +23,6 @@ class StateEndpoint(RESTEndpoint):
         super().__init__()
         self.tribler_state = STATE_STARTING
         self.last_exception = None
-        self.sentry_event = None
         self.notifier = None
         self.readable_status = None
 
@@ -45,10 +44,9 @@ class StateEndpoint(RESTEndpoint):
     def on_tribler_started(self, *_):
         self.tribler_state = STATE_STARTED
 
-    def on_tribler_exception(self, exception_text, sentry_event):
+    def on_tribler_exception(self, exception_text):
         self.tribler_state = STATE_EXCEPTION
         self.last_exception = exception_text
-        self.sentry_event = sentry_event
 
     @docs(
         tags=["General"],

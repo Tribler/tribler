@@ -2,6 +2,7 @@ import logging
 import os
 import traceback
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
@@ -37,37 +38,38 @@ class ErrorHandler:
             self._stop_tribler(text)
 
         self._logger.error(text)
+        reported_error = ReportedError(
+            type=type(info_type).__name__,
+            text=text,
+            event=SentryReporter.event_from_exception(info_error),
+            requires_user_consent=True
+        )
 
         FeedbackDialog(
             parent=self.tribler_window,
-            exception_text=text,
+            reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
-            sentry_event=SentryReporter.event_from_exception(info_error),
-            error_reporting_requires_user_consent=True,
             stop_application_on_close=self._tribler_stopped,
             additional_tags={'source': 'gui'},
             retrieve_error_message_from_stacktrace=is_core_timeout_exception
         ).show()
 
-    def core_error(self, exc_type_name, exc_long_text, sentry_event, error_reporting_requires_user_consent,
-                   should_stop=True):
-        if self._tribler_stopped or exc_type_name in self._handled_exceptions:
+    def core_error(self, reported_error: ReportedError):
+        if self._tribler_stopped or reported_error.type in self._handled_exceptions:
             return
-        self._handled_exceptions.add(exc_type_name)
 
-        self._logger.error(exc_long_text)
+        error_text = f'{reported_error.text}\n{reported_error.long_text}'
+        self._logger.error(error_text)
 
-        if should_stop:
-            self._stop_tribler(exc_long_text)
+        if reported_error.should_stop:
+            self._stop_tribler(error_text)
 
         FeedbackDialog(
             parent=self.tribler_window,
-            exception_text=exc_long_text,
+            reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
-            sentry_event=sentry_event,
-            error_reporting_requires_user_consent=error_reporting_requires_user_consent,
             stop_application_on_close=self._tribler_stopped,
             additional_tags={'source': 'core'}
         ).show()

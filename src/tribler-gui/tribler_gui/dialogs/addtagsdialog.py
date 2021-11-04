@@ -1,10 +1,11 @@
 from typing import Dict, Optional
 
 from PyQt5 import uic
-from PyQt5.QtCore import pyqtSignal, QModelIndex, QPoint
+from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
-from tribler_common.tag_constants import MIN_TAG_LENGTH, MAX_TAG_LENGTH
+from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+
 from tribler_gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -16,12 +17,12 @@ class AddTagsDialog(DialogContainer):
     """
     This dialog enables a user to add new tags to/remove existing tags from content.
     """
+
     save_button_clicked = pyqtSignal(QModelIndex, list)
     suggestions_loaded = pyqtSignal()
 
     def __init__(self, parent: QWidget, infohash: str) -> None:
         DialogContainer.__init__(self, parent, left_right_margin=400)
-
         self.index: Optional[QModelIndex] = None
         self.infohash = infohash
 
@@ -47,9 +48,12 @@ class AddTagsDialog(DialogContainer):
         entered_tags = self.dialog_widget.edit_tags_input.get_entered_tags()
         for tag in entered_tags:
             if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
-                self.dialog_widget.error_text_label.setText(tr(
-                    "Each tag should be at least %d characters and can be at most %d characters." %
-                    (MIN_TAG_LENGTH, MAX_TAG_LENGTH)))
+                self.dialog_widget.error_text_label.setText(
+                    tr(
+                        "Each tag should be at least %d characters and can be at most %d characters."
+                        % (MIN_TAG_LENGTH, MAX_TAG_LENGTH)
+                    )
+                )
                 self.dialog_widget.error_text_label.setHidden(False)
                 return
 
