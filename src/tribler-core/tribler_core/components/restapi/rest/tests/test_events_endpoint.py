@@ -23,25 +23,23 @@ from tribler_core.version import version_id
 messages_to_wait_for = set()
 
 
-# pylint: disable=redefined-outer-name
-
-@pytest.fixture
-def api_port(free_port):
+@pytest.fixture(name='api_port')
+def fixture_api_port(free_port):
     return free_port
 
 
-@pytest.fixture
-def notifier():
+@pytest.fixture(name='notifier')
+def fixture_notifier():
     return Notifier()
 
 
-@pytest.fixture
-def endpoint():
+@pytest.fixture(name='endpoint')
+def fixture_endpoint():
     return EventsEndpoint()
 
 
-@pytest.fixture
-def reported_error():
+@pytest.fixture(name='reported_error')
+def fixture_reported_error():
     return ReportedError('type', 'text', {})
 
 
