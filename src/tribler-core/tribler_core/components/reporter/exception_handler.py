@@ -1,5 +1,6 @@
 import errno
 import logging
+import re
 import sys
 from io import StringIO
 from socket import gaierror
@@ -25,9 +26,9 @@ IGNORED_ERRORS_BY_CODE = {
     (OSError, 0)
 }
 
-IGNORED_ERRORS_BY_SUBSTRING = {
-    gaierror: None,  # None means any gaierror is ignored
-    RuntimeError: 'invalid info-hash'
+IGNORED_ERRORS_BY_REGEX = {
+    gaierror: r'',  # all gaierror is ignored
+    RuntimeError: r'.*invalid info-hash.*'
 }
 
 
@@ -39,7 +40,7 @@ class CoreExceptionHandler:
     """
 
     _logger = logging.getLogger("CoreExceptionHandler")
-    report_callback: Optional[Callable] = None
+    report_callback: Optional[Callable[[ReportedError], None]] = None
     requires_user_consent: bool = True
 
     @staticmethod
@@ -62,14 +63,11 @@ class CoreExceptionHandler:
         if (exception_class, error_number) in IGNORED_ERRORS_BY_CODE:
             return True
 
-        if exception_class not in IGNORED_ERRORS_BY_SUBSTRING:
+        if exception_class not in IGNORED_ERRORS_BY_REGEX:
             return False
 
-        substring = IGNORED_ERRORS_BY_SUBSTRING.get(exception_class)
-        if substring is None:
-            return True
-
-        return substring in str(exception)
+        pattern = IGNORED_ERRORS_BY_REGEX[exception_class]
+        return re.search(pattern, str(exception)) is not None
 
     @classmethod
     def unhandled_error_observer(cls, loop, context):  # pylint: disable=unused-argument
@@ -81,8 +79,9 @@ class CoreExceptionHandler:
             SentryReporter.ignore_logger(cls._logger.name)
 
             should_stop = True
-            message = context.get('message')
-            exception = context.get('exception') or cls._create_exception_from(message)
+            context = context.copy()
+            message = context.pop('message', 'no message')
+            exception = context.pop('exception', None) or cls._create_exception_from(message)
             # Exception
             text = str(exception)
             if isinstance(exception, ComponentStartupException):
@@ -94,18 +93,13 @@ class CoreExceptionHandler:
                 return
 
             long_text = cls._get_long_text_from(exception)
-            error_context = dict(context)
-            # remove duplicate fields
-            error_context.pop('message', None)
-            error_context.pop('exception', None)
-
             cls._logger.error(f"Unhandled exception occurred! {exception}\n{long_text}")
 
             reported_error = ReportedError(
                 type=exception.__class__.__name__,
                 text=text,
                 long_text=long_text,
-                context=str(error_context),
+                context=str(context),
                 event=SentryReporter.event_from_exception(exception) or {},
                 requires_user_consent=cls.requires_user_consent,
                 should_stop=should_stop
