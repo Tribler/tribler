@@ -64,6 +64,7 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.EVENTS_START.value: self.events_start_received,
             NTFY.TRIBLER_STARTED.value: self.tribler_started_event,
             NTFY.REPORT_CONFIG_ERROR.value: self.config_error_signal.emit,
+            NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data))
         }
 
     def events_start_received(self, event_dict):
@@ -119,10 +120,6 @@ class EventRequestManager(QNetworkAccessManager):
                         reaction(event)
                     else:
                         reaction()
-                elif event_type == NTFY.TRIBLER_EXCEPTION.value:
-                    self.error_handler.core_error(
-                        reported_error=ReportedError(**json_dict["error"]),
-                    )
             self.current_event_string = ""
 
     def on_finished(self):
