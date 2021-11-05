@@ -5,7 +5,7 @@ Tribler
 |jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0|
 |downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4| |downloads_7_5|
 |downloads_7_6| |downloads_7_7| |downloads_7_8| |downloads_7_9| |downloads_7_10|
-|doi| |openhub|
+|doi| |openhub| |discord|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -55,6 +55,11 @@ We have written guides on how to package Tribler for distribution on various sys
 * `Linux <http://tribler.readthedocs.io/en/latest/building/building.html>`_
 * `Windows <http://tribler.readthedocs.io/en/latest/building/building_on_windows.html>`_
 * `macOS <http://tribler.readthedocs.io/en/latest/building/building_on_osx.html>`_
+
+Get in touch!
+=============
+
+We like to hear your feedback and suggestions. To reach out to us, you can join `our Discord server <https://discord.gg/UpPUcVGESe>`_ or create a post on `our forums <https://forum.tribler.org>`_.
 
 
 .. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_main/badge/icon
@@ -127,3 +132,7 @@ We have written guides on how to package Tribler for distribution on various sys
 .. |docs| image:: https://readthedocs.org/projects/tribler/badge/?version=latest
     :target: https://tribler.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+
+.. |discord| image:: https://img.shields.io/badge/discord-join%20chat-blue.svg
+    :target: https://discord.gg/UpPUcVGESe
+    :alt: Join Discord chat
