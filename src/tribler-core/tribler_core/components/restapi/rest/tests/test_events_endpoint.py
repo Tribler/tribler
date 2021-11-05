@@ -1,7 +1,7 @@
 import json
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohttp import ClientSession
 
@@ -13,6 +13,7 @@ from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
+from tribler_core.components.restapi.rest.rest_endpoint import RESTStreamResponse
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler_core.config.tribler_config import TriblerConfig
@@ -22,6 +23,8 @@ from tribler_core.version import version_id
 messages_to_wait_for = set()
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
 def api_port(free_port):
     return free_port
@@ -30,6 +33,16 @@ def api_port(free_port):
 @pytest.fixture
 def notifier():
     return Notifier()
+
+
+@pytest.fixture
+def endpoint():
+    return EventsEndpoint()
+
+
+@pytest.fixture
+def reported_error():
+    return ReportedError('type', 'text', {})
 
 
 @pytest.fixture
@@ -110,11 +123,9 @@ async def test_events(rest_manager, notifier):
 @pytest.mark.asyncio
 @patch.object(EventsEndpoint, 'write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=True))
-async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data):
+async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, endpoint, reported_error):
     # test that in case of established connection to GUI, `on_tribler_exception` will work
     # as a normal endpoint function, that is call `write_data`
-    endpoint = EventsEndpoint()
-    reported_error = ReportedError('type', 'text', {})
     endpoint.on_tribler_exception(reported_error)
 
     mocked_write_data.assert_called_once()
@@ -124,12 +135,41 @@ async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data):
 @pytest.mark.asyncio
 @patch.object(EventsEndpoint, 'write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
-async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data):
+async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, endpoint, reported_error):
     # test that if no connection to GUI, then `on_tribler_exception` will store
     # reported_error in `self.undelivered_error`
-    endpoint = EventsEndpoint()
-    reported_error = ReportedError('type', 'text', {})
     endpoint.on_tribler_exception(reported_error)
 
     mocked_write_data.assert_not_called()
     assert endpoint.undelivered_error == endpoint.error_message(reported_error)
+
+
+@pytest.mark.asyncio
+@patch.object(EventsEndpoint, 'write_data', new=MagicMock())
+@patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
+async def test_on_tribler_exception_stores_only_first_error(endpoint, reported_error):
+    # test that if no connection to GUI, then `on_tribler_exception` will store
+    # only the very first `reported_error`
+    first_reported_error = reported_error
+    endpoint.on_tribler_exception(first_reported_error)
+
+    second_reported_error = ReportedError('second_type', 'second_text', {})
+    endpoint.on_tribler_exception(second_reported_error)
+
+    assert endpoint.undelivered_error == endpoint.error_message(first_reported_error)
+
+
+@pytest.mark.asyncio
+@patch.object(EventsEndpoint, 'register_anonymous_task', new=AsyncMock(side_effect=CancelledError))
+@patch.object(RESTStreamResponse, 'prepare', new=AsyncMock())
+@patch.object(RESTStreamResponse, 'write', new_callable=AsyncMock)
+@patch.object(EventsEndpoint, 'encode_message', new_callable=AsyncMock)
+async def test_get_events_has_undelivered_error(mocked_encode_message, mocked_write, endpoint):
+    # test that in case `self.undelivered_error` is not None, then it will be sent
+    endpoint.undelivered_error = {'undelivered': 'error'}
+
+    await endpoint.get_events(MagicMock())
+
+    mocked_write.assert_called()
+    mocked_encode_message.assert_called_with({'undelivered': 'error'})
+    assert not endpoint.undelivered_error
