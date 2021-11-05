@@ -191,7 +191,6 @@ class CoreManager(QObject):
         self.core_state_update.emit(state['readable_state'])
 
         if state['state'] == 'STARTED':
-            self.events_manager.connect(reschedule_on_err=False)
             self.is_core_running = True
         elif state['state'] == 'EXCEPTION':
             raise RuntimeError(state['last_exception'])
