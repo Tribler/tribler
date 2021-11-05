@@ -1,6 +1,7 @@
 import json
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
+from unittest.mock import MagicMock, patch
 
 from aiohttp import ClientSession
 
@@ -11,6 +12,7 @@ import pytest
 from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler_core.config.tribler_config import TriblerConfig
@@ -103,3 +105,31 @@ async def test_events(rest_manager, notifier):
     event_socket_task.cancel()
     with suppress(CancelledError):
         await event_socket_task
+
+
+@pytest.mark.asyncio
+@patch.object(EventsEndpoint, 'write_data')
+@patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=True))
+async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data):
+    # test that in case of established connection to GUI, `on_tribler_exception` will work
+    # as a normal endpoint function, that is call `write_data`
+    endpoint = EventsEndpoint()
+    reported_error = ReportedError('type', 'text', {})
+    endpoint.on_tribler_exception(reported_error)
+
+    mocked_write_data.assert_called_once()
+    assert not endpoint.undelivered_error
+
+
+@pytest.mark.asyncio
+@patch.object(EventsEndpoint, 'write_data')
+@patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
+async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data):
+    # test that if no connection to GUI, then `on_tribler_exception` will store
+    # reported_error in `self.undelivered_error`
+    endpoint = EventsEndpoint()
+    reported_error = ReportedError('type', 'text', {})
+    endpoint.on_tribler_exception(reported_error)
+
+    mocked_write_data.assert_not_called()
+    assert endpoint.undelivered_error == endpoint.error_message(reported_error)
