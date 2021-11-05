@@ -1,3 +1,4 @@
+import asyncio
 import os
 from pathlib import Path
 from unittest.mock import Mock
@@ -243,6 +244,12 @@ def test_tdef(state_dir):
     torrentfn = state_dir / "gen.torrent"
     tdef.save(torrentfn)
     return tdef
+
+
+@pytest.fixture
+def event_loop():
+    # We use a SelectorEventLoop on all platforms so our test suite should use a similar event loop.
+    return asyncio.SelectorEventLoop()
 
 
 @pytest.fixture
