@@ -1,6 +1,7 @@
 import json
 import time
 from asyncio import CancelledError
+from dataclasses import asdict
 
 from aiohttp import web
 
@@ -12,6 +13,7 @@ from ipv8.taskmanager import TaskManager, task
 
 from marshmallow.fields import Dict, String
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
@@ -53,6 +55,8 @@ reactions_dict = {
     # Report config error on startup
     NTFY.REPORT_CONFIG_ERROR: passthrough,
 }
+
+
 # pylint: enable=line-too-long
 
 
@@ -92,6 +96,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                     "uptime": time.time() - circuit.creation_time
                 }
                 self.write_data({"type": NTFY.TUNNEL_REMOVE.value, "event": event})
+
         # Tribler tunnel circuit has been removed
         self.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
 
@@ -123,15 +128,10 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
     # An exception has occurred in Tribler. The event includes a readable
     # string of the error and a Sentry event.
-    def on_tribler_exception(self, exc_type_name, exc_long_text, sentry_event, error_reporting_requires_user_consent,
-                             should_stop=True):
+    def on_tribler_exception(self, reported_error: ReportedError):
         self.write_data({
             "type": NTFY.TRIBLER_EXCEPTION.value,
-            "exc_type_name": exc_type_name,
-            "exc_long_text": exc_long_text,
-            "sentry_event": sentry_event,
-            "error_reporting_requires_user_consent": error_reporting_requires_user_consent,
-            "should_stop": should_stop,
+            "error": asdict(reported_error),
         })
 
     @docs(

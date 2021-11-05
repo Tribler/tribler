@@ -1,34 +1,34 @@
 import errno
 import logging
+import re
 import sys
 from io import StringIO
 from socket import gaierror
 from traceback import print_exception
 from typing import Callable, Optional
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_core.components.base import ComponentStartupException
 from tribler_core.utilities.utilities import froze_it
 
-if sys.platform == 'win32':
-    SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
-else:
-    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 # There are some errors that we are ignoring.
-IGNORED_ERRORS = {
-    # No route to host: this issue is non-critical since Tribler can still function when a request fails.
-    (OSError, 113): "Observed no route to host error (but ignoring)."
-                    "This might indicate a problem with your firewall.",
+IGNORED_ERRORS_BY_CODE = {
+    (OSError, 113),  # No route to host is non-critical since Tribler can still function when a request fails.
     # Socket block: this sometimes occurs on Windows and is non-critical.
-    (BlockingIOError, SOCKET_BLOCK_ERRORCODE): f"Unable to send data due to builtins.OSError {SOCKET_BLOCK_ERRORCODE}",
-    (OSError, 51): "Could not send data: network is unreachable.",
-    (ConnectionAbortedError, 10053): "An established connection was aborted by the software in your host machine.",
-    (ConnectionResetError, 10054): "Connection forcibly closed by the remote host.",
-    (OSError, 10022): "Failed to get address info. Error code: 10022",
-    (OSError, 16): "Socket error: Device or resource busy. Error code: 16",
-    (OSError, 0): "",
-    gaierror: "Unable to perform DNS lookup."
+    (BlockingIOError, 10035 if sys.platform == 'win32' else errno.EWOULDBLOCK),
+    (OSError, 51),  # Could not send data: network is unreachable.
+    (ConnectionAbortedError, 10053),  # An established connection was aborted by the software in your host machine.
+    (ConnectionResetError, 10054),  # Connection forcibly closed by the remote host.
+    (OSError, 10022),  # Failed to get address info.
+    (OSError, 16),  # Socket error: Device or resource busy.
+    (OSError, 0)
+}
+
+IGNORED_ERRORS_BY_REGEX = {
+    gaierror: r'',  # all gaierror is ignored
+    RuntimeError: r'.*invalid info-hash.*'
 }
 
 
@@ -40,7 +40,34 @@ class CoreExceptionHandler:
     """
 
     _logger = logging.getLogger("CoreExceptionHandler")
-    report_callback: Optional[Callable] = None
+    report_callback: Optional[Callable[[ReportedError], None]] = None
+    requires_user_consent: bool = True
+
+    @staticmethod
+    def _get_long_text_from(exception: Exception):
+        with StringIO() as buffer:
+            print_exception(type(exception), exception, exception.__traceback__, file=buffer)
+            return buffer.getvalue()
+
+    @classmethod
+    def _create_exception_from(cls, message: str):
+        text = f'Received error without exception: {message}'
+        cls._logger.warning(text)
+        return Exception(text)
+
+    @classmethod
+    def _is_ignored(cls, exception: Exception):
+        exception_class = exception.__class__
+        error_number = exception.errno if hasattr(exception, 'errno') else None
+
+        if (exception_class, error_number) in IGNORED_ERRORS_BY_CODE:
+            return True
+
+        if exception_class not in IGNORED_ERRORS_BY_REGEX:
+            return False
+
+        pattern = IGNORED_ERRORS_BY_REGEX[exception_class]
+        return re.search(pattern, str(exception)) is not None
 
     @classmethod
     def unhandled_error_observer(cls, loop, context):  # pylint: disable=unused-argument
@@ -52,42 +79,33 @@ class CoreExceptionHandler:
             SentryReporter.ignore_logger(cls._logger.name)
 
             should_stop = True
-            exception = context.get('exception')
+            context = context.copy()
+            message = context.pop('message', 'no message')
+            exception = context.pop('exception', None) or cls._create_exception_from(message)
+            # Exception
+            text = str(exception)
             if isinstance(exception, ComponentStartupException):
                 should_stop = exception.component.tribler_should_stop_on_component_error
                 exception = exception.__cause__
 
-            ignored_message = None
-            try:
-                ignored_message = IGNORED_ERRORS.get(
-                    (exception.__class__, exception.errno),
-                    IGNORED_ERRORS.get(exception.__class__))
-            except (ValueError, AttributeError):
-                pass
-            if ignored_message is not None:
-                cls._logger.error(ignored_message if ignored_message != "" else context.get('message'))
+            if cls._is_ignored(exception):
+                cls._logger.warning(exception)
                 return
 
-            text = str(exception or context.get('message'))
-            # We already have a check for invalid infohash when adding a torrent, but if somehow we get this
-            # error then we simply log and ignore it.
-            if isinstance(exception, RuntimeError) and 'invalid info-hash' in text:
-                cls._logger.error("Invalid info-hash found")
-                return
+            long_text = cls._get_long_text_from(exception)
+            cls._logger.error(f"Unhandled exception occurred! {exception}\n{long_text}")
 
-            exc_type_name = exc_long_text = text
-            if isinstance(exception, Exception):
-                exc_type_name = type(exception).__name__
-                with StringIO() as buffer:
-                    print_exception(type(exception), exception, exception.__traceback__, file=buffer)
-                    exc_long_text = exc_long_text + "\n--LONG TEXT--\n" + buffer.getvalue()
-            exc_long_text = exc_long_text + "\n--CONTEXT--\n" + str(context)
-            cls._logger.error("Unhandled exception occurred! %s", exc_long_text, exc_info=None)
-
-            sentry_event = SentryReporter.event_from_exception(exception)
-
-            if cls.report_callback is not None:
-                cls.report_callback(exc_type_name, exc_long_text, sentry_event, should_stop=should_stop)  # pylint: disable=not-callable
+            reported_error = ReportedError(
+                type=exception.__class__.__name__,
+                text=text,
+                long_text=long_text,
+                context=str(context),
+                event=SentryReporter.event_from_exception(exception) or {},
+                requires_user_consent=cls.requires_user_consent,
+                should_stop=should_stop
+            )
+            if cls.report_callback:
+                cls.report_callback(reported_error)  # pylint: disable=not-callable
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)

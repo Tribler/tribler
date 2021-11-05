@@ -8,14 +8,15 @@ from collections import defaultdict
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler_common.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
+
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import (
-    performed_requests as tribler_performed_requests,
-)
+from tribler_gui.tribler_request_manager import performed_requests as tribler_performed_requests
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 
 
@@ -23,14 +24,12 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         parent,
-        exception_text,
+        reported_error: ReportedError,
         tribler_version,
         start_time,
-        sentry_event=None,
-        error_reporting_requires_user_consent=True,
         stop_application_on_close=True,
         additional_tags=None,
-        retrieve_error_message_from_stacktrace=False
+        retrieve_error_message_from_stacktrace=False,
     ):
         QDialog.__init__(self, parent)
 
@@ -39,7 +38,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.setWindowTitle(tr("Unexpected error"))
         self.selected_item_index = 0
         self.tribler_version = tribler_version
-        self.sentry_event = sentry_event
+        self.reported_error = reported_error
         self.scrubber = SentryScrubber()
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
@@ -59,7 +58,16 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             scrubbed_value = self.scrubber.scrub_text(value)
             item.setText(1, scrubbed_value)
 
-        stacktrace = self.scrubber.scrub_text(exception_text.rstrip())
+        text_for_viewing = '\n'.join(
+            (
+                reported_error.text,
+                LONG_TEXT_DELIMITER,
+                reported_error.long_text,
+                CONTEXT_DELIMITER,
+                reported_error.context,
+            )
+        )
+        stacktrace = self.scrubber.scrub_text(text_for_viewing.rstrip())
         self.error_text_edit.setPlainText(stacktrace)
 
         connect(self.cancel_button.clicked, self.on_cancel_clicked)
@@ -105,7 +113,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Users can remove specific lines in the report
         connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
-        self.send_automatically = FeedbackDialog.can_send_automatically(error_reporting_requires_user_consent)
+        self.send_automatically = FeedbackDialog.can_send_automatically(self.reported_error.requires_user_consent)
         if self.send_automatically:
             self.stop_application_on_close = True
             self.on_send_clicked(True)
@@ -164,8 +172,13 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             "stack": stack,
         }
 
-        SentryReporter.send_event(self.sentry_event, post_data, sys_info_dict, self.additional_tags,
-                                  self.retrieve_error_message_from_stacktrace)
+        SentryReporter.send_event(
+            self.reported_error.event,
+            post_data,
+            sys_info_dict,
+            self.additional_tags,
+            self.retrieve_error_message_from_stacktrace,
+        )
         self.on_report_sent()
 
     def on_report_sent(self):

@@ -5,6 +5,7 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
@@ -120,11 +121,7 @@ class EventRequestManager(QNetworkAccessManager):
                         reaction()
                 elif event_type == NTFY.TRIBLER_EXCEPTION.value:
                     self.error_handler.core_error(
-                        exc_type_name=json_dict["exc_type_name"],
-                        exc_long_text=json_dict["exc_long_text"],
-                        sentry_event=json_dict['sentry_event'],
-                        error_reporting_requires_user_consent=json_dict['error_reporting_requires_user_consent'],
-                        should_stop=json_dict['should_stop'],
+                        reported_error=ReportedError(**json_dict["error"]),
                     )
             self.current_event_string = ""
 

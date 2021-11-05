@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Set, Tuple
 
 from ipv8_service import IPv8
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import STATE_START_API
 
 from tribler_core.components.base import Component
@@ -72,6 +73,9 @@ class RestfulComponent(Component, ABC):
 class RESTComponent(Component):
     rest_manager: RESTManager = None
 
+    _events_endpoint: EventsEndpoint
+    _state_endpoint: StateEndpoint
+
     async def run(self):
         await super().run()
         await self.get_component(ReporterComponent)
@@ -92,14 +96,14 @@ class RESTComponent(Component):
         rest_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
         rest_manager.get_endpoint('settings').tribler_config = config
 
-        state_endpoint: StateEndpoint = rest_manager.get_endpoint('state')
-        assert state_endpoint is not None
-        state_endpoint.connect_notifier(notifier)
-        state_endpoint.readable_status = STATE_START_API
+        self._state_endpoint = rest_manager.get_endpoint('state')
+        assert self._state_endpoint is not None
+        self._state_endpoint.connect_notifier(notifier)
+        self._state_endpoint.readable_status = STATE_START_API
 
-        events_endpoint: EventsEndpoint = rest_manager.get_endpoint('events')
-        assert events_endpoint is not None
-        events_endpoint.connect_notifier(notifier)
+        self._events_endpoint = rest_manager.get_endpoint('events')
+        assert self._events_endpoint is not None
+        self._events_endpoint.connect_notifier(notifier)
 
         debug_endpoint: DebugEndpoint = rest_manager.get_endpoint('debug')
         assert debug_endpoint is not None
@@ -107,11 +111,9 @@ class RESTComponent(Component):
         debug_endpoint.log_dir = log_dir
         debug_endpoint.state_dir = config.state_dir
 
-        def report_callback(exc_type_name, exc_long_text, sentry_event, should_stop=True):
-            events_endpoint.on_tribler_exception(exc_type_name, exc_long_text, sentry_event,
-                                                 config.error_handling.core_error_reporting_requires_user_consent,
-                                                 should_stop=should_stop)
-            state_endpoint.on_tribler_exception(exc_long_text, sentry_event)
+        def report_callback(reported_error: ReportedError):
+            self._events_endpoint.on_tribler_exception(reported_error)
+            self._state_endpoint.on_tribler_exception(reported_error.text)
 
         CoreExceptionHandler.report_callback = report_callback
 

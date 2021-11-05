@@ -3,6 +3,9 @@ simplify work with several data structures.
 """
 import re
 
+LONG_TEXT_DELIMITER = '--LONG TEXT--'
+CONTEXT_DELIMITER = '--CONTEXT--'
+
 
 def parse_os_environ(array):
     """Parse os.environ field.
@@ -52,11 +55,10 @@ def parse_stacktrace(stacktrace, delimiters=None):
     Returns:
         The generator of stacktrace parts.
     """
-    if delimiters is None:
-        delimiters = ['--LONG TEXT--', '--CONTEXT--']
-
     if not stacktrace:
         return
+
+    delimiters = delimiters or [LONG_TEXT_DELIMITER, CONTEXT_DELIMITER]
 
     for part in re.split('|'.join(delimiters), stacktrace):
         yield [line for line in re.split(r'\\n|\n', part) if line]

@@ -172,6 +172,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
         asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     loop = asyncio.get_event_loop()
+    CoreExceptionHandler.requires_user_consent = config.error_handling.core_error_reporting_requires_user_consent
     loop.set_exception_handler(CoreExceptionHandler.unhandled_error_observer)
 
     loop.run_until_complete(core_session(config, components=list(components_gen(config))))

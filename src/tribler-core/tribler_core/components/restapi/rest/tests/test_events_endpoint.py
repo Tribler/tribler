@@ -8,6 +8,7 @@ from ipv8.messaging.anonymization.tunnel import Circuit
 
 import pytest
 
+from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
@@ -96,7 +97,7 @@ async def test_events(rest_manager, notifier):
             notifier.notify(subject, *data)
         else:
             notifier.notify(subject)
-    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception("exc_type", "exc_text", None, False)
+    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception(ReportedError('', '', {}, False))
     await events_up.wait()
 
     event_socket_task.cancel()

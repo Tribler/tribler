@@ -28,6 +28,6 @@ async def test_get_state(rest_api, endpoint):
     Testing whether the API returns a correct state when requested
     """
     endpoint.readable_status = "Started"
-    endpoint.on_tribler_exception("abcd", None)
+    endpoint.on_tribler_exception("abcd")
     expected_json = {"state": STATE_EXCEPTION, "last_exception": "abcd", "readable_state": "Started"}
     await do_request(rest_api, 'state', expected_code=200, expected_json=expected_json)
