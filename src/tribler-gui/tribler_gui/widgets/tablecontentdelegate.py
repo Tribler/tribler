@@ -362,10 +362,12 @@ class TagsMixin:
 
         # If there are no tags (yet), ask the user to add some tags
         if len(data_item.get("tags", ())) == 0:
+            no_tags_text = "Be the first to suggest tags!"
             painter.setPen(QColor(TRIBLER_ORANGE) if edit_tags_button_hovered else QColor("#aaa"))
-            edit_tags_rect = QRectF(title_text_pos.x() + 6, title_text_pos.y() + 34, option.rect.width() - 6, 28)
+            text_width = painter.fontMetrics().horizontalAdvance(no_tags_text)
+            edit_tags_rect = QRectF(title_text_pos.x() + 6, title_text_pos.y() + 34, text_width + 4, 28)
             index.model().edit_tags_rects[index] = edit_tags_rect
-            painter.drawText(edit_tags_rect, "Be the first to suggest tags!")
+            painter.drawText(edit_tags_rect, no_tags_text)
             return
 
         for tag_text in data_item.get("tags", ())[:MAX_TAGS_TO_SHOW]:
