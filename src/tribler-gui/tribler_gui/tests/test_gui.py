@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt5.QtCore import QMetaObject, QPoint, QProcess, QProcessEnvironment, QSettings, QTimer, Q_ARG, Qt
+from PyQt5.QtCore import QMetaObject, QPoint, QProcessEnvironment, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
@@ -15,8 +15,9 @@ from tribler_common.network_utils import NetworkUtils
 from tribler_common.reported_error import ReportedError
 from tribler_common.tag_constants import MIN_TAG_LENGTH
 
+from tribler_core.utilities.unicode import hexlify
+
 import tribler_gui
-import tribler_gui.core_manager as core_manager
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_app import TriblerApplication
@@ -38,54 +39,34 @@ def api_port():
 
 
 @pytest.fixture(scope="module")
-def window(api_port, tribler_api):
-    core_manager.START_FAKE_API = True
-    tribler_gui.defs.DEFAULT_API_PORT = api_port
+def window(api_port, tmpdir_factory):
+
+    api_key = hexlify(os.urandom(16)).encode('utf-8')
+    core_env = QProcessEnvironment.systemEnvironment()
+    core_env.insert("CORE_API_PORT", f"{api_port}")
+    core_env.insert("CORE_API_KEY", api_key.decode('utf-8'))
+    core_env.insert("TSTATEDIR", str(tmpdir_factory.mktemp('tribler_state_dir')))
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
-    window = TriblerWindow(settings=QSettings(), api_port=api_port)  # pylint: disable=W0621
+    window = TriblerWindow(
+        settings=QSettings(),
+        api_port=api_port,
+        api_key=api_key,
+        core_env=core_env,
+        core_args=[str(RUN_TRIBLER_PY.absolute()), '--gui_test_mode'],
+        test_mode=True,
+    )  # pylint: disable=W0621
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 
     screenshot(window, name="tribler_loading")
-    wait_for_signal(window.core_manager.events_manager.tribler_started)
+    wait_for_signal(window.core_manager.events_manager.tribler_started, timeout=20)
     window.downloads_page.can_update_items = True
     yield window
 
-    # Shutdown the core and then the GUI application
     window.close_tribler()
     screenshot(window, name="tribler_closing")
-    tribler_api.kill()
-    tribler_api.waitForFinished()
     QApplication.quit()
-
-
-@pytest.fixture(scope="module")
-def tribler_api(api_port, tmpdir_factory):
-    # Run real Core and record responses
-    core_env = QProcessEnvironment.systemEnvironment()
-    core_env.insert("CORE_BASE_PATH", str(RUN_TRIBLER_PY.parent / "tribler-core"))
-    core_env.insert("CORE_PROCESS", "1")
-    core_env.insert("CORE_API_PORT", f"{api_port}")
-    core_env.insert("CORE_API_KEY", "")
-    core_env.insert("TRIBLER_GUI_TEST_MODE", "1")
-
-    temp_state_dir = tmpdir_factory.mktemp('tribler_state_dir')
-    core_env.insert("TSTATEDIR", str(temp_state_dir))
-
-    core_process = QProcess()
-
-    def on_core_read_ready():
-        raw_output = bytes(core_process.readAll())
-        decoded_output = raw_output.decode(errors="replace")
-        print(decoded_output.strip())  # noqa: T001
-
-    core_process.setProcessEnvironment(core_env)
-    core_process.setReadChannel(QProcess.StandardOutput)
-    core_process.setProcessChannelMode(QProcess.MergedChannels)
-    connect(core_process.readyRead, on_core_read_ready)
-    core_process.start("python3", [str(RUN_TRIBLER_PY.absolute())])
-    yield core_process
 
 
 def no_abort(*args, **kwargs):

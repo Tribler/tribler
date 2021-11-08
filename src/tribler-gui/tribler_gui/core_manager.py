@@ -1,25 +1,18 @@
 import logging
 import os
 import sys
-from typing import List
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication
 
-from tribler_common.osutils import get_root_state_directory
 from tribler_common.utilities import is_frozen
-from tribler_common.version_manager import TriblerVersion, VersionHistory
 
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.exceptions import CoreCrashedError
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, get_base_path, tr
+from tribler_gui.utilities import connect, get_base_path
 
-START_FAKE_API = False
-SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
-
-# fmt: off
 
 class CoreManager(QObject):
     """
@@ -38,9 +31,6 @@ class CoreManager(QObject):
         self.base_path = get_base_path()
         if not is_frozen():
             self.base_path = os.path.join(get_base_path(), "..")
-
-        root_state_dir = get_root_state_directory()
-        self.version_history = VersionHistory(root_state_dir)
 
         self.core_process = None
         self.api_port = api_port
@@ -77,98 +67,45 @@ class CoreManager(QObject):
 
             raise CoreCrashedError(exception_message)
 
-    def start(self, core_args=None, core_env=None):
+    def start(self, core_args=None, core_env=None, upgrade_manager=None, run_core=True):
         """
         First test whether we already have a Tribler process listening on port <CORE_API_PORT>.
-        If so, use that one and don't start a new, fresh session.
+        If so, use that one and don't start a new, fresh Core.
         """
-
-        def on_request_error(_):
-            self.use_existing_core = False
-            self.start_tribler_core(core_args=core_args, core_env=core_env)
-
-        versions_to_delete = self.should_cleanup_old_versions()
-        if versions_to_delete:
-            for version in versions_to_delete:
-                version.delete_state()
-
-        # Connect to the events manager only after the cleanup is done
+        # Connect to the events manager
         self.events_manager.connect()
-        connect(self.events_manager.reply.error, on_request_error)
 
-        # Determine if we have notify the user to wait for the directory fork to finish
-        if self.version_history.code_version.should_be_copied:
-            # There is going to be a directory fork, so we extend the core connection timeout and notify the user
-            self.events_manager.remaining_connection_attempts = 1200
-            self.events_manager.change_loading_text.emit("Copying data from previous Tribler version, please wait")
+        if run_core:
 
-    def should_cleanup_old_versions(self) -> List[TriblerVersion]:
-        # Skip old version check popup when running fake core, eg. during GUI tests
-        # or during deployment tests since it blocks the tests with a popup dialog
-        if START_FAKE_API or SKIP_VERSION_CLEANUP:
-            return []
+            def on_request_error(_):
+                if upgrade_manager:
+                    # Start Tribler Upgrader. When it finishes, start Tribler Core
+                    connect(
+                        upgrade_manager.upgrader_finished,
+                        lambda: self.start_tribler_core(core_args=core_args, core_env=core_env),
+                    )
+                    upgrade_manager.start()
+                else:
+                    self.start_tribler_core(core_args=core_args, core_env=core_env)
 
-        if self.version_history.last_run_version == self.version_history.code_version:
-            return []
-
-        disposable_versions = self.version_history.get_disposable_versions(skip_versions=2)
-        if not disposable_versions:
-            return []
-
-        storage_info = ""
-        claimable_storage = 0
-        for version in disposable_versions:
-            state_size = version.calc_state_size()
-            claimable_storage += state_size
-            storage_info += f"{version.version_str} \t {format_size(state_size)}\n"
-
-        # Show a question to the user asking if the user wants to remove the old data.
-        title = "Delete state directories for old versions?"
-        message_body = tr(
-            "Press 'Yes' to remove state directories for older versions of Tribler "
-            "and reclaim %s of storage space. "
-            "Tribler used those directories during upgrades from previous versions. "
-            "Now those directories can be safely deleted. \n\n"
-            "If unsure, press 'No'. "
-            "You will be able to remove those directories from the Settings->Data page later."
-        ) % format_size(claimable_storage)
-
-        user_choice = self._show_question_box(title, message_body, storage_info, default_button=QMessageBox.Yes)
-        if user_choice == QMessageBox.Yes:
-            return disposable_versions
-        return []
-
-    def _show_question_box(self, title, body, additional_text, default_button=None):
-        message_box = QMessageBox()
-        message_box.setIcon(QMessageBox.Question)
-        message_box.setWindowTitle(title)
-        message_box.setText(body)
-        message_box.setInformativeText(additional_text)
-        message_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
-        if default_button:
-            message_box.setDefaultButton(default_button)
-        return message_box.exec_()
+            connect(self.events_manager.reply.error, on_request_error)
 
     def start_tribler_core(self, core_args=None, core_env=None):
-        if not START_FAKE_API:
-            if not core_env:
-                core_env = QProcessEnvironment.systemEnvironment()
-                core_env.insert("CORE_PROCESS", "1")
-                core_env.insert("CORE_BASE_PATH", self.base_path)
-                core_env.insert("CORE_API_PORT", f"{self.api_port}")
-                core_env.insert("CORE_API_KEY", self.api_key.decode('utf-8'))
-            if not core_args:
-                core_args = sys.argv
+        self.use_existing_core = False
+        if not core_env:
+            core_env = QProcessEnvironment.systemEnvironment()
+            core_env.insert("CORE_API_PORT", f"{self.api_port}")
+            core_env.insert("CORE_API_KEY", self.api_key.decode('utf-8'))
+        if not core_args:
+            core_args = sys.argv + ['--core']
 
-            self.core_process = QProcess()
-            self.core_process.setProcessEnvironment(core_env)
-            self.core_process.setReadChannel(QProcess.StandardOutput)
-            self.core_process.setProcessChannelMode(QProcess.MergedChannels)
-            connect(self.core_process.readyRead, self.on_core_read_ready)
-            connect(self.core_process.finished, self.on_core_finished)
-            self.core_process.start(sys.executable, core_args)
-
-        self.check_core_ready()
+        self.core_process = QProcess()
+        self.core_process.setProcessEnvironment(core_env)
+        self.core_process.setReadChannel(QProcess.StandardOutput)
+        self.core_process.setProcessChannelMode(QProcess.MergedChannels)
+        connect(self.core_process.readyRead, self.on_core_read_ready)
+        connect(self.core_process.finished, self.on_core_finished)
+        self.core_process.start(sys.executable, core_args)
 
     def check_core_ready(self):
         TriblerNetworkRequest(

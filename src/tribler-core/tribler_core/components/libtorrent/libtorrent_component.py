@@ -4,7 +4,6 @@ from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 
 
 class LibtorrentComponent(RestfulComponent):
@@ -12,7 +11,6 @@ class LibtorrentComponent(RestfulComponent):
 
     async def run(self):
         await super().run()
-        await self.get_component(UpgradeComponent)
         socks_servers_component = await self.require_component(SocksServersComponent)
         key_component = await self.require_component(KeyComponent)
 

@@ -51,6 +51,7 @@ from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
+    CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
     DARWIN,
     DEFAULT_API_PORT,
     PAGE_CHANNEL_CONTENTS,
@@ -73,6 +74,7 @@ from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
+from tribler_gui.upgrade_manager import UpgradeManager
 from tribler_gui.utilities import (
     connect,
     disconnect,
@@ -123,7 +125,9 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def __init__(self, settings, core_args=None, core_env=None, api_port=None, api_key=None):
+    def __init__(
+        self, settings, core_args=None, core_env=None, api_port=None, api_key=None, run_core=True, test_mode=False
+    ):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -147,8 +151,12 @@ class TriblerWindow(QMainWindow):
         self.tribler_version = version_id
         self.debug_window = None
 
+        self.core_args = core_args
+        self.core_env = core_env
+
         self.error_handler = ErrorHandler(self)
         self.core_manager = CoreManager(api_port, api_key, self.error_handler)
+        self.upgrade_manager = UpgradeManager(test_mode=test_mode)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.dialog = None
@@ -221,10 +229,11 @@ class TriblerWindow(QMainWindow):
 
         self.discovered_page.initialize_content_page(hide_xxx=self.hide_xxx)
 
-        from tribler_gui.widgets.channelcontentswidget import CATEGORY_SELECTOR_FOR_POPULAR_ITEMS  # pylint: disable=import-outside-toplevel
-        self.popular_page.initialize_content_page(hide_xxx=self.hide_xxx,
-                                                  controller_class=PopularContentTableViewController,
-                                                  categories=CATEGORY_SELECTOR_FOR_POPULAR_ITEMS)
+        self.popular_page.initialize_content_page(
+            hide_xxx=self.hide_xxx,
+            controller_class=PopularContentTableViewController,
+            categories=CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
+        )
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -288,9 +297,6 @@ class TriblerWindow(QMainWindow):
         )
         self.top_search_bar.setCompleter(completer)
 
-        # Start Tribler
-        self.core_manager.start(core_args=core_args, core_env=core_env)
-
         connect(self.core_manager.events_manager.torrent_finished, self.on_torrent_finished)
         connect(self.core_manager.events_manager.new_version_available, self.on_new_version_available)
         connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
@@ -343,6 +349,13 @@ class TriblerWindow(QMainWindow):
         stylesheet = self.styleSheet()
         stylesheet += CHECKBOX_STYLESHEET
         self.setStyleSheet(stylesheet)
+
+        self.core_manager.start(
+            core_args=self.core_args,
+            core_env=self.core_env,
+            run_core=run_core,
+            upgrade_manager=self.upgrade_manager,
+        )
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
@@ -668,9 +681,7 @@ class TriblerWindow(QMainWindow):
         # We do not want to bother the database on petty 1-character queries
         if len(text) < 2:
             return
-        TriblerNetworkRequest(
-            "search/completions", self.on_received_search_completions, url_params={'q': text}
-        )
+        TriblerNetworkRequest("search/completions", self.on_received_search_completions, url_params={'q': text})
 
     def on_received_search_completions(self, completions):
         if completions is None:
@@ -1212,7 +1223,7 @@ class TriblerWindow(QMainWindow):
 
     def on_skip_conversion_dialog(self, action):
         if action == 0:
-            TriblerNetworkRequest("upgrader", lambda _: None, data={"skip_db_upgrade": True}, method='POST')
+            self.upgrade_manager.stop_upgrade()
 
         if self.dialog:
             self.dialog.close_dialog()

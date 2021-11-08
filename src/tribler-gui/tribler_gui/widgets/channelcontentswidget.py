@@ -13,7 +13,12 @@ from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
-from tribler_gui.defs import BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, ContentCategories
+from tribler_gui.defs import (
+    BUTTON_TYPE_CONFIRM,
+    BUTTON_TYPE_NORMAL,
+    CATEGORY_SELECTOR_FOR_SEARCH_ITEMS,
+    ContentCategories,
+)
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -30,9 +35,6 @@ from tribler_gui.widgets.tablecontentmodel import (
 from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
 
 CHANNEL_COMMIT_DELAY = 30000  # milliseconds
-CATEGORY_SELECTOR_FOR_SEARCH_ITEMS = ("All", "Channels") + ContentCategories.long_names
-CATEGORY_SELECTOR_FOR_POPULAR_ITEMS = ("All",) + ContentCategories.long_names
-
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 

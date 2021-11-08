@@ -160,6 +160,10 @@ class ContentCategories:
         return cls._associative_dict.get(item, default)
 
 
+CATEGORY_SELECTOR_FOR_SEARCH_ITEMS = ("All", "Channels") + ContentCategories.long_names
+CATEGORY_SELECTOR_FOR_POPULAR_ITEMS = ("All",) + ContentCategories.long_names
+
+
 # Trust Graph constants
 COLOR_RED = "#b37477"
 COLOR_GREEN = "#23cc2b"

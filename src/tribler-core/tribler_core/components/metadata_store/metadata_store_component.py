@@ -5,7 +5,6 @@ from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.tag.tag_component import TagComponent
-from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 
 
 class MetadataStoreComponent(RestfulComponent):
@@ -13,7 +12,6 @@ class MetadataStoreComponent(RestfulComponent):
 
     async def run(self):
         await super().run()
-        await self.get_component(UpgradeComponent)
 
         config = self.session.config
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)

@@ -24,7 +24,6 @@ from tribler_core.components.resource_monitor.resource_monitor_component import 
 from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.components.upgrade import UpgradeComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.path_util import Path
 
@@ -33,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 def components_gen():
     yield KeyComponent()
-    yield UpgradeComponent()
     yield RESTComponent()
     yield Ipv8Component()
     yield ResourceMonitorComponent()
