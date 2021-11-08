@@ -26,8 +26,8 @@ class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
         svg_container.addItem(svg_item)
 
         self.window().loading_svg_view.setScene(svg_container)
-        connect(self.window().core_manager.events_manager.upgrader_tick, self.on_upgrader_tick)
-        connect(self.window().core_manager.events_manager.upgrader_finished, self.upgrader_finished)
+        connect(self.window().upgrade_manager.upgrader_tick, self.on_upgrader_tick)
+        connect(self.window().upgrade_manager.upgrader_finished, self.upgrader_finished)
         connect(self.window().core_manager.events_manager.change_loading_text, self.change_loading_text)
         self.window().skip_conversion_btn.hide()
 

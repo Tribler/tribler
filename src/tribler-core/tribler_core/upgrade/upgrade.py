@@ -1,24 +1,29 @@
 import logging
 import os
 import shutil
+import signal
 from configparser import MissingSectionHeaderError, ParsingError
+
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 from pony.orm import db_session, delete
 
-from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler_core.components.metadata_store.db.store import (
     MetadataStore,
     sql_create_partial_index_channelnode_metadata_type,
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
-from tribler_core.components.upgrade.implementation.config_converter import convert_config_to_tribler76
-from tribler_core.components.upgrade.implementation.db8_to_db10 import PonyToPonyMigration, get_db_version
-from tribler_core.notifier import Notifier
+from tribler_core.upgrade.config_converter import convert_config_to_tribler76
+from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler_core.utilities.configparser import CallbackConfigParser
+from tribler_core.utilities.path_util import Path
 
 
 def cleanup_noncompliant_channel_torrents(state_dir):
@@ -63,32 +68,32 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 
 class TriblerUpgrader:
 
-    def __init__(self, state_dir, channels_dir, trustchain_keypair, notifier: Notifier):
+    def __init__(self, state_dir: Path, channels_dir: Path, trustchain_keypair: LibNaCLSK):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
-        self.notifier = notifier
         self.channels_dir = channels_dir
         self.trustchain_keypair = trustchain_keypair
 
         self.notified = False
         self.failed = True
 
-        self._dtp72 = None
         self._pony2pony = None
         self.skip_upgrade_called = False
 
+
     def skip(self):
         self.skip_upgrade_called = True
-        if self._dtp72:
-            self._dtp72.shutting_down = True
         if self._pony2pony:
             self._pony2pony.shutting_down = True
 
-    async def run(self):
+        signal.signal(signal.SIGINT, self.skip)
+        signal.signal(signal.SIGTERM, self.skip)
+
+    def run(self):
         """
         Run the upgrader if it is enabled in the config.
         """
-        await self.upgrade_pony_db_8to10()
+        self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
         convert_config_to_tribler76(self.state_dir)
         self.upgrade_bw_accounting_db_8to9()
@@ -251,12 +256,10 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
 
-    async def upgrade_pony_db_8to10(self):
+    def upgrade_pony_db_8to10(self):
         """
         Upgrade GigaChannel DB from version 8 (7.5.x) to version 10 (7.6.x).
         This will recreate the database anew, which can take quite some time.
-        The code is based on the copy-pasted upgrade_72_to_pony routine which is asynchronous and
-        reports progress to the user.
         """
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists() or get_db_version(database_path) >= 10:
@@ -264,7 +267,7 @@ class TriblerUpgrader:
             return
 
         # Otherwise, start upgrading
-        self.notify_starting()
+        self.update_status("STARTING")
         tmp_database_path = database_path.parent / 'metadata_upgraded.db'
         # Clean the previous temp database
         if tmp_database_path.exists():
@@ -280,8 +283,8 @@ class TriblerUpgrader:
 
         self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status, logger=self._logger)
 
-        duration_base = await self._pony2pony.do_migration()
-        await self._pony2pony.recreate_indexes(mds, duration_base)
+        duration_base = self._pony2pony.do_migration()
+        self._pony2pony.recreate_indexes(mds, duration_base)
 
         # Remove the old DB
         database_path.unlink()
@@ -293,23 +296,80 @@ class TriblerUpgrader:
             if tmp_database_path.exists():
                 tmp_database_path.unlink()
 
-        self.notify_done()
+        self.update_status("FINISHED")
+
+    def upgrade_pony_db_7to8(self):
+        """
+        Upgrade GigaChannel DB from version 7 (7.4.x) to version 8 (7.5.x).
+        Migration should be relatively fast, so we do it in the foreground.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+        if not database_path.exists():
+            return
+        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
+                            disable_sync=True, check_tables=False, db_version=7)
+        self.do_upgrade_pony_db_7to8(mds)
+        mds.shutdown()
+
+    def do_upgrade_pony_db_7to8(self, mds):
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != 7:
+                return
+            # Just in case, we skip index creation if it is somehow already there
+            if not list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')):
+                sql = 'CREATE INDEX "idx_channelnode__metadata_type" ON "ChannelNode" ("metadata_type")'
+                mds._db.execute(sql)
+            mds.Vsids[0].exp_period = 24.0 * 60 * 60 * 3
+            db_version = mds.MiscData.get(name="db_version")
+            db_version.value = str(8)
+        return
+
+    def upgrade_pony_db_6to7(self):
+        """
+        Upgrade GigaChannel DB from version 6 (7.3.0) to version 7 (7.3.1).
+        Migration should be relatively fast, so we do it in the foreground, without notifying the user
+        and breaking it in smaller chunks as we do with 72_to_pony.
+        """
+        # We have to create the Metadata Store object because Session-managed Store has not been started yet
+        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+        if not database_path.exists():
+            return
+        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
+                            disable_sync=True, check_tables=False, db_version=6)
+        self.do_upgrade_pony_db_6to7(mds)
+        mds.shutdown()
+
+    def do_upgrade_pony_db_6to7(self, mds):
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            if int(db_version.value) != 6:
+                return
+            for c in mds.ChannelMetadata.select_by_sql(f"""
+                select rowid, title, tags, metadata_type from ChannelNode
+                where metadata_type = {CHANNEL_TORRENT}
+            """):
+                if is_forbidden(c.title + c.tags):
+                    c.contents.delete()
+                    c.delete()
+                    # The channel torrent will be removed by GigaChannel manager during the cruft cleanup
+
+        # The process is broken down into batches to limit memory usage
+        batch_size = 10000
+        with db_session:
+            total_entries = mds.TorrentMetadata.select().count()
+            page_num = total_entries // batch_size
+        while page_num >= 0:
+            with db_session:
+                for t in mds.TorrentMetadata.select().page(page_num, pagesize=batch_size):
+                    if is_forbidden(t.title + t.tags):
+                        t.delete()
+            page_num -= 1
+        with db_session:
+            db_version = mds.MiscData.get(name="db_version")
+            db_version.value = str(7)
+        return
 
     def update_status(self, status_text):
-        self.notifier.notify(NTFY.UPGRADER_TICK, status_text)
-
-    def notify_starting(self):
-        """
-        Broadcast a notification (event) that the upgrader is starting doing work
-        after a check has established work on the db is required.
-        Will only fire once.
-        """
-        if not self.notified:
-            self.notified = True
-            self.notifier.notify(NTFY.UPGRADER_STARTED)
-
-    def notify_done(self):
-        """
-        Broadcast a notification (event) that the upgrader is done.
-        """
-        self.notifier.notify(NTFY.UPGRADER_DONE)
+        print(status_text)

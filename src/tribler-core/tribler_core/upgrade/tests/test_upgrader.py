@@ -1,8 +1,6 @@
 import os
 import shutil
-from asyncio import Future
 from pathlib import Path
-from unittest.mock import Mock
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
@@ -10,18 +8,13 @@ from pony.orm import db_session, select
 
 import pytest
 
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
-from tribler_core.components.upgrade.implementation.db8_to_db10 import calc_progress
-from tribler_core.components.upgrade.implementation.upgrade import (
-    TriblerUpgrader,
-    cleanup_noncompliant_channel_torrents,
-)
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.upgrade.db8_to_db10 import calc_progress
+from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler_core.utilities.configparser import CallbackConfigParser
 
 
@@ -45,7 +38,7 @@ def trustchain_keypair():
 
 @pytest.fixture
 def upgrader(state_dir, channels_dir, trustchain_keypair):
-    return TriblerUpgrader(state_dir, channels_dir, trustchain_keypair, Mock())
+    return TriblerUpgrader(state_dir, channels_dir, trustchain_keypair)
 
 
 @pytest.fixture
@@ -53,22 +46,7 @@ def notifier():
     return Notifier()
 
 
-@pytest.mark.asyncio
-async def test_update_status_text(upgrader, notifier):
-    upgrader.notifier = notifier
-    test_future = Future()
-
-    def on_upgrade_tick(status_text):
-        assert status_text == "12345"
-        test_future.set_result(None)
-
-    notifier.add_observer(NTFY.UPGRADER_TICK, on_upgrade_tick)
-    upgrader.update_status("12345")
-    await test_future
-
-
-@pytest.mark.asyncio
-async def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair):
+def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair):
     """
     Test complete update sequence for Pony DB (e.g. 6->7->8)
     """
@@ -76,7 +54,7 @@ async def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trust
     old_database_path = state_dir / 'sqlite' / 'metadata.db'
     shutil.copyfile(old_db_sample, old_database_path)
 
-    await upgrader.run()
+    upgrader.run()
     mds = MetadataStore(old_database_path, channels_dir, trustchain_keypair)
     db = mds._db  # pylint: disable=protected-access
 
@@ -112,6 +90,7 @@ async def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trust
         assert upgrader.trigger_exists(db, 'torrentstate_au')
     mds.shutdown()
 
+
 def test_delete_noncompliant_state(tmpdir):
     state_dir = TESTS_DATA_DIR / 'noncompliant_state_dir'
     shutil.copytree(str(state_dir), str(tmpdir / "test"))
@@ -133,13 +112,12 @@ def test_delete_noncompliant_state(tmpdir):
     assert CHANNEL_DIR_NAME_LENGTH == len(pstate.get('state', 'metainfo')['info']['name'])
 
 
-@pytest.mark.asyncio
-async def test_upgrade_pony_8to10(upgrader, channels_dir, state_dir, trustchain_keypair):
+def test_upgrade_pony_8to10(upgrader, channels_dir, state_dir, trustchain_keypair):
     old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v8.db'
     database_path = state_dir / 'sqlite' / 'metadata.db'
     shutil.copyfile(old_db_sample, database_path)
 
-    await upgrader.upgrade_pony_db_8to10()
+    upgrader.upgrade_pony_db_8to10()
     mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
         assert int(mds.MiscData.get(name="db_version").value) == 10

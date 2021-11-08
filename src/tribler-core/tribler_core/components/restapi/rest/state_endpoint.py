@@ -6,8 +6,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
-from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING, STATE_UPGRADING
-
+from tribler_common.simpledefs import NTFY, STATE_EXCEPTION, STATE_STARTED, STATE_STARTING
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.utilities import froze_it
@@ -28,18 +27,10 @@ class StateEndpoint(RESTEndpoint):
 
     def connect_notifier(self, notifier: Notifier):
         self.notifier = notifier
-        self.notifier.add_observer(NTFY.UPGRADER_STARTED, self.on_tribler_upgrade_started)
-        self.notifier.add_observer(NTFY.UPGRADER_DONE, self.on_tribler_upgrade_finished)
         self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_state)])
-
-    def on_tribler_upgrade_started(self, *_):
-        self.tribler_state = STATE_UPGRADING
-
-    def on_tribler_upgrade_finished(self, *_):
-        self.tribler_state = STATE_STARTING
 
     def on_tribler_started(self, *_):
         self.tribler_state = STATE_STARTED
@@ -54,7 +45,7 @@ class StateEndpoint(RESTEndpoint):
         responses={
             200: {
                 "schema": schema(TriblerStateResponse={
-                    'state': (String, 'One of three stats: STARTING, UPGRADING, STARTED, EXCEPTION'),
+                    'state': (String, 'One of three stats: STARTING, STARTED, EXCEPTION'),
                     'last_exception': String,
                     'readable_state': String
                 })

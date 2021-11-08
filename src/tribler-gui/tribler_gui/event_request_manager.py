@@ -29,8 +29,6 @@ class EventRequestManager(QNetworkAccessManager):
     node_info_updated = pyqtSignal(object)
     received_remote_query_results = pyqtSignal(object)
     tribler_started = pyqtSignal(object)
-    upgrader_tick = pyqtSignal(str)
-    upgrader_finished = pyqtSignal()
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
@@ -54,8 +52,6 @@ class EventRequestManager(QNetworkAccessManager):
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
             NTFY.TRIBLER_NEW_VERSION.value: lambda data: self.new_version_available.emit(data["version"]),
-            NTFY.UPGRADER_DONE.value: self.upgrader_finished.emit,
-            NTFY.UPGRADER_TICK.value: lambda data: self.upgrader_tick.emit(data["text"]),
             NTFY.CHANNEL_DISCOVERED.value: self.discovered_channel.emit,
             NTFY.TORRENT_FINISHED.value: self.torrent_finished.emit,
             NTFY.LOW_SPACE.value: self.low_storage_signal.emit,
@@ -64,7 +60,7 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.EVENTS_START.value: self.events_start_received,
             NTFY.TRIBLER_STARTED.value: self.tribler_started_event,
             NTFY.REPORT_CONFIG_ERROR.value: self.config_error_signal.emit,
-            NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data))
+            NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data)),
         }
 
     def events_start_received(self, event_dict):

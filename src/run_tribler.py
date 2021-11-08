@@ -1,13 +1,40 @@
+import argparse
 import logging.config
 import os
 import sys
+from enum import Enum
 
 from PyQt5.QtCore import QSettings
 
-logger = logging.getLogger(__name__)
-CONFIG_FILE_NAME = 'triblerd.conf'
+from run_tribler_upgrader import upgrade_state_dir
 
+from tribler_common.process_checker import ProcessChecker
+from tribler_common.version_manager import VersionHistory
+
+from tribler_core import start_core
+
+logger = logging.getLogger(__name__)
 # pylint: disable=import-outside-toplevel, ungrouped-imports
+
+
+class RunMode(Enum):
+    FULL = 0
+    CORE_ONLY = 1
+    GUI_ONLY = 2
+    UPGRADE = 3
+    GUI_TEST_MODE = 4
+
+
+class RunTriblerArgsParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        kwargs['description'] = 'Run Tribler BitTorrent client'
+        super().__init__(*args, **kwargs)
+        mode = self.add_mutually_exclusive_group()
+        mode.add_argument('--gui', action='store_const', dest='mode', const=RunMode.GUI_ONLY)
+        mode.add_argument('--core', action='store_const', dest='mode', const=RunMode.CORE_ONLY)
+        mode.add_argument('--upgrade', action='store_const', dest='mode', const=RunMode.UPGRADE)
+        mode.add_argument('--gui_test_mode', action='store_const', dest='mode', const=RunMode.GUI_TEST_MODE)
+
 
 def init_sentry_reporter():
     from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
@@ -46,23 +73,46 @@ if __name__ == "__main__":
     init_boot_logger()
     init_sentry_reporter()
 
+    parsed_args = RunTriblerArgsParser().parse_args()
+
     # Get root state directory (e.g. from environment variable or from system default)
     from tribler_common.osutils import get_root_state_directory
 
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')
 
+    api_port = os.environ.get('CORE_API_PORT')
+    api_key = os.environ.get('CORE_API_KEY')
+
     # Check whether we need to start the core or the user interface
-    if 'CORE_PROCESS' in os.environ:
+    if parsed_args.mode in (RunMode.CORE_ONLY, RunMode.GUI_TEST_MODE):
         logger.info('Running in "core" mode')
+        import tribler_core
+        tribler_core.load_logger_config(root_state_dir)
 
-        base_path = os.environ['CORE_BASE_PATH']
-        api_port = os.environ['CORE_API_PORT']
-        api_key = os.environ.get('CORE_API_KEY')
-        gui_test_mode = bool(os.environ.get("TRIBLER_GUI_TEST_MODE", False))
+        # Check if we are already running a Tribler instance
+        process_checker = ProcessChecker(root_state_dir)
+        if process_checker.already_running:
+            logger.info('Core is already running, exiting')
+            exit(1)
+        process_checker.create_lock_file()
+        version_history = VersionHistory(root_state_dir)
+        state_dir = version_history.code_version.directory
+        start_core.start_tribler_core(api_port, api_key, state_dir,
+                                      gui_test_mode=parsed_args.mode == RunMode.GUI_TEST_MODE)
+        process_checker.remove_lock_file()
 
-        from tribler_core.start_core import start_tribler_core
-        start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mode=gui_test_mode)
+    elif parsed_args.mode == RunMode.UPGRADE:
+        logger.info('Checking if state dir upgrade is necessary')
+        # Before any upgrade, prepare a separate state directory for the update version so it does not
+        # affect the older version state directory. This allows for safe rollback.
+        version_history = VersionHistory(root_state_dir)
+        version_history.fork_state_directory_if_necessary()
+        version_history.save_if_necessary()
+        state_dir = version_history.code_version.directory
+        if state_dir.exists():
+            upgrade_state_dir(state_dir)
+
     else:
         import tribler_gui
         from tribler_gui.utilities import get_translator
@@ -85,12 +135,15 @@ if __name__ == "__main__":
             # Enable tracer using commandline args: --trace-debug or --trace-exceptions
             trace_logger = check_and_enable_code_tracing('gui', root_state_dir)
 
+            gui_only_mode = parsed_args.mode == RunMode.GUI_ONLY
+
             enable_fault_handler(root_state_dir)
 
             # Exit if we cant read/write files, etc.
             check_environment()
 
-            should_kill_other_tribler_instances(root_state_dir)
+            if not gui_only_mode:
+                should_kill_other_tribler_instances(root_state_dir)
 
             check_free_space()
 
@@ -117,7 +170,11 @@ if __name__ == "__main__":
                 sys.exit(1)
 
             logger.info('Start Tribler Window')
-            window = TriblerWindow(settings)
+            window = TriblerWindow(settings,
+                                   api_port=api_port,
+                                   api_key=api_key,
+                                   run_upgrade=not gui_only_mode,
+                                   run_core=not gui_only_mode)
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)

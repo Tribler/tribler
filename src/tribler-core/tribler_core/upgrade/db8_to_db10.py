@@ -2,7 +2,6 @@ import contextlib
 import datetime
 import logging
 import sqlite3
-from asyncio import sleep
 from collections import deque
 from time import time as now
 
@@ -16,26 +15,25 @@ TABLE_NAMES = (
 
 class PonyToPonyMigration:
 
-    def __init__(self, old_db_path, new_db_path, notifier_callback=None, logger=None):
+    def __init__(self, old_db_path, new_db_path, notification_callback=None, logger=None):
         self._logger = logger or logging.getLogger(self.__class__.__name__)
-        self.notifier_callback = notifier_callback
+        self.notification_callback = notification_callback
         self.old_db_path = old_db_path
         self.new_db_path = new_db_path
         self.shutting_down = False
 
-    async def update_status(self, status_text):
-        if self.notifier_callback:
-            self.notifier_callback(status_text)
-            await sleep(0.001)
+    def update_status(self, status_text):
+        if self.notification_callback:
+            self.notification_callback(status_text)
 
-    async def update_convert_progress(self, amount, total, eta, message=""):
-        await self.update_status(
+    def update_convert_progress(self, amount, total, eta, message=""):
+        self.update_status(
             f"{message}\n"
             f"Converted: {amount}/{total} ({(amount * 100) // total}%).\n"
             f"Time remaining: {eta}"
         )
 
-    async def convert_async(self, table_name, cursor, convert_command, total_to_convert, offset=0, message=""):
+    def convert(self, table_name, cursor, convert_command, total_to_convert, offset=0, message=""):
         """
         This method copies entries from one Pony db into another one splitting the process into chunks dynamically.
         Chunks splitting uses congestion-control-like algorithm. Awaits are necessary so the
@@ -64,7 +62,7 @@ class PonyToPonyMigration:
             avg_est_speed = sum(speed_list) / len(speed_list)
             eta = str(datetime.timedelta(seconds=int(remaining / avg_est_speed)))
 
-            await self.update_convert_progress(offset, total_to_convert, eta, message)
+            self.update_convert_progress(offset, total_to_convert, eta, message)
 
             if batch_duration < reference_timedelta:
                 new_batch_size = round(batch_size * 1.5)
@@ -95,7 +93,7 @@ class PonyToPonyMigration:
     def get_table_entries_count(self, cursor, table_name):
         return cursor.execute(f"SELECT COUNT(*) FROM {table_name};").fetchone()[0]
 
-    async def convert_table(self, cursor, table_name, column_names):
+    def convert_table(self, cursor, table_name, column_names):
         column_names_joined = ", ".join(column_names)
         if "rowid" in column_names:
             order_column = "rowid"
@@ -116,9 +114,9 @@ class PonyToPonyMigration:
                 self.shutting_down = True
 
         old_entries_count = self.get_table_entries_count(cursor, f"old_db.{table_name}")
-        await self.convert_async(table_name, cursor, convert_command, old_entries_count, message=f"Converting DB table {table_name}")
+        self.convert(table_name, cursor, convert_command, old_entries_count, message=f"Converting DB table {table_name}")
 
-    async def do_migration(self):
+    def do_migration(self):
         try:
             result = None  # estimated duration in seconds of ChannelNode table copying time
 
@@ -139,7 +137,7 @@ class PonyToPonyMigration:
                     t1 = now()
                     cursor.execute("BEGIN TRANSACTION;")
                     if not self.shutting_down:
-                        await self.convert_table(cursor, table_name, old_table_columns[table_name])
+                        self.convert_table(cursor, table_name, old_table_columns[table_name])
                     cursor.execute("COMMIT;")
                     duration = now() - t1
                     self._logger.info(f"Upgrade: copied table {table_name} in {duration:.2f} seconds")
@@ -147,14 +145,14 @@ class PonyToPonyMigration:
                     if table_name == 'ChannelNode':
                         result = duration
 
-            await self.update_status("Synchronizing the upgraded DB to disk, please wait.")
+            self.update_status("Synchronizing the upgraded DB to disk, please wait.")
             return result
         except Exception as e:
             self._logger.error(f"Error during database upgrade: {type(e).__name__}:{str(e)}")
             self.shutting_down = True
 
-    async def recreate_indexes(self, mds: MetadataStore, base_duration):
-        await mds.run_threaded(self.do_recreate_indexes_safe, mds, base_duration)
+    def recreate_indexes(self, mds: MetadataStore, base_duration):
+        mds.run_threaded(self.do_recreate_indexes_safe, mds, base_duration)
 
     def do_recreate_indexes_safe(self, mds: MetadataStore, base_duration):
         try:
@@ -175,7 +173,7 @@ class PonyToPonyMigration:
                 t2 = now()
                 index_percentage = calc_progress(t2 - t1, base_duration / 8.0)
                 total_percentage = (index_num * 100.0 + index_percentage) / index_total
-                self.notifier_callback(f"recreating indexes\n"
+                self.notification_callback(f"recreating indexes\n"
                                        f"{total_percentage:.2f}% done")
             except Exception as e:
                 self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{str(e)}")
@@ -205,7 +203,7 @@ class PonyToPonyMigration:
         def fts_callback_handler():
             try:
                 t2 = now()
-                self.notifier_callback("adding full text search index...\n"
+                self.notification_callback("adding full text search index...\n"
                                        f"{calc_progress(t2 - t1, base_duration):.2f}% done")
             except Exception as e:
                 self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{str(e)}")

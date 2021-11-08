@@ -1,6 +1,5 @@
 from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler_core.components.restapi.restapi_component import RestfulComponent
-from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 
 
 class ResourceMonitorComponent(RestfulComponent):
@@ -8,7 +7,6 @@ class ResourceMonitorComponent(RestfulComponent):
 
     async def run(self):
         await super().run()
-        await self.get_component(UpgradeComponent)
 
         config = self.session.config
         notifier = self.session.notifier
