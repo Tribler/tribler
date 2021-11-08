@@ -9,6 +9,8 @@ import shutil
 import aiohttp_apispec
 import sentry_sdk
 
+from PyInstaller.utils.hooks import collect_submodules
+
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 
@@ -85,6 +87,7 @@ def get_sentry_hooks():
 # Hidden imports
 hiddenimports = [
     'csv',
+    'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
     'ecdsa',
     'pyaes',
     'PIL',
@@ -93,7 +96,9 @@ hiddenimports = [
     'pkg_resources', 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'requests',
     'PyQt5.QtTest',
-    'pyqtgraph'] + widget_files + pony_deps + get_sentry_hooks()
+    'pyqtgraph'
+] + widget_files + pony_deps + get_sentry_hooks() \
+  + collect_submodules('pydantic')  # https://github.com/pyinstaller/pyinstaller/issues/5359
 
 
 sys.modules['FixTk'] = None
