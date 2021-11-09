@@ -96,7 +96,8 @@ hiddenimports = [
     'pkg_resources', 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'requests',
     'PyQt5.QtTest',
-    'pyqtgraph'
+    'pyqtgraph',
+    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
 ] + widget_files + pony_deps + get_sentry_hooks() \
   + collect_submodules('pydantic')  # https://github.com/pyinstaller/pyinstaller/issues/5359
 
