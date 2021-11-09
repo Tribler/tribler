@@ -97,6 +97,7 @@ hiddenimports = [
     'requests',
     'PyQt5.QtTest',
     'pyqtgraph',
+    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
     'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
 ] + widget_files + pony_deps + get_sentry_hooks() \
   + collect_submodules('pydantic')  # https://github.com/pyinstaller/pyinstaller/issues/5359
