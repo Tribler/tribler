@@ -1,14 +1,17 @@
 from asyncio import sleep
 
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 
+from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+    BandwidthAccountingCommunity,
+)
 from tribler_core.components.bandwidth_accounting.community.cache import BandwidthTransactionSignCache
-from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community \
-    import BandwidthAccountingCommunity
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.utilities.utilities import MEMORY_DB
 
 
@@ -19,8 +22,9 @@ class TestBandwidthAccountingCommunity(TestBase):
         self.initialize(BandwidthAccountingCommunity, 2)
 
     def create_node(self):
-        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=b"0000")
-        ipv8 = MockIPv8("curve25519", BandwidthAccountingCommunity, database=db,
+        peer = Peer(default_eccrypto.generate_key("curve25519"), address=("1.2.3.4", 5))
+        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=peer.public_key.key_to_bin())
+        ipv8 = MockIPv8(peer, BandwidthAccountingCommunity, database=db,
                         settings=BandwidthAccountingSettings())
         community = ipv8.get_overlay(BandwidthAccountingCommunity)
         # Dumb workaround for MockIPv8 not supporting key injection

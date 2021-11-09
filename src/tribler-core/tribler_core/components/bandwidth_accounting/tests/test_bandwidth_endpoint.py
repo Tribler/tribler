@@ -1,32 +1,38 @@
+from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
 from ipv8.test.mocking.ipv8 import MockIPv8
 
 import pytest
 
-from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
-from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import \
-    BandwidthAccountingCommunity
+from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+    BandwidthAccountingCommunity,
+)
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
+from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.utilities.unicode import hexlify
 
 pytestmark = pytest.mark.asyncio
 
+# pylint: disable=redefined-outer-name
+@pytest.fixture
+def peer():
+    return Peer(default_eccrypto.generate_key("curve25519"), address=("1.2.3.4", 5))
+
 
 @pytest.fixture
-def bandwidth_database(tmp_path, peer_key):
-    return BandwidthDatabase(db_path=tmp_path / "bandwidth.db", my_pub_key=b"0000")
+def bandwidth_database(tmp_path, peer):
+    return BandwidthDatabase(db_path=tmp_path / "bandwidth.db", my_pub_key=peer.public_key.key_to_bin())
 
 
 @pytest.fixture
-async def bw_community(tmp_path, bandwidth_database):
-    ipv8 = MockIPv8("low", BandwidthAccountingCommunity,
+async def bw_community(bandwidth_database, peer):
+    ipv8 = MockIPv8(peer, BandwidthAccountingCommunity,
                     database=bandwidth_database,
                     settings=BandwidthAccountingSettings())
     community = ipv8.get_overlay(BandwidthAccountingCommunity)
-    # Dumb workaround for MockIPv8 not supporting key injection
-    community.database.my_pub_key = ipv8.my_peer.public_key.key_to_bin()
     yield community
     await ipv8.stop()
 
@@ -71,6 +77,7 @@ async def test_get_history_no_community(bw_endpoint, aiohttp_client):
     Testing whether the API returns error 404 if no bandwidth community is loaded
     """
     await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
+
 
 async def test_get_history(bw_endpoint, bw_community, aiohttp_client):
     """
