@@ -161,7 +161,7 @@ async def test_on_tribler_exception_stores_only_first_error(endpoint, reported_e
 @patch.object(EventsEndpoint, 'register_anonymous_task', new=AsyncMock(side_effect=CancelledError))
 @patch.object(RESTStreamResponse, 'prepare', new=AsyncMock())
 @patch.object(RESTStreamResponse, 'write', new_callable=AsyncMock)
-@patch.object(EventsEndpoint, 'encode_message', new_callable=AsyncMock)
+@patch.object(EventsEndpoint, 'encode_message')
 async def test_get_events_has_undelivered_error(mocked_encode_message, mocked_write, endpoint):
     # test that in case `self.undelivered_error` is not None, then it will be sent
     endpoint.undelivered_error = {'undelivered': 'error'}
