@@ -45,6 +45,8 @@ REM ----- Build
 REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
 
+python3 -m pip install --upgrade --no-deps --force-reinstall pydantic --no-binary pydantic
+
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 
 copy build\win\resources\tribler*.nsi dist\tribler
