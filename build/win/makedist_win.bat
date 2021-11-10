@@ -46,6 +46,7 @@ REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
 
 python3 -m pip install --upgrade --no-deps --force-reinstall pydantic --no-binary pydantic
+python3 -m pip install --upgrade --no-deps --force-reinstall typing_extensions --no-binary typing_extensions
 
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 
