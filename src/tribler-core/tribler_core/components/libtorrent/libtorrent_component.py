@@ -1,11 +1,10 @@
-
+from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 
 
-class LibtorrentComponent(RestfulComponent):
+class LibtorrentComponent(Component):
     download_manager: DownloadManager = None
 
     async def run(self):
@@ -27,9 +26,6 @@ class LibtorrentComponent(RestfulComponent):
         self.download_manager.initialize()
 
         await self.download_manager.load_checkpoints()
-
-        endpoints = ['createtorrent', 'libtorrent', 'torrentinfo', 'downloads', 'channels', 'collections', 'settings']
-        await self.init_endpoints(endpoints=endpoints, values={'download_manager': self.download_manager})
 
         if config.gui_test_mode:
             from tribler_core.tests.tools.common import TORRENT_WITH_DIRS  # pylint: disable=import-outside-toplevel

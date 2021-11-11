@@ -1,13 +1,13 @@
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 
+from tribler_core.components.base import Component
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.tag.community.tag_community import TagCommunity
 from tribler_core.components.tag.db.tag_db import TagDatabase
 
 
-class TagComponent(RestfulComponent):
+class TagComponent(Component):
     tribler_should_stop_on_component_error = False
 
     community: TagCommunity = None
@@ -35,11 +35,6 @@ class TagComponent(RestfulComponent):
             self._ipv8_component.ipv8.network,
             db=self.tags_db,
             tags_key=key_component.secondary_key
-        )
-
-        await self.init_endpoints(
-            endpoints=['tags'],
-            values={'db': self.tags_db, 'community': self.community}
         )
 
         self._ipv8_component.initialise_community_by_default(self.community)

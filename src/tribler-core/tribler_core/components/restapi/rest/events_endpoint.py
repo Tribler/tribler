@@ -65,7 +65,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    def __init__(self):
+    def __init__(self, notifier: Notifier):
         RESTEndpoint.__init__(self)
         TaskManager.__init__(self)
         self.events_responses: List[RESTStreamResponse] = []
@@ -74,7 +74,9 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         self.undelivered_error: Optional[dict] = None
 
         # We need to know that Tribler completed its startup sequence
+        # FIXME: remove this
         self.tribler_started = False
+        self.connect_notifier(notifier)
 
     def connect_notifier(self, notifier: Notifier):
         self.notifier = notifier

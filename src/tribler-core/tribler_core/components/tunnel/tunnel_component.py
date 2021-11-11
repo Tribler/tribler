@@ -2,16 +2,18 @@ from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
+from tribler_core.components.base import Component
 from tribler_core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity, \
-    TriblerTunnelTestnetCommunity
 from tribler_core.components.tunnel.community.discovery import GoldenRatioStrategy
+from tribler_core.components.tunnel.community.tunnel_community import (
+    TriblerTunnelCommunity,
+    TriblerTunnelTestnetCommunity,
+)
 
 
-class TunnelsComponent(RestfulComponent):
+class TunnelsComponent(Component):
     community: TriblerTunnelCommunity = None
 
     _ipv8_component: Ipv8Component = None
@@ -59,9 +61,6 @@ class TunnelsComponent(RestfulComponent):
 
         self._ipv8_component.initialise_community_by_default(self.community)
         self._ipv8_component.ipv8.add_strategy(self.community, GoldenRatioStrategy(self.community), INFINITE)
-
-        await self.init_endpoints(endpoints=['downloads', 'debug'], values={'tunnel_community': self.community})
-        await self.init_ipv8_endpoints(self._ipv8_component.ipv8, endpoints=['tunnel'])
 
     async def shutdown(self):
         await super().shutdown()

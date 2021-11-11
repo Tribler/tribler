@@ -17,11 +17,8 @@ class ShutdownEndpoint(RESTEndpoint):
     With this endpoint you can shutdown Tribler.
     """
 
-    def __init__(self):
+    def __init__(self, shutdown_callback):
         super().__init__()
-        self.shutdown_callback = None
-
-    def connect_shutdown_callback(self, shutdown_callback):
         self.shutdown_callback = shutdown_callback
 
     def setup_routes(self):
@@ -39,6 +36,5 @@ class ShutdownEndpoint(RESTEndpoint):
         }
     )
     async def shutdown(self, request):
-
         self.shutdown_callback()
         return RESTResponse({"shutdown": True})

@@ -1,13 +1,13 @@
 from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
 
+from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.utils import generate_test_channels
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.tag.tag_component import TagComponent
 
 
-class MetadataStoreComponent(RestfulComponent):
+class MetadataStoreComponent(Component):
     mds: MetadataStore = None
 
     async def run(self):
@@ -44,21 +44,10 @@ class MetadataStoreComponent(RestfulComponent):
             disable_sync=config.gui_test_mode,
         )
         self.mds = metadata_store
-
-        await self.init_endpoints(
-            endpoints=['search', 'metadata', 'remote_query', 'downloads', 'channels', 'collections', 'statistics'],
-            values={'mds': metadata_store}
-        )
-        tag_component = await self.require_component(TagComponent)
-        await self.init_endpoints(
-            endpoints=['channels', 'search'],
-            values={'tags_db': tag_component.tags_db}
-        )
-
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED,
                                            metadata_store.TorrentMetadata.add_ffa_from_dict)
-
         if config.gui_test_mode:
+            tag_component = await self.require_component(TagComponent)
             generate_test_channels(metadata_store, tag_component.tags_db)
 
     async def shutdown(self):

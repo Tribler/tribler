@@ -79,11 +79,11 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    def __init__(self):
+    def __init__(self, download_manager, metadata_store=None, tunnel_community=None):
         super().__init__()
-        self.download_manager = None
-        self.mds = None
-        self.tunnel_community = None
+        self.download_manager = download_manager
+        self.mds = metadata_store
+        self.tunnel_community = tunnel_community
 
         self.app.on_shutdown.append(self.on_shutdown)
 
