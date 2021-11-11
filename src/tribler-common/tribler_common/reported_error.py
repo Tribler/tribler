@@ -11,4 +11,3 @@ class ReportedError:
     long_text: str = ''
     context: str = ''
     should_stop: Optional[bool] = None
-    requires_user_consent: bool = True

@@ -72,7 +72,6 @@ async def test_unhandled_error_observer_exception():
     assert reported_error.event == {'sentry': 'event'}
     assert reported_error.context == "{'Any key': 'Any value'}"
     assert reported_error.should_stop
-    assert reported_error.requires_user_consent
 
 
 async def test_unhandled_error_observer_only_message():
@@ -90,7 +89,6 @@ async def test_unhandled_error_observer_only_message():
     assert not reported_error.event
     assert reported_error.context == '{}'
     assert reported_error.should_stop
-    assert reported_error.requires_user_consent
 
 
 async def test_unhandled_error_observer_ignored():

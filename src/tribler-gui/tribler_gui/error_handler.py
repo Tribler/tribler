@@ -42,7 +42,6 @@ class ErrorHandler:
             type=type(info_type).__name__,
             text=text,
             event=SentryReporter.event_from_exception(info_error),
-            requires_user_consent=True
         )
 
         FeedbackDialog(

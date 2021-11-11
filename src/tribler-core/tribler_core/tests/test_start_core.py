@@ -2,8 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
-from tribler_core.settings import ErrorHandlingSettings
 from tribler_core.start_core import start_tribler_core
 
 pytestmark = pytest.mark.asyncio
@@ -23,12 +21,9 @@ class MockedProcessChecker(MagicMock):
 @patch('tribler_core.start_core.core_session', new=MagicMock())
 @patch('tribler_core.start_core.ProcessChecker', new=MockedProcessChecker())
 @patch('asyncio.get_event_loop', new=MagicMock())
-@patch('tribler_core.start_core.TriblerConfig.load')
-async def test_start_tribler_core_requires_user_consent(mocked_config):
-    # test that CoreExceptionHandler sets `requires_user_consent` in regarding the Tribler's config
-    class MockedTriblerConfig(MagicMock):
-        error_handling = ErrorHandlingSettings(core_error_reporting_requires_user_consent=False)
-
-    mocked_config.return_value = MockedTriblerConfig()
+@patch('tribler_core.start_core.TriblerConfig.load', new=MagicMock())
+@patch.object(MockedProcessChecker, 'remove_lock_file', create=True)
+async def test_start_tribler_core_no_exceptions(mocked_remove_lock_file):
+    # test that base logic of tribler core runs without exceptions
     start_tribler_core('.', 1, 'key', '.', False)
-    assert not CoreExceptionHandler.requires_user_consent
+    mocked_remove_lock_file.assert_called_once()
