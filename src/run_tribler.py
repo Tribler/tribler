@@ -7,7 +7,6 @@ from PyQt5.QtCore import QSettings
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
 
-
 # pylint: disable=import-outside-toplevel, ungrouped-imports
 
 def init_sentry_reporter():
@@ -16,12 +15,12 @@ def init_sentry_reporter():
 
     """ Initialise sentry reporter
 
-    We use `sentry_url` as a URL for normal tribler mode and TEST_SENTRY_URL
+    We use `sentry_url` as a URL for normal tribler mode and TRIBLER_TEST_SENTRY_URL
     as a URL for sending sentry's reports while a Tribler client running in
     test mode
     """
     from tribler_core.version import sentry_url, version_id
-    test_sentry_url = os.environ.get('TEST_SENTRY_URL', None)
+    test_sentry_url = SentryReporter.get_test_sentry_url()
 
     if not test_sentry_url:
         SentryReporter.init(sentry_url=sentry_url,

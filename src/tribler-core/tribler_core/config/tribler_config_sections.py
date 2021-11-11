@@ -28,7 +28,6 @@ class TriblerConfigSections(BaseSettings):
         extra = Extra.ignore  # ignore extra attributes during model initialization
 
     general: GeneralSettings = GeneralSettings()
-    error_handling: ErrorHandlingSettings = ErrorHandlingSettings()
     tunnel_community: TunnelCommunitySettings = TunnelCommunitySettings()
     bandwidth_accounting: BandwidthAccountingSettings = BandwidthAccountingSettings()
     bootstrap: BootstrapSettings = BootstrapSettings()
