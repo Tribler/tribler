@@ -14,7 +14,6 @@ from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
 from tribler_core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
-from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
 from tribler_core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 from tribler_core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
 from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
@@ -41,7 +40,6 @@ class RootEndpoint(RESTEndpoint):
 
         endpoints = {
             '/events': (EventsEndpoint, True),
-            '/state': (StateEndpoint, True),
             '/shutdown': (ShutdownEndpoint, True),
             '/settings': (SettingsEndpoint, True),
             '/downloads': (DownloadsEndpoint, self.tribler_config.libtorrent.enabled),

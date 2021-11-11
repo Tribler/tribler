@@ -1,4 +1,3 @@
-from tribler_common.simpledefs import STATE_START_TORRENT_CHECKER
 
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
@@ -28,7 +27,6 @@ class TorrentCheckerComponent(RestfulComponent):
                                          socks_listen_ports=socks_servers_component.socks_ports,
                                          metadata_store=metadata_store_component.mds)
         self.torrent_checker = torrent_checker
-        await self.set_readable_status(STATE_START_TORRENT_CHECKER)
         await torrent_checker.initialize()
         await self.init_endpoints(endpoints=['metadata'], values={'torrent_checker': torrent_checker})
 

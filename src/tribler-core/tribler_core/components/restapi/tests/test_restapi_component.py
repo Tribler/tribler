@@ -15,6 +15,15 @@ pytestmark = pytest.mark.asyncio
 
 # pylint: disable=protected-access, not-callable
 
+def assert_report_callback_is_correct(component: RESTComponent):
+    assert CoreExceptionHandler.report_callback
+    component._events_endpoint.on_tribler_exception = MagicMock()
+
+    error = ReportedError(type='', text='text', event={})
+    CoreExceptionHandler.report_callback(error)
+
+    component._events_endpoint.on_tribler_exception.assert_called_with(error)
+
 
 async def test_restful_component(tribler_config):
     components = [KeyComponent(), RESTComponent()]
