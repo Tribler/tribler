@@ -1,5 +1,4 @@
 import shutil
-from unittest.mock import patch
 
 import pytest
 
@@ -39,6 +38,7 @@ async def rest_manager(request, tribler_config, api_port, tmp_path):
         tribler_config.api.http_port = api_port
     root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
     rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=tmp_path)
+    rest_manager.get_endpoint('settings').tribler_config = config
     await rest_manager.start()
     yield rest_manager
     await rest_manager.stop()
@@ -47,38 +47,37 @@ async def rest_manager(request, tribler_config, api_port, tmp_path):
 @pytest.mark.enable_https
 @pytest.mark.asyncio
 async def test_https(tribler_config, rest_manager, api_port):
-    await do_real_request(api_port, f'https://localhost:{api_port}/state')
+    await do_real_request(api_port, f'https://localhost:{api_port}/settings')
 
 
 @pytest.mark.api_key('')
 @pytest.mark.asyncio
 async def test_api_key_disabled(rest_manager, api_port):
-    await do_real_request(api_port, 'state')
-    await do_real_request(api_port, 'state?apikey=111')
-    await do_real_request(api_port, 'state', headers={'X-Api-Key': '111'})
+    await do_real_request(api_port, 'settings')
+    await do_real_request(api_port, 'settings?apikey=111')
+    await do_real_request(api_port, 'settings', headers={'X-Api-Key': '111'})
 
 
 @pytest.mark.api_key('0' * 32)
 @pytest.mark.asyncio
 async def test_api_key_success(rest_manager, api_port):
     api_key = rest_manager.config.key
-    await do_real_request(api_port, 'state?apikey=' + api_key)
-    await do_real_request(api_port, 'state', headers={'X-Api-Key': api_key})
+    await do_real_request(api_port, 'settings?apikey=' + api_key)
+    await do_real_request(api_port, 'settings', headers={'X-Api-Key': api_key})
 
 
 @pytest.mark.api_key('0' * 32)
 @pytest.mark.asyncio
 async def test_api_key_fail(rest_manager, api_port):
-    await do_real_request(api_port, 'state', expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
-    await do_real_request(api_port, 'state?apikey=111',
+    await do_real_request(api_port, 'settings', expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
+    await do_real_request(api_port, 'settings?apikey=111',
                           expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
-    await do_real_request(api_port, 'state', headers={'X-Api-Key': '111'},
+    await do_real_request(api_port, 'settings', headers={'X-Api-Key': '111'},
                           expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
 
 
 @pytest.mark.asyncio
 async def test_unhandled_exception(rest_manager, api_port):
-    rest_manager.config.http_port
     """
     Testing whether the API returns a formatted 500 error if an unhandled Exception is raised
     """
@@ -87,23 +86,3 @@ async def test_unhandled_exception(rest_manager, api_port):
     assert response_dict
     assert not response_dict['error']['handled']
     assert response_dict['error']['code'] == "TypeError"
-
-
-@pytest.mark.asyncio
-async def test_tribler_shutting_down(rest_manager, api_port):
-    """
-    Testing whether the API returns a 404 error for any request if tribler is shutting down.
-    """
-
-    # Indicates tribler is shutting down
-    with patch('tribler_core.components.restapi.rest.rest_manager.tribler_shutting_down', new=lambda: True):
-        error_response = await do_real_request(api_port, 'state', expected_code=404)
-
-    expected_response = {
-        "error": {
-            "handled": True,
-            "code": "ShuttingDownException",
-            "message": "Tribler is shutting down"
-        }
-    }
-    assert error_response == expected_response

@@ -1,4 +1,3 @@
-from tribler_common.simpledefs import STATE_CHECKPOINTS_LOADED, STATE_LOAD_CHECKPOINTS, STATE_START_LIBTORRENT
 
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
@@ -16,7 +15,6 @@ class LibtorrentComponent(RestfulComponent):
 
         config = self.session.config
 
-        await self.set_readable_status(STATE_START_LIBTORRENT)
         self.download_manager = DownloadManager(
             config=config.libtorrent,
             state_dir=config.state_dir,
@@ -28,9 +26,7 @@ class LibtorrentComponent(RestfulComponent):
             dummy_mode=config.gui_test_mode)
         self.download_manager.initialize()
 
-        await self.set_readable_status(STATE_LOAD_CHECKPOINTS)
         await self.download_manager.load_checkpoints()
-        await self.set_readable_status(STATE_CHECKPOINTS_LOADED)
 
         endpoints = ['createtorrent', 'libtorrent', 'torrentinfo', 'downloads', 'channels', 'collections', 'settings']
         await self.init_endpoints(endpoints=endpoints, values={'download_manager': self.download_manager})

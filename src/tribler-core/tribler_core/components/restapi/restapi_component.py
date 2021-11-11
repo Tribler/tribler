@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Set, Tuple
 from ipv8_service import IPv8
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.simpledefs import STATE_START_API
 
 from tribler_core.components.base import Component
 from tribler_core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
@@ -13,7 +12,6 @@ from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
 
 
 class RestfulComponent(Component, ABC):
@@ -22,13 +20,6 @@ class RestfulComponent(Component, ABC):
     def __init__(self):
         super().__init__()
         self.endpoint_attrs = set()
-
-    async def set_readable_status(self, readable_status):
-        rest_component = await self.get_component(RESTComponent)
-        if rest_component:
-            state_endpoint: StateEndpoint = rest_component.rest_manager.get_endpoint('state')
-            if state_endpoint:
-                state_endpoint.readable_status = readable_status
 
     async def init_endpoints(self, endpoints: List[str], values: Dict[str, Any]):
         rest_component = await self.get_component(RESTComponent)
@@ -74,7 +65,6 @@ class RESTComponent(Component):
     rest_manager: RESTManager = None
 
     _events_endpoint: EventsEndpoint
-    _state_endpoint: StateEndpoint
     _core_exception_handler: CoreExceptionHandler = default_core_exception_handler
 
     async def run(self):
@@ -97,11 +87,6 @@ class RESTComponent(Component):
         rest_manager.get_endpoint('shutdown').connect_shutdown_callback(shutdown_event.set)
         rest_manager.get_endpoint('settings').tribler_config = config
 
-        self._state_endpoint = rest_manager.get_endpoint('state')
-        assert self._state_endpoint is not None
-        self._state_endpoint.connect_notifier(notifier)
-        self._state_endpoint.readable_status = STATE_START_API
-
         self._events_endpoint = rest_manager.get_endpoint('events')
         assert self._events_endpoint is not None
         self._events_endpoint.connect_notifier(notifier)
@@ -114,7 +99,6 @@ class RESTComponent(Component):
 
         def report_callback(reported_error: ReportedError):
             self._events_endpoint.on_tribler_exception(reported_error)
-            self._state_endpoint.on_tribler_exception(reported_error.text)
 
         self._core_exception_handler.report_callback = report_callback
 
