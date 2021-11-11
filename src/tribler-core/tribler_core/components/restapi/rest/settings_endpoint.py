@@ -8,7 +8,9 @@ from marshmallow.fields import Boolean
 
 from tribler_common.network_utils import NetworkUtils
 
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.utilities import froze_it
 
 
@@ -18,10 +20,10 @@ class SettingsEndpoint(RESTEndpoint):
     This endpoint is reponsible for handing all requests regarding settings and configuration.
     """
 
-    def __init__(self):
+    def __init__(self, tribler_config: TriblerConfig, download_manager: DownloadManager = None):
         super().__init__()
-        self.tribler_config = None
-        self.download_manager = None
+        self.tribler_config = tribler_config
+        self.download_manager = download_manager
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_settings),

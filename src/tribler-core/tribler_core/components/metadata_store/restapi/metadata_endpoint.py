@@ -15,6 +15,7 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler_core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler_core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler_core.components.restapi.rest.schema import HandledErrorSchema
+from tribler_core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it
 
@@ -53,9 +54,9 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     #          /<public_key>
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, torrent_checker: TorrentChecker, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
-        self.torrent_checker = None
+        self.torrent_checker = torrent_checker
 
     def setup_routes(self):
         self.app.add_routes(

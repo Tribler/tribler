@@ -15,15 +15,15 @@ from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
 
+from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 
 INFINITE = -1
 
 
 # pylint: disable=import-outside-toplevel
 
-class Ipv8Component(RestfulComponent):
+class Ipv8Component(Component):
     ipv8: IPv8 = None
     peer: Peer
     dht_discovery_community: Optional[DHTDiscoveryCommunity] = None
@@ -87,11 +87,6 @@ class Ipv8Component(RestfulComponent):
         else:
             if config.dht.enabled:
                 self.dht_discovery_community.routing_tables[UDPv4Address] = RoutingTable('\x00' * 20)
-
-        await self.init_endpoints(endpoints=['statistics'], values={'ipv8': ipv8})
-        await self.init_ipv8_endpoints(ipv8, endpoints=[
-            'asyncio', 'attestation', 'dht', 'identity', 'isolation', 'network', 'noblockdht', 'overlays'
-        ])
 
     def initialise_community_by_default(self, community, default_random_walk_max_peers=20):
         community.bootstrappers.append(self.make_bootstrapper())

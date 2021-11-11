@@ -9,6 +9,7 @@ from aiohttp import web
 from aiohttp_apispec import docs
 
 from ipv8.REST.schema import schema
+from ipv8.messaging.anonymization.community import TunnelCommunity
 
 from marshmallow.fields import Boolean, Float, Integer, String
 
@@ -16,8 +17,10 @@ import psutil
 
 from tribler_common.osutils import get_root_state_directory
 
+from tribler_core.components.resource_monitor.implementation.base import ResourceMonitor
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.instrumentation import WatchDog
+from tribler_core.utilities.path_util import Path
 
 HAS_MELIAE = True
 try:
@@ -41,12 +44,12 @@ class DebugEndpoint(RESTEndpoint):
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
 
-    def __init__(self, *args, **kwargs):
-        RESTEndpoint.__init__(self, *args, **kwargs)
-        self.state_dir = None
-        self.log_dir = None
-        self.tunnel_community = None
-        self.resource_monitor = None
+    def __init__(self, state_dir: Path, log_dir: Path, tunnel_community:TunnelCommunity=None, resource_monitor:ResourceMonitor=None):
+        super().__init__()
+        self.state_dir = state_dir
+        self.log_dir = log_dir
+        self.tunnel_community = tunnel_community
+        self.resource_monitor = resource_monitor
 
     def setup_routes(self):
         self.app.add_routes([web.get('/circuits/slots', self.get_circuit_slots),

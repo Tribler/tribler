@@ -11,6 +11,7 @@ from marshmallow.fields import String
 
 from pony.orm import db_session
 
+from tribler_core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
 from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.components.metadata_store.restapi.metadata_schema import RemoteQueryParameters
 from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
@@ -24,9 +25,9 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     This endpoint fires a remote search in the IPv8 GigaChannel Community.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, gigachannel_community: GigaChannelCommunity,  *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
-        self.gigachannel_community = None
+        self.gigachannel_community = gigachannel_community
 
     def setup_routes(self):
         self.app.add_routes([web.put('', self.create_remote_search_request)])

@@ -1,10 +1,9 @@
-
+from tribler_core.components.base import Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.watch_folder.watch_folder import WatchFolder
 
 
-class WatchFolderComponent(RestfulComponent):
+class WatchFolderComponent(Component):
     watch_folder: WatchFolder = None
 
     async def run(self):

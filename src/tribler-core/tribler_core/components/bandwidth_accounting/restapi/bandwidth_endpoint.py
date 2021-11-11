@@ -6,7 +6,10 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer, String
 
-from tribler_core.components.restapi.rest.rest_endpoint import HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
+from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+    BandwidthAccountingCommunity,
+)
+from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.utilities import froze_it
 
 
@@ -16,10 +19,9 @@ class BandwidthEndpoint(RESTEndpoint):
     This endpoint is responsible for handing requests for bandwidth accounting data.
     """
 
-    def __init__(self):
+    def __init__(self, bandwidth_community: BandwidthAccountingCommunity):
         super().__init__()
-        self.bandwidth_db = None  # added to simlify the initialization code of BandwidthAccountingComponent
-        self.bandwidth_community = None
+        self.bandwidth_community = bandwidth_community
 
     def setup_routes(self) -> None:
         self.app.add_routes([web.get('/statistics', self.get_statistics)])
@@ -43,8 +45,6 @@ class BandwidthEndpoint(RESTEndpoint):
         }
     )
     async def get_statistics(self, request) -> RESTResponse:
-        if not self.bandwidth_community:
-            return RESTResponse({"error": "Bandwidth community not found"}, status=HTTP_NOT_FOUND)
         return RESTResponse({'statistics': self.bandwidth_community.get_statistics()})
 
     @docs(
@@ -63,6 +63,4 @@ class BandwidthEndpoint(RESTEndpoint):
         }
     )
     async def get_history(self, request) -> RESTResponse:
-        if not self.bandwidth_community:
-            return RESTResponse({"error": "Bandwidth community not found"}, status=HTTP_NOT_FOUND)
         return RESTResponse({'history': self.bandwidth_community.database.get_history()})

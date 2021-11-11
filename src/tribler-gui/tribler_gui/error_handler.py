@@ -1,5 +1,4 @@
 import logging
-import os
 import traceback
 
 from tribler_common.reported_error import ReportedError
@@ -86,7 +85,6 @@ class ErrorHandler:
         self.tribler_window.downloads_page.stop_loading_downloads()
 
         # Add info about whether we are stopping Tribler or not
-        os.environ['TRIBLER_SHUTTING_DOWN'] = str(self.tribler_window.core_manager.shutting_down).upper()
         if not self.tribler_window.core_manager.shutting_down:
             self.tribler_window.core_manager.stop(stop_app_on_shutdown=False)
 

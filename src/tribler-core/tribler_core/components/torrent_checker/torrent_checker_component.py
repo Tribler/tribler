@@ -1,13 +1,12 @@
-
+from tribler_core.components.base import Component
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 
 
-class TorrentCheckerComponent(RestfulComponent):
+class TorrentCheckerComponent(Component):
     torrent_checker: TorrentChecker = None
 
     async def run(self):
@@ -28,7 +27,6 @@ class TorrentCheckerComponent(RestfulComponent):
                                          metadata_store=metadata_store_component.mds)
         self.torrent_checker = torrent_checker
         await torrent_checker.initialize()
-        await self.init_endpoints(endpoints=['metadata'], values={'torrent_checker': torrent_checker})
 
     async def shutdown(self):
         await super().shutdown()

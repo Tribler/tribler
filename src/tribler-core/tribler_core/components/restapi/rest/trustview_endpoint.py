@@ -8,6 +8,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Float, Integer, List, String
 
+from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.bandwidth_accounting.trust_calculation.trust_graph import TrustGraph
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
@@ -16,10 +17,9 @@ from tribler_core.utilities.utilities import froze_it
 
 @froze_it
 class TrustViewEndpoint(RESTEndpoint):
-    def __init__(self):
+    def __init__(self, bandwidth_db: BandwidthDatabase):
         super().__init__()
-        self.bandwidth_db = None
-        self.bandwidth_community = None  # added to simlify the initialization code of BandwidthAccountingComponent
+        self.bandwidth_db = bandwidth_db
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_view)])

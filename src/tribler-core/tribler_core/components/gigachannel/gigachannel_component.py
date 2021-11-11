@@ -1,5 +1,6 @@
 from ipv8.peerdiscovery.network import Network
 
+from tribler_core.components.base import Component
 from tribler_core.components.gigachannel.community.gigachannel_community import (
     GigaChannelCommunity,
     GigaChannelTestnetCommunity,
@@ -8,10 +9,9 @@ from tribler_core.components.gigachannel.community.sync_strategy import RemovePe
 from tribler_core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.reporter.reporter_component import ReporterComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 
 
-class GigaChannelComponent(RestfulComponent):
+class GigaChannelComponent(Component):
     community: GigaChannelCommunity = None
     _ipv8_component: Ipv8Component = None
 
@@ -39,8 +39,6 @@ class GigaChannelComponent(RestfulComponent):
         self.community = community
         self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)
         self._ipv8_component.ipv8.add_strategy(community, RemovePeers(community), INFINITE)
-        await self.init_endpoints(endpoints=['remote_query', 'channels', 'collections'],
-                                  values={'gigachannel_community': community})
 
     async def shutdown(self):
         await super().shutdown()
