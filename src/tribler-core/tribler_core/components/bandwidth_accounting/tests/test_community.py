@@ -26,9 +26,6 @@ class TestBandwidthAccountingCommunity(TestBase):
         db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=peer.public_key.key_to_bin())
         ipv8 = MockIPv8(peer, BandwidthAccountingCommunity, database=db,
                         settings=BandwidthAccountingSettings())
-        community = ipv8.get_overlay(BandwidthAccountingCommunity)
-        # Dumb workaround for MockIPv8 not supporting key injection
-        community.database.my_pub_key = ipv8.my_peer.public_key.key_to_bin()
         return ipv8
 
     async def test_single_transaction(self):
