@@ -23,7 +23,7 @@ from tribler_core.components.libtorrent.libtorrent_component import LibtorrentCo
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler_core.components.payout.payout_component import PayoutComponent
 from tribler_core.components.popularity.popularity_component import PopularityComponent
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
+from tribler_core.components.reporter.exception_handler import default_core_exception_handler
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi.restapi_component import RESTComponent
@@ -172,7 +172,8 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
         asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     loop = asyncio.get_event_loop()
-    loop.set_exception_handler(CoreExceptionHandler.unhandled_error_observer)
+    exception_handler = default_core_exception_handler
+    loop.set_exception_handler(exception_handler.unhandled_error_observer)
 
     loop.run_until_complete(core_session(config, components=list(components_gen(config))))
 
