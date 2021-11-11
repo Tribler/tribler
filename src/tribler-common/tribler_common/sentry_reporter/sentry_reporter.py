@@ -339,7 +339,7 @@ class SentryReporter:
 
     @staticmethod
     def is_in_test_mode():
-        return SentryReporter.get_test_sentry_url() is not None
+        return bool(SentryReporter.get_test_sentry_url())
 
     @staticmethod
     def _before_send(event, hint):
