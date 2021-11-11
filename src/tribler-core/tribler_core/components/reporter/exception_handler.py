@@ -41,7 +41,6 @@ class CoreExceptionHandler:
 
     _logger = logging.getLogger("CoreExceptionHandler")
     report_callback: Optional[Callable[[ReportedError], None]] = None
-    requires_user_consent: bool = True
 
     @staticmethod
     def _get_long_text_from(exception: Exception):
@@ -101,7 +100,6 @@ class CoreExceptionHandler:
                 long_text=long_text,
                 context=str(context),
                 event=SentryReporter.event_from_exception(exception) or {},
-                requires_user_consent=cls.requires_user_consent,
                 should_stop=should_stop
             )
             if cls.report_callback:

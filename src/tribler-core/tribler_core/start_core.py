@@ -147,7 +147,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
     config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
     config.gui_test_mode = gui_test_mode
 
-    if not config.error_handling.core_error_reporting_requires_user_consent:
+    if SentryReporter.is_in_test_mode():
         SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
     config.api.http_port = int(api_port)
@@ -172,7 +172,6 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
         asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     loop = asyncio.get_event_loop()
-    CoreExceptionHandler.requires_user_consent = config.error_handling.core_error_reporting_requires_user_consent
     loop.set_exception_handler(CoreExceptionHandler.unhandled_error_observer)
 
     loop.run_until_complete(core_session(config, components=list(components_gen(config))))

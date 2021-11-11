@@ -113,15 +113,10 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Users can remove specific lines in the report
         connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
-        self.send_automatically = FeedbackDialog.can_send_automatically(self.reported_error.requires_user_consent)
+        self.send_automatically = SentryReporter.is_in_test_mode()
         if self.send_automatically:
             self.stop_application_on_close = True
             self.on_send_clicked(True)
-
-    @staticmethod
-    def can_send_automatically(error_reporting_requires_user_consent):
-        test_sentry_url_is_defined = os.environ.get('TEST_SENTRY_URL', None) is not None
-        return test_sentry_url_is_defined and not error_reporting_requires_user_consent
 
     def on_remove_entry(self):
         self.env_variables_list.takeTopLevelItem(self.selected_item_index)

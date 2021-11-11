@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -331,6 +332,14 @@ class SentryReporter:
         """
         strategy = SentryReporter.thread_strategy.get()
         return strategy if strategy else SentryReporter.global_strategy
+
+    @staticmethod
+    def get_test_sentry_url():
+        return os.environ.get('TRIBLER_TEST_SENTRY_URL', None)
+
+    @staticmethod
+    def is_in_test_mode():
+        return SentryReporter.get_test_sentry_url() is not None
 
     @staticmethod
     def _before_send(event, hint):
