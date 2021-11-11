@@ -3,7 +3,7 @@ import os
 import traceback
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 
 # fmt: off
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
@@ -26,6 +26,10 @@ class ErrorHandler:
             return
 
         info_type, info_error, tb = exc_info
+        if SentryReporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
+            self._logger.info(f'GUI error was suppressed and not sent to Sentry: {info_type.__name__}: {info_error}')
+            return
+
         if info_type in self._handled_exceptions:
             return
         self._handled_exceptions.add(info_type)

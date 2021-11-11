@@ -4,15 +4,15 @@ import sys
 
 from PyQt5.QtCore import QSettings
 
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
+
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
 
 # pylint: disable=import-outside-toplevel, ungrouped-imports
 
 def init_sentry_reporter():
-    from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
-    from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
     """ Initialise sentry reporter
 
     We use `sentry_url` as a URL for normal tribler mode and TRIBLER_TEST_SENTRY_URL
@@ -138,4 +138,6 @@ if __name__ == "__main__":
             # Flush all the logs to make sure it is written to file before it exits
             for handler in logging.getLogger().handlers:
                 handler.flush()
+
+            SentryReporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
             raise
