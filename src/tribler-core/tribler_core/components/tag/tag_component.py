@@ -20,13 +20,9 @@ class TagComponent(RestfulComponent):
         self._ipv8_component = await self.require_component(Ipv8Component)
         key_component = await self.require_component(KeyComponent)
 
-        db_name = "tags_gui_test.db" if self.session.config.gui_test_mode else "tags.db"
-        db_path = self.session.config.state_dir / STATEDIR_DB_DIR / db_name
-
-        if self.session.config.gui_test_mode and db_path.exists():
-            # Make sure that we start with a clean metadata database when in GUI mode every time.
-            self.logger.info("Wiping tags database in GUI test mode")
-            db_path.unlink(missing_ok=True)
+        db_path = self.session.config.state_dir / STATEDIR_DB_DIR / "tags.db"
+        if self.session.config.gui_test_mode:
+            db_path = ":memory:"
 
         self.tags_db = TagDatabase(str(db_path))
         self.community = TagCommunity(
