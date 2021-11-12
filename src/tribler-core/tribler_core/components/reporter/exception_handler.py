@@ -11,7 +11,6 @@ from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_core.components.base import ComponentStartupException
-from tribler_core.utilities.utilities import froze_it
 
 # There are some errors that we are ignoring.
 IGNORED_ERRORS_BY_CODE = {
@@ -32,15 +31,15 @@ IGNORED_ERRORS_BY_REGEX = {
 }
 
 
-@froze_it
 class CoreExceptionHandler:
     """
-    This singleton handles Python errors arising in the Core by catching them, adding necessary context,
+    This class handles Python errors arising in the Core by catching them, adding necessary context,
     and sending them to the GUI through the events endpoint. It must be connected to the Asyncio loop.
     """
 
-    _logger = logging.getLogger("CoreExceptionHandler")
-    report_callback: Optional[Callable[[ReportedError], None]] = None
+    def __init__(self):
+        self.logger = logging.getLogger("CoreExceptionHandler")
+        self.report_callback: Optional[Callable[[ReportedError], None]] = None
 
     @staticmethod
     def _get_long_text_from(exception: Exception):
@@ -48,14 +47,8 @@ class CoreExceptionHandler:
             print_exception(type(exception), exception, exception.__traceback__, file=buffer)
             return buffer.getvalue()
 
-    @classmethod
-    def _create_exception_from(cls, message: str):
-        text = f'Received error without exception: {message}'
-        cls._logger.warning(text)
-        return Exception(text)
-
-    @classmethod
-    def _is_ignored(cls, exception: Exception):
+    @staticmethod
+    def _is_ignored(exception: Exception):
         exception_class = exception.__class__
         error_number = exception.errno if hasattr(exception, 'errno') else None
 
@@ -68,31 +61,35 @@ class CoreExceptionHandler:
         pattern = IGNORED_ERRORS_BY_REGEX[exception_class]
         return re.search(pattern, str(exception)) is not None
 
-    @classmethod
-    def unhandled_error_observer(cls, loop, context):  # pylint: disable=unused-argument
+    def _create_exception_from(self, message: str):
+        text = f'Received error without exception: {message}'
+        self.logger.warning(text)
+        return Exception(text)
+
+    def unhandled_error_observer(self, _, context):
         """
         This method is called when an unhandled error in Tribler is observed.
         It broadcasts the tribler_exception event.
         """
         try:
-            SentryReporter.ignore_logger(cls._logger.name)
+            SentryReporter.ignore_logger(self.logger.name)
 
             should_stop = True
             context = context.copy()
             message = context.pop('message', 'no message')
-            exception = context.pop('exception', None) or cls._create_exception_from(message)
+            exception = context.pop('exception', None) or self._create_exception_from(message)
             # Exception
             text = str(exception)
             if isinstance(exception, ComponentStartupException):
                 should_stop = exception.component.tribler_should_stop_on_component_error
                 exception = exception.__cause__
 
-            if cls._is_ignored(exception):
-                cls._logger.warning(exception)
+            if self._is_ignored(exception):
+                self.logger.warning(exception)
                 return
 
-            long_text = cls._get_long_text_from(exception)
-            cls._logger.error(f"Unhandled exception occurred! {exception}\n{long_text}")
+            long_text = self._get_long_text_from(exception)
+            self.logger.error(f"Unhandled exception occurred! {exception}\n{long_text}")
 
             reported_error = ReportedError(
                 type=exception.__class__.__name__,
@@ -102,9 +99,12 @@ class CoreExceptionHandler:
                 event=SentryReporter.event_from_exception(exception) or {},
                 should_stop=should_stop
             )
-            if cls.report_callback:
-                cls.report_callback(reported_error)  # pylint: disable=not-callable
+            if self.report_callback:
+                self.report_callback(reported_error)  # pylint: disable=not-callable
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)
             raise ex
+
+
+default_core_exception_handler = CoreExceptionHandler()

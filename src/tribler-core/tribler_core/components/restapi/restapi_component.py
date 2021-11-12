@@ -7,7 +7,7 @@ from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import STATE_START_API
 
 from tribler_core.components.base import Component
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
+from tribler_core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
@@ -75,6 +75,7 @@ class RESTComponent(Component):
 
     _events_endpoint: EventsEndpoint
     _state_endpoint: StateEndpoint
+    _core_exception_handler: CoreExceptionHandler = default_core_exception_handler
 
     async def run(self):
         await super().run()
@@ -115,10 +116,13 @@ class RESTComponent(Component):
             self._events_endpoint.on_tribler_exception(reported_error)
             self._state_endpoint.on_tribler_exception(reported_error.text)
 
-        CoreExceptionHandler.report_callback = report_callback
+        self._core_exception_handler.report_callback = report_callback
 
     async def shutdown(self):
         await super().shutdown()
-        CoreExceptionHandler.report_callback = None
+
+        if self._core_exception_handler:
+            self._core_exception_handler.report_callback = None
+
         if self.rest_manager:
             await self.rest_manager.stop()
