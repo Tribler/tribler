@@ -58,23 +58,18 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.REMOTE_QUERY_RESULTS.value: self.received_remote_query_results.emit,
             NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,
             NTFY.EVENTS_START.value: self.events_start_received,
-            NTFY.TRIBLER_STARTED.value: self.tribler_started_event,
             NTFY.REPORT_CONFIG_ERROR.value: self.config_error_signal.emit,
             NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data)),
         }
 
     def events_start_received(self, event_dict):
-        if event_dict["tribler_started"]:
+        if event_dict["version"]:
             self.tribler_started.emit(event_dict["version"])
-
-    def tribler_started_event(self, event_dict):
-        # if public key format will be changed, don't forget to change it
-        # at the core side as well
-        public_key = event_dict["public_key"]
-        if public_key:
-            SentryReporter.set_user(public_key.encode('utf-8'))
-
-        self.tribler_started.emit(event_dict["version"])
+            # if public key format will be changed, don't forget to change it
+            # at the core side as well
+            public_key = event_dict["public_key"]
+            if public_key:
+                SentryReporter.set_user(public_key.encode('utf-8'))
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info(f"Got Tribler core error: {error}")

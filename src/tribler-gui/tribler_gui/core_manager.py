@@ -43,6 +43,11 @@ class CoreManager(QObject):
         self.core_traceback = None
         self.core_traceback_timestamp = 0
 
+        connect(self.events_manager.tribler_started, self._set_core_running)
+
+    def _set_core_running(self, _):
+        self.is_core_running = True
+
     def on_core_read_ready(self):
         raw_output = bytes(self.core_process.readAll())
         decoded_output = raw_output.decode(errors="replace")
