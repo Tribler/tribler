@@ -641,6 +641,7 @@ def test_tags_dialog(window):
     # Remove the second tag
     cross_rect = tags_input.compute_cross_rect(tags_input.tags[1].rect)
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=cross_rect.center().toPoint())
+    QTest.qWait(100)  # It can take some time for the GUI to remove the tag after the click event
     assert len(tags_input.tags) == num_tags - 1
     screenshot(window, name="edit_tags_dialog_second_tags_removed")
 
