@@ -64,7 +64,6 @@ CHANNELS_VIEW_UUID = UUID('094e5bb7-d6b4-4662-825a-4a8c5948ea56')
 class NTFY(Enum):
     TORRENT_FINISHED = "torrent_finished"
     TRIBLER_SHUTDOWN_STATE = "tribler_shutdown_state"
-    TRIBLER_STARTED = "tribler_started"
     TRIBLER_NEW_VERSION = "tribler_new_version"
     CHANNEL_DISCOVERED = "channel_discovered"
     REMOTE_QUERY_RESULTS = "remote_query_results"

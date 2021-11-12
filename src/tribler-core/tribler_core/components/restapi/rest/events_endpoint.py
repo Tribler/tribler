@@ -17,6 +17,7 @@ from marshmallow.fields import Dict, String
 from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.components.restapi.rest.util import fix_unicode_dict
 from tribler_core.notifier import Notifier
@@ -45,8 +46,6 @@ reactions_dict = {
     NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
     # Remote GigaChannel search results were received by Tribler. Contains received entries.
     NTFY.REMOTE_QUERY_RESULTS: passthrough,
-    # An indicator that Tribler has completed the startup procedure and is ready to use.
-    NTFY.TRIBLER_STARTED: lambda public_key: {"version": version_id, "public_key": hexlify(public_key)},
     # Tribler is low on disk space for storing torrents
     NTFY.LOW_SPACE: passthrough,
     # Report config error on startup
@@ -72,15 +71,10 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         self.app.on_shutdown.append(self.on_shutdown)
         self.notifier = None
         self.undelivered_error: Optional[dict] = None
-
-        # We need to know that Tribler completed its startup sequence
-        # FIXME: remove this
-        self.tribler_started = False
         self.connect_notifier(notifier)
 
     def connect_notifier(self, notifier: Notifier):
         self.notifier = notifier
-        self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
         for event_type, event_lambda in reactions_dict.items():
             self.notifier.add_observer(event_type,
@@ -103,16 +97,14 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()
 
-    def on_tribler_started(self, _):
-        self.tribler_started = True
-
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
     def initial_message(self) -> dict:
+        public_key = hexlify(KeyComponent.instance().primary_key.key.pk)
         return {
             "type": NTFY.EVENTS_START.value,
-            "event": {"tribler_started": self.tribler_started, "version": version_id}
+            "event": {"public_key": public_key, "version": version_id}
         }
 
     def error_message(self, reported_error: ReportedError) -> dict:

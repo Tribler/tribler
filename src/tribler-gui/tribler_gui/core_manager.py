@@ -36,6 +36,11 @@ class CoreManager(QObject):
         self.is_core_running = False
         self.last_core_output: str = ''
 
+        connect(self.events_manager.tribler_started, self._set_core_running)
+
+    def _set_core_running(self, _):
+        self.is_core_running = True
+
     def on_core_read_ready(self):
         raw_output = bytes(self.core_process.readAll())
         self.last_core_output = raw_output.decode("utf-8").strip()
