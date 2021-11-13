@@ -1,28 +1,29 @@
 from unittest.mock import Mock
 
-import pytest
 from aiohttp.web_app import Application
-from freezegun import freeze_time
-from pony.orm import db_session
 
 from ipv8.keyvault.crypto import default_eccrypto
-from tribler_core.components.restapi.rest.base_api_test import do_request
 
+from pony.orm import db_session
+
+from freezegun import freeze_time
+
+import pytest
+
+from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler_core.conftest import TEST_PERSONAL_KEY
 from tribler_core.utilities.unicode import hexlify
 
-
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
 def tags_endpoint(tags_db):
-    endpoint = TagsEndpoint()
-    endpoint.db = tags_db
-    endpoint.community = Mock()
-    endpoint.community.my_peer.key = TEST_PERSONAL_KEY
-    endpoint.community.sign = Mock(return_value=b'')
+    community = Mock()
+    community.my_peer.key = TEST_PERSONAL_KEY
+    community.sign = Mock(return_value=b'')
+    endpoint = TagsEndpoint(tags_db, community)
     return endpoint
 
 

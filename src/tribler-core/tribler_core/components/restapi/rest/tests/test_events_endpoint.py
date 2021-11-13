@@ -34,8 +34,8 @@ def fixture_notifier():
 
 
 @pytest.fixture(name='endpoint')
-def fixture_endpoint():
-    return EventsEndpoint()
+def fixture_endpoint(notifier):
+    return EventsEndpoint(notifier)
 
 
 @pytest.fixture(name='reported_error')
@@ -44,14 +44,13 @@ def fixture_reported_error():
 
 
 @pytest.fixture
-async def rest_manager(api_port, tmp_path, notifier):
+async def rest_manager(api_port, tmp_path, endpoint):
     config = TriblerConfig()
     config.api.http_enabled = True
     config.api.http_port = api_port
-    root_endpoint = RootEndpoint(config, middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
+    root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
+    root_endpoint.add_endpoint('/events', endpoint)
     rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=tmp_path)
-    events_endpoint = rest_manager.get_endpoint('events')
-    events_endpoint.connect_notifier(notifier)
 
     await rest_manager.start()
     yield rest_manager

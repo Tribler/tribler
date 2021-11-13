@@ -25,8 +25,8 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 
 @pytest.fixture
-def endpoint():
-    endpoint = TorrentInfoEndpoint()
+def endpoint(mock_dlmgr):
+    endpoint = TorrentInfoEndpoint(mock_dlmgr)
     return endpoint
 
 
@@ -141,6 +141,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     mock_dlmgr.metainfo_requests = {UBUNTU_1504_INFOHASH: [Mock()]}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
+
 
 async def test_on_got_invalid_metainfo(mock_dlmgr, rest_api):
     """

@@ -44,7 +44,11 @@ class DebugEndpoint(RESTEndpoint):
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
 
-    def __init__(self, state_dir: Path, log_dir: Path, tunnel_community:TunnelCommunity=None, resource_monitor:ResourceMonitor=None):
+    def __init__(self,
+                 state_dir: Path,
+                 log_dir: Path,
+                 tunnel_community: TunnelCommunity = None,
+                 resource_monitor: ResourceMonitor = None):
         super().__init__()
         self.state_dir = state_dir
         self.log_dir = log_dir

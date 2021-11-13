@@ -9,12 +9,12 @@ from pony.orm import db_session
 
 import pytest
 
+from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
+from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
-from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
 from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support
@@ -45,9 +45,7 @@ async def torrent_checker(loop, mock_dlmgr, metadata_store):
 
 @pytest.fixture
 def rest_api(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
-    endpoint = MetadataEndpoint()
-    endpoint.mds = metadata_store
-    endpoint.torrent_checker = torrent_checker
+    endpoint = MetadataEndpoint(torrent_checker, metadata_store)
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/metadata', endpoint.app)

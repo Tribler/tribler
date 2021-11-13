@@ -87,6 +87,8 @@ class TagsEndpoint(RESTEndpoint):
         """
         Modify the tags of a particular content item.
         """
+        if not self.community:
+            return
 
         # First, get the current tags and compute the diff between the old and new tags
         old_tags = set(self.db.get_tags(infohash))

@@ -7,10 +7,10 @@ from tribler_common.reported_error import ReportedError
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.components.base import Component
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
+from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler_core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
@@ -21,7 +21,7 @@ from tribler_core.components.metadata_store.restapi.channels_endpoint import Cha
 from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
 from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
+from tribler_core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
@@ -36,6 +36,7 @@ from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler_core.utilities.unicode import hexlify
 
 
 class RESTComponent(Component):
@@ -69,12 +70,15 @@ class RESTComponent(Component):
         tunnel_component               = await self.get_component(TunnelsComponent)
         torrent_checker_component      = await self.get_component(TorrentCheckerComponent)
         gigachannel_manager_component  = await self.get_component(GigachannelManagerComponent)
+        key_component                  = await self.get_component(KeyComponent)
 
         torrent_checker = torrent_checker_component.torrent_checker if torrent_checker_component else None
         tunnel_community = tunnel_component.community if tunnel_component else None
         gigachannel_manager = gigachannel_manager_component.gigachannel_manager if gigachannel_manager_component else None
+        public_key = hexlify(key_component.primary_key.key.pk) if key_component else None
 
-        add('/events',        EventsEndpoint(notifier))
+        self._events_endpoint = EventsEndpoint(notifier, public_key=public_key)
+        add('/events',        self._events_endpoint)
         add('/settings',      SettingsEndpoint(config,
                                                download_manager=libtorrent_component.download_manager))
         add('/shutdown',      ShutdownEndpoint(shutdown_event.set))

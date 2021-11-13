@@ -27,7 +27,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
 
-    def __init__(self, download_manager:DownloadManager):
+    def __init__(self, download_manager: DownloadManager):
         super().__init__()
         self.download_manager = download_manager
 

@@ -5,11 +5,11 @@ import pytest
 
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
-from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
+from tribler_core.config.tribler_config import TriblerConfig
 
 
 @pytest.fixture
@@ -20,8 +20,7 @@ def tribler_config(tmp_path):
 
 @pytest.fixture
 def endpoint(tribler_config):
-    endpoint = SettingsEndpoint()
-    endpoint.tribler_config = tribler_config
+    endpoint = SettingsEndpoint(tribler_config)
     return endpoint
 
 
