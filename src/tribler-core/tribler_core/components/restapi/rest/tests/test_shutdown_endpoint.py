@@ -11,7 +11,8 @@ from tribler_core.components.restapi.rest.shutdown_endpoint import ShutdownEndpo
 
 @pytest.fixture
 def endpoint():
-    endpoint = ShutdownEndpoint()
+    shutdown_callback = Mock()
+    endpoint = ShutdownEndpoint(shutdown_callback)
     return endpoint
 
 
@@ -27,7 +28,6 @@ async def test_shutdown(rest_api, endpoint):
     """
     Testing whether the API triggers a Tribler shutdown
     """
-    endpoint.shutdown_callback = Mock()
 
     expected_json = {"shutdown": True}
     await do_request(rest_api, 'shutdown', expected_code=200, expected_json=expected_json, request_type='PUT')

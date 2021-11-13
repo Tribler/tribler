@@ -17,7 +17,6 @@ from marshmallow.fields import Dict, String
 from tribler_common.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
-from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.components.restapi.rest.util import fix_unicode_dict
 from tribler_core.notifier import Notifier
@@ -64,7 +63,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    def __init__(self, notifier: Notifier):
+    def __init__(self, notifier: Notifier, public_key: str = None):
         RESTEndpoint.__init__(self)
         TaskManager.__init__(self)
         self.events_responses: List[RESTStreamResponse] = []
@@ -72,6 +71,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         self.notifier = None
         self.undelivered_error: Optional[dict] = None
         self.connect_notifier(notifier)
+        self.public_key = public_key
 
     def connect_notifier(self, notifier: Notifier):
         self.notifier = notifier
@@ -101,10 +101,9 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         self.app.add_routes([web.get('', self.get_events)])
 
     def initial_message(self) -> dict:
-        public_key = hexlify(KeyComponent.instance().primary_key.key.pk)
         return {
             "type": NTFY.EVENTS_START.value,
-            "event": {"public_key": public_key, "version": version_id}
+            "event": {"public_key": self.public_key, "version": version_id}
         }
 
     def error_message(self, reported_error: ReportedError) -> dict:
