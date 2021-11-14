@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
-from PyQt5.QtCore import QPointF, QRectF, QSizeF, QLineF, QPoint, Qt, QTimerEvent, pyqtSignal
-from PyQt5.QtGui import QPainter, QGuiApplication, QTextLayout, QPalette, QColor, QPainterPath, QKeySequence, \
-    QMouseEvent, QKeyEvent
+from PyQt5.QtCore import QLineF, QPoint, QPointF, QRectF, QSizeF, QTimerEvent, Qt, pyqtSignal
+from PyQt5.QtGui import QColor, QGuiApplication, QKeyEvent, QKeySequence, QMouseEvent, QPainter, QPainterPath, \
+    QPalette, QTextLayout
 from PyQt5.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame
 
 from tribler_gui.defs import EDIT_TAG_BACKGROUND_COLOR, EDIT_TAG_BORDER_COLOR, EDIT_TAG_TEXT_COLOR, TAG_HEIGHT, \
@@ -409,14 +409,15 @@ class TagsLineEdit(QLineEdit):
 
                 event.accept()
             elif event.key() == Qt.Key_Home:
-                if self.cursor_ind == 0:
+                if self.cursor_ind == 0 and self.editing_index > 0:
                     self.edit_tag(0)
                 else:
                     self.move_cursor(0, False)
 
                 event.accept()
             elif event.key() == Qt.Key_End:
-                if self.cursor_ind == len(self.tags[self.editing_index].text):
+                if self.cursor_ind == len(self.tags[self.editing_index].text) and \
+                        self.editing_index < len(self.tags) - 1:
                     self.edit_tag(len(self.tags) - 1)
                 else:
                     self.move_cursor(len(self.tags[self.editing_index].text), False)
