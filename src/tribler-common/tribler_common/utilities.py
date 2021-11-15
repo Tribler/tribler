@@ -31,9 +31,13 @@ fts_query_re = re.compile(r'\w+', re.UNICODE)
 
 def to_fts_query(text):
     if not text:
-        return ""
-    words = fts_query_re.findall(text)
-    return ' '.join(f'"{word}"' for word in words) + '*'
+        return None
+
+    words = [f'"{w}"' for w in fts_query_re.findall(text) if w]
+    if not words:
+        return None
+
+    return ' '.join(words) + '*'
 
 
 def show_system_popup(title, text):
