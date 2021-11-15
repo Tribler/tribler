@@ -20,6 +20,10 @@ START_FAKE_API = False
 SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
 
 
+class CoreRuntimeError(Exception):
+    """This error raises in case of tribler core finished with error"""
+
+
 class CoreManager(QObject):
     """
     The CoreManager is responsible for managing the Tribler core (starting/stopping). When we are running the GUI tests,
@@ -83,7 +87,7 @@ class CoreManager(QObject):
                     self.core_traceback_timestamp,
                 )
 
-            raise RuntimeError(exception_msg)
+            raise CoreRuntimeError(exception_msg)
 
     def start(self, core_args=None, core_env=None):
         """

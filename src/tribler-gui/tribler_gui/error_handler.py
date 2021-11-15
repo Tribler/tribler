@@ -5,6 +5,7 @@ import traceback
 from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
+from tribler_gui.core_manager import CoreRuntimeError
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.event_request_manager import CoreConnectTimeoutError
 
@@ -32,8 +33,8 @@ class ErrorHandler:
 
         text = "".join(traceback.format_exception(info_type, info_error, tb))
 
-        is_core_timeout_exception = info_type is CoreConnectTimeoutError
-        if is_core_timeout_exception:
+        is_core_exception = info_type in (CoreConnectTimeoutError, CoreRuntimeError)
+        if is_core_exception:
             text = text + self.tribler_window.core_manager.core_traceback
             self._stop_tribler(text)
 
@@ -51,7 +52,7 @@ class ErrorHandler:
             start_time=self.tribler_window.start_time,
             stop_application_on_close=self._tribler_stopped,
             additional_tags={'source': 'gui'},
-            retrieve_error_message_from_stacktrace=is_core_timeout_exception
+            retrieve_error_message_from_stacktrace=is_core_exception
         ).show()
 
     def core_error(self, reported_error: ReportedError):
