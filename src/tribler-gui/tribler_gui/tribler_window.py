@@ -221,9 +221,10 @@ class TriblerWindow(QMainWindow):
 
         self.discovered_page.initialize_content_page(hide_xxx=self.hide_xxx)
 
-        self.popular_page.initialize_content_page(
-            hide_xxx=self.hide_xxx, controller_class=PopularContentTableViewController
-        )
+        from tribler_gui.widgets.channelcontentswidget import CATEGORY_SELECTOR_FOR_POPULAR_ITEMS  # pylint: disable=import-outside-toplevel
+        self.popular_page.initialize_content_page(hide_xxx=self.hide_xxx,
+                                                  controller_class=PopularContentTableViewController,
+                                                  categories=CATEGORY_SELECTOR_FOR_POPULAR_ITEMS)
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
