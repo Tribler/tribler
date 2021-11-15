@@ -8,7 +8,3 @@ class GeneralSettings(TriblerConfigSection):
     log_dir: str = "log"
     version_checker_enabled: bool = True
     testnet: bool = Field(default=False, env='TESTNET')
-
-
-class ErrorHandlingSettings(TriblerConfigSection):
-    core_error_reporting_requires_user_consent: bool = True
