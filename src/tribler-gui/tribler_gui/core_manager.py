@@ -21,8 +21,7 @@ START_FAKE_API = False
 SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
 
 
-class CoreCrashedError(CoreError):
-    """This error raises in case of tribler core finished with error"""
+
 
 
 class CoreManager(QObject):

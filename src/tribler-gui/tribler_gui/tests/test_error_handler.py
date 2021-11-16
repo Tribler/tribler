@@ -4,9 +4,8 @@ import pytest
 
 from tribler_common.reported_error import ReportedError
 
-from tribler_gui.core_manager import CoreCrashedError
 from tribler_gui.error_handler import ErrorHandler
-from tribler_gui.event_request_manager import CoreConnectTimeoutError
+from tribler_gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 
 pytestmark = pytest.mark.asyncio
 

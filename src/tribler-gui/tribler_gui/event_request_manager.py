@@ -9,16 +9,12 @@ from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
-from tribler_gui import CoreError
+from tribler_gui.exceptions import CoreConnectTimeoutError
 from tribler_gui.utilities import connect
 
 received_events = []
 
 CORE_CONNECTION_ATTEMPTS_LIMIT = 120
-
-
-class CoreConnectTimeoutError(CoreError):
-    pass
 
 
 class EventRequestManager(QNetworkAccessManager):

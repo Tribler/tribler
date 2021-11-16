@@ -5,10 +5,10 @@ import traceback
 from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
-from tribler_gui import CoreError
-from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
-
 # fmt: off
+from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
+from tribler_gui.exceptions import CoreError
+
 
 class ErrorHandler:
     def __init__(self, tribler_window):
