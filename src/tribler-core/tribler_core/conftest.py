@@ -21,7 +21,6 @@ from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.components.upgrade.implementation.legacy_to_pony import DispersyToPonyMigration
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
@@ -203,14 +202,6 @@ def tags_db():
     db = TagDatabase()
     yield db
     db.shutdown()
-
-
-@pytest.fixture
-def dispersy_to_pony_migrator(metadata_store):
-    dispersy_db_path = TESTS_DATA_DIR / 'upgrade_databases/tribler_v29.sdb'
-    migrator = DispersyToPonyMigration(dispersy_db_path)
-    migrator.initialize(metadata_store)
-    return migrator
 
 
 @pytest.fixture
