@@ -13,6 +13,7 @@ from tribler_common.utilities import is_frozen
 from tribler_common.version_manager import TriblerVersion, VersionHistory
 
 from tribler_gui.event_request_manager import EventRequestManager
+from tribler_gui.exceptions import CoreCrashedError
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, format_size, get_base_path, tr
 
@@ -83,7 +84,7 @@ class CoreManager(QObject):
                     self.core_traceback_timestamp,
                 )
 
-            raise RuntimeError(exception_msg)
+            raise CoreCrashedError(exception_msg)
 
     def start(self, core_args=None, core_env=None):
         """

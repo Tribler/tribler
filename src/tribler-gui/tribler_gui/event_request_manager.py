@@ -9,16 +9,12 @@ from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
+from tribler_gui.exceptions import CoreConnectTimeoutError
 from tribler_gui.utilities import connect
 
 received_events = []
 
-
 CORE_CONNECTION_ATTEMPTS_LIMIT = 120
-
-
-class CoreConnectTimeoutError(RuntimeError):
-    pass
 
 
 class EventRequestManager(QNetworkAccessManager):
@@ -64,7 +60,7 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.EVENTS_START.value: self.events_start_received,
             NTFY.TRIBLER_STARTED.value: self.tribler_started_event,
             NTFY.REPORT_CONFIG_ERROR.value: self.config_error_signal.emit,
-            NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data))
+            NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data)),
         }
 
     def events_start_received(self, event_dict):
