@@ -93,18 +93,18 @@ hiddenimports = [
     'csv',
     'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
     'ecdsa',
-    'pyaes',
     'PIL',
-    'scrypt', '_scrypt',
-    'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
     'pkg_resources', # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
-    'requests',
+    'pyaes',
     'pydantic',
-    'PyQt5.QtTest',
     'pyqtgraph',
     'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
     'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
     'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
+    'PyQt5.QtTest',
+    'requests',
+    'scrypt', '_scrypt',
+    'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
 ] + widget_files + pony_deps + get_sentry_hooks()
 
 # https://github.com/pyinstaller/pyinstaller/issues/5359
