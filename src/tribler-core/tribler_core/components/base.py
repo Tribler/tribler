@@ -6,7 +6,7 @@ import sys
 from asyncio import Event, create_task, gather, get_event_loop
 from itertools import count
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Type, TypeVar
+from typing import Dict, List, Optional, Set, Type, TypeVar, Union
 
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
@@ -113,6 +113,7 @@ class Session:
         async def exception_reraiser():
             # the exception should be intercepted by event loop exception handler
             raise self._startup_exception
+
         get_event_loop().create_task(exception_reraiser())
 
     def set_startup_exception(self, exc: Exception):
@@ -131,6 +132,11 @@ class Session:
 
 
 T = TypeVar('T', bound='Component')
+
+
+class NoneComponent:
+    def __getattr__(self, item):
+        return NoneComponent()
 
 
 class Component:
@@ -229,6 +235,17 @@ class Component:
             dep._use_by(self)  # pylint: disable=protected-access
 
         return dep
+
+    async def maybe_component(self, dependency: Type[T]) -> Union[T, NoneComponent]:
+        """ This method returns instance of the dependency in case this instance can be created
+        otherwise it returns instance of NoneComponent class
+
+        Example of using:
+
+        libtorrent_component = await self.maybe_component(LibtorrentComponent)
+        print(libtorrent_component.download_manager.libtorrent_port) # No NPE exception
+        """
+        return await self.get_component(dependency) or NoneComponent()
 
     def release_component(self, dependency: Type[T]):
         dep = dependency.instance()
