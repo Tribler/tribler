@@ -5,23 +5,18 @@ from configparser import MissingSectionHeaderError, ParsingError
 
 from pony.orm import db_session, delete
 
-from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR, STATEDIR_CHANNELS_DIR
+from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler_core.components.metadata_store.db.store import (
     MetadataStore,
     sql_create_partial_index_channelnode_metadata_type,
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
-from tribler_core.components.upgrade.implementation.config_converter import convert_config_to_tribler74, \
-    convert_config_to_tribler75, convert_config_to_tribler76
+from tribler_core.components.upgrade.implementation.config_converter import convert_config_to_tribler76
 from tribler_core.components.upgrade.implementation.db8_to_db10 import PonyToPonyMigration, get_db_version
-from tribler_core.components.upgrade.implementation.legacy_to_pony import DispersyToPonyMigration, \
-    cleanup_pony_experimental_db, should_upgrade
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.configparser import CallbackConfigParser
 
@@ -92,18 +87,9 @@ class TriblerUpgrader:
     async def run(self):
         """
         Run the upgrader if it is enabled in the config.
-
-        Note that by default, upgrading is enabled in the config. It is then disabled
-        after upgrading to Tribler 7.
         """
-
-        await self.upgrade_72_to_pony()
-        self.upgrade_pony_db_6to7()
-        self.upgrade_pony_db_7to8()
         await self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
-        convert_config_to_tribler74(self.state_dir)
-        convert_config_to_tribler75(self.state_dir)
         convert_config_to_tribler76(self.state_dir)
         self.upgrade_bw_accounting_db_8to9()
         self.upgrade_pony_db_11to12()
@@ -309,108 +295,8 @@ class TriblerUpgrader:
 
         self.notify_done()
 
-    def upgrade_pony_db_7to8(self):
-        """
-        Upgrade GigaChannel DB from version 7 (7.4.x) to version 8 (7.5.x).
-        Migration should be relatively fast, so we do it in the foreground.
-        """
-        # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists():
-            return
-        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
-                            disable_sync=True, check_tables=False, db_version=7)
-        self.do_upgrade_pony_db_7to8(mds)
-        mds.shutdown()
-
-    def do_upgrade_pony_db_7to8(self, mds):
-        with db_session:
-            db_version = mds.MiscData.get(name="db_version")
-            if int(db_version.value) != 7:
-                return
-            # Just in case, we skip index creation if it is somehow already there
-            if not list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")')):
-                sql = 'CREATE INDEX "idx_channelnode__metadata_type" ON "ChannelNode" ("metadata_type")'
-                mds._db.execute(sql)
-            mds.Vsids[0].exp_period = 24.0 * 60 * 60 * 3
-            db_version = mds.MiscData.get(name="db_version")
-            db_version.value = str(8)
-        return
-
-    def upgrade_pony_db_6to7(self):
-        """
-        Upgrade GigaChannel DB from version 6 (7.3.0) to version 7 (7.3.1).
-        Migration should be relatively fast, so we do it in the foreground, without notifying the user
-        and breaking it in smaller chunks as we do with 72_to_pony.
-        """
-        # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists():
-            return
-        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
-                            disable_sync=True, check_tables=False, db_version=6)
-        self.do_upgrade_pony_db_6to7(mds)
-        mds.shutdown()
-
-    def do_upgrade_pony_db_6to7(self, mds):
-        with db_session:
-            db_version = mds.MiscData.get(name="db_version")
-            if int(db_version.value) != 6:
-                return
-            for c in mds.ChannelMetadata.select_by_sql(f"""
-                select rowid, title, tags, metadata_type from ChannelNode
-                where metadata_type = {CHANNEL_TORRENT}
-            """):
-                if is_forbidden(c.title+c.tags):
-                    c.contents.delete()
-                    c.delete()
-                    # The channel torrent will be removed by GigaChannel manager during the cruft cleanup
-
-        # The process is broken down into batches to limit memory usage
-        batch_size = 10000
-        with db_session:
-            total_entries = mds.TorrentMetadata.select().count()
-            page_num = total_entries // batch_size
-        while page_num >= 0:
-            with db_session:
-                for t in mds.TorrentMetadata.select().page(page_num, pagesize=batch_size):
-                    if is_forbidden(t.title+t.tags):
-                        t.delete()
-            page_num -= 1
-        with db_session:
-            db_version = mds.MiscData.get(name="db_version")
-            db_version.value = str(7)
-        return
-
     def update_status(self, status_text):
         self.notifier.notify(NTFY.UPGRADER_TICK, status_text)
-
-    async def upgrade_72_to_pony(self):
-        old_database_path = self.state_dir / STATEDIR_DB_DIR / 'tribler.sdb'
-        new_database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if new_database_path.exists():
-            cleanup_pony_experimental_db(str(new_database_path))
-            cleanup_noncompliant_channel_torrents(self.state_dir)
-
-        self._dtp72 = DispersyToPonyMigration(old_database_path, self.update_status, logger=self._logger)
-        if not should_upgrade(old_database_path, new_database_path, logger=self._logger):
-            self._dtp72 = None
-            return
-        # This thing is here mostly for the skip upgrade test to work...
-        self._dtp72.shutting_down = self.skip_upgrade_called
-        self.notify_starting()
-        # We have to create the Metadata Store object because Session-managed Store has not been started yet
-        mds = MetadataStore(new_database_path, self.channels_dir, self.trustchain_keypair,
-                            disable_sync=True, db_version=6)
-        self._dtp72.initialize(mds)
-
-        try:
-            await self._dtp72.do_migration()
-        except Exception as e:
-            self._logger.error("Error in Upgrader callback chain: %s", e)
-        finally:
-            mds.shutdown()
-            self.notify_done()
 
     def notify_starting(self):
         """

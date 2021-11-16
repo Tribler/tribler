@@ -57,7 +57,7 @@ and developers during upgrades of major/minor (non-patch) versions. The rules ar
 In some sense, the system works exactly as GIT does: it "branches" from the last-non conflicting version dir
 and "stashes" the state dirs with conflicting names by renaming them.
 
-Note that due to failures in design pre-7.4 series and 7.4.x series get special treatment.
+Versions prior to 7.5 are not supported.
 """
 
 
@@ -100,12 +100,6 @@ class TriblerVersion:
         return f'<{self.__class__.__name__}{{{self.version_str}}}>'
 
     def get_directory(self):
-        if self.major_minor < (7, 4):
-            # This should only happen for old "7.0.0-GIT" case
-            return self.root_state_dir
-        if self.major_minor == (7, 4):
-            # 7.4.x are treated specially
-            return self.root_state_dir / (".".join(str(part) for part in LooseVersion(self.version_str).version[:3]))
         return self.root_state_dir / ('%d.%d' % self.major_minor)
 
     def state_exists(self):
@@ -207,11 +201,6 @@ class VersionHistory:
         self.versions = versions = OrderedDict()
         if self.file_path.exists():
             self.load(self.file_path)
-        elif (root_state_dir / "triblerd.conf").exists():
-            # Pre-7.4 versions of Tribler don't have history file
-            # and can by detected by presence of the triblerd.conf file in the root directory
-            version = TriblerVersion(root_state_dir, "7.3", 0.0)
-            self.add_version(version)
 
         versions_by_time = []
         last_run_version = None

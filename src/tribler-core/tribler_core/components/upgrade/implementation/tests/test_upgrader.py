@@ -4,17 +4,22 @@ from asyncio import Future
 from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+
 from pony.orm import db_session, select
 
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+import pytest
+
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.components.upgrade.implementation.db8_to_db10 import calc_progress
-from tribler_core.components.upgrade.implementation.upgrade import TriblerUpgrader, \
-    cleanup_noncompliant_channel_torrents
+from tribler_core.components.upgrade.implementation.upgrade import (
+    TriblerUpgrader,
+    cleanup_noncompliant_channel_torrents,
+)
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.configparser import CallbackConfigParser
@@ -63,62 +68,11 @@ async def test_update_status_text(upgrader, notifier):
 
 
 @pytest.mark.asyncio
-async def test_upgrade_72_to_pony(upgrader, channels_dir, state_dir, trustchain_keypair):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'tribler_v29.sdb'
-    old_database_path = state_dir / 'sqlite' / 'tribler.sdb'
-    new_database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, old_database_path)
-
-    await upgrader.run()
-    mds = MetadataStore(new_database_path, channels_dir, trustchain_keypair, db_version=6)
-    with db_session:
-        assert mds.TorrentMetadata.select().count() == 24
-    mds.shutdown()
-
-
-def test_upgrade_pony_db_6to7(upgrader, channels_dir, state_dir, trustchain_keypair):
-    """
-    Test that channels and torrents with forbidden words are cleaned up during upgrade from Pony db ver 6 to 7.
-    Also, check that the DB version is upgraded.
-    :return:
-    """
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
-    old_database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, old_database_path)
-
-    upgrader.upgrade_pony_db_6to7()
-    mds = MetadataStore(old_database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=7)
-    with db_session:
-        assert mds.TorrentMetadata.select().count() == 23
-        assert mds.ChannelMetadata.select().count() == 2
-        assert int(mds.MiscData.get(name="db_version").value) == 7
-    mds.shutdown()
-
-
-def test_upgrade_pony_db_7to8(upgrader, channels_dir, state_dir, trustchain_keypair):
-    """
-    Test that proper additional index is created.
-    Also, check that the DB version is upgraded.
-    """
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v7.db'
-    old_database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, old_database_path)
-
-    upgrader.upgrade_pony_db_7to8()
-    mds = MetadataStore(old_database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=8)
-    with db_session:
-        assert int(mds.MiscData.get(name="db_version").value) == 8
-        assert mds.Vsids[0].exp_period == 24.0 * 60 * 60 * 3
-        assert list(mds._db.execute('PRAGMA index_info("idx_channelnode__metadata_type")'))
-    mds.shutdown()
-
-
-@pytest.mark.asyncio
 async def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair):
     """
     Test complete update sequence for Pony DB (e.g. 6->7->8)
     """
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v8.db'
     old_database_path = state_dir / 'sqlite' / 'metadata.db'
     shutil.copyfile(old_db_sample, old_database_path)
 
@@ -158,24 +112,6 @@ async def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trust
         assert upgrader.trigger_exists(db, 'torrentstate_au')
     mds.shutdown()
 
-
-@pytest.mark.asyncio
-async def test_skip_upgrade_72_to_pony(upgrader, channels_dir, state_dir, trustchain_keypair):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'tribler_v29.sdb'
-    old_database_path = state_dir / 'sqlite' / 'tribler.sdb'
-    new_database_path = state_dir / 'sqlite' / 'metadata.db'
-
-    shutil.copyfile(old_db_sample, old_database_path)
-
-    upgrader.skip()
-    await upgrader.run()
-    mds = MetadataStore(new_database_path, channels_dir, trustchain_keypair, db_version=6)
-    with db_session:
-        assert mds.TorrentMetadata.select().count() == 0
-        assert mds.ChannelMetadata.select().count() == 0
-    mds.shutdown()
-
-
 def test_delete_noncompliant_state(tmpdir):
     state_dir = TESTS_DATA_DIR / 'noncompliant_state_dir'
     shutil.copytree(str(state_dir), str(tmpdir / "test"))
@@ -199,12 +135,10 @@ def test_delete_noncompliant_state(tmpdir):
 
 @pytest.mark.asyncio
 async def test_upgrade_pony_8to10(upgrader, channels_dir, state_dir, trustchain_keypair):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v6.db'
+    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v8.db'
     database_path = state_dir / 'sqlite' / 'metadata.db'
     shutil.copyfile(old_db_sample, database_path)
 
-    upgrader.upgrade_pony_db_6to7()
-    upgrader.upgrade_pony_db_7to8()
     await upgrader.upgrade_pony_db_8to10()
     mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
