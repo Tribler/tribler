@@ -202,7 +202,9 @@ class CoreManager(QObject):
             raise RuntimeError(state['last_exception'])
 
     def stop(self, stop_app_on_shutdown=True):
+        self._logger.info("Stopping Core manager")
         if self.core_process or self.is_core_running:
+            self._logger.info("Sending shutdown request to Tribler Core")
             self.events_manager.shutting_down = True
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
 
