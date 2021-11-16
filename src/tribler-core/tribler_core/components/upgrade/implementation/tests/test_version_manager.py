@@ -32,12 +32,6 @@ def test_version_to_dirname():
     assert version_to_dirname("7.5") == Path("/ROOT/7.5")
     assert version_to_dirname("7.5.0") == Path("/ROOT/7.5")
 
-    # These are special cases of 7.4.x series that used patch version naming
-    assert version_to_dirname("7.4.4") == Path("/ROOT/7.4.4")
-
-    # Versions earlier then 7.4 should return root directory
-    assert version_to_dirname("7.3.0") == Path("/ROOT")
-
 
 def test_read_write_version_history(tmpdir):
     root_path = Path(tmpdir)
@@ -165,34 +159,6 @@ def test_fork_state_directory(tmpdir_factory):
     assert history2.last_run_version == history2.code_version
     assert history2.last_run_version.version_str == code_version_id
 
-    # Scenario 3: upgrade from 7.3 (unversioned dir)
-    # dir should be forked and version_history should be created
-    tmpdir = tmpdir_factory.mktemp("scenario3")
-    root_state_dir = Path(tmpdir)
-    (root_state_dir / "triblerd.conf").write_text("foo")  # 7.3 presence marker
-    code_version_id = "120.3.2"
-
-    history = VersionHistory(root_state_dir, code_version_id)
-    assert history.last_run_version is not None
-    assert history.last_run_version.directory == root_state_dir
-    assert history.code_version != history.last_run_version
-    assert history.code_version.directory != root_state_dir
-    assert history.code_version.should_be_copied
-    assert history.code_version.can_be_copied_from is not None
-    assert history.code_version.can_be_copied_from.version_str == "7.3"
-    assert not history.code_version.should_recreate_directory
-    assert not history.code_version.directory.exists()
-
-    forked_from = history.fork_state_directory_if_necessary()
-    assert history.code_version.directory.exists()
-    assert forked_from is not None and forked_from.version_str == "7.3"
-    history_saved = history.save_if_necessary()
-    assert history_saved
-
-    history2 = VersionHistory(root_state_dir, code_version_id)
-    assert history2.last_run_version == history2.code_version
-    assert history2.last_run_version.version_str == code_version_id
-
     # Scenario 4: the user tried to upgrade to some tribler version, but failed. Now he tries again with
     # higher patch version of the same major/minor version.
     # The most recently used dir with major/minor version lower than the code version should be forked,
@@ -240,37 +206,6 @@ def test_fork_state_directory(tmpdir_factory):
     assert history2.last_run_version == history2.code_version
     assert history2.last_run_version.version_str == code_version_id
 
-    # Scenario 5: normal upgrade scenario, but from 7.4.x version (dir includes patch number)
-    tmpdir = tmpdir_factory.mktemp("scenario5")
-    root_state_dir = Path(tmpdir)
-    json_dict = {"last_version": "7.4.4", "history": dict()}
-    json_dict["history"]["2"] = "7.4.4"
-    state_dir = root_state_dir / "7.4.4"
-    state_dir.mkdir()
-    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(json_dict))
-
-    code_version_id = "7.5.1"
-
-    history = VersionHistory(root_state_dir, code_version_id)
-    assert history.last_run_version is not None
-    assert history.last_run_version.directory == state_dir
-    assert history.code_version != history.last_run_version
-    assert history.code_version.directory != root_state_dir
-    assert history.code_version.should_be_copied
-    assert history.code_version.can_be_copied_from is not None
-    assert history.code_version.can_be_copied_from.version_str == "7.4.4"
-    assert not history.code_version.directory.exists()
-    assert not history.code_version.should_recreate_directory
-
-    forked_from = history.fork_state_directory_if_necessary()
-    assert history.code_version.directory.exists()
-    assert forked_from is not None and forked_from.version_str == "7.4.4"
-    history_saved = history.save_if_necessary()
-    assert history_saved
-
-    history2 = VersionHistory(root_state_dir, code_version_id)
-    assert history2.last_run_version == history2.code_version
-    assert history2.last_run_version.version_str == code_version_id
 
 
 def test_copy_state_directory(tmpdir):
@@ -405,10 +340,6 @@ def test_installed_versions_and_removal(tmpdir_factory):
 # pylint: disable=too-many-statements
 def test_coverage(tmpdir):
     root_state_dir = Path(tmpdir)
-    v1 = TriblerVersion(root_state_dir, "7.3.1a")
-    assert repr(v1) == '<TriblerVersion{7.3.1a}>'
-    with pytest.raises(VersionError, match='Cannot rename root directory'):
-        v1.rename_directory("foo")
 
     v2 = TriblerVersion(root_state_dir, "7.8.1")
     assert v2.directory == root_state_dir / "7.8"
@@ -459,7 +390,7 @@ def test_coverage(tmpdir):
 
     history = VersionHistory(root_state_dir)
     assert history.code_version.version_str == tribler_core.version.version_id
-    assert repr(history) == "<VersionHistory[(7, 6), (7, 5), (7, 3)]>"
+    assert repr(history) == "<VersionHistory[(7, 6), (7, 5)]>"
 
     dirs = history.get_disposable_state_directories()
     names = [d.name for d in dirs]
