@@ -273,8 +273,9 @@ class RemoteTableModel(QAbstractTableModel):
         if self.sort_by is not None:
             kwargs.update({"sort_by": self.sort_by, "sort_desc": self.sort_desc})
 
-        if self.text_filter:
-            kwargs.update({"txt_filter": to_fts_query(self.text_filter)})
+        txt_filter = to_fts_query(self.text_filter)
+        if txt_filter:
+            kwargs.update({"txt_filter": txt_filter})
 
         if self.max_rowid is not None:
             kwargs["max_rowid"] = self.max_rowid

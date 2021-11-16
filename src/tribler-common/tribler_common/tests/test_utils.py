@@ -14,8 +14,10 @@ def test_uri_to_path():
 
 
 def test_to_fts_query():
-    assert to_fts_query('') == ''
-    assert to_fts_query('abc') == '"abc"*'
+    assert to_fts_query(None) is None
+    assert to_fts_query('') is None
+    assert to_fts_query('   ') is None
+    assert to_fts_query('  abc') == '"abc"*'
     assert to_fts_query('abc def') == '"abc" "def"*'
     assert to_fts_query('[abc, def]: xyz?!') == '"abc" "def" "xyz"*'
 
