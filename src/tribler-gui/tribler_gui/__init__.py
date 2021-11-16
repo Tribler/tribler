@@ -9,6 +9,11 @@ from tribler_common.logger import setup_logging
 
 logger = logging.getLogger(__name__)
 
+
+class CoreError(Exception):
+    """This is the base class for exceptions that causes GUI shutdown"""
+
+
 def load_logger_config(log_dir):
     """
     Loads tribler-gui module logger configuration. Note that this function should be called explicitly to
