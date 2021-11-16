@@ -12,16 +12,13 @@ from tribler_common.osutils import get_root_state_directory
 from tribler_common.utilities import is_frozen
 from tribler_common.version_manager import TriblerVersion, VersionHistory
 
-from tribler_gui import CoreError
 from tribler_gui.event_request_manager import EventRequestManager
+from tribler_gui.exceptions import CoreCrashedError
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, format_size, get_base_path, tr
 
 START_FAKE_API = False
 SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
-
-
-
 
 
 class CoreManager(QObject):
