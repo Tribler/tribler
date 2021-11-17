@@ -45,6 +45,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.shutting_down = False
         self.error_handler = error_handler
         self._logger = logging.getLogger('TriblerGUI')
+        self.tribler_started_flag = False
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
             NTFY.TRIBLER_NEW_VERSION.value: lambda data: self.new_version_available.emit(data["version"]),
@@ -71,6 +72,7 @@ class EventRequestManager(QNetworkAccessManager):
             SentryReporter.set_user(public_key.encode('utf-8'))
 
         self.tribler_started.emit(event_dict["version"])
+        self.tribler_started_flag = True
 
     def on_error(self, error, reschedule_on_err):
         self._logger.info(f"Got Tribler core error: {error}")

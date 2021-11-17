@@ -60,7 +60,11 @@ def window(api_port, tmpdir_factory):
     QTest.qWaitForWindowExposed(window)
 
     screenshot(window, name="tribler_loading")
-    wait_for_signal(window.core_manager.events_manager.tribler_started, timeout=20)
+    wait_for_signal(
+        window.core_manager.events_manager.tribler_started,
+        timeout=20,
+        flag=window.core_manager.events_manager.tribler_started,
+    )
     window.downloads_page.can_update_items = True
     yield window
 
@@ -82,7 +86,7 @@ class TimeoutException(Exception):
     pass
 
 
-def wait_for_signal(signal, timeout=10):
+def wait_for_signal(signal, timeout=10, flag=None):
     def on_signal(*args, **kwargs):
         global signal_received
         signal_received = True
@@ -90,9 +94,9 @@ def wait_for_signal(signal, timeout=10):
     connect(signal, on_signal)
 
     for _ in range(0, timeout * 1000, 100):
-        QTest.qWait(100)
-        if signal_received:
+        if signal_received or flag:
             return
+        QTest.qWait(100)
 
     raise TimeoutException(f"Signal {signal} not raised within 10 seconds")
 

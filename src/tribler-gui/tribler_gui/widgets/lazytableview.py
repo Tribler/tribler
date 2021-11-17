@@ -48,6 +48,7 @@ class TriblerContentTableView(QTableView):
     This table view is designed to support lazy loading.
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
+
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
@@ -154,6 +155,8 @@ class TriblerContentTableView(QTableView):
         """
         Redraw the cell at a particular index.
         """
+        if not self.model():
+            return
         if redraw_whole_row:
             for col_ind in range(self.model().columnCount()):
                 index = self.model().index(index.row(), col_ind)
@@ -265,8 +268,9 @@ class TriblerContentTableView(QTableView):
 
     def save_edited_tags(self, index: QModelIndex, tags: List[str]):
         data_item = self.model().data_items[index.row()]
-        TriblerNetworkRequest(f"tags/{data_item['infohash']}",
-                              lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
-                              raw_data=json.dumps({"tags": tags}),
-                              method='PATCH',
+        TriblerNetworkRequest(
+            f"tags/{data_item['infohash']}",
+            lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
+            raw_data=json.dumps({"tags": tags}),
+            method='PATCH',
         )

@@ -128,9 +128,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def commit_channels(self, checked=False):  # pylint: disable=W0613
         TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
 
-    def initialize_content_page(self, autocommit_enabled=False, hide_xxx=None,
-                                controller_class=ContentTableViewController,
-                                categories=CATEGORY_SELECTOR_FOR_SEARCH_ITEMS):
+    def initialize_content_page(
+        self,
+        autocommit_enabled=False,
+        hide_xxx=None,
+        controller_class=ContentTableViewController,
+        categories=CATEGORY_SELECTOR_FOR_SEARCH_ITEMS,
+    ):
         if self.initialized:
             return
 
@@ -272,6 +276,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.hide_all_labels()
 
     def reset_view(self, text_filter=None):
+        if not self.model:
+            return
         self.model.text_filter = text_filter or ''
         self.model.category_filter = None
 
@@ -330,9 +336,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                 content_category = ContentCategories.get(self.model.category_filter)
                 filter_display_name = content_category.long_name if content_category else self.model.category_filter
                 self.category_selector.setCurrentIndex(
-                    self.categories.index(filter_display_name)
-                    if filter_display_name in self.categories
-                    else 0
+                    self.categories.index(filter_display_name) if filter_display_name in self.categories else 0
                 )
                 if self.model.text_filter:
                     self.channel_torrents_filter_input.setText(self.model.text_filter)
