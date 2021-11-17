@@ -180,6 +180,7 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
         if trace_logger:
             trace_logger.close()
 
+        logger.info('Remove lock file')
         process_checker.remove_lock_file()
 
         # Flush the logs to the file before exiting

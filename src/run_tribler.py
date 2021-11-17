@@ -140,6 +140,7 @@ if __name__ == "__main__":
             logger.info("Shutting down Tribler")
             if trace_logger:
                 trace_logger.close()
+
             # Flush all the logs to make sure it is written to file before it exits
             for handler in logging.getLogger().handlers:
                 handler.flush()
