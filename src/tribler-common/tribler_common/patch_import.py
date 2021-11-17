@@ -11,28 +11,41 @@ from typing import List
 
 import mock
 
-
 __all__ = ['patch_import']
 
 _builtins_import = builtins.__import__
 
 
-def patch_import(modules=List[str], **mock_kwargs):
+def patch_import(modules=List[str], strict: bool = False, always_raise_exception_on_import=False, **mock_kwargs):
     """
     Mocks import statement, and disable ImportError if a module
     could not be imported.
     :param modules: a list of prefixes of modules that should
         be mocked, and an ImportError could not be raised for.
+    :param strict: If `strict` is equal to True, then whenever importing module exists or not, it will be replaced
+        by MagicMock. If `strict` is equal to False, then the real module will be return in case it is exist, and
+        MagicMock in case the module doesn't exist.
+    :param always_raise_exception_on_import: if set to True, then the import of the particular module always will raise
+        the ImportError
     :param mock_kwargs: kwargs for MagicMock object.
     :return: patch object
     """
 
     def try_import(module_name, *args, **kwargs):
+        is_the_target_module = any((module_name == m or module_name.startswith(m + '.') for m in modules))
+
+        if not is_the_target_module:
+            return _builtins_import(module_name, *args, **kwargs)
+
+        if always_raise_exception_on_import:
+            raise ImportError
+
+        if strict:
+            return mock.MagicMock(**mock_kwargs)
+
         try:
             return _builtins_import(module_name, *args, **kwargs)
         except ImportError:
-            if any((module_name == prefix or module_name.startswith(prefix + '.') for prefix in modules)):
-                return mock.MagicMock(**mock_kwargs)
-            raise
+            return mock.MagicMock(**mock_kwargs)
 
     return mock.patch('builtins.__import__', try_import)
