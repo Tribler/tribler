@@ -26,7 +26,7 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
         mode = self.add_mutually_exclusive_group()
         mode.add_argument('--core', action='store_const', dest='mode', const=RunMode.CORE_ONLY)
-        mode.add_argument('--gui_test_mode', action='store_const', dest='mode', const=RunMode.GUI_TEST_MODE)
+        mode.add_argument('--gui-test-mode', action='store_const', dest='mode', const=RunMode.GUI_TEST_MODE)
 
 
 def init_sentry_reporter():
@@ -158,6 +158,7 @@ if __name__ == "__main__":
 
             logger.info('Start Tribler Window')
             window = TriblerWindow(settings,
+                                   root_state_dir,
                                    api_port=api_port,
                                    api_key=api_key,
                                    run_core=True)

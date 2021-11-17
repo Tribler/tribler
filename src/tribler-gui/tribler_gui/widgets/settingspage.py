@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QW
 from tribler_common.osutils import get_root_state_directory
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
-from tribler_common.version_manager import VersionHistory, remove_state_dirs
+from tribler_common.version_manager import remove_state_dirs
 
 from tribler_gui.defs import (
     DARWIN,
@@ -37,16 +37,18 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This class is responsible for displaying and adjusting the settings present in Tribler.
     """
+
     settings_edited = pyqtSignal()
 
     def __init__(self):
         QWidget.__init__(self)
         self.settings = None
-        self.version_history = VersionHistory(get_root_state_directory())
+        self.version_history = None
         self.lang_list = sorted([lang_name for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items()])
         self.lang_list.insert(0, tr("System default"))
 
-    def initialize_settings_page(self):
+    def initialize_settings_page(self, version_history):
+        self.version_history = version_history
         if DARWIN:
             self.window().minimize_to_tray_checkbox.setHidden(True)
         self.window().settings_tab.initialize()
@@ -254,12 +256,10 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.refresh_old_version_checkboxes()
 
     def refresh_current_version_checkbox(self):
-        get_root_state_directory()
         code_version_dir = self.version_history.code_version.directory
         self.refresh_version_checkboxes(self.window().state_dir_current, [code_version_dir], enabled=False)
 
     def refresh_old_version_checkboxes(self):
-        get_root_state_directory()
         old_state_dirs = self.version_history.get_disposable_state_directories()
         self.refresh_version_checkboxes(self.window().state_dir_list, old_state_dirs, enabled=True)
 

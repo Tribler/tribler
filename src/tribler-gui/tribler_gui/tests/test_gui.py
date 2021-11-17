@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt5.QtCore import QMetaObject, QPoint, QProcessEnvironment, QSettings, QTimer, Q_ARG, Qt
+from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
@@ -11,7 +11,6 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 import pytest
 
 import tribler_common
-from tribler_common.network_utils import NetworkUtils
 from tribler_common.reported_error import ReportedError
 from tribler_common.tag_constants import MIN_TAG_LENGTH
 
@@ -34,27 +33,16 @@ TORRENT_WITH_DIRS = COMMON_DATA_DIR / "multi_entries.torrent"
 
 
 @pytest.fixture(scope="module")
-def api_port():
-    return NetworkUtils(remember_checked_ports_enabled=False).get_random_free_port()
-
-
-@pytest.fixture(scope="module")
-def window(api_port, tmpdir_factory):
-
+def window(tmpdir_factory):
     api_key = hexlify(os.urandom(16)).encode('utf-8')
-    core_env = QProcessEnvironment.systemEnvironment()
-    core_env.insert("CORE_API_PORT", f"{api_port}")
-    core_env.insert("CORE_API_KEY", api_key.decode('utf-8'))
-    core_env.insert("TSTATEDIR", str(tmpdir_factory.mktemp('tribler_state_dir')))
+    root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
-    window = TriblerWindow(
-        settings=QSettings(),
-        api_port=api_port,
+    window = TriblerWindow(  # pylint: disable=W0621
+        QSettings(),
+        root_state_dir,
         api_key=api_key,
-        core_env=core_env,
-        core_args=[str(RUN_TRIBLER_PY.absolute()), '--gui_test_mode'],
-        test_mode=True,
+        core_args=[str(RUN_TRIBLER_PY.absolute()), '--gui-test-mode'],
     )  # pylint: disable=W0621
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
@@ -62,8 +50,7 @@ def window(api_port, tmpdir_factory):
     screenshot(window, name="tribler_loading")
     wait_for_signal(
         window.core_manager.events_manager.tribler_started,
-        timeout=20,
-        flag=window.core_manager.events_manager.tribler_started,
+        flag=window.core_manager.events_manager.tribler_started_flag,
     )
     window.downloads_page.can_update_items = True
     yield window

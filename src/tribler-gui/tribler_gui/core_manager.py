@@ -1,17 +1,14 @@
 import logging
-import os
 import sys
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication
 
-from tribler_common.utilities import is_frozen
-
 from tribler_gui.event_request_manager import EventRequestManager
 from tribler_gui.exceptions import CoreCrashedError
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_base_path
+from tribler_gui.utilities import connect
 
 
 class CoreManager(QObject):
@@ -23,15 +20,12 @@ class CoreManager(QObject):
     tribler_stopped = pyqtSignal()
     core_state_update = pyqtSignal(str)
 
-    def __init__(self, api_port, api_key, error_handler):
+    def __init__(self, root_state_dir, api_port, api_key, error_handler):
         QObject.__init__(self, None)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.base_path = get_base_path()
-        if not is_frozen():
-            self.base_path = os.path.join(get_base_path(), "..")
-
+        self.root_state_dir = root_state_dir
         self.core_process = None
         self.api_port = api_port
         self.api_key = api_key
@@ -96,6 +90,7 @@ class CoreManager(QObject):
             core_env = QProcessEnvironment.systemEnvironment()
             core_env.insert("CORE_API_PORT", f"{self.api_port}")
             core_env.insert("CORE_API_KEY", self.api_key.decode('utf-8'))
+            core_env.insert("TSTATEDIR", str(self.root_state_dir))
         if not core_args:
             core_args = sys.argv + ['--core']
 

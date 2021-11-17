@@ -4,7 +4,6 @@ from typing import List
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
-from tribler_common.osutils import get_root_state_directory
 from tribler_common.simpledefs import UpgradeInterruptedEvent
 from tribler_common.version_manager import TriblerVersion, VersionHistory
 
@@ -16,15 +15,12 @@ class StateDirUpgradeWorker(QObject):
     status_update = pyqtSignal(str)
     stop_upgrade = pyqtSignal()
 
-    def __init__(self, root_state_dir, test_mode=False):
+    def __init__(self, root_state_dir):
         super().__init__()
         self.root_state_dir = root_state_dir
-        self.test_mode = test_mode
         self._upgrade_interrupted_event = UpgradeInterruptedEvent()
         connect(self.stop_upgrade, self._stop_upgrade)
-        from run_tribler_upgrader import upgrade_state_dir
-
-        self._upgrade_state_dir = upgrade_state_dir  # noqa: C0415
+        self._upgrade_state_dir = None
 
     def _stop_upgrade(self):
         self._upgrade_interrupted_event.interrupted = True
@@ -37,7 +33,6 @@ class StateDirUpgradeWorker(QObject):
             self.root_state_dir,
             update_status_callback=self._update_status_callback,
             interrupt_upgrade_event=self._upgrade_interrupted_event,
-            test_mode=self.test_mode,
         )
         self.finished.emit()
 
@@ -50,14 +45,11 @@ class UpgradeManager(QObject):
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
 
-    def __init__(self, test_mode=False):
+    def __init__(self, version_history: VersionHistory):
         QObject.__init__(self, None)
 
-        self.root_state_dir = get_root_state_directory()
-        self.version_history = VersionHistory(self.root_state_dir)
+        self.version_history = version_history
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.test_mode = test_mode
 
         self._upgrade_worker = None
         self._upgrade_thread = None
@@ -109,12 +101,15 @@ class UpgradeManager(QObject):
         if versions_to_delete:
             for version in versions_to_delete:
                 version.delete_state()
-
         # Determine if we have to notify the user to wait for the directory fork to finish
         if self.version_history.code_version.should_be_copied:
             self.upgrader_tick.emit(tr('Backing up state directory, please wait'))
 
-        self._upgrade_worker = StateDirUpgradeWorker(self.root_state_dir, test_mode=self.test_mode)
+        self._upgrade_worker = StateDirUpgradeWorker(self.version_history.root_state_dir)
+        # We import it here because it is safer to do it in the main thread
+        from run_tribler_upgrader import upgrade_state_dir  # pylint: disable=C0415
+
+        self._upgrade_worker._upgrade_state_dir = upgrade_state_dir  # pylint: disable=W0212
         self._upgrade_thread = QThread()
         self._upgrade_worker.moveToThread(self._upgrade_thread)
         connect(self._upgrade_thread.started, self._upgrade_worker.run)

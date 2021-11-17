@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 from configparser import MissingSectionHeaderError, ParsingError
-from time import sleep
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
@@ -68,14 +67,12 @@ class TriblerUpgrader:
 
     def __init__(self, state_dir: Path, channels_dir: Path, trustchain_keypair: LibNaCLSK,
                  interrupt_upgrade_event=None,
-                 update_status_callback=None,
-                 test_mode=False):
+                 update_status_callback=None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.channels_dir = channels_dir
         self.trustchain_keypair = trustchain_keypair
         self._update_status_callback = update_status_callback
-        self.test_mode = test_mode
         self.interrupt_upgrade_event = interrupt_upgrade_event
 
         self.failed = True
@@ -96,15 +93,6 @@ class TriblerUpgrader:
         """
         Run the upgrader if it is enabled in the config.
         """
-        if self.test_mode:
-            self.update_status("STARTING UPGRADE")
-            count = 0
-            while not self.shutting_down and count < 5:
-                count += 1
-                self.update_status(f"Performing upgrade message {count}")
-                sleep(0.1)
-            return
-
         self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
         convert_config_to_tribler76(self.state_dir)

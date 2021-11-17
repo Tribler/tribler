@@ -39,9 +39,9 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler_common.network_utils import NetworkUtils
-from tribler_common.osutils import get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import uri_to_path
+from tribler_common.version_manager import VersionHistory
 
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -126,7 +126,14 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def __init__(
-        self, settings, core_args=None, core_env=None, api_port=None, api_key=None, run_core=True, test_mode=False
+        self,
+        settings,
+        root_state_dir,
+        core_args=None,
+        core_env=None,
+        api_port=None,
+        api_key=None,
+        run_core=True,
     ):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -137,6 +144,7 @@ class TriblerWindow(QMainWindow):
 
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
+        self.root_state_dir = Path(root_state_dir)
         self.gui_settings = settings
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
@@ -155,8 +163,9 @@ class TriblerWindow(QMainWindow):
         self.core_env = core_env
 
         self.error_handler = ErrorHandler(self)
-        self.core_manager = CoreManager(api_port, api_key, self.error_handler)
-        self.upgrade_manager = UpgradeManager(test_mode=test_mode)
+        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, self.error_handler)
+        self.version_history = VersionHistory(self.root_state_dir)
+        self.upgrade_manager = UpgradeManager(self.version_history)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.dialog = None
@@ -222,7 +231,7 @@ class TriblerWindow(QMainWindow):
             self.core_manager.events_manager.received_remote_query_results,
             self.search_results_page.received_remote_results.emit,
         )
-        self.settings_page.initialize_settings_page()
+        self.settings_page.initialize_settings_page(version_history=self.version_history)
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
@@ -1134,8 +1143,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        root_state_dir = get_root_state_directory()
-        process_checker = ProcessChecker(root_state_dir)
+        process_checker = ProcessChecker(self.root_state_dir)
         if process_checker.already_running:
             core_pid = process_checker.get_pid_from_lock_file()
             os.kill(int(core_pid), 9)
