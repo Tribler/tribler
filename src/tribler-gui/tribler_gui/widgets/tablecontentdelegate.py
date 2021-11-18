@@ -33,7 +33,7 @@ from tribler_gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler_gui.utilities import format_votes, get_gui_setting, get_health, get_image_path
+from tribler_gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr
 from tribler_gui.widgets.tablecontentmodel import Column
 from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -362,7 +362,7 @@ class TagsMixin:
 
         # If there are no tags (yet), ask the user to add some tags
         if len(data_item.get("tags", ())) == 0:
-            no_tags_text = "Be the first to suggest tags!"
+            no_tags_text = tr("Be the first to suggest tags!")
             painter.setPen(QColor(TRIBLER_ORANGE) if edit_tags_button_hovered else QColor("#aaa"))
             text_width = painter.fontMetrics().horizontalAdvance(no_tags_text)
             edit_tags_rect = QRectF(title_text_pos.x() + 6, title_text_pos.y() + 34, text_width + 4, 28)
