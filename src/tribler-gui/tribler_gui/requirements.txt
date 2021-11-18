@@ -1,6 +1,6 @@
-configobj
-networkx
-Pillow
-psutil
-PyQt5>=5.14
-pyqtgraph
+configobj==5.0.6
+networkx==2.6.3
+Pillow==8.4.0
+psutil==5.8.0
+PyQt5==5.15.1
+pyqtgraph==0.12.3
