@@ -34,7 +34,7 @@ class ErrorHandler:
 
         is_core_exception = issubclass(info_type, CoreError)
         if is_core_exception:
-            text = text + self.tribler_window.core_manager.core_traceback
+            text = text + self.tribler_window.core_manager.last_core_output
             self._stop_tribler(text)
 
         self._logger.error(text)

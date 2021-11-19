@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import time
 from typing import List
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
@@ -20,6 +19,7 @@ from tribler_gui.utilities import connect, format_size, get_base_path, tr
 START_FAKE_API = False
 SKIP_VERSION_CLEANUP = os.environ.get("SKIP_VERSION_CLEANUP", "FALSE").lower() == "true"
 
+# fmt: off
 
 class CoreManager(QObject):
     """
@@ -51,8 +51,7 @@ class CoreManager(QObject):
         self.should_stop_on_shutdown = False
         self.use_existing_core = True
         self.is_core_running = False
-        self.core_traceback = None
-        self.core_traceback_timestamp = 0
+        self.last_core_output: str = ''
 
         self.check_state_timer = QTimer()
         self.check_state_timer.setSingleShot(True)
@@ -60,11 +59,8 @@ class CoreManager(QObject):
 
     def on_core_read_ready(self):
         raw_output = bytes(self.core_process.readAll())
-        decoded_output = raw_output.decode(errors="replace")
-        if b'Traceback' in raw_output:
-            self.core_traceback = decoded_output
-            self.core_traceback_timestamp = int(round(time.time() * 1000))
-        print(decoded_output.strip())  # noqa: T001
+        self.last_core_output = raw_output.decode("utf-8").strip()
+        print(f'\t{self.last_core_output}')  # print core output # noqa: T001
 
     def on_core_finished(self, exit_code, exit_status):
         if self.shutting_down and self.should_stop_on_shutdown:
@@ -74,17 +70,12 @@ class CoreManager(QObject):
             if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
                 self.events_manager.connect_timer.stop()
 
-            exception_msg = (
-                f"The Tribler core has unexpectedly finished " f"with exit code {exit_code} and status: {exit_status}!"
+            exception_message = (
+                f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}!\n"
+                f"Last core output: \n {self.last_core_output}"
             )
-            if self.core_traceback:
-                exception_msg += "\n\n%s\n(Timestamp: %d, traceback timestamp: %d)" % (
-                    self.core_traceback,
-                    int(round(time.time() * 1000)),
-                    self.core_traceback_timestamp,
-                )
 
-            raise CoreCrashedError(exception_msg)
+            raise CoreCrashedError(exception_message)
 
     def start(self, core_args=None, core_env=None):
         """
