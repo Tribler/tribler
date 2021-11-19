@@ -1,14 +1,14 @@
 -r requirements.txt
 
-pytest
-pytest-aiohttp
-pytest-asyncio                        
-pytest-cov                            
-pytest-mock
-pytest-randomly                        
-pytest-timeout                         
-pytest-xdist
-pytest-freezegun
-freezegun
+pytest==6.2.5
+pytest-aiohttp==0.3.0
+pytest-asyncio==0.16.0
+pytest-cov==3.0.0
+pytest-mock==3.6.1
+pytest-randomly==3.10.2
+pytest-timeout==2.0.1
+pytest-xdist==2.4.0
+pytest-freezegun==0.4.2
+freezegun==1.1.0
 
-asynctest
+asynctest==0.13.0
