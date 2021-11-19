@@ -33,3 +33,19 @@ async def test_on_core_finished_raises_error():
 
     with pytest.raises(CoreCrashedError):
         core_manager.on_core_finished(exit_code=1, exit_status='exit status')
+
+
+@patch('tribler_gui.core_manager.EventRequestManager', new=MagicMock())
+@patch('builtins.print', MagicMock(side_effect=OSError()))
+def test_on_core_read_ready():
+    # test that OSError on writing to stdout is suppressed during shutting down
+
+    core_manager = CoreManager(MagicMock(), MagicMock(), MagicMock())
+    core_manager.core_process = MagicMock(read_all=MagicMock(return_value=''))
+
+    with pytest.raises(OSError):
+        core_manager.on_core_read_ready()
+
+    core_manager.shutting_down = True
+    # no exception during shutting down
+    core_manager.on_core_read_ready()

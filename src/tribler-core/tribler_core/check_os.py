@@ -92,7 +92,7 @@ def should_kill_other_tribler_instances(root_state_dir):
         try:
             old_process_status = old_process.status()
         except psutil.NoSuchProcess:
-            logger.info(f'Old process not found')
+            logger.info('Old process not found')
             return
 
         logger.info(f'Old process status: {old_process_status}')
