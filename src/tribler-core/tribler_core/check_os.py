@@ -209,7 +209,7 @@ def enable_fault_handler(log_dir):
         import faulthandler
 
         if not log_dir.exists():
-            log_dir.mkdir(parents=True)
+            log_dir.mkdir(parents=True, exist_ok=True)
         crash_file = log_dir / "crash-report.log"
         faulthandler.enable(file=open(str(crash_file), "w"), all_threads=True)
     except ImportError:
