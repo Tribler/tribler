@@ -105,6 +105,7 @@ hiddenimports = [
     'requests',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
+    'typing_extensions',
 ] + widget_files + pony_deps + get_sentry_hooks()
 
 # https://github.com/pyinstaller/pyinstaller/issues/5359
