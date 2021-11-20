@@ -64,7 +64,12 @@ class CoreManager(QObject):
         if b'Traceback' in raw_output:
             self.core_traceback = decoded_output
             self.core_traceback_timestamp = int(round(time.time() * 1000))
-        print(decoded_output.strip())  # noqa: T001
+        try:
+            print(decoded_output.strip())  # noqa: T001
+        except OSError:
+            # Possible reason - cannot write to stdout as it was already closed during the application shutdown
+            if not self.shutting_down:
+                raise
 
     def on_core_finished(self, exit_code, exit_status):
         if self.shutting_down and self.should_stop_on_shutdown:
@@ -197,7 +202,9 @@ class CoreManager(QObject):
             raise RuntimeError(state['last_exception'])
 
     def stop(self, stop_app_on_shutdown=True):
+        self._logger.info("Stopping Core manager")
         if self.core_process or self.is_core_running:
+            self._logger.info("Sending shutdown request to Tribler Core")
             self.events_manager.shutting_down = True
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
 

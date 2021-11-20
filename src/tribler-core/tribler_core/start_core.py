@@ -174,12 +174,15 @@ def start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mo
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(CoreExceptionHandler.unhandled_error_observer)
 
-    loop.run_until_complete(core_session(config, components=list(components_gen(config))))
+    try:
+        loop.run_until_complete(core_session(config, components=list(components_gen(config))))
+    finally:
+        if trace_logger:
+            trace_logger.close()
 
-    if trace_logger:
-        trace_logger.close()
+        logger.info('Remove lock file')
+        process_checker.remove_lock_file()
 
-    process_checker.remove_lock_file()
-    # Flush the logs to the file before exiting
-    for handler in logging.getLogger().handlers:
-        handler.flush()
+        # Flush the logs to the file before exiting
+        for handler in logging.getLogger().handlers:
+            handler.flush()

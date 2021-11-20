@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tribler_common.reported_error import ReportedError
+from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
 
 from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
@@ -29,6 +30,17 @@ async def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, erro
     error_handler._tribler_stopped = True
     error_handler.gui_error()
     mocked_feedback_dialog.assert_not_called()
+
+
+@patch('tribler_gui.error_handler.FeedbackDialog')
+@patch('tribler_common.sentry_reporter.sentry_reporter.SentryReporter.global_strategy', SentryStrategy.SEND_SUPPRESSED)
+async def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler):
+    logger_info_mock = MagicMock()
+    error_handler._logger = MagicMock(info=logger_info_mock)
+    error_handler.gui_error(AssertionError, AssertionError('error_text'), None)
+    mocked_feedback_dialog.assert_not_called()
+    assert not error_handler._handled_exceptions
+    logger_info_mock.assert_called_with('GUI error was suppressed and not sent to Sentry: AssertionError: error_text')
 
 
 @patch('tribler_gui.error_handler.FeedbackDialog')

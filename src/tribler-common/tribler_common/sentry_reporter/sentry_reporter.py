@@ -118,6 +118,7 @@ class SentryReporter:
                 ThreadingIntegration(propagate_hub=True),
             ],
             before_send=SentryReporter._before_send,
+            ignore_errors=[KeyboardInterrupt],
         )
 
         ignore_logger(SentryReporter._sentry_logger_name)

@@ -89,8 +89,14 @@ def should_kill_other_tribler_instances(root_state_dir):
     if current_pid != old_pid and old_pid > 0:
         # If the old process is a zombie, simply kill it and restart Tribler
         old_process = psutil.Process(old_pid)
-        logger.info(f'Old process status: {old_process.status()}')
-        if old_process.status() == psutil.STATUS_ZOMBIE:
+        try:
+            old_process_status = old_process.status()
+        except psutil.NoSuchProcess:
+            logger.info('Old process not found')
+            return
+
+        logger.info(f'Old process status: {old_process_status}')
+        if old_process_status == psutil.STATUS_ZOMBIE:
             kill_tribler_process(old_process)
             restart_tribler_properly()
             return

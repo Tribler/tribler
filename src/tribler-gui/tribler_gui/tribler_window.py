@@ -1072,6 +1072,7 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("size", self.size())
 
         if self.core_manager.use_existing_core:
+            self._logger.info("Quitting Tribler GUI without stopping Tribler Core")
             # Don't close the core that we are using
             QApplication.quit()
 
