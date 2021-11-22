@@ -48,8 +48,8 @@ python3 -m pip install --upgrade -r src\requirements.txt
 REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
 
-python3 -m pip install --upgrade --no-deps --force-reinstall pydantic --no-binary pydantic
-python3 -m pip install --upgrade --no-deps --force-reinstall typing_extensions==3.10.0.2 --no-binary typing_extensions
+ECHO Install pip dependencies for correct py-installer's work
+python3 -m pip install --upgrade build\win\requirements.txt
 
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 
