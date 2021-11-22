@@ -1,7 +1,6 @@
 import signal
 import sys
 
-from tribler_common.simpledefs import UpgradeInterruptedEvent
 from tribler_common.version_manager import VersionHistory
 
 from tribler_core.components.key.key_component import KeyComponent
@@ -37,17 +36,20 @@ def upgrade_state_dir(root_state_dir: Path,
 
 
 if __name__ == "__main__":
-    def print_text(text):
-        print(text)
 
-    event = UpgradeInterruptedEvent()
+    _upgrade_interrupted_event = []
 
-    def interrupt_upgrade():
-        event.interrupted = True
+    def interrupt_upgrade(*_):
+        _upgrade_interrupted_event.append(True)
+
+    def upgrade_interrupted():
+        return bool(_upgrade_interrupted_event)
 
     signal.signal(signal.SIGINT, interrupt_upgrade)
     signal.signal(signal.SIGTERM, interrupt_upgrade)
+    _root_state_dir = Path(sys.argv[1])
 
-    upgrade_state_dir(Path(sys.argv[1]),
-                      interrupt_upgrade_event=event,
-                      update_status_callback=print_text)
+    import tribler_core
+
+    tribler_core.load_logger_config(_root_state_dir)
+    upgrade_state_dir(_root_state_dir, interrupt_upgrade_event=upgrade_interrupted)

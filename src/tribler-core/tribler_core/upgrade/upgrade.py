@@ -73,26 +73,21 @@ class TriblerUpgrader:
         self.channels_dir = channels_dir
         self.trustchain_keypair = trustchain_keypair
         self._update_status_callback = update_status_callback
-        self.interrupt_upgrade_event = interrupt_upgrade_event
+
+        self.interrupt_upgrade_event = interrupt_upgrade_event or (lambda: False)
 
         self.failed = True
         self._pony2pony = None
 
     @property
     def shutting_down(self):
-        if self.interrupt_upgrade_event is not None:
-            return self.interrupt_upgrade_event.interrupted
-        return False
-
-    def skip(self, *_):
-        self.shutting_down = True
-        if self._pony2pony:
-            self._pony2pony.shutting_down = True
+        return self.interrupt_upgrade_event()
 
     def run(self):
         """
         Run the upgrader if it is enabled in the config.
         """
+
         self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
         convert_config_to_tribler76(self.state_dir)
@@ -270,8 +265,7 @@ class TriblerUpgrader:
         self.update_status("STARTING")
         tmp_database_path = database_path.parent / 'metadata_upgraded.db'
         # Clean the previous temp database
-        if tmp_database_path.exists():
-            tmp_database_path.unlink()
+        tmp_database_path.unlink(missing_ok=True)
 
         # Create the new database
         mds = MetadataStore(tmp_database_path, None, self.trustchain_keypair,
@@ -281,23 +275,25 @@ class TriblerUpgrader:
             mds.drop_fts_triggers()
         mds.shutdown()
 
-        self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status, logger=self._logger)
+        self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status,
+                                              logger=self._logger,
+                                              shutdown_set_callback=self.interrupt_upgrade_event)
 
         duration_base = self._pony2pony.do_migration()
         self._pony2pony.recreate_indexes(mds, duration_base)
 
         # Remove the old DB
-        database_path.unlink()
+        database_path.unlink(missing_ok=True)
         if not self._pony2pony.shutting_down:
             # Move the upgraded db in its place
             tmp_database_path.rename(database_path)
         else:
             # The upgrade process was either skipped or interrupted. Delete the temp upgrade DB.
-            if tmp_database_path.exists():
-                tmp_database_path.unlink()
+            tmp_database_path.unlink(missing_ok=True)
 
         self.update_status("FINISHED")
 
     def update_status(self, status_text):
+        self._logger.info(status_text)
         if self._update_status_callback:
             self._update_status_callback(status_text)

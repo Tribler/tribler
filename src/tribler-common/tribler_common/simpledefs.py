@@ -97,8 +97,3 @@ class CHANNEL_STATE(Enum):
 # is a sufficiently large value for download/upload rate limit,
 # here we set the max values for these parameters.
 MAX_LIBTORRENT_RATE_LIMIT = 2 ** 31 - 1  # bytes per second
-
-
-class UpgradeInterruptedEvent:
-    def __init__(self):
-        self.interrupted = False

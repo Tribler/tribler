@@ -15,12 +15,18 @@ TABLE_NAMES = (
 
 class PonyToPonyMigration:
 
-    def __init__(self, old_db_path, new_db_path, notification_callback=None, logger=None):
+    def __init__(self, old_db_path, new_db_path, notification_callback=None, logger=None, shutdown_set_callback=None):
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         self.notification_callback = notification_callback
         self.old_db_path = old_db_path
         self.new_db_path = new_db_path
         self.shutting_down = False
+        self.shutdown_set_callback = shutdown_set_callback
+
+    def must_shutdown(self):
+        if self.shutdown_set_callback is not None:
+            self.shutting_down = self.shutting_down or self.shutdown_set_callback()
+        return self.shutting_down
 
     def update_status(self, status_text):
         if self.notification_callback:
@@ -47,7 +53,7 @@ class PonyToPonyMigration:
 
         reference_timedelta = 0.8
         while offset < total_to_convert:
-            if self.shutting_down:
+            if self.must_shutdown():
                 break
             end = offset + batch_size
 
@@ -137,7 +143,7 @@ class PonyToPonyMigration:
                 for table_name in TABLE_NAMES:
                     t1 = now()
                     cursor.execute("BEGIN TRANSACTION;")
-                    if not self.shutting_down:
+                    if not self.must_shutdown():
                         self.convert_table(cursor, table_name, old_table_columns[table_name])
                     cursor.execute("COMMIT;")
                     duration = now() - t1
@@ -153,11 +159,8 @@ class PonyToPonyMigration:
         return result
 
     def recreate_indexes(self, mds: MetadataStore, base_duration):
-        mds.run_threaded(self.do_recreate_indexes_safe, mds, base_duration)
-
-    def do_recreate_indexes_safe(self, mds: MetadataStore, base_duration):
         try:
-            if not self.shutting_down:
+            if not self.must_shutdown():
                 self.do_recreate_indexes(mds, base_duration)
         except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
             self._logger.error(f"Error during index re-building: {type(e).__name__}:{str(e)}")

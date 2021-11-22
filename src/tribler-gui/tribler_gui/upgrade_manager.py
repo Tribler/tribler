@@ -4,7 +4,6 @@ from typing import List
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
-from tribler_common.simpledefs import UpgradeInterruptedEvent
 from tribler_common.version_manager import TriblerVersion, VersionHistory
 
 from tribler_gui.utilities import connect, format_size, tr
@@ -18,12 +17,15 @@ class StateDirUpgradeWorker(QObject):
     def __init__(self, root_state_dir):
         super().__init__()
         self.root_state_dir = root_state_dir
-        self._upgrade_interrupted_event = UpgradeInterruptedEvent()
+        self._upgrade_interrupted = False
         connect(self.stop_upgrade, self._stop_upgrade)
         self._upgrade_state_dir = None
 
+    def upgrade_interrupted(self):
+        return self._upgrade_interrupted
+
     def _stop_upgrade(self):
-        self._upgrade_interrupted_event.interrupted = True
+        self._upgrade_interrupted = True
 
     def _update_status_callback(self, text):
         self.status_update.emit(text)
@@ -32,7 +34,7 @@ class StateDirUpgradeWorker(QObject):
         self._upgrade_state_dir(
             self.root_state_dir,
             update_status_callback=self._update_status_callback,
-            interrupt_upgrade_event=self._upgrade_interrupted_event,
+            interrupt_upgrade_event=self.upgrade_interrupted,
         )
         self.finished.emit()
 
@@ -112,8 +114,13 @@ class UpgradeManager(QObject):
         self._upgrade_worker._upgrade_state_dir = upgrade_state_dir  # pylint: disable=W0212
         self._upgrade_thread = QThread()
         self._upgrade_worker.moveToThread(self._upgrade_thread)
-        connect(self._upgrade_thread.started, self._upgrade_worker.run)
-        connect(self._upgrade_thread.finished, self._upgrade_thread.deleteLater)
+
+        # ACHTUNG!!! _upgrade_thread.started signal MUST be connected using the original "connect" method!
+        # Otherwise, if we use our own connect(x,y) wrapper, Tribler just freezes
+        self._upgrade_thread.started.connect(self._upgrade_worker.run)
+
+        self._upgrade_thread.finished.connect(self._upgrade_thread.deleteLater)
+        connect(self._upgrade_worker.finished, self._upgrade_thread.quit)
         connect(self._upgrade_worker.status_update, self.upgrader_tick.emit)
         connect(self._upgrade_worker.finished, self.upgrader_finished.emit)
         connect(self._upgrade_worker.finished, self._upgrade_worker.deleteLater)
