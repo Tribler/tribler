@@ -31,10 +31,6 @@ def passthrough(x):
 
 # pylint: disable=line-too-long
 reactions_dict = {
-    # An indication that the upgrader has finished.
-    NTFY.UPGRADER_DONE: lambda *_: None,
-    # The state of the upgrader has changed. Contains a human-readable string with the new state.
-    NTFY.UPGRADER_TICK: lambda text: {"text": text},
     # A corrupt .torrent file in the watch folder is found. Contains the name of the corrupt torrent file.
     NTFY.WATCH_FOLDER_CORRUPT_FILE: lambda text: {"name": text},
     # A new version of Tribler is available.

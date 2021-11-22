@@ -7,7 +7,6 @@ from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.restapi.restapi_component import RestfulComponent
-from tribler_core.components.upgrade.upgrade_component import UpgradeComponent
 
 
 class BandwidthAccountingComponent(RestfulComponent):
@@ -16,7 +15,6 @@ class BandwidthAccountingComponent(RestfulComponent):
 
     async def run(self):
         await super().run()
-        await self.get_component(UpgradeComponent)
         self._ipv8_component = await self.require_component(Ipv8Component)
 
         config = self.session.config

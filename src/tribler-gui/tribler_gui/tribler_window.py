@@ -39,9 +39,9 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler_common.network_utils import NetworkUtils
-from tribler_common.osutils import get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import uri_to_path
+from tribler_common.version_manager import VersionHistory
 
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id
@@ -51,6 +51,7 @@ from tribler_gui.debug_window import DebugWindow
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
+    CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
     DARWIN,
     DEFAULT_API_PORT,
     PAGE_CHANNEL_CONTENTS,
@@ -73,6 +74,7 @@ from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
+from tribler_gui.upgrade_manager import UpgradeManager
 from tribler_gui.utilities import (
     connect,
     disconnect,
@@ -123,7 +125,16 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def __init__(self, settings, core_args=None, core_env=None, api_port=None, api_key=None):
+    def __init__(
+        self,
+        settings,
+        root_state_dir,
+        core_args=None,
+        core_env=None,
+        api_port=None,
+        api_key=None,
+        run_core=True,
+    ):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -133,6 +144,7 @@ class TriblerWindow(QMainWindow):
 
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
+        self.root_state_dir = Path(root_state_dir)
         self.gui_settings = settings
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
@@ -147,8 +159,13 @@ class TriblerWindow(QMainWindow):
         self.tribler_version = version_id
         self.debug_window = None
 
+        self.core_args = core_args
+        self.core_env = core_env
+
         self.error_handler = ErrorHandler(self)
-        self.core_manager = CoreManager(api_port, api_key, self.error_handler)
+        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, self.error_handler)
+        self.version_history = VersionHistory(self.root_state_dir)
+        self.upgrade_manager = UpgradeManager(self.version_history)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.dialog = None
@@ -214,17 +231,18 @@ class TriblerWindow(QMainWindow):
             self.core_manager.events_manager.received_remote_query_results,
             self.search_results_page.received_remote_results.emit,
         )
-        self.settings_page.initialize_settings_page()
+        self.settings_page.initialize_settings_page(version_history=self.version_history)
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
         self.discovering_page.initialize_discovering_page()
 
         self.discovered_page.initialize_content_page(hide_xxx=self.hide_xxx)
 
-        from tribler_gui.widgets.channelcontentswidget import CATEGORY_SELECTOR_FOR_POPULAR_ITEMS  # pylint: disable=import-outside-toplevel
-        self.popular_page.initialize_content_page(hide_xxx=self.hide_xxx,
-                                                  controller_class=PopularContentTableViewController,
-                                                  categories=CATEGORY_SELECTOR_FOR_POPULAR_ITEMS)
+        self.popular_page.initialize_content_page(
+            hide_xxx=self.hide_xxx,
+            controller_class=PopularContentTableViewController,
+            categories=CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
+        )
 
         self.trust_page.initialize_trust_page()
         self.trust_graph_page.initialize_trust_graph()
@@ -288,9 +306,6 @@ class TriblerWindow(QMainWindow):
         )
         self.top_search_bar.setCompleter(completer)
 
-        # Start Tribler
-        self.core_manager.start(core_args=core_args, core_env=core_env)
-
         connect(self.core_manager.events_manager.torrent_finished, self.on_torrent_finished)
         connect(self.core_manager.events_manager.new_version_available, self.on_new_version_available)
         connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
@@ -343,6 +358,13 @@ class TriblerWindow(QMainWindow):
         stylesheet = self.styleSheet()
         stylesheet += CHECKBOX_STYLESHEET
         self.setStyleSheet(stylesheet)
+
+        self.core_manager.start(
+            core_args=self.core_args,
+            core_env=self.core_env,
+            run_core=run_core,
+            upgrade_manager=self.upgrade_manager,
+        )
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
@@ -668,9 +690,7 @@ class TriblerWindow(QMainWindow):
         # We do not want to bother the database on petty 1-character queries
         if len(text) < 2:
             return
-        TriblerNetworkRequest(
-            "search/completions", self.on_received_search_completions, url_params={'q': text}
-        )
+        TriblerNetworkRequest("search/completions", self.on_received_search_completions, url_params={'q': text})
 
     def on_received_search_completions(self, completions):
         if completions is None:
@@ -1123,8 +1143,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        root_state_dir = get_root_state_directory()
-        process_checker = ProcessChecker(root_state_dir)
+        process_checker = ProcessChecker(self.root_state_dir)
         if process_checker.already_running:
             core_pid = process_checker.get_pid_from_lock_file()
             os.kill(int(core_pid), 9)
@@ -1212,7 +1231,7 @@ class TriblerWindow(QMainWindow):
 
     def on_skip_conversion_dialog(self, action):
         if action == 0:
-            TriblerNetworkRequest("upgrader", lambda _: None, data={"skip_db_upgrade": True}, method='POST')
+            self.upgrade_manager.stop_upgrade()
 
         if self.dialog:
             self.dialog.close_dialog()

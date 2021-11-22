@@ -18,7 +18,6 @@ from tribler_core.components.restapi.rest.state_endpoint import StateEndpoint
 from tribler_core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 from tribler_core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
 from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
-from tribler_core.components.upgrade.implementation.upgrader_endpoint import UpgraderEndpoint
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.utilities import froze_it
 
@@ -44,7 +43,6 @@ class RootEndpoint(RESTEndpoint):
             '/events': (EventsEndpoint, True),
             '/state': (StateEndpoint, True),
             '/shutdown': (ShutdownEndpoint, True),
-            '/upgrader': (UpgraderEndpoint, self.tribler_config.upgrader_enabled),
             '/settings': (SettingsEndpoint, True),
             '/downloads': (DownloadsEndpoint, self.tribler_config.libtorrent.enabled),
             '/createtorrent': (CreateTorrentEndpoint, self.tribler_config.libtorrent.enabled),

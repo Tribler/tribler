@@ -1,13 +1,33 @@
+import argparse
 import logging.config
 import os
 import sys
+from enum import Enum, auto
 
 from PyQt5.QtCore import QSettings
 
-logger = logging.getLogger(__name__)
-CONFIG_FILE_NAME = 'triblerd.conf'
+from tribler_common.process_checker import ProcessChecker
+from tribler_common.version_manager import VersionHistory
 
+from tribler_core import start_core
+
+logger = logging.getLogger(__name__)
 # pylint: disable=import-outside-toplevel, ungrouped-imports
+
+
+class RunMode(Enum):
+    CORE_ONLY = auto()
+    GUI_TEST_MODE = auto()
+
+
+class RunTriblerArgsParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        kwargs['description'] = 'Run Tribler BitTorrent client'
+        super().__init__(*args, **kwargs)
+        mode = self.add_mutually_exclusive_group()
+        mode.add_argument('--core', action='store_const', dest='mode', const=RunMode.CORE_ONLY)
+        mode.add_argument('--gui-test-mode', action='store_const', dest='mode', const=RunMode.GUI_TEST_MODE)
+
 
 def init_sentry_reporter():
     from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
@@ -46,23 +66,40 @@ if __name__ == "__main__":
     init_boot_logger()
     init_sentry_reporter()
 
+    parsed_args = RunTriblerArgsParser().parse_args()
+
     # Get root state directory (e.g. from environment variable or from system default)
     from tribler_common.osutils import get_root_state_directory
 
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')
 
+    api_port = os.environ.get('CORE_API_PORT')
+    api_key = os.environ.get('CORE_API_KEY')
+
     # Check whether we need to start the core or the user interface
-    if 'CORE_PROCESS' in os.environ:
+    if parsed_args.mode in (RunMode.CORE_ONLY, RunMode.GUI_TEST_MODE):
+        from tribler_core.check_os import  should_kill_other_tribler_instances
+
+        should_kill_other_tribler_instances(root_state_dir)
         logger.info('Running in "core" mode')
+        import tribler_core
+        tribler_core.load_logger_config(root_state_dir)
 
-        base_path = os.environ['CORE_BASE_PATH']
-        api_port = os.environ['CORE_API_PORT']
-        api_key = os.environ.get('CORE_API_KEY')
-        gui_test_mode = bool(os.environ.get("TRIBLER_GUI_TEST_MODE", False))
+        # Check if we are already running a Tribler instance
+        process_checker = ProcessChecker(root_state_dir)
+        if process_checker.already_running:
+            logger.info('Core is already running, exiting')
+            sys.exit(1)
+        process_checker.create_lock_file()
+        version_history = VersionHistory(root_state_dir)
+        state_dir = version_history.code_version.directory
+        try:
+            start_core.start_tribler_core(api_port, api_key, state_dir,
+                                          gui_test_mode=parsed_args.mode == RunMode.GUI_TEST_MODE)
+        finally:
+            process_checker.remove_lock_file()
 
-        from tribler_core.start_core import start_tribler_core
-        start_tribler_core(base_path, api_port, api_key, root_state_dir, gui_test_mode=gui_test_mode)
     else:
         import tribler_gui
         from tribler_gui.utilities import get_translator
@@ -77,8 +114,13 @@ if __name__ == "__main__":
         # Set up logging
         tribler_gui.load_logger_config(root_state_dir)
 
-        from tribler_core.check_os import check_and_enable_code_tracing, check_environment, check_free_space, \
-            enable_fault_handler, error_and_exit, should_kill_other_tribler_instances
+        from tribler_core.check_os import (
+            check_and_enable_code_tracing,
+            check_environment,
+            check_free_space,
+            enable_fault_handler,
+            error_and_exit,
+        )
         from tribler_core.exceptions import TriblerException
 
         try:
@@ -90,8 +132,6 @@ if __name__ == "__main__":
             # Exit if we cant read/write files, etc.
             check_environment()
 
-            should_kill_other_tribler_instances(root_state_dir)
-
             check_free_space()
 
             from tribler_gui.tribler_app import TriblerApplication
@@ -99,9 +139,9 @@ if __name__ == "__main__":
 
             app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
             app = TriblerApplication(app_name, sys.argv)
+
             # ACHTUNG! translator MUST BE created and assigned to a separate variable
             # BEFORE calling installTranslator on app. Otherwise, it won't work for some reason
-
             settings = QSettings('nl.tudelft.tribler')
             translator = get_translator(settings.value('translation', None))
             app.installTranslator(translator)
@@ -117,7 +157,11 @@ if __name__ == "__main__":
                 sys.exit(1)
 
             logger.info('Start Tribler Window')
-            window = TriblerWindow(settings)
+            window = TriblerWindow(settings,
+                                   root_state_dir,
+                                   api_port=api_port,
+                                   api_key=api_key,
+                                   run_core=True)
             window.setWindowTitle("Tribler")
             app.set_activation_window(window)
             app.parse_sys_args(sys.argv)

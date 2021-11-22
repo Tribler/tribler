@@ -3,9 +3,11 @@ import os
 import shutil
 from configparser import MissingSectionHeaderError, ParsingError
 
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+
 from pony.orm import db_session, delete
 
-from tribler_common.simpledefs import NTFY, STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
@@ -15,10 +17,10 @@ from tribler_core.components.metadata_store.db.store import (
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
-from tribler_core.components.upgrade.implementation.config_converter import convert_config_to_tribler76
-from tribler_core.components.upgrade.implementation.db8_to_db10 import PonyToPonyMigration, get_db_version
-from tribler_core.notifier import Notifier
+from tribler_core.upgrade.config_converter import convert_config_to_tribler76
+from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler_core.utilities.configparser import CallbackConfigParser
+from tribler_core.utilities.path_util import Path
 
 
 def cleanup_noncompliant_channel_torrents(state_dir):
@@ -63,32 +65,30 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 
 class TriblerUpgrader:
 
-    def __init__(self, state_dir, channels_dir, trustchain_keypair, notifier: Notifier):
+    def __init__(self, state_dir: Path, channels_dir: Path, trustchain_keypair: LibNaCLSK,
+                 interrupt_upgrade_event=None,
+                 update_status_callback=None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
-        self.notifier = notifier
         self.channels_dir = channels_dir
         self.trustchain_keypair = trustchain_keypair
+        self._update_status_callback = update_status_callback
 
-        self.notified = False
+        self.interrupt_upgrade_event = interrupt_upgrade_event or (lambda: False)
+
         self.failed = True
-
-        self._dtp72 = None
         self._pony2pony = None
-        self.skip_upgrade_called = False
 
-    def skip(self):
-        self.skip_upgrade_called = True
-        if self._dtp72:
-            self._dtp72.shutting_down = True
-        if self._pony2pony:
-            self._pony2pony.shutting_down = True
+    @property
+    def shutting_down(self):
+        return self.interrupt_upgrade_event()
 
-    async def run(self):
+    def run(self):
         """
         Run the upgrader if it is enabled in the config.
         """
-        await self.upgrade_pony_db_8to10()
+
+        self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
         convert_config_to_tribler76(self.state_dir)
         self.upgrade_bw_accounting_db_8to9()
@@ -251,12 +251,10 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
 
-    async def upgrade_pony_db_8to10(self):
+    def upgrade_pony_db_8to10(self):
         """
         Upgrade GigaChannel DB from version 8 (7.5.x) to version 10 (7.6.x).
         This will recreate the database anew, which can take quite some time.
-        The code is based on the copy-pasted upgrade_72_to_pony routine which is asynchronous and
-        reports progress to the user.
         """
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists() or get_db_version(database_path) >= 10:
@@ -264,11 +262,10 @@ class TriblerUpgrader:
             return
 
         # Otherwise, start upgrading
-        self.notify_starting()
+        self.update_status("STARTING")
         tmp_database_path = database_path.parent / 'metadata_upgraded.db'
         # Clean the previous temp database
-        if tmp_database_path.exists():
-            tmp_database_path.unlink()
+        tmp_database_path.unlink(missing_ok=True)
 
         # Create the new database
         mds = MetadataStore(tmp_database_path, None, self.trustchain_keypair,
@@ -278,38 +275,25 @@ class TriblerUpgrader:
             mds.drop_fts_triggers()
         mds.shutdown()
 
-        self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status, logger=self._logger)
+        self._pony2pony = PonyToPonyMigration(database_path, tmp_database_path, self.update_status,
+                                              logger=self._logger,
+                                              shutdown_set_callback=self.interrupt_upgrade_event)
 
-        duration_base = await self._pony2pony.do_migration()
-        await self._pony2pony.recreate_indexes(mds, duration_base)
+        duration_base = self._pony2pony.do_migration()
+        self._pony2pony.recreate_indexes(mds, duration_base)
 
         # Remove the old DB
-        database_path.unlink()
+        database_path.unlink(missing_ok=True)
         if not self._pony2pony.shutting_down:
             # Move the upgraded db in its place
             tmp_database_path.rename(database_path)
         else:
             # The upgrade process was either skipped or interrupted. Delete the temp upgrade DB.
-            if tmp_database_path.exists():
-                tmp_database_path.unlink()
+            tmp_database_path.unlink(missing_ok=True)
 
-        self.notify_done()
+        self.update_status("FINISHED")
 
     def update_status(self, status_text):
-        self.notifier.notify(NTFY.UPGRADER_TICK, status_text)
-
-    def notify_starting(self):
-        """
-        Broadcast a notification (event) that the upgrader is starting doing work
-        after a check has established work on the db is required.
-        Will only fire once.
-        """
-        if not self.notified:
-            self.notified = True
-            self.notifier.notify(NTFY.UPGRADER_STARTED)
-
-    def notify_done(self):
-        """
-        Broadcast a notification (event) that the upgrader is done.
-        """
-        self.notifier.notify(NTFY.UPGRADER_DONE)
+        self._logger.info(status_text)
+        if self._update_status_callback:
+            self._update_status_callback(status_text)

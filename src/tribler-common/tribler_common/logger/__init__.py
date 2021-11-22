@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+LOG_CONFIG_FILENAME = 'logger.yaml'
+
 
 # note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
 class InfoFilter(logging.Filter):
@@ -19,7 +21,7 @@ class ErrorFilter(logging.Filter):
         return rec.levelno == logging.ERROR
 
 
-def setup_logging(config_path='config.yaml', module='core', log_dir='LOG_DIR'):
+def setup_logging(config_path=LOG_CONFIG_FILENAME, module='core', log_dir='LOG_DIR'):
     """
     Setup logging configuration with the given YAML file.
     """
@@ -30,8 +32,10 @@ def setup_logging(config_path='config.yaml', module='core', log_dir='LOG_DIR'):
                 config_text = f.read()
                 module_info_log_file = Path(log_dir).joinpath(f"{module}-info.log")
                 module_error_log_file = Path(log_dir).joinpath(f"{module}-error.log")
+                upgrader_log_file = Path(log_dir).joinpath("upgrade.log")
                 config_text = config_text.replace('TRIBLER_INFO_LOG_FILE', str(module_info_log_file))
                 config_text = config_text.replace('TRIBLER_ERROR_LOG_FILE', str(module_error_log_file))
+                config_text = config_text.replace('TRIBLER_UPGRADER_LOG_FILE', str(upgrader_log_file))
 
                 # Create log directory if it does not exist
                 if not Path(log_dir).exists():

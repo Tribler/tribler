@@ -27,6 +27,13 @@ handlers:
         backupCount: 5
         encoding: utf8
 
+    upgrade_file_handler:
+        class: logging.handlers.RotatingFileHandler
+        level: INFO
+        filename: TRIBLER_UPGRADER_LOG_FILE
+        formatter: standard
+        maxBytes: 10485760
+
     info_memory_handler:
         class: logging.handlers.MemoryHandler
         level: INFO
@@ -148,3 +155,10 @@ loggers:
         level: INFO
         handlers: [console, error_console, info_memory_handler, error_memory_handler]
         propagate: no
+
+    TriblerUpgrader:
+        level: INFO
+        handlers: [console, upgrade_file_handler]
+        propagate: no
+
+

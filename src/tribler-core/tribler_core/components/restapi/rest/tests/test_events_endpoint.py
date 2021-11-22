@@ -93,8 +93,6 @@ async def test_events(rest_manager, notifier):
 
     testdata = {
         NTFY.CHANNEL_ENTITY_UPDATED: {"state": "Complete"},
-        NTFY.UPGRADER_TICK: ("bla",),
-        NTFY.UPGRADER_DONE: None,
         NTFY.WATCH_FOLDER_CORRUPT_FILE: ("foo",),
         NTFY.TRIBLER_NEW_VERSION: ("123",),
         NTFY.CHANNEL_DISCOVERED: {"result": "bla"},

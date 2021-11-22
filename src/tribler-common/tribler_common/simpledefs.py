@@ -42,13 +42,11 @@ INFOHASH_LENGTH = 20
 
 # Tribler Core states
 STATE_STARTING = "STARTING"
-STATE_UPGRADING = "UPGRADING"
 STATE_STARTED = "STARTED"
 STATE_EXCEPTION = "EXCEPTION"
 STATE_SHUTDOWN = "SHUTDOWN"
 
 STATE_START_API = 'Starting HTTP API...'
-STATE_UPGRADING_READABLE = 'Upgrading Tribler...'
 STATE_LOAD_CHECKPOINTS = 'Loading download checkpoints...'
 STATE_CHECKPOINTS_LOADED = 'Checkpoints load finished...'
 STATE_START_LIBTORRENT = 'Starting libtorrent...'
@@ -72,9 +70,6 @@ class NTFY(Enum):
     REMOTE_QUERY_RESULTS = "remote_query_results"
     TUNNEL_REMOVE = "tunnel_remove"
     WATCH_FOLDER_CORRUPT_FILE = "watch_folder_corrupt_file"
-    UPGRADER_TICK = "upgrader_tick"
-    UPGRADER_STARTED = "upgrader_started"
-    UPGRADER_DONE = "upgrader_done"
     CHANNEL_ENTITY_UPDATED = "channel_entity_updated"
     LOW_SPACE = "low_space"
     EVENTS_START = "events_start"
