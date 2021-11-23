@@ -30,9 +30,11 @@ handlers:
     upgrade_file_handler:
         class: logging.handlers.RotatingFileHandler
         level: INFO
-        filename: TRIBLER_UPGRADER_LOG_FILE
         formatter: standard
+        filename: TRIBLER_UPGRADER_LOG_FILE
         maxBytes: 10485760
+        backupCount: 5
+        encoding: utf8
 
     info_memory_handler:
         class: logging.handlers.MemoryHandler
