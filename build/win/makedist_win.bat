@@ -49,7 +49,7 @@ REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
 
 ECHO Install pip dependencies for correct py-installer's work
-python3 -m pip install --upgrade build\win\requirements.txt
+python3 -m pip install --upgrade -r build\win\requirements.txt
 
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 
