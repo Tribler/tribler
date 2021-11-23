@@ -9,18 +9,6 @@ import yaml
 LOG_CONFIG_FILENAME = 'logger.yaml'
 
 
-# note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
-class InfoFilter(logging.Filter):
-    def filter(self, rec):
-        return rec.levelno == logging.INFO
-
-
-# note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
-class ErrorFilter(logging.Filter):
-    def filter(self, rec):
-        return rec.levelno == logging.ERROR
-
-
 def setup_logging(config_path=LOG_CONFIG_FILENAME, module='core', log_dir='LOG_DIR'):
     """
     Setup logging configuration with the given YAML file.
