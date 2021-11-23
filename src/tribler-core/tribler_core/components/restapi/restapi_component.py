@@ -1,3 +1,4 @@
+from itertools import chain
 from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
@@ -51,7 +52,8 @@ class RESTComponent(Component):
         """ Add the corresponding endpoint to the path in case there are no `NoneComponent`
         in *args or **kwargs
         """
-        if any(isinstance(arg, NoneComponent) for arg in (list(args) + list(kwargs.values()))):
+        arguments_chain = chain(args, kwargs.values())
+        if any(isinstance(arg, NoneComponent) for arg in arguments_chain):
             self.logger.info("Endpoint %s can't load component, skipping init", path)
             return
 
@@ -69,6 +71,7 @@ class RESTComponent(Component):
         metadata_store_component = await self.get_component(MetadataStoreComponent)
 
         # fmt: off
+        # pylint: disable=C0301
         key_component                  = await self.require_component(KeyComponent)
         ipv8_component                 = await self.maybe_component(Ipv8Component)
         libtorrent_component           = await self.maybe_component(LibtorrentComponent)
@@ -106,10 +109,11 @@ class RESTComponent(Component):
         self.maybe_add('/remote_query',  RemoteQueryEndpoint,   gigachannel_component.community, metadata_store_component.mds)
         self.maybe_add('/tags',          TagsEndpoint,          tag_component.tags_db, tag_component.community)
 
+        # pylint: enable=C0301
         ipv8_root_endpoint = IPV8RootEndpoint()
         for _, endpoint in ipv8_root_endpoint.endpoints.items():
             endpoint.initialize(ipv8_component.ipv8)
-        self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint),
+        self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
         # fmt: on
 
         # ACHTUNG!

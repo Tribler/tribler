@@ -11,9 +11,7 @@ from tribler_core.components.restapi.rest.shutdown_endpoint import ShutdownEndpo
 
 @pytest.fixture
 def endpoint():
-    shutdown_callback = Mock()
-    endpoint = ShutdownEndpoint(shutdown_callback)
-    return endpoint
+    return ShutdownEndpoint(Mock())
 
 
 @pytest.fixture

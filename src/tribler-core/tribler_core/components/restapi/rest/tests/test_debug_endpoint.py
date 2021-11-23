@@ -15,14 +15,14 @@ from tribler_core.components.restapi.rest.rest_manager import error_middleware
 
 @pytest.fixture
 def mock_tunnel_community():
-    mock_tunnel_community = Mock()
-    return mock_tunnel_community
+    return Mock()
 
 
 @pytest.fixture
-def endpoint(tmp_path, mock_tunnel_community, core_resource_monitor):
-    endpoint = DebugEndpoint(tmp_path, tmp_path / 'logs', tunnel_community=mock_tunnel_community, resource_monitor=core_resource_monitor)
-    return endpoint
+def endpoint(tmp_path, mock_tunnel_community, core_resource_monitor):  # pylint: disable=W0621
+    return DebugEndpoint(tmp_path, tmp_path / 'logs',
+                         tunnel_community=mock_tunnel_community,
+                         resource_monitor=core_resource_monitor)
 
 
 @pytest.fixture

@@ -19,9 +19,8 @@ from tribler_core.utilities.utilities import MEMORY_DB
 
 
 @pytest.fixture
-def endpoint(bandwidth_db):
-    endpoint = TrustViewEndpoint(bandwidth_db)
-    return endpoint
+def endpoint(bandwidth_db):  # pylint: disable=W0621
+    return TrustViewEndpoint(bandwidth_db)
 
 
 @pytest.fixture

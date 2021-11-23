@@ -26,8 +26,7 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 @pytest.fixture
 def endpoint(mock_dlmgr):
-    endpoint = TorrentInfoEndpoint(mock_dlmgr)
-    return endpoint
+    return TorrentInfoEndpoint(mock_dlmgr)
 
 
 @pytest.fixture

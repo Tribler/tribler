@@ -2,11 +2,11 @@ from unittest.mock import Mock
 
 from aiohttp.web_app import Application
 
+from freezegun import freeze_time
+
 from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
-
-from freezegun import freeze_time
 
 import pytest
 

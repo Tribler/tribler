@@ -15,8 +15,7 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 @pytest.fixture
 def endpoint():
-    endpoint = CreateTorrentEndpoint(Mock())
-    return endpoint
+    return CreateTorrentEndpoint(Mock())
 
 
 @pytest.fixture

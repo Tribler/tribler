@@ -20,8 +20,7 @@ def tribler_config(tmp_path):
 
 @pytest.fixture
 def endpoint(tribler_config):
-    endpoint = SettingsEndpoint(tribler_config)
-    return endpoint
+    return SettingsEndpoint(tribler_config)
 
 
 @pytest.fixture

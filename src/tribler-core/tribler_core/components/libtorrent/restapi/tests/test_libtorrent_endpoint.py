@@ -12,9 +12,7 @@ from tribler_core.utilities.unicode import hexlify
 
 @pytest.fixture
 def endpoint(mock_dlmgr, mock_lt_session):
-    endpoint = LibTorrentEndpoint(mock_dlmgr)
-
-    return endpoint
+    return LibTorrentEndpoint(mock_dlmgr)
 
 
 @pytest.fixture

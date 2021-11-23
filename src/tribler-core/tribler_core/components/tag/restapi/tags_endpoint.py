@@ -29,7 +29,7 @@ class TagsEndpoint(RESTEndpoint):
     """
 
     def __init__(self, db: TagDatabase, community: TagCommunity):
-        super(TagsEndpoint, self).__init__()
+        super().__init__()
         self.db: TagDatabase = db
         self.community: TagCommunity = community
 

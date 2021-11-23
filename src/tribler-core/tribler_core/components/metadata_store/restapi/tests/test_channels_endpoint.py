@@ -48,8 +48,10 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, tags_db):  # pyli
     mock_dlmgr.metainfo_requests = {}
 
     mock_gigachannel_community.remote_select_channel_contents = return_exc
-    collections_endpoint = ChannelsEndpoint(mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community, metadata_store, tags_db=tags_db)
-    channels_endpoint = ChannelsEndpoint(mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community ,metadata_store, tags_db=tags_db)
+    ep_args = [mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community, metadata_store]
+    ep_kwargs = {'tags_db': tags_db}
+    collections_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
+    channels_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/channels', channels_endpoint.app)
