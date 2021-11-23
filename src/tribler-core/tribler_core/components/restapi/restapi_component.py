@@ -1,7 +1,9 @@
 from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+
 from tribler_common.reported_error import ReportedError
+
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.components.base import Component, NoneComponent
@@ -49,10 +51,8 @@ class RESTComponent(Component):
         """ Add the corresponding endpoint to the path in case there are no `NoneComponent`
         in *args or **kwargs
         """
-        if any(isinstance(arg, NoneComponent) for arg in args):
-            return
-
-        if any(isinstance(arg, NoneComponent) for arg in kwargs.values()):
+        if any(isinstance(arg, NoneComponent) for arg in (list(args) + list(kwargs.values()))):
+            self.logger.info("Endpoint %s can't load component, skipping init", path)
             return
 
         self.root_endpoint.add_endpoint(path, endpoint_cls(*args, **kwargs))
@@ -83,21 +83,25 @@ class RESTComponent(Component):
         self._events_endpoint = EventsEndpoint(notifier, public_key=hexlify(key_component.primary_key.key.pk))
         self.root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
+        torrent_checker = None if config.gui_test_mode else torrent_checker_component.torrent_checker
+        tunnel_community = None if config.gui_test_mode else tunnel_component.community
+        gigachannel_manager = None if config.gui_test_mode else gigachannel_manager_component.gigachannel_manager
+
         # add endpoints
         self.root_endpoint.add_endpoint('/events', self._events_endpoint)
         self.maybe_add('/settings',      SettingsEndpoint,      config, download_manager=libtorrent_component.download_manager)
         self.maybe_add('/shutdown',      ShutdownEndpoint,      shutdown_event.set)
-        self.maybe_add('/debug',         DebugEndpoint,         config.state_dir, log_dir, tunnel_community=tunnel_component.community, resource_monitor=resource_monitor_component.resource_monitor)
+        self.maybe_add('/debug',         DebugEndpoint,         config.state_dir, log_dir, tunnel_community=tunnel_community, resource_monitor=resource_monitor_component.resource_monitor)
         self.maybe_add('/bandwidth',     BandwidthEndpoint,     bandwidth_accounting_component.community)
         self.maybe_add('/trustview',     TrustViewEndpoint,     bandwidth_accounting_component.database)
-        self.maybe_add('/downloads',     DownloadsEndpoint,     libtorrent_component.download_manager, metadata_store=metadata_store_component.mds, tunnel_community=tunnel_component.community)
+        self.maybe_add('/downloads',     DownloadsEndpoint,     libtorrent_component.download_manager, metadata_store=metadata_store_component.mds, tunnel_community=tunnel_community)
         self.maybe_add('/createtorrent', CreateTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add('/statistics',    StatisticsEndpoint,    ipv8=ipv8_component.ipv8, metadata_store=metadata_store_component.mds)
         self.maybe_add('/libtorrent',    LibTorrentEndpoint,    libtorrent_component.download_manager)
         self.maybe_add('/torrentinfo',   TorrentInfoEndpoint,   libtorrent_component.download_manager)
-        self.maybe_add('/metadata',      MetadataEndpoint,      torrent_checker_component.torrent_checker, metadata_store_component.mds, tags_db=tag_component.tags_db)
-        self.maybe_add('/channels',      ChannelsEndpoint,      libtorrent_component.download_manager, gigachannel_manager_component.gigachannel_manager, gigachannel_component.community, metadata_store_component.mds, tags_db=tag_component.tags_db)
-        self.maybe_add('/collections',   ChannelsEndpoint,      libtorrent_component.download_manager, gigachannel_manager_component.gigachannel_manager, gigachannel_component.community, metadata_store_component.mds, tags_db=tag_component.tags_db)
+        self.maybe_add('/metadata',      MetadataEndpoint,      torrent_checker, metadata_store_component.mds, tags_db=tag_component.tags_db)
+        self.maybe_add('/channels',      ChannelsEndpoint,      libtorrent_component.download_manager, gigachannel_manager, gigachannel_component.community, metadata_store_component.mds, tags_db=tag_component.tags_db)
+        self.maybe_add('/collections',   ChannelsEndpoint,      libtorrent_component.download_manager, gigachannel_manager, gigachannel_component.community, metadata_store_component.mds, tags_db=tag_component.tags_db)
         self.maybe_add('/search',        SearchEndpoint,        metadata_store_component.mds, tags_db=tag_component.tags_db)
         self.maybe_add('/remote_query',  RemoteQueryEndpoint,   gigachannel_component.community, metadata_store_component.mds)
         self.maybe_add('/tags',          TagsEndpoint,          tag_component.tags_db, tag_component.community)
