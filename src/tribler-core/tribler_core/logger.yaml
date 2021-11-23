@@ -4,10 +4,8 @@
 version: 1
 disable_existing_loggers: false
 filters:
-    info_filter:
-        () : tribler_common.logger.InfoFilter
-    error_filter:
-        (): tribler_common.logger.ErrorFilter
+    stdout_filter:
+        () : tribler_common.logger.StdoutFilter
 
 # Logging formatter
 formatters:
@@ -61,7 +59,7 @@ handlers:
         class: logging.StreamHandler
         level: DEBUG
         formatter: standard
-        filters: [info_filter]
+        filters: [stdout_filter]
         stream: ext://sys.stdout
 
     error_console:
