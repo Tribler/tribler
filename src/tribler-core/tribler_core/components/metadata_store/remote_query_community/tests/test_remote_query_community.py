@@ -1,11 +1,12 @@
 import random
+from asyncio import sleep
 from binascii import unhexlify
 from datetime import datetime
 from json import dumps
 from operator import attrgetter
 from os import urandom
 from time import time
-from unittest.mock import Mock, PropertyMock, patch
+from unittest.mock import Mock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
@@ -18,8 +19,10 @@ import pytest
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity, \
-    sanitize_query
+from tribler_core.components.metadata_store.remote_query_community.remote_query_community import (
+    RemoteQueryCommunity,
+    sanitize_query,
+)
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.random_utils import random_infohash, random_string
@@ -519,7 +522,6 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             assert mds1.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3
 
-    @pytest.mark.timeout(5)
     async def test_drop_silent_peer(self):
 
         # We do not want the query back mechanism to interfere with this test
@@ -529,23 +531,33 @@ class TestRemoteQueryCommunity(TestBase):
 
         basic_path = 'tribler_core.components.metadata_store.remote_query_community.remote_query_community'
 
-        with patch(basic_path + '.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
-            # Change query timeout to a really low value
-            delay_mock.return_value = 0.3
-
+        with self.overlay(1).request_cache.passthrough():
             # Stop peer 0 from responding
             with patch(basic_path + '.RemoteQueryCommunity._on_remote_select_basic'):
                 self.nodes[1].overlay.network.remove_peer = Mock()
                 self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
-                await self.deliver_messages(timeout=1)
+                await sleep(0.0)
                 # node 0 must have called remove_peer because of the timeout
                 self.nodes[1].overlay.network.remove_peer.assert_called()
 
-            # Now test that even in the case of an empty response packet, remove_peer is not called on timeout
-            self.nodes[1].overlay.network.remove_peer = Mock()
-            self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
-            await self.deliver_messages(timeout=1)
-            self.nodes[1].overlay.network.remove_peer.assert_not_called()
+    async def test_dont_drop_silent_peer_on_empty_response(self):
+        # Test that even in the case of an empty response packet, remove_peer is not called on timeout
+
+        # We do not want the query back mechanism to interfere with this test
+        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
+
+        was_called = []
+        async def mock_on_remote_select_response(*_, **__):
+            was_called.append(True)
+            return []
+
+        kwargs_dict = {"txt_filter": "ubuntu*"}
+        self.nodes[1].overlay.network.remove_peer = Mock()
+        self.nodes[1].overlay.mds.process_compressed_mdblob_threaded = mock_on_remote_select_response
+        self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
+        await self.deliver_messages()
+        assert was_called  # Positive check to prevent always passing test
+        self.nodes[1].overlay.network.remove_peer.assert_not_called()
 
     async def test_remote_select_force_eva(self):
         # Test requesting usage of EVA for sending multiple smaller entries
