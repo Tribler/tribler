@@ -46,14 +46,14 @@ handlers:
         target: error_file_handler
         capacity: 1024
 
-    console:
+    stdout_handler:
         class: logging.StreamHandler
         level: INFO
         formatter: standard
         filters: [stdout_filter]
         stream: ext://sys.stdout
 
-    error_console:
+    stderr_handler:
         class: logging.StreamHandler
         level: ERROR
         formatter: error
@@ -62,12 +62,12 @@ handlers:
 # Root Logger Configuration
 root:
     level: NOTSET
-    handlers: [console, error_console, info_memory_handler, error_memory_handler]
+    handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
     propagate: yes
 
 # Module level configuration
 loggers:
     TriblerGUI:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no

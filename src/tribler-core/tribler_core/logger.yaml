@@ -55,14 +55,14 @@ handlers:
         backupCount: 5
         encoding: utf8
 
-    console:
+    stdout_handler:
         class: logging.StreamHandler
         level: INFO
         formatter: standard
         filters: [stdout_filter]
         stream: ext://sys.stdout
 
-    error_console:
+    stderr_handler:
         class: logging.StreamHandler
         level: ERROR
         formatter: error
@@ -71,94 +71,94 @@ handlers:
 # Root Logger Configuration
 root:
     level: NOTSET
-    handlers: [console, error_console, info_memory_handler, error_memory_handler]
+    handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
     propagate: yes
 
 # Module level configuration
 loggers:
     Session:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     asyncio:
         level: INFO 
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     TriblerGUI:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     RequestCache:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     LibtorrentMgr:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     LibtorrentDownloadImpl:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     DiscoveryCommunity:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     HiddenTunnelCommunity:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     TriblerTunnelCommunity:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     PopularityCommunity:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     DHTDiscoveryCommunity:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     TunnelDispatcher:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     XXXFilter:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     ResourceMonitor:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     MetadataStore:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     GigaChannelManager:
         level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
+        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
         propagate: no
 
     TriblerUpgrader:
         level: INFO
-        handlers: [console, upgrade_file_handler]
+        handlers: [stdout_handler, upgrade_file_handler]
         propagate: no
 
 
