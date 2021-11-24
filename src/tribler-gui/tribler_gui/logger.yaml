@@ -1,5 +1,4 @@
 # File: tribler_gui/logger.yaml
-# Look to tribler_common/logger/config.yaml for description and example configuration.
 
 version: 1
 disable_existing_loggers: false
