@@ -48,7 +48,7 @@ handlers:
 
     console:
         class: logging.StreamHandler
-        level: DEBUG
+        level: INFO
         formatter: standard
         filters: [stdout_filter]
         stream: ext://sys.stdout
