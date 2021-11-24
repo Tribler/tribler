@@ -34,18 +34,29 @@ class CoreManager(QObject):
         self.should_stop_on_shutdown = False
         self.use_existing_core = True
         self.is_core_running = False
-        self.last_core_output: str = ''
+        self.last_core_stdout_output: str = ''
+        self.last_core_stderr_output: str = ''
 
         connect(self.events_manager.tribler_started, self._set_core_running)
 
     def _set_core_running(self, _):
         self.is_core_running = True
 
-    def on_core_read_ready(self):
-        raw_output = bytes(self.core_process.readAll())
-        self.last_core_output = raw_output.decode("utf-8").strip()
+    def on_core_stdout_read_ready(self):
+        raw_output = bytes(self.core_process.readAllStandardOutput())
+        self.last_core_stdout_output = raw_output.decode("utf-8").strip()
         try:
-            print(self.last_core_output)  # print core output # noqa: T001
+            print(self.last_core_stdout_output)  # print core output # noqa: T001
+        except OSError:
+            # Possible reason - cannot write to stdout as it was already closed during the application shutdown
+            if not self.shutting_down:
+                raise
+
+    def on_core_stderr_read_ready(self):
+        raw_output = bytes(self.core_process.readAllStandardError())
+        self.last_core_stderr_output = raw_output.decode("utf-8").strip()
+        try:
+            print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             if not self.shutting_down:
@@ -61,7 +72,7 @@ class CoreManager(QObject):
 
             exception_message = (
                 f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}!\n"
-                f"Last core output: \n {self.last_core_output}"
+                f"Last core output: \n {self.last_core_stderr_output or self.last_core_stdout_output}"
             )
 
             raise CoreCrashedError(exception_message)
@@ -101,9 +112,10 @@ class CoreManager(QObject):
 
         self.core_process = QProcess()
         self.core_process.setProcessEnvironment(core_env)
-        self.core_process.setReadChannel(QProcess.StandardOutput)
-        self.core_process.setProcessChannelMode(QProcess.MergedChannels)
-        connect(self.core_process.readyRead, self.on_core_read_ready)
+        self.core_process.setReadChannel(QProcess.StandardOutput)  # not necessary?
+        self.core_process.setProcessChannelMode(QProcess.SeparateChannels)
+        connect(self.core_process.readyReadStandardOutput, self.on_core_stdout_read_ready)
+        connect(self.core_process.readyReadStandardError, self.on_core_stderr_read_ready)
         connect(self.core_process.finished, self.on_core_finished)
         self.core_process.start(sys.executable, core_args)
 
