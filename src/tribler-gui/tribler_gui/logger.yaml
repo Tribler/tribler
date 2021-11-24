@@ -63,11 +63,10 @@ handlers:
 root:
     level: NOTSET
     handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
-    propagate: yes
 
 # Module level configuration
-loggers:
-    TriblerGUI:
-        level: INFO
-        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
-        propagate: no
+# loggers:
+#    ExampleLoggerName:
+#        level: INFO
+#        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
+#        propagate: no
