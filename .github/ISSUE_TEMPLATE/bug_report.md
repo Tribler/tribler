@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve Tribler
 title: ''
 labels: ['type: bug']
 assignees: ''
@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. Windows 11]
- - Version [e.g. 22]
+ - Tribler's version [e.g. 7.10.0]
 
 **Additional context**
 Add any other context about the problem here.
