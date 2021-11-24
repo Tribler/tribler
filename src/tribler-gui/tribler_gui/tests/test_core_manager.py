@@ -41,7 +41,7 @@ async def test_on_core_read_ready(mocked_print: MagicMock):
 
     core_manager.on_core_read_ready()
 
-    mocked_print.assert_called_with('\tbinary string')
+    mocked_print.assert_called_with('binary string')
 
 
 @patch('tribler_gui.core_manager.EventRequestManager', new=MagicMock())

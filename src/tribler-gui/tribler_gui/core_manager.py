@@ -45,7 +45,7 @@ class CoreManager(QObject):
         raw_output = bytes(self.core_process.readAll())
         self.last_core_output = raw_output.decode("utf-8").strip()
         try:
-            print(f'\t{self.last_core_output}')  # print core output # noqa: T001
+            print(self.last_core_output)  # print core output # noqa: T001
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             if not self.shutting_down:
