@@ -7,3 +7,4 @@ sphinx_rtd_theme
 sphinxcontrib-httpdomain==1.5.0
 sphinxcontrib-openapi
 sphinxcontrib.openapi
+configobj

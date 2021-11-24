@@ -1,5 +1,4 @@
 import logging
-import os
 import ssl
 import traceback
 
@@ -22,13 +21,6 @@ from tribler_core.version import version_id
 
 logger = logging.getLogger(__name__)
 
-
-def tribler_shutting_down():
-    return os.environ.get('TRIBLER_SHUTTING_DOWN', "FALSE") == "TRUE"
-
-
-class ShuttingDownException(Exception):
-    pass
 
 
 @web.middleware
@@ -54,19 +46,11 @@ class ApiKeyMiddleware:
 @web.middleware
 async def error_middleware(request, handler):
     try:
-        if tribler_shutting_down():
-            raise ShuttingDownException('Tribler is shutting down')
         response = await handler(request)
     except HTTPNotFound:
         return RESTResponse({'error': {
             'handled': True,
             'message': f'Could not find {request.path}'
-        }}, status=HTTP_NOT_FOUND)
-    except ShuttingDownException as e:
-        return RESTResponse({"error": {
-            "handled": True,
-            "code": e.__class__.__name__,
-            "message": str(e)
         }}, status=HTTP_NOT_FOUND)
     except Exception as e:
         logger.exception(e)
@@ -160,13 +144,6 @@ class RESTManager:
 
             await self.site_https.start()
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
-
-        # REST Manager does not accept any new requests if Tribler is shutting down.
-        # Note that environment variable 'TRIBLER_SHUTTING_DOWN' is set to 'TRUE' (string)
-        # when shutdown has started. Also see RESTRequest.process() method below.
-        # Therefore, here while starting the REST Manager we make sure that this
-        # variable is set to 'FALSE' (string).
-        os.environ['TRIBLER_SHUTTING_DOWN'] = "FALSE"
 
     async def stop(self):
         """

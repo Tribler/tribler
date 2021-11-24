@@ -1,10 +1,10 @@
+from tribler_core.components.base import Component
 from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 
 
-class GigachannelManagerComponent(RestfulComponent):
+class GigachannelManagerComponent(Component):
     gigachannel_manager: GigaChannelManager = None
 
     async def run(self):
@@ -23,9 +23,6 @@ class GigachannelManagerComponent(RestfulComponent):
         )
         if not config.gui_test_mode:
             self.gigachannel_manager.start()
-
-        await self.init_endpoints(endpoints=['channels', 'collections'],
-                                  values={'gigachannel_manager': self.gigachannel_manager})
 
     async def shutdown(self):
         await super().shutdown()

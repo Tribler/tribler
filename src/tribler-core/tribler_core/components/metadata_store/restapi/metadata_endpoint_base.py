@@ -5,6 +5,7 @@ from pony.orm import db_session
 
 from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler_core.components.tag.db.tag_db import TagDatabase
 
@@ -36,10 +37,10 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, metadata_store: MetadataStore, *args, tags_db: TagDatabase = None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.mds = None
-        self.tags_db: Optional[TagDatabase] = None
+        self.mds = metadata_store
+        self.tags_db: Optional[TagDatabase] = tags_db
 
     @classmethod
     def sanitize_parameters(cls, parameters):

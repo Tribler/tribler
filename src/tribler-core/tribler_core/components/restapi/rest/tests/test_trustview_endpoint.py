@@ -19,9 +19,8 @@ from tribler_core.utilities.utilities import MEMORY_DB
 
 
 @pytest.fixture
-def endpoint():
-    endpoint = TrustViewEndpoint()
-    return endpoint
+def endpoint(bandwidth_db):  # pylint: disable=W0621
+    return TrustViewEndpoint(bandwidth_db)
 
 
 @pytest.fixture
@@ -43,8 +42,7 @@ def mock_bandwidth_community(mock_ipv8, rest_api):
 
 @pytest.fixture
 async def bandwidth_db(root_key):
-    bandwidth_db = BandwidthDatabase(MEMORY_DB, root_key)
-    return bandwidth_db
+    return BandwidthDatabase(MEMORY_DB, root_key)
 
 
 @pytest.fixture
@@ -143,7 +141,6 @@ async def test_trustview_response(rest_api, root_key, bandwidth_db, endpoint):
     number of transactions in the graphs = 3 (root node to friends) + 3 (friends) * 3 (fofs) = 12
     """
 
-    endpoint.bandwidth_db = bandwidth_db
     friends = [
         "4c69624e61434c504b3a2ee28ce24a2259b4e585b81106cdff4359fcf48e93336c11d133b01613f30b03b4db06df27"
         "80daac2cdf2ee60be611bf7367a9c1071ac50d65ca5858a50e9578",
@@ -209,7 +206,6 @@ async def test_trustview_max_transactions(rest_api, bandwidth_db, root_key, endp
     """
     Test whether the max transactions returned is limited.
     """
-    endpoint.bandwidth_db = bandwidth_db
 
     max_txn = 10
     endpoint.trust_graph.set_limits(max_transactions=max_txn)
@@ -227,7 +223,6 @@ async def test_trustview_max_nodes(rest_api, root_key, bandwidth_db, endpoint):
     """
     Test whether the number of nodes returned is limited.
     """
-    endpoint.bandwidth_db = bandwidth_db
 
     max_nodes = 10
     endpoint.trust_graph.set_limits(max_nodes=max_nodes)
@@ -248,7 +243,6 @@ async def test_trustview_with_refresh(rest_api, root_key, bandwidth_db, endpoint
     If refresh parameter is not set, the cached graph is returned otherwise
     a new graph is computed and returned.
     """
-    endpoint.bandwidth_db = bandwidth_db
 
     # Insert a set of transactions
     num_tx_set1 = 10

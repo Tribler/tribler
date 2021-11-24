@@ -198,11 +198,6 @@ class TriblerWindow(QMainWindow):
 
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
-        def on_state_update(new_state):
-            self.loading_text_label.setText(new_state)
-
-        connect(self.core_manager.core_state_update, on_state_update)
-
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
 

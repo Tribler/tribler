@@ -28,10 +28,10 @@ class TagsEndpoint(RESTEndpoint):
     Top-level endpoint for tags.
     """
 
-    def __init__(self, *args, **kwargs):
-        RESTEndpoint.__init__(self, *args, **kwargs)
-        self.db: Optional[TagDatabase] = None
-        self.community: Optional[TagCommunity] = None
+    def __init__(self, db: TagDatabase, community: TagCommunity):
+        super().__init__()
+        self.db: TagDatabase = db
+        self.community: TagCommunity = community
 
     @staticmethod
     def validate_infohash(infohash: str) -> Tuple[bool, Optional[RESTResponse]]:
@@ -87,7 +87,7 @@ class TagsEndpoint(RESTEndpoint):
         """
         Modify the tags of a particular content item.
         """
-        if not self.db or not self.community:
+        if not self.community:
             return
 
         # First, get the current tags and compute the diff between the old and new tags
@@ -127,5 +127,5 @@ class TagsEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            suggestions = [] if self.db is None else self.db.get_suggestions(unhexlify(infohash))
+            suggestions = self.db.get_suggestions(unhexlify(infohash))
             return RESTResponse({"suggestions": suggestions})

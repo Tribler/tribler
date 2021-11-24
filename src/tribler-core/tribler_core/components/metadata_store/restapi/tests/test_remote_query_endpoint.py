@@ -21,9 +21,13 @@ from tribler_core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-def endpoint():
-    endpoint = RemoteQueryEndpoint()
-    return endpoint
+def mock_gigachannel_community():
+    return Mock()
+
+
+@pytest.fixture
+def endpoint(mock_gigachannel_community, metadata_store):  # pylint: disable=W0621
+    return RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
 
 
 @pytest.fixture
@@ -33,7 +37,7 @@ def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_create_remote_search_request(rest_api, endpoint):
+async def test_create_remote_search_request(rest_api, endpoint, mock_gigachannel_community):  # pylint: disable=W0621
     """
     Test that remote search call is sent on a REST API search request
     """
@@ -46,9 +50,7 @@ async def test_create_remote_search_request(rest_api, endpoint):
         return request_uuid, peers
 
     # Test querying for keywords
-    gigachannel_community = Mock()
-    gigachannel_community.send_search_request = mock_send
-    endpoint.gigachannel_community = gigachannel_community
+    mock_gigachannel_community.send_search_request = mock_send
     search_txt = "foo"
     await do_request(
         rest_api,
@@ -68,15 +70,12 @@ async def test_create_remote_search_request(rest_api, endpoint):
     assert hexlify(sent['channel_pk']) == channel_pk
 
 
-async def test_get_channels_peers(rest_api, endpoint, metadata_store):
+async def test_get_channels_peers(rest_api, endpoint, metadata_store, mock_gigachannel_community):  # pylint: disable=W0621, C0321
     """
     Test getting debug info about the state of channels to peers mapping
     """
 
-    gigachannel_community = Mock()
-    endpoint.gigachannel_community = gigachannel_community
-    endpoint.mds = metadata_store
-    mapping = gigachannel_community.channels_peers = ChannelsPeersMapping()
+    mapping = mock_gigachannel_community.channels_peers = ChannelsPeersMapping()
 
     peer_key = default_eccrypto.generate_key("curve25519")
     chan_key = default_eccrypto.generate_key("curve25519")

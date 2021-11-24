@@ -15,8 +15,7 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
 @pytest.fixture
 def endpoint():
-    endpoint = CreateTorrentEndpoint()
-    return endpoint
+    return CreateTorrentEndpoint(Mock())
 
 
 @pytest.fixture
@@ -36,7 +35,6 @@ async def test_create_torrent(rest_api, tmp_path, endpoint):
             encoded_metainfo = torrent_file.read()
         return succeed({"metainfo": encoded_metainfo, "base_dir": str(tmp_path)})
 
-    endpoint.download_manager = Mock()
     endpoint.download_manager.download_defaults = DownloadDefaultsSettings()
     endpoint.download_manager.create_torrent_file = fake_create_torrent_file
     endpoint.download_manager.start_download = start_download = Mock()
@@ -65,7 +63,6 @@ async def test_create_torrent_io_error(rest_api, endpoint):
     def fake_create_torrent_file(*_, **__):
         raise OSError("test")
 
-    endpoint.download_manager = Mock()
     endpoint.download_manager.create_torrent_file = fake_create_torrent_file
 
     post_data = {

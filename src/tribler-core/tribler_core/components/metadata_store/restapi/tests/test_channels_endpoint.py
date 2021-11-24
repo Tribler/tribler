@@ -14,12 +14,12 @@ import pytest
 
 from tribler_common.simpledefs import CHANNEL_STATE
 
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler_core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
@@ -48,19 +48,10 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, tags_db):  # pyli
     mock_dlmgr.metainfo_requests = {}
 
     mock_gigachannel_community.remote_select_channel_contents = return_exc
-    collections_endpoint = ChannelsEndpoint()
-    collections_endpoint.mds = metadata_store
-    collections_endpoint.tags_db = tags_db
-    collections_endpoint.download_manager = mock_dlmgr
-    collections_endpoint.gigachannel_manager = mock_gigachannel_manager
-    collections_endpoint.gigachannel_community = mock_gigachannel_community
-
-    channels_endpoint = ChannelsEndpoint()
-    channels_endpoint.mds = metadata_store
-    channels_endpoint.tags_db = tags_db
-    channels_endpoint.download_manager = mock_dlmgr
-    channels_endpoint.gigachannel_manager = mock_gigachannel_manager
-    channels_endpoint.gigachannel_community = mock_gigachannel_community
+    ep_args = [mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community, metadata_store]
+    ep_kwargs = {'tags_db': tags_db}
+    collections_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
+    channels_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/channels', channels_endpoint.app)

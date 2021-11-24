@@ -15,14 +15,14 @@ from tribler_core.components.restapi.rest.rest_manager import error_middleware
 
 @pytest.fixture
 def mock_tunnel_community():
-    mock_tunnel_community = Mock()
-    return mock_tunnel_community
+    return Mock()
 
 
 @pytest.fixture
-def endpoint():
-    endpoint = DebugEndpoint()
-    return endpoint
+def endpoint(tmp_path, mock_tunnel_community, core_resource_monitor):  # pylint: disable=W0621
+    return DebugEndpoint(tmp_path, tmp_path / 'logs',
+                         tunnel_community=mock_tunnel_community,
+                         resource_monitor=core_resource_monitor)
 
 
 @pytest.fixture
@@ -31,6 +31,7 @@ async def core_resource_monitor(tmp_path):
                                            state_dir=tmp_path,
                                            config=ResourceMonitorSettings(),
                                            log_dir=tmp_path / 'logs')
+    resource_monitor.check_resources()
     yield resource_monitor
     await resource_monitor.stop()
 
@@ -84,8 +85,6 @@ async def test_get_cpu_history(rest_api, endpoint, core_resource_monitor):
     """
     Test whether the API returns the cpu history
     """
-    endpoint.resource_monitor = core_resource_monitor
-    core_resource_monitor.check_resources()
     response_json = await do_request(rest_api, 'debug/cpu/history', expected_code=200)
     assert len(response_json['cpu_history']) >= 1
 
@@ -94,7 +93,6 @@ async def test_get_memory_history(rest_api, endpoint, core_resource_monitor):
     """
     Test whether the API returns the memory history
     """
-    endpoint.resource_monitor = core_resource_monitor
     core_resource_monitor.check_resources()
     response_json = await do_request(rest_api, 'debug/memory/history', expected_code=200)
     assert len(response_json['memory_history']) >= 1
@@ -105,7 +103,6 @@ async def test_dump_memory(rest_api, tmp_path, endpoint):
     """
     Test whether the API returns a memory dump
     """
-    endpoint.state_dir = tmp_path
     response = await do_request(rest_api, 'debug/memory/dump', expected_code=200)
     assert response
 
@@ -135,7 +132,6 @@ async def test_debug_pane_core_logs(rest_api, endpoint, tmp_path):
     Test whether the API returns the logs
     """
     log_dir = tmp_path / 'logs'
-    endpoint.log_dir = log_dir
     process = 'core'
     test_core_log_message = "This is the core test log message"
     num_logs = 100
@@ -185,9 +181,8 @@ async def test_debug_pane_default_num_logs(rest_api, endpoint, tmp_path):
     num_logs_to_write = 200
 
     # Log directory
-    log_dir = tmp_path
+    log_dir = tmp_path / 'logs'
     create_dummy_logs(log_dir, process=module, log_message=log_dir, num_logs=num_logs_to_write)
-    endpoint.log_dir = log_dir
 
     json_response = await do_request(rest_api, f'debug/log?process={module}&max_lines=', expected_code=200)
     logs = json_response['content'].strip().split("\n")
@@ -198,9 +193,6 @@ async def test_debug_pane_no_logs(rest_api, endpoint, tmp_path):
     """
     Test whether the API returns the default response when no log files are found.
     """
-    log_dir = tmp_path
-    endpoint.log_dir = log_dir
-
     module = 'gui'
     with patch('tribler_core.components.restapi.rest.debug_endpoint.get_root_state_directory',
                new=lambda: tmp_path / 'nondir'):
@@ -214,7 +206,6 @@ async def test_get_profiler_state(rest_api, endpoint, core_resource_monitor):
     """
     Test getting the state of the profiler
     """
-    endpoint.resource_monitor = core_resource_monitor
     json_response = await do_request(rest_api, 'debug/profiler', expected_code=200)
     assert 'state' in json_response
 
@@ -226,8 +217,6 @@ async def test_start_stop_profiler(rest_api, endpoint, core_resource_monitor):
     Note that we mock the start/stop profiler methods since actually starting the profiler could influence the
     tests.
     """
-
-    endpoint.resource_monitor = core_resource_monitor
 
     def mocked_start_profiler():
         endpoint.resource_monitor.profiler._is_running = True

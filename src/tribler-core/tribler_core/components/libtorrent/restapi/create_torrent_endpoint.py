@@ -10,6 +10,7 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.components.restapi.rest.schema import HandledErrorSchema
@@ -26,9 +27,9 @@ class CreateTorrentEndpoint(RESTEndpoint):
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
 
-    def __init__(self):
+    def __init__(self, download_manager: DownloadManager):
         super().__init__()
-        self.download_manager = None
+        self.download_manager = download_manager
 
     def setup_routes(self):
         self.app.add_routes([web.post('', self.create_torrent)])

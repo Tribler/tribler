@@ -45,8 +45,6 @@ reactions_dict = {
     NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
     # Remote GigaChannel search results were received by Tribler. Contains received entries.
     NTFY.REMOTE_QUERY_RESULTS: passthrough,
-    # An indicator that Tribler has completed the startup procedure and is ready to use.
-    NTFY.TRIBLER_STARTED: lambda public_key: {"version": version_id, "public_key": hexlify(public_key)},
     # Tribler is low on disk space for storing torrents
     NTFY.LOW_SPACE: passthrough,
     # Report config error on startup
@@ -65,20 +63,18 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    def __init__(self):
+    def __init__(self, notifier: Notifier, public_key: str = None):
         RESTEndpoint.__init__(self)
         TaskManager.__init__(self)
         self.events_responses: List[RESTStreamResponse] = []
         self.app.on_shutdown.append(self.on_shutdown)
         self.notifier = None
         self.undelivered_error: Optional[dict] = None
-
-        # We need to know that Tribler completed its startup sequence
-        self.tribler_started = False
+        self.connect_notifier(notifier)
+        self.public_key = public_key
 
     def connect_notifier(self, notifier: Notifier):
         self.notifier = notifier
-        self.notifier.add_observer(NTFY.TRIBLER_STARTED, self.on_tribler_started)
 
         for event_type, event_lambda in reactions_dict.items():
             self.notifier.add_observer(event_type,
@@ -101,16 +97,13 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()
 
-    def on_tribler_started(self, _):
-        self.tribler_started = True
-
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
     def initial_message(self) -> dict:
         return {
             "type": NTFY.EVENTS_START.value,
-            "event": {"tribler_started": self.tribler_started, "version": version_id}
+            "event": {"public_key": self.public_key, "version": version_id}
         }
 
     def error_message(self, reported_error: ReportedError) -> dict:

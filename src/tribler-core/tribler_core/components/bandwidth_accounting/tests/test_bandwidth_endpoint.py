@@ -38,17 +38,10 @@ async def bw_community(bandwidth_database, peer):
 
 
 @pytest.fixture
-async def bw_endpoint():
-    endpoint = BandwidthEndpoint()
+async def bw_endpoint(bw_community):
+    endpoint = BandwidthEndpoint(bw_community)
     endpoint.setup_routes()
     return endpoint
-
-
-async def test_get_statistics_no_community(bw_endpoint, aiohttp_client):
-    """
-    Testing whether the API returns error 404 if no bandwidth community is loaded
-    """
-    await do_request(await aiohttp_client(bw_endpoint.app), 'statistics', expected_code=404)
 
 
 async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
@@ -70,13 +63,6 @@ async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
     assert stats["total_taken"] == 2000
     assert stats["num_peers_helped"] == 1
     assert stats["num_peers_helped_by"] == 1
-
-
-async def test_get_history_no_community(bw_endpoint, aiohttp_client):
-    """
-    Testing whether the API returns error 404 if no bandwidth community is loaded
-    """
-    await do_request(await aiohttp_client(bw_endpoint.app), 'history', expected_code=404)
 
 
 async def test_get_history(bw_endpoint, bw_community, aiohttp_client):

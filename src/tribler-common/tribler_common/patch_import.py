@@ -8,10 +8,10 @@ Original module distributes under Apache License 2.0.
 """
 import builtins
 from typing import List
-
-import mock
+from unittest.mock import MagicMock, patch
 
 __all__ = ['patch_import']
+
 
 _builtins_import = builtins.__import__
 
@@ -41,11 +41,11 @@ def patch_import(modules=List[str], strict: bool = False, always_raise_exception
             raise ImportError
 
         if strict:
-            return mock.MagicMock(**mock_kwargs)
+            return MagicMock(**mock_kwargs)
 
         try:
             return _builtins_import(module_name, *args, **kwargs)
         except ImportError:
-            return mock.MagicMock(**mock_kwargs)
+            return MagicMock(**mock_kwargs)
 
-    return mock.patch('builtins.__import__', try_import)
+    return patch('builtins.__import__', try_import)

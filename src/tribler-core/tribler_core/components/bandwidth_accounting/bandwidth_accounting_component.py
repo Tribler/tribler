@@ -5,13 +5,14 @@ from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting
     BandwidthAccountingTestnetCommunity,
 )
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler_core.components.base import Component
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 
 
-class BandwidthAccountingComponent(RestfulComponent):
+class BandwidthAccountingComponent(Component):
     community: BandwidthAccountingCommunity = None
     _ipv8_component: Ipv8Component = None
+    database: BandwidthDatabase = None
 
     async def run(self):
         await super().run()
@@ -25,18 +26,14 @@ class BandwidthAccountingComponent(RestfulComponent):
 
         db_name = "bandwidth_gui_test.db" if config.gui_test_mode else f"{bandwidth_cls.DB_NAME}.db"
         database_path = config.state_dir / STATEDIR_DB_DIR / db_name
-        database = BandwidthDatabase(database_path, self._ipv8_component.peer.public_key.key_to_bin())
+        self.database = BandwidthDatabase(database_path, self._ipv8_component.peer.public_key.key_to_bin())
         self.community = bandwidth_cls(self._ipv8_component.peer,
                                        self._ipv8_component.ipv8.endpoint,
                                        self._ipv8_component.ipv8.network,
                                        settings=config.bandwidth_accounting,
-                                       database=database)
+                                       database=self.database)
 
         self._ipv8_component.initialise_community_by_default(self.community)
-
-        await self.init_endpoints(endpoints=['trustview', 'bandwidth'],
-                                  values={'bandwidth_db': self.community.database,
-                                          'bandwidth_community': self.community})
 
     async def shutdown(self):
         await super().shutdown()

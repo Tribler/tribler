@@ -1,8 +1,8 @@
+from tribler_core.components.base import Component
 from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
-from tribler_core.components.restapi.restapi_component import RestfulComponent
 
 
-class ResourceMonitorComponent(RestfulComponent):
+class ResourceMonitorComponent(Component):
     resource_monitor: CoreResourceMonitor = None
 
     async def run(self):
@@ -18,8 +18,6 @@ class ResourceMonitorComponent(RestfulComponent):
                                                notifier=notifier)
         resource_monitor.start()
         self.resource_monitor = resource_monitor
-
-        await self.init_endpoints(endpoints=['debug'], values={'resource_monitor': resource_monitor})
 
     async def shutdown(self):
         await super().shutdown()

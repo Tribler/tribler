@@ -3,9 +3,11 @@ from aiohttp import web
 from aiohttp_apispec import docs
 
 from ipv8.REST.schema import schema
+from ipv8.types import IPv8
 
 from marshmallow.fields import Integer, String
 
+from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.utilities import froze_it
 
@@ -16,10 +18,10 @@ class StatisticsEndpoint(RESTEndpoint):
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.mds = None
-        self.ipv8 = None
+    def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None):
+        super().__init__()
+        self.mds = metadata_store
+        self.ipv8 = ipv8
 
     def setup_routes(self):
         self.app.add_routes([web.get('/tribler', self.get_tribler_stats),

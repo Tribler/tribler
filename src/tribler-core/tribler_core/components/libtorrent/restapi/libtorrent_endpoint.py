@@ -8,6 +8,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer
 
+from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import froze_it
@@ -19,9 +20,9 @@ class LibTorrentEndpoint(RESTEndpoint):
     Endpoint for getting information about libtorrent sessions and settings.
     """
 
-    def __init__(self):
+    def __init__(self, download_manager: DownloadManager):
         super().__init__()
-        self.download_manager = None
+        self.download_manager = download_manager
 
     def setup_routes(self):
         self.app.add_routes([web.get('/settings', self.get_libtorrent_settings),

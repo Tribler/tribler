@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
+from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication
 
@@ -18,7 +18,6 @@ class CoreManager(QObject):
     """
 
     tribler_stopped = pyqtSignal()
-    core_state_update = pyqtSignal(str)
 
     def __init__(self, root_state_dir, api_port, api_key, error_handler):
         QObject.__init__(self, None)
@@ -37,9 +36,10 @@ class CoreManager(QObject):
         self.is_core_running = False
         self.last_core_output: str = ''
 
-        self.check_state_timer = QTimer()
-        self.check_state_timer.setSingleShot(True)
-        connect(self.check_state_timer.timeout, self.check_core_ready)
+        connect(self.events_manager.tribler_started, self._set_core_running)
+
+    def _set_core_running(self, _):
+        self.is_core_running = True
 
     def on_core_read_ready(self):
         raw_output = bytes(self.core_process.readAll())
@@ -101,23 +101,6 @@ class CoreManager(QObject):
         connect(self.core_process.readyRead, self.on_core_read_ready)
         connect(self.core_process.finished, self.on_core_finished)
         self.core_process.start(sys.executable, core_args)
-
-    def check_core_ready(self):
-        TriblerNetworkRequest(
-            "state", self.on_received_state, capture_core_errors=False, priority=QNetworkRequest.HighPriority
-        )
-
-    def on_received_state(self, state):
-        if not state or 'state' not in state or state['state'] not in ['STARTED', 'EXCEPTION']:
-            self.check_state_timer.start(50)
-            return
-
-        self.core_state_update.emit(state['readable_state'])
-
-        if state['state'] == 'STARTED':
-            self.is_core_running = True
-        elif state['state'] == 'EXCEPTION':
-            raise RuntimeError(state['last_exception'])
 
     def stop(self, stop_app_on_shutdown=True):
         if self.core_process or self.is_core_running:
