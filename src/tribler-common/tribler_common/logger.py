@@ -28,7 +28,7 @@ def load_logger_config(app_mode, log_dir):
 
 def get_logger_config_path():
     if not hasattr(sys, '_MEIPASS'):
-        dirname = Path(__file__).absolute().parent.parent
+        dirname = Path(__file__).absolute().parent
     else:
         dirname = Path(getattr(sys, '_MEIPASS'), "tribler_source", "tribler_common")
     return dirname / LOG_CONFIG_FILENAME
