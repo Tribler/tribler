@@ -57,8 +57,8 @@ def setup_logging(app_mode, log_dir, config_path: Path):
                 logging.config.dictConfig(config)
                 logging.info(f'Config loaded for app_mode={app_mode}')
             except Exception as e:  # pylint: disable=broad-except
-                print('Error in loading logger config. Using default configs. Error:', e)
+                print('Error in loading logger config. Using default configs. Error:', e, file=sys.stderr)
                 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     else:
-        print(f'Logger config not found in {config_path}. Using default configs.')
+        print(f'Logger config not found in {config_path}. Using default configs.', file=sys.stderr)
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
