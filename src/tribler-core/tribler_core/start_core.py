@@ -148,11 +148,12 @@ def start_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
     exception_handler = default_core_exception_handler
     loop.set_exception_handler(exception_handler.unhandled_error_observer)
 
-    loop.run_until_complete(core_session(config, components=list(components_gen(config))))
+    try:
+        loop.run_until_complete(core_session(config, components=list(components_gen(config))))
+    finally:
+        if trace_logger:
+            trace_logger.close()
 
-    if trace_logger:
-        trace_logger.close()
-
-    # Flush the logs to the file before exiting
-    for handler in logging.getLogger().handlers:
-        handler.flush()
+        # Flush the logs to the file before exiting
+        for handler in logging.getLogger().handlers:
+            handler.flush()

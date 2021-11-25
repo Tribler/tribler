@@ -1,10 +1,9 @@
-aiohttp
-aiohttp_apispec
-pydantic
-pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
-sphinx>=3.0.4 # not directly required, pinned by Snyk to avoid a vulnerability
-sphinx_rtd_theme
-sphinxcontrib-httpdomain==1.5.0
-sphinxcontrib-openapi
-sphinxcontrib.openapi
-configobj
+aiohttp==3.8.1
+aiohttp_apispec==2.2.1
+pydantic==1.8.2
+pygments==2.10.0
+sphinx==4.3.0
+sphinx_rtd_theme==1.0.0
+sphinxcontrib-httpdomain==1.8.0
+sphinxcontrib-openapi==0.7.0
+configobj==5.0.6

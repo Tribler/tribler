@@ -17,7 +17,7 @@ from tribler_core.components.restapi.rest.settings import APISettings
 from tribler_core.components.torrent_checker.settings import TorrentCheckerSettings
 from tribler_core.components.tunnel.settings import TunnelCommunitySettings
 from tribler_core.components.watch_folder.settings import WatchFolderSettings
-from tribler_core.settings import ErrorHandlingSettings, GeneralSettings
+from tribler_core.settings import GeneralSettings
 
 
 class TriblerConfigSections(BaseSettings):

@@ -1,4 +1,8 @@
 import argparse
+# A fix for "LookupError: unknown encoding: idna" error.
+# Adding encodings.idna to hiddenimports is not enough.
+# https://github.com/pyinstaller/pyinstaller/issues/1113
+import encodings.idna  # pylint: disable=unused-import
 import logging.config
 import os
 import sys
@@ -7,9 +11,12 @@ from enum import Enum, auto
 from PyQt5.QtCore import QSettings
 
 from tribler_common.process_checker import ProcessChecker
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 
 from tribler_core import start_core
+
 
 logger = logging.getLogger(__name__)
 # pylint: disable=import-outside-toplevel, ungrouped-imports
@@ -30,9 +37,6 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
 
 
 def init_sentry_reporter():
-    from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
-    from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
     """ Initialise sentry reporter
 
     We use `sentry_url` as a URL for normal tribler mode and TRIBLER_TEST_SENTRY_URL
@@ -98,6 +102,7 @@ if __name__ == "__main__":
             start_core.start_tribler_core(api_port, api_key, state_dir,
                                           gui_test_mode=parsed_args.mode == RunMode.GUI_TEST_MODE)
         finally:
+            logger.info('Remove lock file')
             process_checker.remove_lock_file()
 
     else:
@@ -179,7 +184,10 @@ if __name__ == "__main__":
             logger.info("Shutting down Tribler")
             if trace_logger:
                 trace_logger.close()
+
             # Flush all the logs to make sure it is written to file before it exits
             for handler in logging.getLogger().handlers:
                 handler.flush()
+
+            SentryReporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
             raise

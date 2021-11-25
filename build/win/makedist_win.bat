@@ -42,8 +42,14 @@ call build\win\clean.bat
 
 REM ----- Build
 
+REM ----- Install pip dependencies before the build
+python3 -m pip install --upgrade -r src\requirements.txt
+
 REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
+
+ECHO Install pip dependencies for correct py-installer's work
+python3 -m pip install --upgrade -r build\win\requirements.txt
 
 %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
 

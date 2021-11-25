@@ -9,6 +9,8 @@ import shutil
 import aiohttp_apispec
 import sentry_sdk
 
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 
@@ -67,6 +69,10 @@ ttf_path = os.path.join("/usr", "share", "fonts", "truetype", "noto", "NotoColor
 if sys.platform.startswith('linux') and os.path.exists(ttf_path):
     data_to_copy += [(ttf_path, 'fonts')]
 
+# fixes ZeroDivisionError in pyqtgraph\graphicsItems\ButtonItem.py
+# https://issueexplorer.com/issue/pyqtgraph/pyqtgraph/1811
+data_to_copy += collect_data_files("pyqtgraph", includes=["**/*.ui", "**/*.png", "**/*.svg"])
+
 excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
@@ -85,15 +91,29 @@ def get_sentry_hooks():
 # Hidden imports
 hiddenimports = [
     'csv',
+    'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
     'ecdsa',
-    'pyaes',
     'PIL',
+    'pkg_resources', # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
+    'pyaes',
+    'pydantic',
+    'pyqtgraph',
+    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
+    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
+    'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
+    'PyQt5.QtTest',
+    'requests',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
-    'pkg_resources', 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
-    'requests',
-    'PyQt5.QtTest',
-    'pyqtgraph'] + widget_files + pony_deps + get_sentry_hooks()
+    'typing_extensions',
+] + widget_files + pony_deps + get_sentry_hooks()
+
+# https://github.com/pyinstaller/pyinstaller/issues/5359
+hiddenimports += collect_submodules('pydantic')
+
+# fixes ZeroDivisionError in pyqtgraph\graphicsItems\ButtonItem.py
+# https://issueexplorer.com/issue/pyqtgraph/pyqtgraph/1811
+hiddenimports += collect_submodules("pyqtgraph", filter=lambda name: "Template" in name)
 
 
 sys.modules['FixTk'] = None
