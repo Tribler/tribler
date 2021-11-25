@@ -11,7 +11,7 @@ LOG_CONFIG_FILENAME = 'logger.yaml'
 logger = logging.getLogger(__name__)
 
 
-# note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
+# note: this class is used by src/tribler-common/tribler_common/logger.yaml
 class StdoutFilter(logging.Filter):
     def filter(self, record):
         return record.levelno < logging.ERROR
