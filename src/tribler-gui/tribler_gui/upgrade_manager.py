@@ -120,10 +120,10 @@ class UpgradeManager(QObject):
         self._upgrade_thread.started.connect(self._upgrade_worker.run)
 
         self._upgrade_thread.finished.connect(self._upgrade_thread.deleteLater)
-        connect(self._upgrade_worker.finished, self._upgrade_thread.quit)
-        connect(self._upgrade_worker.status_update, self.upgrader_tick.emit)
-        connect(self._upgrade_worker.finished, self.upgrader_finished.emit)
-        connect(self._upgrade_worker.finished, self._upgrade_worker.deleteLater)
+        self._upgrade_worker.finished.connect(self._upgrade_thread.quit)
+        self._upgrade_worker.status_update.connect(self.upgrader_tick.emit)
+        self._upgrade_worker.finished.connect(self.upgrader_finished.emit)
+        self._upgrade_worker.finished.connect(self._upgrade_worker.deleteLater)
 
         self._upgrade_thread.start()
 
