@@ -10,6 +10,7 @@ from enum import Enum, auto
 
 from PyQt5.QtCore import QSettings
 
+from tribler_common.logger import load_logger_config
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
@@ -83,12 +84,11 @@ if __name__ == "__main__":
 
     # Check whether we need to start the core or the user interface
     if parsed_args.mode in (RunMode.CORE_ONLY, RunMode.GUI_TEST_MODE):
-        from tribler_core.check_os import  should_kill_other_tribler_instances
+        from tribler_core.check_os import should_kill_other_tribler_instances
 
         should_kill_other_tribler_instances(root_state_dir)
         logger.info('Running in "core" mode')
-        import tribler_core
-        tribler_core.load_logger_config(root_state_dir)
+        load_logger_config('tribler-core', root_state_dir)
 
         # Check if we are already running a Tribler instance
         process_checker = ProcessChecker(root_state_dir)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
             os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
         # Set up logging
-        tribler_gui.load_logger_config(root_state_dir)
+        load_logger_config('tribler-gui', root_state_dir)
 
         from tribler_core.check_os import (
             check_and_enable_code_tracing,

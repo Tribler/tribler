@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import QApplication
 import tribler_gui
 from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
+logger = logging.getLogger(__name__)
+
 NUM_VOTES_BARS = 8
 
 
@@ -426,10 +428,8 @@ def get_translator(language=None):
     # which makes QTranslator use the system language (e.g. the language the OS was installed in),
     # instead of the user-display language the user installed later.
     locale = QLocale(language) if language is not None else QLocale(system_locale.uiLanguages()[0])
-    tribler_gui.logger.info("Available Tribler translations %s", AVAILABLE_TRANSLATIONS)
-    tribler_gui.logger.info(
-        "System language: %s, Tribler language: %s", system_locale.uiLanguages(), locale.uiLanguages()
-    )
+    logger.info("Available Tribler translations %s", AVAILABLE_TRANSLATIONS)
+    logger.info("System language: %s, Tribler language: %s", system_locale.uiLanguages(), locale.uiLanguages())
     translator = QTranslator()
     filename = ""
     translator.load(locale, filename, directory=TRANSLATIONS_DIR)
