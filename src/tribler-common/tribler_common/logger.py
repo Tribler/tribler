@@ -61,7 +61,7 @@ def setup_logging(app_mode, log_dir: Path, config_path: Path):
 
         config = yaml.safe_load(config_text)
         logging.config.dictConfig(config)
-        logging.info(f'Config loaded for app_mode={app_mode}')
+        logger.info(f'Config loaded for app_mode={app_mode}')
     except Exception as e:  # pylint: disable=broad-except
         print('Error in loading logger config. Using default configs. Error:', e, file=sys.stderr)
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
