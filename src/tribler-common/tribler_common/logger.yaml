@@ -63,9 +63,9 @@ root:
     level: NOTSET
     handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
 
-# Module level configuration
+# Module level configuration:
+# The following is an example of how you can reduce the verbosity of some specific loggers:
+#
 # loggers:
-#    ExampleLoggerName:
-#        level: INFO
-#        handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
-#        propagate: no
+#    TriblerTunnelCommunity:
+#        level: WARNING
