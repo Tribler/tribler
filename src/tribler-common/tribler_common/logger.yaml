@@ -1,13 +1,10 @@
-# File: tribler_gui/logger.yaml
-# Look to tribler_common/logger/config.yaml for description and example configuration.
+# File: tribler_core/logger.yaml
 
 version: 1
 disable_existing_loggers: false
 filters:
-    info_filter:
-        () : tribler_common.logger.InfoFilter
-    error_filter:
-        (): tribler_common.logger.ErrorFilter
+    stdout_filter:
+        () : tribler_common.logger.StdoutFilter
 
 # Logging formatter
 formatters:
@@ -48,14 +45,14 @@ handlers:
         target: error_file_handler
         capacity: 1024
 
-    console:
+    stdout_handler:
         class: logging.StreamHandler
-        level: DEBUG
+        level: INFO
         formatter: standard
-        filters: [info_filter]
+        filters: [stdout_filter]
         stream: ext://sys.stdout
 
-    error_console:
+    stderr_handler:
         class: logging.StreamHandler
         level: ERROR
         formatter: error
@@ -64,12 +61,11 @@ handlers:
 # Root Logger Configuration
 root:
     level: NOTSET
-    handlers: [console, error_console, info_memory_handler, error_memory_handler]
-    propagate: yes
+    handlers: [stdout_handler, stderr_handler, info_memory_handler, error_memory_handler]
 
-# Module level configuration
-loggers:
-    TriblerGUI:
-        level: INFO
-        handlers: [console, error_console, info_memory_handler, error_memory_handler]
-        propagate: no
+# Module level configuration:
+# The following is an example of how you can reduce the verbosity of some specific loggers:
+#
+# loggers:
+#    TriblerTunnelCommunity:
+#        level: WARNING

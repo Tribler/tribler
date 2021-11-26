@@ -1,6 +1,7 @@
 import signal
 import sys
 
+from tribler_common.logger import load_logger_config
 from tribler_common.version_manager import VersionHistory
 
 from tribler_core.components.key.key_component import KeyComponent
@@ -49,7 +50,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, interrupt_upgrade)
     _root_state_dir = Path(sys.argv[1])
 
-    import tribler_core
-
-    tribler_core.load_logger_config(_root_state_dir)
+    load_logger_config('upgrader', _root_state_dir)
     upgrade_state_dir(_root_state_dir, interrupt_upgrade_event=upgrade_interrupted)

@@ -1,6 +1,7 @@
 import logging
 
-from tribler_core import load_logger_config
+from tribler_common.logger import load_logger_config
+
 from tribler_core.utilities.tracker_utils import add_url_params
 from tribler_core.utilities.utilities import parse_magnetlink
 
@@ -42,5 +43,5 @@ def test_load_logger(tmpdir):
     Test loading the Tribler logger configuration.
     """
     logger_count = len(logging.root.manager.loggerDict)
-    load_logger_config(tmpdir)
+    load_logger_config('test', tmpdir)
     assert len(logging.root.manager.loggerDict) >= logger_count

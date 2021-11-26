@@ -7,7 +7,7 @@ from tribler_core.utilities.path_util import Path
 # fmt: off
 
 
-@patch('tribler_core.load_logger_config', new=MagicMock())
+@patch('tribler_common.logger.load_logger_config', new=MagicMock())
 @patch('tribler_core.start_core.set_process_priority', new=MagicMock())
 @patch('tribler_core.start_core.check_and_enable_code_tracing', new=MagicMock())
 @patch('asyncio.get_event_loop', new=MagicMock())
