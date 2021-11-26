@@ -574,7 +574,13 @@ class DownloadManager(TaskManager):
 
     @task
     async def start_handle(self, download, atp):
-        self._logger.info(f"Start handle. Download: {download}. Atp: {atp}")
+        atp_resume_data_skipped = atp.copy()
+        resume_data = atp.get('resume_data')
+        if resume_data:
+            atp_resume_data_skipped['resume_data'] = '<skipped in log>'
+        self._logger.info(f"Start handle. Download: {download}. Atp: {atp_resume_data_skipped}")
+        if resume_data:
+            self._logger.debug(f"Download resume data: {atp['resume_data']}")
 
         ltsession = self.get_session(download.config.get_hops())
         infohash = download.get_def().get_infohash()
