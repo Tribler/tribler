@@ -112,7 +112,6 @@ class CoreManager(QObject):
 
         self.core_process = QProcess()
         self.core_process.setProcessEnvironment(core_env)
-        self.core_process.setReadChannel(QProcess.StandardOutput)  # not necessary?
         self.core_process.setProcessChannelMode(QProcess.SeparateChannels)
         connect(self.core_process.readyReadStandardOutput, self.on_core_stdout_read_ready)
         connect(self.core_process.readyReadStandardError, self.on_core_stderr_read_ready)
