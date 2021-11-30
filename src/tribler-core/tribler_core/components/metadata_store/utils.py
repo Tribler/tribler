@@ -11,7 +11,7 @@ from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.community.tag_payload import TagOperation
 from tribler_core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
 from tribler_core.tests.tools.common import PNG_FILE
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
 
 # Some random keys used for generating tags.
 random_key_1 = default_eccrypto.generate_key('low')

@@ -8,7 +8,8 @@ from tribler_common.utilities import to_fts_query
 
 from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
+
 
 # pylint: disable=unused-argument, redefined-outer-name
 

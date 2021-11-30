@@ -8,7 +8,7 @@ import pytest
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.components.metadata_store.utils import tag_torrent
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
 
 
 @pytest.fixture

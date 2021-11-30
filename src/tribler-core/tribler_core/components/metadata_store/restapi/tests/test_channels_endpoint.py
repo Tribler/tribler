@@ -24,8 +24,8 @@ from tribler_core.components.metadata_store.utils import RequestTimeoutException
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import random_infohash
 
 PNG_DATA = unhexlify(
     "89504e470d0a1a0a0000000d494844520"

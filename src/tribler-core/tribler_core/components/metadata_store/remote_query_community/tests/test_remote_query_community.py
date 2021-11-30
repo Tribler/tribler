@@ -1,4 +1,5 @@
 import random
+import string
 from asyncio import sleep
 from binascii import unhexlify
 from datetime import datetime
@@ -25,10 +26,14 @@ from tribler_core.components.metadata_store.remote_query_community.remote_query_
 )
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.random_utils import random_infohash, random_string
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import random_infohash
 
 # pylint: disable=protected-access
+
+
+def random_string():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=100))
 
 
 def add_random_torrent(metadata_cls, name="test", channel=None, seeders=None, leechers=None, last_check=None):
@@ -235,7 +240,7 @@ class TestRemoteQueryCommunity(TestBase):
         mds1 = self.nodes[1].overlay.mds
 
         with db_session:
-            chan = mds0.ChannelMetadata.create_channel(random_string(100), "")
+            chan = mds0.ChannelMetadata.create_channel(random_string(), "")
             torrent_infohash = random_infohash()
             torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=torrent_infohash, title='title1')
             torrent.sign()
@@ -286,7 +291,7 @@ class TestRemoteQueryCommunity(TestBase):
 
         with db_session:
             for _ in range(0, 100):
-                mds0.ChannelMetadata.create_channel(random_string(100), "")
+                mds0.ChannelMetadata.create_channel(random_string(), "")
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}

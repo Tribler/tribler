@@ -22,7 +22,7 @@ from tribler_core.components.metadata_store.remote_query_community.settings impo
 from tribler_core.components.metadata_store.utils import RequestTimeoutException
 from tribler_core.notifier import Notifier
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
 
 EMPTY_BLOB = b""
 

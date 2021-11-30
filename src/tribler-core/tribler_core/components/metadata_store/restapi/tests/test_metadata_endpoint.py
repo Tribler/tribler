@@ -15,9 +15,9 @@ from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import has_bep33_support
+from tribler_core.utilities.utilities import has_bep33_support, random_infohash
+
 
 # pylint: disable=unused-argument
 

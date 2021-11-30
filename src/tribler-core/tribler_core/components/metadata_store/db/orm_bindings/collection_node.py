@@ -24,7 +24,8 @@ from tribler_core.components.metadata_store.db.serialization import (
     COLLECTION_NODE,
     CollectionNodePayload,
 )
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
+
 
 # pylint: disable=too-many-statements
 
