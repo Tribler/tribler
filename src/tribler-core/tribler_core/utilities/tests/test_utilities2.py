@@ -1,12 +1,14 @@
-import pytest
 from aiohttp import ClientSession
+
+import pytest
 
 from tribler_core.utilities.utilities import (
     is_channel_public_key,
     is_infohash,
     is_simple_match_query,
     is_valid_url,
-    parse_magnetlink, random_infohash,
+    parse_magnetlink,
+    random_infohash,
 )
 
 

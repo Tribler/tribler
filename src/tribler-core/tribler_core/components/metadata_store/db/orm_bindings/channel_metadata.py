@@ -27,8 +27,8 @@ from tribler_core.components.metadata_store.db.serialization import (
     HealthItemsPayload,
 )
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.utilities import random_infohash
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import random_infohash
 
 CHANNEL_DIR_NAME_PK_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 CHANNEL_DIR_NAME_ID_LENGTH = 16  # Zero-padded long int in hex form

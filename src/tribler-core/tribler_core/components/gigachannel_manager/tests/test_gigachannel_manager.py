@@ -12,8 +12,8 @@ import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
+from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler_core.tests.tools.base_test import MockObject
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE

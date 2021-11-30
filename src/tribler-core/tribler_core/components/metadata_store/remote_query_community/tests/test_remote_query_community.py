@@ -26,8 +26,8 @@ from tribler_core.components.metadata_store.remote_query_community.remote_query_
 )
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.utilities import random_infohash
 from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.utilities import random_infohash
 
 # pylint: disable=protected-access
 

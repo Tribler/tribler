@@ -3,11 +3,9 @@ This module mainly provides validation and correction for urls. This class
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
-import os
-import random
-
 import binascii
 import logging
+import random
 import re
 from base64 import b32decode
 from functools import wraps
@@ -40,6 +38,7 @@ def froze_it(cls):
         def wrapper(self, *args, **kwargs):
             func(self, *args, **kwargs)
             self.__frozen = True
+
         return wrapper
 
     cls.__setattr__ = frozensetattr
@@ -63,7 +62,7 @@ def is_valid_url(url):
         url = url.lower().replace('udp', 'http', 1)
     split_url = urlsplit(url)
 
-    return not(split_url[0] == '' or split_url[1] == '')
+    return not (split_url[0] == '' or split_url[1] == '')
 
 
 def parse_magnetlink(url):
@@ -169,5 +168,4 @@ def bdecode_compat(packet_buffer):
 
 def random_infohash(random_gen=None):
     r = random_gen or random
-    """ Generates a random torrent infohash binary string """
-    return r.getrandbits(20*8).to_bytes(20, byteorder='big')
+    return r.getrandbits(20 * 8).to_bytes(20, byteorder='big')
