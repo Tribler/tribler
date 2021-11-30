@@ -8,6 +8,8 @@ from os import urandom
 from time import time
 from unittest.mock import Mock, patch
 
+from faker import Faker
+
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 
@@ -25,10 +27,16 @@ from tribler_core.components.metadata_store.remote_query_community.remote_query_
 )
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.random_utils import random_infohash, random_string
+from tribler_core.utilities.random_utils import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 # pylint: disable=protected-access
+
+fake = Faker()
+
+
+def fake_sentence():
+    return fake.sentence(nb_words=4)
 
 
 def add_random_torrent(metadata_cls, name="test", channel=None, seeders=None, leechers=None, last_check=None):
@@ -235,7 +243,7 @@ class TestRemoteQueryCommunity(TestBase):
         mds1 = self.nodes[1].overlay.mds
 
         with db_session:
-            chan = mds0.ChannelMetadata.create_channel(random_string(100), "")
+            chan = mds0.ChannelMetadata.create_channel(fake_sentence(), "")
             torrent_infohash = random_infohash()
             torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=torrent_infohash, title='title1')
             torrent.sign()
@@ -286,7 +294,7 @@ class TestRemoteQueryCommunity(TestBase):
 
         with db_session:
             for _ in range(0, 100):
-                mds0.ChannelMetadata.create_channel(random_string(100), "")
+                mds0.ChannelMetadata.create_channel(fake_sentence(), "")
 
         peer = self.nodes[0].my_peer
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
