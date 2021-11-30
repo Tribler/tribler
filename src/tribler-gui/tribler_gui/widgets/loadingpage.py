@@ -21,7 +21,7 @@ class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
         svg_item = QGraphicsSvgItem()
 
         svg = QSvgRenderer(get_image_path("loading_animation.svg"))
-        connect(svg.repaintNeeded, svg_item.update)
+        svg.repaintNeeded.connect(svg_item.update)
         svg_item.setSharedRenderer(svg)
         svg_container.addItem(svg_item)
 

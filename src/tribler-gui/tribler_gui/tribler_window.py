@@ -226,8 +226,7 @@ class TriblerWindow(QMainWindow):
 
         self.search_results_page.initialize(hide_xxx=self.hide_xxx)
         connect(
-            self.core_manager.events_manager.received_remote_query_results,
-            self.search_results_page.received_remote_results.emit,
+            self.core_manager.events_manager.received_remote_query_results, self.search_results_page.update_loading_page
         )
         self.settings_page.initialize_settings_page(version_history=self.version_history)
         self.downloads_page.initialize_downloads_page()
