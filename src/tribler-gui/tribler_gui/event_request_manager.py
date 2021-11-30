@@ -45,6 +45,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.shutting_down = False
         self.error_handler = error_handler
         self._logger = logging.getLogger(self.__class__.__name__)
+        # This flag is used to prevent race condition when starting GUI tests
         self.tribler_started_flag = False
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
@@ -61,6 +62,7 @@ class EventRequestManager(QNetworkAccessManager):
 
     def events_start_received(self, event_dict):
         if event_dict["version"]:
+            self.tribler_started_flag = True
             self.tribler_started.emit(event_dict["version"])
             # if public key format will be changed, don't forget to change it
             # at the core side as well
