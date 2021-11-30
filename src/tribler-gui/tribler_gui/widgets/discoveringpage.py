@@ -1,9 +1,9 @@
-from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
-from PyQt5.QtWidgets import QGraphicsScene, QWidget
+from PyQt5.QtWidgets import QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
-from tribler_gui.utilities import connect, get_image_path
+from tribler_gui.utilities import connect
+from tribler_gui.widgets.loadingpage import LOADING_ANIMATION
 
 
 class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
@@ -18,16 +18,7 @@ class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
         self.is_discovering = False
 
     def initialize_discovering_page(self):
-        svg_container = QGraphicsScene(self.window().discovering_svg_view)
-        svg_item = QGraphicsSvgItem()
-
-        svg = QSvgRenderer(get_image_path("loading_animation.svg"))
-        svg.repaintNeeded.connect(svg_item.update)
-        svg_item.setSharedRenderer(svg)
-        svg_container.addItem(svg_item)
-
-        self.window().discovering_svg_view.setScene(svg_container)
-
+        self.window().discovering_svg_view.setScene(LOADING_ANIMATION)
         connect(self.window().core_manager.events_manager.discovered_channel, self.on_discovered_channel)
 
     def on_discovered_channel(self, _):

@@ -6,6 +6,21 @@ from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect, get_image_path
 
 
+def load_gears_animation():
+    svg_container = QGraphicsScene()
+    svg_item = QGraphicsSvgItem()
+
+    svg = QSvgRenderer(get_image_path("loading_animation.svg"))
+    svg.repaintNeeded.connect(svg_item.update)
+    svg_item.setSharedRenderer(svg)
+
+    svg_container.addItem(svg_item)
+    return svg_container
+
+
+LOADING_ANIMATION = load_gears_animation()
+
+
 class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
     """
     This page is presented when Tribler is starting.
@@ -17,15 +32,7 @@ class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
         self.upgrading = False
 
     def initialize_loading_page(self):
-        svg_container = QGraphicsScene(self.window().loading_svg_view)
-        svg_item = QGraphicsSvgItem()
-
-        svg = QSvgRenderer(get_image_path("loading_animation.svg"))
-        svg.repaintNeeded.connect(svg_item.update)
-        svg_item.setSharedRenderer(svg)
-        svg_container.addItem(svg_item)
-
-        self.window().loading_svg_view.setScene(svg_container)
+        self.window().loading_svg_view.setScene(LOADING_ANIMATION)
         connect(self.window().upgrade_manager.upgrader_tick, self.on_upgrader_tick)
         connect(self.window().upgrade_manager.upgrader_finished, self.upgrader_finished)
         connect(self.window().core_manager.events_manager.change_loading_text, self.change_loading_text)
