@@ -25,7 +25,7 @@ from tribler_core.components.metadata_store.db.serialization import (
 from tribler_core.components.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
 
 
 # pylint: disable=protected-access,unused-argument

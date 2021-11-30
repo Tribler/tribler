@@ -14,7 +14,7 @@ from tribler_core.components.gigachannel.community.gigachannel_community import 
 from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
 from tribler_core.utilities.unicode import hexlify
 
 # pylint: disable=unused-argument

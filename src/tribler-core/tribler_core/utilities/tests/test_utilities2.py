@@ -1,13 +1,12 @@
-from aiohttp import ClientSession
-
 import pytest
+from aiohttp import ClientSession
 
 from tribler_core.utilities.utilities import (
     is_channel_public_key,
     is_infohash,
     is_simple_match_query,
     is_valid_url,
-    parse_magnetlink,
+    parse_magnetlink, random_infohash,
 )
 
 
@@ -90,3 +89,9 @@ def test_is_channel_public_key():
 
     not_hex = "APPLE6CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
     assert not is_channel_public_key(not_hex)
+
+
+def test_random_infohash():
+    test_infohash = random_infohash()
+    assert isinstance(test_infohash, bytes)
+    assert len(test_infohash) == 20

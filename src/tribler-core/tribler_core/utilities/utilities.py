@@ -3,6 +3,9 @@ This module mainly provides validation and correction for urls. This class
 provides a method for HTTP GET requests as well as a function to translate peers into health.
 Author(s): Jie Yang
 """
+import os
+import random
+
 import binascii
 import logging
 import re
@@ -162,3 +165,9 @@ def bdecode_compat(packet_buffer):
         return lt.bdecode(packet_buffer)
     except RuntimeError:
         return None
+
+
+def random_infohash(random_gen=None):
+    r = random_gen or random
+    """ Generates a random torrent infohash binary string """
+    return r.getrandbits(20*8).to_bytes(20, byteorder='big')

@@ -30,7 +30,8 @@ from tribler_core.components.metadata_store.db.serialization import (
 )
 from tribler_core.components.metadata_store.db.store import HealthItemsPayload
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
-from tribler_core.utilities.random_utils import random_infohash
+from tribler_core.utilities.utilities import random_infohash
+
 
 # pylint: disable=protected-access
 
