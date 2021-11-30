@@ -44,7 +44,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.reply = None
         self.shutting_down = False
         self.error_handler = error_handler
-        self._logger = logging.getLogger('TriblerGUI')
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.tribler_started_flag = False
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
@@ -71,7 +71,6 @@ class EventRequestManager(QNetworkAccessManager):
     def on_error(self, error, reschedule_on_err):
         self._logger.info(f"Got Tribler core error: {error}")
 
-        SentryReporter.ignore_logger(self._logger.name)
         if self.remaining_connection_attempts <= 0:
             raise CoreConnectTimeoutError("Could not connect with the Tribler Core within 60 seconds")
 
