@@ -565,6 +565,7 @@ def test_close_dialog_with_esc_button(window):
     assert not window.findChildren(NewChannelDialog)
 
 
+@pytest.mark.guitest
 def test_tags_dialog(window):
     """
     Test the behaviour of the dialog where a user can edit tags.
@@ -666,6 +667,7 @@ def test_tags_dialog(window):
     QTest.qWait(200)  # It can take a bit of time to hide the dialog
 
 
+@pytest.mark.guitest
 def test_no_tags(window):
     """
     Test removing all tags from a content item.
