@@ -420,7 +420,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.export_dir = QFileDialog.getExistingDirectory(
             self, tr("Please select the destination directory"), "", QFileDialog.ShowDirsOnly
         )
+        self.show_export_download_dialog()
 
+    def show_export_download_dialog(self) -> None:
         selected_item = self.selected_items[:1]
         if len(self.export_dir) > 0 and selected_item:
             # Show confirmation dialog where we specify the name of the file

@@ -6,14 +6,14 @@ class DialogManager:
     This class manages all dialogs that are created in the GUI.
     The only exception is the feedback dialog that is raised when an error occurs in the GUI.
     """
-    dialogs: List["DialogContainer"] = []  # Stack of open dialogs - recent dialogs are at the end of this list
+    dialogs: List["DialogContainer"] = []  # noqa: F821
 
     @staticmethod
-    def add_dialog(dialog: "DialogContainer") -> None:
+    def add_dialog(dialog: "DialogContainer") -> None:  # noqa: F821
         DialogManager.dialogs.append(dialog)
 
     @staticmethod
-    def remove_dialog(dialog: "DialogContainer") -> None:
+    def remove_dialog(dialog: "DialogContainer") -> None:  # noqa: F821
         if dialog in DialogManager.dialogs:
             DialogManager.dialogs.remove(dialog)
 

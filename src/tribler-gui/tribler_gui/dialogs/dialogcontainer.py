@@ -3,8 +3,8 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.dialog_manager import DialogManager
 
+from tribler_gui.dialog_manager import DialogManager
 from tribler_gui.utilities import connect
 
 

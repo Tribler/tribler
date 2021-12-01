@@ -85,7 +85,7 @@ class CreateTorrentDialog(DialogContainer):
                 [(tr("CLOSE"), BUTTON_TYPE_NORMAL)],
             )
 
-            connect(dialog.button_clicked, dialog.close_dialog)
+            connect(dialog.button_clicked, lambda _, __: dialog.close_dialog())
             dialog.show()
             return
 

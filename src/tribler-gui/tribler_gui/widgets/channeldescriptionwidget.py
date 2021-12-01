@@ -191,16 +191,19 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             data = f.read()
 
         if len(data) > 1024 ** 2:
-            ConfirmationDialog.show_error(
-                self,
-                tr(tr("Image too large error")),
-                tr(tr("Image file you're trying to upload is too large.")),
-            )
+            self.show_image_too_large_error()
             return
 
         self.channel_thumbnail_bytes = data
         self.channel_thumbnail_type = content_type
         self.update_channel_thumbnail(data, content_type)
+
+    def show_image_too_large_error(self):
+        ConfirmationDialog.show_error(
+            self.window(),
+            tr(tr("Image too large error")),
+            tr(tr("Image file you're trying to upload is too large.")),
+        )
 
     @pyqtSlot()
     def on_cancel_button_clicked(self):

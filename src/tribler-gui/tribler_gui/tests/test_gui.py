@@ -2,7 +2,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import Type, Optional
+from typing import Optional, Type
 
 from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
@@ -21,11 +21,15 @@ import tribler_gui
 from tribler_gui.dialog_manager import DialogManager
 from tribler_gui.dialogs.addtagsdialog import AddTagsDialog
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.dialogs.new_version_dialog import NewVersionDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
+from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_app import TriblerApplication
+from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loading_list_item import LoadingListItem
@@ -64,6 +68,8 @@ def window(tmpdir_factory):
     )
     window.downloads_page.can_update_items = True
     yield window
+
+    assert len(DialogManager.get_dialogs(None)) < 2  # We should have cleaned up our dialogs when we are done
 
     window.close_tribler()
     screenshot(window, name="tribler_closing")
@@ -122,11 +128,11 @@ def wait_for_dialog(dialog_cls: Type, timeout: int = 10, wait_for_close=False) -
     """
     for _ in range(0, timeout * 1000, 100):
         dialogs = DialogManager.get_dialogs(dialog_cls)
-        assert len(dialogs) < 2  # There should always be at most one dialog visible
         if not wait_for_close and dialogs:
             return dialogs[0]
         if wait_for_close and not dialogs:
             return None
+
         QTest.qWait(100)
 
     if wait_for_close:  # pylint: disable=no-else-raise
@@ -251,9 +257,9 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
 
         # Unsubscribe
         widget.content_table.on_subscribe_control_clicked(index)
-        QTest.qWait(200)
-        screenshot(window, name=f"{widget_name}-unsubscribed")
-        window.dialog.button_clicked.emit(0)
+        dialog = wait_for_dialog(ConfirmationDialog)
+        screenshot(window, name=f"{widget_name}-unsubscribed-dialog")
+        dialog.button_clicked.emit(0)
 
     # Test channel view
     index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
@@ -309,6 +315,13 @@ def test_edit_channel_torrents(window):
     wait_for_thumbnail(window.channel_contents_page)
     screenshot(window, name="edit_channel_thumbnail_description")
 
+    # Test showing an error when the user uploads an image that's too large
+    window.channel_contents_page.channel_description_container.show_image_too_large_error()
+    dialog = wait_for_dialog(ConfirmationDialog)
+    screenshot(window, name="uploaded_thumbnail_image_too_large_dialog")
+    QTest.mouseClick(dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
+
 
 @pytest.mark.guitest
 def test_settings(window):
@@ -345,6 +358,18 @@ def test_downloads(window):
     screenshot(window, name="downloads_inactive")
     QTest.mouseClick(window.downloads_channels_button, Qt.LeftButton)
     screenshot(window, name="downloads_channels")
+
+
+@pytest.mark.guitest
+def test_export_download(window, tmpdir):
+    go_to_and_wait_for_downloads(window)
+    QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
+    window.downloads_page.export_dir = str(tmpdir)
+    window.downloads_page.show_export_download_dialog()
+    dialog = wait_for_dialog(ConfirmationDialog)
+    screenshot(window, name="export_download_dialog")
+    QTest.mouseClick(dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
 
 
 @pytest.mark.guitest
@@ -594,6 +619,13 @@ def test_trust_page(window):
     wait_for_variable(window, "trust_page.history")
     screenshot(window, name="trust_page_values")
 
+    # Test the explanation dialog
+    QTest.mouseClick(window.trust_explain_button, Qt.LeftButton)
+    dialog = wait_for_dialog(TrustExplanationDialog)
+    screenshot(window, name="trust_explanation_dialog")
+    QTest.mouseClick(dialog.dialog_widget.close_button, Qt.LeftButton)
+    wait_for_dialog(TrustExplanationDialog, wait_for_close=True)
+
 
 @pytest.mark.guitest
 def test_close_dialog_with_esc_button(window):
@@ -706,6 +738,26 @@ def test_tags_dialog(window):
 
 
 @pytest.mark.guitest
+def test_edit_tags(window):
+    """
+    Test a sequence where we edit tags and click the save button directly, without making changes to the entered tags.
+    """
+    QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
+    widget = window.popular_page
+    wait_for_list_populated(widget.content_table)
+
+    idx = widget.content_table.model().index(0, 0)
+    widget.content_table.on_edit_tags_clicked(idx)
+    add_tags_dialog = wait_for_dialog(AddTagsDialog)
+    wait_for_signal(add_tags_dialog.suggestions_loaded)
+
+    # Click the save button
+    QTest.mouseClick(add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
+    wait_for_signal(widget.content_table.edited_tags)
+    wait_for_dialog(AddTagsDialog, wait_for_close=True)
+
+
+@pytest.mark.guitest
 def test_no_tags(window):
     """
     Test removing all tags from a content item.
@@ -722,3 +774,68 @@ def test_no_tags(window):
     # Put some tags back (so further tests do not fail)
     widget.content_table.save_edited_tags(None, idx, ["abc", "def"])
     wait_for_signal(widget.content_table.edited_tags)
+
+
+@pytest.mark.guitest
+def test_create_torrent(window):
+    """
+    Test the GUI elements that are related to creating a torrent.
+    """
+    window.on_create_torrent(False)
+    dialog = wait_for_dialog(CreateTorrentDialog)
+    screenshot(window, name="create_torrent_dialog")
+    QTest.mouseClick(dialog.dialog_widget.btn_create, Qt.LeftButton)
+    warning_dialog = wait_for_dialog(ConfirmationDialog)
+    screenshot(window, name="create_torrent_files_warning_dialog")
+    QTest.mouseClick(warning_dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
+    QTest.mouseClick(dialog.dialog_widget.btn_cancel, Qt.LeftButton)
+    wait_for_dialog(CreateTorrentDialog, wait_for_close=True)
+
+
+@pytest.mark.guitest
+def test_request_error_dialog(window):
+    """
+    Test the dialog that is shown when a network error occurs.
+    """
+    TriblerNetworkRequest("this/endpoint/does/not/exist", None)
+    warning_dialog = wait_for_dialog(ConfirmationDialog)
+    screenshot(window, name="network_request_error_dialog")
+    QTest.mouseClick(warning_dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
+
+
+@pytest.mark.guitest
+def test_skip_conversion(window):
+    """
+    Test the dialog when skipping the conversation of the database upgrade.
+    """
+    window.clicked_skip_conversion()
+    skip_conversion_dialog = wait_for_dialog(ConfirmationDialog)
+    screenshot(window, name="skip_conversion_dialog")
+    QTest.mouseClick(skip_conversion_dialog.buttons[1], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
+
+
+@pytest.mark.guitest
+def test_delete_channel_dialog(window):
+    """
+    Test the dialog when deleting one of your personal channels.
+    """
+    window.on_channel_delete({"name": "fake channel", "public_key": "", "id": ""})
+    skip_conversion_dialog = wait_for_dialog(ConfirmationDialog)
+    screenshot(window, name="skip_conversion_dialog")
+    QTest.mouseClick(skip_conversion_dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
+
+
+@pytest.mark.guitest
+def test_new_version_dialog(window):
+    """
+    Test the dialog that appears when a new Tribler version is available
+    """
+    window.on_new_version_available("v1000.0.0")
+    new_version_dialog = wait_for_dialog(NewVersionDialog)
+    screenshot(window, name="new_version_dialog")
+    QTest.mouseClick(new_version_dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(NewVersionDialog, wait_for_close=True)

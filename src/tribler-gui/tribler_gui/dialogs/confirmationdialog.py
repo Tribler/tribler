@@ -50,22 +50,14 @@ class ConfirmationDialog(DialogContainer):
     @classmethod
     def show_error(cls, window, title, error_text):
         error_dialog = ConfirmationDialog(window, title, error_text, [(tr("CLOSE"), BUTTON_TYPE_NORMAL)])
-
-        def on_close(_, __):
-            error_dialog.close_dialog()
-
-        connect(error_dialog.button_clicked, on_close)
+        connect(error_dialog.button_clicked, lambda _, __: error_dialog.close_dialog())
         error_dialog.show()
         return error_dialog
 
     @classmethod
     def show_message(cls, window, title, message_text, button_text):
         error_dialog = ConfirmationDialog(window, title, message_text, [(button_text, BUTTON_TYPE_NORMAL)])
-
-        def on_close(_, __):
-            error_dialog.close_dialog()
-
-        connect(error_dialog.button_clicked, on_close)
+        connect(error_dialog.button_clicked, lambda _, __: error_dialog.close_dialog())
         error_dialog.show()
         return error_dialog
 
