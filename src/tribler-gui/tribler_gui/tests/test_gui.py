@@ -42,7 +42,7 @@ def window(tmpdir_factory):
         QSettings(),
         root_state_dir,
         api_key=api_key,
-        core_args=[str(RUN_TRIBLER_PY.absolute()), '--gui-test-mode'],
+        core_args=[str(RUN_TRIBLER_PY.absolute()), '--core', '--gui-test-mode'],
     )  # pylint: disable=W0621
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)

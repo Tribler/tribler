@@ -23,18 +23,12 @@ logger = logging.getLogger(__name__)
 # pylint: disable=import-outside-toplevel, ungrouped-imports
 
 
-class RunMode(Enum):
-    CORE_ONLY = auto()
-    GUI_TEST_MODE = auto()
-
-
 class RunTriblerArgsParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         kwargs['description'] = 'Run Tribler BitTorrent client'
         super().__init__(*args, **kwargs)
-        mode = self.add_mutually_exclusive_group()
-        mode.add_argument('--core', action='store_const', dest='mode', const=RunMode.CORE_ONLY)
-        mode.add_argument('--gui-test-mode', action='store_const', dest='mode', const=RunMode.GUI_TEST_MODE)
+        self.add_argument('--core', action="store_true")
+        self.add_argument('--gui-test-mode', action="store_true")
 
 
 def init_sentry_reporter():
@@ -83,11 +77,11 @@ if __name__ == "__main__":
     api_key = os.environ.get('CORE_API_KEY')
 
     # Check whether we need to start the core or the user interface
-    if parsed_args.mode in (RunMode.CORE_ONLY, RunMode.GUI_TEST_MODE):
+    if parsed_args.core:
         from tribler_core.check_os import should_kill_other_tribler_instances
 
         should_kill_other_tribler_instances(root_state_dir)
-        logger.info('Running in "core" mode')
+        logger.info('Running Core' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
         load_logger_config('tribler-core', root_state_dir)
 
         # Check if we are already running a Tribler instance
@@ -99,8 +93,7 @@ if __name__ == "__main__":
         version_history = VersionHistory(root_state_dir)
         state_dir = version_history.code_version.directory
         try:
-            start_core.start_tribler_core(api_port, api_key, state_dir,
-                                          gui_test_mode=parsed_args.mode == RunMode.GUI_TEST_MODE)
+            start_core.start_tribler_core(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
         finally:
             logger.info('Remove lock file')
             process_checker.remove_lock_file()
@@ -109,7 +102,7 @@ if __name__ == "__main__":
         import tribler_gui
         from tribler_gui.utilities import get_translator
 
-        logger.info('Running in "normal" mode')
+        logger.info('Running GUI' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
 
         # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728
         if sys.platform == "darwin":
