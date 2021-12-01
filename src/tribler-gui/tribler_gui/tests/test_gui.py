@@ -2,6 +2,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Type, Optional
 
 from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
@@ -17,8 +18,13 @@ from tribler_common.tag_constants import MIN_TAG_LENGTH
 from tribler_core.utilities.unicode import hexlify
 
 import tribler_gui
+from tribler_gui.dialog_manager import DialogManager
+from tribler_gui.dialogs.addtagsdialog import AddTagsDialog
+from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
@@ -107,6 +113,26 @@ def wait_for_variable(window, var, timeout=10, cmp_var=None):
             return
 
     raise TimeoutException(f"Variable {var} within 10 seconds")
+
+
+def wait_for_dialog(dialog_cls: Type, timeout: int = 10, wait_for_close=False) -> Optional[DialogContainer]:
+    """
+    Wait for a dialog to appear.
+    Raises a TimeoutException if the dialog does not appear within the timeout.
+    """
+    for _ in range(0, timeout * 1000, 100):
+        dialogs = DialogManager.get_dialogs(dialog_cls)
+        assert len(dialogs) < 2  # There should always be at most one dialog visible
+        if not wait_for_close and dialogs:
+            return dialogs[0]
+        if wait_for_close and not dialogs:
+            return None
+        QTest.qWait(100)
+
+    if wait_for_close:  # pylint: disable=no-else-raise
+        raise TimeoutException(f"Dialog {dialog_cls} did not disappear within 10 seconds")
+    else:
+        raise TimeoutException(f"Dialog {dialog_cls} did not appear within 10 seconds")
 
 
 def clickItem(tree_view, item, checkable_column):
@@ -328,8 +354,11 @@ def test_download_start_stop_remove_recheck(window):
     QTest.mouseClick(window.stop_download_button, Qt.LeftButton)
     QTest.mouseClick(window.start_download_button, Qt.LeftButton)
     QTest.mouseClick(window.remove_download_button, Qt.LeftButton)
+
+    dialog = wait_for_dialog(ConfirmationDialog)
     screenshot(window, name="remove_download_dialog")
-    QTest.mouseClick(window.downloads_page.dialog.buttons[2], Qt.LeftButton)
+    QTest.mouseClick(dialog.buttons[2], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
 
 
 @pytest.mark.guitest
@@ -390,18 +419,20 @@ def test_search(window):
 def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
+    dialog = wait_for_dialog(ConfirmationDialog)
     screenshot(window, name="add_torrent_url_dialog")
 
-    window.dialog.dialog_widget.dialog_input.setText("file:" + str(TORRENT_WITH_DIRS))
-    QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
-    QTest.qWait(200)
+    dialog.dialog_widget.dialog_input.setText("file:" + str(TORRENT_WITH_DIRS))
+    QTest.mouseClick(dialog.buttons[0], Qt.LeftButton)
+    wait_for_dialog(ConfirmationDialog, wait_for_close=True)
+    dialog = wait_for_dialog(StartDownloadDialog)
     screenshot(window, name="add_torrent_url_startdownload_dialog")
 
     # set the download directory to a writable path
     download_dir = os.path.join(os.path.expanduser("~"), "downloads")
-    window.dialog.dialog_widget.destination_input.setCurrentText(download_dir)
+    dialog.dialog_widget.destination_input.setCurrentText(download_dir)
 
-    dfl = window.dialog.dialog_widget.files_list_view
+    dfl = dialog.dialog_widget.files_list_view
     wait_for_list_populated(dfl)
 
     item = dfl.topLevelItem(0)
@@ -411,8 +442,8 @@ def test_add_download_url(window):
     clickItem(dfl, item2, CHECKBOX_COL)
     screenshot(window, name="add_torrent_url_startdownload_dialog_files")
 
-    QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
-    wait_for_signal(window.downloads_page.received_downloads)
+    QTest.mouseClick(dialog.dialog_widget.download_button, Qt.LeftButton)
+    wait_for_dialog(StartDownloadDialog, wait_for_close=True)
 
 
 @pytest.mark.guitest
@@ -567,10 +598,10 @@ def test_trust_page(window):
 @pytest.mark.guitest
 def test_close_dialog_with_esc_button(window):
     QTest.mouseClick(window.left_menu_button_new_channel, Qt.LeftButton)
+    wait_for_dialog(NewChannelDialog)
     screenshot(window, name="create_new_channel_dialog")
-    assert window.findChildren(NewChannelDialog)
     QTest.keyPress(window, Qt.Key_Escape)
-    assert not window.findChildren(NewChannelDialog)
+    wait_for_dialog(NewChannelDialog, wait_for_close=True)
 
 
 @pytest.mark.guitest
@@ -585,12 +616,12 @@ def test_tags_dialog(window):
     # Test the tag modification dialog
     idx = widget.content_table.model().index(0, 0)
     widget.content_table.on_edit_tags_clicked(idx)
+    add_tags_dialog = wait_for_dialog(AddTagsDialog)
     screenshot(window, name="edit_tags_dialog")
-    assert widget.content_table.add_tags_dialog
-    wait_for_signal(widget.content_table.add_tags_dialog.suggestions_loaded)
+    wait_for_signal(add_tags_dialog.suggestions_loaded)
 
     # Edit the first tag
-    tags_input = widget.content_table.add_tags_dialog.dialog_widget.edit_tags_input
+    tags_input = add_tags_dialog.dialog_widget.edit_tags_input
     num_tags = len(tags_input.tags) - 1  # To account for the 'dummy' tag at the end of the input field.
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[0].rect.center().toPoint())
     QTest.keyClick(tags_input, Qt.Key_Home)
@@ -633,7 +664,7 @@ def test_tags_dialog(window):
         QTest.keyClick(tags_input, "a")
     QTest.keyClick(tags_input, Qt.Key_Return)
     screenshot(window, name="edit_tags_dialog_error")
-    assert widget.content_table.add_tags_dialog.dialog_widget.error_text_label.isVisible()
+    assert add_tags_dialog.dialog_widget.error_text_label.isVisible()
 
     QTest.keyClick(tags_input, "c")
     assert tags_input.tags[-1].text == "aac"
@@ -665,14 +696,13 @@ def test_tags_dialog(window):
     assert not tags_input.hasFocus()
 
     # Click on a suggestion
-    tag_suggestion_buttons = widget.content_table.add_tags_dialog.dialog_widget.suggestions.findChildren(TagButton)
+    tag_suggestion_buttons = add_tags_dialog.dialog_widget.suggestions.findChildren(TagButton)
     assert tag_suggestion_buttons
     QTest.mouseClick(tag_suggestion_buttons[0], Qt.LeftButton)
     screenshot(window, name="edit_tags_dialog_suggestion_clicked")
 
-    QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
-    wait_for_signal(widget.content_table.edited_tags)
-    QTest.qWait(200)  # It can take a bit of time to hide the dialog
+    QTest.mouseClick(add_tags_dialog.dialog_widget.close_button, Qt.LeftButton)
+    wait_for_dialog(AddTagsDialog, wait_for_close=True)
 
 
 @pytest.mark.guitest
@@ -685,10 +715,10 @@ def test_no_tags(window):
     wait_for_list_populated(widget.content_table)
 
     idx = widget.content_table.model().index(0, 0)
-    widget.content_table.save_edited_tags(idx, [])  # Remove all tags
+    widget.content_table.save_edited_tags(None, idx, [])  # Remove all tags
     wait_for_signal(widget.content_table.edited_tags)
     screenshot(window, name="content_item_no_tags")
 
     # Put some tags back (so further tests do not fail)
-    widget.content_table.save_edited_tags(idx, ["abc", "def"])
+    widget.content_table.save_edited_tags(None, idx, ["abc", "def"])
     wait_for_signal(widget.content_table.edited_tags)
