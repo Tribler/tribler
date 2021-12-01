@@ -40,6 +40,7 @@ class CoreExceptionHandler:
     def __init__(self):
         self.logger = logging.getLogger("CoreExceptionHandler")
         self.report_callback: Optional[Callable[[ReportedError], None]] = None
+        self.unreported_error: Optional[ReportedError] = None
 
     @staticmethod
     def _get_long_text_from(exception: Exception):
@@ -101,6 +102,12 @@ class CoreExceptionHandler:
             )
             if self.report_callback:
                 self.report_callback(reported_error)  # pylint: disable=not-callable
+            else:
+                if not self.unreported_error:
+                    # We only remember the first unreported error,
+                    # as that was probably the root cause for # the crash
+                    self.unreported_error = reported_error
+
 
         except Exception as ex:
             SentryReporter.capture_exception(ex)

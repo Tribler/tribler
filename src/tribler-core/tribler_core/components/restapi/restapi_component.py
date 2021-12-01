@@ -126,6 +126,10 @@ class RESTComponent(Component):
             self._events_endpoint.on_tribler_exception(reported_error)
 
         self._core_exception_handler.report_callback = report_callback
+        # Reraise the unreported error, if there is one
+        if self._core_exception_handler.unreported_error:
+            report_callback(self._core_exception_handler.unreported_error)
+            self._core_exception_handler.unreported_error = None
 
     async def shutdown(self):
         await super().shutdown()
