@@ -3,6 +3,7 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler_gui.dialog_manager import DialogManager
 
 from tribler_gui.utilities import connect
 
@@ -16,6 +17,7 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
         self.left_right_margin = left_right_margin  # The margin at the left and right of the dialog window
         self.closed = False
         connect(self.window().resize_event, self.on_main_window_resize)
+        DialogManager.add_dialog(self)
 
     def paintEvent(self, _):
         opt = QStyleOption()
@@ -28,6 +30,7 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
             self.setParent(None)
             self.deleteLater()
             self.closed = True
+            DialogManager.remove_dialog(self)
         except RuntimeError:
             pass
 

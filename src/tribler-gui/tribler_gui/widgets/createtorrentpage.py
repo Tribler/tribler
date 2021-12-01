@@ -22,7 +22,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
         QWidget.__init__(self)
 
         self.channel_identifier = None
-        self.dialog = None
         self.selected_item_index = -1
         self.initialized = False
 
@@ -73,11 +72,7 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_create_clicked(self, checked):
         if self.window().create_torrent_files_list.count() == 0:
-            self.dialog = ConfirmationDialog(
-                self, "Notice", "You should add at least one file to your torrent.", [('CLOSE', BUTTON_TYPE_NORMAL)]
-            )
-            connect(self.dialog.button_clicked, self.on_dialog_ok_clicked)
-            self.dialog.show()
+            ConfirmationDialog.show_error(self, "Notice", "You should add at least one file to your torrent.")
             return
 
         self.window().edit_channel_create_torrent_button.setEnabled(False)
@@ -94,10 +89,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
         TriblerNetworkRequest(url, self.on_torrent_created, data=post_data, method='POST')
         # Show creating torrent text
         self.window().edit_channel_create_torrent_progress_label.show()
-
-    def on_dialog_ok_clicked(self, _):
-        self.dialog.close_dialog()
-        self.dialog = None
 
     def on_torrent_created(self, result):
         if not result:

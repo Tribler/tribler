@@ -56,7 +56,6 @@ class TriblerContentTableView(QTableView):
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
-        self.add_tags_dialog = None
         self.setMouseTracking(True)
 
         self.delegate = TriblerContentDelegate(self)
@@ -184,13 +183,13 @@ class TriblerContentTableView(QTableView):
 
     def on_edit_tags_clicked(self, index: QModelIndex) -> None:
         data_item = index.model().data_items[index.row()]
-        self.add_tags_dialog = AddTagsDialog(self.window(), data_item["infohash"])
-        self.add_tags_dialog.index = index
+        add_tags_dialog = AddTagsDialog(self.window(), data_item["infohash"])
+        add_tags_dialog.index = index
         if data_item.get("tags", ()):
-            self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item.get("tags", ()))
-        self.add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
-        self.add_tags_dialog.show()
-        connect(self.add_tags_dialog.save_button_clicked, self.save_edited_tags)
+            add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item.get("tags", ()))
+        add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
+        add_tags_dialog.show()
+        connect(add_tags_dialog.save_button_clicked, self.save_edited_tags)
 
     def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection
@@ -255,10 +254,9 @@ class TriblerContentTableView(QTableView):
     def start_download_from_dataitem(self, data_item):
         self.window().start_download_from_uri(data_item2uri(data_item))
 
-    def on_tags_edited(self, index, tags):
-        if self.add_tags_dialog:
-            self.add_tags_dialog.close_dialog()
-            self.add_tags_dialog = None
+    def on_tags_edited(self, add_tags_dialog: AddTagsDialog, index: QModelIndex, tags: List[str]):
+        if add_tags_dialog:
+            add_tags_dialog.close_dialog()
 
         data_item = self.model().data_items[index.row()]
         data_item["tags"] = tags
@@ -266,11 +264,11 @@ class TriblerContentTableView(QTableView):
 
         self.edited_tags.emit(data_item)
 
-    def save_edited_tags(self, index: QModelIndex, tags: List[str]):
+    def save_edited_tags(self, dialog: AddTagsDialog, index: QModelIndex, tags: List[str]):
         data_item = self.model().data_items[index.row()]
         TriblerNetworkRequest(
             f"tags/{data_item['infohash']}",
-            lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
+            lambda _, ind=index, tgs=tags, diag=dialog: self.on_tags_edited(dialog, ind, tgs),
             raw_data=json.dumps({"tags": tags}),
             method='PATCH',
         )

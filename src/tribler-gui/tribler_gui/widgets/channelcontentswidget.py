@@ -61,7 +61,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.initialized = False
         self.chosen_dir = None
-        self.dialog = None
         self.controller = None
         self.commit_timer = None
         self.autocommit_enabled = None
@@ -488,23 +487,22 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             return
 
         self.chosen_dir = chosen_dir
-        self.dialog = ConfirmationDialog(
+        dialog = ConfirmationDialog(
             self,
             tr("Add torrents from directory"),
             tr("Add all torrent files from the following directory to your Tribler channel: \n\n %s") % chosen_dir,
             [('ADD', BUTTON_TYPE_NORMAL), ('CANCEL', BUTTON_TYPE_CONFIRM)],
             checkbox_text=tr("Include subdirectories (recursive mode)"),
         )
-        connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
-        self.dialog.show()
+        connect(dialog.button_clicked, self.on_confirm_add_directory_dialog)
+        dialog.show()
 
-    def on_confirm_add_directory_dialog(self, action):
+    def on_confirm_add_directory_dialog(self, dialog, action):
         if action == 0:
-            self.add_dir_to_channel(self.chosen_dir, recursive=self.dialog.checkbox.isChecked())
+            self.add_dir_to_channel(self.chosen_dir, recursive=dialog.checkbox.isChecked())
 
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
+        if dialog:
+            dialog.close_dialog()
             self.chosen_dir = None
 
     def on_add_torrent_browse_file(self, checked):  # pylint: disable=W0613
@@ -518,22 +516,22 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.add_torrent_to_channel(filename)
 
     def on_add_torrent_from_url(self, checked):  # pylint: disable=W0613
-        self.dialog = ConfirmationDialog(
+        dialog = ConfirmationDialog(
             self,
             tr("Add torrent from URL/magnet link"),
             tr("Please enter the URL/magnet link in the field below:"),
             [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
             show_input=True,
         )
-        self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
-        connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
-        self.dialog.show()
+        dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
+        connect(dialog.button_clicked, self.on_torrent_from_url_dialog_done)
+        dialog.show()
 
-    def on_torrent_from_url_dialog_done(self, action):
+    def on_torrent_from_url_dialog_done(self, dialog, action):
         if action == 0:
-            self.add_torrent_url_to_channel(self.dialog.dialog_widget.dialog_input.text())
-        self.dialog.close_dialog()
-        self.dialog = None
+            self.add_torrent_url_to_channel(dialog.dialog_widget.dialog_input.text())
+        dialog.close_dialog()
+        dialog = None
 
     def _on_torrent_to_channel_added(self, result):
         if not result:

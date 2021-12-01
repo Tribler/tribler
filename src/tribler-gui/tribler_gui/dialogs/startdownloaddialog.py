@@ -28,7 +28,7 @@ from tribler_gui.widgets.torrentfiletreewidget import TORRENT_FILES_TREE_STYLESH
 
 class StartDownloadDialog(DialogContainer):
 
-    button_clicked = pyqtSignal(int)
+    button_clicked = pyqtSignal(DialogContainer, int)
     received_metainfo = pyqtSignal(dict)
 
     def __init__(self, parent, download_uri):
@@ -50,7 +50,7 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
         connect(self.dialog_widget.browse_dir_button.clicked, self.on_browse_dir_clicked)
-        connect(self.dialog_widget.cancel_button.clicked, lambda _: self.button_clicked.emit(0))
+        connect(self.dialog_widget.cancel_button.clicked, lambda _: self.button_clicked.emit(self, 0))
         connect(self.dialog_widget.download_button.clicked, self.on_download_clicked)
         connect(self.dialog_widget.loading_files_label.clicked, self.on_reload_torrent_info)
         connect(self.dialog_widget.anon_download_checkbox.clicked, self.on_reload_torrent_info)
@@ -284,4 +284,4 @@ class StartDownloadDialog(DialogContainer):
                     self.dialog_widget, tr("Insufficient Permissions"), gui_error_message, "OK"
                 )
             else:
-                self.button_clicked.emit(1)
+                self.button_clicked.emit(self, 1)

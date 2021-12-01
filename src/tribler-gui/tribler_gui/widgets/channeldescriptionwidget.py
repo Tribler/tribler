@@ -91,8 +91,6 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
         self.initialized = False
 
-        self.dialog = None
-
         self.floating_edit_button = FloatingButtonWidget(parent=self.description_text_preview)
         self.floating_edit_button.setHidden(True)
         connect(self.floating_edit_button.pressed, self.on_start_editing)
@@ -193,7 +191,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             data = f.read()
 
         if len(data) > 1024 ** 2:
-            self.dialog = ConfirmationDialog.show_error(
+            ConfirmationDialog.show_error(
                 self,
                 tr(tr("Image too large error")),
                 tr(tr("Image file you're trying to upload is too large.")),

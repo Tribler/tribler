@@ -23,7 +23,7 @@ class NewChannelDialog(ConfirmationDialog):
         connect(self.button_clicked, self.on_channel_name_dialog_done)
         self.show()
 
-    def on_channel_name_dialog_done(self, action):
+    def on_channel_name_dialog_done(self, _, action):
         if action == 0:
             text = self.dialog_widget.dialog_input.text()
             if text:

@@ -66,10 +66,12 @@ from tribler_gui.defs import (
     PAGE_TRUST_GRAPH_PAGE,
     SHUTDOWN_WAITING_PERIOD,
 )
+from tribler_gui.dialog_manager import DialogManager
 from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.dialogs.new_version_dialog import NewVersionDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.tribler_action_menu import TriblerActionMenu
@@ -171,16 +173,11 @@ class TriblerWindow(QMainWindow):
         self.upgrade_manager = UpgradeManager(self.version_history)
         self.pending_requests = {}
         self.pending_uri_requests = []
-        self.dialog = None
-        self.create_dialog = None
         self.chosen_dir = None
-        self.new_version_dialog = None
-        self.start_download_dialog_active = False
         self.selected_torrent_files = []
         self.start_time = time.time()
         self.token_refresh_timer = None
         self.shutdown_timer = None
-        self.add_torrent_url_dialog_active = False
 
         # We use colored Emojis at several locations in our user interface. Not all Linux distributions have a font
         # available to render these characters. If we are on Linux, try to load the .ttf file from the Tribler data
@@ -526,8 +523,6 @@ class TriblerWindow(QMainWindow):
         # Toggle debug if developer mode is enabled
         self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
-        QApplication.setStyle(InstantTooltipStyle(QApplication.style()))
-
     @property
     def hide_xxx(self):
         return get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
@@ -656,21 +651,11 @@ class TriblerWindow(QMainWindow):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
 
-        # To prevent multiple dialogs on top of each other,
-        # close any existing dialog first.
-        if self.new_version_dialog:
-            self.new_version_dialog.close_dialog()
-            self.new_version_dialog = None
+        # We do not want multiple new version dialogs stacked on top of each other
+        DialogManager.close_all_dialogs(NewVersionDialog)
 
-        self.new_version_dialog = ConfirmationDialog(
-            self,
-            tr("New version available"),
-            tr("Version %s of Tribler is available.Do you want to visit the " "website to download the newest version?")
-            % version,
-            [(tr("IGNORE"), BUTTON_TYPE_NORMAL), (tr("LATER"), BUTTON_TYPE_NORMAL), (tr("OK"), BUTTON_TYPE_NORMAL)],
-        )
-        connect(self.new_version_dialog.button_clicked, lambda action: self.on_new_version_dialog_done(version, action))
-        self.new_version_dialog.show()
+        dialog = NewVersionDialog.show_dialog(self, version)
+        connect(dialog.button_clicked, lambda _, action: self.on_new_version_dialog_done(version, action))
 
     def on_new_version_dialog_done(self, version, action):
         if action == 0:  # ignore
@@ -679,9 +664,8 @@ class TriblerWindow(QMainWindow):
             import webbrowser
 
             webbrowser.open("https://tribler.org")
-        if self.new_version_dialog:
-            self.new_version_dialog.close_dialog()
-            self.new_version_dialog = None
+
+        DialogManager.close_all_dialogs(NewVersionDialog)
 
     def on_search_text_change(self, text):
         # We do not want to bother the database on petty 1-character queries
@@ -708,12 +692,6 @@ class TriblerWindow(QMainWindow):
         # If we cannot receive the settings, stop Tribler with an option to send the crash report.
         if 'error' in settings:
             raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
-
-        # If there is any pending dialog (likely download dialog or error dialog of setting not available),
-        # close the dialog
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
 
         self.tribler_settings = settings['settings']
 
@@ -811,13 +789,13 @@ class TriblerWindow(QMainWindow):
 
     def on_create_torrent(self, checked):
         self.raise_window()  # For the case when the action is triggered by tray icon
-        if self.create_dialog:
-            self.create_dialog.close_dialog()
+        for dialog in DialogManager.get_dialogs(diag_cls=CreateTorrentDialog):  # Close existing create torrent dialogs
+            dialog.close_dialog()
 
-        self.create_dialog = CreateTorrentDialog(self)
-        connect(self.create_dialog.create_torrent_notification, self.on_create_torrent_updates)
-        connect(self.create_dialog.add_to_channel_selected, self.show_add_torrent_to_channel_dialog_from_torrent_data)
-        self.create_dialog.show()
+        create_dialog = CreateTorrentDialog(self)
+        connect(create_dialog.create_torrent_notification, self.on_create_torrent_updates)
+        connect(create_dialog.add_to_channel_selected, self.show_add_torrent_to_channel_dialog_from_torrent_data)
+        create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):
         self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
@@ -840,7 +818,7 @@ class TriblerWindow(QMainWindow):
             # If tribler settings is not available, fetch the settings and inform the user to try again.
             if not self.tribler_settings:
                 self.fetch_settings()
-                self.dialog = ConfirmationDialog.show_error(
+                ConfirmationDialog.show_error(
                     self,
                     tr("Download Error"),
                     tr("Tribler settings is not available yet. Fetching it now. Please try again later."),
@@ -849,15 +827,10 @@ class TriblerWindow(QMainWindow):
                 # when the settings is received
                 self.pending_uri_requests.append(uri)
                 return
-            # Clear any previous dialog if exists
-            if self.dialog:
-                self.dialog.close_dialog()
-                self.dialog = None
 
-            self.dialog = StartDownloadDialog(self, uri)
-            connect(self.dialog.button_clicked, self.on_start_download_action)
-            self.dialog.show()
-            self.start_download_dialog_active = True
+            dialog = StartDownloadDialog(self, uri)
+            connect(dialog.button_clicked, self.on_start_download_action)
+            dialog.show()
         else:
             # FIXME: instead of using this workaround, make sure the settings are _available_ by this moment
             # In the unlikely scenario that tribler settings are not available yet, try to fetch settings again and
@@ -877,16 +850,16 @@ class TriblerWindow(QMainWindow):
             )
             self.process_uri_request()
 
-    def on_start_download_action(self, action):
+    def on_start_download_action(self, dialog, action):
         if action == 1:
-            if self.dialog and self.dialog.dialog_widget:
+            if dialog and dialog.dialog_widget:
                 self.window().perform_start_download_request(
-                    self.dialog.download_uri,
-                    self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
-                    self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
-                    self.dialog.dialog_widget.destination_input.currentText(),
-                    self.dialog.dialog_widget.files_list_view.get_selected_files_indexes(),
-                    add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked(),
+                    dialog.download_uri,
+                    dialog.dialog_widget.anon_download_checkbox.isChecked(),
+                    dialog.dialog_widget.safe_seed_checkbox.isChecked(),
+                    dialog.dialog_widget.destination_input.currentText(),
+                    dialog.dialog_widget.files_list_view.get_selected_files_indexes(),
+                    add_to_channel=dialog.dialog_widget.add_to_channel_checkbox.isChecked(),
                 )
             else:
                 ConfirmationDialog.show_error(
@@ -894,10 +867,8 @@ class TriblerWindow(QMainWindow):
                 )
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
 
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
-            self.start_download_dialog_active = False
+        if dialog:
+            dialog.close_dialog()
 
         if action == 0:  # We do this after removing the dialog since process_uri_request is blocking
             self.process_uri_request()
@@ -913,7 +884,7 @@ class TriblerWindow(QMainWindow):
         self.chosen_dir = chosen_dir
         if len(chosen_dir) != 0:
             self.selected_torrent_files = list(Path(chosen_dir).glob("*.torrent"))
-            self.dialog = ConfirmationDialog(
+            dialog = ConfirmationDialog(
                 self,
                 tr("Add torrents from directory"),
                 tr("Add %s torrent files from the following directory to your Tribler channel: \n\n%s")
@@ -921,12 +892,12 @@ class TriblerWindow(QMainWindow):
                 [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
                 checkbox_text=tr("Add torrents to My Channel"),
             )
-            connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
-            self.dialog.show()
+            connect(dialog.button_clicked, self.on_confirm_add_directory_dialog)
+            dialog.show()
 
-    def on_confirm_add_directory_dialog(self, action):
+    def on_confirm_add_directory_dialog(self, dialog, action):
         if action == 0:
-            if self.dialog.checkbox.isChecked():
+            if dialog.checkbox.isChecked():
                 # TODO: add recursive directory scanning
                 def on_add_button_pressed(channel_id):
                     TriblerNetworkRequest(
@@ -951,32 +922,28 @@ class TriblerWindow(QMainWindow):
                     [],
                 )
 
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
+        if dialog:
+            dialog.close_dialog()
 
     def on_add_torrent_from_url(self, checked=False):
         # Make sure that the window is visible (this action might be triggered from the tray icon)
         self.raise_window()
 
-        if not self.add_torrent_url_dialog_active:
-            self.dialog = ConfirmationDialog(
-                self,
-                tr("Add torrent from URL/magnet link"),
-                tr("Please enter the URL/magnet link in the field below:"),
-                [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
-                show_input=True,
-            )
-            self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
-            self.dialog.dialog_widget.dialog_input.setFocus()
-            connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
-            self.dialog.show()
-            self.add_torrent_url_dialog_active = True
+        dialog = ConfirmationDialog(
+            self,
+            tr("Add torrent from URL/magnet link"),
+            tr("Please enter the URL/magnet link in the field below:"),
+            [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
+            show_input=True,
+        )
+        dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
+        dialog.dialog_widget.dialog_input.setFocus()
+        connect(dialog.button_clicked, self.on_torrent_from_url_dialog_done)
+        dialog.show()
 
-    def on_torrent_from_url_dialog_done(self, action):
-        self.add_torrent_url_dialog_active = False
-        if self.dialog and self.dialog.dialog_widget:
-            uri = self.dialog.dialog_widget.dialog_input.text().strip()
+    def on_torrent_from_url_dialog_done(self, dialog, action):
+        if dialog and dialog.dialog_widget:
+            uri = dialog.dialog_widget.dialog_input.text().strip()
 
             # If the URI is a 40-bytes hex-encoded infohash, convert it to a valid magnet link
             if len(uri) == 40:
@@ -990,8 +957,7 @@ class TriblerWindow(QMainWindow):
                     uri = "magnet:?xt=urn:btih:" + uri
 
             # Remove first dialog
-            self.dialog.close_dialog()
-            self.dialog = None
+            dialog.close_dialog()
 
             if action == 0:
                 self.start_download_from_uri(uri)
@@ -1082,6 +1048,7 @@ class TriblerWindow(QMainWindow):
         self.delete_tray_icon()
         self.show_loading_screen()
         self.hide_status_bar()
+        DialogManager.close_all_dialogs()
         self.loading_text_label.setText(tr("Shutting down..."))
         if self.debug_window:
             self.debug_window.setHidden(True)
@@ -1152,7 +1119,7 @@ class TriblerWindow(QMainWindow):
         QApplication.quit()
 
     def clicked_skip_conversion(self):
-        self.dialog = ConfirmationDialog(
+        dialog = ConfirmationDialog(
             self,
             tr("Abort the conversion of Channels database"),
             tr(
@@ -1164,8 +1131,8 @@ class TriblerWindow(QMainWindow):
             ),
             [(tr("ABORT"), BUTTON_TYPE_CONFIRM), (tr("CONTINUE"), BUTTON_TYPE_NORMAL)],
         )
-        connect(self.dialog.button_clicked, self.on_skip_conversion_dialog)
-        self.dialog.show()
+        connect(dialog.button_clicked, self.on_skip_conversion_dialog)
+        dialog.show()
 
     def on_channel_subscribe(self, channel_info):
         patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": True}]
@@ -1177,7 +1144,7 @@ class TriblerWindow(QMainWindow):
         )
 
     def on_channel_unsubscribe(self, channel_info):
-        def _on_unsubscribe_action(action):
+        def _on_unsubscribe_action(dialog, action):
             if action == 0:
                 patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": False}]
                 TriblerNetworkRequest(
@@ -1186,11 +1153,9 @@ class TriblerWindow(QMainWindow):
                     raw_data=json.dumps(patch_data),
                     method='PATCH',
                 )
-            if self.dialog:
-                self.dialog.close_dialog()
-                self.dialog = None
+            dialog.close_dialog()
 
-        self.dialog = ConfirmationDialog(
+        dialog = ConfirmationDialog(
             self,
             tr("Unsubscribe from channel"),
             tr("Are you sure you want to <b>unsubscribe</b> from channel<br/>")
@@ -1200,11 +1165,11 @@ class TriblerWindow(QMainWindow):
             + tr("<br/>and remove its contents?"),
             [(tr("UNSUBSCRIBE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
         )
-        connect(self.dialog.button_clicked, _on_unsubscribe_action)
-        self.dialog.show()
+        connect(dialog.button_clicked, _on_unsubscribe_action)
+        dialog.show()
 
     def on_channel_delete(self, channel_info):
-        def _on_delete_action(action):
+        def _on_delete_action(dialog, action):
             if action == 0:
                 delete_data = [{"public_key": channel_info['public_key'], "id": channel_info['id']}]
                 TriblerNetworkRequest(
@@ -1213,11 +1178,9 @@ class TriblerWindow(QMainWindow):
                     raw_data=json.dumps(delete_data),
                     method='DELETE',
                 )
-            if self.dialog:
-                self.dialog.close_dialog()
-                self.dialog = None
+            dialog.close_dialog()
 
-        self.dialog = ConfirmationDialog(
+        dialog = ConfirmationDialog(
             self,
             tr("Delete channel"),
             tr("Are you sure you want to <b>delete</b> your personal channel<br/>")
@@ -1227,16 +1190,14 @@ class TriblerWindow(QMainWindow):
             + tr("<br/>and all its contents?"),
             [(tr("DELETE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
         )
-        connect(self.dialog.button_clicked, _on_delete_action)
-        self.dialog.show()
+        connect(dialog.button_clicked, _on_delete_action)
+        dialog.show()
 
-    def on_skip_conversion_dialog(self, action):
+    def on_skip_conversion_dialog(self, dialog, action):
         if action == 0:
             self.upgrade_manager.stop_upgrade()
 
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
+        dialog.close_dialog()
 
     def on_tribler_shutdown_state_update(self, state):
         self.loading_text_label.setText(state)

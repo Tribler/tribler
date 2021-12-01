@@ -10,7 +10,7 @@ from tribler_gui.widgets.ellipsebutton import EllipseButton
 
 
 class ConfirmationDialog(DialogContainer):
-    button_clicked = pyqtSignal(int)
+    button_clicked = pyqtSignal(DialogContainer, int)
 
     def __init__(self, parent, title, main_text, buttons, show_input=False, checkbox_text=None):
         DialogContainer.__init__(self, parent)
@@ -28,7 +28,7 @@ class ConfirmationDialog(DialogContainer):
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
         else:
-            connect(self.dialog_widget.dialog_input.returnPressed, lambda: self.button_clicked.emit(0))
+            connect(self.dialog_widget.dialog_input.returnPressed, lambda: self.button_clicked.emit(self, 0))
 
         if not checkbox_text:
             self.dialog_widget.checkbox.setHidden(True)
@@ -51,7 +51,7 @@ class ConfirmationDialog(DialogContainer):
     def show_error(cls, window, title, error_text):
         error_dialog = ConfirmationDialog(window, title, error_text, [(tr("CLOSE"), BUTTON_TYPE_NORMAL)])
 
-        def on_close(checked):
+        def on_close(_, __):
             error_dialog.close_dialog()
 
         connect(error_dialog.button_clicked, on_close)
@@ -62,7 +62,7 @@ class ConfirmationDialog(DialogContainer):
     def show_message(cls, window, title, message_text, button_text):
         error_dialog = ConfirmationDialog(window, title, message_text, [(button_text, BUTTON_TYPE_NORMAL)])
 
-        def on_close(checked):
+        def on_close(_, __):
             error_dialog.close_dialog()
 
         connect(error_dialog.button_clicked, on_close)
@@ -94,4 +94,4 @@ class ConfirmationDialog(DialogContainer):
         )
 
         self.dialog_widget.dialog_button_container.layout().addWidget(button)
-        connect(button.clicked, lambda _: self.button_clicked.emit(index))
+        connect(button.clicked, lambda _: self.button_clicked.emit(self, index))

@@ -31,7 +31,6 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
         self.trust_plot = None
         self.history = None
         self.byte_scale = 1024 * 1024
-        self.dialog = None
 
     def initialize_trust_page(self):
         vlayout = self.window().plot_widget.layout()
@@ -42,8 +41,8 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().trust_explain_button.clicked, self.on_info_button_clicked)
 
     def on_info_button_clicked(self, checked):
-        self.dialog = TrustExplanationDialog(self.window())
-        self.dialog.show()
+        dialog = TrustExplanationDialog(self.window())
+        dialog.show()
 
     def received_bandwidth_statistics(self, statistics: Dict) -> None:
         """

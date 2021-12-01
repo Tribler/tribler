@@ -62,7 +62,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.downloads_timeout_timer = QTimer()
         self.downloads_last_update = 0
         self.selected_items = []
-        self.dialog = None
         self.loading_message_widget = None
         self.total_download = 0
         self.total_upload = 0
@@ -317,7 +316,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                     self.on_download_item_clicked()
 
     def on_remove_download_clicked(self, checked):
-        self.dialog = ConfirmationDialog(
+        dialog = ConfirmationDialog(
             self,
             tr("Remove download"),
             tr("Are you sure you want to remove this download?"),
@@ -327,10 +326,10 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 (tr("cancel"), BUTTON_TYPE_CONFIRM),
             ],
         )
-        connect(self.dialog.button_clicked, self.on_remove_download_dialog)
-        self.dialog.show()
+        connect(dialog.button_clicked, self.on_remove_download_dialog)
+        dialog.show()
 
-    def on_remove_download_dialog(self, action):
+    def on_remove_download_dialog(self, dialog, action):
         if action != 2:
             for selected_item in self.selected_items:
                 infohash = selected_item.download_info["infohash"]
@@ -341,9 +340,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                     method='DELETE',
                     data={"remove_data": bool(action)},
                 )
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
+        if dialog:
+            dialog.close_dialog()
 
     def on_download_removed(self, json_result):
         if json_result and "removed" in json_result:
@@ -427,30 +425,29 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if len(self.export_dir) > 0 and selected_item:
             # Show confirmation dialog where we specify the name of the file
             torrent_name = selected_item[0].download_info['name']
-            self.dialog = ConfirmationDialog(
+            dialog = ConfirmationDialog(
                 self,
                 tr("Export torrent file"),
                 tr("Please enter the name of the torrent file:"),
                 [(tr("SAVE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
                 show_input=True,
             )
-            self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("Torrent file name"))
-            self.dialog.dialog_widget.dialog_input.setText(f"{torrent_name}.torrent")
-            self.dialog.dialog_widget.dialog_input.setFocus()
-            connect(self.dialog.button_clicked, self.on_export_download_dialog_done)
-            self.dialog.show()
+            dialog.dialog_widget.dialog_input.setPlaceholderText(tr("Torrent file name"))
+            dialog.dialog_widget.dialog_input.setText(f"{torrent_name}.torrent")
+            dialog.dialog_widget.dialog_input.setFocus()
+            connect(dialog.button_clicked, self.on_export_download_dialog_done)
+            dialog.show()
 
-    def on_export_download_dialog_done(self, action):
+    def on_export_download_dialog_done(self, dialog, action):
         selected_item = self.selected_items[:1]
         if action == 0 and selected_item:
-            filename = self.dialog.dialog_widget.dialog_input.text()
+            filename = dialog.dialog_widget.dialog_input.text()
             TriblerFileDownloadRequest(
                 f"downloads/{selected_item[0].download_info['infohash']}/torrent",
                 lambda data: self.on_export_download_request_done(filename, data),
             )
 
-        self.dialog.close_dialog()
-        self.dialog = None
+        dialog.close_dialog()
 
     def on_export_download_request_done(self, filename, data):
         dest_path = os.path.join(self.export_dir, filename)

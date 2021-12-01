@@ -18,7 +18,7 @@ class AddTagsDialog(DialogContainer):
     This dialog enables a user to add new tags to/remove existing tags from content.
     """
 
-    save_button_clicked = pyqtSignal(QModelIndex, list)
+    save_button_clicked = pyqtSignal(DialogContainer, QModelIndex, list)
     suggestions_loaded = pyqtSignal()
 
     def __init__(self, parent: QWidget, infohash: str) -> None:
@@ -57,7 +57,7 @@ class AddTagsDialog(DialogContainer):
                 self.dialog_widget.error_text_label.setHidden(False)
                 return
 
-        self.save_button_clicked.emit(self.index, entered_tags)
+        self.save_button_clicked.emit(self, self.index, entered_tags)
 
     def on_received_suggestions(self, data: Dict) -> None:
         self.suggestions_loaded.emit()

@@ -72,18 +72,6 @@ class TriblerRequestManager(QNetworkAccessManager):
             return json.dumps(error)  # Just print the json object
         return return_error
 
-    def show_error(self, error_text):
-        main_text = f"An error occurred during the request:\n\n{error_text}"
-        error_dialog = ConfirmationDialog(
-            TriblerRequestManager.window, "Request error", main_text, [('CLOSE', BUTTON_TYPE_NORMAL)]
-        )
-
-        def on_close(checked):
-            error_dialog.close_dialog()
-
-        connect(error_dialog.button_clicked, on_close)
-        error_dialog.show()
-
     def clear(self):
         for req in list(self.requests_in_flight.values()):
             req.cancel_request()
@@ -214,7 +202,9 @@ class TriblerNetworkRequest(QObject):
                 and not TriblerRequestManager.window.core_manager.shutting_down
             ):
                 # TODO: Report REST API errors to Sentry
-                request_manager.show_error(TriblerRequestManager.get_message_from_error(json_result))
+                error_text = TriblerRequestManager.get_message_from_error(json_result)
+                main_text = f"An error occurred during the request:\n\n{error_text}"
+                ConfirmationDialog.show_error(TriblerRequestManager.window, "Request error", main_text)
             else:
                 self.received_json.emit(json_result)
         except ValueError:
