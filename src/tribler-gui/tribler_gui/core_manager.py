@@ -33,14 +33,14 @@ class CoreManager(QObject):
         self.shutting_down = False
         self.should_quit_app_on_core_finished = False
         self.use_existing_core = True
-        self.is_core_running = False
+        self.core_connected = False
         self.last_core_stdout_output: str = ''
         self.last_core_stderr_output: str = ''
 
-        connect(self.events_manager.tribler_started, self._set_core_running)
+        connect(self.events_manager.tribler_started, self._set_core_connected)
 
-    def _set_core_running(self, _):
-        self.is_core_running = True
+    def _set_core_connected(self, _):
+        self.core_connected = True
 
     def on_core_stdout_read_ready(self):
         raw_output = bytes(self.core_process.readAllStandardOutput())
@@ -120,7 +120,7 @@ class CoreManager(QObject):
 
     def stop(self, quit_app_on_core_finished=True):
         self._logger.info("Stopping Core manager")
-        if self.core_process or self.is_core_running:
+        if self.core_process or self.core_connected:
             self._logger.info("Sending shutdown request to Tribler Core")
             self.events_manager.shutting_down = True
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
