@@ -105,7 +105,7 @@ class CoreManager(QObject):
         if not core_env:
             core_env = QProcessEnvironment.systemEnvironment()
             core_env.insert("CORE_API_PORT", f"{self.api_port}")
-            core_env.insert("CORE_API_KEY", self.api_key.decode('utf-8'))
+            core_env.insert("CORE_API_KEY", self.api_key)
             core_env.insert("TSTATEDIR", str(self.root_state_dir))
         if not core_args:
             core_args = sys.argv + ['--core']

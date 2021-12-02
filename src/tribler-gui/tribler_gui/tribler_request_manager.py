@@ -106,7 +106,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         qt_request = QNetworkRequest(QUrl(request.url))
         qt_request.setPriority(request.priority)
         qt_request.setHeader(QNetworkRequest.ContentTypeHeader, request.content_type_header)
-        qt_request.setRawHeader(b'X-Api-Key', self.key)
+        qt_request.setRawHeader(b'X-Api-Key', self.key.encode('ascii'))
 
         buf = QBuffer()
         if request.raw_data:
