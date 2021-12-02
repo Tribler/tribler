@@ -471,7 +471,7 @@ class DownloadManager(TaskManager):
             self.metainfo_requests[infohash][1] -= 1
             if self.metainfo_requests[infohash][1] <= 0:
                 await self.remove_download(download, remove_content=True)
-                self.metainfo_requests.pop(infohash)
+                self.metainfo_requests.pop(infohash, None)
 
         return metainfo
 
