@@ -8,7 +8,7 @@ from tribler_gui.dialog_manager import DialogManager
 from tribler_gui.utilities import connect
 
 
-class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
+class TriblerDialog(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self, parent, left_right_margin=100):
         QWidget.__init__(self, parent)
         self.setStyleSheet("background-color: rgba(30, 30, 30, 0.75);")

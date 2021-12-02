@@ -7,22 +7,22 @@ from PyQt5.QtWidgets import QSizePolicy, QWidget
 from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 from tribler_gui.defs import TAG_HORIZONTAL_MARGIN
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.dialogs.triblerdialog import TriblerDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 from tribler_gui.widgets.tagbutton import TagButton
 
 
-class AddTagsDialog(DialogContainer):
+class AddTagsDialog(TriblerDialog):
     """
     This dialog enables a user to add new tags to/remove existing tags from content.
     """
 
-    save_button_clicked = pyqtSignal(DialogContainer, QModelIndex, list)
+    save_button_clicked = pyqtSignal(TriblerDialog, QModelIndex, list)
     suggestions_loaded = pyqtSignal()
 
     def __init__(self, parent: QWidget, infohash: str) -> None:
-        DialogContainer.__init__(self, parent, left_right_margin=400)
+        TriblerDialog.__init__(self, parent, left_right_margin=400)
         self.index: Optional[QModelIndex] = None
         self.infohash = infohash
 

@@ -4,16 +4,16 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QSizePolicy, QSpacerItem
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.dialogs.triblerdialog import TriblerDialog
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 from tribler_gui.widgets.ellipsebutton import EllipseButton
 
 
-class ConfirmationDialog(DialogContainer):
-    button_clicked = pyqtSignal(DialogContainer, int)
+class ConfirmationDialog(TriblerDialog):
+    button_clicked = pyqtSignal(TriblerDialog, int)
 
     def __init__(self, parent, title, main_text, buttons, show_input=False, checkbox_text=None):
-        DialogContainer.__init__(self, parent)
+        TriblerDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('buttonsdialog.ui'), self.dialog_widget)
 

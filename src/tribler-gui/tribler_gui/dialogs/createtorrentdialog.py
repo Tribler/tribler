@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from tribler_gui.defs import BUTTON_TYPE_NORMAL
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.dialogs.triblerdialog import TriblerDialog
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
@@ -17,13 +17,13 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
         QTreeWidgetItem.__init__(self, parent)
 
 
-class CreateTorrentDialog(DialogContainer):
+class CreateTorrentDialog(TriblerDialog):
 
     create_torrent_notification = pyqtSignal(dict)
     add_to_channel_selected = pyqtSignal(str)
 
     def __init__(self, parent):
-        DialogContainer.__init__(self, parent)
+        TriblerDialog.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('createtorrentdialog.ui'), self.dialog_widget)
 

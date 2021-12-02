@@ -22,11 +22,11 @@ from tribler_gui.dialog_manager import DialogManager
 from tribler_gui.dialogs.addtagsdialog import AddTagsDialog
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.dialogs.new_version_dialog import NewVersionDialog
 from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
+from tribler_gui.dialogs.triblerdialog import TriblerDialog
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
@@ -121,7 +121,7 @@ def wait_for_variable(window, var, timeout=10, cmp_var=None):
     raise TimeoutException(f"Variable {var} within 10 seconds")
 
 
-def wait_for_dialog(dialog_cls: Type, timeout: int = 10, wait_for_close=False) -> Optional[DialogContainer]:
+def wait_for_dialog(dialog_cls: Type, timeout: int = 10, wait_for_close=False) -> Optional[TriblerDialog]:
     """
     Wait for a dialog to appear.
     Raises a TimeoutException if the dialog does not appear within the timeout.

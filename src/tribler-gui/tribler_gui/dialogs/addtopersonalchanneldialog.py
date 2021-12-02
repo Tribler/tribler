@@ -5,8 +5,8 @@ from PyQt5.QtCore import pyqtSignal
 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.dialogs.triblerdialog import TriblerDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path
 
@@ -17,11 +17,11 @@ class ChannelQTreeWidgetItem(QtWidgets.QTreeWidgetItem):
         QtWidgets.QTreeWidgetItem.__init__(self, *args, **kwargs)
 
 
-class AddToChannelDialog(DialogContainer):
+class AddToChannelDialog(TriblerDialog):
     create_torrent_notification = pyqtSignal(dict)
 
     def __init__(self, parent):
-        DialogContainer.__init__(self, parent)
+        TriblerDialog.__init__(self, parent)
         uic.loadUi(get_ui_file_path('addtochanneldialog.ui'), self.dialog_widget)
         connect(self.dialog_widget.btn_cancel.clicked, self.close_dialog)
         connect(self.dialog_widget.btn_confirm.clicked, self.on_confirm_clicked)

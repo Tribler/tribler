@@ -11,7 +11,7 @@ from tribler_common.utilities import uri_to_path
 
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
+from tribler_gui.dialogs.triblerdialog import TriblerDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
     connect,
@@ -26,13 +26,13 @@ from tribler_gui.utilities import (
 from tribler_gui.widgets.torrentfiletreewidget import TORRENT_FILES_TREE_STYLESHEET
 
 
-class StartDownloadDialog(DialogContainer):
+class StartDownloadDialog(TriblerDialog):
 
-    button_clicked = pyqtSignal(DialogContainer, int)
+    button_clicked = pyqtSignal(TriblerDialog, int)
     received_metainfo = pyqtSignal(dict)
 
     def __init__(self, parent, download_uri):
-        DialogContainer.__init__(self, parent)
+        TriblerDialog.__init__(self, parent)
 
         torrent_name = download_uri
         if torrent_name.startswith('file:'):
