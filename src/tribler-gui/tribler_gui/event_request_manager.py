@@ -37,7 +37,7 @@ class EventRequestManager(QNetworkAccessManager):
         QNetworkAccessManager.__init__(self)
         url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
-        self.request.setRawHeader(b'X-Api-Key', api_key)
+        self.request.setRawHeader(b'X-Api-Key', api_key.encode('ascii'))
         self.remaining_connection_attempts = CORE_CONNECTION_ATTEMPTS_LIMIT
         self.connect_timer = QTimer()
         self.current_event_string = ""

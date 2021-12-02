@@ -34,7 +34,7 @@ TORRENT_WITH_DIRS = COMMON_DATA_DIR / "multi_entries.torrent"
 
 @pytest.fixture(scope="module")
 def window(tmpdir_factory):
-    api_key = hexlify(os.urandom(16)).encode('utf-8')
+    api_key = hexlify(os.urandom(16))
     root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
