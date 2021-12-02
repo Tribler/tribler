@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from tribler_core.start_core import start_tribler_core
+from tribler_core.start_core import run_tribler_core
 from tribler_core.utilities.path_util import Path
 
 # pylint: disable=
@@ -15,5 +15,5 @@ from tribler_core.utilities.path_util import Path
 @patch('tribler_core.start_core.core_session')
 def test_start_tribler_core_no_exceptions(mocked_core_session):
     # test that base logic of tribler core runs without exceptions
-    start_tribler_core(1, 'key', Path('.'), False)
+    run_tribler_core(1, 'key', Path('.'), False)
     mocked_core_session.assert_called_once()

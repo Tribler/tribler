@@ -104,7 +104,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
         config.write()
 
 
-def start_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
+def run_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
