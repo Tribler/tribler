@@ -36,7 +36,7 @@ class FloatingAnimationWidget(QLabel):
 
         x = parent_rect.width() / 2 - self.width() / 2
         y = parent_rect.height() / 2 - self.height() / 2
-        self.setGeometry(x, y, self.width(), self.height())
+        self.setGeometry(int(x), int(y), self.width(), self.height())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

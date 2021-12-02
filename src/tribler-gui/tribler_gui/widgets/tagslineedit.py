@@ -108,7 +108,7 @@ class TagsLineEdit(QLineEdit):
         if visible:
             flashTime = QGuiApplication.styleHints().cursorFlashTime()
             if flashTime >= 2:
-                self.blink_timer = self.startTimer(flashTime / 2)
+                self.blink_timer = self.startTimer(int(flashTime / 2))
         else:
             self.blink_status = False
 
@@ -246,7 +246,7 @@ class TagsLineEdit(QLineEdit):
                 i_r.setRect(input_rect.x(), i_r.y() + TAG_HEIGHT + TAG_VERTICAL_MARGIN, i_r.width(), i_r.height())
                 lt.setY(lt.y() + TAG_HEIGHT + TAG_VERTICAL_MARGIN)
 
-            lt.setX(i_r.right() + TAG_HORIZONTAL_MARGIN)
+            lt.setX(int(i_r.right() + TAG_HORIZONTAL_MARGIN))
             self.tags[tag_index].rect = i_r
 
     def has_selection_active(self) -> bool:

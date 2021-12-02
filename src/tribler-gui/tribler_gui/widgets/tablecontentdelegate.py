@@ -281,7 +281,7 @@ class ChannelStateMixin:
         r = rect
         indicator_border = 1
         indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
-        y = r.top() + (r.height() - indicator_side) / 2
+        y = int(r.top() + (r.height() - indicator_side) / 2)
         x = r.left() + indicator_border
         w = indicator_side
         h = indicator_side
@@ -401,7 +401,7 @@ class TagsMixin:
             cur_tag_x = option.rect.x() + 6
             cur_tag_y += TAG_HEIGHT + 10
 
-        edit_rect = QRect(cur_tag_x + 4, cur_tag_y, TAG_HEIGHT, TAG_HEIGHT)
+        edit_rect = QRect(int(cur_tag_x + 4), int(cur_tag_y), int(TAG_HEIGHT), int(TAG_HEIGHT))
         index.model().edit_tags_rects[index] = edit_rect
 
         if edit_tags_button_hovered:
@@ -624,8 +624,8 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
 
         painter.save()
 
-        x = rect.x() + (rect.width() - self._width) / 2
-        y = rect.y() + (rect.height() - self._height) / 2
+        x = int(rect.x() + (rect.width() - self._width) / 2)
+        y = int(rect.y() + (rect.height() - self._height) / 2)
 
         offset = self._end_offset[toggled]()
         p = painter
@@ -664,7 +664,7 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
         p.setPen(text_color)
         p.setOpacity(text_opacity)
         font = p.font()
-        font.setPixelSize(1.5 * self._thumb_radius)
+        font.setPixelSize(int(1.5 * self._thumb_radius))
         p.setFont(font)
         p.drawText(
             QRectF(
@@ -760,7 +760,7 @@ class HealthStatusDisplay(QObject):
         painter.save()
 
         # Indicator ellipse rectangle
-        y = r.top() + (r.height() - self.indicator_side) / 2
+        y = int(r.top() + (r.height() - self.indicator_side) / 2)
         x = r.left() + self.indicator_border
         w = self.indicator_side
         h = self.indicator_side
