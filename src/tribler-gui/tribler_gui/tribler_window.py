@@ -148,6 +148,9 @@ class TriblerWindow(QMainWindow):
         self.gui_settings = settings
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)))
+        if isinstance(api_key, bytes):
+            # in QSettings, api_key can be stored as bytes, then we decode it to str
+            api_key = api_key.decode('ascii')
         self.gui_settings.setValue("api_key", api_key)
 
         api_port = NetworkUtils().get_first_free_port(start=api_port)
