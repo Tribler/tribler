@@ -78,7 +78,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         if include_random:
             rest = alive - popular
             count = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, len(rest))
-            rand = set(random.sample(rest, count))
+            rand = set(random.sample(list(rest), count))
 
         return popular, rand
 
