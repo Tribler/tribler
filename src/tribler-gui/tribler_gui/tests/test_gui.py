@@ -38,8 +38,12 @@ def window(tmpdir_factory):
     root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
+    # We must create a separate instance of QSettings and clear it.
+    # Otherwise, previous runs of the same app will affect this run.
+    settings = QSettings("tribler-guitest")
+    settings.clear()
     window = TriblerWindow(  # pylint: disable=W0621
-        QSettings(),
+        settings,
         root_state_dir,
         api_key=api_key,
         core_args=[str(RUN_TRIBLER_PY.absolute()), '--core', '--gui-test-mode'],
