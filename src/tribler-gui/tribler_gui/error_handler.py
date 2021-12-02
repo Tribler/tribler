@@ -90,7 +90,7 @@ class ErrorHandler:
 
         # Add info about whether we are stopping Tribler or not
         if not self.tribler_window.core_manager.shutting_down:
-            self.tribler_window.core_manager.stop(stop_app_on_shutdown=False)
+            self.tribler_window.core_manager.stop(quit_app_on_core_finished=False)
 
         self.tribler_window.setHidden(True)
 

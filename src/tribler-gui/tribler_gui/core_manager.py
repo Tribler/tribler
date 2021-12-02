@@ -31,7 +31,7 @@ class CoreManager(QObject):
         self.events_manager = EventRequestManager(self.api_port, self.api_key, error_handler)
 
         self.shutting_down = False
-        self.should_stop_on_shutdown = False
+        self.should_quit_app_on_core_finished = False
         self.use_existing_core = True
         self.is_core_running = False
         self.last_core_stdout_output: str = ''
@@ -63,7 +63,7 @@ class CoreManager(QObject):
                 raise
 
     def on_core_finished(self, exit_code, exit_status):
-        if self.shutting_down and self.should_stop_on_shutdown:
+        if self.shutting_down and self.should_quit_app_on_core_finished:
             self.on_finished()
         elif not self.shutting_down and exit_code != 0:
             # Stop the event manager loop if it is running
@@ -118,15 +118,15 @@ class CoreManager(QObject):
         connect(self.core_process.finished, self.on_core_finished)
         self.core_process.start(sys.executable, core_args)
 
-    def stop(self, stop_app_on_shutdown=True):
+    def stop(self, quit_app_on_core_finished=True):
         self._logger.info("Stopping Core manager")
         if self.core_process or self.is_core_running:
             self._logger.info("Sending shutdown request to Tribler Core")
             self.events_manager.shutting_down = True
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
 
-            if stop_app_on_shutdown:
-                self.should_stop_on_shutdown = True
+            if quit_app_on_core_finished:
+                self.should_quit_app_on_core_finished = True
 
     def on_finished(self):
         self.tribler_stopped.emit()
