@@ -4,7 +4,6 @@ import uuid
 from dataclasses import dataclass, field
 
 from PyQt5 import uic
-from PyQt5.QtCore import pyqtSignal
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.utilities import to_fts_query
@@ -48,8 +47,6 @@ class SearchRequest:
 
 
 class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
-    received_remote_results = pyqtSignal(object)
-
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
 
@@ -67,7 +64,6 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.hide_xxx = hide_xxx
         self.results_page.initialize_content_page(hide_xxx=hide_xxx)
         self.results_page.channel_torrents_filter_input.setHidden(True)
-        connect(self.received_remote_results, self.update_loading_page)
         connect(self.timeout_progress_bar.timeout, self.show_results)
         connect(self.show_results_button.clicked, self.show_results)
 

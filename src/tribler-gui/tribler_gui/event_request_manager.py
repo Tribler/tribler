@@ -3,18 +3,19 @@ import logging
 import time
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
-from tribler_gui.exceptions import CoreConnectTimeoutError
+from tribler_gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
 from tribler_gui.utilities import connect
 
 received_events = []
 
 CORE_CONNECTION_ATTEMPTS_LIMIT = 120
+RECONNECT_INTERVAL_MS = 500
 
 
 class EventRequestManager(QNetworkAccessManager):
@@ -44,7 +45,8 @@ class EventRequestManager(QNetworkAccessManager):
         self.reply = None
         self.shutting_down = False
         self.error_handler = error_handler
-        self._logger = logging.getLogger('TriblerGUI')
+        self._logger = logging.getLogger(self.__class__.__name__)
+        # This flag is used to prevent race condition when starting GUI tests
         self.tribler_started_flag = False
         self.reactions_dict = {
             NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
@@ -59,8 +61,12 @@ class EventRequestManager(QNetworkAccessManager):
             NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data)),
         }
 
+        self.connect_timer.setSingleShot(True)
+        connect(self.connect_timer.timeout, self.connect)
+
     def events_start_received(self, event_dict):
         if event_dict["version"]:
+            self.tribler_started_flag = True
             self.tribler_started.emit(event_dict["version"])
             # if public key format will be changed, don't forget to change it
             # at the core side as well
@@ -69,20 +75,22 @@ class EventRequestManager(QNetworkAccessManager):
                 SentryReporter.set_user(public_key.encode('utf-8'))
 
     def on_error(self, error, reschedule_on_err):
-        self._logger.info(f"Got Tribler core error: {error}")
+        if error == QNetworkReply.ConnectionRefusedError:
+            self._logger.debug("Tribler Core refused connection, retrying...")
+        else:
+            raise CoreConnectionError(f"Error {error} while trying to connect to Tribler Core")
 
-        SentryReporter.ignore_logger(self._logger.name)
         if self.remaining_connection_attempts <= 0:
-            raise CoreConnectTimeoutError("Could not connect with the Tribler Core within 60 seconds")
+            raise CoreConnectTimeoutError(
+                f"Could not connect with the Tribler Core \
+                within {RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT} seconds"
+            )
 
         self.remaining_connection_attempts -= 1
 
         if reschedule_on_err:
             # Reschedule an attempt
-            self.connect_timer = QTimer()
-            self.connect_timer.setSingleShot(True)
-            connect(self.connect_timer.timeout, self.connect)
-            self.connect_timer.start(500)
+            self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def on_read_data(self):
         if self.receivers(self.finished) == 0:
@@ -118,14 +126,12 @@ class EventRequestManager(QNetworkAccessManager):
             return
         self._logger.warning("Events connection dropped, attempting to reconnect")
         self.remaining_connection_attempts = CORE_CONNECTION_ATTEMPTS_LIMIT
-
-        self.connect_timer = QTimer()
-        self.connect_timer.setSingleShot(True)
-        self.connect_timer.timeout.connect(self.connect)
-        self.connect_timer.start(500)
+        self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def connect(self, reschedule_on_err=True):
-        self._logger.info("Will connect to events endpoint")
+        self._logger.debug("Will connect to events endpoint")
+        if self.reply is not None:
+            self.reply.deleteLater()
         self.reply = self.get(self.request)
 
         connect(self.reply.readyRead, self.on_read_data)

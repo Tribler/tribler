@@ -96,6 +96,12 @@ async def test_unhandled_error_observer_only_message(exception_handler):
     assert reported_error.should_stop
 
 
+async def test_unhandled_error_observer_store_unreported_error(exception_handler):
+    context = {'message': 'Any'}
+    exception_handler.unhandled_error_observer(None, context)
+    assert exception_handler.unreported_error
+
+
 async def test_unhandled_error_observer_ignored(exception_handler):
     # test that exception from list IGNORED_ERRORS_BY_CODE never sends to the GUI
     context = {'exception': OSError(113, '')}

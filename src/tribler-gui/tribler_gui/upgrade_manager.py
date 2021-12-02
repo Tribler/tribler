@@ -119,11 +119,13 @@ class UpgradeManager(QObject):
         # Otherwise, if we use our own connect(x,y) wrapper, Tribler just freezes
         self._upgrade_thread.started.connect(self._upgrade_worker.run)
 
+        # ACHTUNG!!! the following signals cannot be properly handled by our "connect" method.
+        # These must be connected directly to prevent problems with disconnecting and thread handling.
+        self._upgrade_worker.status_update.connect(self.upgrader_tick.emit)
         self._upgrade_thread.finished.connect(self._upgrade_thread.deleteLater)
-        connect(self._upgrade_worker.finished, self._upgrade_thread.quit)
-        connect(self._upgrade_worker.status_update, self.upgrader_tick.emit)
-        connect(self._upgrade_worker.finished, self.upgrader_finished.emit)
-        connect(self._upgrade_worker.finished, self._upgrade_worker.deleteLater)
+        self._upgrade_worker.finished.connect(self._upgrade_thread.quit)
+        self._upgrade_worker.finished.connect(self.upgrader_finished.emit)
+        self._upgrade_worker.finished.connect(self._upgrade_worker.deleteLater)
 
         self._upgrade_thread.start()
 

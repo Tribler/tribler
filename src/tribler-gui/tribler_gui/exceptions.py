@@ -2,6 +2,10 @@ class CoreError(Exception):
     """This is the base class for exceptions that causes GUI shutdown"""
 
 
+class CoreConnectionError(CoreError):
+    ...
+
+
 class CoreConnectTimeoutError(CoreError):
     ...
 
