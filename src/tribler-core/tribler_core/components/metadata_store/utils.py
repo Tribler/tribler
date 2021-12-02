@@ -7,6 +7,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
+from tribler_common.tag_constants import MIN_TAG_LENGTH
+
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.community.tag_payload import TagOperation
 from tribler_core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
@@ -32,10 +34,17 @@ def generate_title(words_count=5):
     return fake.sentence(nb_words=words_count)[:-1]
 
 
+def get_random_word(min_length=0):
+    word = fake.word()
+    while len(word) < min_length:
+        word = fake.word()
+    return word
+
+
 def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
-    tags = tags or [fake.word()
+    tags = tags or [get_random_word(min_length=MIN_TAG_LENGTH)
                     for _ in range(random.randint(2, 6))]
-    suggested_tags = suggested_tags or [fake.word()
+    suggested_tags = suggested_tags or [get_random_word(min_length=MIN_TAG_LENGTH)
                                         for _ in range(random.randint(1, 3))]
 
     # Give each torrent some tags
