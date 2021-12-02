@@ -302,7 +302,7 @@ class DebugWindow(QMainWindow):
         self.create_and_add_widget_item("Qt file", self.gui_settings.fileName(), self.window().general_tree_widget)
 
         selected_settings = {
-            "api_key": lambda val: val.decode('utf-8'),
+            "api_key": lambda val: val,
             "api_port": lambda val: val,
             "pos": lambda val: f"(x : {val.x()} px,  y : {val.y()} px)",
             "size": lambda val: f"(width : {val.width()} px,  height : {val.height()} px)",
