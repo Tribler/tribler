@@ -161,7 +161,7 @@ class TorrentFileTreeWidget(QTreeWidget):
         self.blockSignals(True)
         self.clear()
 
-        self.header().setResizeMode(QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         single_item_torrent = len(files) == 1
 
         # !!! ACHTUNG !!!
