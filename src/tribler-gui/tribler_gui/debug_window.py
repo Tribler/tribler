@@ -832,20 +832,6 @@ class DebugWindow(QMainWindow):
             memory_graph.add_data(mem_info["time"], [process_memory])
         memory_graph.render_plot()
 
-    def on_memory_dump_data_available(self, filename, data):
-        if not data:
-            return
-        dest_path = os.path.join(self.export_dir, filename)
-        try:
-            with open(dest_path, "wb") as memory_dump_file:
-                memory_dump_file.write(data)
-        except OSError as exc:
-            ConfirmationDialog.show_error(
-                self.window(),
-                "Error when exporting file",
-                f"An error occurred when exporting the torrent file: {str(exc)}",
-            )
-
     def closeEvent(self, close_event):
         if self.rest_request:
             self.rest_request.cancel_request()
