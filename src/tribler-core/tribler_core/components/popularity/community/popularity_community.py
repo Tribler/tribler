@@ -6,9 +6,9 @@ from ipv8.lazy_community import lazy_wrapper
 
 from pony.orm import db_session
 
+from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler_core.components.popularity.community.payload import TorrentsHealthPayload
 from tribler_core.components.popularity.community.version_community_mixin import VersionCommunityMixin
-from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler_core.utilities.unicode import hexlify
 
 
@@ -78,7 +78,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         if include_random:
             rest = alive - popular
             count = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, len(rest))
-            rand = set(random.sample(rest, count))
+            rand = set(random.sample(list(rest), count))
 
         return popular, rand
 

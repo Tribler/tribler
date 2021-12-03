@@ -5,7 +5,7 @@ from tribler_core.components.base import Component, MissedDependency, NoneCompon
 pytestmark = pytest.mark.asyncio
 
 
-class TestException(Exception):
+class ComponentTestException(Exception):
     pass
 
 
@@ -125,7 +125,7 @@ async def test_component_shutdown_failure(tribler_config):
             await self.require_component(ComponentA)
 
         async def shutdown(self):
-            raise TestException
+            raise ComponentTestException
 
     session = Session(tribler_config, [ComponentA(), ComponentB()])
     with session:
@@ -136,7 +136,7 @@ async def test_component_shutdown_failure(tribler_config):
 
         assert not a.unused_event.is_set()
 
-        with pytest.raises(TestException):
+        with pytest.raises(ComponentTestException):
             await session.shutdown()
 
         for component in a, b:

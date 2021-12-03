@@ -109,7 +109,7 @@ class ToggleButton(QAbstractButton):
         p.setPen(text_color)
         p.setOpacity(text_opacity)
         font = p.font()
-        font.setPixelSize(1.5 * self._thumb_radius)
+        font.setPixelSize(int(1.5 * self._thumb_radius))
         p.setFont(font)
         p.drawText(
             QRectF(

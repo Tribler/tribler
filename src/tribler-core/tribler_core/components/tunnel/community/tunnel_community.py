@@ -586,7 +586,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         writer = None
         try:
-            with async_timeout.timeout(10):
+            async with async_timeout.timeout(10):
                 self.logger.debug("Opening TCP connection to %s", payload.target)
                 reader, writer = await open_connection(*payload.target)
                 writer.write(payload.request)

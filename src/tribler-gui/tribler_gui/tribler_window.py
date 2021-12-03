@@ -321,7 +321,7 @@ class TriblerWindow(QMainWindow):
         self.resize(size)
 
         center = QApplication.desktop().availableGeometry(self).center()
-        screen_center_pos = QPoint(center.x() - self.width() / 2, center.y() - self.height() / 2)
+        screen_center_pos = QPoint(int(center.x() - self.width() / 2), int(center.y() - self.height() / 2))
         pos = self.gui_settings.value("pos", screen_center_pos)
 
         if not QApplication.desktop().availableGeometry(self).intersects(QRect(pos, self.size())):

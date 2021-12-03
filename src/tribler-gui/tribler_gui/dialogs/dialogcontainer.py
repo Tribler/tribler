@@ -49,8 +49,8 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
             self.dialog_widget.setFixedWidth(self.width() - self.left_right_margin)
             self.dialog_widget.move(
                 QPoint(
-                    self.geometry().center().x() - self.dialog_widget.geometry().width() / 2,
-                    self.geometry().center().y() - self.dialog_widget.geometry().height() / 2,
+                    int(self.geometry().center().x() - self.dialog_widget.geometry().width() / 2),
+                    int(self.geometry().center().y() - self.dialog_widget.geometry().height() / 2),
                 )
             )
         except RuntimeError:

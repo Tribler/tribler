@@ -453,7 +453,7 @@ def test_process_payload_update_type(metadata_store):
     assert updated_node2.metadata_type == CHANNEL_TORRENT
 
 
-class TestException(Exception):
+class ThreadedTestException(Exception):
     pass
 
 
@@ -464,10 +464,10 @@ async def test_run_threaded(metadata_store):
     def f1(a, b, *, c, d):
         if a == 1 and b == 2 and c == 3 and d == 4:
             return threading.get_ident()
-        raise TestException('test exception')
+        raise ThreadedTestException('test exception')
 
     result = await metadata_store.run_threaded(f1, 1, 2, c=3, d=4)
     assert result != thread_id
 
-    with pytest.raises(TestException, match='^test exception$'):
+    with pytest.raises(ThreadedTestException, match='^test exception$'):
         await metadata_store.run_threaded(f1, 1, 2, c=5, d=6)
