@@ -42,41 +42,6 @@ class CoreManager(QObject):
     def _set_core_connected(self, _):
         self.core_connected = True
 
-    def on_core_stdout_read_ready(self):
-        raw_output = bytes(self.core_process.readAllStandardOutput())
-        self.last_core_stdout_output = raw_output.decode("utf-8").strip()
-        try:
-            print(self.last_core_stdout_output)  # print core output # noqa: T001
-        except OSError:
-            # Possible reason - cannot write to stdout as it was already closed during the application shutdown
-            if not self.shutting_down:
-                raise
-
-    def on_core_stderr_read_ready(self):
-        raw_output = bytes(self.core_process.readAllStandardError())
-        self.last_core_stderr_output = raw_output.decode("utf-8").strip()
-        try:
-            print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001
-        except OSError:
-            # Possible reason - cannot write to stdout as it was already closed during the application shutdown
-            if not self.shutting_down:
-                raise
-
-    def on_core_finished(self, exit_code, exit_status):
-        if self.shutting_down and self.should_quit_app_on_core_finished:
-            self.on_finished()
-        elif not self.shutting_down and exit_code != 0:
-            # Stop the event manager loop if it is running
-            if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
-                self.events_manager.connect_timer.stop()
-
-            exception_message = (
-                f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}!\n"
-                f"Last core output: \n {self.last_core_stderr_output or self.last_core_stdout_output}"
-            )
-
-            raise CoreCrashedError(exception_message)
-
     def start(self, core_args=None, core_env=None, upgrade_manager=None, run_core=True):
         """
         First test whether we already have a Tribler process listening on port <CORE_API_PORT>.
@@ -118,6 +83,26 @@ class CoreManager(QObject):
         connect(self.core_process.finished, self.on_core_finished)
         self.core_process.start(sys.executable, core_args)
 
+    def on_core_stdout_read_ready(self):
+        raw_output = bytes(self.core_process.readAllStandardOutput())
+        self.last_core_stdout_output = raw_output.decode("utf-8").strip()
+        try:
+            print(self.last_core_stdout_output)  # print core output # noqa: T001
+        except OSError:
+            # Possible reason - cannot write to stdout as it was already closed during the application shutdown
+            if not self.shutting_down:
+                raise
+
+    def on_core_stderr_read_ready(self):
+        raw_output = bytes(self.core_process.readAllStandardError())
+        self.last_core_stderr_output = raw_output.decode("utf-8").strip()
+        try:
+            print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001
+        except OSError:
+            # Possible reason - cannot write to stdout as it was already closed during the application shutdown
+            if not self.shutting_down:
+                raise
+
     def stop(self, quit_app_on_core_finished=True):
         self._logger.info("Stopping Core manager")
         if self.core_process or self.core_connected:
@@ -127,6 +112,21 @@ class CoreManager(QObject):
 
             if quit_app_on_core_finished:
                 self.should_quit_app_on_core_finished = True
+
+    def on_core_finished(self, exit_code, exit_status):
+        if self.shutting_down and self.should_quit_app_on_core_finished:
+            self.on_finished()
+        elif not self.shutting_down and exit_code != 0:
+            # Stop the event manager loop if it is running
+            if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
+                self.events_manager.connect_timer.stop()
+
+            exception_message = (
+                f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}!\n"
+                f"Last core output: \n {self.last_core_stderr_output or self.last_core_stdout_output}"
+            )
+
+            raise CoreCrashedError(exception_message)
 
     def on_finished(self):
         self.tribler_stopped.emit()
