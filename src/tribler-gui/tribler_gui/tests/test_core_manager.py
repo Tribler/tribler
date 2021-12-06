@@ -61,13 +61,6 @@ def test_on_core_stdout_stderr_read_ready_os_error():
     core_manager = CoreManager(MagicMock(), MagicMock(), MagicMock(), MagicMock())
     core_manager.core_process = MagicMock(read_all=MagicMock(return_value=''))
 
-    with pytest.raises(OSError):
-        core_manager.on_core_stdout_read_ready()
-
-    with pytest.raises(OSError):
-        core_manager.on_core_stderr_read_ready()
-
-    core_manager.quitting_app = True
-    # no exception during shutting down
+    # check that OSError exception is suppressed when writing to stdout and stderr
     core_manager.on_core_stdout_read_ready()
     core_manager.on_core_stderr_read_ready()

@@ -46,6 +46,13 @@ class CoreManager(QObject):
         self.last_core_stderr_output: str = ''
 
         connect(self.events_manager.tribler_started, self.on_core_connected)
+        app = QApplication.instance()
+        if app is not None:
+            # app can be None in tests where Qt application is not created
+            connect(app.aboutToQuit, self.on_about_to_quit)
+
+    def on_about_to_quit(self):
+        self.quitting_app = True
 
     def on_core_connected(self, _):
         if not self.core_finished:
@@ -101,24 +108,32 @@ class CoreManager(QObject):
         self.core_running = True
 
     def on_core_stdout_read_ready(self):
+        if self.quitting_app:
+            # Reading at this stage can lead to the error "wrapped C/C++ object of type QProcess has been deleted"
+            return
+
         raw_output = bytes(self.core_process.readAllStandardOutput())
         self.last_core_stdout_output = raw_output.decode("utf-8").strip()
+
         try:
             print(self.last_core_stdout_output)  # print core output # noqa: T001
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
-            if not self.quitting_app:
-                raise
+            pass
 
     def on_core_stderr_read_ready(self):
+        if self.quitting_app:
+            # Reading at this stage can lead to the error "wrapped C/C++ object of type QProcess has been deleted"
+            return
+
         raw_output = bytes(self.core_process.readAllStandardError())
         self.last_core_stderr_output = raw_output.decode("utf-8").strip()
+
         try:
             print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
-            if not self.quitting_app:
-                raise
+            pass
 
     def stop(self, quit_app_on_core_finished=True):
         if quit_app_on_core_finished:
