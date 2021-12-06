@@ -58,7 +58,7 @@ def define_columns():
     columns_dict = {
         Column.ACTIONS:    d('',           "",               width=60, sortable=False),
         Column.CATEGORY:   d('category',   "",               width=30, tooltip_filter=lambda data: data),
-        Column.NAME:       d('',           tr("Name"),       width=EXPANDING),
+        Column.NAME:       d('name',       tr("Name"),       width=EXPANDING),
         Column.SIZE:       d('size',       tr("Size"),       width=90, display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
         Column.HEALTH:     d('health',     tr("Health"),     width=120, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
         Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A',),
@@ -399,7 +399,7 @@ class ChannelContentModel(RemoteTableModel):
     def flags(self, index):
         return self.columns[index.column()].qt_flags
 
-    def item_txt(self, index, role):
+    def item_txt(self, index, role, is_editing: bool = False):
         # ACHTUNG! Dumb workaround for some mysterious race condition
         try:
             item = self.data_items[index.row()]
@@ -430,11 +430,16 @@ class ChannelContentModel(RemoteTableModel):
             )
             return tooltip_txt
 
+        # The 'name' column is special in a sense that we want to draw the title and tags ourselves.
+        # At the same time, we want to name this column to not break the renaming of torrent files, hence this check.
+        if column_type == Column.NAME and not is_editing:
+            return ""
+
         return (column.tooltip_filter if role == Qt.ToolTipRole else column.display_filter)(data)
 
     def data(self, index, role):
         if role in (Qt.DisplayRole, Qt.EditRole, Qt.ToolTipRole):
-            return self.item_txt(index, role)
+            return self.item_txt(index, role, is_editing=(role == Qt.EditRole))
         if role == Qt.TextAlignmentRole:
             if index.column() == self.column_position.get(Column.VOTES, -1):
                 return Qt.AlignLeft | Qt.AlignVCenter
