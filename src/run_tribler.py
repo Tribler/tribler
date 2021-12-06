@@ -93,7 +93,7 @@ if __name__ == "__main__":
         version_history = VersionHistory(root_state_dir)
         state_dir = version_history.code_version.directory
         try:
-            start_core.start_tribler_core(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
+            start_core.run_tribler_core(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
         finally:
             logger.info('Remove lock file')
             process_checker.remove_lock_file()

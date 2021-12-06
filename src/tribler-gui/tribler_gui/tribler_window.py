@@ -419,7 +419,7 @@ class TriblerWindow(QMainWindow):
                 QApplication.quit()
 
         self.downloads_page.stop_loading_downloads()
-        self.core_manager.stop(False)
+        self.core_manager.stop(quit_app_on_core_finished=False)
         close_dialog = ConfirmationDialog(
             self.window(),
             tr("<b>CRITICAL ERROR</b>"),
@@ -1099,7 +1099,6 @@ class TriblerWindow(QMainWindow):
             QApplication.quit()
 
         self.core_manager.stop()
-        self.core_manager.shutting_down = True
         self.downloads_page.stop_loading_downloads()
         request_manager.clear()
 
