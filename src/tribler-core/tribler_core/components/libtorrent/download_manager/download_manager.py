@@ -187,7 +187,7 @@ class DownloadManager(TaskManager):
 
         # Remove metadata temporary directory
         if self.metadata_tmpdir:
-            rmtree(self.metadata_tmpdir)
+            rmtree(self.metadata_tmpdir, ignore_errors=True)
             self.metadata_tmpdir = None
 
     def is_shutdown_ready(self):
