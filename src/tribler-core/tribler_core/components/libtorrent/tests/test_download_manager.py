@@ -47,7 +47,8 @@ def create_fake_download_and_state():
 @pytest.fixture
 async def fake_dlmgr(tmp_path_factory):
     config = LibtorrentSettings(dht_readiness_timeout=0)
-    dlmgr = DownloadManager(config=config, state_dir=tmp_path_factory.mktemp('state_dir'), notifier=Mock(), peer_mid=b"0000")
+    dlmgr = DownloadManager(config=config, state_dir=tmp_path_factory.mktemp('state_dir'), notifier=Mock(),
+                            peer_mid=b"0000")
     dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     dlmgr.get_session = lambda *_, **__: Mock()
     yield dlmgr
