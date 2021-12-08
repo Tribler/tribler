@@ -45,12 +45,14 @@ def crash_on_error():
 
 class ProxyFactory:
 
-    def __init__(self):
+    def __init__(self, temp_path_factory):
         self.comms = []
+        self.temp_path_factory = temp_path_factory
 
     async def get(self, exitnode=False, start_lt=False):
         tunn_comm_config = TunnelCommunitySettings()
-        comm = await create_tunnel_community(tunn_comm_config, exitnode=exitnode, start_lt=start_lt)
+        comm = await create_tunnel_community(self.temp_path_factory, tunn_comm_config, exitnode=exitnode,
+                                             start_lt=start_lt)
         self.comms.append(comm)
         return comm
 
@@ -61,8 +63,8 @@ async def logger():
 
 
 @pytest.fixture
-async def proxy_factory():
-    factory = ProxyFactory()
+async def proxy_factory(tmp_path_factory):
+    factory = ProxyFactory(tmp_path_factory)
     yield factory
 
     for comm in factory.comms:
@@ -99,7 +101,7 @@ async def hidden_seeder_comm(proxy_factory, video_tdef):
     return comm
 
 
-async def create_tunnel_community(comm_config: TunnelCommunitySettings = None,
+async def create_tunnel_community(temp_path_factory, comm_config: TunnelCommunitySettings = None,
                                   exitnode=False,
                                   start_lt=False) -> TriblerTunnelCommunity:
     """
@@ -124,11 +126,12 @@ async def create_tunnel_community(comm_config: TunnelCommunitySettings = None,
         dlmgr_settings = LibtorrentSettings()
         dlmgr_settings.dht = False
 
-        dlmgr = DownloadManager(state_dir=Path.mkdtemp(),
+        dlmgr = DownloadManager(state_dir=temp_path_factory.mktemp('state_dir'),
                                 config=dlmgr_settings,
                                 peer_mid=Mock(),
                                 socks_listen_ports=socks_ports,
                                 notifier=Mock())
+        dlmgr.metadata_tmpdir = temp_path_factory.mktemp('metadata_tmpdir')
 
     comm_config = comm_config or TunnelCommunitySettings()
     comm_config.exitnode_enabled = exitnode
@@ -211,8 +214,8 @@ async def create_nodes(proxy_factory, num_relays=1, num_exitnodes=1):
 
 
 @pytest.fixture
-async def my_comm():
-    my_comm = await create_tunnel_community(exitnode=False, start_lt=True)
+async def my_comm(tmp_path_factory):
+    my_comm = await create_tunnel_community(tmp_path_factory, exitnode=False, start_lt=True)
 
     yield my_comm
 
