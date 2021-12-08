@@ -43,7 +43,9 @@ def window(api_port, tribler_api):
     tribler_gui.defs.DEFAULT_API_PORT = api_port
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
-    window = TriblerWindow(settings=QSettings(), api_port=api_port)  # pylint: disable=W0621
+    settings = QSettings()
+    settings.clear()
+    window = TriblerWindow(settings=settings, api_port=api_port)  # pylint: disable=W0621
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 

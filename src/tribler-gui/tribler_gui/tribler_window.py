@@ -346,10 +346,14 @@ class TriblerWindow(QMainWindow):
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
 
+        def update_channels_state(_):
+            self.channels_menu_list.load_channels()
+            self.add_to_channel_dialog.clear_channels_tree()
+
         def create_channel_callback(channel_name):
             TriblerNetworkRequest(
                 "channels/mychannel/0/channels",
-                self.channels_menu_list.load_channels,
+                update_channels_state,
                 method='POST',
                 raw_data=json.dumps({"name": channel_name}) if channel_name else None,
             )
