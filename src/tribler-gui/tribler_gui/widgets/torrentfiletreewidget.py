@@ -159,6 +159,10 @@ class TorrentFileTreeWidget(QTreeWidget):
         self.blockSignals(True)
         self.clear()
 
+        # ACHTUNG!
+        # Workaround for QT eliding size text too aggressively, resulting in incorrect column size
+        # The downside is no eliding for the names column
+        self.setTextElideMode(Qt.ElideNone)
         self.header().setResizeMode(QHeaderView.ResizeToContents)
         single_item_torrent = len(files) == 1
 
