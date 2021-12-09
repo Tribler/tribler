@@ -1029,10 +1029,14 @@ class TriblerWindow(QMainWindow):
     def on_top_search_bar_return_pressed(self):
         # Initiate a new search query and switch to search loading/results page
         query = self.top_search_bar.text()
-        if query:
-            self.search_results_page.search(query)
-            self.deselect_all_menu_buttons()
-            self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
+        if not query:
+            return
+
+        if not self.search_results_page.search(query):
+            return
+
+        self.deselect_all_menu_buttons()
+        self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 
     def clicked_menu_button_discovered(self):
         self.deselect_all_menu_buttons()

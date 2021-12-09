@@ -101,7 +101,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
 
     def search(self, query):
         if not self.check_can_show(query):
-            return
+            return None
 
         self.last_search_query = query
         self.last_search_time = time.time()
@@ -113,9 +113,11 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.timeout_progress_bar.start()
             self.setCurrentWidget(self.loading_page)
 
-        params = {'txt_filter': to_fts_query(query), 'hide_xxx': self.hide_xxx}
+        if (fts_query := to_fts_query(query)) is None:
+            return None
 
-        TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
+        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx}
+        return TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
 
     def reset(self):
         if self.currentWidget() == self.results_page:
