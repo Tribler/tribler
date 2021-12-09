@@ -123,12 +123,13 @@ async def video_seeder(tmp_path_factory, video_tdef):
     config.upnp = False
     config.natpmp = False
     config.lsd = False
-    seeder_state_dir = tmp_path_factory.mktemp('video_seeder_state_dir', numbered=True)
+    seeder_state_dir = tmp_path_factory.mktemp('video_seeder_state_dir')
     dlmgr = DownloadManager(
         config=config,
         state_dir=seeder_state_dir,
         notifier=Mock(),
         peer_mid=b"0000")
+    dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR)
@@ -301,7 +302,7 @@ def peer_key():
 
 
 @pytest.fixture
-async def download_manager(tmp_path):
+async def download_manager(tmp_path_factory):
     config = LibtorrentSettings()
     config.dht = False
     config.upnp = False
@@ -309,9 +310,10 @@ async def download_manager(tmp_path):
     config.lsd = False
     download_manager = DownloadManager(
         config=config,
-        state_dir=tmp_path,
+        state_dir=tmp_path_factory.mktemp('state_dir'),
         notifier=Mock(),
         peer_mid=b"0000")
+    download_manager.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     download_manager.initialize()
     yield download_manager
     await download_manager.shutdown()

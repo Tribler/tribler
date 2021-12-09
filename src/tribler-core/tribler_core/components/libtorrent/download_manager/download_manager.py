@@ -140,7 +140,7 @@ class DownloadManager(TaskManager):
             self.dht_health_manager = DHTHealthManager(dht_health_session)
 
         # Make temporary directory for metadata collecting through DHT
-        self.metadata_tmpdir = Path.mkdtemp(suffix='tribler_metainfo_tmpdir')
+        self.metadata_tmpdir = self.metadata_tmpdir or Path.mkdtemp(suffix='tribler_metainfo_tmpdir')
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1)
@@ -187,7 +187,7 @@ class DownloadManager(TaskManager):
 
         # Remove metadata temporary directory
         if self.metadata_tmpdir:
-            rmtree(self.metadata_tmpdir)
+            rmtree(self.metadata_tmpdir, ignore_errors=True)
             self.metadata_tmpdir = None
 
     def is_shutdown_ready(self):

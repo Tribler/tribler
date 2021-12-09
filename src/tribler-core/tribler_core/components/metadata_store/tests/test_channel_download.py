@@ -8,11 +8,11 @@ import pytest
 
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
+from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler_core.components.metadata_store.db.serialization import ChannelMetadataPayload
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 
@@ -29,13 +29,15 @@ def channel_tdef():
 
 
 @pytest.fixture
-async def channel_seeder(channel_tdef, tmp_path, loop):
+async def channel_seeder(channel_tdef, loop, tmp_path_factory):  # pylint: disable=unused-argument, redefined-outer-name
     config = LibtorrentSettings()
     config.dht = False
     config.upnp = False
     config.natpmp = False
     config.lsd = False
-    seeder_dlmgr = DownloadManager(state_dir=tmp_path, config=config, notifier=Mock(), peer_mid=b"0000")
+    seeder_dlmgr = DownloadManager(state_dir=tmp_path_factory.mktemp('state_dir'), config=config, notifier=Mock(),
+                                   peer_mid=b"0000")
+    seeder_dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     seeder_dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR / 'sample_channel')
