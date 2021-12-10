@@ -1,3 +1,5 @@
+from pathlib import PurePosixPath
+
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
@@ -15,7 +17,7 @@ def convert_to_files_tree_format(download_info):
     files = download_info['files']
     out = []
     for file in sorted(files, key=lambda x: x['index']):
-        file_path_parts = file['name'].split('/')
+        file_path_parts = PurePosixPath(file['name']).parts
         file_path = [download_info['name'], *file_path_parts]
         if len(files) == 1:
             # Special case of a torrent consisting of a single file
