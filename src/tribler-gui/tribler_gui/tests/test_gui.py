@@ -215,14 +215,18 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
         wait_for_list_populated(widget.content_table)
 
     if test_subscribe:
-        # Unsubscribe and subscribe again
+        widget.content_table.sortByColumn(0, 0)
+        wait_for_list_populated(widget.content_table)
+        screenshot(window, name=f"{widget_name}-sorted-on-subscribe")
+        # Subscribe
         index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.VOTES])
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
-        window.dialog.button_clicked.emit(0)
-        screenshot(window, name=f"{widget_name}-unsubscribed")
+
+        # Unsubscribe
         widget.content_table.on_subscribe_control_clicked(index)
         QTest.qWait(200)
+        screenshot(window, name=f"{widget_name}-unsubscribed")
         window.dialog.button_clicked.emit(0)
 
     # Test channel view
