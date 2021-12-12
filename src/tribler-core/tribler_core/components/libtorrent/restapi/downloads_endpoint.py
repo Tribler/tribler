@@ -1,6 +1,7 @@
 from asyncio import CancelledError, TimeoutError as AsyncTimeoutError, wait_for
 from binascii import unhexlify
 from contextlib import suppress
+from pathlib import PurePosixPath
 
 from aiohttp import web
 
@@ -24,9 +25,14 @@ from tribler_core.components.libtorrent.download_manager.download_config import 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, \
-    HTTP_NOT_FOUND, RESTEndpoint, \
-    RESTResponse, RESTStreamResponse
+from tribler_core.components.restapi.rest.rest_endpoint import (
+    HTTP_BAD_REQUEST,
+    HTTP_INTERNAL_SERVER_ERROR,
+    HTTP_NOT_FOUND,
+    RESTEndpoint,
+    RESTResponse,
+    RESTStreamResponse,
+)
 from tribler_core.components.restapi.rest.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
@@ -148,7 +154,8 @@ class DownloadsEndpoint(RESTEndpoint):
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
                 "index": file_index,
-                "name": str(Path(fn)),
+                # We always return files in Posix format to make GUI independent of Core and simplify testing
+                "name": str(PurePosixPath(fn)),
                 "size": size,
                 "included": (file_index in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)

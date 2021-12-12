@@ -1,6 +1,7 @@
 import json
 import logging
 from binascii import unhexlify
+from pathlib import PurePosixPath
 from urllib.parse import unquote_plus
 
 from PyQt5 import uic
@@ -191,7 +192,7 @@ class StartDownloadDialog(DialogContainer):
                 for file in metainfo['info']['files']
             ]
         else:
-            files = [{'path': metainfo['info']['name'].split('/'), 'length': metainfo['info']['length']}]
+            files = [{'path': PurePosixPath(metainfo['info']['name']).parts, 'length': metainfo['info']['length']}]
 
         self.dialog_widget.files_list_view.fill_entries(files)
         # Add a bit of space between the rows

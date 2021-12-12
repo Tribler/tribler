@@ -267,11 +267,12 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
         self.hide_all_labels()
 
-    def reset_view(self, text_filter=None):
+    def reset_view(self, text_filter=None, category_filter=None):
         self.model.text_filter = text_filter or ''
-        self.model.category_filter = None
+        self.model.category_filter = category_filter
 
         with self.freeze_controls():
+            self._set_filter_controls_from_model()
             self.controller.table_view.horizontalHeader().setSortIndicator(-1, Qt.DescendingOrder)
         self.model.sort_by = (
             self.model.columns[self.model.default_sort_column].dict_key if self.model.default_sort_column >= 0 else None
@@ -300,12 +301,21 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.go_back_to_level(tgt_level)
         elif isinstance(self.model, SearchResultsModel) and self.current_level == 0:
             # In case of remote search, when only the search results are on the stack,
-            # we must keep the txt_filter (which contains the search term) before resetting the view
-            text_filter = self.model.text_filter
-            self.reset_view(text_filter=text_filter)
+            # we must keep the txt_filter and category_filter (which contains the search term)
+            # before resetting the view
+            self.reset_view(text_filter=self.model.text_filter, category_filter=self.model.category_filter)
         else:
             # Reset the view if the user clicks on the last part of the breadcrumb
             self.reset_view()
+
+    def _set_filter_controls_from_model(self):
+        # This should typically be called under freeze_controls context manager
+        content_category = ContentCategories.get(self.model.category_filter)
+        filter_display_name = content_category.long_name if content_category else self.model.category_filter
+        self.category_selector.setCurrentIndex(
+            CATEGORY_SELECTOR_ITEMS.index(filter_display_name) if filter_display_name in CATEGORY_SELECTOR_ITEMS else 0
+        )
+        self.channel_torrents_filter_input.setText(self.model.text_filter or '')
 
     def go_back_to_level(self, level):
         switched_level = False
@@ -322,16 +332,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.channel_description_container.initialized = False
             # We block signals to prevent triggering redundant model reloading
             with self.freeze_controls():
+                self._set_filter_controls_from_model()
                 # Set filter category selector to correct index corresponding to loaded model
-                content_category = ContentCategories.get(self.model.category_filter)
-                filter_display_name = content_category.long_name if content_category else self.model.category_filter
-                self.category_selector.setCurrentIndex(
-                    CATEGORY_SELECTOR_ITEMS.index(filter_display_name)
-                    if filter_display_name in CATEGORY_SELECTOR_ITEMS
-                    else 0
-                )
-                if self.model.text_filter:
-                    self.channel_torrents_filter_input.setText(self.model.text_filter)
                 self.controller.set_model(self.model)
 
             self.connect_current_model()
