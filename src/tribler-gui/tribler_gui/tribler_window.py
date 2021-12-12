@@ -671,9 +671,7 @@ class TriblerWindow(QMainWindow):
         # We do not want to bother the database on petty 1-character queries
         if len(text) < 2:
             return
-        TriblerNetworkRequest(
-            "search/completions", self.on_received_search_completions, url_params={'q': text}
-        )
+        TriblerNetworkRequest("search/completions", self.on_received_search_completions, url_params={'q': text})
 
     def on_received_search_completions(self, completions):
         if completions is None:
@@ -1032,9 +1030,9 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_popular(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_popular.setChecked(True)
-        # We want to reset the view every time to show updates
-        self.popular_page.go_back_to_level(0)
-        self.popular_page.reset_view()
+        if self.stackedWidget.currentIndex() == PAGE_POPULAR:
+            self.popular_page.go_back_to_level(0)
+            self.popular_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
 
