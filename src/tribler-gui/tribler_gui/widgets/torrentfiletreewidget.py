@@ -140,7 +140,6 @@ class TorrentFileTreeWidget(QTreeWidget):
         self.header().setStretchLastSection(False)
 
         self.selected_files_size = 0
-        self.indexes_to_items = []
 
         self.header().setSortIndicator(FILENAME_COL, Qt.DescendingOrder)
 
@@ -150,7 +149,6 @@ class TorrentFileTreeWidget(QTreeWidget):
 
     def clear(self):
         self.total_files_size = None
-        self.indexes_to_items = []
         super().clear()
 
     def fill_entries(self, files):
@@ -200,7 +198,6 @@ class TorrentFileTreeWidget(QTreeWidget):
                     item.file_size = int(file['length'])
                     self.total_files_size += item.file_size
                     item.setText(SIZE_COL, format_size(float(file['length'])))
-                    self.indexes_to_items.append(item)
                 else:
                     # Make folder checkboxes automatically affect subtree items
                     item.setFlags(item.flags() | Qt.ItemIsAutoTristate)
