@@ -1,4 +1,5 @@
 import shutil
+from unittest.mock import patch
 
 import pytest
 
@@ -81,11 +82,17 @@ async def test_api_key_fail(rest_manager, api_port):
 @pytest.mark.asyncio
 async def test_unhandled_exception(rest_manager, api_port):
     """
-    Testing whether the API returns a formatted 500 error if an unhandled Exception is raised
+    Testing whether the API returns a formatted 500 error and
+    calls exception handler if an unhandled Exception is raised
     """
-    response_dict = await do_real_request(api_port, 'settings', expected_code=500,
-                                          post_data={'general': 'invalid schema'},
-                                          request_type='POST')
+    with patch('tribler_core.components.restapi.rest.rest_manager.default_core_exception_handler') as handler:
+        response_dict = await do_real_request(api_port, 'settings', expected_code=500,
+                                              post_data={'general': 'invalid schema'},
+                                              request_type='POST')
+        handler.unhandled_error_observer.assert_called_once()
+        exception_dict = handler.unhandled_error_observer.call_args.args[1]
+        assert exception_dict['should_stop'] is False
+        assert isinstance(exception_dict['exception'], TypeError)
     assert response_dict
     assert not response_dict['error']['handled']
     assert response_dict['error']['code'] == "TypeError"

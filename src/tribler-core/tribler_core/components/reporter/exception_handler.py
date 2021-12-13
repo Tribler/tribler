@@ -75,8 +75,8 @@ class CoreExceptionHandler:
         try:
             SentryReporter.ignore_logger(self.logger.name)
 
-            should_stop = True
             context = context.copy()
+            should_stop = context.pop('should_stop', True)
             message = context.pop('message', 'no message')
             exception = context.pop('exception', None) or self._create_exception_from(message)
             # Exception
