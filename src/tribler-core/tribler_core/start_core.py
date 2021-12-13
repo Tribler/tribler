@@ -54,8 +54,6 @@ def components_gen(config: TriblerConfig):
     yield TagComponent()
 
     if config.libtorrent.enabled:
-        yield SocksServersComponent()
-    if config.libtorrent.enabled:
         yield LibtorrentComponent()
     if config.ipv8.enabled and config.chant.enabled:
         yield GigaChannelComponent()
@@ -67,6 +65,9 @@ def components_gen(config: TriblerConfig):
     # The components below are skipped if config.gui_test_mode == True
     if config.gui_test_mode:
         return
+
+    if config.libtorrent.enabled:
+        yield SocksServersComponent()
 
     if config.torrent_checking.enabled:
         yield TorrentCheckerComponent()
