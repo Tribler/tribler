@@ -2,11 +2,13 @@ import datetime
 from unittest.mock import MagicMock, Mock
 
 from cryptography.exceptions import InvalidSignature
-from pony.orm import db_session
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
+
+from pony.orm import db_session
+
 from tribler_core.components.tag.community.tag_community import TagCommunity
 from tribler_core.components.tag.community.tag_payload import TagOperation
 from tribler_core.components.tag.community.tag_requests import PeerValidationError
@@ -82,8 +84,7 @@ class TestTagCommunity(TestBase):
     async def test_on_message_eat_exceptions(self):
         # Tests that except blocks in on_message function works as expected
         # some exceptions should be eaten silently
-        exception_to_be_tested = {PeerValidationError, ValueError, AssertionError,
-                                  InvalidSignature}
+        exception_to_be_tested = {PeerValidationError, ValueError, InvalidSignature}
         await self.fill_db()
         for exception_class in exception_to_be_tested:
             # let's "break" the function that will be called on on_message()

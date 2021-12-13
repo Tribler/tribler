@@ -1,11 +1,11 @@
 import datetime
 
+from ipv8.test.base import TestBase
+
 from pony.orm import commit, db_session
 
-from ipv8.test.base import TestBase
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.components.tag.db.tag_db import TagDatabase
-
 
 # pylint: disable=protected-access
 
@@ -33,7 +33,7 @@ class TestTagDB(TestBase):
                       is_local_peer=False, clock=None):
         operation = self.create_operation(infohash, tag, peer, operation, clock)
         operation.clock = clock or self.db.get_clock(operation) + 1
-        self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
+        assert self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
         commit()
 
     @db_session

@@ -21,7 +21,7 @@ def tags_endpoint(tags_db):
     endpoint = TagsEndpoint()
     endpoint.db = tags_db
     endpoint.community = Mock()
-    endpoint.community.my_peer.key = TEST_PERSONAL_KEY
+    endpoint.community.tags_key = TEST_PERSONAL_KEY
     endpoint.community.sign = Mock(return_value=b'')
     return endpoint
 
