@@ -11,7 +11,7 @@ from typing import Callable
 from urllib.parse import quote_plus
 from uuid import uuid4
 
-from PyQt5.QtCore import QCoreApplication, QLocale, QTranslator, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QLocale, QSettings, QTranslator, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
@@ -220,6 +220,31 @@ def get_gui_setting(gui_settings, value, default, is_bool=False):
     if is_bool:
         val = val == True or val == 'true'
     return val
+
+
+def create_api_key() -> str:
+    return os.urandom(16).hex()
+
+
+def format_api_key(api_key) -> str:
+    if isinstance(api_key, bytes):
+        # In Tribler application, api_key is stored as a string. But in gui_settings api_key is stored as bytes,
+        # for compatibility with previous versions of Tribler. Otherwise, a user can get an error if he rolls back
+        # to a previous version of Tribler, that cannot read str values of api_key from GUI settings.
+        return api_key.decode('ascii')
+
+    if isinstance(api_key, str):
+        # If we read api_keys from gui_settings as str, we need to save it as bytes, to restore
+        # settings compatibility with previous versions of Tribler
+        return api_key
+
+    raise ValueError(f'Got unexpected value type of api_key from gui settings '
+                     f'(should be str or bytes): {type(api_key).__name__}')
+
+
+def set_api_key(gui_settings: QSettings, api_key: str):
+    api_key_bytes = api_key.encode('ascii')
+    gui_settings.setValue("api_key", api_key_bytes)
 
 
 def is_dir_writable(path):
