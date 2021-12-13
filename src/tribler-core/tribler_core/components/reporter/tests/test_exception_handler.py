@@ -8,9 +8,6 @@ from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
 
-pytestmark = pytest.mark.asyncio
-
-
 # pylint: disable=protected-access, redefined-outer-name
 # fmt: off
 
@@ -26,7 +23,7 @@ def raise_error(error):  # pylint: disable=inconsistent-return-statements
         return e
 
 
-async def test_is_ignored(exception_handler):
+def test_is_ignored(exception_handler):
     # test that CoreExceptionHandler ignores specific exceptions
 
     # by type
@@ -40,7 +37,7 @@ async def test_is_ignored(exception_handler):
     assert exception_handler._is_ignored(RuntimeError('Message that contains invalid info-hash'))
 
 
-async def test_is_not_ignored(exception_handler):
+def test_is_not_ignored(exception_handler):
     # test that CoreExceptionHandler do not ignore exceptions out of
     # IGNORED_ERRORS_BY_CODE and IGNORED_ERRORS_BY_SUBSTRING
     assert not exception_handler._is_ignored(OSError(1, 'Any'))
@@ -48,12 +45,12 @@ async def test_is_not_ignored(exception_handler):
     assert not exception_handler._is_ignored(AttributeError())
 
 
-async def test_create_exception_from(exception_handler):
+def test_create_exception_from(exception_handler):
     # test that CoreExceptionHandler can create an Exception from a string
     assert isinstance(exception_handler._create_exception_from('Any'), Exception)
 
 
-async def test_get_long_text_from(exception_handler):
+def test_get_long_text_from(exception_handler):
     # test that CoreExceptionHandler can generate stacktrace from an Exception
     error = raise_error(AttributeError('Any'))
     actual_string = exception_handler._get_long_text_from(error)
@@ -62,7 +59,7 @@ async def test_get_long_text_from(exception_handler):
 
 @patch(f'{sentry_reporter.__name__}.{SentryReporter.__name__}.{SentryReporter.event_from_exception.__name__}',
        new=MagicMock(return_value={'sentry': 'event'}))
-async def test_unhandled_error_observer_exception(exception_handler):
+def test_unhandled_error_observer_exception(exception_handler):
     # test that unhandled exception, represented by Exception, reported to the GUI
     context = {'exception': raise_error(AttributeError('Any')), 'Any key': 'Any value'}
     exception_handler.report_callback = MagicMock()
@@ -79,7 +76,7 @@ async def test_unhandled_error_observer_exception(exception_handler):
     assert reported_error.should_stop
 
 
-async def test_unhandled_error_observer_only_message(exception_handler):
+def test_unhandled_error_observer_only_message(exception_handler):
     # test that unhandled exception, represented by message, reported to the GUI
     context = {'message': 'Any'}
     exception_handler.report_callback = MagicMock()
@@ -96,20 +93,20 @@ async def test_unhandled_error_observer_only_message(exception_handler):
     assert reported_error.should_stop
 
 
-async def test_unhandled_error_observer_store_unreported_error(exception_handler):
+def test_unhandled_error_observer_store_unreported_error(exception_handler):
     context = {'message': 'Any'}
     exception_handler.unhandled_error_observer(None, context)
     assert exception_handler.unreported_error
 
 
-async def test_unhandled_error_observer_false_should_stop(exception_handler):
+def test_unhandled_error_observer_false_should_stop(exception_handler):
     # Test passing negative value for should_stop flag through the context dict
     context = {'message': 'Any', 'should_stop': False}
     exception_handler.unhandled_error_observer(None, context)
     assert exception_handler.unreported_error.should_stop is False
 
 
-async def test_unhandled_error_observer_ignored(exception_handler):
+def test_unhandled_error_observer_ignored(exception_handler):
     # test that exception from list IGNORED_ERRORS_BY_CODE never sends to the GUI
     context = {'exception': OSError(113, '')}
     exception_handler.report_callback = MagicMock()
