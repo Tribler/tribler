@@ -1,6 +1,10 @@
+from unittest.mock import MagicMock
 from urllib.parse import unquote_plus
 
-from tribler_gui.utilities import compose_magnetlink, dict_item_is_any_of, quote_plus_unicode, unicode_quoter
+import pytest
+
+from tribler_gui.utilities import compose_magnetlink, create_api_key, dict_item_is_any_of, format_api_key, \
+    quote_plus_unicode, set_api_key, unicode_quoter
 
 
 def test_quoter_char():
@@ -124,3 +128,29 @@ def test_is_dict_has():
     assert dict_item_is_any_of(d, 'k', ['v'])
     assert dict_item_is_any_of(d, 'k', ['v', 'a'])
     assert dict_item_is_any_of(d, 'k', ['a', 'v'])
+
+
+def test_create_api_key():
+    x = create_api_key()
+    assert len(x) == 32 and bytes.fromhex(x).hex() == x
+
+
+def test_format_api_key():
+    api_key = "abcdef"
+    x = format_api_key(api_key)
+    assert x == "abcdef"
+
+    api_key = b"abcdef"
+    x = format_api_key(api_key)
+    assert x == "abcdef"
+
+    api_key = 123
+    match_str = r"^Got unexpected value type of api_key from gui settings \(should be str or bytes\): int$"
+    with pytest.raises(ValueError, match=match_str):
+        format_api_key(api_key)
+
+
+def test_set_api_key():
+    gui_settings = MagicMock()
+    set_api_key(gui_settings, "abcdef")
+    gui_settings.setValue.assert_called_once_with("api_key", b"abcdef")

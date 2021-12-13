@@ -77,12 +77,15 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRe
 from tribler_gui.upgrade_manager import UpgradeManager
 from tribler_gui.utilities import (
     connect,
+    create_api_key,
     disconnect,
+    format_api_key,
     get_font_path,
     get_gui_setting,
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
+    set_api_key,
     tr,
 )
 from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
@@ -147,11 +150,8 @@ class TriblerWindow(QMainWindow):
         self.root_state_dir = Path(root_state_dir)
         self.gui_settings = settings
         api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
-        api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)))
-        if isinstance(api_key, bytes):
-            # in QSettings, api_key can be stored as bytes, then we decode it to str
-            api_key = api_key.decode('ascii')
-        self.gui_settings.setValue("api_key", api_key)
+        api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
+        set_api_key(self.gui_settings, api_key)
 
         api_port = NetworkUtils().get_first_free_port(start=api_port)
         request_manager.port, request_manager.key = api_port, api_key
