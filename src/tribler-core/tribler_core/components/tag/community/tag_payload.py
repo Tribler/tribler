@@ -3,7 +3,6 @@ from enum import IntEnum
 
 from ipv8.messaging.payload_dataclass import overwrite_dataclass, type_from_format
 
-from tribler_core.utilities.unicode import hexlify
 
 dataclass = overwrite_dataclass(dataclass)
 
@@ -24,7 +23,7 @@ class TagOperation:
     tag: str
 
     def __str__(self):
-        return f'(t:{self.tag}({self.clock}), o:{self.operation}, i:{hexlify(self.infohash)})'
+        return f'(t:{self.tag}({self.clock}), o:{self.operation}, i:{self.infohash.hex()})'
 
 
 RAW_DATA = type_from_format('varlenH')

@@ -111,7 +111,7 @@ class TagDatabase:
             is_local_peer: local operations processes differently than remote operations. They affects
                 `TorrentTag.local_operation` field which is used in `self.get_tags()` function.
 
-        Returns:
+        Returns: True if the operation has been added/updated, False otherwise.
         """
         self.logger.debug(f'Add tag operation. Infohash: {hexlify(operation.infohash)}, tag: {operation.tag}')
         peer = self._get_or_create(self.instance.Peer, public_key=operation.creator_public_key)

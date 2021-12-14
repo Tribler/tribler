@@ -20,7 +20,6 @@ from tribler_core.components.tag.community.tag_payload import (
 from tribler_core.components.tag.community.tag_requests import PeerValidationError, TagRequests
 from tribler_core.components.tag.community.tag_validator import validate_operation, validate_tag
 from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.utilities.unicode import hexlify
 
 REQUESTED_TAGS_COUNT = 10
 
@@ -57,7 +56,7 @@ class TagCommunity(TriblerCommunity):
 
         peer = random.choice(self.get_peers())
         self.requests.register_peer(peer, REQUESTED_TAGS_COUNT)
-        self.logger.info(f'-> request {REQUESTED_TAGS_COUNT} tags from peer {hexlify(peer.mid)}')
+        self.logger.info(f'-> request {REQUESTED_TAGS_COUNT} tags from peer {peer.mid.hex()}')
         self.ez_send(peer, RequestTagOperationMessage(count=REQUESTED_TAGS_COUNT))
 
     @lazy_wrapper(RawTagOperationMessage)
@@ -76,7 +75,7 @@ class TagCommunity(TriblerCommunity):
             with db_session():
                 is_added = self.db.add_tag_operation(operation, signature.signature)
                 if is_added:
-                    self.logger.info(f'+ tag added ({operation.tag} ,{hexlify(operation.infohash)})')
+                    self.logger.info(f'+ tag added ({operation.tag} ,{operation.infohash.hex()})')
 
         except PeerValidationError as e:  # peer has exhausted his response count
             self.logger.warning(e)
@@ -88,7 +87,7 @@ class TagCommunity(TriblerCommunity):
     @lazy_wrapper(RequestTagOperationMessage)
     def on_request(self, peer, operation):
         tags_count = min(max(1, operation.count), REQUESTED_TAGS_COUNT)
-        self.logger.info(f'<- peer {hexlify(peer.mid)} requested {tags_count} tags')
+        self.logger.info(f'<- peer {peer.mid.hex()} requested {tags_count} tags')
 
         with db_session:
             random_tag_operations = self.db.get_tags_operations_for_gossip(
@@ -115,7 +114,8 @@ class TagCommunity(TriblerCommunity):
                     self.logger.warning(e)
             if sent_tags:
                 sent_tags_info = ", ".join(f"({t})" for t in sent_tags)
-                self.logger.info(f'-> sent tags ({sent_tags_info}) to peer: {hexlify(peer.mid)}')
+                self.logger.info(f'-> sent {len(sent_tags)} tags to peer: {peer.mid.hex()}')
+                self.logger.debug(f'-> sent tags ({sent_tags_info}) to peer: {peer.mid.hex()}')
 
     @staticmethod
     def validate_operation(operation: TagOperation):
