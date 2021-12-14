@@ -1,3 +1,6 @@
+from typing import Set
+from unittest.mock import patch
+
 from aiohttp.web_app import Application
 
 from pony.orm import db_session
@@ -8,8 +11,8 @@ from tribler_common.utilities import to_fts_query
 
 from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.components.restapi.rest.base_api_test import do_request
+from tribler_core.components.tag.db.tag_db import TagDatabase
 from tribler_core.utilities.utilities import random_infohash
-
 
 # pylint: disable=unused-argument, redefined-outer-name
 
@@ -32,13 +35,6 @@ def rest_api(loop, needle_in_haystack_mds, aiohttp_client, tags_db):
     app = Application()
     app.add_subapp('/search', channels_endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
-
-
-async def test_search_no_query(rest_api):
-    """
-    Testing whether the API returns an error 400 if no query is passed when doing a search
-    """
-    await do_request(rest_api, 'search', expected_code=400)
 
 
 async def test_search_wrong_mdtype(rest_api):
@@ -71,6 +67,20 @@ async def test_search(rest_api):
     parsed = await do_request(rest_api, 'search?txt_filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)
     assert len(parsed["results"]) == 2
     assert parsed["results"][0]['name'] == "needle2"
+
+
+async def test_search_by_tags(rest_api):
+    def mocked_get_infohashes(tags: Set[str]):
+        if tags.pop() == 'missed_tag':
+            return None
+        return {b'infohash'}
+
+    with patch.object(TagDatabase, 'get_infohashes', wraps=mocked_get_infohashes):
+        parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=real_tag', expected_code=200)
+        assert len(parsed["results"]) == 0
+
+        parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=missed_tag', expected_code=200)
+        assert len(parsed["results"]) == 1
 
 
 async def test_search_with_include_total_and_max_rowid(rest_api):

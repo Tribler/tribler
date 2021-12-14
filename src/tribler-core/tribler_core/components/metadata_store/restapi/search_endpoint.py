@@ -1,9 +1,13 @@
 from aiohttp import web
+
 from aiohttp_apispec import docs, querystring_schema
-from marshmallow.fields import Integer, String
-from pony.orm import db_session
 
 from ipv8.REST.schema import schema
+
+from marshmallow.fields import Integer, String
+
+from pony.orm import db_session
+
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler_core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema

@@ -2,13 +2,18 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from tribler_common.patch_import import patch_import
-from tribler_common.utilities import Query, extract_plain_fts_query_text, extract_tags, \
-    parse_query, show_system_popup, to_fts_query, \
-    uri_to_path
-
+from tribler_common.utilities import (
+    Query,
+    extract_plain_fts_query_text,
+    extract_tags,
+    parse_query,
+    show_system_popup,
+    to_fts_query,
+    uri_to_path,
+)
 
 # pylint: disable=import-outside-toplevel, import-error
-
+# fmt: off
 
 def test_uri_to_path():
     path = Path(__file__).parent / "bla%20foo.bar"
@@ -26,28 +31,31 @@ def test_to_fts_query():
 
 
 def test_extract_tags():
-    assert extract_tags(None) == (set(), '')
     assert extract_tags('') == (set(), '')
     assert extract_tags('text') == (set(), '')
     assert extract_tags('[text') == (set(), '')
     assert extract_tags('text]') == (set(), '')
     assert extract_tags('[]') == (set(), '')
+    assert extract_tags('[ta]') == (set(), '')
+    assert extract_tags('[' + 't' * 51 + ']') == (set(), '')
     assert extract_tags('[tag1[tag2]text]') == (set(), '')
+    assert extract_tags('[not a tag]') == (set(), '')
 
-    assert extract_tags('[tag]text') == ({'tag'}, '[tag]')
-    assert extract_tags('[tag1][tag2]text') == ({'tag1', 'tag2'}, '[tag1][tag2]')
-    assert extract_tags(' [tag]text[not_tag]') == ({'tag'}, ' [tag]')
+    assert extract_tags('[tag]') == ({'tag'}, '[tag]')
+    assert extract_tags('[tag1][tag2]') == ({'tag1', 'tag2'}, '[tag1][tag2]')
+    assert extract_tags('[tag_with_underscore][tag-with-dash]') == ({'tag_with_underscore', 'tag-with-dash'},
+                                                                    '[tag_with_underscore][tag-with-dash]')
+
+    assert extract_tags(' [tag][not tag]for complex query with [not tag at the end]') == ({'tag'}, ' [tag]')
 
 
 def test_extract_plain_fts_query_text():
-    assert not extract_plain_fts_query_text(None, '')
     assert not extract_plain_fts_query_text('', '')
     assert extract_plain_fts_query_text('query', '') == 'query'
     assert extract_plain_fts_query_text('[tag] query', '[tag]') == 'query'
 
 
 def test_parse_query():
-    assert parse_query(None) == Query(original_query=None)
     assert parse_query('') == Query(original_query='')
 
     actual = parse_query('[tag1][tag2]')
@@ -62,7 +70,7 @@ def test_parse_query():
     actual = parse_query('[tag1][tag2] fts query with potential [brackets]')
     expected = Query(original_query='[tag1][tag2] fts query with potential [brackets]',
                      tags={'tag1', 'tag2'},
-                     fts_text='fts query with potential [brackets]',)
+                     fts_text='fts query with potential [brackets]', )
     assert actual == expected
 
 

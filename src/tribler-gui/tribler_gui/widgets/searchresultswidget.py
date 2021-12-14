@@ -7,7 +7,9 @@ from PyQt5 import uic
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.utilities import Query, to_fts_query
+
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import SearchResultsModel
@@ -23,11 +25,11 @@ def format_search_loading_label(search_request):
     }
 
     return (
-            tr(
-                "Remote responses: %(num_complete_peers)i / %(total_peers)i"
-                "\nNew remote results received: %(num_remote_results)i"
-            )
-            % data
+        tr(
+            "Remote responses: %(num_complete_peers)i / %(total_peers)i"
+            "\nNew remote results received: %(num_remote_results)i"
+        )
+        % data
     )
 
 
@@ -79,8 +81,11 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         query = self.search_request.query
         self.results_page.initialize_root_model(
             SearchResultsModel(
-                channel_info={"name": (tr("Search results for %s") % query.original_query) if len(
-                    query.original_query) < 50 else f"{query.original_query[:50]}..."},
+                channel_info={
+                    "name": (tr("Search results for %s") % query.original_query)
+                    if len(query.original_query) < 50
+                    else f"{query.original_query[:50]}..."
+                },
                 endpoint_url="search",
                 hide_xxx=self.results_page.hide_xxx,
                 text_filter=to_fts_query(query.fts_text),
@@ -92,9 +97,9 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
 
     def check_can_show(self, query):
         if (
-                self.last_search_query == query
-                and self.last_search_time is not None
-                and time.time() - self.last_search_time < 1
+            self.last_search_query == query
+            and self.last_search_time is not None
+            and time.time() - self.last_search_time < 1
         ):
             self._logger.info("Same search query already sent within 500ms so dropping this one")
             return False

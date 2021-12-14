@@ -2,7 +2,9 @@ from itertools import chain
 from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+
 from tribler_common.reported_error import ReportedError
+
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.components.base import Component, NoneComponent
@@ -68,7 +70,6 @@ class RESTComponent(Component):
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         metadata_store_component = await self.get_component(MetadataStoreComponent)
 
-        # fmt: off
         # pylint: disable=C0301
         key_component = await self.require_component(KeyComponent)
         ipv8_component = await self.maybe_component(Ipv8Component)
@@ -119,7 +120,6 @@ class RESTComponent(Component):
         for _, endpoint in ipv8_root_endpoint.endpoints.items():
             endpoint.initialize(ipv8_component.ipv8)
         self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
-        # fmt: on
 
         # Note: AIOHTTP endpoints cannot be added after the app has been started!
         rest_manager = RESTManager(config=config.api, root_endpoint=self.root_endpoint, state_dir=config.state_dir)

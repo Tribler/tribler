@@ -3,7 +3,7 @@ import platform
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Optional, Set, Tuple
+from typing import Set, Tuple
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -29,17 +29,17 @@ def uri_to_path(uri):
 
 
 fts_query_re = re.compile(r'\w+', re.UNICODE)
-tags_re = re.compile(r'^\s*(?:\[\w+\]\s*)+')
+tags_re = re.compile(r'^\s*(?:\[[^\s\[\]]{3,50}\]\s*)+')
 
 
 @dataclass
 class Query:
-    original_query: Optional[str]
+    original_query: str
     tags: Set[str] = field(default_factory=set)
     fts_text: str = ''
 
 
-def parse_query(query: Optional[str]) -> Query:
+def parse_query(query: str) -> Query:
     """
     The query structure:
         query = [tag1][tag2] text
@@ -55,7 +55,7 @@ def parse_query(query: Optional[str]) -> Query:
     return Query(original_query=query, tags=tags, fts_text=fts_text)
 
 
-def extract_tags(text: Optional[str]) -> Tuple[Set[str], str]:
+def extract_tags(text: str) -> Tuple[Set[str], str]:
     if not text:
         return set(), ''
     if (m := tags_re.match(text)) is not None:
@@ -64,11 +64,8 @@ def extract_tags(text: Optional[str]) -> Tuple[Set[str], str]:
     return set(), ''
 
 
-def extract_plain_fts_query_text(query: Optional[str], tags_string: str) -> str:
-    if query is None:
-        return ''
-
-    return query[len(tags_string):].strip()
+def extract_plain_fts_query_text(query: str, tags_string: str) -> str:
+    return query[len(tags_string) :].strip()
 
 
 def to_fts_query(text):
