@@ -2,6 +2,8 @@ import os
 import platform
 import re
 import sys
+from dataclasses import dataclass, field
+from typing import Optional, Set, Tuple
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -27,6 +29,46 @@ def uri_to_path(uri):
 
 
 fts_query_re = re.compile(r'\w+', re.UNICODE)
+tags_re = re.compile(r'^\s*(?:\[\w+\]\s*)+')
+
+
+@dataclass
+class Query:
+    original_query: Optional[str]
+    tags: Set[str] = field(default_factory=set)
+    fts_text: str = ''
+
+
+def parse_query(query: Optional[str]) -> Query:
+    """
+    The query structure:
+        query = [tag1][tag2] text
+                 ^           ^
+                tags        fts query
+    """
+    if not query:
+        return Query(original_query=query)
+
+    tags, tags_string = extract_tags(query)
+    fts_text = extract_plain_fts_query_text(query, tags_string)
+
+    return Query(original_query=query, tags=tags, fts_text=fts_text)
+
+
+def extract_tags(text: Optional[str]) -> Tuple[Set[str], str]:
+    if not text:
+        return set(), ''
+    if (m := tags_re.match(text)) is not None:
+        tags = m.group(0).strip()
+        return {tag[1:] for tag in tags.split(']') if tag}, m.group(0)
+    return set(), ''
+
+
+def extract_plain_fts_query_text(query: Optional[str], tags_string: str) -> str:
+    if query is None:
+        return ''
+
+    return query[len(tags_string):].strip()
 
 
 def to_fts_query(text):
