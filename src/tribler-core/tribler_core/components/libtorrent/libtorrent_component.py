@@ -9,10 +9,14 @@ class LibtorrentComponent(Component):
 
     async def run(self):
         await super().run()
-        socks_servers_component = await self.require_component(SocksServersComponent)
+        config = self.session.config
+
         key_component = await self.require_component(KeyComponent)
 
-        config = self.session.config
+        socks_ports = []
+        if not config.gui_test_mode:
+            socks_servers_component = await self.require_component(SocksServersComponent)
+            socks_ports = socks_servers_component.socks_ports
 
         self.download_manager = DownloadManager(
             config=config.libtorrent,
@@ -21,7 +25,7 @@ class LibtorrentComponent(Component):
             peer_mid=key_component.primary_key.key_to_hash(),
             download_defaults=config.download_defaults,
             bootstrap_infohash=config.bootstrap.infohash,
-            socks_listen_ports=socks_servers_component.socks_ports,
+            socks_listen_ports=socks_ports,
             dummy_mode=config.gui_test_mode)
         self.download_manager.initialize()
 
