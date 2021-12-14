@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 import pytest
 
 import tribler_common
-from tribler_common.network_utils import NetworkUtils
+from tribler_common.network_utils import default_network_utils
 from tribler_common.reported_error import ReportedError
 from tribler_common.tag_constants import MIN_TAG_LENGTH
 
@@ -34,7 +34,7 @@ TORRENT_WITH_DIRS = COMMON_DATA_DIR / "multi_entries.torrent"
 
 @pytest.fixture(scope="module")
 def api_port():
-    return NetworkUtils(remember_checked_ports_enabled=False).get_random_free_port()
+    return default_network_utils.get_random_free_port()
 
 
 @pytest.fixture(scope="module")

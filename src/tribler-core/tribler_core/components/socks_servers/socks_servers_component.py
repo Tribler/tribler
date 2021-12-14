@@ -1,5 +1,7 @@
 from typing import List
 
+from tribler_common.network_utils import default_network_utils
+
 from tribler_core.components.base import Component
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.socks_servers.socks5.server import Socks5Server
@@ -17,7 +19,10 @@ class SocksServersComponent(Component):
         self.socks_ports = []
         # Start the SOCKS5 servers
         for _ in range(NUM_SOCKS_PROXIES):
-            socks_server = Socks5Server()
+            # To prevent a once-in-a-blue-moon situation when SOCKS server accidentally occupy
+            # a port reserved by other services (e.g. REST API), we track our ports usage and assign
+            # ports through a single, default NetworkUtils instance
+            socks_server = Socks5Server(port=default_network_utils.get_random_free_port())
             self.socks_servers.append(socks_server)
             await socks_server.start()
             self.socks_ports.append(socks_server.port)

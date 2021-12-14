@@ -10,7 +10,6 @@ class FreePortNotFoundError(Exception):
 class NetworkUtils:
     MAX_PORT = 65535
     FIRST_PORT_IN_DYNAMIC_RANGE = 49152
-    ports_in_use = set()
 
     def __init__(self, socket_class_set=None, remember_checked_ports_enabled=False):
         """
@@ -26,7 +25,7 @@ class NetworkUtils:
         if socket_class_set is None:
             socket_class_set = {
                 lambda: socket.socket(socket.AF_INET, socket.SOCK_STREAM),  # tcp
-                lambda: socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # udp
+                lambda: socket.socket(socket.AF_INET, socket.SOCK_DGRAM),  # udp
             }
 
         self.socket_class_set = socket_class_set
@@ -34,16 +33,16 @@ class NetworkUtils:
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.random_instance = random.Random()
+        self.ports_in_use = set()
 
-    @staticmethod
-    def not_in_use(port):
-        return port not in NetworkUtils.ports_in_use
+    def not_in_use(self, port):
+        return port not in self.ports_in_use
 
     def get_first_free_port(self, start=FIRST_PORT_IN_DYNAMIC_RANGE, stop=MAX_PORT):
         self.logger.info(f'Looking for first free port in range [{start}..{stop}]')
 
         for port in range(start, stop):
-            if NetworkUtils.not_in_use(port) and self.is_port_free(port):
+            if self.not_in_use(port) and self.is_port_free(port):
                 self.logger.info(f'{port} is free')
                 return self.remember(port)
 
@@ -59,7 +58,7 @@ class NetworkUtils:
 
         for _ in range(attempts):
             port = self.random_instance.randint(start, stop)
-            if NetworkUtils.not_in_use(port) and self.is_port_free(port):
+            if self.not_in_use(port) and self.is_port_free(port):
                 self.logger.info(f'{port} is free')
                 return self.remember(port)
 
@@ -78,6 +77,9 @@ class NetworkUtils:
 
     def remember(self, port):
         if self.remember_checked_ports_enabled:
-            NetworkUtils.ports_in_use.add(port)
+            self.ports_in_use.add(port)
 
         return port
+
+
+default_network_utils = NetworkUtils(remember_checked_ports_enabled=True)

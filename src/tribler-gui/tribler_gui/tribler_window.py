@@ -38,7 +38,7 @@ from PyQt5.QtWidgets import (
 
 from psutil import LINUX
 
-from tribler_common.network_utils import NetworkUtils
+from tribler_common.network_utils import default_network_utils
 from tribler_common.osutils import get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import uri_to_path
@@ -134,11 +134,18 @@ class TriblerWindow(QMainWindow):
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
         self.gui_settings = settings
-        api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
+        api_port = api_port or default_network_utils.get_first_free_port(
+            start=int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
+        )
+        if not default_network_utils.is_port_free(api_port):
+            raise RuntimeError(
+                "Tribler configuration conflicts with the current OS state: "
+                "REST API port %i already in use" % api_port
+            )
+
         api_key = api_key or get_gui_setting(self.gui_settings, "api_key", hexlify(os.urandom(16)).encode('utf-8'))
         self.gui_settings.setValue("api_key", api_key)
 
-        api_port = NetworkUtils().get_first_free_port(start=api_port)
         request_manager.port, request_manager.key = api_port, api_key
 
         self.tribler_started = False
