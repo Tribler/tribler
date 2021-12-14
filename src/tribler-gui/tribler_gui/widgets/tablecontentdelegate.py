@@ -2,7 +2,7 @@ from math import floor
 from typing import Dict
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, QSize, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
+from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen, QPixmap
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
 
 from psutil import LINUX
@@ -12,6 +12,7 @@ from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
+from tribler_gui import flavono_identicon
 from tribler_gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
@@ -47,6 +48,31 @@ TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DEFAULT_ROW_HEIGHT = 30
 MAX_TAGS_TO_SHOW = 10
+
+identicons_cache = {}
+
+
+def get_identicon_for_public_key(public_key):
+    if public_key in identicons_cache:
+        identicon = identicons_cache[public_key]
+    else:
+        identicon_pixmap = QPixmap()
+        identicon_pixmap.loadFromData(flavono_identicon.render(public_key))
+        identicon = QIcon(identicon_pixmap)
+        identicons_cache[public_key] = identicon
+    return identicon
+
+
+def get_indicator_rect(rect, border=1):
+    r = rect
+    indicator_border = border
+    indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
+    y = int(r.top() + (r.height() - indicator_side) // 2)
+    x = r.left() + indicator_border
+    w = indicator_side
+    h = indicator_side
+    indicator_rect = QRect(x, y, w, h)
+    return indicator_rect
 
 
 def draw_text(
@@ -274,22 +300,28 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         return super().createEditor(parent, option, index)
 
 
+class AuthorIdenticonMixin:
+    ffa_icon = QIcon(get_image_path("user.png"))
+
+    def draw_author_identicon(self, painter, option, index, data_item):
+        # Draw empty cell as the background
+
+        self.paint_empty_background(painter, option)
+
+        public_key = data_item.get('public_key')
+        if public_key is None:
+            return
+
+        identicon = self.ffa_icon if public_key == "" else get_identicon_for_public_key(public_key)
+
+        identicon.paint(painter, get_indicator_rect(option.rect, border=2))
+        return True
+
+
 class ChannelStateMixin:
     wait_png = QIcon(get_image_path("wait.png"))
     share_icon = QIcon(get_image_path("share.png"))
     downloading_icon = QIcon(get_image_path("downloads.png"))
-
-    @staticmethod
-    def get_indicator_rect(rect):
-        r = rect
-        indicator_border = 1
-        indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
-        y = int(r.top() + (r.height() - indicator_side) // 2)
-        x = r.left() + indicator_border
-        w = indicator_side
-        h = indicator_side
-        indicator_rect = QRect(x, y, w, h)
-        return indicator_rect
 
     def draw_channel_state(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -307,7 +339,7 @@ class ChannelStateMixin:
             painter.drawText(text_rect, Qt.AlignCenter, "✔")
             return True
         if data_item['state'] == CHANNEL_STATE.PERSONAL.value:
-            self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
+            self.share_icon.paint(painter, get_indicator_rect(option.rect))
             return True
         if data_item['state'] == CHANNEL_STATE.DOWNLOADING.value:
             painter.drawText(text_rect, Qt.AlignCenter, "⏳")
@@ -513,6 +545,7 @@ class TriblerContentDelegate(
     ChannelStateMixin,
     SubscribedControlMixin,
     TagsMixin,
+    AuthorIdenticonMixin,
 ):
     def __init__(self, table_view, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
@@ -541,6 +574,7 @@ class TriblerContentDelegate(
             (Column.HEALTH, self.draw_health_column),
             (Column.STATUS, self.draw_commit_status_column),
             (Column.STATE, self.draw_channel_state),
+            (Column.AUTHOR, self.draw_author_identicon),
         ]
         self.table_view = table_view
 

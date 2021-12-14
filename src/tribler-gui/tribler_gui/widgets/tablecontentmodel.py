@@ -32,6 +32,7 @@ class Column(Enum):
     STATE = auto()
     TORRENTS = auto()
     SUBSCRIBED = auto()
+    AUTHOR = auto()
 
 
 @dataclass
@@ -61,6 +62,7 @@ def define_columns():
         Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
         Column.TORRENTS:   d('torrents',   tr("Torrents"),   width=90),
         Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=95),
+        Column.AUTHOR:     d('public_key', "", width=40),
     }
     # pylint: enable=line-too-long
     # fmt:on
@@ -544,11 +546,19 @@ class ChannelPreviewModel(ChannelContentModel):
 
 
 class SearchResultsModel(ChannelContentModel):
-    pass
+    columns_shown = (
+        Column.ACTIONS,
+        Column.AUTHOR,
+        Column.CATEGORY,
+        Column.NAME,
+        Column.SIZE,
+        Column.HEALTH,
+        Column.UPDATED,
+    )
 
 
 class PopularTorrentsModel(ChannelContentModel):
-    columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.UPDATED)
+    columns_shown = (Column.AUTHOR, Column.CATEGORY, Column.NAME, Column.SIZE, Column.UPDATED)
 
     def __init__(self, *args, **kwargs):
         kwargs["endpoint_url"] = 'channels/popular_torrents'
@@ -556,7 +566,15 @@ class PopularTorrentsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns_shown = (Column.SUBSCRIBED, Column.NAME, Column.STATE, Column.TORRENTS, Column.VOTES, Column.UPDATED)
+    columns_shown = (
+        Column.SUBSCRIBED,
+        Column.AUTHOR,
+        Column.NAME,
+        Column.STATE,
+        Column.TORRENTS,
+        Column.VOTES,
+        Column.UPDATED,
+    )
 
     @property
     def default_sort_column(self):
