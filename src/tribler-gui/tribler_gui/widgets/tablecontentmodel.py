@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -14,14 +15,7 @@ from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORR
 
 from tribler_gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import (
-    connect,
-    format_size,
-    format_votes,
-    get_votes_rating_description,
-    pretty_date,
-    tr,
-)
+from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
 
@@ -56,16 +50,20 @@ def define_columns():
     # fmt:off
     # pylint: disable=line-too-long
     columns_dict = {
-        Column.ACTIONS:    d('',           "",               width=60, sortable=False),
-        Column.CATEGORY:   d('category',   "",               width=30, tooltip_filter=lambda data: data),
-        Column.NAME:       d('',           tr("Name"),       width=EXPANDING),
-        Column.SIZE:       d('size',       tr("Size"),       width=90, display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
-        Column.HEALTH:     d('health',     tr("Health"),     width=120, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
-        Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A',),
-        Column.VOTES:      d('votes',      tr("Popularity"), width=120, display_filter=format_votes, tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None,),
-        Column.STATUS:     d('status',     "",               sortable=False),
-        Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
-        Column.TORRENTS:   d('torrents',   tr("Torrents"),   width=90),
+        Column.ACTIONS: d('', "", width=60, sortable=False),
+        Column.CATEGORY: d('category', "", width=30, tooltip_filter=lambda data: data),
+        Column.NAME: d('', tr("Name"), width=EXPANDING),
+        Column.SIZE: d('size', tr("Size"), width=90,
+                       display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
+        Column.HEALTH: d('health', tr("Health"), width=120, tooltip_filter=lambda data: f"{data}" + (
+            '' if data == HEALTH_CHECKING else '\n(Click to recheck)'), ),
+        Column.UPDATED: d('updated', tr("Updated"), width=120, display_filter=lambda timestamp: pretty_date(
+            timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A', ),
+        Column.VOTES: d('votes', tr("Popularity"), width=120, display_filter=format_votes,
+                        tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None, ),
+        Column.STATUS: d('status', "", sortable=False),
+        Column.STATE: d('state', "", width=80, tooltip_filter=lambda data: data, sortable=False),
+        Column.TORRENTS: d('torrents', tr("Torrents"), width=90),
         Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=95),
     }
     # pylint: enable=line-too-long
@@ -93,6 +91,8 @@ class RemoteTableModel(QAbstractTableModel):
     def __init__(self, parent=None):
 
         super().__init__(parent)
+        self._logger = logging.getLogger(self.__class__.__name__)
+
         # Unique identifier mapping for items. For torrents, it is infohash and for channels, it is concatenated value
         # of public key and channel id
         self.item_uid_map = {}
@@ -283,7 +283,7 @@ class RemoteTableModel(QAbstractTableModel):
         if self.hide_xxx is not None:
             kwargs.update({"hide_xxx": self.hide_xxx})
         rest_endpoint_url = kwargs.pop("rest_endpoint_url") if "rest_endpoint_url" in kwargs else self.endpoint_url
-
+        self._logger.info(f'Request to "{rest_endpoint_url}":{kwargs}')
         TriblerNetworkRequest(rest_endpoint_url, self.on_query_results, url_params=kwargs)
 
     def on_query_results(self, response, remote=False, on_top=False):
@@ -296,6 +296,8 @@ class RemoteTableModel(QAbstractTableModel):
         """
         if not response or self.qt_object_destroyed:
             return False
+        self._logger.info(f'Response. Remote: {remote}, results: {len(response.get("results"))}, '
+                          f'uuid: {response.get("uuid")}')
 
         # Trigger labels update on the initial table load
         update_labels = len(self.data_items) == 0
@@ -323,7 +325,6 @@ class RemoteTableModel(QAbstractTableModel):
 
 
 class ChannelContentModel(RemoteTableModel):
-
     columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.UPDATED)
 
     def __init__(
@@ -334,6 +335,7 @@ class ChannelContentModel(RemoteTableModel):
         subscribed_only=None,
         endpoint_url=None,
         text_filter='',
+        tags=None,
         type_filter=None,
     ):
         RemoteTableModel.__init__(self, parent=None)
@@ -344,6 +346,7 @@ class ChannelContentModel(RemoteTableModel):
         # Remote query (model) parameters
         self.hide_xxx = hide_xxx
         self.text_filter = text_filter
+        self.tags = tags
         self.subscribed_only = subscribed_only
         self.exclude_deleted = exclude_deleted
         self.type_filter = type_filter
@@ -490,6 +493,9 @@ class ChannelContentModel(RemoteTableModel):
         if "total" not in self.channel_info:
             # Only include total for the first query to the endpoint
             kwargs.update({"include_total": 1})
+
+        if self.tags:
+            kwargs['tags'] = self.tags
 
         super().perform_query(**kwargs)
 
