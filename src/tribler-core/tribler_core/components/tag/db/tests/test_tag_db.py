@@ -1,13 +1,21 @@
 import datetime
+from dataclasses import dataclass
+from itertools import count
+from types import SimpleNamespace
+
+from ipv8.test.base import TestBase
 
 from pony.orm import commit, db_session
 
-from ipv8.test.base import TestBase
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
-from tribler_core.components.tag.db.tag_db import TagDatabase
-
+from tribler_core.components.tag.db.tag_db import SHOW_THRESHOLD, TagDatabase
 
 # pylint: disable=protected-access
+
+@dataclass
+class Tag:
+    name: str
+    count: int = 1
 
 
 class TestTagDB(TestBase):
@@ -16,7 +24,23 @@ class TestTagDB(TestBase):
         self.db = TagDatabase()
 
     async def tearDown(self):
+        if self._outcome.errors:
+            self.dump_db()
+
         await super().tearDown()
+
+    @db_session
+    def dump_db(self):
+        print('\nPeer:')
+        self.db.instance.Peer.select().show()
+        print('\nTorrent:')
+        self.db.instance.Torrent.select().show()
+        print('\nTag')
+        self.db.instance.Tag.select().show()
+        print('\nTorrentTag')
+        self.db.instance.TorrentTag.select().show()
+        print('\nTorrentTagOp')
+        self.db.instance.TorrentTagOp.select().show()
 
     def create_torrent_tag(self, tag='tag', infohash=b'infohash'):
         tag = self.db._get_or_create(self.db.instance.Tag, name=tag)
@@ -35,6 +59,18 @@ class TestTagDB(TestBase):
         operation.clock = clock or self.db.get_clock(operation) + 1
         self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
         commit()
+
+    def add_operation_set(self, dictionary):
+        index = count(0)
+
+        def generate_n_peer_names(n):
+            for _ in range(n):
+                yield f'peer{next(index)}'.encode('utf8')
+
+        for infohash, tags in dictionary.items():
+            for tag in tags:
+                for peer in generate_n_peer_names(tag.count):
+                    self.add_operation(infohash, tag.name, peer)
 
     @db_session
     async def test_get_or_create(self):
@@ -142,25 +178,24 @@ class TestTagDB(TestBase):
 
     @db_session
     async def test_multiple_tags(self):
-        # peer1
-        self.add_operation(b'infohash1', 'tag1', b'peer1')
-        self.add_operation(b'infohash1', 'tag2', b'peer1')
-        self.add_operation(b'infohash1', 'tag3', b'peer1')
-
-        self.add_operation(b'infohash2', 'tag4', b'peer1')
-        self.add_operation(b'infohash2', 'tag5', b'peer1')
-        self.add_operation(b'infohash2', 'tag6', b'peer1')
-
-        # peer2
-        self.add_operation(b'infohash1', 'tag1', b'peer2')
-        self.add_operation(b'infohash1', 'tag2', b'peer2')
-
-        # peer3
-        self.add_operation(b'infohash2', 'tag1', b'peer3')
-        self.add_operation(b'infohash2', 'tag2', b'peer3')
+        self.add_operation_set(
+            {
+                b'infohash1': [
+                    Tag(name='tag1', count=2),
+                    Tag(name='tag2', count=2),
+                    Tag(name='tag3', count=1),
+                ],
+                b'infohash2': [
+                    Tag(name='tag1', count=1),
+                    Tag(name='tag2', count=1),
+                    Tag(name='tag4', count=1),
+                    Tag(name='tag5', count=1),
+                    Tag(name='tag6', count=1),
+                ]
+            }
+        )
 
         def assert_entities_count():
-            assert self.db.instance.Peer.select().count() == 3
             assert self.db.instance.Torrent.select().count() == 2
             assert self.db.instance.TorrentTag.select().count() == 8
             assert self.db.instance.Tag.select().count() == 6
@@ -174,33 +209,35 @@ class TestTagDB(TestBase):
         assert torrent_tag.added_count == 2
         assert torrent_tag.removed_count == 0
 
-        self.add_operation(b'infohash1', 'tag1', b'peer2', operation=TagOperationEnum.REMOVE)
-        self.add_operation(b'infohash1', 'tag2', b'peer2', operation=TagOperationEnum.REMOVE)
-        assert_entities_count()
-        assert torrent_tag.added_count == 1
-        assert torrent_tag.removed_count == 1
+    @db_session
+    async def test_get_tags_added(self):
+        self.add_operation_set(
+            {
+                b'infohash1': [
+                    Tag(name='tag1', count=1),
+                    Tag(name='tag2', count=2),
+                    Tag(name='tag3', count=3),
+                ]
+            }
+        )
+
+        assert not self.db.get_tags(b'missed infohash')
+        assert self.db.get_tags(b'infohash1') == ['tag3', 'tag2']
 
     @db_session
-    async def test_get_tags(self):
-        # Test that only tags above a threshold (2) is shown
+    async def test_get_tags_removed(self):
+        self.add_operation_set(
+            {
+                b'infohash1': [
+                    Tag(name='tag1', count=2),
+                    Tag(name='tag2', count=2)
+                ]
+            }
+        )
 
-        # peer1
-        self.add_operation(tag='tag1', peer=b'1')
-        self.add_operation(tag='tag2', peer=b'1')
-        self.add_operation(tag='tag3', peer=b'1')
+        self.add_operation(infohash=b'infohash1', tag='tag2', peer=b'4', operation=TagOperationEnum.REMOVE)
 
-        # peer2
-        self.add_operation(tag='tag2', peer=b'2')
-        self.add_operation(tag='tag3', peer=b'2')
-
-        # peer 3
-        self.add_operation(tag='tag2', peer=b'3')
-        self.add_operation(tag='tag3', peer=b'3')
-
-        # peer 4
-        self.add_operation(tag='tag2', peer=b'4', operation=TagOperationEnum.REMOVE)
-
-        assert self.db.get_tags(b'infohash') == ['tag3', 'tag2']
+        assert self.db.get_tags(b'infohash1') == ['tag1']
 
     @db_session
     async def test_show_local_tags(self):
@@ -255,8 +292,14 @@ class TestTagDB(TestBase):
     @db_session
     async def test_get_tags_operations_for_gossip(self):
         time_delta = {'minutes': 1}
-        self.add_operation(b'infohash1', 'tag1', b'peer1')
-        self.add_operation(b'infohash1', 'tag2', b'peer1')
+        self.add_operation_set(
+            {
+                b'infohash1': [
+                    Tag(name='tag1', count=1),
+                    Tag(name='tag2', count=1)
+                ]
+            }
+        )
         # assert that immediately added torrents are not returned
         assert not self.db.get_tags_operations_for_gossip(time_delta)
 
@@ -265,3 +308,30 @@ class TestTagDB(TestBase):
 
         # assert that only one torrent returned (the old one)
         assert len(self.db.get_tags_operations_for_gossip(time_delta)) == 1
+
+    @db_session
+    async def test_get_infohashes(self):
+        self.add_operation_set(
+            {
+                b'infohash1': [
+                    Tag(name='tag1', count=2),
+                    Tag(name='tag2', count=1)
+                ],
+                b'infohash2': [
+                    Tag(name='tag1', count=2)
+                ],
+                b'infohash3': [
+                    Tag(name='tag1', count=1)
+                ]
+            }
+        )
+
+        # test that only tags above the threshold are associated with infohases
+        assert self.db.get_infohashes('tag1') == [b'infohash1', b'infohash2']
+        assert not self.db.get_infohashes('tag2')
+
+    @db_session
+    async def test_show_condition(self):
+        assert TagDatabase._show_condition(SimpleNamespace(local_operation=TagOperationEnum.ADD))
+        assert TagDatabase._show_condition(SimpleNamespace(local_operation=None, score=SHOW_THRESHOLD))
+        assert not TagDatabase._show_condition(SimpleNamespace(local_operation=None, score=0))

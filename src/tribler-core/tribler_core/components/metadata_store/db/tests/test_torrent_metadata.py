@@ -13,6 +13,7 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler_core.conftest import TEST_PERSONAL_KEY
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler_core.utilities.utilities import random_infohash
 
@@ -222,6 +223,30 @@ def test_get_autocomplete_terms_max(metadata_store):
     assert len(autocomplete_terms) == 2
     # Check that we can chew the special character "."
     autocomplete_terms = metadata_store.get_auto_complete_terms(".", 2)
+
+
+@db_session
+def test_get_entries_for_infohashes(metadata_store):
+    infohash1 = random_infohash()
+    infohash2 = random_infohash()
+    infohash3 = random_infohash()
+
+    metadata_store.TorrentMetadata(title='title', infohash=infohash1, size=0, sign_with=TEST_PERSONAL_KEY)
+    metadata_store.TorrentMetadata(title='title', infohash=infohash2, size=0, sign_with=TEST_PERSONAL_KEY)
+
+    def count(*args, **kwargs):
+        return len(metadata_store.get_entries_query(*args, **kwargs))
+
+    # infohash can be passed as a single object
+    assert count(infohash=infohash3) == 0
+    assert count(infohash=infohash1) == 1
+
+    # infohashes can be passed as a set
+    assert count(infohash_set={infohash1, infohash2}) == 2
+
+    # in the case both arguments are used, the function will take to consideration
+    # only `infohash_set`
+    assert count(infohash=infohash1, infohash_set={infohash1, infohash2}) == 2
 
 
 @db_session
