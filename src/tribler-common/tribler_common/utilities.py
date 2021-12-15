@@ -1,3 +1,4 @@
+import itertools
 import os
 import platform
 import re
@@ -29,7 +30,7 @@ def uri_to_path(uri):
 
 
 fts_query_re = re.compile(r'\w+', re.UNICODE)
-tags_re = re.compile(r'^\s*(?:\[[^\s\[\]]{3,50}\]\s*)+')
+tags_re = re.compile(r'#[^\s^#]{3,50}(?=[#\s]|$)')
 
 
 @dataclass
@@ -49,23 +50,24 @@ def parse_query(query: str) -> Query:
     if not query:
         return Query(original_query=query)
 
-    tags, tags_string = extract_tags(query)
-    fts_text = extract_plain_fts_query_text(query, tags_string)
-
-    return Query(original_query=query, tags=tags, fts_text=fts_text)
+    tags, remaining_text = extract_tags(query)
+    return Query(original_query=query, tags=tags, fts_text=remaining_text.strip())
 
 
 def extract_tags(text: str) -> Tuple[Set[str], str]:
     if not text:
         return set(), ''
-    if (m := tags_re.match(text)) is not None:
-        tags = m.group(0).strip()
-        return {tag[1:] for tag in tags.split(']') if tag}, m.group(0)
-    return set(), ''
 
+    tags = set()
+    positions = [0]
 
-def extract_plain_fts_query_text(query: str, tags_string: str) -> str:
-    return query[len(tags_string) :].strip()
+    for m in tags_re.finditer(text):
+        tags.add(m.group(0)[1:])
+        positions.extend(itertools.chain.from_iterable(m.regs))
+    positions.append(len(text))
+
+    remaining_text = ''.join(text[positions[i] : positions[i + 1]] for i in range(0, len(positions) - 1, 2))
+    return tags, remaining_text
 
 
 def to_fts_query(text):
