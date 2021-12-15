@@ -103,7 +103,7 @@ class TagDatabase:
             obj = cls(**kwargs)
         return obj
 
-    def add_tag_operation(self, operation: TagOperation, signature: bytes, is_local_peer: bool = False):
+    def add_tag_operation(self, operation: TagOperation, signature: bytes, is_local_peer: bool = False) -> bool:
         """ Add the operation that will be applied to the tag.
         Args:
             operation: the class describes the adding operation
@@ -111,7 +111,7 @@ class TagDatabase:
             is_local_peer: local operations processes differently than remote operations. They affects
                 `TorrentTag.local_operation` field which is used in `self.get_tags()` function.
 
-        Returns:
+        Returns: True if the operation has been added/updated, False otherwise.
         """
         self.logger.debug(f'Add tag operation. Infohash: {hexlify(operation.infohash)}, tag: {operation.tag}')
         peer = self._get_or_create(self.instance.Peer, public_key=operation.creator_public_key)
@@ -124,11 +124,11 @@ class TagDatabase:
             self.instance.TorrentTagOp(torrent_tag=torrent_tag, peer=peer, operation=operation.operation,
                                        clock=operation.clock, signature=signature)
             torrent_tag.update_counter(operation.operation, is_local_peer=is_local_peer)
-            return
+            return True
 
         # if it is a message from the past, then return
         if operation.clock <= op.clock:
-            return
+            return False
 
         # To prevent endless incrementing of the operation, we apply the following logic:
 
@@ -139,6 +139,7 @@ class TagDatabase:
         # 3. Update the operation entity
         op.set(operation=operation.operation, clock=operation.clock, signature=signature,
                updated_at=datetime.datetime.utcnow())
+        return True
 
     def _get_tags(self, infohash: bytes, condition: Callable[[], bool]) -> List[str]:
         """
@@ -188,11 +189,11 @@ class TagDatabase:
         peer = self.instance.Peer.get(public_key=operation.creator_public_key)
         tag = self.instance.Tag.get(name=operation.tag)
         torrent = self.instance.Torrent.get(infohash=operation.infohash)
-        if not torrent or not tag:
+        if not torrent or not tag or not peer:
             return 0
 
         torrent_tag = self.instance.TorrentTag.get(tag=tag, torrent=torrent)
-        if not torrent_tag or not peer:
+        if not torrent_tag:
             return 0
 
         op = self.instance.TorrentTagOp.get(torrent_tag=torrent_tag, peer=peer)

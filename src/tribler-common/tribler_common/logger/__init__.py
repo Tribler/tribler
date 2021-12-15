@@ -10,7 +10,7 @@ import yaml
 # note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
 class InfoFilter(logging.Filter):
     def filter(self, rec):
-        return rec.levelno == logging.INFO
+        return rec.levelno < logging.ERROR
 
 
 # note: this class is used by src/tribler-common/tribler_common/logger/config.yaml
