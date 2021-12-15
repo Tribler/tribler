@@ -130,7 +130,11 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.results_page.go_back_to_level(0)
 
     def update_loading_page(self, remote_results):
-        if not self.search_request or remote_results.get("uuid") != self.search_request.uuid:
+        if (
+            not self.search_request
+            or remote_results.get("uuid") != self.search_request.uuid
+            or self.currentWidget() == self.results_page
+        ):
             return
         peer = remote_results["peer"]
         self.search_request.peers_complete.add(peer)
