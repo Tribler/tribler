@@ -57,6 +57,8 @@ class MetadataEndpointBase(RESTEndpoint):
             "category": parameters.get('category'),
             "exclude_deleted": bool(int(parameters.get('exclude_deleted', 0)) > 0),
         }
+        if 'tags' in parameters:
+            sanitized['tags'] = parameters.getall('tags')
         if "remote" in parameters:
             sanitized["remote"] = (bool(int(parameters.get('remote', 0)) > 0),)
         if 'metadata_type' in parameters:

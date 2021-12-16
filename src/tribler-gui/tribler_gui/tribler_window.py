@@ -40,7 +40,7 @@ from psutil import LINUX
 
 from tribler_common.network_utils import NetworkUtils
 from tribler_common.process_checker import ProcessChecker
-from tribler_common.utilities import uri_to_path
+from tribler_common.utilities import parse_query, uri_to_path
 from tribler_common.version_manager import VersionHistory
 
 from tribler_core.utilities.unicode import hexlify
@@ -94,7 +94,6 @@ from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, Popul
 from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
-
 
 CHECKBOX_STYLESHEET = """
     QCheckBox::indicator { width: 16px; height: 16px;}
@@ -1027,10 +1026,13 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 
     def on_top_search_bar_return_pressed(self):
-        # Initiate a new search query and switch to search loading/results page
-        query = self.top_search_bar.text()
-        if query:
-            self.search_results_page.search(query)
+        query_text = self.top_search_bar.text()
+        if not query_text:
+            return
+
+        query = parse_query(query_text)
+        if self.search_results_page.search(query):
+            self._logger.info(f'Do search for query: {query}')
             self.deselect_all_menu_buttons()
             self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 

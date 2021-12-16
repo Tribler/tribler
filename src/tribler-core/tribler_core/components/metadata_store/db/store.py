@@ -610,6 +610,7 @@ class MetadataStore:
         category=None,
         attribute_ranges=None,
         infohash=None,
+        infohash_set=None,
         id_=None,
         complete_channel=None,
         self_checked_torrent=None,
@@ -626,7 +627,7 @@ class MetadataStore:
         if cls is None:
             cls = self.ChannelNode
         pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
-
+        infohash_set = infohash_set or ({infohash} if infohash else None)
         if popular:
             if metadata_type != REGULAR_TORRENT:
                 raise TypeError('With `popular=True`, only `metadata_type=REGULAR_TORRENT` is allowed')
@@ -678,7 +679,7 @@ class MetadataStore:
         pony_query = pony_query.where(lambda g: g.status != TODELETE) if exclude_deleted else pony_query
         pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
         pony_query = pony_query.where(lambda g: g.status != LEGACY_ENTRY) if exclude_legacy else pony_query
-        pony_query = pony_query.where(lambda g: g.infohash == infohash) if infohash else pony_query
+        pony_query = pony_query.where(lambda g: g.infohash in infohash_set) if infohash_set else pony_query
         pony_query = (
             pony_query.where(lambda g: g.health.self_checked == self_checked_torrent)
             if self_checked_torrent is not None

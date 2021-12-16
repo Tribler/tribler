@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from PyQt5 import uic
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_common.utilities import to_fts_query
+from tribler_common.utilities import Query, to_fts_query
 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
@@ -36,7 +36,7 @@ def format_search_loading_label(search_request):
 @dataclass
 class SearchRequest:
     uuid: uuid
-    query: str
+    query: Query
     peers: set
     peers_complete: set = field(default_factory=set)
     remote_results: list = field(default_factory=list)
@@ -49,6 +49,7 @@ class SearchRequest:
 class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         try:
             self.setupUi(self)
@@ -80,10 +81,15 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         query = self.search_request.query
         self.results_page.initialize_root_model(
             SearchResultsModel(
-                channel_info={"name": (tr("Search results for %s") % query) if len(query) < 50 else f"{query[:50]}..."},
+                channel_info={
+                    "name": (tr("Search results for %s") % query.original_query)
+                    if len(query.original_query) < 50
+                    else f"{query.original_query[:50]}..."
+                },
                 endpoint_url="search",
                 hide_xxx=self.results_page.hide_xxx,
-                text_filter=to_fts_query(query),
+                text_filter=to_fts_query(query.fts_text),
+                tags=list(query.tags),
                 type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
             )
         )
@@ -95,27 +101,32 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             and self.last_search_time is not None
             and time.time() - self.last_search_time < 1
         ):
-            logging.info("Same search query already sent within 500ms so dropping this one")
+            self._logger.info("Same search query already sent within 500ms so dropping this one")
             return False
         return True
 
-    def search(self, query):
-        if not self.check_can_show(query):
-            return
+    def search(self, query: Query) -> bool:
+        if not self.check_can_show(query.original_query):
+            return False
 
-        self.last_search_query = query
+        fts_query = to_fts_query(query.original_query)
+        if not fts_query:
+            return False
+
+        self.last_search_query = query.original_query
         self.last_search_time = time.time()
 
         # Trigger remote search
         def register_request(response):
+            self._logger.info(f'Request registered: {response}')
             self.search_request = SearchRequest(response["request_uuid"], query, set(response["peers"]))
             self.state_label.setText(format_search_loading_label(self.search_request))
             self.timeout_progress_bar.start()
             self.setCurrentWidget(self.loading_page)
 
-        params = {'txt_filter': to_fts_query(query), 'hide_xxx': self.hide_xxx}
-
+        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx}
         TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
+        return True
 
     def reset(self):
         if self.currentWidget() == self.results_page:

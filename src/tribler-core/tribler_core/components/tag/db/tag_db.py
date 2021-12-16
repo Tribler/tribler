@@ -1,8 +1,9 @@
 import datetime
 import logging
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Set
 
 from pony import orm
+from pony.orm import select
 from pony.utils import between
 
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
@@ -140,6 +141,12 @@ class TagDatabase:
         op.set(operation=operation.operation, clock=operation.clock, signature=signature,
                updated_at=datetime.datetime.utcnow())
 
+    @staticmethod
+    def _show_condition(torrent_tag):
+        """This function determines show condition for the torrent_tag"""
+        return torrent_tag.local_operation == TagOperationEnum.ADD.value or \
+               not torrent_tag.local_operation and torrent_tag.score >= SHOW_THRESHOLD
+
     def _get_tags(self, infohash: bytes, condition: Callable[[], bool]) -> List[str]:
         """
         Get tags that satisfy a given condition.
@@ -162,11 +169,7 @@ class TagDatabase:
         """
         self.logger.debug(f'Get tags. Infohash: {hexlify(infohash)}')
 
-        def show_condition(torrent_tag):
-            return torrent_tag.local_operation == TagOperationEnum.ADD.value or \
-                   not torrent_tag.local_operation and torrent_tag.score >= SHOW_THRESHOLD
-
-        return self._get_tags(infohash, show_condition)
+        return self._get_tags(infohash, self._show_condition)
 
     def get_suggestions(self, infohash: bytes) -> List[str]:
         """
@@ -181,6 +184,12 @@ class TagDatabase:
                    between(torrent_tag.score, HIDE_THRESHOLD + 1, SHOW_THRESHOLD - 1)
 
         return self._get_tags(infohash, show_suggestions_condition)
+
+    def get_infohashes(self, tags: Set[str]) -> List[bytes]:
+        """Get list of infohashes that belongs to the tag. Only tags with condition `_show_condition` will be returned
+        """
+        return select(tt.torrent.infohash for tt in self.instance.TorrentTag
+                      if self._show_condition(tt) and tt.tag.name in tags).fetch()
 
     def get_clock(self, operation: TagOperation) -> int:
         """ Get the clock (int) of operation.

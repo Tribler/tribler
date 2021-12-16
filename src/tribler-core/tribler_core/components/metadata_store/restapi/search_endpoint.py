@@ -53,11 +53,9 @@ class SearchEndpoint(MetadataEndpointBase):
     async def search(self, request):
         try:
             sanitized = self.sanitize_parameters(request.query)
+            tags = sanitized.pop('tags', None)
         except (ValueError, KeyError):
             return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
-
-        if not sanitized["txt_filter"]:
-            return RESTResponse({"error": "Filter parameter missing"}, status=HTTP_BAD_REQUEST)
 
         include_total = request.query.get('include_total', '')
 
@@ -75,9 +73,15 @@ class SearchEndpoint(MetadataEndpointBase):
             return search_results, total, max_rowid
 
         try:
+            with db_session:
+                if tags:
+                    lower_tags = {tag.lower() for tag in tags}
+                    infohash_set = self.tags_db.get_infohashes(lower_tags)
+                    sanitized['infohash_set'] = infohash_set
+
             search_results, total, max_rowid = await mds.run_threaded(search_db)
         except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
-            self._logger.error("Error while performing DB search: %s: %s", type(e).__name__, e)
+            self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
         self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
