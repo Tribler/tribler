@@ -1,13 +1,16 @@
 import binascii
 import logging
+import os
 import sys
 import traceback
 from base64 import b64decode, b64encode
 from code import InteractiveConsole
 
+from pathlib import Path
+
 from PyQt5.QtNetwork import QTcpServer
 
-from tribler_gui.utilities import connect
+from tribler_gui.utilities import connect, take_screenshot
 
 
 class CodeExecutor:
@@ -33,7 +36,7 @@ class CodeExecutor:
         else:
             connect(self.tcp_server.newConnection, self._on_new_connection)
 
-        self.shell = Console(locals=shell_variables or {})
+        self.shell = Console(locals=shell_variables or {}, logger=self.logger)
 
     def _on_new_connection(self):
         self.logger.info("CodeExecutor has new connection")
@@ -92,13 +95,29 @@ class CodeExecutor:
             self.sockets.remove(socket)
         return on_socket_disconnect_handler
 
+
 class Console(InteractiveConsole):
     last_traceback = None
+
+    def __init__(self, locals, logger):
+        super().__init__(locals=locals)
+        self.logger = logger
 
     def showtraceback(self) -> None:
         last_type, last_value, last_tb = sys.exc_info()
         try:
             self.last_traceback = ''.join(traceback.format_exception(last_type, last_value, last_tb))
+            self.take_screenshot()
             super().showtraceback()  # report the error to Sentry
         finally:
             del last_tb
+
+    def take_screenshot(self):
+        window = self.locals.get('window')
+        if not window:
+            self.logger.warning("Cannot take screenshot, window is not found in locals")
+        else:
+            app_tester_dir = self.locals.get('app_tester_dir')
+            screenshots_dir = Path(app_tester_dir or os.getcwd()) / "screenshots"
+            self.logger.info(f"Creating screenshot in {screenshots_dir}")
+            take_screenshot(window, screenshots_dir)

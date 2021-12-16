@@ -1,4 +1,5 @@
 import os
+import os.path
 import sys
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
