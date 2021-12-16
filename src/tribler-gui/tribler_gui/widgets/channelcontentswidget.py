@@ -162,7 +162,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.channel_options_menu = self.create_channel_options_menu()
         self.channel_options_button.setMenu(self.channel_options_menu)
-        connect(self.channel_description_container.became_hidden, self._run_brain_dead_refresh)
+        connect(self.channel_description_container.became_hidden, self.run_brain_dead_refresh)
         connect(self.channel_description_container.description_changed, self._description_changed)
 
     def _description_changed(self):
@@ -173,7 +173,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.model.channel_info["dirty"] = True
         self.update_labels()
 
-    def _run_brain_dead_refresh(self):
+    def run_brain_dead_refresh(self):
         if self.model:
             self.controller.brain_dead_refresh()
 

@@ -93,6 +93,10 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         )
         self.setCurrentWidget(self.results_page)
 
+        # After transitioning to the page with search results, we refresh the viewport since some rows might have been
+        # rendered already with an incorrect row height.
+        self.results_page.run_brain_dead_refresh()
+
     def check_can_show(self, query):
         if (
             self.last_search_query == query
