@@ -5,7 +5,6 @@ import sys
 import traceback
 from base64 import b64decode, b64encode
 from code import InteractiveConsole
-
 from pathlib import Path
 
 from PyQt5.QtNetwork import QTcpServer
@@ -99,7 +98,7 @@ class CodeExecutor:
 class Console(InteractiveConsole):
     last_traceback = None
 
-    def __init__(self, locals, logger):
+    def __init__(self, locals, logger):  # pylint: disable=redefined-builtin
         super().__init__(locals=locals)
         self.logger = logger
 
