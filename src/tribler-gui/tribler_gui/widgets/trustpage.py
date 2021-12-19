@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
-from tribler_gui.defs import GB, TB
+from tribler_gui.defs import GB, PB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect
@@ -18,7 +18,7 @@ class TrustSeriesPlot(TimeSeriesDataPlot):
         ]
         super().__init__(parent, 'Token balance over time', series, **kargs)
         self.setLabel('left', 'Data', units='B')
-        self.setLimits(yMin=-GB, yMax=TB)
+        self.setLimits(yMin=-GB, yMax=PB)
 
 
 class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
