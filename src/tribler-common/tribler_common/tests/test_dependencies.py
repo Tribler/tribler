@@ -37,6 +37,7 @@ async def test_get_dependencies():
     # assert that in each scope dependencies are exist
     assert list(get_dependencies(Scope.gui))
     assert list(get_dependencies(Scope.core))
+    assert list(get_dependencies(Scope.common))
 
 
 async def test_get_dependencies_wrong_scope():
