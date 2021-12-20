@@ -416,6 +416,7 @@ class ChannelContentModel(RemoteTableModel):
             and "torrents" not in self.columns
             and "torrents" in item
             and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE)
+            and role == Qt.DisplayRole
         ):
             return item["torrents"]
 

@@ -275,6 +275,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
 
             return self
 
+        @db_session
         def get_parent_nodes(self):
             full_path = {self: True}
             node = self

@@ -24,6 +24,7 @@ from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
+from tribler_gui.widgets.clickabletooltip import ClickableTooltipFilter
 from tribler_gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     ChannelPreviewModel,
@@ -96,6 +97,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channel_description_container.setHidden(True)
 
         self.explanation_tooltip_button.setHidden(True)
+        self._tooltip_filter = None
 
     def hide_all_labels(self):
         self.edit_channel_contents_top_bar.setHidden(True)
@@ -173,6 +175,24 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channel_options_button.setMenu(self.channel_options_menu)
         connect(self.channel_description_container.became_hidden, self.run_brain_dead_refresh)
         connect(self.channel_description_container.description_changed, self._description_changed)
+
+        self._tooltip_filter = ClickableTooltipFilter()
+        self.controller.table_view.viewport().installEventFilter(self._tooltip_filter)
+        connect(self._tooltip_filter.tooltip_link_clicked, self.intialize_with_channel_by_address)
+
+    def intialize_with_channel_by_address(self, address: str):
+        public_key, id_ = address.split(":")
+
+        def on_details_received(response):
+            if not response:
+                return
+            self.initialize_with_channel(response)
+
+        TriblerNetworkRequest(
+            f"metadata/{public_key}/{id_}",
+            on_details_received,
+            method='GET',
+        )
 
     def _description_changed(self):
         # Initialize commit timer on channel description change

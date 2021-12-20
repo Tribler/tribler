@@ -12,6 +12,7 @@ from tribler_core.components.tag.db.tag_db import TagDatabase
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
 json2pony_columns = {
+    'public_key': 'public_key',
     'category': "tags",
     'name': "title",
     'size': "size",

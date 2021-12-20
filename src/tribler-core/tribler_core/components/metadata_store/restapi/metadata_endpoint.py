@@ -65,7 +65,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 web.delete('', self.delete_channel_entries),
                 web.get('/torrents/{infohash}/health', self.get_torrent_health),
                 web.patch(r'/{public_key:\w*}/{id:\w*}', self.update_channel_entry),
-                web.get(r'/{public_key:\w*}/{id:\w*}', self.get_channel_entries),
+                web.get(r'/{public_key:\w*}/{id:\w*}', self.get_channel_entry),
             ]
         )
 
@@ -158,18 +158,19 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
 
     @docs(
         tags=['Metadata'],
-        summary='Get channel entries.',
-        responses={200: {'description': 'Returns a list of entries'}, HTTP_NOT_FOUND: {'schema': HandledErrorSchema}},
+        summary='Get channel entry.',
+        responses={200: {'description': 'Returns the entry'}, HTTP_NOT_FOUND: {'schema': HandledErrorSchema}},
     )
-    async def get_channel_entries(self, request):
+    async def get_channel_entry(self, request):
         public_key = unhexlify(request.match_info['public_key'])
         id_ = request.match_info['id']
         with db_session:
             entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
 
             if entry:
-                # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
                 entry_dict = entry.to_simple_dict()
+                parent_nodes = entry.get_parent_nodes()
+                entry_dict.update({"parent_nodes": list(p.to_simple_dict() for p in parent_nodes)})
             else:
                 return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
 
