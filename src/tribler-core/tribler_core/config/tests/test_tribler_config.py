@@ -11,9 +11,6 @@ from tribler_core.utilities.path_util import Path
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 
-# fmt: off
-
-
 @pytest.mark.asyncio
 async def test_create(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
@@ -49,6 +46,23 @@ async def test_load_write(tmpdir):
     assert config.general.version_checker_enabled is False
     assert config.libtorrent.port is None
     assert config.libtorrent.proxy_type == 2
+    assert config.file == tmpdir / filename
+
+
+@pytest.mark.asyncio
+async def test_load_write_nonascii(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+    filename = 'test_read_write.ini'
+
+    config.download_defaults.saveas = 'ыюя'
+
+    assert not config.file
+    config.write(tmpdir / filename)
+    assert config.file == tmpdir / filename
+
+    config = TriblerConfig.load(file=tmpdir / filename, state_dir=tmpdir)
+
+    assert config.download_defaults.saveas == 'ыюя'
     assert config.file == tmpdir / filename
 
 

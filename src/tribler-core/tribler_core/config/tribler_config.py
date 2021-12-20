@@ -107,7 +107,7 @@ class TriblerConfig(TriblerConfigSections):
                                                        'anon_proxy_auth': ...,
                                                        'anon_listen_port': ...,
                                                        'anon_proxy_server_ip': ...}})
-        conf = configobj.ConfigObj(dictionary)
+        conf = configobj.ConfigObj(dictionary, encoding='utf-8')
         conf.filename = str(file)
         conf.write()
 
