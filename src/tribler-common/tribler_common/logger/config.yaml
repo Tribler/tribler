@@ -76,13 +76,13 @@ handlers:
         level: DEBUG
         formatter: standard
         filters: [info_filter]
-        stream: ext://sys.stdout
+        stream: ext://tribler_common.logger.streams.stdout_wrapper
 
     error_console:
         class: logging.StreamHandler
         level: ERROR
         formatter: error
-        stream: ext://sys.stderr
+        stream: ext://tribler_common.logger.streams.stderr_wrapper
 
 
 # Root Logger Configuration
