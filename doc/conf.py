@@ -36,18 +36,19 @@ for component in tribler_components:
 from tribler_common.dependencies import Scope, get_dependencies
 from tribler_common.patch_import import patch_import
 
-modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
+modules_to_mock = set(get_dependencies(scope=Scope.core)) | \
+                  set(get_dependencies(scope=Scope.common)) | {'libtorrent', 'validate'}
 
 with patch_import(modules=modules_to_mock):
     from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-add_endpoint = RootEndpoint.add_endpoint
-RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
-    if path not in ['/ipv8', '/market', '/wallets'] else None
+    add_endpoint = RootEndpoint.add_endpoint
+    RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
+        if path not in ['/ipv8', '/market', '/wallets'] else None
 
-# Extract Swagger docs
-from extract_swagger import extract_swagger  # noqa: I100
+    # Extract Swagger docs
+    from extract_swagger import extract_swagger  # noqa: I100
 
-asyncio.run(extract_swagger('restapi/swagger.yaml'))
+    asyncio.run(extract_swagger('restapi/swagger.yaml'))
 
 # -- General configuration ------------------------------------------------
 
