@@ -19,6 +19,7 @@ import tribler_gui
 import tribler_gui.core_manager as core_manager
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.tests.gui_test_data import negative_token_balance_history
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
 from tribler_gui.utilities import connect
@@ -584,6 +585,15 @@ def test_trust_page(window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
     screenshot(window, name="trust_page_values")
+
+
+@pytest.mark.guitest
+def test_big_negative_token_balance(window):
+    QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
+    wait_for_variable(window, "trust_page.history")
+    window.trust_page.history = negative_token_balance_history
+    window.trust_page.plot_absolute_values()
+    screenshot(window, name="big_negative_token_balance")
 
 
 @pytest.mark.guitest

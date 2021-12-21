@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
-from tribler_gui.defs import GB, TB
+from tribler_gui.defs import PB, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect
@@ -18,7 +18,7 @@ class TrustSeriesPlot(TimeSeriesDataPlot):
         ]
         super().__init__(parent, 'Token balance over time', series, **kargs)
         self.setLabel('left', 'Data', units='B')
-        self.setLimits(yMin=-GB, yMax=TB)
+        self.setLimits(yMin=-TB, yMax=PB)
 
 
 class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
@@ -83,6 +83,15 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
         """
         Plot the evolution of the token balance.
         """
+        if self.history:
+            min_balance = min(item['balance'] for item in self.history)
+            max_balance = max(item['balance'] for item in self.history)
+            half = (max_balance - min_balance) / 2
+            min_limit = min(-TB, min_balance - half)
+            max_limit = max(PB, max_balance + half)
+            self.trust_plot.setLimits(yMin=min_limit, yMax=max_limit)
+            self.trust_plot.setYRange(min_balance, max_balance)
+
         # Convert all dates to a datetime object
         for history_item in self.history:
             timestamp = history_item["timestamp"] // 1000
