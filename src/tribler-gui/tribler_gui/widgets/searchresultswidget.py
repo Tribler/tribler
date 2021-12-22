@@ -95,6 +95,10 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         )
         self.setCurrentWidget(self.results_page)
 
+        # After transitioning to the page with search results, we refresh the viewport since some rows might have been
+        # rendered already with an incorrect row height.
+        self.results_page.run_brain_dead_refresh()
+
     def check_can_show(self, query):
         if (
             self.last_search_query == query
@@ -133,7 +137,11 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.results_page.go_back_to_level(0)
 
     def update_loading_page(self, remote_results):
-        if not self.search_request or remote_results.get("uuid") != self.search_request.uuid:
+        if (
+            not self.search_request
+            or remote_results.get("uuid") != self.search_request.uuid
+            or self.currentWidget() == self.results_page
+        ):
             return
         peer = remote_results["peer"]
         self.search_request.peers_complete.add(peer)

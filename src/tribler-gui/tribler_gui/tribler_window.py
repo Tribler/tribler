@@ -38,7 +38,7 @@ from PyQt5.QtWidgets import (
 
 from psutil import LINUX
 
-from tribler_common.network_utils import NetworkUtils
+from tribler_common.network_utils import default_network_utils
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.utilities import parse_query, uri_to_path
 from tribler_common.version_manager import VersionHistory
@@ -148,11 +148,18 @@ class TriblerWindow(QMainWindow):
 
         self.root_state_dir = Path(root_state_dir)
         self.gui_settings = settings
-        api_port = api_port or int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
+        api_port = api_port or default_network_utils.get_first_free_port(
+            start=int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
+        )
+        if not default_network_utils.is_port_free(api_port):
+            raise RuntimeError(
+                "Tribler configuration conflicts with the current OS state: "
+                "REST API port %i already in use" % api_port
+            )
+
         api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
         set_api_key(self.gui_settings, api_key)
 
-        api_port = NetworkUtils().get_first_free_port(start=api_port)
         request_manager.port, request_manager.key = api_port, api_key
 
         self.tribler_started = False
@@ -365,10 +372,14 @@ class TriblerWindow(QMainWindow):
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
 
+        def update_channels_state(_):
+            self.channels_menu_list.load_channels()
+            self.add_to_channel_dialog.clear_channels_tree()
+
         def create_channel_callback(channel_name):
             TriblerNetworkRequest(
                 "channels/mychannel/0/channels",
-                self.channels_menu_list.load_channels,
+                update_channels_state,
                 method='POST',
                 raw_data=json.dumps({"name": channel_name}) if channel_name else None,
             )
@@ -1021,8 +1032,6 @@ class TriblerWindow(QMainWindow):
         query = self.top_search_bar.text()
         if query and self.search_results_page.has_results:
             self.deselect_all_menu_buttons()
-            if self.stackedWidget.currentIndex() == PAGE_SEARCH_RESULTS:
-                self.search_results_page.reset()
             self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 
     def on_top_search_bar_return_pressed(self):
@@ -1048,9 +1057,9 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_popular(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_popular.setChecked(True)
-        # We want to reset the view every time to show updates
-        self.popular_page.go_back_to_level(0)
-        self.popular_page.reset_view()
+        if self.stackedWidget.currentIndex() == PAGE_POPULAR:
+            self.popular_page.go_back_to_level(0)
+            self.popular_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
 

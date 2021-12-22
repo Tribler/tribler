@@ -186,6 +186,11 @@ class TriblerNetworkRequest(QObject):
         request_manager.add_request(self)
 
     def on_finished(self, request):
+        if self.reply is None:
+            # Fix for rare race condition where reply is overwritten by e.g. previous call to destruct
+            self.destruct()
+            return
+
         status_code = self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
 
         # Set the status code in the performed requests log

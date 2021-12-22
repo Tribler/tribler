@@ -8,6 +8,7 @@ from itertools import count
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar, Union
 
+from tribler_common.network_utils import default_network_utils
 from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.config.tribler_config import TriblerConfig
@@ -46,6 +47,12 @@ def create_state_directory_structure(state_dir: Path):
     (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
 
 
+def reserve_ports(ports_list: List[None, int]):
+    for port in ports_list:
+        if port is not None:
+            default_network_utils.remember(port)
+
+
 class Session:
     _next_session_id = count(1)
     _default: Optional[Session] = None
@@ -64,6 +71,13 @@ class Session:
         self.components: Dict[Type[Component], Component] = {}
         for component in components:
             self.register(component.__class__, component)
+
+        # Reserve various (possibly) fixed ports to prevent
+        # components from occupying those accidentally
+        reserve_ports([config.libtorrent.port,
+                       config.api.http_port,
+                       config.api.https_port,
+                       config.ipv8.port])
 
     def __repr__(self):
         return f'<{self.__class__.__name__}:{self.id}>'

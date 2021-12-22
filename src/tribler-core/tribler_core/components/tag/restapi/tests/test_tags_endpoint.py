@@ -21,7 +21,7 @@ from tribler_core.utilities.unicode import hexlify
 @pytest.fixture
 def tags_endpoint(tags_db):
     community = Mock()
-    community.my_peer.key = TEST_PERSONAL_KEY
+    community.tags_key = TEST_PERSONAL_KEY
     community.sign = Mock(return_value=b'')
     endpoint = TagsEndpoint(tags_db, community)
     return endpoint

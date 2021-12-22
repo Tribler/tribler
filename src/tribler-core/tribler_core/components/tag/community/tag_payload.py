@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 
 from ipv8.messaging.payload_dataclass import overwrite_dataclass, type_from_format
-from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+
 
 dataclass = overwrite_dataclass(dataclass)
 
@@ -22,13 +22,8 @@ class TagOperation:
     creator_public_key: type_from_format('74s')
     tag: str
 
-    def validate(self):
-        assert MIN_TAG_LENGTH <= len(self.tag) <= MAX_TAG_LENGTH, 'Tag length should be in range [3..50]'
-        assert not any(ch.isupper() for ch in self.tag), 'Tag should not contain upper-case letters'
-        assert ' ' not in self.tag, 'Tag should not contain any spaces'
-
-        # try to convert operation into Enum
-        assert TagOperationEnum(self.operation)
+    def __str__(self):
+        return f'(t:{self.tag}({self.clock}), o:{self.operation}, i:{self.infohash.hex()})'
 
 
 RAW_DATA = type_from_format('varlenH')

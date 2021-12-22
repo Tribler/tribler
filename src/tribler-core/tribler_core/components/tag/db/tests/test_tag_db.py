@@ -57,7 +57,7 @@ class TestTagDB(TestBase):
                       is_local_peer=False, clock=None):
         operation = self.create_operation(infohash, tag, peer, operation, clock)
         operation.clock = clock or self.db.get_clock(operation) + 1
-        self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
+        assert self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
         commit()
 
     def add_operation_set(self, dictionary):

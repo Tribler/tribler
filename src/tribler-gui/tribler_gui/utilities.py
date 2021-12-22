@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import sys
+import time
 import traceback
 import types
 from datetime import datetime, timedelta
@@ -11,7 +12,8 @@ from typing import Callable
 from urllib.parse import quote_plus
 from uuid import uuid4
 
-from PyQt5.QtCore import QCoreApplication, QLocale, QSettings, QTranslator, pyqtSignal
+from PyQt5.QtCore import QCoreApplication, QLocale, QPoint, QSettings, QTranslator, pyqtSignal
+from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
@@ -238,8 +240,9 @@ def format_api_key(api_key) -> str:
         # settings compatibility with previous versions of Tribler
         return api_key
 
-    raise ValueError(f'Got unexpected value type of api_key from gui settings '
-                     f'(should be str or bytes): {type(api_key).__name__}')
+    raise ValueError(
+        f'Got unexpected value type of api_key from gui settings ' f'(should be str or bytes): {type(api_key).__name__}'
+    )
 
 
 def set_api_key(gui_settings: QSettings, api_key: str):
@@ -459,3 +462,12 @@ def get_translator(language=None):
     filename = ""
     translator.load(locale, filename, directory=TRANSLATIONS_DIR)
     return translator
+
+
+def take_screenshot(window, screenshots_dir):
+    timestamp = int(time.time())
+    pixmap = QPixmap(window.rect().size())
+    window.render(pixmap, QPoint(), QRegion(window.rect()))
+    screenshots_dir.mkdir(exist_ok=True)
+    img_name = 'exception_screenshot_%d.jpg' % timestamp
+    pixmap.save(str(screenshots_dir / img_name))

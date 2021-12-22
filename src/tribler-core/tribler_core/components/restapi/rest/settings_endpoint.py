@@ -6,7 +6,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Boolean
 
-from tribler_common.network_utils import NetworkUtils
+from tribler_common.network_utils import default_network_utils
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
@@ -44,7 +44,7 @@ class SettingsEndpoint(RESTEndpoint):
         self._logger.info(f'Get settings. Request: {request}')
         return RESTResponse({
             "settings": self.tribler_config.dict(),
-            "ports": list(NetworkUtils.ports_in_use)
+            "ports": list(default_network_utils.ports_in_use)
         })
 
     @docs(

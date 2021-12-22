@@ -1,3 +1,5 @@
+from pathlib import PurePosixPath
+
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
@@ -15,7 +17,7 @@ def convert_to_files_tree_format(download_info):
     files = download_info['files']
     out = []
     for file in sorted(files, key=lambda x: x['index']):
-        file_path_parts = file['name'].split('/')
+        file_path_parts = PurePosixPath(file['name']).parts
         file_path = [download_info['name'], *file_path_parts]
         if len(files) == 1:
             # Special case of a torrent consisting of a single file
@@ -68,13 +70,20 @@ class DownloadsDetailsTabWidget(QTabWidget):
         connect(self.window().download_files_list.selected_files_changed, self._restart_changes_timer)
 
     def update_with_download(self, download):
-        did_change = self.current_download != download
+        # If the same infohash gets re-added with different parameters (e.g. different selected files),
+        # that's a different download. Thus, we must differ between the old one and the new one, to prevent
+        # "caching" the previous parameters. The most reliable way to make difference is by time_added property
+        did_change = (
+            self.current_download is None
+            or self.current_download.get('infohash') != download.get('infohash')
+            or self.current_download.get('time_added') != download.get('time_added')
+        )
+        self.current_download = download
         # When we switch to another download, we want to fixate the changes user did to selected files.
         # Also, we have to stop the change batching time to prevent carrying the event to the new download
         if did_change and self._batch_changes_timer.isActive():
             self._batch_changes_timer.stop()
             self.set_included_files()
-        self.current_download = download
         self.update_pages(new_download=did_change)
 
     @staticmethod
@@ -184,6 +193,8 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 DownloadsDetailsTabWidget.update_peer_row(item, peer)
 
     def set_included_files(self):
+        if not self.current_download:
+            return
         included_list = self.window().download_files_list.get_selected_files_indexes()
         post_data = {"selected_files": included_list}
         TriblerNetworkRequest(

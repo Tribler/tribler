@@ -11,7 +11,7 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_common.network_utils import NetworkUtils
+from tribler_common.network_utils import default_network_utils
 from tribler_common.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.components.libtorrent.download_manager.download import Download
@@ -59,20 +59,6 @@ def _tribler_config(tribler_state_dir, tribler_download_dir) -> TriblerConfig:
     config.chant.enabled = False
     config.resource_monitor.enabled = False
     config.bootstrap.enabled = False
-    return config
-
-
-def get_free_port():
-    return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port()
-
-
-@pytest.fixture
-def seed_config(tribler_config, tmp_path_factory):
-    config = tribler_config.copy(deep=True)
-    config.set_state_dir(tmp_path_factory.mktemp("seeder"))
-    config.libtorrent.enabled = True
-    config.libtorrent.port = get_free_port()
-
     return config
 
 
@@ -144,7 +130,7 @@ selected_ports = set()
 
 @pytest.fixture(name="free_port")
 def fixture_free_port():
-    return NetworkUtils(remember_checked_ports_enabled=True).get_random_free_port(start=1024, stop=50000)
+    return default_network_utils.get_random_free_port(start=1024, stop=50000)
 
 
 @pytest.fixture

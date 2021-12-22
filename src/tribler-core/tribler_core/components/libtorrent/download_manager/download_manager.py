@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
-from tribler_common.network_utils import NetworkUtils
+from tribler_common.network_utils import default_network_utils
 from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
 from tribler_common.utilities import uri_to_path
 
@@ -221,7 +221,7 @@ class DownloadManager(TaskManager):
         else:
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
 
-        libtorrent_port = self.config.port or NetworkUtils().get_random_free_port()
+        libtorrent_port = self.config.port or default_network_utils.get_random_free_port()
         self._libtorrent_port = libtorrent_port
         self._logger.info(f'Libtorrent port: {libtorrent_port}')
         if hops == 0:

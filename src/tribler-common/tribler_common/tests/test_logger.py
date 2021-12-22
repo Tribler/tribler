@@ -1,7 +1,9 @@
 import logging
+from io import BytesIO, TextIOWrapper
 from unittest.mock import MagicMock, Mock, call, patch
 
 from tribler_common.logger import get_logger_config_path, setup_logging
+from tribler_common.logger_streams import StreamWrapper
 
 
 @patch('tribler_common.logger.__file__', '/a/b/c/logger.py')
@@ -27,8 +29,9 @@ def test_setup_logging_no_config(basic_config: Mock, print_: Mock, stderr: Mock,
 
     setup_logging('<app-mode>', '<log-dir>', config_path)
 
-    logger.info.assert_called_once_with("Load logger config: app_mode=<app-mode>, "
-                                        "config_path=<config-path>, dir=<log-dir>")
+    logger.info.assert_called_once_with(
+        "Load logger config: app_mode=<app-mode>, " "config_path=<config-path>, dir=<log-dir>"
+    )
     print_.assert_called_once_with("Logger config not found in <config-path>. Using default configs.", file=stderr)
     basic_config.assert_called_once_with(level=logging.INFO, stream=stdout)
 
@@ -55,10 +58,13 @@ def test_setup_logging(logger: Mock, dict_config: Mock, yaml_safe_load: Mock):
     yaml_safe_load.assert_called_once_with('<config-text>')
     dict_config.assert_called_once_with('<config>')
     assert logger.info.call_count == 2
-    logger.info.assert_has_calls([
-        call('Load logger config: app_mode=<app-mode>, config_path=<config-path>, dir=<log-dir>'),
-        call("Config loaded for app_mode=<app-mode>")
-    ])
+    logger.info.assert_has_calls(
+        [
+            call('Load logger config: app_mode=<app-mode>, config_path=<config-path>, dir=<log-dir>'),
+            call("Config loaded for app_mode=<app-mode>"),
+        ]
+    )
+
 
 @patch('tribler_common.logger.logger')
 @patch('sys.stdout')
@@ -79,7 +85,65 @@ def test_setup_logging_exception(basic_config: Mock, print_: Mock, stderr: Mock,
 
     setup_logging('<app-mode>', log_dir, config_path)
 
-    logger.info.assert_called_once_with("Load logger config: app_mode=<app-mode>, "
-                                        "config_path=<config-path>, dir=<log-dir>")
+    logger.info.assert_called_once_with(
+        "Load logger config: app_mode=<app-mode>, " "config_path=<config-path>, dir=<log-dir>"
+    )
     print_.assert_called_once_with('Error in loading logger config. Using default configs. Error:', error, file=stderr)
     basic_config.assert_called_once_with(level=logging.INFO, stream=stdout)
+
+
+def test_stream_wrapper_write_ascii():
+    stream = MagicMock()
+    wrapper = StreamWrapper(stream)
+    wrapper.write('hello')
+    stream.write.assert_called_once_with('hello')
+
+    byte_stream = BytesIO()
+    stream = TextIOWrapper(byte_stream, encoding='ascii')
+    wrapper = StreamWrapper(stream)
+    wrapper.write("hello")
+    wrapper.flush()
+    assert byte_stream.getvalue() == b"hello"
+
+
+def test_stream_wrapper_write_non_ascii_without_exception():
+    stream = MagicMock()
+    wrapper = StreamWrapper(stream)
+    wrapper.write('hello привет')
+    stream.write.assert_called_once_with('hello привет')
+
+    byte_stream = BytesIO()
+    stream = TextIOWrapper(byte_stream, encoding='cp1251')
+    wrapper = StreamWrapper(stream)
+    wrapper.write("hello привет")
+    wrapper.flush()
+    assert byte_stream.getvalue() == 'hello привет'.encode('cp1251')
+
+
+def test_stream_wrapper_write_non_ascii_with_exception():
+    stream = MagicMock(encoding='ascii')
+    stream.write.side_effect = [UnicodeEncodeError('ascii', 'zzz', 0, 1, 'error message'), None]
+    wrapper = StreamWrapper(stream)
+    wrapper.write('hello привет')
+    stream.write.assert_has_calls([call('hello привет'), call('hello \\u043f\\u0440\\u0438\\u0432\\u0435\\u0442')])
+
+    byte_stream = BytesIO()
+    stream = TextIOWrapper(byte_stream, encoding='ascii')
+    wrapper = StreamWrapper(stream)
+    wrapper.write("hello привет")
+    wrapper.flush()
+    assert byte_stream.getvalue() == b'hello \\u043f\\u0440\\u0438\\u0432\\u0435\\u0442'
+
+
+def test_stream_flush_and_close():
+    stream = MagicMock()
+    wrapper = StreamWrapper(stream)
+    wrapper.write('hello')
+
+    stream.flush.assert_not_called()
+    wrapper.flush()
+    stream.flush.assert_called_once()
+
+    stream.close.assert_not_called()
+    wrapper.close()
+    stream.close.assert_called_once()

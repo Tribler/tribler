@@ -189,8 +189,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 self.window().download_details_widget.current_download is not None
                 and self.window().download_details_widget.current_download["infohash"] == download["infohash"]
             ):
-                self.window().download_details_widget.current_download = download
-                self.window().download_details_widget.update_pages()
+                self.window().download_details_widget.update_with_download(download)
 
         self.window().downloads_list.addTopLevelItems(items)
         for item in items:
@@ -334,6 +333,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if action != 2:
             for selected_item in self.selected_items:
                 infohash = selected_item.download_info["infohash"]
+                if self.window().download_details_widget.current_download.get(infohash) == infohash:
+                    self.window().download_details_widget.current_download = None
 
                 TriblerNetworkRequest(
                     f"downloads/{infohash}",

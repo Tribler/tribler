@@ -96,7 +96,7 @@ class TagsEndpoint(RESTEndpoint):
         removed_tags = old_tags - new_tags
 
         # Create individual tag operations for the added/removed tags
-        public_key = self.community.my_peer.key.pub().key_to_bin()
+        public_key = self.community.tags_key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
             type_of_operation = TagOperationEnum.ADD if tag in added_tags else TagOperationEnum.REMOVE
             operation = TagOperation(infohash=infohash, operation=type_of_operation, clock=0,

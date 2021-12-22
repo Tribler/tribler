@@ -21,10 +21,14 @@ class ErrorHandler:
         self._tribler_stopped = False
 
     def gui_error(self, *exc_info):
+        if exc_info and len(exc_info) == 3:
+            info_type, info_error, tb = exc_info
+            text = "".join(traceback.format_exception(info_type, info_error, tb))
+            self._logger.error(text)
+
         if self._tribler_stopped:
             return
 
-        info_type, info_error, tb = exc_info
         if SentryReporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
             self._logger.info(f'GUI error was suppressed and not sent to Sentry: {info_type.__name__}: {info_error}')
             return
@@ -33,14 +37,11 @@ class ErrorHandler:
             return
         self._handled_exceptions.add(info_type)
 
-        text = "".join(traceback.format_exception(info_type, info_error, tb))
-
         is_core_exception = issubclass(info_type, CoreError)
         if is_core_exception:
             text = text + self.tribler_window.core_manager.last_core_stderr_output
             self._stop_tribler(text)
 
-        self._logger.error(text)
         reported_error = ReportedError(
             type=type(info_type).__name__,
             text=text,
