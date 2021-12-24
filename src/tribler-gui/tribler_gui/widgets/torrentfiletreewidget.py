@@ -124,9 +124,9 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
         column = self.treeWidget().sortColumn()
 
         if column == SIZE_COL:
-            return float(self.file_size) > float(other.file_size)
+            return float(self.file_size or 0) > float(other.file_size or 0)
         if column == PROGRESS_COL:
-            return int(self.file_progress * 100) > int(other.file_progress * 100)
+            return int((self.file_progress or 0) * 100) > int((other.file_progress or 0) * 100)
         return self.text(column) > other.text(column)
 
 
