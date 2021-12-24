@@ -13,13 +13,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
-
-tribler_components = [
-    os.path.join(src_dir, "tribler"),
-]
-
-for component in tribler_components:
-    sys.path.append(str(component))
+sys.path.append(src_dir)
 
 from tribler.core.version import version_id
 version_str = version_id.split('-')[0]
