@@ -29,7 +29,8 @@ from tribler_gui.defs import (
     TAG_BORDER_COLOR,
     TAG_HEIGHT,
     TAG_HORIZONTAL_MARGIN,
-    TAG_TEXT_COLOR, TAG_TEXT_HORIZONTAL_PADDING,
+    TAG_TEXT_COLOR,
+    TAG_TEXT_HORIZONTAL_PADDING,
     TAG_TOP_MARGIN,
     WINDOWS,
 )
@@ -70,7 +71,7 @@ def draw_progress_bar(painter, rect, progress=0.0):
     r = rect
 
     x = r.x() + outer_margin
-    y = r.y() + (r.height() - bar_height) / 2
+    y = r.y() + (r.height() - bar_height) // 2
     h = bar_height
 
     # Draw background rect
@@ -151,7 +152,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.button_box = QRect()
         self.button_box_extended_border_ratio = float(1.0)
 
-    def get_bool_gui_setting(self, setting_name: str, default: bool=False):
+    def get_bool_gui_setting(self, setting_name: str, default: bool = False):
         """
         Get a particular boolean GUI setting.
         The reason why this is a separate method is that there are some additional checks that need to be done
@@ -207,8 +208,10 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
         # Check if we hover over the 'edit tags' button
         new_hovering_state = False
-        if self.hover_index != self.no_index and \
-                self.hover_index.column() == index.model().column_position[Column.NAME]:
+        if (
+            self.hover_index != self.no_index
+            and self.hover_index.column() == index.model().column_position[Column.NAME]
+        ):
             if index in index.model().edit_tags_rects:
                 rect = index.model().edit_tags_rects[index]
                 if rect.contains(pos):
@@ -228,9 +231,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
     @staticmethod
     def split_rect_into_squares(r, buttons):
         x_border = 2
-        side_size = min(r.width() / len(buttons), r.height() - x_border)
-        y_border = (r.height() - side_size) / 2
-        x_start = r.left() + (r.width() - len(buttons) * side_size) / 2  # Center the squares horizontally
+        side_size = min(r.width() // len(buttons), r.height() - x_border)
+        y_border = (r.height() - side_size) // 2
+        x_start = r.left() + (r.width() - len(buttons) * side_size) // 2  # Center the squares horizontally
         for n, button in enumerate(buttons):
             x = x_start + n * side_size
             y = r.top() + y_border
@@ -281,7 +284,7 @@ class ChannelStateMixin:
         r = rect
         indicator_border = 1
         indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
-        y = r.top() + (r.height() - indicator_side) / 2
+        y = r.top() + (r.height() - indicator_side) // 2
         x = r.left() + indicator_border
         w = indicator_side
         h = indicator_side
@@ -343,13 +346,17 @@ class TagsMixin:
     edit_tags_icon = QIcon(get_image_path("edit_white.png"))
     edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
 
-    def draw_title_and_tags(self, painter: QPainter, option: QStyleOptionViewItem,
-                            index: QModelIndex, data_item: Dict) -> None:
+    def draw_title_and_tags(
+        self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
+    ) -> None:
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
         painter.setPen(Qt.white)
-        painter.drawText(QRectF(title_text_pos.x() + 6, title_text_pos.y(), option.rect.width() - 6, 28),
-                         Qt.AlignVCenter, data_item["name"])
+        painter.drawText(
+            QRectF(title_text_pos.x() + 6, title_text_pos.y(), option.rect.width() - 6, 28),
+            Qt.AlignVCenter,
+            data_item["name"],
+        )
 
         cur_tag_x = option.rect.x() + 6
         cur_tag_y = option.rect.y() + TAG_TOP_MARGIN
@@ -383,14 +390,15 @@ class TagsMixin:
             painter.setPen(TAG_BORDER_COLOR)
             path = QPainterPath()
             rect = QRectF(cur_tag_x, cur_tag_y, tag_box_width, TAG_HEIGHT)
-            path.addRoundedRect(rect, TAG_HEIGHT / 2, TAG_HEIGHT / 2)
+            path.addRoundedRect(rect, TAG_HEIGHT // 2, TAG_HEIGHT // 2)
             painter.fillPath(path, TAG_BACKGROUND_COLOR)
             painter.drawPath(path)
 
             painter.setPen(Qt.white)
-            text_pos = rect.topLeft() + QPointF(TAG_TEXT_HORIZONTAL_PADDING,
-                                                painter.fontMetrics().ascent() +
-                                                ((rect.height() - painter.fontMetrics().height()) / 2) - 1)
+            text_pos = rect.topLeft() + QPointF(
+                TAG_TEXT_HORIZONTAL_PADDING,
+                painter.fontMetrics().ascent() + ((rect.height() - painter.fontMetrics().height()) // 2) - 1,
+            )
             painter.setPen(TAG_TEXT_COLOR)
             painter.drawText(text_pos, tag_text)
 
@@ -624,8 +632,8 @@ class SubscribeToggleControl(QObject, CheckClickedMixin):
 
         painter.save()
 
-        x = rect.x() + (rect.width() - self._width) / 2
-        y = rect.y() + (rect.height() - self._height) / 2
+        x = rect.x() + (rect.width() - self._width) // 2
+        y = rect.y() + (rect.height() - self._height) // 2
 
         offset = self._end_offset[toggled]()
         p = painter
@@ -720,8 +728,8 @@ class CommitStatusControl(QObject, CheckClickedMixin):
         elif state == COMMIT_STATUS_UPDATED:
             icon = self.updated_icon
 
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
+        x = rect.left() + (rect.width() - self.w) // 2
+        y = rect.top() + (rect.height() - self.h) // 2
         icon_rect = QRect(x, y, self.w, self.h)
 
         icon.paint(painter, icon_rect)
@@ -760,7 +768,7 @@ class HealthStatusDisplay(QObject):
         painter.save()
 
         # Indicator ellipse rectangle
-        y = r.top() + (r.height() - self.indicator_side) / 2
+        y = r.top() + (r.height() - self.indicator_side) // 2
         x = r.left() + self.indicator_border
         w = self.indicator_side
         h = self.indicator_side
