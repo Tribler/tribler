@@ -34,8 +34,8 @@ class FloatingAnimationWidget(QLabel):
         if not parent_rect:
             return
 
-        x = parent_rect.width() / 2 - self.width() / 2
-        y = parent_rect.height() / 2 - self.height() / 2
+        x = parent_rect.width() // 2 - self.width() // 2
+        y = parent_rect.height() // 2 - self.height() // 2
         self.setGeometry(x, y, self.width(), self.height())
 
     def resizeEvent(self, event):
@@ -48,6 +48,7 @@ class TriblerContentTableView(QTableView):
     This table view is designed to support lazy loading.
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
+
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
@@ -265,8 +266,9 @@ class TriblerContentTableView(QTableView):
 
     def save_edited_tags(self, index: QModelIndex, tags: List[str]):
         data_item = self.model().data_items[index.row()]
-        TriblerNetworkRequest(f"tags/{data_item['infohash']}",
-                              lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
-                              raw_data=json.dumps({"tags": tags}),
-                              method='PATCH',
+        TriblerNetworkRequest(
+            f"tags/{data_item['infohash']}",
+            lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
+            raw_data=json.dumps({"tags": tags}),
+            method='PATCH',
         )

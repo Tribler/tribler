@@ -107,12 +107,12 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
                 self.progress_bytes = self.progress_bytes - old_bytes + new_bytes
 
         if child_changed or force_update:
-            if self.file_size and self.progress_bytes:
+            if self.progress_bytes is not None and self.file_size:
                 self.file_progress = self.progress_bytes / self.file_size
                 self.setText(PROGRESS_COL, f"{self.file_progress:.1%}")
 
         # ACHTUNG! This can be _very_ slow for torrents with lots of files, hence disabled by default
-        # To draw progress bars with acceptable performance we'd have to implement use QT's MVC stuff
+        # To draw progress bars with acceptable performance we'd have to use QT's MVC stuff
         if draw_progress_bars:
             bar_container, progress_bar = create_progress_bar_widget()
             progress_bar.setValue(int(self.file_progress * 100))
