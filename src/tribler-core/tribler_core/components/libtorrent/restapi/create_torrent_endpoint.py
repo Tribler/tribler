@@ -111,7 +111,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         # Download this torrent if specified
         if 'download' in request.query and request.query['download'] and request.query['download'] == "1":
             download_config = DownloadConfig()
-            download_config.set_dest_dir(result['base_path'] if len(file_path_list) == 1 else result['base_dir'])
+            download_config.set_dest_dir(result['base_dir'])
             download_config.set_hops(self.download_manager.download_defaults.number_hops)
             self.download_manager.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
 

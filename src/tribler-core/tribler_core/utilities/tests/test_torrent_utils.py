@@ -2,10 +2,13 @@ from unittest.mock import Mock
 
 import pytest
 
+from tribler_core.components.libtorrent.utils.torrent_utils import (
+    commonprefix,
+    create_torrent_file,
+    get_info_from_handle,
+)
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.utilities.path_util import Path
-from tribler_core.components.libtorrent.utils.torrent_utils import commonprefix, create_torrent_file, \
-    get_info_from_handle
 
 TORRENT_DATA_DIR = TESTS_DATA_DIR / "torrent_creation_files"
 FILE1_NAME = "file1.txt"
@@ -21,7 +24,7 @@ def get_params():
 
 def verify_created_torrent(result):
     assert isinstance(result, dict)
-    assert result["base_path"] == TORRENT_DATA_DIR
+    assert result["base_dir"] == TORRENT_DATA_DIR
     assert result["success"]
 
 
@@ -46,6 +49,7 @@ def test_create_torrent_two_files():
     file_path_list = [TORRENT_DATA_DIR / FILE1_NAME,
                       TORRENT_DATA_DIR / FILE2_NAME]
     result = create_torrent_file(file_path_list, get_params())
+    assert result['base_dir'] == TORRENT_DATA_DIR.parent
     assert result["success"]
 
 

@@ -81,11 +81,12 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     # filter all non-files
     path_list = list(_existing_files(file_path_list))
 
+    # ACHTUNG!
+    # In the case of a multi-file torrent, the torrent name plays the role of the toplevel dir name.
     # get the directory where these files are in. If there are multiple files, take the common directory they are in
-    base_path = commonprefix(path_list).parent if len(path_list) > 1 else path_list[0].parent
-    base_path = base_path.absolute()
+    base_dir = (commonprefix(path_list).parent if len(path_list) > 1 else path_list[0].parent).absolute()
     for path in path_list:
-        relative = path.relative_to(base_path)
+        relative = path.relative_to(base_dir)
         fs.add_file(str(relative), path.size())
 
     if params.get(b'piece length'):
@@ -102,7 +103,6 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     params = {k: (v.decode('utf-8') if isinstance(v, bytes) else v) for k, v in params.items()}
 
     torrent = lt.create_torrent(fs, piece_size=piece_size, flags=flags)
-    # Python2 wants binary, python3 want unicode
     if params.get(b'comment'):
         torrent.set_comment(params[b'comment'])
     if params.get(b'created by'):
@@ -133,7 +133,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
             torrent.add_url_seed(params[b'urllist'])
 
     # read the files and calculate the hashes
-    lt.set_piece_hashes(torrent, str(base_path))
+    lt.set_piece_hashes(torrent, str(base_dir))
 
     t1 = torrent.generate()
     torrent = lt.bencode(t1)
@@ -144,8 +144,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
 
     return {
         'success': True,
-        'base_path': base_path,
-        'base_dir': base_path.parent,
+        'base_dir': base_dir,
         'torrent_file_path': torrent_filepath,
         'metainfo': torrent,
         'infohash': sha1(lt.bencode(t1[b'info'])).digest()
