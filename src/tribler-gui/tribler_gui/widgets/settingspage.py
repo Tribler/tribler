@@ -8,6 +8,7 @@ from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler_common.version_manager import remove_state_dirs
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.defs import (
     DARWIN,
     DEFAULT_API_PORT,
@@ -42,6 +43,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
+        self.set_sentry_reporter(gui_sentry_reporter)
+
         self.settings = None
         self.version_history = None
         self.lang_list = sorted([lang_name for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items()])

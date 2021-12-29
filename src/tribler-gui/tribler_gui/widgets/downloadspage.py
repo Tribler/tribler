@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -54,6 +55,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
+        self.set_sentry_reporter(gui_sentry_reporter)
+
         self.export_dir = None
         self.filter = DOWNLOADS_FILTER_ALL
         self.download_widgets = {}  # key: infohash, value: QTreeWidgetItem

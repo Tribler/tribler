@@ -10,6 +10,7 @@ import pyqtgraph as pg
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.defs import (
     COLOR_DEFAULT,
     COLOR_GREEN,
@@ -83,6 +84,7 @@ class TrustGraph(pg.GraphItem):
 class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self):
         QWidget.__init__(self)
+        self.set_sentry_reporter(gui_sentry_reporter)
 
         self.trust_graph = None
         self.graph_view = None

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QPushButton
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_image_path, get_ui_file_path, tr
@@ -32,6 +33,7 @@ class FloatingButtonWidget(QPushButton):
 
     def __init__(self, parent):
         super().__init__(QIcon(QPixmap(get_image_path('edit.png'))), "", parent)
+
         self.setGeometry(20, 20, 20, 20)
 
         self.setFlat(True)
@@ -62,6 +64,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
+        self.set_sentry_reporter(gui_sentry_reporter)
 
         try:
             self.setupUi(self)

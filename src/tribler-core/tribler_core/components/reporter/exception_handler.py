@@ -9,7 +9,6 @@ from typing import Callable, Optional
 
 from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
-
 from tribler_core.components.base import ComponentStartupException
 
 # There are some errors that we are ignoring.
@@ -41,6 +40,7 @@ class CoreExceptionHandler:
         self.logger = logging.getLogger("CoreExceptionHandler")
         self.report_callback: Optional[Callable[[ReportedError], None]] = None
         self.unreported_error: Optional[ReportedError] = None
+        self.sentry_reporter = SentryReporter()
 
     @staticmethod
     def _get_long_text_from(exception: Exception):
@@ -73,7 +73,7 @@ class CoreExceptionHandler:
         It broadcasts the tribler_exception event.
         """
         try:
-            SentryReporter.ignore_logger(self.logger.name)
+            self.sentry_reporter.ignore_logger(self.logger.name)
 
             context = context.copy()
             should_stop = context.pop('should_stop', True)
@@ -97,7 +97,7 @@ class CoreExceptionHandler:
                 text=text,
                 long_text=long_text,
                 context=str(context),
-                event=SentryReporter.event_from_exception(exception) or {},
+                event=self.sentry_reporter.event_from_exception(exception) or {},
                 should_stop=should_stop
             )
             if self.report_callback:
@@ -110,7 +110,7 @@ class CoreExceptionHandler:
 
 
         except Exception as ex:
-            SentryReporter.capture_exception(ex)
+            self.sentry_reporter.capture_exception(ex)
             raise ex
 
 

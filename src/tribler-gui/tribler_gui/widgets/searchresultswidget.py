@@ -10,6 +10,7 @@ from tribler_common.utilities import Query, to_fts_query
 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import SearchResultsModel
@@ -49,6 +50,8 @@ class SearchRequest:
 class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
+        self.set_sentry_reporter(gui_sentry_reporter)
+
         self._logger = logging.getLogger(self.__class__.__name__)
 
         try:

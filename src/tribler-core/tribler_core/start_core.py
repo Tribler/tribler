@@ -122,7 +122,7 @@ def run_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
     config.gui_test_mode = gui_test_mode
 
     if SentryReporter.is_in_test_mode():
-        SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
+        default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
     config.api.http_port = int(api_port)
     # If the API key is set to an empty string, it will remain disabled

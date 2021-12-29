@@ -3,20 +3,18 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
-import pytest
-
 import tribler_common
-from tribler_common.reported_error import ReportedError
-from tribler_common.tag_constants import MIN_TAG_LENGTH
-
-from tribler_core.utilities.unicode import hexlify
-
 import tribler_gui
+from tribler_common.reported_error import ReportedError
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_common.tag_constants import MIN_TAG_LENGTH
+from tribler_core.utilities.unicode import hexlify
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tests.gui_test_data import negative_token_balance_history
@@ -423,7 +421,8 @@ def test_feedback_dialog(window):
         dialog.close()
 
     reported_error = ReportedError('type', 'text', {})
-    dialog = FeedbackDialog(window, reported_error, "1.2.3", 23)
+    sentry_reporter = SentryReporter()
+    dialog = FeedbackDialog(window, sentry_reporter, reported_error, "1.2.3", 23)
     dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
     QTimer.singleShot(1000, screenshot_dialog)
     dialog.exec_()
@@ -440,7 +439,8 @@ def test_feedback_dialog_report_sent(window):
 
     on_report_sent.did_send_report = False
     reported_error = ReportedError('', 'Tribler GUI Test to test sending crash report works', {})
-    dialog = FeedbackDialog(window, reported_error, "1.2.3", 23)
+    sentry_reporter = SentryReporter()
+    dialog = FeedbackDialog(window, sentry_reporter, reported_error, "1.2.3", 23)
     dialog.closeEvent = lambda _: None  # Otherwise, the application will stop
     dialog.on_report_sent = on_report_sent
     QTest.mouseClick(dialog.send_report_button, Qt.LeftButton)

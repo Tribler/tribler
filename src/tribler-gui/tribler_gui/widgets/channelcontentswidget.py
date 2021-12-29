@@ -13,6 +13,7 @@ from tribler_common.simpledefs import CHANNEL_STATE
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -42,6 +43,8 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
+        self.set_sentry_reporter(gui_sentry_reporter)
+
         # ACHTUNG! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
         # When more than a single instance of a class is created, every next setupUi
         # triggers connectSlotsByName error. There are some reports that it is specific to

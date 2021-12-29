@@ -4,12 +4,15 @@ from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
 from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.utilities import connect
 
 
 class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self, parent, left_right_margin=100):
         QWidget.__init__(self, parent)
+        self.set_sentry_reporter(gui_sentry_reporter)
+
         self.setStyleSheet("background-color: rgba(30, 30, 30, 0.75);")
 
         self.dialog_widget = QWidget(self)
