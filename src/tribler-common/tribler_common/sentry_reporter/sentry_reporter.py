@@ -7,8 +7,9 @@ from enum import Enum, auto
 from hashlib import md5
 from typing import Dict, List, Optional
 
-import sentry_sdk
 from faker import Faker
+
+import sentry_sdk
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.threading import ThreadingIntegration
 
@@ -335,7 +336,7 @@ class SentryReporter:
     def is_in_test_mode():
         return bool(SentryReporter.get_test_sentry_url())
 
-    def _before_send(self, event: Dict, hint: Dict) -> Optional[Dict]:
+    def _before_send(self, event: Optional[Dict], hint: Optional[Dict]) -> Optional[Dict]:
         """The method that is called before each send. Both allowed and
         disallowed.
 

@@ -1,14 +1,18 @@
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 
+from tribler_common.patch_import import patch_import
 from tribler_common.sentry_reporter.sentry_reporter import (
-    EXCEPTION, OS_ENVIRON,
+    EXCEPTION,
+    OS_ENVIRON,
     PLATFORM_DETAILS,
     SentryReporter,
     SentryStrategy,
-    VALUES, this_sentry_strategy,
+    VALUES,
+    this_sentry_strategy,
 )
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
 
 # fmt: off
 # pylint: disable=redefined-outer-name, protected-access
@@ -19,11 +23,75 @@ def sentry_reporter():
     return SentryReporter()
 
 
-def test_init(sentry_reporter):
-    assert sentry_reporter.init('')
+@patch('tribler_common.sentry_reporter.sentry_reporter.sentry_sdk.init')
+def test_init(mocked_init: Mock, sentry_reporter: SentryReporter):
+    # test that `init` method set all necessary variables and calls `sentry_sdk.init()`
+    sentry_reporter.init(sentry_url='url', release_version='release', scrubber=SentryScrubber(),
+                         strategy=SentryStrategy.SEND_SUPPRESSED)
+    assert sentry_reporter.scrubber
+    assert sentry_reporter.global_strategy == SentryStrategy.SEND_SUPPRESSED
+    mocked_init.assert_called_once()
+
+
+@patch('tribler_common.sentry_reporter.sentry_reporter.ignore_logger')
+def test_ignore_logger(mocked_ignore_logger: Mock, sentry_reporter: SentryReporter):
+    # test that `ignore_logger` calls `ignore_logger` from sentry_sdk
+    sentry_reporter.ignore_logger('logger name')
+    mocked_ignore_logger.assert_called_with('logger name')
+
+
+@patch('tribler_common.sentry_reporter.sentry_reporter.sentry_sdk.add_breadcrumb')
+def test_add_breadcrumb(mocked_add_breadcrumb: Mock, sentry_reporter: SentryReporter):
+    # test that `add_breadcrumb` passes all necessary arguments to `sentry_sdk`
+    assert sentry_reporter.add_breadcrumb('message', 'category', 'level', named_arg='some')
+    mocked_add_breadcrumb.assert_called_with({'message': 'message', 'category': 'category', 'level': 'level'},
+                                             named_arg='some')
+
+
+def test_get_confirmation(sentry_reporter: SentryReporter):
+    # test that `get_confirmation` calls `QApplication` and `QMessageBox` from `PyQt5.QtWidgets`
+    mocked_QApplication = Mock()
+    mocked_QMessageBox = MagicMock()
+
+    with patch_import('PyQt5.QtWidgets', strict=True, QApplication=mocked_QApplication, QMessageBox=mocked_QMessageBox):
+        sentry_reporter.get_confirmation(Exception('test'))
+        mocked_QApplication.assert_called()
+        mocked_QMessageBox.assert_called()
+
+
+@patch('tribler_common.sentry_reporter.sentry_reporter.sentry_sdk.capture_exception')
+def test_capture_exception(mocked_capture_exception: Mock, sentry_reporter: SentryReporter):
+    # test that `capture_exception` passes an exception to `sentry_sdk`
+    exception = Exception('test')
+    sentry_reporter.capture_exception(exception)
+    mocked_capture_exception.assert_called_with(exception)
+
+
+@patch('tribler_common.sentry_reporter.sentry_reporter.sentry_sdk.capture_exception')
+def test_event_from_exception(mocked_capture_exception: Mock, sentry_reporter: SentryReporter):
+    # test that `event_from_exception` returns '{}' in case of an empty exception
+    assert sentry_reporter.event_from_exception(None) == {}
+
+    # test that `event_from_exception` calls `capture_exception` from `sentry_sdk`
+    exception = Exception('test')
+    sentry_reporter.thread_strategy = Mock()
+
+    def capture_exception(_):
+        # this behaviour normally is way more complicated, but at the end, `capture_exception` should transform
+        # the exception to a sentry event and this event should be stored in `sentry_reporter.last_event`
+        sentry_reporter.last_event = {'sentry': 'event'}
+
+    mocked_capture_exception.side_effect = capture_exception
+
+    sentry_reporter.event_from_exception(exception)
+
+    mocked_capture_exception.assert_called_with(exception)
+    sentry_reporter.thread_strategy.set.assert_any_call(SentryStrategy.SEND_SUPPRESSED)
+    assert sentry_reporter.last_event == {'sentry': 'event'}
 
 
 def test_set_user(sentry_reporter):
+    # test that sentry_reporter transforms `user_id` to a fake identity
     assert sentry_reporter.set_user(b'some_id') == {
         'id': 'db69fe66ec6b6b013c2f7d271ce17cae',
         'username': 'Wanda Brown',
@@ -33,6 +101,81 @@ def test_set_user(sentry_reporter):
         'id': '91f900f528d5580581197c2c6a4adbbc',
         'username': 'Jennifer Herrera',
     }
+
+
+def test_get_actual_strategy(sentry_reporter):
+    # test that sentry_reporter use `thread_strategy` in case it has been set, and `global_strategy` otherwise
+    sentry_reporter.thread_strategy.set(None)
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+    assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+    sentry_reporter.thread_strategy.set(SentryStrategy.SEND_ALLOWED)
+    assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED
+
+    sentry_reporter.thread_strategy.set(None)
+    assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+
+@patch('os.environ', {})
+def test_is_not_in_test_mode():
+    assert SentryReporter.get_test_sentry_url() is None
+    assert not SentryReporter.is_in_test_mode()
+
+
+@patch('os.environ', {'TRIBLER_TEST_SENTRY_URL': 'url'})
+def test_is_in_test_mode():
+    assert SentryReporter.get_test_sentry_url() == 'url'
+    assert SentryReporter.is_in_test_mode()
+
+
+def test_before_send_no_event(sentry_reporter: SentryReporter):
+    # test that in case of a None event, `_before_send` will never fail
+    assert not sentry_reporter._before_send(None, None)
+
+
+def test_before_send_ignored_exceptions(sentry_reporter: SentryReporter):
+    # test that in case of an ignored exception, `_before_send` will return None
+    assert not sentry_reporter._before_send({'some': 'event'}, {'exc_info': [KeyboardInterrupt]})
+
+
+def test_before_send_suppressed(sentry_reporter: SentryReporter):
+    # test that in case of strategy==SentryStrategy.SEND_SUPPRESSED, the event will be stored in `self.last_event`
+    sentry_reporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
+    assert not sentry_reporter._before_send({'some': 'event'}, None)
+    assert sentry_reporter.last_event == {'some': 'event'}
+
+
+@patch.object(SentryReporter, 'get_confirmation', lambda _, __: True)
+def test_before_send_allowed_with_confiration(sentry_reporter: SentryReporter):
+    # test that in case of strategy==SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION, the event will be
+    # sent after the positive confirmation
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+    assert sentry_reporter._before_send({'some': 'event'}, None)
+
+
+@patch.object(SentryReporter, 'get_confirmation', lambda _, __: False)
+def test_before_send_allowed_with_confiration(sentry_reporter: SentryReporter):
+    # test that in case of strategy==SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION, the event will not be
+    # sent after the negative confirmation
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+    assert not sentry_reporter._before_send({'some': 'event'}, None)
+
+
+def test_before_send_scrubber_exists(sentry_reporter: SentryReporter):
+    # test that in case of a set scrubber, it will be called for scrubbing an event
+    event = {'some': 'event'}
+
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
+    sentry_reporter.scrubber = Mock()
+    assert sentry_reporter._before_send(event, None)
+    sentry_reporter.scrubber.scrub_event.assert_called_with(event)
+
+
+def test_before_send_scrubber_doesnt_exists(sentry_reporter: SentryReporter):
+    # test that in case of a missed scrubber, it will not be called
+    sentry_reporter.scrubber = None
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
+    assert sentry_reporter._before_send({'some': 'event'}, None)
 
 
 def test_send_defaults(sentry_reporter):
@@ -175,19 +318,6 @@ def test_before_send(sentry_reporter):
     assert sentry_reporter._before_send({'a': 'b'}, None) == {'a': 'b'}
 
 
-def test_event_from_exception(sentry_reporter):
-    assert not sentry_reporter.event_from_exception(None)
-    # sentry sdk is not initialised, so None will be returned
-    assert not sentry_reporter.event_from_exception(Exception('test'))
-
-
-def test_add_breadcrumb(sentry_reporter):
-    # test: None does not produce error
-    assert sentry_reporter.add_breadcrumb(None, None, None) is None
-    assert sentry_reporter.add_breadcrumb('message', 'category', 'level') is None
-    assert sentry_reporter.add_breadcrumb('message', 'category', 'level', named_arg='some') is None
-
-
 def test_sentry_strategy(sentry_reporter):
     sentry_reporter.thread_strategy.set(None)  # default
     sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
@@ -198,16 +328,6 @@ def test_sentry_strategy(sentry_reporter):
 
     assert sentry_reporter.thread_strategy.get() is None
     assert sentry_reporter.global_strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
-
-
-def test_get_actual_strategy(sentry_reporter):
-    sentry_reporter.thread_strategy.set(None)  # default
-    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
-
-    assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
-
-    sentry_reporter.thread_strategy.set(SentryStrategy.SEND_ALLOWED)
-    assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED
 
 
 def test_retrieve_error_message_from_stacktrace(sentry_reporter):
