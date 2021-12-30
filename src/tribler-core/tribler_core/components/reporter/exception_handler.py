@@ -109,7 +109,6 @@ class CoreExceptionHandler:
                     # as that was probably the root cause for # the crash
                     self.unreported_error = reported_error
 
-
         except Exception as ex:
             self.sentry_reporter.capture_exception(ex)
             raise ex

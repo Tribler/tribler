@@ -59,6 +59,11 @@ def test_get_confirmation(sentry_reporter: SentryReporter):
         mocked_QMessageBox.assert_called()
 
 
+@patch_import('PyQt5.QtWidgets', always_raise_exception_on_import=True)
+def test_get_confirmation_no_qt(sentry_reporter: SentryReporter):
+    assert not sentry_reporter.get_confirmation(Exception('test'))
+
+
 @patch('tribler_common.sentry_reporter.sentry_reporter.sentry_sdk.capture_exception')
 def test_capture_exception(mocked_capture_exception: Mock, sentry_reporter: SentryReporter):
     # test that `capture_exception` passes an exception to `sentry_sdk`
