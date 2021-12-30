@@ -153,12 +153,11 @@ def test_before_send_allowed_with_confiration(sentry_reporter: SentryReporter):
     assert sentry_reporter._before_send({'some': 'event'}, None)
 
 
-@patch.object(SentryReporter, 'get_confirmation', lambda _, __: False)
-def test_before_send_allowed_with_confiration(sentry_reporter: SentryReporter):
-    # test that in case of strategy==SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION, the event will not be
-    # sent after the negative confirmation
-    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
-    assert not sentry_reporter._before_send({'some': 'event'}, None)
+def test_before_send_allowed(sentry_reporter: SentryReporter):
+    # test that in case of strategy==SentryStrategy.SEND_ALLOWED, the event will be
+    # sent without a confirmation
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
+    assert sentry_reporter._before_send({'some': 'event'}, None)
 
 
 def test_before_send_scrubber_exists(sentry_reporter: SentryReporter):

@@ -16,7 +16,8 @@ __all__ = ['patch_import']
 _builtins_import = builtins.__import__
 
 
-def patch_import(modules=Union[List[str], str], strict: bool = False, always_raise_exception_on_import=False, **mock_kwargs):
+def patch_import(modules=Union[List[str], str], strict: bool = False, always_raise_exception_on_import=False,
+                 **mock_kwargs):
     """
     Mocks import statement, and disable ImportError if a module
     could not be imported.

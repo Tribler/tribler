@@ -3,18 +3,21 @@ import os
 import sys
 from pathlib import Path
 
-import pytest
 from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
+import pytest
+
 import tribler_common
-import tribler_gui
 from tribler_common.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.tag_constants import MIN_TAG_LENGTH
+
 from tribler_core.utilities.unicode import hexlify
+
+import tribler_gui
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler_gui.tests.gui_test_data import negative_token_balance_history

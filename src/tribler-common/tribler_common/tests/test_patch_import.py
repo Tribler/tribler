@@ -23,7 +23,7 @@ async def test_mock_import_mocked_lib():
 
 
 @patch_import('library_as_a_string')
-async def test_mock_import_mocked_lib():
+async def test_library_as_a_string():
     import library_as_a_string
     assert library_as_a_string
 

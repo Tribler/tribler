@@ -10,9 +10,10 @@ from PyQt5.QtCore import QSettings
 
 from tribler_common.logger import load_logger_config
 from tribler_common.process_checker import ProcessChecker
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
+
 from tribler_core import start_core
 from tribler_core.components.reporter.exception_handler import default_core_exception_handler
 
