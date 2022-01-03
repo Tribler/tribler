@@ -6,9 +6,7 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
-from tribler_gui import gui_sentry_reporter
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect
 
 
@@ -29,8 +27,6 @@ class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         super().__init__()
-        self.set_sentry_reporter(gui_sentry_reporter)
-
         self.is_paused = False
 
         self.update_lock = threading.Lock()

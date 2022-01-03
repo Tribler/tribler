@@ -4,11 +4,9 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
-from tribler_gui import gui_sentry_reporter
 from tribler_gui.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_image_path
@@ -21,8 +19,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.set_sentry_reporter(gui_sentry_reporter)
-
         self.channel_identifier = None
         self.dialog = None
         self.selected_item_index = -1

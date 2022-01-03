@@ -1,9 +1,7 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
-from tribler_gui import gui_sentry_reporter
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect, get_image_path
 
 
@@ -29,8 +27,6 @@ class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.set_sentry_reporter(gui_sentry_reporter)
-
         self.loading_label = None
         self.upgrading = False
 

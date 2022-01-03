@@ -9,12 +9,12 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 
 from tribler_gui.event_request_manager import received_events
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import performed_requests as tribler_performed_requests
 from tribler_gui.utilities import connect, get_ui_file_path, tr
@@ -33,7 +33,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         retrieve_error_message_from_stacktrace=False,
     ):
         QDialog.__init__(self, parent)
-        self.set_sentry_reporter(sentry_reporter)
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 

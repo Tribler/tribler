@@ -2,11 +2,9 @@ from typing import Dict
 
 from PyQt5.QtWidgets import QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
-from tribler_gui import gui_sentry_reporter
 from tribler_gui.defs import PB, TB
 from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.graphs.dataplot import TimeSeriesDataPlot
@@ -29,8 +27,6 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.set_sentry_reporter(gui_sentry_reporter)
-
         self.trust_plot = None
         self.history = None
         self.byte_scale = 1024 * 1024

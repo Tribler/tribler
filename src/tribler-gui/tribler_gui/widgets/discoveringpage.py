@@ -1,8 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
-from tribler_gui import gui_sentry_reporter
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loadingpage import LOADING_ANIMATION
 
@@ -15,8 +13,6 @@ class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.set_sentry_reporter(gui_sentry_reporter)
-
         self.found_channels = 0
         self.is_discovering = False
 

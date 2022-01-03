@@ -2,9 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QLabel, QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
-from tribler_gui import gui_sentry_reporter
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect, format_votes_rich_text, get_votes_rating_description, tr
 from tribler_gui.widgets.tablecontentdelegate import DARWIN, WINDOWS
 
@@ -16,8 +14,6 @@ class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self, parent):
         QWidget.__init__(self, parent)
-        self.set_sentry_reporter(gui_sentry_reporter)
-
         self.subscribe_button = None
         self.initialized = False
         self.contents_widget = None
