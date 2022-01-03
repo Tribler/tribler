@@ -68,7 +68,7 @@ if __name__ == '__main__':
         releases = xmlRoot.find('releases')
         release = xml.SubElement(releases, 'release', attrib)
         tree.write(path.join('build', 'debian', 'tribler', 'usr', 'share', 'metainfo',
-                            'org.tribler.Tribler.metainfo.xml'))
+                            'org.tribler.Tribler.metainfo.xml'), encoding='utf-8', xml_declaration=True)
 
     elif sys.platform == 'win32':
         logger.info('Replacing NSI string.')
