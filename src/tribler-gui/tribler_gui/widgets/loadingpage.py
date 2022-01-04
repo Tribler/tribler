@@ -1,8 +1,7 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect, get_image_path
 
 

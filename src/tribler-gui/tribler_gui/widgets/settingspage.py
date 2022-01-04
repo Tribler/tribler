@@ -4,7 +4,6 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler_common.osutils import get_root_state_directory
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler_common.version_manager import remove_state_dirs
 
@@ -20,6 +19,7 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_SEEDING,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import (
     AVAILABLE_TRANSLATIONS,

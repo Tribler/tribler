@@ -4,10 +4,9 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
 from tribler_gui.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_image_path
@@ -20,7 +19,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-
         self.channel_identifier = None
         self.dialog = None
         self.selected_item_index = -1
@@ -37,8 +35,9 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().manage_channel_create_torrent_back.setIcon(QIcon(get_image_path('page_back.png')))
 
             connect(self.window().create_torrent_files_list.customContextMenuRequested, self.on_right_click_file_item)
-            connect(self.window().manage_channel_create_torrent_back.clicked,
-                    self.on_create_torrent_manage_back_clicked)
+            connect(
+                self.window().manage_channel_create_torrent_back.clicked, self.on_create_torrent_manage_back_clicked
+            )
             connect(self.window().create_torrent_choose_files_button.clicked, self.on_choose_files_clicked)
             connect(self.window().create_torrent_choose_dir_button.clicked, self.on_choose_dir_clicked)
             connect(self.window().edit_channel_create_torrent_button.clicked, self.on_create_clicked)

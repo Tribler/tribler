@@ -5,11 +5,11 @@ from dataclasses import dataclass, field
 
 from PyQt5 import uic
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.utilities import Query, to_fts_query
 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, get_ui_file_path, tr
 from tribler_gui.widgets.tablecontentmodel import SearchResultsModel

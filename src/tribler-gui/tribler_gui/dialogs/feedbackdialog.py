@@ -9,12 +9,12 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 
 from tribler_gui.event_request_manager import received_events
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import performed_requests as tribler_performed_requests
 from tribler_gui.utilities import connect, get_ui_file_path, tr
@@ -24,6 +24,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         parent,
+        sentry_reporter: SentryReporter,
         reported_error: ReportedError,
         tribler_version,
         start_time,
@@ -40,6 +41,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.tribler_version = tribler_version
         self.reported_error = reported_error
         self.scrubber = SentryScrubber()
+        self.sentry_reporter = sentry_reporter
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
         self.retrieve_error_message_from_stacktrace = retrieve_error_message_from_stacktrace
@@ -69,7 +71,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         )
         stacktrace = self.scrubber.scrub_text(text_for_viewing.rstrip())
         self.error_text_edit.setPlainText(stacktrace)
-
         connect(self.cancel_button.clicked, self.on_cancel_clicked)
         connect(self.send_report_button.clicked, self.on_send_clicked)
 
@@ -167,7 +168,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             "stack": stack,
         }
 
-        SentryReporter.send_event(
+        self.sentry_reporter.send_event(
             self.reported_error.event,
             post_data,
             sys_info_dict,

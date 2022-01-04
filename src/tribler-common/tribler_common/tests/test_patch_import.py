@@ -22,6 +22,12 @@ async def test_mock_import_mocked_lib():
     assert len(library_that_does_not_exist.inner_set) == 0
 
 
+@patch_import('library_as_a_string')
+async def test_library_as_a_string():
+    import library_as_a_string
+    assert library_as_a_string
+
+
 @patch_import([])
 async def test_mock_import_import_real_lib():
     with pytest.raises(ImportError):

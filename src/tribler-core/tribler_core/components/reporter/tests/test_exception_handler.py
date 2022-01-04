@@ -1,5 +1,5 @@
 from socket import gaierror
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -114,3 +114,12 @@ def test_unhandled_error_observer_ignored(exception_handler):
         exception_handler.unhandled_error_observer(None, context)
         mocked_warning.assert_called_once()
     exception_handler.report_callback.assert_not_called()
+
+
+@patch.object(SentryReporter, 'ignore_logger', new=Mock(side_effect=ValueError))
+@patch.object(SentryReporter, 'capture_exception')
+def test_unhandled_error_observer_inner_exception(mocked_capture_exception: Mock,
+                                                  exception_handler: CoreExceptionHandler):
+    with pytest.raises(ValueError):
+        exception_handler.unhandled_error_observer({}, {})
+    mocked_capture_exception.assert_called_once()

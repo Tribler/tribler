@@ -6,8 +6,6 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -27,6 +25,7 @@ from tribler_gui.defs import (
     DOWNLOADS_FILTER_INACTIVE,
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
 from tribler_gui.utilities import compose_magnetlink, connect, format_speed, tr

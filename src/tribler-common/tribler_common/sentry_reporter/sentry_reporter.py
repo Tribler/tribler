@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import Enum, auto
 from hashlib import md5
+from typing import Dict, List, Optional
 
 from faker import Faker
 
@@ -54,13 +55,13 @@ class SentryStrategy(Enum):
 
 
 @contextmanager
-def this_sentry_strategy(strategy: SentryStrategy):
-    saved_strategy = SentryReporter.thread_strategy.get()
+def this_sentry_strategy(reporter, strategy: SentryStrategy):
+    saved_strategy = reporter.thread_strategy.get()
     try:
-        SentryReporter.thread_strategy.set(strategy)
-        yield
+        reporter.thread_strategy.set(strategy)
+        yield reporter
     finally:
-        SentryReporter.thread_strategy.set(saved_strategy)
+        reporter.thread_strategy.set(saved_strategy)
 
 
 class SentryReporter:
@@ -68,19 +69,20 @@ class SentryReporter:
     a Tribler Client.
     """
 
-    scrubber = None
-    last_event = None
-    ignored_exceptions = [KeyboardInterrupt, SystemExit]
-    # more info about how SentryReporter choose a strategy see in
-    # SentryReporter.get_actual_strategy()
-    global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
-    thread_strategy = ContextVar('context_strategy', default=None)
+    def __init__(self):
+        self.scrubber = None
+        self.last_event = None
+        self.ignored_exceptions = [KeyboardInterrupt, SystemExit]
+        # more info about how SentryReporter choose a strategy see in
+        # SentryReporter.get_actual_strategy()
+        self.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+        self.thread_strategy = ContextVar('context_strategy', default=None)
 
-    _sentry_logger_name = 'SentryReporter'
-    _logger = logging.getLogger(_sentry_logger_name)
+        self._sentry_logger_name = 'SentryReporter'
+        self._logger = logging.getLogger(self._sentry_logger_name)
 
-    @staticmethod
-    def init(sentry_url='', release_version='', scrubber=None, strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION):
+    def init(self, sentry_url='', release_version='', scrubber=None,
+             strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION):
         """Initialization.
 
         This method should be called in each process that uses SentryReporter.
@@ -102,9 +104,9 @@ class SentryReporter:
         Returns:
             Sentry Guard.
         """
-        SentryReporter._logger.debug(f"Init: {sentry_url}")
-        SentryReporter.scrubber = scrubber
-        SentryReporter.global_strategy = strategy
+        self._logger.debug(f"Init: {sentry_url}")
+        self.scrubber = scrubber
+        self.global_strategy = strategy
 
         rv = sentry_sdk.init(
             sentry_url,
@@ -117,21 +119,19 @@ class SentryReporter:
                 ),
                 ThreadingIntegration(propagate_hub=True),
             ],
-            before_send=SentryReporter._before_send,
+            before_send=self._before_send,
             ignore_errors=[KeyboardInterrupt],
         )
 
-        ignore_logger(SentryReporter._sentry_logger_name)
+        ignore_logger(self._sentry_logger_name)
 
         return rv
 
-    @staticmethod
-    def ignore_logger(logger_name):
-        SentryReporter._logger.debug(f"Ignore logger: {logger_name}")
+    def ignore_logger(self, logger_name: str):
+        self._logger.debug(f"Ignore logger: {logger_name}")
         ignore_logger(logger_name)
 
-    @staticmethod
-    def add_breadcrumb(message='', category='', level='info', **kwargs):
+    def add_breadcrumb(self, message='', category='', level='info', **kwargs):
         """Adds a breadcrumb for current Sentry client.
 
         It is necessary to specify a message, a category and a level to make this
@@ -142,13 +142,12 @@ class SentryReporter:
         """
         crumb = {'message': message, 'category': category, 'level': level}
 
-        SentryReporter._logger.debug(f"Add the breadcrumb: {crumb}")
+        self._logger.debug(f"Add the breadcrumb: {crumb}")
 
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
-    @staticmethod
-    def send_event(event=None, post_data=None, sys_info=None, additional_tags=None,
-                   retrieve_error_message_from_stacktrace=False):
+    def send_event(self, event: Dict = None, post_data: Dict = None, sys_info: Dict = None,
+                   additional_tags: List[str] = None, retrieve_error_message_from_stacktrace=False):
         """Send the event to the Sentry server
 
         This method
@@ -172,7 +171,7 @@ class SentryReporter:
         Returns:
             Event that was sent to Sentry server
         """
-        SentryReporter._logger.info(f"Send: {post_data}, {event}")
+        self._logger.info(f"Send: {post_data}, {event}")
 
         if event is None:
             return event
@@ -229,13 +228,12 @@ class SentryReporter:
                     'value': exception_value[1]
                 })
 
-        with this_sentry_strategy(SentryStrategy.SEND_ALLOWED):
+        with this_sentry_strategy(self, SentryStrategy.SEND_ALLOWED):
             sentry_sdk.capture_event(event)
 
         return event
 
-    @staticmethod
-    def get_confirmation(exception):
+    def get_confirmation(self, exception):
         """Get confirmation on sending exception to the Team.
 
         There are two message boxes, that will be triggered:
@@ -251,10 +249,10 @@ class SentryReporter:
         try:
             from PyQt5.QtWidgets import QApplication, QMessageBox
         except ImportError:
-            SentryReporter._logger.debug("PyQt5 is not available. User confirmation is not possible.")
+            self._logger.debug("PyQt5 is not available. User confirmation is not possible.")
             return False
 
-        SentryReporter._logger.debug(f"Get confirmation: {exception}")
+        self._logger.debug(f"Get confirmation: {exception}")
 
         _ = QApplication(sys.argv)
         messagebox = QMessageBox(icon=QMessageBox.Critical, text=f'{exception}.')
@@ -271,13 +269,11 @@ class SentryReporter:
 
         return messagebox.exec() == QMessageBox.Yes
 
-    @staticmethod
-    def capture_exception(exception):
-        SentryReporter._logger.info(f"Capture exception: {exception}")
+    def capture_exception(self, exception):
+        self._logger.info(f"Capture exception: {exception}")
         sentry_sdk.capture_exception(exception)
 
-    @staticmethod
-    def event_from_exception(exception):
+    def event_from_exception(self, exception) -> Dict:
         """This function format the exception by passing it through sentry
         Args:
             exception: an exception that will be passed to `sentry_sdk.capture_exception(exception)`
@@ -285,17 +281,16 @@ class SentryReporter:
         Returns:
             the event that has been saved in `_before_send` method
         """
-        SentryReporter._logger.info(f"Event from exception: {exception}")
+        self._logger.info(f"Event from exception: {exception}")
 
         if not exception:
-            return exception
+            return {}
 
-        with this_sentry_strategy(SentryStrategy.SEND_SUPPRESSED):
+        with this_sentry_strategy(self, SentryStrategy.SEND_SUPPRESSED):
             sentry_sdk.capture_exception(exception)
-            return SentryReporter.last_event
+            return self.last_event
 
-    @staticmethod
-    def set_user(user_id):
+    def set_user(self, user_id):
         """Set the user to identify the event on a Sentry server
 
         The algorithm is the following:
@@ -313,7 +308,7 @@ class SentryReporter:
         # calculate hash to keep real `user_id` in secret
         user_id_hash = md5(user_id).hexdigest()
 
-        SentryReporter._logger.debug(f"Set user: {user_id_hash}")
+        self._logger.debug(f"Set user: {user_id_hash}")
 
         Faker.seed(user_id_hash)
         user_name = Faker().name()
@@ -322,17 +317,16 @@ class SentryReporter:
         sentry_sdk.set_user(user)
         return user
 
-    @staticmethod
-    def get_actual_strategy():
+    def get_actual_strategy(self):
         """This method is used to determine actual strategy.
 
-        Strategy can be global: SentryReporter.strategy
-        and local: SentryReporter._context_strategy.
+        Strategy can be global: self.strategy
+        and local: self._context_strategy.
 
         Returns: the local strategy if it is defined, the global strategy otherwise
         """
-        strategy = SentryReporter.thread_strategy.get()
-        return strategy if strategy else SentryReporter.global_strategy
+        strategy = self.thread_strategy.get()
+        return strategy if strategy else self.global_strategy
 
     @staticmethod
     def get_test_sentry_url():
@@ -342,15 +336,14 @@ class SentryReporter:
     def is_in_test_mode():
         return bool(SentryReporter.get_test_sentry_url())
 
-    @staticmethod
-    def _before_send(event, hint):
+    def _before_send(self, event: Optional[Dict], hint: Optional[Dict]) -> Optional[Dict]:
         """The method that is called before each send. Both allowed and
         disallowed.
 
         The algorithm:
         1. If sending is allowed, then scrub the event and send.
         2. If sending is disallowed, then store the event in
-            `SentryReporter.last_event`
+            `self.last_event`
 
         Args:
             event: event that generated by Sentry
@@ -363,30 +356,30 @@ class SentryReporter:
             return event
 
         # trying to get context-depending strategy first
-        strategy = SentryReporter.get_actual_strategy()
+        strategy = self.get_actual_strategy()
 
-        SentryReporter._logger.info(f"Before send strategy: {strategy}")
+        self._logger.info(f"Before send strategy: {strategy}")
 
         exc_info = get_value(hint, 'exc_info')
         error_type = get_first_item(exc_info)
 
-        if error_type in SentryReporter.ignored_exceptions:
-            SentryReporter._logger.debug(f"Exception is in ignored: {hint}. Skipped.")
+        if error_type in self.ignored_exceptions:
+            self._logger.debug(f"Exception is in ignored: {hint}. Skipped.")
             return None
 
         if strategy == SentryStrategy.SEND_SUPPRESSED:
-            SentryReporter._logger.debug("Suppress sending. Storing the event.")
-            SentryReporter.last_event = event
+            self._logger.debug("Suppress sending. Storing the event.")
+            self.last_event = event
             return None
 
         if strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION:
-            SentryReporter._logger.debug("Request confirmation.")
-            if not SentryReporter.get_confirmation(hint):
+            self._logger.debug("Request confirmation.")
+            if not self.get_confirmation(hint):
                 return None
 
         # clean up the event
-        SentryReporter._logger.debug(f"Clean up the event with scrubber: {SentryReporter.scrubber}")
-        if SentryReporter.scrubber:
-            event = SentryReporter.scrubber.scrub_event(event)
+        self._logger.debug(f"Clean up the event with scrubber: {self.scrubber}")
+        if self.scrubber:
+            event = self.scrubber.scrub_event(event)
 
         return event

@@ -6,9 +6,9 @@ from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.simpledefs import NTFY
 
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
 from tribler_gui.utilities import connect
 
@@ -72,7 +72,7 @@ class EventRequestManager(QNetworkAccessManager):
             # at the core side as well
             public_key = event_dict["public_key"]
             if public_key:
-                SentryReporter.set_user(public_key.encode('utf-8'))
+                gui_sentry_reporter.set_user(public_key.encode('utf-8'))
 
     def on_error(self, error, reschedule_on_err):
         if error == QNetworkReply.ConnectionRefusedError:
