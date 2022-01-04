@@ -10,7 +10,10 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 
 INCLUDED_FILES_CHANGE_DELAY = 1000  # milliseconds
-PROGRESS_BAR_DRAW_LIMIT = 1000  # Don't draw progress bars for files in torrents that have more than this many files
+
+# Disabled, because drawing progress bars with setItemWidget is horribly slow on some systems.
+# We must use delegate-based drawing instead
+PROGRESS_BAR_DRAW_LIMIT = 0  # Don't draw progress bars for files in torrents that have more than this many files
 
 
 def convert_to_files_tree_format(download_info):

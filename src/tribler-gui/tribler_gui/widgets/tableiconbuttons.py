@@ -29,8 +29,8 @@ class IconButton(QObject):
         # Update button activation rect from the drawing call
         self.rect = rect
 
-        x = rect.left() + (rect.width() - self.w) / 2
-        y = rect.top() + (rect.height() - self.h) / 2
+        x = rect.left() + (rect.width() - self.w) // 2
+        y = rect.top() + (rect.height() - self.h) // 2
         icon_rect = QRect(x, y, self.w, self.h)
 
         self.icon.paint(painter, icon_rect, mode=self.icon_mode)
