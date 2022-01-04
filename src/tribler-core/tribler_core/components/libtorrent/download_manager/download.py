@@ -15,16 +15,16 @@ from ipv8.util import int2byte, succeed
 from tribler_common.osutils import fix_filebasename
 from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
-from tribler_core.exceptions import SaveResumeDataError
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.components.libtorrent.download_manager.stream import Stream
+from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.notifier import Notifier
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.path_util import Path
 from tribler_core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
+from tribler_core.exceptions import SaveResumeDataError
+from tribler_core.notifier import Notifier
+from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import bdecode_compat
 
@@ -391,7 +391,7 @@ class Download(TaskManager):
         self.checkpoint()
         if self.get_state().get_total_transferred(DOWNLOAD) > 0 and self.stream is not None:
             if self.notifier is not None:
-                self.notifier.notify(NTFY.TORRENT_FINISHED, self.tdef.get_infohash(),
+                self.notifier.notify(NTFY.TORRENT_FINISHED.value, self.tdef.get_infohash(),
                                      self.tdef.get_name_as_unicode(), self.hidden or
                                      self.config.get_channel_download())
 

@@ -2,13 +2,12 @@ import logging
 import platform
 from distutils.version import LooseVersion
 
-from aiohttp import (
-    ClientSession,
-    ClientTimeout,
-)
+from aiohttp import ClientSession, ClientTimeout
 
 from ipv8.taskmanager import TaskManager
+
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.notifier import Notifier
 from tribler_core.version import version_id
 
@@ -64,7 +63,7 @@ class VersionCheckManager(TaskManager):
                 response_dict = await response.json(content_type=None)
                 version = response_dict['name'][1:]
                 if LooseVersion(version) > LooseVersion(version_id):
-                    self.notifier.notify(NTFY.TRIBLER_NEW_VERSION, version)
+                    self.notifier.notify(NTFY.TRIBLER_NEW_VERSION.value, version)
                     return True
                 return False
 

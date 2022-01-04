@@ -291,7 +291,7 @@ class GigaChannelManager(TaskManager):
             updated_channel = self.mds.ChannelMetadata.get(public_key=channel.public_key, id_=channel.id_)
             channel_dict = updated_channel.to_simple_dict() if updated_channel else None
         if updated_channel:
-            self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED, channel_dict)
+            self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED.value, channel_dict)
 
     def updated_my_channel(self, tdef):
         """

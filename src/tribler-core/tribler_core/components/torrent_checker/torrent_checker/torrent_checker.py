@@ -297,7 +297,7 @@ class TorrentChecker(TaskManager):
         final_response = {}
         if not result or not isinstance(result, list):
             self._logger.info("Received invalid torrent checker result")
-            self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
+            self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED.value,
                                  {"infohash": hexlify(infohash),
                                   "num_seeders": 0,
                                   "num_leechers": 0,
@@ -329,7 +329,7 @@ class TorrentChecker(TaskManager):
         self.update_torrents_checked(torrent_update_dict)
 
         # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
-        self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED,
+        self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED.value,
                              {"infohash": hexlify(infohash),
                               "num_seeders": torrent_update_dict["seeders"],
                               "num_leechers": torrent_update_dict["leechers"],

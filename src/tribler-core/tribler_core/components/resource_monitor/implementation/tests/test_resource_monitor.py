@@ -7,8 +7,8 @@ from unittest.mock import Mock
 import pytest
 
 from tribler_common.simpledefs import NTFY
-from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 
+from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
 
 
@@ -86,7 +86,7 @@ def test_low_disk_notification(resource_monitor):
         return namedtuple('sdiskusage', disk.keys())(*disk.values())
 
     def on_notify(subject, *args):
-        assert subject in [NTFY.LOW_SPACE, NTFY.TRIBLER_SHUTDOWN_STATE]
+        assert subject in [NTFY.LOW_SPACE.value, NTFY.TRIBLER_SHUTDOWN_STATE.value]
 
     resource_monitor.get_free_disk_space = fake_get_free_disk_space
     resource_monitor.notifier.notify = on_notify
