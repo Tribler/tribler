@@ -69,7 +69,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         if 'files' in parameters and parameters['files']:
             file_path_list = [ensure_unicode(f, 'utf-8') for f in parameters['files']]
         else:
-            return RESTResponse({"error": "files parameter missing"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("files parameter missing")
 
         if 'description' in parameters and parameters['description']:
             params['comment'] = parameters['description']

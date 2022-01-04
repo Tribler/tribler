@@ -379,7 +379,7 @@ async def test_download_unknown_state(mock_dlmgr, test_download, rest_api):
 
     await do_request(rest_api, f'downloads/{test_download.infohash}', expected_code=400,
                      post_data={"state": "abc"}, request_type='PATCH',
-                     expected_json={"error": "unknown state parameter"})
+                     expected_json={"error": "unknown state parameter: 'abc'"})
 
 
 async def test_change_hops_error(mock_dlmgr, test_download, rest_api):

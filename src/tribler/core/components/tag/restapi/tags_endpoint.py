@@ -32,14 +32,13 @@ class TagsEndpoint(RESTEndpoint):
         self.db: TagDatabase = db
         self.community: TagCommunity = community
 
-    @staticmethod
-    def validate_infohash(infohash: str) -> Tuple[bool, Optional[RESTResponse]]:
+    def validate_infohash(self, infohash: str) -> Tuple[bool, Optional[RESTResponse]]:
         try:
             infohash = unhexlify(infohash)
             if len(infohash) != 20:
-                return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+                return False, self.bad_request("Invalid infohash")
         except binascii.Error:
-            return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+            return False, self.bad_request("Invalid infohash")
 
         return True, None
 
@@ -66,7 +65,7 @@ class TagsEndpoint(RESTEndpoint):
     async def update_tags_entries(self, request):
         params = await request.json()
         infohash = request.match_info["infohash"]
-        ih_valid, error_response = TagsEndpoint.validate_infohash(infohash)
+        ih_valid, error_response = self.validate_infohash(infohash)
         if not ih_valid:
             return error_response
 
@@ -75,7 +74,7 @@ class TagsEndpoint(RESTEndpoint):
         # Validate whether the size of the tag is within the allowed range
         for tag in tags:
             if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
-                return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request("Invalid tag length")
 
         self.modify_tags(unhexlify(infohash), tags)
 
@@ -121,7 +120,7 @@ class TagsEndpoint(RESTEndpoint):
         Get suggestions for a particular tag.
         """
         infohash = request.match_info["infohash"]
-        ih_valid, error_response = TagsEndpoint.validate_infohash(infohash)
+        ih_valid, error_response = self.validate_infohash(infohash)
         if not ih_valid:
             return error_response
 

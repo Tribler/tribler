@@ -16,8 +16,6 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.rest_endpoint import (
-    HTTP_BAD_REQUEST,
-    HTTP_INTERNAL_SERVER_ERROR,
     RESTEndpoint,
     RESTResponse,
 )
@@ -82,10 +80,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
             try:
                 hops = int(hops)
             except ValueError:
-                return RESTResponse({"error": f"wrong value of 'hops' parameter: {hops}"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request(f"wrong value of 'hops' parameter: {hops}")
 
         if not uri:
-            return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("uri parameter missing")
 
         metainfo = None
         scheme = scheme_from_uri(uri)
@@ -95,14 +93,13 @@ class TorrentInfoEndpoint(RESTEndpoint):
             try:
                 tdef = TorrentDef.load(file)
                 metainfo = tdef.metainfo
-            except (TypeError, ValueError, RuntimeError):
-                return RESTResponse({"error": f"error while decoding torrent file: {file}"},
-                                    status=HTTP_INTERNAL_SERVER_ERROR)
+            except (TypeError, ValueError, RuntimeError) as e:
+                return self.internal_error(e, f"error while decoding torrent file: {file}")
         elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             try:
                 response = await query_http_uri(uri)
             except (ServerConnectionError, ClientResponseError) as e:
-                return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+                return self.internal_error(e)
 
             if response.startswith(b'magnet'):
                 _, infohash, _ = parse_magnetlink(response)
@@ -113,17 +110,17 @@ class TorrentInfoEndpoint(RESTEndpoint):
         elif scheme == MAGNET_SCHEME:
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
-                return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request("missing infohash")
             metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=uri)
         else:
-            return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("invalid uri")
 
         if not metainfo:
-            return RESTResponse({"error": "metainfo error"}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return self.internal_error(msg="metainfo error")
 
         if not isinstance(metainfo, dict) or b'info' not in metainfo:
             self._logger.warning("Received metainfo is not a valid dictionary")
-            return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return self.internal_error(msg="Received metainfo is not a valid dictionary")
 
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
         self.download_manager.notifier[notifications.torrent_metadata_added](
