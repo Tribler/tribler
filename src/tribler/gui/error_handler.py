@@ -27,32 +27,30 @@ class ErrorHandler:
         self._handled_exceptions = set()
         self._tribler_stopped = False
 
-    def gui_error(self, *exc_info):
-        if exc_info and len(exc_info) == 3:
-            info_type, info_error, tb = exc_info
-            text = "".join(traceback.format_exception(info_type, info_error, tb))
-            self._logger.error(text)
+    def gui_error(self, exc_type, exc, tb):
+        text = "".join(traceback.format_exception(exc_type, exc, tb))
+        self._logger.error(text)
 
         if self._tribler_stopped:
             return
 
         if gui_sentry_reporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
-            self._logger.info(f'GUI error was suppressed and not sent to Sentry: {info_type.__name__}: {info_error}')
+            self._logger.info(f'GUI error was suppressed and not sent to Sentry: {exc_type.__name__}: {exc}')
             return
 
-        if info_type in self._handled_exceptions:
+        if exc_type in self._handled_exceptions:
             return
-        self._handled_exceptions.add(info_type)
+        self._handled_exceptions.add(exc_type)
 
-        is_core_exception = issubclass(info_type, CoreError)
+        is_core_exception = issubclass(exc_type, CoreError)
         if is_core_exception:
             text = text + self.tribler_window.core_manager.last_core_stderr_output
             self._stop_tribler(text)
 
         reported_error = ReportedError(
-            type=type(info_type).__name__,
+            type=type(exc_type).__name__,
             text=text,
-            event=gui_sentry_reporter.event_from_exception(info_error),
+            event=gui_sentry_reporter.event_from_exception(exc),
         )
 
         if self.app_manager.quitting_app:
