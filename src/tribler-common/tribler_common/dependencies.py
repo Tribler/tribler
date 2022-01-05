@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 Scope = Enum('Scope', 'core gui common')
 
+# Exceptional pip packages where the name does not match with actual import.
+package_to_import_mapping = {
+    'Faker': 'faker',
+    'sentry-sdk': 'sentry_sdk'
+}
 
 # pylint: disable=import-outside-toplevel
 
@@ -39,7 +44,8 @@ def get_dependencies(scope: Scope) -> Iterator[str]:
 def _extract_libraries_from_requirements(text: str) -> Iterator[str]:
     logger.debug(f'requirements.txt content: {text}')
     for library in filter(None, text.split('\n')):
-        yield re.split(r'[><=~]', library, maxsplit=1)[0]
+        pip_package = re.split(r'[><=~]', library, maxsplit=1)[0]
+        yield package_to_import_mapping.get(pip_package, pip_package)
 
 
 def _get_pip_dependencies(path_to_requirements: Path) -> Iterator[str]:
