@@ -101,8 +101,8 @@ class DownloadManager(TaskManager):
         self.metainfo_cache = {}  # Dictionary that maps infohashes to cached metainfo items
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
-            lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
-            lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
+                                  lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
+                                  lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.session_stats_callback = None
         self.state_cb_count = 0
 
@@ -151,19 +151,22 @@ class DownloadManager(TaskManager):
 
         self.set_download_states_callback(self.sesscb_states_callback)
 
+    def notify_shutdown_state(self, state):
+        self.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE.value, state)
+
     async def shutdown(self, timeout=30):
         if self.downloads:
-            self.notifier.notify_shutdown_state("Checkpointing Downloads...")
+            self.notify_shutdown_state("Checkpointing Downloads...")
             await gather(*[download.stop() for download in self.downloads.values()], return_exceptions=True)
-            self.notifier.notify_shutdown_state("Shutting down Downloads...")
+            self.notify_shutdown_state("Shutting down Downloads...")
             await gather(*[download.shutdown() for download in self.downloads.values()], return_exceptions=True)
 
-        self.notifier.notify_shutdown_state("Shutting down Libtorrent Manager...")
+        self.notify_shutdown_state("Shutting down Libtorrent Manager...")
         # If libtorrent session has pending disk io, wait until timeout (default: 30 seconds) to let it finish.
         # In between ask for session stats to check if state is clean for shutdown.
         # In dummy mode, we immediately shut down the download manager.
         while not self.dummy_mode and not self.is_shutdown_ready() and timeout >= 1:
-            self.notifier.notify_shutdown_state("Waiting for Libtorrent to finish...")
+            self.notify_shutdown_state("Waiting for Libtorrent to finish...")
             self.post_session_stats()
             timeout -= 1
             await asyncio.sleep(1)
@@ -244,7 +247,7 @@ class DownloadManager(TaskManager):
             settings['force_proxy'] = True
 
             # Anon listen port is never used anywhere, so we let Libtorrent set it
-            #settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
+            # settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
 
             # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
             self.update_ip_filter(ltsession, ['1.1.1.1'])
@@ -255,7 +258,7 @@ class DownloadManager(TaskManager):
         if hops == 0:
             proxy_settings = DownloadManager.get_libtorrent_proxy_settings(self.config)
         else:
-            proxy_settings = [SOCKS5_PROXY_DEF, ("127.0.0.1", self.socks_listen_ports[hops-1]), None]
+            proxy_settings = [SOCKS5_PROXY_DEF, ("127.0.0.1", self.socks_listen_ports[hops - 1]), None]
         self.set_proxy_settings(ltsession, *proxy_settings)
 
         for extension in extensions:
@@ -276,7 +279,7 @@ class DownloadManager(TaskManager):
             except Exception as exc:
                 self._logger.info(f"could not load libtorrent state, got exception: {exc!r}. starting from scratch")
         else:
-            #ltsession.listen_on(anon_port, anon_port + 20)
+            # ltsession.listen_on(anon_port, anon_port + 20)
 
             rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
             download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
@@ -369,8 +372,8 @@ class DownloadManager(TaskManager):
         download = self.downloads.get(infohash)
         if download:
             is_process_alert = (download.handle and download.handle.is_valid()) \
-                or (not download.handle and alert_type == 'add_torrent_alert') \
-                or (download.handle and alert_type == 'torrent_removed_alert')
+                               or (not download.handle and alert_type == 'add_torrent_alert') \
+                               or (download.handle and alert_type == 'torrent_removed_alert')
             if is_process_alert:
                 download.process_alert(alert, alert_type)
             else:
@@ -385,7 +388,7 @@ class DownloadManager(TaskManager):
             self.listen_ports[hops] = getattr(alert, "port", alert.endpoint[1])
 
         elif alert_type == 'peer_disconnected_alert' and self.notifier:
-            self.notifier.notify(NTFY.PEER_DISCONNECTED_EVENT, alert.pid.to_bytes())
+            self.notifier.notify(NTFY.PEER_DISCONNECTED_EVENT.value, alert.pid.to_bytes())
 
         elif alert_type == 'session_stats_alert':
             queued_disk_jobs = alert.values['disk.queued_disk_jobs']
@@ -803,7 +806,7 @@ class DownloadManager(TaskManager):
             if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.notifier:
                 for peer in download.get_peerlist():
                     if str(peer["extended_version"]).startswith('Tribler'):
-                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE,
+                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE.value,
                                              unhexlify(peer["id"]), infohash, peer["dtotal"])
 
         if self.state_cb_count % 4 == 0:

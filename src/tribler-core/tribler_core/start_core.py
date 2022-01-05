@@ -94,14 +94,14 @@ async def core_session(config: TriblerConfig, components: List[Component]):
 
     # If there is a config error, report to the user via GUI notifier
     if config.error:
-        session.notifier.notify(NTFY.REPORT_CONFIG_ERROR, config.error)
+        session.notifier.notify(NTFY.REPORT_CONFIG_ERROR.value, config.error)
 
     # SHUTDOWN
     await session.shutdown_event.wait()
     await session.shutdown()
 
     if not config.gui_test_mode:
-        session.notifier.notify_shutdown_state("Saving configuration...")
+        session.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE.value, "Saving configuration...")
         config.write()
 
 

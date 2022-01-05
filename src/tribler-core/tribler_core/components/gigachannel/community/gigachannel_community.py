@@ -13,10 +13,10 @@ from pony.orm import db_session
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
 from tribler_core.components.gigachannel.community.discovery_booster import DiscoveryBooster
-from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
-from tribler_core.components.metadata_store.utils import NoChannelSourcesException
+from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
+from tribler_core.components.metadata_store.utils import NoChannelSourcesException
 from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200
@@ -152,7 +152,8 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                 )
             ]
             if self.notifier and results:
-                self.notifier.notify(NTFY.CHANNEL_DISCOVERED, {"results": results, "uuid": str(CHANNELS_VIEW_UUID)})
+                self.notifier.notify(NTFY.CHANNEL_DISCOVERED.value,
+                                     {"results": results, "uuid": str(CHANNELS_VIEW_UUID)})
 
         request_dict = {
             "metadata_type": [CHANNEL_TORRENT],
@@ -211,7 +212,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             ]
             if self.notifier:
                 self.notifier.notify(
-                    NTFY.REMOTE_QUERY_RESULTS,
+                    NTFY.REMOTE_QUERY_RESULTS.value,
                     {"results": results, "uuid": str(request_uuid), "peer": hexlify(request.peer.mid)},
                 )
 

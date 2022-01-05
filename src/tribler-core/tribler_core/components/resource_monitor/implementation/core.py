@@ -2,10 +2,12 @@ import os
 import time
 from collections import deque
 
+from ipv8.taskmanager import TaskManager
+
 import psutil
 
-from ipv8.taskmanager import TaskManager
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.components.resource_monitor.implementation.base import ResourceMonitor
 from tribler_core.components.resource_monitor.implementation.profiler import YappiProfiler
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
@@ -101,7 +103,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         if disk_usage.free < FREE_DISK_THRESHOLD:
             self._logger.warning("Warning! Less than 100MB of disk space available")
             if self.notifier:
-                self.notifier.notify(NTFY.LOW_SPACE, self.disk_usage_data[-1])
+                self.notifier.notify(NTFY.LOW_SPACE.value, self.disk_usage_data[-1])
 
     def get_free_disk_space(self):
         return psutil.disk_usage(str(self.state_dir))

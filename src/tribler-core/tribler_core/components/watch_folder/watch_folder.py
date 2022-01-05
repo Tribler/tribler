@@ -3,7 +3,9 @@ import os
 from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
+
 from tribler_common.simpledefs import NTFY
+
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.notifier import Notifier
@@ -41,7 +43,7 @@ class WatchFolder(TaskManager):
             self._logger.warning(f'Cant rename the file to {path}. Exception: {e}')
 
         self._logger.warning("Watch folder - corrupt torrent file %s", name)
-        self.notifier.notify(NTFY.WATCH_FOLDER_CORRUPT_FILE, name)
+        self.notifier.notify(NTFY.WATCH_FOLDER_CORRUPT_FILE.value, name)
 
     def check_watch_folder(self):
         if not self.watch_folder.is_dir():
