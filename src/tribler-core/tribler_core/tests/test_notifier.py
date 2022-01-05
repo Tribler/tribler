@@ -5,7 +5,6 @@ import pytest
 
 from tribler_core.notifier import Notifier
 
-
 # pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
@@ -52,14 +51,17 @@ async def test_notifier_remove_nonexistent_observer(notifier: Notifier):
 
 @pytest.mark.asyncio
 async def test_notifier_remove_observer(notifier: Notifier):
-    def callback():
+    def callback1():
         ...
 
-    notifier.add_observer('topic', lambda: None)
-    notifier.add_observer('topic', callback)
+    def callback2():
+        ...
 
-    notifier.remove_observer('topic', callback)
-    assert len(notifier.observers['topic']) == 1
+    notifier.add_observer('topic', callback1)
+    notifier.add_observer('topic', callback2)
+
+    notifier.remove_observer('topic', callback1)
+    assert notifier.observers['topic'] == {callback2: True}
 
 
 @pytest.mark.timeout(1)
@@ -87,6 +89,7 @@ async def test_notify_with_exception(notifier: Notifier):
 
     notifier.add_observer('topic', side_effect_callback.callback)
     notifier.add_observer('topic', normal_callback.callback)
+    notifier.add_observer('topic', side_effect_callback.callback)
 
     notifier.notify('topic')
 
@@ -102,6 +105,7 @@ async def test_notify_call_soon_threadsafe_with_exception(notifier: Notifier):
     notifier.logger = Mock()
     notifier._loop = Mock(call_soon_threadsafe=Mock(side_effect=RuntimeError))
 
+    notifier.add_observer('topic', lambda: ...)
     notifier.notify('topic')
 
     notifier.logger.warning.assert_called_once()
