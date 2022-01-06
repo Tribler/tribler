@@ -1,7 +1,7 @@
 import pytest
 
 from tribler_core.components.tag.community.tag_payload import TagOperationEnum
-from tribler_core.components.tag.community.tag_validator import validate_operation, validate_tag
+from tribler_core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_tag
 
 pytestmark = pytest.mark.asyncio
 
@@ -49,3 +49,10 @@ async def test_contains_upper_case_not_latin():
 async def test_contain_any_space():
     with pytest.raises(ValueError):
         validate_tag('tag with space')
+
+
+async def test_is_valid_tag():
+    # test that is_valid_tag works similar to validate_tag but it returns `bool`
+    # instead of raise the ValueError exception
+    assert is_valid_tag('valid-tag')
+    assert not is_valid_tag('invalid tag')

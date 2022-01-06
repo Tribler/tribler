@@ -12,5 +12,13 @@ def validate_tag(tag: str):
         raise ValueError('Tag should not contain any spaces')
 
 
+def is_valid_tag(tag: str) -> bool:
+    try:
+        validate_tag(tag)
+    except ValueError:
+        return False
+    return True
+
+
 def validate_operation(operation: int):
     TagOperationEnum(operation)

@@ -50,12 +50,14 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     )
     @querystring_schema(RemoteQueryParameters)
     async def create_remote_search_request(self, request):
+        self._logger.info('Create remote search request')
         # Query remote results from the GigaChannel Community.
         # Results are returned over the Events endpoint.
         try:
             sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
+        self._logger.info(f'Parameters: {sanitized}')
 
         request_uuid, peers_list = self.gigachannel_community.send_search_request(**sanitized)
         peers_mid_list = [hexlify(p.mid) for p in peers_list]
