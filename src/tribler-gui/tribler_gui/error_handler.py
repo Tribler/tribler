@@ -2,18 +2,20 @@ import logging
 import traceback
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
 
-# fmt: off
+from tribler_gui import gui_sentry_reporter
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler_gui.exceptions import CoreError
+
+# fmt: off
 
 
 class ErrorHandler:
     def __init__(self, tribler_window):
         logger_name = self.__class__.__name__
         self._logger = logging.getLogger(logger_name)
-        SentryReporter.ignore_logger(logger_name)
+        gui_sentry_reporter.ignore_logger(logger_name)
 
         self.tribler_window = tribler_window
 
@@ -29,7 +31,7 @@ class ErrorHandler:
         if self._tribler_stopped:
             return
 
-        if SentryReporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
+        if gui_sentry_reporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
             self._logger.info(f'GUI error was suppressed and not sent to Sentry: {info_type.__name__}: {info_error}')
             return
 
@@ -45,11 +47,12 @@ class ErrorHandler:
         reported_error = ReportedError(
             type=type(info_type).__name__,
             text=text,
-            event=SentryReporter.event_from_exception(info_error),
+            event=gui_sentry_reporter.event_from_exception(info_error),
         )
 
         FeedbackDialog(
             parent=self.tribler_window,
+            sentry_reporter=gui_sentry_reporter,
             reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
@@ -70,6 +73,7 @@ class ErrorHandler:
 
         FeedbackDialog(
             parent=self.tribler_window,
+            sentry_reporter=gui_sentry_reporter,
             reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,

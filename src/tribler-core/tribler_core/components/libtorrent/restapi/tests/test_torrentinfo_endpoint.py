@@ -109,7 +109,7 @@ async def test_get_torrentinfo(mock_dlmgr, tmp_path, rest_api, endpoint):
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     # Ensure that correct torrent metadata was sent through notifier (to MetadataStore)
-    mock_dlmgr.notifier.notify.assert_called_with(NTFY.TORRENT_METADATA_ADDED, metainfo_dict)
+    mock_dlmgr.notifier.notify.assert_called_with(NTFY.TORRENT_METADATA_ADDED.value, metainfo_dict)
 
     mock_dlmgr.get_metainfo = get_metainfo
     verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))

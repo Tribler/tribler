@@ -119,7 +119,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
         self.download_manager.notifier.notify(
-            NTFY.TORRENT_METADATA_ADDED,
+            NTFY.TORRENT_METADATA_ADDED.value,
             tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
         # TODO(Martijn): store the stuff in a database!!!

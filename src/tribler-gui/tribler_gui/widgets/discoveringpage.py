@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
-
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.utilities import connect
 from tribler_gui.widgets.loadingpage import LOADING_ANIMATION
 

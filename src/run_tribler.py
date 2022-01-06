@@ -2,24 +2,24 @@ import argparse
 # A fix for "LookupError: unknown encoding: idna" error.
 # Adding encodings.idna to hiddenimports is not enough.
 # https://github.com/pyinstaller/pyinstaller/issues/1113
-import encodings.idna  # pylint: disable=unused-import
 import logging.config
 import os
 import sys
-from enum import Enum, auto
 
 from PyQt5.QtCore import QSettings
 
 from tribler_common.logger import load_logger_config
 from tribler_common.process_checker import ProcessChecker
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.version_manager import VersionHistory
 
 from tribler_core import start_core
-
+from tribler_core.components.reporter.exception_handler import default_core_exception_handler
 
 logger = logging.getLogger(__name__)
+
+
 # pylint: disable=import-outside-toplevel, ungrouped-imports
 
 
@@ -38,20 +38,21 @@ def init_sentry_reporter():
     as a URL for sending sentry's reports while a Tribler client running in
     test mode
     """
+    sentry_reporter = default_core_exception_handler.sentry_reporter
     from tribler_core.version import sentry_url, version_id
-    test_sentry_url = SentryReporter.get_test_sentry_url()
+    test_sentry_url = sentry_reporter.get_test_sentry_url()
 
     if not test_sentry_url:
-        SentryReporter.init(sentry_url=sentry_url,
-                            release_version=version_id,
-                            scrubber=SentryScrubber(),
-                            strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION)
+        sentry_reporter.init(sentry_url=sentry_url,
+                             release_version=version_id,
+                             scrubber=SentryScrubber(),
+                             strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION)
         logger.info('Sentry has been initialised in normal mode')
     else:
-        SentryReporter.init(sentry_url=test_sentry_url,
-                            release_version=version_id,
-                            scrubber=None,
-                            strategy=SentryStrategy.SEND_ALLOWED)
+        sentry_reporter.init(sentry_url=test_sentry_url,
+                             release_version=version_id,
+                             scrubber=None,
+                             strategy=SentryStrategy.SEND_ALLOWED)
         logger.info('Sentry has been initialised in debug mode')
 
 
@@ -99,7 +100,6 @@ if __name__ == "__main__":
             process_checker.remove_lock_file()
 
     else:
-        import tribler_gui
         from tribler_gui.utilities import get_translator
 
         logger.info('Running GUI' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
@@ -182,5 +182,5 @@ if __name__ == "__main__":
             for handler in logging.getLogger().handlers:
                 handler.flush()
 
-            SentryReporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
+            default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
             raise

@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 
 from psutil import LINUX
 
-from tribler_common.sentry_reporter.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_common.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
@@ -21,6 +20,7 @@ from tribler_gui.defs import (
 )
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
@@ -42,6 +42,7 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
+
         # ACHTUNG! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
         # When more than a single instance of a class is created, every next setupUi
         # triggers connectSlotsByName error. There are some reports that it is specific to

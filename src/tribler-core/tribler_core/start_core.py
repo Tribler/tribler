@@ -94,14 +94,14 @@ async def core_session(config: TriblerConfig, components: List[Component]):
 
     # If there is a config error, report to the user via GUI notifier
     if config.error:
-        session.notifier.notify(NTFY.REPORT_CONFIG_ERROR, config.error)
+        session.notifier.notify(NTFY.REPORT_CONFIG_ERROR.value, config.error)
 
     # SHUTDOWN
     await session.shutdown_event.wait()
     await session.shutdown()
 
     if not config.gui_test_mode:
-        session.notifier.notify_shutdown_state("Saving configuration...")
+        session.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE.value, "Saving configuration...")
         config.write()
 
 
@@ -122,7 +122,7 @@ def run_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
     config.gui_test_mode = gui_test_mode
 
     if SentryReporter.is_in_test_mode():
-        SentryReporter.global_strategy = SentryStrategy.SEND_ALLOWED
+        default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
     config.api.http_port = int(api_port)
     # If the API key is set to an empty string, it will remain disabled

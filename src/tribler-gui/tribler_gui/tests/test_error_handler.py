@@ -1,9 +1,9 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
 from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 
 from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
@@ -33,7 +33,8 @@ async def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, erro
 
 
 @patch('tribler_gui.error_handler.FeedbackDialog')
-@patch('tribler_common.sentry_reporter.sentry_reporter.SentryReporter.global_strategy', SentryStrategy.SEND_SUPPRESSED)
+@patch.object(SentryReporter, 'global_strategy', create=True,
+              new=PropertyMock(return_value=SentryStrategy.SEND_SUPPRESSED))
 async def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler):
     logger_info_mock = MagicMock()
     error_handler._logger = MagicMock(info=logger_info_mock)
