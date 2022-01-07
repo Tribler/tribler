@@ -75,8 +75,7 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    lower_tags = {tag.lower() for tag in tags}
-                    infohash_set = self.tags_db.get_infohashes(lower_tags)
+                    infohash_set = self.tags_db.get_infohashes(set(tags))
                     sanitized['infohash_set'] = infohash_set
 
             search_results, total, max_rowid = await mds.run_threaded(search_db)

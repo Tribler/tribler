@@ -62,7 +62,8 @@ def extract_tags(text: str) -> Tuple[Set[str], str]:
     positions = [0]
 
     for m in tags_re.finditer(text):
-        tags.add(m.group(0)[1:])
+        tag = m.group(0)[1:]
+        tags.add(tag.lower())
         positions.extend(itertools.chain.from_iterable(m.regs))
     positions.append(len(text))
 

@@ -2,11 +2,13 @@ import json
 import struct
 from asyncio import Future
 from binascii import unhexlify
+from typing import List, Optional, Set
 
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 
+from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler_core.components.ipv8.tribler_community import TriblerCommunity
@@ -17,6 +19,7 @@ from tribler_core.components.metadata_store.remote_query_community.eva_protocol 
 from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.components.metadata_store.utils import RequestTimeoutException
+from tribler_core.components.tag.community.tag_validator import is_valid_tag
 from tribler_core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -129,12 +132,13 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
     def __init__(self, my_peer, endpoint, network,
                  rqc_settings: RemoteQueryCommunitySettings = None,
                  metadata_store=None,
+                 tags_db=None,
                  **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
         self.rqc_settings = rqc_settings
         self.mds: MetadataStore = metadata_store
-
+        self.tags_db = tags_db
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.
         # Also, this keeps track of hosts we responded to. There is a possibility that
@@ -188,8 +192,23 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         :raises ValueError: if no JSON could be decoded.
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
-        request_sanitized = sanitize_query(json.loads(json_bytes), self.rqc_settings.max_response_size)
-        return await self.mds.get_entries_threaded(**request_sanitized)
+        parameters = json.loads(json_bytes)
+        sanitized_parameters = sanitize_query(parameters, self.rqc_settings.max_response_size)
+
+        # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
+        tags = sanitized_parameters.pop('tags', None)
+
+        infohash_set = await self.mds.run_threaded(self.search_for_tags, tags)
+        sanitized_parameters['infohash_set'] = infohash_set  # it could be None, it is expected
+
+        return await self.mds.get_entries_threaded(**sanitized_parameters)
+
+    @db_session
+    def search_for_tags(self, tags: Optional[List[str]]) -> Optional[Set[bytes]]:
+        if not tags or not self.tags_db:
+            return None
+        valid_tags = {tag for tag in tags if is_valid_tag(tag)}
+        return self.tags_db.get_infohashes(valid_tags)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 

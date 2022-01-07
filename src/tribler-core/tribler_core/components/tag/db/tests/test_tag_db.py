@@ -53,14 +53,16 @@ class TestTagDB(TestBase):
     def create_operation(infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD, clock=0):
         return TagOperation(infohash=infohash, tag=tag, operation=operation, clock=clock, creator_public_key=peer)
 
-    def add_operation(self, infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD,
+    @staticmethod
+    def add_operation(tag_db: TagDatabase, infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD,
                       is_local_peer=False, clock=None):
-        operation = self.create_operation(infohash, tag, peer, operation, clock)
-        operation.clock = clock or self.db.get_clock(operation) + 1
-        assert self.db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
+        operation = TestTagDB.create_operation(infohash, tag, peer, operation, clock)
+        operation.clock = clock or tag_db.get_clock(operation) + 1
+        assert tag_db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer)
         commit()
 
-    def add_operation_set(self, dictionary):
+    @staticmethod
+    def add_operation_set(tag_db: TagDatabase, dictionary):
         index = count(0)
 
         def generate_n_peer_names(n):
@@ -70,7 +72,7 @@ class TestTagDB(TestBase):
         for infohash, tags in dictionary.items():
             for tag in tags:
                 for peer in generate_n_peer_names(tag.count):
-                    self.add_operation(infohash, tag.name, peer)
+                    TestTagDB.add_operation(tag_db, infohash, tag.name, peer)
 
     @db_session
     async def test_get_or_create(self):
@@ -129,19 +131,19 @@ class TestTagDB(TestBase):
             assert self.db.instance.TorrentTagOp.select().count() == 1
 
         # add the first operation
-        self.add_operation(b'infohash', 'tag', b'peer1')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1')
         assert_all_tables_have_the_only_one_entity()
 
         # add the same operation
-        self.add_operation(b'infohash', 'tag', b'peer1')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1')
         assert_all_tables_have_the_only_one_entity()
 
         # add an operation from the past
-        self.add_operation(b'infohash', 'tag', b'peer1', clock=0)
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1', clock=0)
         assert_all_tables_have_the_only_one_entity()
 
         # add a duplicate operation but from the future
-        self.add_operation(b'infohash', 'tag', b'peer1', clock=1000)
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1', clock=1000)
         assert_all_tables_have_the_only_one_entity()
 
         assert self.db.instance.TorrentTagOp.get().operation == TagOperationEnum.ADD
@@ -149,7 +151,7 @@ class TestTagDB(TestBase):
         assert self.db.instance.TorrentTag.get().removed_count == 0
 
         # add a unique operation from the future
-        self.add_operation(b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE, clock=1001)
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE, clock=1001)
         assert_all_tables_have_the_only_one_entity()
         assert self.db.instance.TorrentTagOp.get().operation == TagOperationEnum.REMOVE
         assert self.db.instance.TorrentTag.get().added_count == 0
@@ -157,28 +159,29 @@ class TestTagDB(TestBase):
 
     @db_session
     async def test_remote_add_multiple_tag_operations(self):
-        self.add_operation(b'infohash', 'tag', b'peer1')
-        self.add_operation(b'infohash', 'tag', b'peer2')
-        self.add_operation(b'infohash', 'tag', b'peer3')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer2')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer3')
 
         assert self.db.instance.TorrentTag.get().added_count == 3
         assert self.db.instance.TorrentTag.get().removed_count == 0
 
-        self.add_operation(b'infohash', 'tag', b'peer2', operation=TagOperationEnum.REMOVE)
+        self.add_operation(self.db, b'infohash', 'tag', b'peer2', operation=TagOperationEnum.REMOVE)
         assert self.db.instance.TorrentTag.get().added_count == 2
         assert self.db.instance.TorrentTag.get().removed_count == 1
 
-        self.add_operation(b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE)
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE)
         assert self.db.instance.TorrentTag.get().added_count == 1
         assert self.db.instance.TorrentTag.get().removed_count == 2
 
-        self.add_operation(b'infohash', 'tag', b'peer1')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1')
         assert self.db.instance.TorrentTag.get().added_count == 2
         assert self.db.instance.TorrentTag.get().removed_count == 1
 
     @db_session
     async def test_multiple_tags(self):
         self.add_operation_set(
+            self.db,
             {
                 b'infohash1': [
                     Tag(name='tag1', count=2),
@@ -212,6 +215,7 @@ class TestTagDB(TestBase):
     @db_session
     async def test_get_tags_added(self):
         self.add_operation_set(
+            self.db,
             {
                 b'infohash1': [
                     Tag(name='tag1', count=1),
@@ -227,6 +231,7 @@ class TestTagDB(TestBase):
     @db_session
     async def test_get_tags_removed(self):
         self.add_operation_set(
+            self.db,
             {
                 b'infohash1': [
                     Tag(name='tag1', count=2),
@@ -235,7 +240,7 @@ class TestTagDB(TestBase):
             }
         )
 
-        self.add_operation(infohash=b'infohash1', tag='tag2', peer=b'4', operation=TagOperationEnum.REMOVE)
+        self.add_operation(self.db, infohash=b'infohash1', tag='tag2', peer=b'4', operation=TagOperationEnum.REMOVE)
 
         assert self.db.get_tags(b'infohash1') == ['tag1']
 
@@ -243,42 +248,43 @@ class TestTagDB(TestBase):
     async def test_show_local_tags(self):
         # Test that locally added tags have a priority to show.
         # That means no matter of other peers opinions, locally added tag should be visible.
-        self.add_operation(b'infohash1', 'tag1', b'peer1', operation=TagOperationEnum.REMOVE)
-        self.add_operation(b'infohash1', 'tag1', b'peer2', operation=TagOperationEnum.REMOVE)
+        self.add_operation(self.db, b'infohash1', 'tag1', b'peer1', operation=TagOperationEnum.REMOVE)
+        self.add_operation(self.db, b'infohash1', 'tag1', b'peer2', operation=TagOperationEnum.REMOVE)
         assert not self.db.get_tags(b'infohash1')
 
         # test local add
-        self.add_operation(b'infohash1', 'tag1', b'peer3', operation=TagOperationEnum.ADD, is_local_peer=True)
+        self.add_operation(self.db, b'infohash1', 'tag1', b'peer3', operation=TagOperationEnum.ADD, is_local_peer=True)
         assert self.db.get_tags(b'infohash1') == ['tag1']
 
     @db_session
     async def test_hide_local_tags(self):
         # Test that locally removed tags should not be visible to local user.
         # No matter of other peers opinions, locally removed tag should be not visible.
-        self.add_operation(b'infohash1', 'tag1', b'peer1')
-        self.add_operation(b'infohash1', 'tag1', b'peer2')
+        self.add_operation(self.db, b'infohash1', 'tag1', b'peer1')
+        self.add_operation(self.db, b'infohash1', 'tag1', b'peer2')
         assert self.db.get_tags(b'infohash1') == ['tag1']
 
         # test local remove
-        self.add_operation(b'infohash1', 'tag1', b'peer3', operation=TagOperationEnum.REMOVE, is_local_peer=True)
+        self.add_operation(self.db, b'infohash1', 'tag1', b'peer3', operation=TagOperationEnum.REMOVE,
+                           is_local_peer=True)
         assert self.db.get_tags(b'infohash1') == []
 
     @db_session
     async def test_suggestions(self):
         # Test whether the database returns the right suggestions.
         # Suggestions are tags that have not gathered enough support for display yet.
-        self.add_operation(tag='tag1', peer=b'1')
+        self.add_operation(self.db, tag='tag1', peer=b'1')
         assert self.db.get_suggestions(b'infohash') == ["tag1"]
 
-        self.add_operation(tag='tag1', peer=b'2')
+        self.add_operation(self.db, tag='tag1', peer=b'2')
         assert self.db.get_suggestions(b'infohash') == []  # This tag now has enough support
 
-        self.add_operation(tag='tag1', peer=b'3', operation=TagOperationEnum.REMOVE)  # score:1
+        self.add_operation(self.db, tag='tag1', peer=b'3', operation=TagOperationEnum.REMOVE)  # score:1
         assert self.db.get_suggestions(b'infohash') == ["tag1"]
 
-        self.add_operation(tag='tag1', peer=b'4', operation=TagOperationEnum.REMOVE)  # score:0
-        self.add_operation(tag='tag1', peer=b'5', operation=TagOperationEnum.REMOVE)  # score:-1
-        self.add_operation(tag='tag1', peer=b'6', operation=TagOperationEnum.REMOVE)  # score:-2
+        self.add_operation(self.db, tag='tag1', peer=b'4', operation=TagOperationEnum.REMOVE)  # score:0
+        self.add_operation(self.db, tag='tag1', peer=b'5', operation=TagOperationEnum.REMOVE)  # score:-1
+        self.add_operation(self.db, tag='tag1', peer=b'6', operation=TagOperationEnum.REMOVE)  # score:-2
         assert not self.db.get_suggestions(b'infohash')  # below the threshold
 
     @db_session
@@ -286,13 +292,15 @@ class TestTagDB(TestBase):
         operation = self.create_operation(tag='tag1')
         assert self.db.get_clock(operation) == 0
 
-        self.add_operation(infohash=operation.infohash, tag=operation.tag, peer=operation.creator_public_key, clock=1)
+        self.add_operation(self.db, infohash=operation.infohash, tag=operation.tag, peer=operation.creator_public_key,
+                           clock=1)
         assert self.db.get_clock(operation) == 1
 
     @db_session
     async def test_get_tags_operations_for_gossip(self):
         time_delta = {'minutes': 1}
         self.add_operation_set(
+            self.db,
             {
                 b'infohash1': [
                     Tag(name='tag1', count=1),
@@ -312,6 +320,7 @@ class TestTagDB(TestBase):
     @db_session
     async def test_get_infohashes(self):
         self.add_operation_set(
+            self.db,
             {
                 b'infohash1': [
                     Tag(name='tag1', count=2),

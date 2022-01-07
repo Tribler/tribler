@@ -32,6 +32,7 @@ def test_extract_tags():
     assert extract_tags('####') == (set(), '####')
 
     assert extract_tags('#tag') == ({'tag'}, '')
+    assert extract_tags('#Tag') == ({'tag'}, '')
     assert extract_tags('a #tag in the middle') == ({'tag'}, 'a  in the middle')
     assert extract_tags('at the end of the query #tag') == ({'tag'}, 'at the end of the query ')
     assert extract_tags('multiple tags: #tag1 #tag2#tag3') == ({'tag1', 'tag2', 'tag3'}, 'multiple tags:  ')

@@ -69,7 +69,6 @@ class TestRemoteQueryCommunity(TestBase):
         self.count = 0
         self.metadata_store_set = set()
         self.initialize(BasicRemoteQueryCommunity, 2)
-        self.torrent_template = {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
 
     async def tearDown(self):
         for metadata_store in self.metadata_store_set:

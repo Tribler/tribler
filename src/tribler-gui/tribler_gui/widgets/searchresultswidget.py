@@ -128,7 +128,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.timeout_progress_bar.start()
             self.setCurrentWidget(self.loading_page)
 
-        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx}
+        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags)}
         TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
         return True
 
