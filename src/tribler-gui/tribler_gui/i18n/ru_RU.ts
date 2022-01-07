@@ -20,7 +20,7 @@
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="64"/>
         <source>Updated</source>
-        <translation>Обновлен</translation>
+        <translation>Обновлён</translation>
     </message>
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="69"/>
@@ -150,12 +150,12 @@
     <message>
         <location filename="../widgets/channelcontentswidget.py" line="459"/>
         <source>Add .torrent file</source>
-        <translation>Добавить .torrent файл</translation>
+        <translation>Добавить .torrent-файл</translation>
     </message>
     <message>
         <location filename="../widgets/channelcontentswidget.py" line="460"/>
         <source>Add torrent(s) directory</source>
-        <translation>Добавить .torrent файлы из папки</translation>
+        <translation>Добавить .torrent-файлы из папки</translation>
     </message>
     <message>
         <location filename="../widgets/channelcontentswidget.py" line="461"/>
@@ -293,7 +293,7 @@
     <message>
         <location filename="../widgets/downloadspage.py" line="423"/>
         <source>Please select the destination directory</source>
-        <translation>Пожалуйства, выберите папку назначения</translation>
+        <translation>Пожалуйста, выберите папку назначения</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="431"/>
@@ -303,7 +303,7 @@
     <message>
         <location filename="../widgets/downloadspage.py" line="431"/>
         <source>Please enter the name of the torrent file:</source>
-        <translation>Пожалуйста, введите имя, под которым будет сохранен торрент-файл:</translation>
+        <translation>Пожалуйста, введите имя, под которым будет сохранён торрент-файл:</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="431"/>
@@ -484,7 +484,7 @@ Note that the decimal values are truncated.</source>
     <message>
         <location filename="../widgets/settingspage.py" line="501"/>
         <source>Invalid seeding time</source>
-        <translation>Некорркетное ограничение времени раздачи</translation>
+        <translation>Некорректное ограничение времени раздачи</translation>
     </message>
     <message>
         <location filename="../widgets/settingspage.py" line="501"/>
@@ -683,7 +683,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../tribler_window.py" line="827"/>
         <source>Tribler settings is not available yet. Fetching it now. Please try again later.</source>
-        <translation>Настройки Tribler не доступны, поскольку еще загружаются. Пожалуйста попробуйте позже.</translation>
+        <translation>Настройки Tribler не доступны, поскольку ещё загружаются. Пожалуйста попробуйте позже.</translation>
     </message>
     <message>
         <location filename="../tribler_window.py" line="876"/>
@@ -732,7 +732,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../tribler_window.py" line="1141"/>
         <source>The upgrade procedure is now &lt;b&gt;converting your personal channel&lt;/b&gt; and channels collected by the previous installation of Tribler.&lt;br&gt;Are you sure you want to abort the conversion process?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! WARNING !!! &lt;br&gt;You will lose your personal channel and subscribed channels if you ABORT now! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</source>
-        <translation>Процедура преобразования &lt;b&gt;конвертирует Ваш персональный канал&lt;/b&gt; и каналы других пользователей, накопленные предыдущей версией Tribler.&lt;br&gt;Вы уверены, что хотите отменить процесс конвертации?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! ВНИМАНИЕ !!! &lt;br&gt;Вы потеряете и персональный канал, и все подписки, если сейчас нажмете ПРЕРВАТЬ! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</translation>
+        <translation>Процедура преобразования &lt;b&gt;конвертирует Ваш персональный канал&lt;/b&gt; и каналы других пользователей, накопленные предыдущей версией Tribler.&lt;br&gt;Вы уверены, что хотите отменить процесс конвертации?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! ВНИМАНИЕ !!! &lt;br&gt;Вы потеряете и персональный канал, и все подписки, если сейчас нажмёте ПРЕРВАТЬ! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</translation>
     </message>
     <message>
         <location filename="../tribler_window.py" line="1141"/>
@@ -767,7 +767,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     <message>
         <location filename="../tribler_window.py" line="1206"/>
         <source>Are you sure you want to &lt;b&gt;delete&lt;/b&gt; your personal channel&lt;br/&gt;</source>
-        <translation>Вы уверены, что хотитие &lt;b&gt;удалить&lt;/b&gt; Ваш персональный канал&lt;br/&gt;</translation>
+        <translation>Вы уверены, что хотите &lt;b&gt;удалить&lt;/b&gt; Ваш персональный канал&lt;br/&gt;</translation>
     </message>
     <message>
         <location filename="../tribler_window.py" line="1206"/>
@@ -875,7 +875,7 @@ You can not undo this action.</source>
         <location filename="../widgets/settingspage.py" line="332"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Загружать анонимно через &lt;b&gt;%d&lt;/b&gt; прокси Tribler.
-        Загрузка 200 МБайт обойдется приблизительно в &lt;b&gt;%d&lt;/b&gt;
+        Загрузка 200 МБайт обойдётся приблизительно в &lt;b&gt;%d&lt;/b&gt;
         МБайт трафик-токенов.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
         </translation>
     </message>
@@ -982,7 +982,7 @@ You can not undo this action.</source>
     <message>
         <location filename="../dialogs/createtorrentdialog.py" line="120"/>
         <source>Creating torrent. Please wait...</source>
-        <translation>Создан</translation>
+        <translation>Создание торрента. Пожалуйста, подождите...</translation>
     </message>
     <message>
         <location filename="../dialogs/createtorrentdialog.py" line="126"/>
@@ -1007,12 +1007,12 @@ You can not undo this action.</source>
     <message>
         <location filename="../dialogs/feedbackdialog.py" line="38"/>
         <source>Unexpected error</source>
-        <translation>Отчет об ошибке</translation>
+        <translation>Отчёт об ошибке</translation>
     </message>
     <message>
         <location filename="../dialogs/feedbackdialog.py" line="49"/>
         <source>What were you doing before this crash happened? This information will help Tribler developers to figure out and fix the issue quickly.</source>
-        <translation>Какие действия вы совершали, прежде чем произошел сбой? Подробное описание произошедшего поможет разработчикам выяснить причину ошибки и исправить её.</translation>
+        <translation>Какие действия вы совершали, прежде чем произошёл сбой? Подробное описание произошедшего поможет разработчикам выяснить причину ошибки и исправить её.</translation>
     </message>
     <message>
         <location filename="../dialogs/feedbackdialog.py" line="133"/>
@@ -1102,12 +1102,12 @@ You can not undo this action.</source>
     <message>
         <location filename="../dialogs/startdownloaddialog.py" line="247"/>
         <source>Please select the destination directory of your download</source>
-        <translation>Пожалуйства, выберите папку назначения для этой загрузки</translation>
+        <translation>Пожалуйста, выберите папку назначения для этой загрузки</translation>
     </message>
     <message>
         <location filename="../dialogs/startdownloaddialog.py" line="259"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory. [%s]</source>
-        <translation>Tribler не может поместить загрузку в папку &lt;i&gt;%s&lt;/i&gt;. Пожалуйста, удостоверьтесь что в указанную папку разрешена запись или укажите иную папку. [%s]</translation>
+        <translation>Tribler не может поместить загрузку в папку &lt;i&gt;%s&lt;/i&gt;. Пожалуйста, удостоверьтесь, что в указанную папку разрешена запись или укажите иную папку. [%s]</translation>
     </message>
     <message>
         <location filename="../dialogs/startdownloaddialog.py" line="272"/>
@@ -1138,7 +1138,7 @@ You can not undo this action.</source>
         <location filename="../widgets/searchresultswidget.py" line="28"/>
         <source>Remote responses: %(num_complete_peers)i / %(total_peers)i
 New remote results received: %(num_remote_results)i</source>
-        <translation>Завершенные запросы к сети: %(num_complete_peers)i / %(total_peers)i
+        <translation>Завершённые запросы к сети: %(num_complete_peers)i / %(total_peers)i
 Новые результаты: %(num_remote_results)i</translation>
     </message>
     <message>
@@ -1267,7 +1267,7 @@ New remote results received: %(num_remote_results)i</source>
     <message>
         <location filename="../qt_resources/createtorrentdialog.ui" line="551"/>
         <source>Creating torrent...</source>
-        <translation>Создаем торрент...</translation>
+        <translation>Создаётся торрент...</translation>
     </message>
     <message>
         <location filename="../qt_resources/createtorrentdialog.ui" line="589"/>
@@ -1282,7 +1282,7 @@ New remote results received: %(num_remote_results)i</source>
     <message>
         <location filename="../qt_resources/feedback_dialog.ui" line="146"/>
         <source>Tribler experienced an error. Please help us by sending the following report.</source>
-        <translation>Возникла ошибка. Вы можете помочь разработчикам, отправив этот отчет.</translation>
+        <translation>Возникла ошибка. Вы можете помочь разработчикам, отправив этот отчёт.</translation>
     </message>
     <message>
         <location filename="../qt_resources/feedback_dialog.ui" line="184"/>
@@ -1347,7 +1347,7 @@ New remote results received: %(num_remote_results)i</source>
     <message>
         <location filename="../qt_resources/trustexplanation.ui" line="172"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Когда Tribler скачивает торрент анонимно, Вы отдаете &lt;span style=&quot; font-style:italic;&quot;&gt;трафик-токены&lt;/span&gt; тем другим пользователям Tribler, кто обеспечил Вашу анонимность. Когда другой пользователь Tribler скачивает торрент с Вашей машины, &lt;span style=&quot; font-style:italic;&quot;&gt;Вы&lt;/span&gt; получаете от него трафик-токены. Пользователи с более высоким балансом трафик-токенов получают преимущество в обслуживании при анонимном скачивании. &lt;/p&gt;&lt;p&gt;Цена анонимного трафика в трафик-токенах зависит от выбранного Вами уровня анонимности. По сути, уровень анонимности это число &lt;span style=&quot; font-style:italic;&quot;&gt;промежуточных узлов&lt;/span&gt;, используемых во время закачки. К примеру, на уровне анонимности &quot;3&quot; данные, передаваемые на Вашу машину пересылаются через компьютеры трех других случайных пользователей Tribler. Увеличение уровня анонимности может добавить безопасности, но снижает производительность и увеличивает цену закачки в трафик-токенах.&lt;/p&gt;&lt;p&gt;К примеру, закачка &lt;span style=&quot; font-weight:600;&quot;&gt;1 Гигабайта&lt;/span&gt; видео через 1 промежуточный узел (т.е. &quot;уровень анонимности 1&quot;) &lt;span style=&quot; font-weight:600;&quot;&gt;1 Гигабайт&lt;/span&gt; обойдется Вам в 1 Гбайт трафик-токенов. Ввод каждого дополнительного промежуточного узла удорожает трафик. Закачка того же 1 Гигабайта видео через три узла обойдется уже в &lt;span style=&quot; font-weight:600;&quot;&gt;3 Гбайт&lt;/span&gt; трафик-токенов.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Когда Tribler скачивает торрент анонимно, Вы отдаёте &lt;span style=&quot; font-style:italic;&quot;&gt;трафик-токены&lt;/span&gt; тем другим пользователям Tribler, кто обеспечил Вашу анонимность. Когда другой пользователь Tribler скачивает торрент с Вашей машины, &lt;span style=&quot; font-style:italic;&quot;&gt;Вы&lt;/span&gt; получаете от него трафик-токены. Пользователи с более высоким балансом трафик-токенов получают преимущество в обслуживании при анонимном скачивании. &lt;/p&gt;&lt;p&gt;Цена анонимного трафика в трафик-токенах зависит от выбранного Вами уровня анонимности. По сути, уровень анонимности это число &lt;span style=&quot; font-style:italic;&quot;&gt;промежуточных узлов&lt;/span&gt;, используемых во время закачки. К примеру, на уровне анонимности &quot;3&quot; данные, передаваемые на Вашу машину пересылаются через компьютеры трёх других случайных пользователей Tribler. Увеличение уровня анонимности может добавить безопасности, но снижает производительность и увеличивает цену закачки в трафик-токенах.&lt;/p&gt;&lt;p&gt;К примеру, закачка &lt;span style=&quot; font-weight:600;&quot;&gt;1 Гигабайта&lt;/span&gt; видео через 1 промежуточный узел (т.е. &quot;уровень анонимности 1&quot;) &lt;span style=&quot; font-weight:600;&quot;&gt;1 Гигабайт&lt;/span&gt; обойдётся Вам в 1 Гбайт трафик-токенов. Ввод каждого дополнительного промежуточного узла удорожает трафик. Закачка того же 1 Гигабайта видео через три узла обойдётся уже в &lt;span style=&quot; font-weight:600;&quot;&gt;3 Гбайт&lt;/span&gt; трафик-токенов.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../qt_resources/trustexplanation.ui" line="255"/>
@@ -1455,7 +1455,7 @@ New remote results received: %(num_remote_results)i</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="225"/>
         <source>Transaction in progress, Please don&apos;t close Tribler.</source>
-        <translation>Идет обработка, не закрывайте Tribler</translation>
+        <translation>Идёт обработка, не закрывайте Tribler</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="343"/>
@@ -1665,7 +1665,7 @@ per download</source>
         <source>You can adjust the port that the interface uses to communicate with the Tribler core. Applied after restarting Tribler. Change this at your own risk!</source>
         <translation>Вы можете изменить порт, который GUI использует для подключения к ядру.
 Изменение будет применено после перезапуска Tribler.
-Не меняйте это значение, если не понимаете к чему это приведет!</translation>
+Не меняйте это значение, если не понимаете к чему это приведёт!</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1891"/>
@@ -1754,7 +1754,7 @@ per download</source>
         <source>By allowing Tribler to be an exit node, your computer will act as a proxy for other Tribler users&apos; bittorrent traffic, be it seeding or downloading. Check your local laws and make sure you are aware of the implications of enabling this checkbox.</source>
         <translation>Если вы разрешите Tribler быть выходным узлом, другие пользователи сети Tribler смогут закачивать внешние торренты через Ваш компьютер, а также раздавать через него свой контент. Для интернет-провайдера это будет выглядеть, как если бы тот торрент закачивали/раздавали Вы.
         
-👮 ВНИМАНИЕ: В некоторых странах закачка/раздача определенных видов информации преследуется по закону. 👮
+👮 ВНИМАНИЕ: В некоторых странах закачка/раздача определённых видов информации преследуется по закону. 👮
 Хорошенько подумайте, прежде чем ставить галочку на этой опции.</translation>
     </message>
     <message>
@@ -1834,7 +1834,7 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2659"/>
         <source>Resource Monitoring</source>
-        <translation>Мониторинт ресурсов</translation>
+        <translation>Мониторинг ресурсов</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="2666"/>
@@ -2049,7 +2049,7 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4174"/>
         <source>Force Shutdown</source>
-        <translation>Завешить принудительно</translation>
+        <translation>Завершить принудительно</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4225"/>
