@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <component type="desktop-application">
   <id>org.tribler.Tribler</id>
   <metadata_license>CC0-1.0</metadata_license>
@@ -10,8 +10,13 @@
   <url type="help">https://github.com/Tribler/tribler/wiki</url>
   <summary>Towards making Bittorrent anonymous and impossible to shut down.</summary>
   <description>
-    <p>We use our own dedicated Tor-like network for anonymous torrent downloading.</p>
-    <p>We are trying to make privacy, strong cryptography and authentication the Internet norm.</p>
+    <p>Through our own dedicated Tor-like network for torrent downloading 
+      you can search and download torrents with less worries or censorship. 
+      We are trying to make privacy, strong cryptography and authentication the Internet norm.</p>
+    <p>Do not put yourself in danger. Our anonymity is not yet mature.
+      Tribler does not protect you against spooks and government agencies. 
+      We are a torrent client and aim to protect you against lawyer-based attacks and censorship. 
+      With help from many volunteers we are continuously evolving and improving.</p>
   </description>
   <screenshots>
     <screenshot type="default">
@@ -43,6 +48,5 @@
   <content_rating type="oars-1.1">
     <content_attribute id="social-info">mild</content_attribute>
   </content_rating>
-  <releases>
-  </releases>
+  <releases></releases>
 </component>
