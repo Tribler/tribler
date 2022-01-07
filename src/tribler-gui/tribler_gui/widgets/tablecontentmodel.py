@@ -7,6 +7,8 @@ from typing import Callable, Dict
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
 
+from faker import Faker
+
 from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler_common.utilities import to_fts_query
 
@@ -18,6 +20,19 @@ from tribler_gui.tribler_request_manager import TriblerNetworkRequest
 from tribler_gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
+
+
+user_names_cache = {}
+
+
+def get_user_name_cached(pk):
+    name = user_names_cache.get(pk)
+    if name is not None:
+        return name
+    Faker.seed(pk)
+    name = Faker().name()
+    user_names_cache[pk] = name
+    return name
 
 
 class Column(Enum):
@@ -62,7 +77,7 @@ def define_columns():
         Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
         Column.TORRENTS:   d('torrents',   tr("Torrents"),   width=90),
         Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=95),
-        Column.AUTHOR:     d('public_key', "", width=40),
+        Column.AUTHOR:     d('public_key', "", width=40, tooltip_filter=lambda data:get_user_name_cached(data)),
     }
     # pylint: enable=line-too-long
     # fmt:on
