@@ -1,0 +1,11 @@
+version: "3.3"
+
+services:
+  tribler-core:
+    image: triblercore/triblercore:latest
+    container_name: triblercore
+    network_mode: "host"
+    build: .
+    environment:
+      CORE_API_PORT: 52194
+
