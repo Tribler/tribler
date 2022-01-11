@@ -1,4 +1,4 @@
-from asynctest import Mock
+from asynctest import MagicMock
 
 from ipv8.util import succeed
 
@@ -34,7 +34,7 @@ async def channel_seeder(channel_tdef, loop, tmp_path_factory):  # pylint: disab
     config.upnp = False
     config.natpmp = False
     config.lsd = False
-    seeder_dlmgr = DownloadManager(state_dir=tmp_path_factory.mktemp('state_dir'), config=config, notifier=Mock(),
+    seeder_dlmgr = DownloadManager(state_dir=tmp_path_factory.mktemp('state_dir'), config=config, notifier=MagicMock(),
                                    peer_mid=b"0000")
     seeder_dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     seeder_dlmgr.initialize()
@@ -52,7 +52,7 @@ async def gigachannel_manager(metadata_store, download_manager):
         state_dir=metadata_store.channels_dir.parent,
         download_manager=download_manager,
         metadata_store=metadata_store,
-        notifier=Mock(),
+        notifier=MagicMock(),
     )
     yield gigachannel_manager
     await gigachannel_manager.shutdown()

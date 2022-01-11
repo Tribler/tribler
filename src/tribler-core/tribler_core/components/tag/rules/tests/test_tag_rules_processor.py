@@ -1,9 +1,9 @@
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW_TORRENT_METADATA_CREATED
+from tribler_core import notifications
 from tribler_core.components.tag.rules.tag_rules_processor import LAST_PROCESSED_TORRENT_ID, TagRulesProcessor
 
 TEST_BATCH_SIZE = 100
@@ -13,7 +13,8 @@ TEST_INTERVAL = 0.1
 # pylint: disable=redefined-outer-name, protected-access
 @pytest.fixture
 def tag_rules_processor():
-    return TagRulesProcessor(notifier=Mock(), db=Mock(), mds=Mock(), batch_size=TEST_BATCH_SIZE, interval=TEST_INTERVAL)
+    return TagRulesProcessor(notifier=MagicMock(), db=MagicMock(), mds=MagicMock(), batch_size=TEST_BATCH_SIZE,
+                             interval=TEST_INTERVAL)
 
 
 def test_constructor(tag_rules_processor: TagRulesProcessor):
@@ -21,12 +22,12 @@ def test_constructor(tag_rules_processor: TagRulesProcessor):
     assert tag_rules_processor.batch_size == TEST_BATCH_SIZE
     assert tag_rules_processor.interval == TEST_INTERVAL
 
-    m: Mock = tag_rules_processor.notifier.add_observer
-    m.assert_called_with(NEW_TORRENT_METADATA_CREATED, callback=tag_rules_processor.process_torrent_title)
+    m: MagicMock = tag_rules_processor.notifier.add_observer
+    m.assert_called_with(notifications.new_torrent_metadata_created, tag_rules_processor.process_torrent_title)
 
 
 @patch.object(TagRulesProcessor, 'save_tags')
-def test_process_torrent_file(mocked_save_tags: Mock, tag_rules_processor: TagRulesProcessor):
+def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: TagRulesProcessor):
     # test on None
     assert not tag_rules_processor.process_torrent_title(infohash=None, title='title')
     assert not tag_rules_processor.process_torrent_title(infohash=b'infohash', title=None)
@@ -52,7 +53,7 @@ def test_save_tags(tag_rules_processor: TagRulesProcessor):
     assert [c for c in actual_calls if c not in expected_calls] == []
 
 
-@patch.object(TagRulesProcessor, 'process_torrent_title', new=Mock(return_value=1))
+@patch.object(TagRulesProcessor, 'process_torrent_title', new=MagicMock(return_value=1))
 def test_process_batch_within_the_boundary(tag_rules_processor: TagRulesProcessor):
     # test inner logic of `process_batch` in case this batch located within the boundary
     returned_batch_size = TEST_BATCH_SIZE // 2  # let's return a half of requested items
@@ -73,7 +74,7 @@ def test_process_batch_within_the_boundary(tag_rules_processor: TagRulesProcesso
     tag_rules_processor.mds.set_value.assert_called_with(LAST_PROCESSED_TORRENT_ID, str(TEST_BATCH_SIZE))
 
 
-@patch.object(TagRulesProcessor, 'process_torrent_title', new=Mock(return_value=1))
+@patch.object(TagRulesProcessor, 'process_torrent_title', new=MagicMock(return_value=1))
 def test_process_batch_beyond_the_boundary(tag_rules_processor: TagRulesProcessor):
     # test inner logic of `process_batch` in case this batch located on a border
     returned_batch_size = TEST_BATCH_SIZE // 2  # let's return a half of requested items

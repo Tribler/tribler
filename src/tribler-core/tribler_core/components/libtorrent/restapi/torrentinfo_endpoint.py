@@ -10,6 +10,7 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
+from tribler_core import notifications
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
@@ -28,7 +29,6 @@ from tribler_core.utilities.rest_utils import (
     scheme_from_uri,
     uri_to_path,
 )
-from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
 from tribler_core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
 
@@ -126,8 +126,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-        self.download_manager.notifier.notify(
-            NTFY.TORRENT_METADATA_ADDED.value,
+        self.download_manager.notifier[notifications.torrent_metadata_added](
             tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
 
         # TODO(Martijn): store the stuff in a database!!!

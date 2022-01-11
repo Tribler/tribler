@@ -32,6 +32,7 @@ from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
 
+from tribler_core import notifications
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.components.socks_servers.socks5.server import Socks5Server
 from tribler_core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
@@ -52,7 +53,6 @@ from tribler_core.utilities.simpledefs import (
     DLSTATUS_METADATA,
     DLSTATUS_SEEDING,
     DLSTATUS_STOPPED,
-    NTFY,
 )
 from tribler_core.utilities.unicode import hexlify
 
@@ -384,7 +384,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Send the notification
         if self.notifier:
-            self.notifier.notify(NTFY.TUNNEL_REMOVE, circuit, additional_info)
+            self.notifier[notifications.circuit_removed](circuit, additional_info)
 
         # Ignore circuits that are closing so we do not payout again if we receive a destroy message.
         if circuit.state != CIRCUIT_STATE_CLOSING and self.bandwidth_community:
@@ -429,12 +429,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.notifier:
             for removed_relay in removed_relays:
-                self.notifier.notify(NTFY.TUNNEL_REMOVE, removed_relay, additional_info)
+                self.notifier[notifications.circuit_removed](removed_relay, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id in self.exit_sockets and self.notifier:
             exit_socket = self.exit_sockets[circuit_id]
-            self.notifier.notify(NTFY.TUNNEL_REMOVE, exit_socket, additional_info)
+            self.notifier[notifications.circuit_removed](exit_socket, additional_info)
 
         self.clean_from_slots(circuit_id)
 

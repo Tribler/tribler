@@ -1,6 +1,6 @@
 import json
 from asyncio import sleep
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 from aiohttp import web
 
@@ -18,7 +18,7 @@ NEW_VERSION_ID = 'v1337.0'
 
 
 def make_platform_mock():
-    platform_mock = Mock()
+    platform_mock = MagicMock()
     platform_mock.machine = lambda: 'Something64'
     platform_mock.system = lambda: 'OsName'
     platform_mock.release = lambda: '123'
@@ -37,7 +37,7 @@ async def fixture_version_check_manager(free_port):
     prev_urls = versioncheck_manager.VERSION_CHECK_URLS
     versioncheck_manager.platform = make_platform_mock()
     versioncheck_manager.VERSION_CHECK_URLS = [f"http://localhost:{free_port}"]
-    version_check_manager = VersionCheckManager(notifier=Mock())
+    version_check_manager = VersionCheckManager(notifier=MagicMock())
     try:
         yield version_check_manager
     finally:
@@ -183,7 +183,7 @@ async def test_fallback_on_multiple_urls(free_port, version_check_manager, versi
 
 
 def test_useragent_string():
-    platform = Mock()
+    platform = MagicMock()
     platform.machine = lambda: 'AMD64'
     platform.system = lambda: 'Windows'
     platform.release = lambda: '10'

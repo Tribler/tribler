@@ -12,6 +12,7 @@ from typing import Optional
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
 
+from tribler_core import notifications
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler_core.components.libtorrent.download_manager.stream import Stream
@@ -20,7 +21,7 @@ from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDef
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
 from tribler_core.exceptions import SaveResumeDataError
-from tribler_core.notifier import Notifier
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.osutils import fix_filebasename
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
@@ -388,11 +389,11 @@ class Download(TaskManager):
     def on_torrent_finished_alert(self, _):
         self.update_lt_status(self.handle.status())
         self.checkpoint()
-        if self.get_state().get_total_transferred(DOWNLOAD) > 0 and self.stream is not None:
-            if self.notifier is not None:
-                self.notifier.notify(NTFY.TORRENT_FINISHED.value, self.tdef.get_infohash(),
-                                     self.tdef.get_name_as_unicode(), self.hidden or
-                                     self.config.get_channel_download())
+        downloaded = self.get_state().get_total_transferred(DOWNLOAD)
+        if downloaded > 0 and self.stream is not None and self.notifier is not None:
+            self.notifier[notifications.torrent_finished](infohash=self.tdef.get_infohash().hex(),
+                                                          name=self.tdef.get_name_as_unicode(),
+                                                          hidden=self.hidden or self.config.get_channel_download())
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""

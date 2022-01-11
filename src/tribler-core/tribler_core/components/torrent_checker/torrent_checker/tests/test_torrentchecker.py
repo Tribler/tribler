@@ -3,7 +3,7 @@ import random
 import secrets
 import time
 
-from asynctest import Mock
+from asynctest import MagicMock
 
 from ipv8.util import succeed
 
@@ -29,8 +29,8 @@ def tracker_manager(tmp_path, metadata_store):
 async def fixture_torrent_checker(tribler_config, tracker_manager, metadata_store):
 
     torrent_checker = TorrentChecker(config=tribler_config,
-                                     download_manager=Mock(),
-                                     notifier=Mock(),
+                                     download_manager=MagicMock(),
+                                     notifier=MagicMock(),
                                      metadata_store=metadata_store,
                                      tracker_manager=tracker_manager
                                      )
@@ -368,7 +368,7 @@ def test_check_channel_torrents(torrent_checker):
         torrent.health.last_check = last_check
         return torrent
 
-    check_torrent_health_mock = Mock(return_value=None)
+    check_torrent_health_mock = MagicMock(return_value=None)
     torrent_checker.check_torrent_health = lambda _: check_torrent_health_mock()
 
     # No torrents yet in channel, the selected channel torrents to check should be empty

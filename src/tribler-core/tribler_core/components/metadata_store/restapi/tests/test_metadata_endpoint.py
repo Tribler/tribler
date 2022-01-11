@@ -1,5 +1,5 @@
 import json
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 from aiohttp.web_app import Application
 
@@ -27,9 +27,9 @@ async def torrent_checker(loop, mock_dlmgr, metadata_store):
     # Initialize the torrent checker
     config = TriblerConfig()
     config.download_defaults.number_hops = 0
-    tracker_manager = Mock()
+    tracker_manager = MagicMock()
     tracker_manager.blacklist = []
-    notifier = Mock()
+    notifier = MagicMock()
     torrent_checker = TorrentChecker(
         config=config,
         download_manager=mock_dlmgr,

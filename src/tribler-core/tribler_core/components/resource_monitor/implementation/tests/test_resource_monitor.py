@@ -2,23 +2,21 @@ import os
 import random
 import time
 from collections import deque, namedtuple
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 
+from tribler_core import notifications
 from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
-from tribler_core.utilities.simpledefs import NTFY
+from tribler_core.utilities.notifier import Notifier
 
 
 @pytest.fixture(name="resource_monitor")
 async def fixture_resource_monitor(tmp_path):
     config = ResourceMonitorSettings()
-    notifier = Mock()
-    resource_monitor = CoreResourceMonitor(state_dir=tmp_path,
-                                           log_dir=tmp_path,
-                                           config=config,
-                                           notifier=notifier,
+    notifier = Notifier()
+    resource_monitor = CoreResourceMonitor(state_dir=tmp_path, log_dir=tmp_path, config=config, notifier=notifier,
                                            history_size=10)
     yield resource_monitor
     await resource_monitor.stop()
@@ -84,12 +82,12 @@ def test_low_disk_notification(resource_monitor):
         disk = {"total": 318271800, "used": 312005050, "free": 6266750, "percent": 98.0}
         return namedtuple('sdiskusage', disk.keys())(*disk.values())
 
-    def on_notify(subject, *args):
-        assert subject in [NTFY.LOW_SPACE.value, NTFY.TRIBLER_SHUTDOWN_STATE.value]
+    resource_monitor.notifier = MagicMock()
 
     resource_monitor.get_free_disk_space = fake_get_free_disk_space
-    resource_monitor.notifier.notify = on_notify
     resource_monitor.check_resources()
+    resource_monitor.notifier[notifications.low_space].assert_called()
+    resource_monitor.notifier[notifications.tribler_shutdown_state].assert_called()
 
 
 def test_resource_log(resource_monitor):

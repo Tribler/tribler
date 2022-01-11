@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from asynctest import Mock
+from asynctest import MagicMock
 
 import pytest
 
@@ -11,7 +11,7 @@ from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 
 @pytest.fixture
 async def watcher_fixture(tmp_path):
-    watch = WatchFolder(watch_folder_path=tmp_path, download_manager=Mock(), notifier=Mock())
+    watch = WatchFolder(watch_folder_path=tmp_path, download_manager=MagicMock(), notifier=MagicMock())
     yield watch
     await watch.stop()
 

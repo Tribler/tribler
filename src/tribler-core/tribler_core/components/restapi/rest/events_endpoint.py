@@ -14,12 +14,11 @@ from ipv8.taskmanager import TaskManager, task
 
 from marshmallow.fields import Dict, String
 
+from tribler_core import notifications
 from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler_core.components.restapi.rest.util import fix_unicode_dict
-from tribler_core.notifier import Notifier
-from tribler_core.utilities.simpledefs import NTFY
-from tribler_core.utilities.unicode import hexlify
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.utilities import froze_it
 from tribler_core.version import version_id
 
@@ -28,30 +27,18 @@ def passthrough(x):
     return x
 
 
-# pylint: disable=line-too-long
-reactions_dict = {
-    # A corrupt .torrent file in the watch folder is found. Contains the name of the corrupt torrent file.
-    NTFY.WATCH_FOLDER_CORRUPT_FILE: lambda text: {"name": text},
-    # A new version of Tribler is available.
-    NTFY.TRIBLER_NEW_VERSION: lambda text: {"version": text},
-    # Tribler has discovered a new channel. Contains the channel data.
-    NTFY.CHANNEL_DISCOVERED: passthrough,
-    # A torrent has finished downloading. Contains the infohash and the name of the torrent
-    NTFY.TORRENT_FINISHED: lambda *args: {"infohash": hexlify(args[0]), "name": args[1], "hidden": args[2]},
-    # Information about some torrent has been updated (e.g. health). Contains updated torrent data
-    NTFY.CHANNEL_ENTITY_UPDATED: passthrough,
-    # Tribler is going to shutdown.
-    NTFY.TRIBLER_SHUTDOWN_STATE: passthrough,
-    # Remote GigaChannel search results were received by Tribler. Contains received entries.
-    NTFY.REMOTE_QUERY_RESULTS: passthrough,
-    # Tribler is low on disk space for storing torrents
-    NTFY.LOW_SPACE: passthrough,
-    # Report config error on startup
-    NTFY.REPORT_CONFIG_ERROR: passthrough,
-}
-
-
-# pylint: enable=line-too-long
+topics_to_send_to_gui = [
+    notifications.tunnel_removed,
+    notifications.watch_folder_corrupt_file,
+    notifications.tribler_new_version,
+    notifications.channel_discovered,
+    notifications.torrent_finished,
+    notifications.channel_entity_updated,
+    notifications.tribler_shutdown_state,
+    notifications.remote_query_results,
+    notifications.low_space,
+    notifications.report_config_error,
+]
 
 
 @froze_it
@@ -67,31 +54,22 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         TaskManager.__init__(self)
         self.events_responses: List[RESTStreamResponse] = []
         self.app.on_shutdown.append(self.on_shutdown)
-        self.notifier = None
         self.undelivered_error: Optional[dict] = None
-        self.connect_notifier(notifier)
         self.public_key = public_key
-
-    def connect_notifier(self, notifier: Notifier):
         self.notifier = notifier
+        notifier.add_observer(notifications.circuit_removed, self.on_circuit_removed)
+        notifier.add_generic_observer(self.on_notification)
 
-        for event_type, event_lambda in reactions_dict.items():
-            self.notifier.add_observer(event_type.value,
-                                       lambda *args, el=event_lambda, et=event_type:
-                                       self.write_data({"type": et.value, "event": el(*args)}))
+    def on_notification(self, topic, *args, **kwargs):
+        if topic in topics_to_send_to_gui:
+            self.write_data({"topic": topic.__name__, "args": args, "kwargs": kwargs})
 
-        def on_circuit_removed(circuit, *args):
-            if isinstance(circuit, Circuit):
-                event = {
-                    "circuit_id": circuit.circuit_id,
-                    "bytes_up": circuit.bytes_up,
-                    "bytes_down": circuit.bytes_down,
-                    "uptime": time.time() - circuit.creation_time
-                }
-                self.write_data({"type": NTFY.TUNNEL_REMOVE.value, "event": event})
-
-        # Tribler tunnel circuit has been removed
-        self.notifier.add_observer(NTFY.TUNNEL_REMOVE.value, on_circuit_removed)
+    def on_circuit_removed(self, circuit: Circuit, additional_info: str):
+        # The original notification contains non-JSON-serializable argument, so we send another one to GUI
+        self.notifier[notifications.tunnel_removed](circuit_id=circuit.circuit_id, bytes_up=circuit.bytes_up,
+                                                    bytes_down=circuit.bytes_down,
+                                                    uptime=time.time() - circuit.creation_time,
+                                                    additional_info=additional_info)
 
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()
@@ -101,14 +79,14 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
     def initial_message(self) -> dict:
         return {
-            "type": NTFY.EVENTS_START.value,
-            "event": {"public_key": self.public_key, "version": version_id}
+            "topic": notifications.events_start.__name__,
+            "kwargs": {"public_key": self.public_key, "version": version_id}
         }
 
     def error_message(self, reported_error: ReportedError) -> dict:
         return {
-            "type": NTFY.TRIBLER_EXCEPTION.value,
-            "event": asdict(reported_error),
+            "topic": notifications.tribler_exception.__name__,
+            "kwargs": {"error": asdict(reported_error)},
         }
 
     def encode_message(self, message: dict) -> bytes:
@@ -130,8 +108,13 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         """
         if not self.has_connection_to_gui():
             return
+        try:
+            message_bytes = self.encode_message(message)
+        except Exception as e:  # pylint: disable=broad-except
+            # if a notification arguments contains non-JSON-serializable data, the exception should be logged
+            self._logger.exception(e)
+            return
 
-        message_bytes = self.encode_message(message)
         for response in self.events_responses:
             await response.write(message_bytes)
 

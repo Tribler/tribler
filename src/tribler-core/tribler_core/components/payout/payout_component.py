@@ -1,9 +1,9 @@
+from tribler_core import notifications
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Component
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.payout.payout_manager import PayoutManager
 from tribler_core.components.reporter.reporter_component import ReporterComponent
-from tribler_core.utilities.simpledefs import NTFY
 
 INFINITE = -1
 
@@ -25,15 +25,15 @@ class PayoutComponent(Component):
         self.payout_manager = PayoutManager(bandwidth_accounting_component.community,
                                             ipv8_component.dht_discovery_community)
 
-        self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT.value, self.payout_manager.do_payout)
-        self.session.notifier.add_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE.value, self.payout_manager.update_peer)
+        self.session.notifier.add_observer(notifications.peer_disconnected, self.payout_manager.on_peer_disconnected)
+        self.session.notifier.add_observer(notifications.tribler_torrent_peer_update, self.payout_manager.update_peer)
 
 
     async def shutdown(self):
         await super().shutdown()
         if self.payout_manager:
-            self.session.notifier.remove_observer(NTFY.PEER_DISCONNECTED_EVENT.value, self.payout_manager.do_payout)
-            self.session.notifier.remove_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE.value,
-                                                  self.payout_manager.update_peer)
+            notifier = self.session.notifier
+            notifier.remove_observer(notifications.peer_disconnected, self.payout_manager.on_peer_disconnected)
+            notifier.remove_observer(notifications.tribler_torrent_peer_update, self.payout_manager.update_peer)
 
             await self.payout_manager.shutdown()

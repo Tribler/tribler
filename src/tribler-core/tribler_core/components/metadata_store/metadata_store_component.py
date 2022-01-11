@@ -1,8 +1,9 @@
+from tribler_core import notifications
 from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.rules.tag_rules_processor import TagRulesProcessor
-from tribler_core.utilities.simpledefs import NTFY, STATEDIR_DB_DIR
+from tribler_core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
 class MetadataStoreComponent(Component):
@@ -43,7 +44,7 @@ class MetadataStoreComponent(Component):
             tag_processor_version=TagRulesProcessor.version
         )
         self.mds = metadata_store
-        self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED.value,
+        self.session.notifier.add_observer(notifications.torrent_metadata_added,
                                            metadata_store.TorrentMetadata.add_ffa_from_dict)
 
     async def shutdown(self):

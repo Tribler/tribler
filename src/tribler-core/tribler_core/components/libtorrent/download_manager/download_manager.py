@@ -15,6 +15,7 @@ from typing import List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
+from tribler_core import notifications
 from tribler_core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
 from tribler_core.components.libtorrent.download_manager.download import Download
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -22,9 +23,9 @@ from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler_core.components.libtorrent.utils import torrent_utils
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.notifier import Notifier
 from tribler_core.utilities import path_util
 from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.rest_utils import (
     FILE_SCHEME,
@@ -158,7 +159,7 @@ class DownloadManager(TaskManager):
         self.set_download_states_callback(self.sesscb_states_callback)
 
     def notify_shutdown_state(self, state):
-        self.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE.value, state)
+        self.notifier[notifications.tribler_shutdown_state](state)
 
     async def shutdown(self, timeout=30):
         if self.downloads:
@@ -393,8 +394,8 @@ class DownloadManager(TaskManager):
             # We use the now-deprecated ``endpoint`` attribute for these older versions.
             self.listen_ports[hops] = getattr(alert, "port", alert.endpoint[1])
 
-        elif alert_type == 'peer_disconnected_alert' and self.notifier:
-            self.notifier.notify(NTFY.PEER_DISCONNECTED_EVENT.value, alert.pid.to_bytes())
+        elif alert_type == 'peer_disconnected_alert':
+            self.notifier[notifications.peer_disconnected](alert.pid.to_bytes())
 
         elif alert_type == 'session_stats_alert':
             queued_disk_jobs = alert.values['disk.queued_disk_jobs']
@@ -814,8 +815,8 @@ class DownloadManager(TaskManager):
             if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.notifier:
                 for peer in download.get_peerlist():
                     if str(peer["extended_version"]).startswith('Tribler'):
-                        self.notifier.notify(NTFY.TRIBLER_TORRENT_PEER_UPDATE.value,
-                                             unhexlify(peer["id"]), infohash, peer["dtotal"])
+                        self.notifier[notifications.tribler_torrent_peer_update](unhexlify(peer["id"]), infohash,
+                                                                                 peer["dtotal"])
 
         if self.state_cb_count % 4 == 0:
             self._last_states_list = states_list

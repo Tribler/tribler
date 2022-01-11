@@ -9,6 +9,7 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session, desc, select
 
+from tribler_core import notifications
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore
@@ -20,8 +21,7 @@ from tribler_core.components.torrent_checker.torrent_checker.torrentchecker_sess
 )
 from tribler_core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.notifier import Notifier
-from tribler_core.utilities.simpledefs import NTFY
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
@@ -296,12 +296,11 @@ class TorrentChecker(TaskManager):
         final_response = {}
         if not result or not isinstance(result, list):
             self._logger.info("Received invalid torrent checker result")
-            self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED.value,
-                                 {"infohash": hexlify(infohash),
-                                  "num_seeders": 0,
-                                  "num_leechers": 0,
-                                  "last_tracker_check": int(time.time()),
-                                  "health": "updated"})
+            self.notifier[notifications.channel_entity_updated]({"infohash": hexlify(infohash),
+                                                                 "num_seeders": 0,
+                                                                 "num_leechers": 0,
+                                                                 "last_tracker_check": int(time.time()),
+                                                                 "health": "updated"})
             return final_response
 
         torrent_update_dict = {'infohash': infohash, 'seeders': 0, 'leechers': 0, 'last_check': int(time.time())}
@@ -328,12 +327,11 @@ class TorrentChecker(TaskManager):
         self.update_torrents_checked(torrent_update_dict)
 
         # TODO: DRY! Stop doing lots of formats, just make REST endpoint automatically encode binary data to hex!
-        self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED.value,
-                             {"infohash": hexlify(infohash),
-                              "num_seeders": torrent_update_dict["seeders"],
-                              "num_leechers": torrent_update_dict["leechers"],
-                              "last_tracker_check": torrent_update_dict["last_check"],
-                              "health": "updated"})
+        self.notifier[notifications.channel_entity_updated]({"infohash": hexlify(infohash),
+                                                             "num_seeders": torrent_update_dict["seeders"],
+                                                             "num_leechers": torrent_update_dict["leechers"],
+                                                             "last_tracker_check": torrent_update_dict["last_check"],
+                                                             "health": "updated"})
         return final_response
 
     @task

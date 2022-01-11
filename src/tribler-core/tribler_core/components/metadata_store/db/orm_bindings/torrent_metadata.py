@@ -4,16 +4,16 @@ from struct import unpack
 from pony import orm
 from pony.orm import db_session
 
+from tribler_core import notifications
 from tribler_core.components.metadata_store.category_filter.category import default_category_filter
 from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
 from tribler_core.components.metadata_store.db.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
-from tribler_core.notifier import Notifier
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 
 NULL_KEY_SUBST = b"\00"
-NEW_TORRENT_METADATA_CREATED: str = 'TorrentMetadata:new_torrent_metadata_created'
 
 
 # This function is used to devise id_ from infohash in deterministic way. Used in FFA channels.
@@ -90,9 +90,7 @@ def define_binding(db, notifier: Notifier, tag_processor_version: int):
             if 'tracker_info' in kwargs:
                 self.add_tracker(kwargs["tracker_info"])
             if notifier:
-                notifier.notify(NEW_TORRENT_METADATA_CREATED,
-                                infohash=kwargs.get("infohash"),
-                                title=self.title)
+                notifier[notifications.new_torrent_metadata_created](infohash=kwargs.get("infohash"), title=self.title)
                 self.tag_processor_version = tag_processor_version
 
         def add_tracker(self, tracker_url):
@@ -111,19 +109,19 @@ def define_binding(db, notifier: Notifier, tag_processor_version: int):
 
         @classmethod
         @db_session
-        def add_ffa_from_dict(cls, ffa_dict):
+        def add_ffa_from_dict(cls, metadata: dict):
             # To produce a relatively unique id_ we take some bytes of the infohash and convert these to a number.
             # abs is necessary as the conversion can produce a negative value, and we do not support that.
-            id_ = infohash_to_id(ffa_dict["infohash"])
+            id_ = infohash_to_id(metadata["infohash"])
             # Check that this torrent is yet unknown to GigaChannel, and if there is no duplicate FFA entry.
             # Test for a duplicate id_+public_key is necessary to account for a (highly improbable) situation when
             # two entries have different infohashes but the same id_. We do not want people to exploit this.
-            ih_blob = ffa_dict["infohash"]
+            ih_blob = metadata["infohash"]
             pk_blob = b""
             if cls.exists(lambda g: (g.infohash == ih_blob) or (g.id_ == id_ and g.public_key == pk_blob)):
                 return None
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
-            return cls.from_dict(dict(ffa_dict, public_key=b'', status=COMMITTED, id_=id_))
+            return cls.from_dict(dict(metadata, public_key=b'', status=COMMITTED, id_=id_))
 
         @db_session
         def to_simple_dict(self):

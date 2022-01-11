@@ -12,7 +12,6 @@ from tribler_core.components.bandwidth_accounting.db.database import BandwidthDa
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.db8_to_db10 import calc_progress
 from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
@@ -41,11 +40,6 @@ def trustchain_keypair():
 @pytest.fixture
 def upgrader(state_dir, channels_dir, trustchain_keypair):
     return TriblerUpgrader(state_dir, channels_dir, trustchain_keypair)
-
-
-@pytest.fixture
-def notifier():
-    return Notifier()
 
 
 @pytest.fixture
