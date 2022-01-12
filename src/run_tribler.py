@@ -6,8 +6,6 @@ import logging.config
 import os
 import sys
 
-from PyQt5.QtCore import QSettings
-
 from tribler_common.logger import load_logger_config
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
@@ -100,6 +98,7 @@ if __name__ == "__main__":
             process_checker.remove_lock_file()
 
     else:
+        from PyQt5.QtCore import QSettings
         from tribler_gui.utilities import get_translator
 
         logger.info('Running GUI' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')

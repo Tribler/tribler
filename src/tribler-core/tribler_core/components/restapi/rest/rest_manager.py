@@ -82,6 +82,9 @@ class RESTManager:
         self.config = config
         self.state_dir = state_dir
 
+        self.http_host = '127.0.0.1'
+        self.https_host = '0.0.0.0'
+
     def get_endpoint(self, name):
         return self.root_endpoint.endpoints.get('/' + name)
 
@@ -122,13 +125,13 @@ class RESTManager:
         if self.config.http_enabled:
             api_port = self.config.http_port
             if not self.config.retry_port:
-                self.site = web.TCPSite(self.runner, 'localhost', api_port)
+                self.site = web.TCPSite(self.runner, self.http_host, api_port)
                 await self.site.start()
             else:
                 bind_attempts = 0
                 while bind_attempts < 10:
                     try:
-                        self.site = web.TCPSite(self.runner, 'localhost', api_port + bind_attempts)
+                        self.site = web.TCPSite(self.runner, self.http_host, api_port + bind_attempts)
                         await self.site.start()
                         self.config.http_port = api_port + bind_attempts
                         break
@@ -144,7 +147,7 @@ class RESTManager:
             ssl_context.load_cert_chain(cert)
 
             port = self.config.https_port
-            self.site_https = web.TCPSite(self.runner, '0.0.0.0', port, ssl_context=ssl_context)
+            self.site_https = web.TCPSite(self.runner, self.https_host, port, ssl_context=ssl_context)
 
             await self.site_https.start()
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)

@@ -56,6 +56,57 @@ We have written guides on how to package Tribler for distribution on various sys
 * `Windows <http://tribler.readthedocs.io/en/latest/building/building_on_windows.html>`_
 * `macOS <http://tribler.readthedocs.io/en/latest/building/building_on_osx.html>`_
 
+
+Docker support
+=================
+
+Dockerfile is provided with the source code which can be used to build the docker image.
+
+To build the docker image:
+
+.. code-block:: bash
+
+    docker build -t triblercore/triblercore:latest .
+
+
+To run the built docker image:
+
+.. code-block:: bash
+
+    docker run -p 52194:52194 --net="host" triblercore/triblercore:latest
+
+Note that by default, the REST API is bound to localhost inside the container so to
+access the APIs, network needs to be set to host (--net="host").
+
+The REST APIs are now accessible at: http://localhost:52194/docs
+
+
+**Docker Compose**
+
+Tribler core can also be started using Docker Compose. For that, a `docker-compose.yml` file is available
+on the project root directory.
+
+To run via docker compose:
+
+.. code-block:: bash
+
+    docker-compose up
+
+
+To run in detached mode:
+
+.. code-block:: bash
+
+    docker-compose up -d
+
+
+To stop Tribler:
+
+.. code-block:: bash
+
+    docker-compose down
+
+
 Get in touch!
 =============
 

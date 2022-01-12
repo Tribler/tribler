@@ -1,0 +1,6 @@
+venv
+venv**
+.github
+.pytest**
+doc
+experiment
