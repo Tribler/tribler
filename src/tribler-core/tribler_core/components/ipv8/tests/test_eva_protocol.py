@@ -12,7 +12,7 @@ from ipv8.test.base import TestBase
 
 import pytest
 
-from tribler_core.components.metadata_store.remote_query_community.eva_protocol import (
+from tribler_core.components.ipv8.eva_protocol import (
     Acknowledgement,
     EVAProtocol,
     EVAProtocolMixin,
