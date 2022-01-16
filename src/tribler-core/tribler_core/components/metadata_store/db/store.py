@@ -710,8 +710,7 @@ class MetadataStore:
             sort_expression = "desc(g.num_entries), desc(g.size)" if sort_desc else "g.num_entries, g.size"
             pony_query = pony_query.sort_by(sort_expression)
         elif sort_by:
-            sort_expression = "g." + sort_by
-            sort_expression = desc(sort_expression) if sort_desc else sort_expression
+            sort_expression = raw_sql(f"g.{sort_by} COLLATE NOCASE" + (" DESC" if sort_desc else ""))
             pony_query = pony_query.sort_by(sort_expression)
 
         if sort_by is None:
