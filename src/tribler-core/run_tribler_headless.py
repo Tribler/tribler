@@ -104,7 +104,7 @@ class TriblerService:
 
         self.session = Session(config)
         try:
-            await self.session.start()
+            await self.session.start_components()
         except Exception as e:
             print(str(e))
             get_event_loop().stop()

@@ -10,13 +10,8 @@ pytestmark = pytest.mark.asyncio
 
 async def test_socks_servers_component(tribler_config):
     components = [SocksServersComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = SocksServersComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.socks_ports
         assert comp.socks_servers
-
-        await session.shutdown()

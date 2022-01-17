@@ -17,12 +17,7 @@ from tribler_core.components.torrent_checker.torrent_checker_component import To
 async def test_popularity_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), TorrentCheckerComponent(), TagComponent(),
                   MetadataStoreComponent(), KeyComponent(), Ipv8Component(), PopularityComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = PopularityComponent.instance()
         assert comp.community
         assert comp._ipv8_component
-
-        await session.shutdown()

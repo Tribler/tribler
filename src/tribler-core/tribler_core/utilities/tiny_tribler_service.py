@@ -6,6 +6,7 @@ from typing import List
 
 from tribler_common.osutils import get_root_state_directory
 from tribler_common.process_checker import ProcessChecker
+
 from tribler_core.components.base import Component
 from tribler_core.start_core import Session
 
@@ -48,7 +49,7 @@ class TinyTriblerService:
         self.logger.info(f"Starting Tribler session with config: {self.config}")
         self.session = Session(self.config, self.components)
         self.session.set_as_default()
-        await self.session.start()
+        await self.session.start_components()
 
         self.logger.info("Tribler session started")
 

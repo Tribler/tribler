@@ -26,10 +26,7 @@ async def test_rest_component(tribler_config):
     components = [KeyComponent(), RESTComponent(), Ipv8Component(), LibtorrentComponent(), ResourceMonitorComponent(),
                   BandwidthAccountingComponent(), GigaChannelComponent(), TagComponent(), SocksServersComponent(),
                   MetadataStoreComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         # Test REST component starts normally
         comp = RESTComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
@@ -41,12 +38,9 @@ async def test_rest_component(tribler_config):
 
         # try to call report_callback from core_exception_handler and assert
         # that corresponding methods in events_endpoint and state_endpoint have been called
-
         error = ReportedError(type='', text='text', event={})
         comp._core_exception_handler.report_callback(error)
         comp._events_endpoint.on_tribler_exception.assert_called_with(error)
-
-        await session.shutdown()
 
 
 @pytest.fixture

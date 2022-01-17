@@ -18,12 +18,7 @@ pytestmark = pytest.mark.asyncio
 async def test_torrent_checker_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), KeyComponent(),
                   Ipv8Component(), TagComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = TorrentCheckerComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.torrent_checker
-
-        await session.shutdown()

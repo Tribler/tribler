@@ -149,7 +149,7 @@ class TunnelHelperService(TaskManager):
         self.log_circuits = options.log_circuits
         session.notifier.add_observer(NTFY.TUNNEL_REMOVE, self.circuit_removed)
 
-        await session.start()
+        await session.start_components()
 
         with session:
             if options.log_rejects:

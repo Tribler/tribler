@@ -10,12 +10,8 @@ from tribler_core.components.tag.tag_component import TagComponent
 
 @pytest.mark.asyncio
 async def test_tag_component(tribler_config):
-    session = Session(tribler_config, [KeyComponent(), Ipv8Component(), TagComponent()])
-    with session:
+    components = [KeyComponent(), Ipv8Component(), TagComponent()]
+    async with Session(tribler_config, components).start():
         comp = TagComponent.instance()
-        await session.start()
-
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
-
-        await session.shutdown()

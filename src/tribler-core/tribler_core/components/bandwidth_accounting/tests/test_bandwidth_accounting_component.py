@@ -10,13 +10,8 @@ from tribler_core.components.key.key_component import KeyComponent
 @pytest.mark.asyncio
 async def test_bandwidth_accounting_component(tribler_config):
     components = [KeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = BandwidthAccountingComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
         assert comp._ipv8_component
-
-        await session.shutdown()

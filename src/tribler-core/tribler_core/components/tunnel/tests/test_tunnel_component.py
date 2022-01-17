@@ -11,13 +11,8 @@ pytestmark = pytest.mark.asyncio
 # pylint: disable=protected-access
 async def test_tunnels_component(tribler_config):
     components = [Ipv8Component(), KeyComponent(), TunnelsComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = TunnelsComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
         assert comp._ipv8_component
-
-        await session.shutdown()

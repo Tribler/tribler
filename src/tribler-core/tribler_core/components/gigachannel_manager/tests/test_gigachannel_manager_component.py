@@ -14,15 +14,9 @@ from tribler_core.components.tag.tag_component import TagComponent
 
 @pytest.mark.asyncio
 async def test_gigachannel_manager_component(tribler_config):
-    components = [Ipv8Component(), TagComponent(), SocksServersComponent(), KeyComponent(),
-                  MetadataStoreComponent(),
+    components = [Ipv8Component(), TagComponent(), SocksServersComponent(), KeyComponent(), MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]
-    session = Session(tribler_config, components)
-    with session:
+    async with Session(tribler_config, components).start():
         comp = GigachannelManagerComponent.instance()
-        await session.start()
-
         assert comp.started_event.is_set() and not comp.failed
         assert comp.gigachannel_manager
-
-        await session.shutdown()

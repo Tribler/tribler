@@ -11,12 +11,7 @@ from tribler_core.components.payout.payout_component import PayoutComponent
 @pytest.mark.asyncio
 async def test_payout_component(tribler_config):
     components = [BandwidthAccountingComponent(), KeyComponent(), Ipv8Component(), PayoutComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = PayoutComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.payout_manager
-
-        await session.shutdown()
