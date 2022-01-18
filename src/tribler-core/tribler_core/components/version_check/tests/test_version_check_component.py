@@ -10,12 +10,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_version_check_component(tribler_config):
     components = [VersionCheckComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = VersionCheckComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.version_check_manager
-
-        await session.shutdown()

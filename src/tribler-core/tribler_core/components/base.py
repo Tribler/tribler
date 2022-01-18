@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 from asyncio import Event, create_task, gather, get_event_loop
+from contextlib import asynccontextmanager
 from itertools import count
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar, Union
@@ -51,6 +52,29 @@ def reserve_ports(ports_list: List[None, int]):
     for port in ports_list:
         if port is not None:
             default_network_utils.remember(port)
+
+
+@asynccontextmanager
+async def session_manager(session: Session):
+    """ Session context manager automates routine operations on session object.
+
+    In simple terms, it does the following things:
+    1. Set the current session as a default session
+    2. Call await session.start_components()
+    2. Call await session.shutdown()
+
+    Example of use:
+        ...
+        async with Session(config, components).start():
+            print(session.current())
+        ...
+    """
+    with session:  # set the current session as a default session
+        try:
+            await session.start_components()  # on enter
+            yield session
+        finally:
+            await session.shutdown()  # on leave
 
 
 class Session:
@@ -109,7 +133,7 @@ class Session:
         self.components[comp_cls] = comp
         comp.session = self
 
-    async def start(self):
+    async def start_components(self):
         self.logger.info("Session is using state directory: %s", self.config.state_dir)
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
@@ -122,6 +146,20 @@ class Session:
         await gather(*coros, return_exceptions=not self.failfast)
         if self._startup_exception:
             self._reraise_startup_exception_in_separate_task()
+
+    def start(self):
+        """ This method returns session manager that will:
+        1. Set the current session as a default on the enter the block nested in the with statement
+        2. Call `await session._start() on the enter the block nested in the with statement
+        3. Call `await session.shutdown() on the leave the block nested in the with statement
+
+        Example of use:
+            ...
+            async with Session(tribler_config, components).start():
+                # do work with the components
+            ...
+        """
+        return session_manager(self)
 
     def _reraise_startup_exception_in_separate_task(self):
         async def exception_reraiser():

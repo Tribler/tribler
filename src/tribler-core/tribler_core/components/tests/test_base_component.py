@@ -38,7 +38,7 @@ async def test_session_start_shutdown(tribler_config):
             assert not component.shutdown_was_executed
             assert not component.stopped
 
-        await session.start()
+        await session.start_components()
 
         assert ComponentA.instance() is a and ComponentB.instance() is b
         for component in a, b:
@@ -75,7 +75,7 @@ async def test_required_dependency(tribler_config):
             assert not component.dependencies and not component.reverse_dependencies
             assert component.unused_event.is_set()
 
-        await session.start()
+        await session.start_components()
 
         assert a in b.dependencies and not b.reverse_dependencies
         assert not a.dependencies and b in a.reverse_dependencies
@@ -103,13 +103,13 @@ async def test_required_dependency_missed(tribler_config):
         b = ComponentB.instance()
 
         with pytest.raises(MissedDependency, match='^Missed dependency: ComponentB requires ComponentA to be active$'):
-            await session.start()
+            await session.start_components()
 
     session = Session(tribler_config, [ComponentB()], failfast=False)
     with session:
         b = ComponentB.instance()
 
-        await session.start()
+        await session.start_components()
 
         assert ComponentB.instance() is b
         assert b.started_event.is_set()
@@ -132,7 +132,7 @@ async def test_component_shutdown_failure(tribler_config):
         a = ComponentA.instance()
         b = ComponentB.instance()
 
-        await session.start()
+        await session.start_components()
 
         assert not a.unused_event.is_set()
 
@@ -179,7 +179,7 @@ async def test_maybe_component(loop, tribler_config):  # pylint: disable=unused-
 
     session = Session(tribler_config, [ComponentA()])
     with session:
-        await session.start()
+        await session.start_components()
         component_a = await ComponentA.instance().maybe_component(ComponentA)
         component_b = await ComponentA.instance().maybe_component(ComponentB)
 

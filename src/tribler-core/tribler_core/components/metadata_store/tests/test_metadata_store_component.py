@@ -11,12 +11,7 @@ from tribler_core.components.tag.tag_component import TagComponent
 @pytest.mark.asyncio
 async def test_metadata_store_component(tribler_config):
     components = [TagComponent(), Ipv8Component(), KeyComponent(), MetadataStoreComponent()]
-    session = Session(tribler_config, components)
-    with session:
+    async with Session(tribler_config, components).start():
         comp = MetadataStoreComponent.instance()
-        await session.start()
-
         assert comp.started_event.is_set() and not comp.failed
         assert comp.mds
-
-        await session.shutdown()

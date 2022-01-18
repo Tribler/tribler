@@ -6,14 +6,9 @@ from tribler_core.components.key.key_component import KeyComponent
 
 @pytest.mark.asyncio
 async def test_masterkey_component(tribler_config):
-    session = Session(tribler_config, [KeyComponent()])
-    with session:
+    async with Session(tribler_config, [KeyComponent()]).start():
         comp = KeyComponent.instance()
-        await session.start()
-
         assert comp.primary_key
-
-        await session.shutdown()
 
 
 async def test_get_private_key_filename(tribler_config):

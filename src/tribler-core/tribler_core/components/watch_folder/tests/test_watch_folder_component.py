@@ -13,12 +13,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_watch_folder_component(tribler_config):
     components = [KeyComponent(), SocksServersComponent(), LibtorrentComponent(), WatchFolderComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = WatchFolderComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.watch_folder
-
-        await session.shutdown()

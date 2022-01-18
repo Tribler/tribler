@@ -9,12 +9,7 @@ from tribler_core.components.resource_monitor.resource_monitor_component import 
 @pytest.mark.asyncio
 async def test_resource_monitor_component(tribler_config):
     components = [KeyComponent(), ResourceMonitorComponent()]
-    session = Session(tribler_config, components)
-    with session:
-        await session.start()
-
+    async with Session(tribler_config, components).start():
         comp = ResourceMonitorComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.resource_monitor
-
-        await session.shutdown()
