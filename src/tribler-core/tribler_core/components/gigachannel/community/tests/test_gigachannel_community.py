@@ -237,10 +237,12 @@ class TestGigaChannelUnits(TestBase):
         chan_id = 123
 
         num_excess_peers = 20
-        first_peer_timestamp = None
+        t = time.time() - 1000
+        first_peer_timestamp = t
         for k in range(0, mapping.max_peers_per_channel + num_excess_peers):
             peer = Peer(default_eccrypto.generate_key("very-low"), ("1.2.3.4", 5))
-            peer.last_response = time.time()
+            peer.last_response = t
+            t += 1.0
             mapping.add(peer, chan_pk, chan_id)
             if k == 0:
                 first_peer_timestamp = peer.last_response
