@@ -65,6 +65,7 @@ class Service(TinyTriblerService, TaskManager):
                 index += 1
                 self.results += await self.run_speed_test(ORIGINATOR, circuit, index, EXPERIMENT_NUM_MB)
                 self.results += await self.run_speed_test(EXIT_NODE, circuit, index, EXPERIMENT_NUM_MB)
+                self.logger.info(f"Remove circuit: {index}/{EXPERIMENT_NUM_CIRCUITS}")
                 community.remove_circuit(circuit.circuit_id)
             else:
                 await asyncio.sleep(1)
