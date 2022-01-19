@@ -68,9 +68,8 @@ class RESTComponent(Component):
         shutdown_event = session.shutdown_event
 
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
-        metadata_store_component = await self.get_component(MetadataStoreComponent)
+        metadata_store_component = await self.maybe_component(MetadataStoreComponent)
 
-        # pylint: disable=C0301
         key_component = await self.require_component(KeyComponent)
         ipv8_component = await self.maybe_component(Ipv8Component)
         libtorrent_component = await self.maybe_component(LibtorrentComponent)
@@ -115,7 +114,6 @@ class RESTComponent(Component):
                        metadata_store_component.mds)
         self.maybe_add('/tags', TagsEndpoint, db=tag_component.tags_db, community=tag_component.community)
 
-        # pylint: enable=C0301
         ipv8_root_endpoint = IPV8RootEndpoint()
         for _, endpoint in ipv8_root_endpoint.endpoints.items():
             endpoint.initialize(ipv8_component.ipv8)
