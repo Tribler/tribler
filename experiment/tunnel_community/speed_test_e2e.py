@@ -6,10 +6,10 @@ from pathlib import Path
 from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.taskmanager import task
 
+from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
+
 from experiment.tunnel_community.speed_test_exit import EXPERIMENT_NUM_CIRCUITS, EXPERIMENT_NUM_HOPS, \
     Service as SpeedTestExitService
-
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 10))
 
@@ -20,6 +20,7 @@ class Service(SpeedTestExitService):
         super().__init__(*args, **kwargs)
         self.output_file = 'speed_test_e2e.txt'
         self.index = 0
+        self.tunnel_community = None
 
     async def on_tribler_started(self):
         info_hash = unhexlify('e24d8e65a329a59b41a532ebd4eb4a3db7cb291b')
