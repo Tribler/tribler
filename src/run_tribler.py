@@ -25,6 +25,7 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         kwargs['description'] = 'Run Tribler BitTorrent client'
         super().__init__(*args, **kwargs)
+        self.add_argument('torrent', help='torrent file to download', default='', nargs='?')
         self.add_argument('--core', action="store_true")
         self.add_argument('--gui-test-mode', action="store_true")
 
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     init_sentry_reporter()
 
     parsed_args = RunTriblerArgsParser().parse_args()
+    logger.info(f'Run Tribler: {parsed_args}')
 
     # Get root state directory (e.g. from environment variable or from system default)
     from tribler_common.osutils import get_root_state_directory
@@ -144,12 +146,12 @@ if __name__ == "__main__":
             app.installTranslator(translator)
 
             if app.is_running():
-                logger.info('Application is running')
-                for arg in sys.argv[1:]:
-                    if os.path.exists(arg) and arg.endswith(".torrent"):
-                        app.send_message(f"file:{arg}")
-                    elif arg.startswith('magnet'):
-                        app.send_message(arg)
+                logger.info('GUI Application is running')
+                if torrent := parsed_args.torrent:
+                    if os.path.exists(torrent) and torrent.endswith(".torrent"):
+                        app.send_message(f"file:{torrent}")
+                    elif torrent.startswith('magnet'):
+                        app.send_message(torrent)
 
                 sys.exit(1)
 
