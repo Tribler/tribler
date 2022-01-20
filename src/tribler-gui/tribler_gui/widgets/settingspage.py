@@ -220,7 +220,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().seeding_ratio_combobox.setCurrentIndex(ind)
 
         # Anonymity settings
-        self.window().allow_exit_node_checkbox.setChecked(settings['tunnel_community']['exitnode_enabled'])
         self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']))
         connect(self.window().number_hops_slider.valueChanged, self.update_anonymity_cost_label)
         self.update_anonymity_cost_label(int(settings['download_defaults']['number_hops']))
@@ -505,7 +504,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             )
             return
 
-        settings_data['tunnel_community']['exitnode_enabled'] = self.window().allow_exit_node_checkbox.isChecked()
+        settings_data['tunnel_community']['exitnode_enabled'] = False
         settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value()
         settings_data['download_defaults'][
             'anonymity_enabled'
