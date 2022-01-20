@@ -2,17 +2,15 @@ import argparse
 # A fix for "LookupError: unknown encoding: idna" error.
 # Adding encodings.idna to hiddenimports is not enough.
 # https://github.com/pyinstaller/pyinstaller/issues/1113
+# noinspection PyUnresolvedReferences
+import encodings.idna  # pylint: disable=unused-import
 import logging.config
 import os
 import sys
 
-from tribler_common.logger import load_logger_config
-from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler_common.version_manager import VersionHistory
 
-from tribler_core import start_core
 from tribler_core.components.reporter.exception_handler import default_core_exception_handler
 
 logger = logging.getLogger(__name__)
@@ -79,109 +77,10 @@ if __name__ == "__main__":
 
     # Check whether we need to start the core or the user interface
     if parsed_args.core:
-        from tribler_core.check_os import should_kill_other_tribler_instances
+        from tribler_core.start_core import run_core
 
-        should_kill_other_tribler_instances(root_state_dir)
-        logger.info('Running Core' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
-        load_logger_config('tribler-core', root_state_dir)
+        run_core(api_port, api_key, root_state_dir, parsed_args)
+    else:  # GUI
+        from tribler_gui.start_gui import run_gui
 
-        # Check if we are already running a Tribler instance
-        process_checker = ProcessChecker(root_state_dir)
-        if process_checker.already_running:
-            logger.info('Core is already running, exiting')
-            sys.exit(1)
-        process_checker.create_lock_file()
-        version_history = VersionHistory(root_state_dir)
-        state_dir = version_history.code_version.directory
-        try:
-            start_core.run_tribler_core(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
-        finally:
-            logger.info('Remove lock file')
-            process_checker.remove_lock_file()
-
-    else:
-        from PyQt5.QtCore import QSettings
-        from tribler_gui.utilities import get_translator
-
-        logger.info('Running GUI' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
-
-        # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728
-        if sys.platform == "darwin":
-            logger.info('Enabling a workaround for macOS Big Sur')
-            os.environ["QT_MAC_WANTS_LAYER"] = "1"
-
-        # Set up logging
-        load_logger_config('tribler-gui', root_state_dir)
-
-        from tribler_core.check_os import (
-            check_and_enable_code_tracing,
-            check_environment,
-            check_free_space,
-            enable_fault_handler,
-            error_and_exit,
-        )
-        from tribler_core.exceptions import TriblerException
-
-        try:
-            # Enable tracer using commandline args: --trace-debug or --trace-exceptions
-            trace_logger = check_and_enable_code_tracing('gui', root_state_dir)
-
-            enable_fault_handler(root_state_dir)
-
-            # Exit if we cant read/write files, etc.
-            check_environment()
-
-            check_free_space()
-
-            from tribler_gui.tribler_app import TriblerApplication
-            from tribler_gui.tribler_window import TriblerWindow
-
-            app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
-            app = TriblerApplication(app_name, sys.argv)
-
-            # ACHTUNG! translator MUST BE created and assigned to a separate variable
-            # BEFORE calling installTranslator on app. Otherwise, it won't work for some reason
-            settings = QSettings('nl.tudelft.tribler')
-            translator = get_translator(settings.value('translation', None))
-            app.installTranslator(translator)
-
-            if app.is_running():
-                logger.info('GUI Application is running')
-                if torrent := parsed_args.torrent:
-                    if os.path.exists(torrent) and torrent.endswith(".torrent"):
-                        app.send_message(f"file:{torrent}")
-                    elif torrent.startswith('magnet'):
-                        app.send_message(torrent)
-
-                sys.exit(1)
-
-            logger.info('Start Tribler Window')
-            window = TriblerWindow(settings,
-                                   root_state_dir,
-                                   api_port=api_port,
-                                   api_key=api_key,
-                                   run_core=True)
-            window.setWindowTitle("Tribler")
-            app.set_activation_window(window)
-            app.parse_sys_args(sys.argv)
-            sys.exit(app.exec_())
-
-        except ImportError as ie:
-            logger.exception(ie)
-            error_and_exit("Import Error", f"Import error: {ie}")
-
-        except TriblerException as te:
-            logger.exception(te)
-            error_and_exit("Tribler Exception", f"{te}")
-
-        except SystemExit:
-            logger.info("Shutting down Tribler")
-            if trace_logger:
-                trace_logger.close()
-
-            # Flush all the logs to make sure it is written to file before it exits
-            for handler in logging.getLogger().handlers:
-                handler.flush()
-
-            default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
-            raise
+        run_gui(api_port, api_key, root_state_dir, parsed_args)
