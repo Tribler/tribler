@@ -6,6 +6,7 @@ from PyQt5.QtCore import QSettings
 
 from tribler_common.logger import load_logger_config
 from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
+
 from tribler_core.check_os import (
     check_and_enable_code_tracing,
     check_environment,
@@ -14,6 +15,7 @@ from tribler_core.check_os import (
     error_and_exit,
 )
 from tribler_core.exceptions import TriblerException
+
 from tribler_gui import gui_sentry_reporter
 from tribler_gui.tribler_app import TriblerApplication
 from tribler_gui.tribler_window import TriblerWindow
@@ -53,7 +55,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         if app.is_running():
             # if an application is already running, then send the command line
             # argument to it and close the current instance
-            logger.info(f'GUI Application already running. Passing a torrent file path to it.')
+            logger.info('GUI Application is already running. Passing a torrent file path to it.')
             for arg in sys.argv[1:]:
                 if os.path.exists(arg) and arg.endswith(".torrent"):
                     app.send_message(f"file:{arg}")
