@@ -10,7 +10,14 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
-from tribler_common.rest_utils import FILE_SCHEME, HTTP_SCHEME, MAGNET_SCHEME, uri_to_path
+from tribler_common.rest_utils import (
+    FILE_SCHEME,
+    HTTPS_SCHEME,
+    HTTP_SCHEME,
+    MAGNET_SCHEME,
+    scheme_from_uri,
+    uri_to_path,
+)
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
@@ -82,7 +89,9 @@ class TorrentInfoEndpoint(RESTEndpoint):
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
         metainfo = None
-        if uri.startswith(FILE_SCHEME):
+        scheme = scheme_from_uri(uri)
+
+        if scheme == FILE_SCHEME:
             file = uri_to_path(uri)
             try:
                 tdef = TorrentDef.load(file)
@@ -90,7 +99,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             except (TypeError, RuntimeError):
                 return RESTResponse({"error": f"error while decoding torrent file: {file}"},
                                     status=HTTP_INTERNAL_SERVER_ERROR)
-        elif uri.startswith(HTTP_SCHEME):
+        elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             try:
                 response = await query_http_uri(uri)
             except (ServerConnectionError, ClientResponseError) as e:
@@ -102,7 +111,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=response)
             else:
                 metainfo = bdecode_compat(response)
-        elif uri.startswith(MAGNET_SCHEME):
+        elif scheme == MAGNET_SCHEME:
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)

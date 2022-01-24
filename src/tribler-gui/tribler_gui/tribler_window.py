@@ -40,7 +40,7 @@ from psutil import LINUX
 
 from tribler_common.network_utils import default_network_utils
 from tribler_common.process_checker import ProcessChecker
-from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, uri_to_path
+from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
 from tribler_common.utilities import parse_query
 from tribler_common.version_manager import VersionHistory
 
@@ -633,11 +633,12 @@ class TriblerWindow(QMainWindow):
     def show_add_torrent_to_channel_dialog_from_uri(self, uri):
         def on_add_button_pressed(channel_id):
             post_data = {}
-            if uri.startswith(FILE_SCHEME):
+            scheme = scheme_from_uri(uri)
+            if scheme == FILE_SCHEME:
                 file_path = uri_to_path(uri)
                 with open(file_path) as torrent_file:
                     post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
-            elif uri.startswith(MAGNET_SCHEME):
+            elif scheme == MAGNET_SCHEME:
                 post_data['uri'] = uri
 
             if post_data:

@@ -4,8 +4,9 @@ from typing import Any, Union
 from yarl import URL
 
 MAGNET_SCHEME = 'magnet'
-HTTP_SCHEME = 'http'
 FILE_SCHEME = 'file'
+HTTP_SCHEME = 'http'
+HTTPS_SCHEME = 'https'
 
 
 def path_to_uri(file_path: Union[str, Any]) -> str:
@@ -31,3 +32,14 @@ def uri_to_path(file_uri: str) -> str:
         # see https://github.com/aio-libs/yarl/issues/674
         return path.lstrip('/')
     return path
+
+
+def scheme_from_uri(uri: str) -> str:
+    """Get scheme from URI
+
+    Examples:
+        'file:///some/file' -> 'file'
+        'magnet:link' -> 'magnet'
+        'http://en.wikipedia.org' -> 'http'
+    """
+    return URL(uri).scheme
