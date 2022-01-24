@@ -8,6 +8,7 @@ from ipv8.util import fail, succeed
 
 import pytest
 
+from tribler_common.rest_utils import HTTP_SCHEME, path_to_uri
 from tribler_common.simpledefs import DLSTATUS_CIRCUITS, DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
 
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
@@ -184,11 +185,10 @@ async def test_start_download_from_file(test_download, mock_dlmgr, rest_api):
     Testing whether we can start a download from a file
     """
     mock_dlmgr.start_download_from_uri = lambda *_, **__: succeed(test_download)
-
-    post_data = {'uri': f"file:{TESTS_DATA_DIR / 'video.avi.torrent'}"}
+    uri = path_to_uri(TESTS_DATA_DIR / 'video.avi.torrent')
     expected_json = {'started': True, 'infohash': 'c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5'}
     await do_request(rest_api, 'downloads', expected_code=200, request_type='PUT',
-                     post_data=post_data, expected_json=expected_json)
+                     post_data={'uri': uri}, expected_json=expected_json)
 
 
 async def test_start_download_with_selected_files(test_download, mock_dlmgr, rest_api):
@@ -200,8 +200,8 @@ async def test_start_download_with_selected_files(test_download, mock_dlmgr, res
         return succeed(test_download)
 
     mock_dlmgr.start_download_from_uri = mocked_start_download
-
-    post_data = {'uri': f"file:{TESTS_DATA_DIR / 'video.avi.torrent'}", 'selected_files': [0]}
+    uri = path_to_uri(TESTS_DATA_DIR / 'video.avi.torrent')
+    post_data = {'uri': uri, 'selected_files': [0]}
     expected_json = {'started': True, 'infohash': 'c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5'}
     await do_request(rest_api, 'downloads', expected_code=200, request_type='PUT',
                      post_data=post_data, expected_json=expected_json)
@@ -249,7 +249,7 @@ async def test_start_invalid_download(mock_dlmgr, rest_api):
 
     mock_dlmgr.start_download_from_uri = mocked_start_download
 
-    post_data = {'uri': 'http://localhost:1234/test.torrent'}
+    post_data = {'uri': f'{HTTP_SCHEME}://localhost:1234/test.torrent'}
     result = await do_request(rest_api, 'downloads', expected_code=500, request_type='PUT', post_data=post_data)
     assert result["error"] == "test"
 

@@ -10,7 +10,7 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_common.rest_constants import FILE_PREFIX
+from tribler_common.rest_utils import path_to_uri
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
@@ -63,9 +63,8 @@ async def test_get_torrentinfo_escaped_characters(tmp_path, rest_api):
     source = TORRENT_UBUNTU_FILE
     destination = tmp_path / 'ubuntu%20%21 15.04.torrent'
     shutil.copyfile(source, destination)
-
-    response = await do_request(rest_api, url='torrentinfo', params={'uri': f'{FILE_PREFIX}:{destination}'},
-                                expected_code=200)
+    uri = path_to_uri(destination)
+    response = await do_request(rest_api, url='torrentinfo', params={'uri': uri}, expected_code=200)
 
     assert 'metainfo' in response
 
@@ -76,7 +75,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     """
 
     def _path(file):
-        return f'{FILE_PREFIX}:{TESTS_DATA_DIR / file}'
+        return path_to_uri(TESTS_DATA_DIR / file)
 
     shutil.copyfile(TORRENT_UBUNTU_FILE, tmp_path / 'ubuntu.torrent')
 

@@ -1,14 +1,9 @@
 import itertools
-import os
 import platform
 import re
 import sys
 from dataclasses import dataclass, field
 from typing import Set, Tuple
-from urllib.parse import urlparse
-from urllib.request import url2pathname
-
-from tribler_core.utilities.path_util import Path
 
 
 def is_frozen():
@@ -21,12 +16,6 @@ def is_frozen():
     except Exception:
         return False
     return True
-
-
-def uri_to_path(uri):
-    parsed = urlparse(uri)
-    host = "{0}{0}{mnt}{0}".format(os.path.sep, mnt=parsed.netloc)
-    return Path(host) / url2pathname(parsed.path)
 
 
 fts_query_re = re.compile(r'\w+', re.UNICODE)

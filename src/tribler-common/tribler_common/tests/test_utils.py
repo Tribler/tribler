@@ -1,16 +1,10 @@
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from tribler_common.patch_import import patch_import
-from tribler_common.utilities import Query, extract_tags, parse_query, show_system_popup, to_fts_query, uri_to_path
+from tribler_common.utilities import Query, extract_tags, parse_query, show_system_popup, to_fts_query
 
 # pylint: disable=import-outside-toplevel, import-error
 # fmt: off
-
-def test_uri_to_path():
-    path = Path(__file__).parent / "bla%20foo.bar"
-    uri = path.as_uri()
-    assert uri_to_path(uri) == path
 
 
 def test_to_fts_query():

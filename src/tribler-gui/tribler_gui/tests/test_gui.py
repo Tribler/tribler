@@ -12,6 +12,7 @@ import pytest
 
 import tribler_common
 from tribler_common.reported_error import ReportedError
+from tribler_common.rest_utils import path_to_uri
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.tag_constants import MIN_TAG_LENGTH
 
@@ -393,8 +394,8 @@ def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
     screenshot(window, name="add_torrent_url_dialog")
-
-    window.dialog.dialog_widget.dialog_input.setText("file:" + str(TORRENT_WITH_DIRS))
+    uri = path_to_uri(TORRENT_WITH_DIRS)
+    window.dialog.dialog_widget.dialog_input.setText(uri)
     QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
     QTest.qWait(200)
     screenshot(window, name="add_torrent_url_startdownload_dialog")

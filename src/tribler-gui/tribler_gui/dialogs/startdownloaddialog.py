@@ -8,7 +8,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 
-from tribler_common.rest_constants import FILE_PREFIX, MAGNET_PREFIX
+from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, uri_to_path
 
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
@@ -34,9 +34,9 @@ class StartDownloadDialog(DialogContainer):
         DialogContainer.__init__(self, parent)
 
         torrent_name = download_uri
-        if torrent_name.startswith(FILE_PREFIX):
-            torrent_name = torrent_name[len(FILE_PREFIX) + 1 :]
-        elif torrent_name.startswith(MAGNET_PREFIX):
+        if torrent_name.startswith(FILE_SCHEME):
+            torrent_name = uri_to_path(torrent_name)
+        elif torrent_name.startswith(MAGNET_SCHEME):
             torrent_name = unquote_plus(torrent_name)
 
         self.download_uri = download_uri

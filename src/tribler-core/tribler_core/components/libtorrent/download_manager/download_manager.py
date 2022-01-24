@@ -16,7 +16,7 @@ from typing import List, Optional
 from ipv8.taskmanager import TaskManager, task
 
 from tribler_common.network_utils import default_network_utils
-from tribler_common.rest_constants import FILE_PREFIX, HTTP_PREFIX, MAGNET_PREFIX
+from tribler_common.rest_utils import FILE_SCHEME, HTTP_SCHEME, MAGNET_SCHEME, uri_to_path
 from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
@@ -505,10 +505,10 @@ class DownloadManager(TaskManager):
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
     async def start_download_from_uri(self, uri, config=None):
-        if uri.startswith(HTTP_PREFIX):
+        if uri.startswith(HTTP_SCHEME):
             tdef = await TorrentDef.load_from_url(uri)
             return self.start_download(tdef=tdef, config=config)
-        if uri.startswith(MAGNET_PREFIX):
+        if uri.startswith(MAGNET_SCHEME):
             name, infohash, _ = parse_magnetlink(uri)
             if infohash is None:
                 raise RuntimeError("Missing infohash")
@@ -517,8 +517,8 @@ class DownloadManager(TaskManager):
             else:
                 tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
             return self.start_download(tdef=tdef, config=config)
-        if uri.startswith(FILE_PREFIX):
-            file = uri[len(FILE_PREFIX) + 1:]
+        if uri.startswith(FILE_SCHEME):
+            file = uri_to_path(uri)
             return self.start_download(torrent_file=file, config=config)
         raise Exception("invalid uri")
 

@@ -5,6 +5,7 @@ import sys
 from PyQt5.QtCore import QSettings
 
 from tribler_common.logger import load_logger_config
+from tribler_common.rest_utils import path_to_uri
 from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
 
 from tribler_core.check_os import (
@@ -58,7 +59,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
             logger.info('GUI Application is already running. Passing a torrent file path to it.')
             for arg in sys.argv[1:]:
                 if os.path.exists(arg) and arg.endswith(".torrent"):
-                    app.send_message(f"file:{arg}")
+                    app.send_message(path_to_uri(arg))
                 elif arg.startswith('magnet'):
                     app.send_message(arg)
             logger.info('Close the current application.')
