@@ -40,7 +40,8 @@ from psutil import LINUX
 
 from tribler_common.network_utils import default_network_utils
 from tribler_common.process_checker import ProcessChecker
-from tribler_common.utilities import parse_query, uri_to_path
+from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
+from tribler_common.utilities import parse_query
 from tribler_common.version_manager import VersionHistory
 
 from tribler_core.utilities.unicode import hexlify
@@ -632,10 +633,12 @@ class TriblerWindow(QMainWindow):
     def show_add_torrent_to_channel_dialog_from_uri(self, uri):
         def on_add_button_pressed(channel_id):
             post_data = {}
-            if uri.startswith("file:"):
-                with open(uri_to_path(uri), "rb") as torrent_file:
+            scheme = scheme_from_uri(uri)
+            if scheme == FILE_SCHEME:
+                file_path = uri_to_path(uri)
+                with open(file_path) as torrent_file:
                     post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
-            elif uri.startswith("magnet:"):
+            elif scheme == MAGNET_SCHEME:
                 post_data['uri'] = uri
 
             if post_data:
@@ -1139,8 +1142,7 @@ class TriblerWindow(QMainWindow):
 
     def dragEnterEvent(self, e):
         file_urls = self.get_urls_from_dragndrop_list(e)
-
-        if any(uri_to_path(fu).is_file() for fu in file_urls):
+        if any(Path(uri_to_path(fu)).is_file() for fu in file_urls):
             e.accept()
         else:
             e.ignore()
@@ -1149,7 +1151,8 @@ class TriblerWindow(QMainWindow):
         file_urls = self.get_urls_from_dragndrop_list(e)
 
         for fu in file_urls:
-            if uri_to_path(fu).is_file():
+            path = Path(uri_to_path(fu))
+            if path.is_file():
                 self.start_download_from_uri(fu)
 
         e.accept()

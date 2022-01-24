@@ -6,10 +6,17 @@ import signal
 import sys
 from typing import List
 
+from tribler_common.logger import load_logger_config
+from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.simpledefs import NTFY
+from tribler_common.version_manager import VersionHistory
 
-from tribler_core.check_os import check_and_enable_code_tracing, set_process_priority
+from tribler_core.check_os import (
+    check_and_enable_code_tracing,
+    set_process_priority,
+    should_kill_other_tribler_instances,
+)
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Component, Session
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
@@ -101,7 +108,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
             config.write()
 
 
-def run_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
+def run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=False):
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -154,3 +161,23 @@ def run_tribler_core(api_port, api_key, state_dir, gui_test_mode=False):
         # Flush the logs to the file before exiting
         for handler in logging.getLogger().handlers:
             handler.flush()
+
+
+def run_core(api_port, api_key, root_state_dir, parsed_args):
+    should_kill_other_tribler_instances(root_state_dir)
+    logger.info('Running Core' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
+    load_logger_config('tribler-core', root_state_dir)
+
+    # Check if we are already running a Tribler instance
+    process_checker = ProcessChecker(root_state_dir)
+    if process_checker.already_running:
+        logger.info('Core is already running, exiting')
+        sys.exit(1)
+    process_checker.create_lock_file()
+    version_history = VersionHistory(root_state_dir)
+    state_dir = version_history.code_version.directory
+    try:
+        run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
+    finally:
+        logger.info('Remove lock file')
+        process_checker.remove_lock_file()

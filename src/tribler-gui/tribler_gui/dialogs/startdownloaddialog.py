@@ -8,7 +8,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 
-from tribler_common.utilities import uri_to_path
+from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
 
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
@@ -21,14 +21,12 @@ from tribler_gui.utilities import (
     get_image_path,
     get_ui_file_path,
     is_dir_writable,
-    quote_plus_unicode,
     tr,
 )
 from tribler_gui.widgets.torrentfiletreewidget import TORRENT_FILES_TREE_STYLESHEET
 
 
 class StartDownloadDialog(DialogContainer):
-
     button_clicked = pyqtSignal(int)
     received_metainfo = pyqtSignal(dict)
 
@@ -36,9 +34,11 @@ class StartDownloadDialog(DialogContainer):
         DialogContainer.__init__(self, parent)
 
         torrent_name = download_uri
-        if torrent_name.startswith('file:'):
-            torrent_name = uri_to_path(torrent_name).stem
-        elif torrent_name.startswith('magnet:'):
+        scheme = scheme_from_uri(download_uri)
+
+        if scheme == FILE_SCHEME:
+            torrent_name = uri_to_path(torrent_name)
+        elif scheme == MAGNET_SCHEME:
             torrent_name = unquote_plus(torrent_name)
 
         self.download_uri = download_uri
@@ -142,10 +142,12 @@ class StartDownloadDialog(DialogContainer):
             return
 
         direct = not self.dialog_widget.anon_download_checkbox.isChecked()
-        request = f"torrentinfo?uri={quote_plus_unicode(self.download_uri)}"
-        if direct is True:
-            request = request + "&hops=0"
-        self.rest_request = TriblerNetworkRequest(request, self.on_received_metainfo, capture_core_errors=False)
+        params = {'uri': self.download_uri}
+        if direct:
+            params['hops'] = 0
+        self.rest_request = TriblerNetworkRequest(
+            'torrentinfo', self.on_received_metainfo, capture_core_errors=False, url_params=params
+        )
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
             fetch_mode = tr("directly") if direct else tr("anonymously")
@@ -169,7 +171,6 @@ class StartDownloadDialog(DialogContainer):
     def on_received_metainfo(self, response):
         if not response or not self or self.closed or self.has_metainfo:
             return
-
         if 'error' in response:
             if response['error'] == 'metainfo error':
                 # If it failed to load metainfo for max number of times, show an error message in red.

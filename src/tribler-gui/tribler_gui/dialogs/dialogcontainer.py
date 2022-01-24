@@ -1,3 +1,5 @@
+import logging
+
 from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
@@ -15,6 +17,7 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
         self.dialog_widget = QWidget(self)
         self.left_right_margin = left_right_margin  # The margin at the left and right of the dialog window
         self.closed = False
+        self.logger = logging.getLogger(self.__class__.__name__)
         connect(self.window().resize_event, self.on_main_window_resize)
 
     def paintEvent(self, _):

@@ -233,9 +233,10 @@ class DownloadsEndpoint(RESTEndpoint):
                     "and should only be used in situations where this data is required. "
     )
     async def get_downloads(self, request):
-        get_peers = request.query.get('get_peers', '0') == '1'
-        get_pieces = request.query.get('get_pieces', '0') == '1'
-        get_files = request.query.get('get_files', '0') == '1'
+        params = request.query
+        get_peers = params.get('get_peers', '0') == '1'
+        get_pieces = params.get('get_pieces', '0') == '1'
+        get_files = params.get('get_files', '0') == '1'
 
         downloads_json = []
         downloads = self.download_manager.get_downloads()
@@ -373,16 +374,17 @@ class DownloadsEndpoint(RESTEndpoint):
                          'location, a magnet link or a HTTP(S) url.'),
     }))
     async def add_download(self, request):
-        parameters = await request.json()
-        if not parameters.get('uri'):
+        params = await request.json()
+        uri = params.get('uri')
+        if not uri:
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        download_config, error = DownloadsEndpoint.create_dconfig_from_params(parameters)
+        download_config, error = DownloadsEndpoint.create_dconfig_from_params(params)
         if error:
             return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
         try:
-            download = await self.download_manager.start_download_from_uri(parameters['uri'], config=download_config)
+            download = await self.download_manager.start_download_from_uri(uri, config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 

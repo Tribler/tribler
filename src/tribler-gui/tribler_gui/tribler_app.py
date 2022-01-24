@@ -4,6 +4,8 @@ import sys
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
+from tribler_common.rest_utils import path_to_uri
+
 from tribler_core.utilities.unicode import ensure_unicode
 
 from tribler_gui.code_executor import CodeExecutor
@@ -38,7 +40,9 @@ class TriblerApplication(QtSingleApplication):
     def parse_sys_args(self, args):
         for arg in args[1:]:
             if os.path.exists(arg):
-                self.handle_uri(f"file:{ensure_unicode(arg, 'utf8')}")
+                file_path = ensure_unicode(arg, 'utf8')
+                uri = path_to_uri(file_path)
+                self.handle_uri(uri)
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
 
@@ -60,5 +64,6 @@ class TriblerApplication(QtSingleApplication):
 
     def event(self, event):
         if event.type() == QEvent.FileOpen and event.file().endswith(".torrent"):
-            self.handle_uri(f'file:{event.file()}')
+            uri = path_to_uri(event.file())
+            self.handle_uri(uri)
         return QtSingleApplication.event(self, event)

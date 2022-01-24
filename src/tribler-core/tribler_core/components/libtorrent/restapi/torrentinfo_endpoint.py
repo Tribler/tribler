@@ -10,8 +10,15 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
+from tribler_common.rest_utils import (
+    FILE_SCHEME,
+    HTTPS_SCHEME,
+    HTTP_SCHEME,
+    MAGNET_SCHEME,
+    scheme_from_uri,
+    uri_to_path,
+)
 from tribler_common.simpledefs import NTFY
-from tribler_common.utilities import uri_to_path
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
@@ -68,29 +75,31 @@ class TorrentInfoEndpoint(RESTEndpoint):
         }
     )
     async def get_torrent_info(self, request):
-        args = request.query
-
-        hops = None
-        if 'hops' in args:
+        params = request.query
+        hops = params.get('hops')
+        uri = params.get('uri')
+        self._logger.info(f'URI: {uri}')
+        if hops:
             try:
-                hops = int(args['hops'])
+                hops = int(hops)
             except ValueError:
-                return RESTResponse({"error": f"wrong value of 'hops' parameter: {repr(args['hops'])}"},
-                                    status=HTTP_BAD_REQUEST)
+                return RESTResponse({"error": f"wrong value of 'hops' parameter: {hops}"}, status=HTTP_BAD_REQUEST)
 
-        if 'uri' not in args or not args['uri']:
+        if not uri:
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        uri = args['uri']
         metainfo = None
-        if uri.startswith('file:'):
+        scheme = scheme_from_uri(uri)
+
+        if scheme == FILE_SCHEME:
+            file = uri_to_path(uri)
             try:
-                filename = uri_to_path(uri)
-                tdef = TorrentDef.load(filename)
-                metainfo = tdef.get_metainfo()
+                tdef = TorrentDef.load(file)
+                metainfo = tdef.metainfo
             except (TypeError, RuntimeError):
-                return RESTResponse({"error": "error while decoding torrent file"}, status=HTTP_INTERNAL_SERVER_ERROR)
-        elif uri.startswith('http'):
+                return RESTResponse({"error": f"error while decoding torrent file: {file}"},
+                                    status=HTTP_INTERNAL_SERVER_ERROR)
+        elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             try:
                 response = await query_http_uri(uri)
             except (ServerConnectionError, ClientResponseError) as e:
@@ -102,7 +111,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=response)
             else:
                 metainfo = bdecode_compat(response)
-        elif uri.startswith('magnet'):
+        elif scheme == MAGNET_SCHEME:
             infohash = parse_magnetlink(uri)[1]
             if infohash is None:
                 return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
