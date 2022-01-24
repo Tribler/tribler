@@ -9,7 +9,7 @@ from pony.utils import between
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler_core.utilities.unicode import hexlify
 
-SHOW_THRESHOLD = 2
+SHOW_THRESHOLD = 1
 HIDE_THRESHOLD = -2
 
 
