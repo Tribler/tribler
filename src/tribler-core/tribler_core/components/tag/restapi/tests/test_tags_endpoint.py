@@ -111,10 +111,14 @@ async def test_get_suggestions(rest_api, tags_db):
 
     # Add a suggestion to the database
     with db_session:
-        random_key = default_eccrypto.generate_key('low')
-        operation = TagOperation(infohash=infohash, tag="test", operation=TagOperationEnum.ADD, clock=0,
-                                 creator_public_key=random_key.pub().key_to_bin())
-        tags_db.add_tag_operation(operation, b"")
+        def _add_operation(op=TagOperationEnum.ADD):
+            random_key = default_eccrypto.generate_key('low')
+            operation = TagOperation(infohash=infohash, tag="test", operation=op, clock=0,
+                                     creator_public_key=random_key.pub().key_to_bin())
+            tags_db.add_tag_operation(operation, b"")
+
+        _add_operation(op=TagOperationEnum.ADD)
+        _add_operation(op=TagOperationEnum.REMOVE)
 
     response = await do_request(rest_api, f'tags/{hexlify(infohash)}/suggestions')
     assert response["suggestions"] == ["test"]

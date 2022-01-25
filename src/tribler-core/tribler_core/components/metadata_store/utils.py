@@ -47,20 +47,21 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
     suggested_tags = suggested_tags or [get_random_word(min_length=MIN_TAG_LENGTH)
                                         for _ in range(random.randint(1, 3))]
 
+    def _add_operation(_tag, _op, _key):
+        operation = TagOperation(infohash=infohash, tag=_tag, operation=_op, clock=0,
+                                 creator_public_key=_key.pub().key_to_bin())
+        operation.clock = tags_db.get_clock(operation) + 1
+        tags_db.add_tag_operation(operation, b"")
+
     # Give each torrent some tags
     for tag in tags:
         for key in [random_key_1, random_key_2]:  # Each tag should be proposed by two unique users
-            operation = TagOperation(infohash=infohash, tag=tag, operation=TagOperationEnum.ADD, clock=0,
-                                     creator_public_key=key.pub().key_to_bin())
-            operation.clock = tags_db.get_clock(operation) + 1
-            tags_db.add_tag_operation(operation, b"")
+            _add_operation(tag, TagOperationEnum.ADD, key)
 
     # Make sure we have some suggestions
     for tag in suggested_tags:
-        operation = TagOperation(infohash=infohash, tag=tag, operation=TagOperationEnum.ADD, clock=0,
-                                 creator_public_key=random_key_3.pub().key_to_bin())
-        operation.clock = tags_db.get_clock(operation) + 1
-        tags_db.add_tag_operation(operation, b"")
+        _add_operation(tag, TagOperationEnum.ADD, random_key_3)
+        _add_operation(tag, TagOperationEnum.REMOVE, random_key_2)
 
 
 @db_session

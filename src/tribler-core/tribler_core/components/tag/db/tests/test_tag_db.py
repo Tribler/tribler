@@ -218,9 +218,9 @@ class TestTagDB(TestBase):
             self.db,
             {
                 b'infohash1': [
-                    Tag(name='tag1', count=1),
-                    Tag(name='tag2', count=2),
-                    Tag(name='tag3', count=3),
+                    Tag(name='tag1', count=SHOW_THRESHOLD - 1),
+                    Tag(name='tag2', count=SHOW_THRESHOLD),
+                    Tag(name='tag3', count=SHOW_THRESHOLD + 1),
                 ]
             }
         )
@@ -234,8 +234,8 @@ class TestTagDB(TestBase):
             self.db,
             {
                 b'infohash1': [
-                    Tag(name='tag1', count=2),
-                    Tag(name='tag2', count=2)
+                    Tag(name='tag1', count=SHOW_THRESHOLD),
+                    Tag(name='tag2', count=SHOW_THRESHOLD)
                 ]
             }
         )
@@ -274,15 +274,13 @@ class TestTagDB(TestBase):
         # Test whether the database returns the right suggestions.
         # Suggestions are tags that have not gathered enough support for display yet.
         self.add_operation(self.db, tag='tag1', peer=b'1')
-        assert self.db.get_suggestions(b'infohash') == ["tag1"]
-
         self.add_operation(self.db, tag='tag1', peer=b'2')
         assert self.db.get_suggestions(b'infohash') == []  # This tag now has enough support
 
         self.add_operation(self.db, tag='tag1', peer=b'3', operation=TagOperationEnum.REMOVE)  # score:1
+        self.add_operation(self.db, tag='tag1', peer=b'4', operation=TagOperationEnum.REMOVE)  # score:0
         assert self.db.get_suggestions(b'infohash') == ["tag1"]
 
-        self.add_operation(self.db, tag='tag1', peer=b'4', operation=TagOperationEnum.REMOVE)  # score:0
         self.add_operation(self.db, tag='tag1', peer=b'5', operation=TagOperationEnum.REMOVE)  # score:-1
         self.add_operation(self.db, tag='tag1', peer=b'6', operation=TagOperationEnum.REMOVE)  # score:-2
         assert not self.db.get_suggestions(b'infohash')  # below the threshold
@@ -323,14 +321,14 @@ class TestTagDB(TestBase):
             self.db,
             {
                 b'infohash1': [
-                    Tag(name='tag1', count=2),
-                    Tag(name='tag2', count=1)
+                    Tag(name='tag1', count=SHOW_THRESHOLD),
+                    Tag(name='tag2', count=SHOW_THRESHOLD - 1)
                 ],
                 b'infohash2': [
-                    Tag(name='tag1', count=2)
+                    Tag(name='tag1', count=SHOW_THRESHOLD)
                 ],
                 b'infohash3': [
-                    Tag(name='tag1', count=1)
+                    Tag(name='tag1', count=SHOW_THRESHOLD - 1)
                 ]
             }
         )

@@ -13,7 +13,7 @@ from tribler_core.components.metadata_store.remote_query_community.settings impo
 from tribler_core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler_core.components.tag.db.tag_db import TagDatabase
+from tribler_core.components.tag.db.tag_db import SHOW_THRESHOLD, TagDatabase
 from tribler_core.components.tag.db.tests.test_tag_db import Tag, TestTagDB
 from tribler_core.utilities.path_util import Path
 
@@ -88,10 +88,10 @@ class TestRemoteSearchByTags(TestBase):
                 self.rqc.tags_db,
                 {
                     b'infohash1': [
-                        Tag(name='tag1', count=2),
+                        Tag(name='tag1', count=SHOW_THRESHOLD),
                     ],
                     b'infohash2': [
-                        Tag(name='tag2', count=1),
+                        Tag(name='tag2', count=SHOW_THRESHOLD - 1),
                     ]
                 })
 
