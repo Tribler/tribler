@@ -44,7 +44,7 @@ class TestRemoteSearchByTags(TestBase):
             default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
-        self.tags_db = TagDatabase(str(Path(self.temporary_directory()) / "tags.db"))
+        self.tags_db = TagDatabase(str(Path(self.temporary_directory()) / "tags.db"), create_tables=True)
 
         kwargs['metadata_store'] = self.metadata_store
         kwargs['tags_db'] = self.tags_db
