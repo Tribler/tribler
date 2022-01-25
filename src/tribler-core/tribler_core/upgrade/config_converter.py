@@ -11,6 +11,7 @@ def convert_config_to_tribler76(state_dir):
     """
     config = ConfigObj(infile=(str(state_dir / 'triblerd.conf')), default_encoding='utf-8')
     if 'http_api' in config:
+        logger.info('Convert config')
         config['api'] = {}
         config['api']['http_enabled'] = config['http_api'].get('enabled', False)
         config['api']['http_port'] = config['http_api'].get('port', -1)
