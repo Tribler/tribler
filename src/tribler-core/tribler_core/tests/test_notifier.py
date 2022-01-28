@@ -12,7 +12,7 @@ def notifier():
     return Notifier()
 
 
-class TestCallback:
+class DummyCallback:
     def __init__(self, side_effect=None):
         self.callback_has_been_called = False
         self.callback_has_been_called_with_args = None
@@ -68,7 +68,7 @@ async def test_notifier_remove_observer(notifier: Notifier):
 @pytest.mark.asyncio
 async def test_notify(notifier: Notifier):
     # test that notify works as expected
-    normal_callback = TestCallback()
+    normal_callback = DummyCallback()
 
     notifier.add_observer('topic', normal_callback.callback)
     notifier.notify('topic', 'arg', kwarg='value')
@@ -84,8 +84,8 @@ async def test_notify(notifier: Notifier):
 async def test_notify_with_exception(notifier: Notifier):
     # test that notify works as expected even if one of callbacks will raise an exception
 
-    normal_callback = TestCallback()
-    side_effect_callback = TestCallback(ValueError)
+    normal_callback = DummyCallback()
+    side_effect_callback = DummyCallback(ValueError)
 
     notifier.add_observer('topic', side_effect_callback.callback)
     notifier.add_observer('topic', normal_callback.callback)
