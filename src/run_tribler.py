@@ -54,8 +54,7 @@ def init_sentry_reporter():
 
 
 def init_boot_logger():
-    # this logger config will be used before Core and GUI
-    #  set theirs configs explicitly
+    # this logger config will be used before Core and GUI set theirs configs explicitly
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 
