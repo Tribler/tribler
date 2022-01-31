@@ -78,7 +78,7 @@ def components_gen(config: TriblerConfig):
 
     if config.torrent_checking.enabled:
         yield TorrentCheckerComponent()
-    if config.ipv8.enabled and config.popularity_community.enabled:
+    if config.ipv8.enabled and config.torrent_checking.enabled and config.popularity_community.enabled:
         yield PopularityComponent()
     if config.ipv8.enabled and config.tunnel_community.enabled:
         yield TunnelsComponent()
