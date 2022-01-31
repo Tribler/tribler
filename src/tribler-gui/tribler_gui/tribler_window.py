@@ -40,7 +40,7 @@ from psutil import LINUX
 
 from tribler_common.network_utils import default_network_utils
 from tribler_common.process_checker import ProcessChecker
-from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
+from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_is_valid_file, uri_to_path
 from tribler_common.utilities import parse_query
 from tribler_common.version_manager import VersionHistory
 
@@ -1142,7 +1142,7 @@ class TriblerWindow(QMainWindow):
 
     def dragEnterEvent(self, e):
         file_urls = self.get_urls_from_dragndrop_list(e)
-        if any(Path(uri_to_path(fu)).is_file() for fu in file_urls):
+        if any(uri_is_valid_file(fu) for fu in file_urls):
             e.accept()
         else:
             e.ignore()
