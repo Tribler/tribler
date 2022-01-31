@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, Union
 
 from yarl import URL
@@ -43,3 +44,11 @@ def scheme_from_uri(uri: str) -> str:
         'http://en.wikipedia.org' -> 'http'
     """
     return URL(uri).scheme
+
+
+def uri_is_valid_file(file_uri: str) -> bool:
+    file_path = uri_to_path(file_uri)
+    try:
+        return Path(file_path).is_file()
+    except OSError:
+        return False

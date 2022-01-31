@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tribler_common.rest_utils import path_to_uri, scheme_from_uri, uri_to_path
+from tribler_common.rest_utils import path_to_uri, scheme_from_uri, uri_is_valid_file, uri_to_path
 
 NIX_PATHS = [
     ('/path/to/file', 'file:///path/to/file'),
@@ -51,3 +51,11 @@ def test_uri_to_path_win(path, uri):
 @pytest.mark.parametrize('path, scheme', SCHEMES)
 def test_scheme_from_uri(path, scheme):
     assert scheme_from_uri(path) == scheme
+
+
+def test_uri_is_valid_file(tmpdir):
+    file_path = tmpdir / '1.txt'
+    file_path.write('test')
+    file_uri = path_to_uri(file_path)
+    assert uri_is_valid_file(file_uri)
+    assert not uri_is_valid_file(file_uri + '/*')
