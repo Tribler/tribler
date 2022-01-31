@@ -437,7 +437,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                           remove_now=remove_now, destroy=destroy)
 
     def _ours_on_created_extended(self, circuit, payload):
-        super()._ours_on_created_extended(circuit, payload)
+        try:
+            super()._ours_on_created_extended(circuit, payload)
+        except Exception as e:
+            self.logger.exception("Error while decrypting a message", exc_info=e)
+            self.remove_circuit(circuit.circuit_id, "error while decrypting a message")
+            return
 
         if circuit.state == CIRCUIT_STATE_READY:
             # Re-add BitTorrent peers, if needed.
