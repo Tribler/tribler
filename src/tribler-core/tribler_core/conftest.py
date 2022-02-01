@@ -186,7 +186,7 @@ def metadata_store(tmp_path):
 
 @pytest.fixture
 def tags_db():
-    db = TagDatabase(create_tables=True)
+    db = TagDatabase()
     yield db
     db.shutdown()
 

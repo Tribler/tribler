@@ -41,7 +41,7 @@ class MetadataStoreComponent(Component):
             key_component.primary_key,
             notifier=self.session.notifier,
             disable_sync=config.gui_test_mode,
-            tag_version=TagRulesProcessor.version
+            tag_processor_version=TagRulesProcessor.version
         )
         self.mds = metadata_store
         self.session.notifier.add_observer(NTFY.TORRENT_METADATA_ADDED.value,

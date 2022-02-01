@@ -6,7 +6,6 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony import orm
 from pony.orm.core import DEFAULT, db_session
 
-from tribler_core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler_core.components.metadata_store.db.serialization import (
     CHANNEL_NODE,
@@ -14,6 +13,7 @@ from tribler_core.components.metadata_store.db.serialization import (
     DELETED,
     DeletedMetadataPayload,
 )
+from tribler_core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.unicode import hexlify
 
@@ -87,8 +87,8 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         # This attribute holds the names of the class attributes that are used by the serializer for the
         # corresponding payload type. We only initialize it once on class creation as an optimization.
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
-            : _payload_class.__init__.__code__.co_argcount
-        ][1:]
+                            : _payload_class.__init__.__code__.co_argcount
+                            ][1:]
 
         # A non - personal attribute of an entry is an attribute that would have the same value regardless of where,
         # when and who created the entry.
@@ -139,7 +139,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             if not private_key_override and not skip_key_check:
                 # No key/signature given, sign with our own key.
                 if ("signature" not in kwargs) and (
-                    ("public_key" not in kwargs) or (kwargs["public_key"] == self._my_key.pub().key_to_bin()[10:])
+                        ("public_key" not in kwargs) or (kwargs["public_key"] == self._my_key.pub().key_to_bin()[10:])
                 ):
                     private_key_override = self._my_key
 
@@ -298,12 +298,15 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             dst_dict.update({"origin_id": tgt_parent_id, "status": NEW})
             return self.__class__(**dst_dict)
 
+        def get_type(self) -> int:
+            return self._discriminator_
+
         def to_simple_dict(self):
             """
             Return a basic dictionary with information about the node
             """
             simple_dict = {
-                "type": self._discriminator_,
+                "type": self.get_type(),
                 "id": self.id_,
                 "origin_id": self.origin_id,
                 "public_key": hexlify(self.public_key),

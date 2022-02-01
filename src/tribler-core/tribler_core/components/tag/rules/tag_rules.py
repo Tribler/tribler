@@ -59,5 +59,7 @@ def extract_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
 
 
 def extract_only_valid_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
-    extracted_tags_gen = (t.lower() for t in extract_tags(text, rules))
-    yield from (t for t in extracted_tags_gen if is_valid_tag(t))
+    for tag in extract_tags(text, rules):
+        tag = tag.lower()
+        if is_valid_tag(tag):
+            yield tag

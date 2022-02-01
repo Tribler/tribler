@@ -8,6 +8,7 @@ from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORR
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler_core.components.tag.db.tag_db import TagDatabase
+from tribler_core.components.tag.rules.tag_rules_processor import TagRulesProcessor
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
@@ -37,10 +38,12 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
-    def __init__(self, metadata_store: MetadataStore, *args, tags_db: TagDatabase = None, **kwargs):
+    def __init__(self, metadata_store: MetadataStore, *args, tags_db: TagDatabase = None,
+                 tag_rules_processor: TagRulesProcessor = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = metadata_store
         self.tags_db: Optional[TagDatabase] = tags_db
+        self.tag_rules_processor: Optional[TagRulesProcessor] = tag_rules_processor
 
     @classmethod
     def sanitize_parameters(cls, parameters):
@@ -67,6 +70,17 @@ class MetadataEndpointBase(RESTEndpoint):
                 mtypes.extend(metadata_type_to_search_scope[arg])
             sanitized['metadata_type'] = frozenset(mtypes)
         return sanitized
+
+    def extract_tags(self, entry):
+        is_torrent = entry.get_type() == REGULAR_TORRENT
+        if not is_torrent or not self.tag_rules_processor:
+            return
+
+        is_auto_generated_tags_not_created = entry.tag_processor_version < self.tag_rules_processor.version
+        if is_auto_generated_tags_not_created:
+            generated = self.tag_rules_processor.process_torrent_title(infohash=entry.infohash, title=entry.title)
+            entry.tag_processor_version = self.tag_rules_processor.version
+            self._logger.info(f'Generated {generated} tags for {entry.infohash}')
 
     @db_session
     def add_tags_to_metadata_list(self, contents_list, hide_xxx=False):

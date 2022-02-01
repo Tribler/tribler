@@ -26,7 +26,7 @@ class TestTagCommunity(TestBase):
         await super().tearDown()
 
     def create_node(self, *args, **kwargs):
-        return MockIPv8("curve25519", TagCommunity, db=TagDatabase(create_tables=True), tags_key=LibNaCLSK(),
+        return MockIPv8("curve25519", TagCommunity, db=TagDatabase(), tags_key=LibNaCLSK(),
                         request_interval=REQUEST_INTERVAL_FOR_RANDOM_TAGS)
 
     def create_operation(self, tag=''):

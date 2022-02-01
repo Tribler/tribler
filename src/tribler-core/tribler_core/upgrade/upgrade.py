@@ -107,14 +107,14 @@ class TriblerUpgrader:
 
         mds = MetadataStore(mds_path, self.channels_dir, self.trustchain_keypair, disable_sync=True,
                             check_tables=False, db_version=13) if mds_path.exists() else None
-        tagdb = TagDatabase(str(tagdb_path), check_tables=False) if tagdb_path.exists() else None
+        tag_db = TagDatabase(str(tagdb_path), create_tables=False, check_tables=False) if tagdb_path.exists() else None
 
-        self.do_upgrade_pony_db_13to14(mds, tagdb)
+        self.do_upgrade_pony_db_13to14(mds, tag_db)
 
         if mds:
             mds.shutdown()
-        if tagdb:
-            tagdb.shutdown()
+        if tag_db:
+            tag_db.shutdown()
 
     def upgrade_pony_db_12to13(self):
         """
@@ -229,7 +229,7 @@ class TriblerUpgrader:
             db_version.value = str(to_version)
 
     def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[TagDatabase]):
-        def _alter(db, table_name, column_name, column_type):
+        def add_column(db, table_name, column_name, column_type):
             if not self.column_exists_in_table(db, table_name, column_name):
                 db.execute(f'ALTER TABLE "{table_name}" ADD "{column_name}" {column_type} DEFAULT 0')
 
@@ -244,8 +244,8 @@ class TriblerUpgrader:
 
             self._logger.info(f'{version.current}->{version.next}')
 
-            _alter(db=mds._db, table_name='ChannelNode', column_name='tag_version', column_type='INT')
-            _alter(db=tags.instance, table_name='TorrentTagOp', column_name='auto_generated', column_type='BOOLEAN')
+            add_column(db=mds._db, table_name='ChannelNode', column_name='tag_processor_version', column_type='INT')
+            add_column(db=tags.instance, table_name='TorrentTagOp', column_name='auto_generated', column_type='BOOLEAN')
 
             tags.instance.commit()
             mds._db.commit()

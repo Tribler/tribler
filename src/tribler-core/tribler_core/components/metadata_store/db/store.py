@@ -144,7 +144,7 @@ class MetadataStore:
             notifier=None,
             check_tables=True,
             db_version: int = CURRENT_DB_VERSION,
-            tag_version: int = 0
+            tag_processor_version: int = 0
     ):
         self.notifier = notifier  # Reference to app-level notification service
         self.db_path = db_filename
@@ -194,7 +194,7 @@ class MetadataStore:
         self.TorrentMetadata = torrent_metadata.define_binding(
             self._db,
             notifier=notifier,
-            tag_version=tag_version
+            tag_processor_version=tag_processor_version
         )
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
 
@@ -773,7 +773,7 @@ class MetadataStore:
         return self.get_entries_query(**kwargs).count()
 
     @db_session
-    def get_max_rowid(self):
+    def get_max_rowid(self) -> int:
         return select(max(obj.rowid) for obj in self.ChannelNode).get() or 0
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)

@@ -172,10 +172,10 @@ def test_upgrade_pony13to14(upgrader: TriblerUpgrader, state_dir, channels_dir, 
 
     upgrader.upgrade_pony_db_13to14()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
-    tags = TagDatabase(str(tags_path), check_tables=False)
+    tags = TagDatabase(str(tags_path), create_tables=False, check_tables=False)
 
     with db_session:
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_version')
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
         assert upgrader.column_exists_in_table(tags.instance, 'TorrentTagOp', 'auto_generated')
         assert mds.get_value('db_version') == '14'
 

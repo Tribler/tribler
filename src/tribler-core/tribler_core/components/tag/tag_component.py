@@ -42,6 +42,7 @@ class TagComponent(Component):
             db=self.tags_db,
             mds=mds_component.mds,
         )
+        self.rules_processor.start()
 
         self._ipv8_component.initialise_community_by_default(self.community)
 

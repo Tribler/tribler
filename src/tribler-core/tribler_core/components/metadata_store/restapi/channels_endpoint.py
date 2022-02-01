@@ -134,7 +134,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                             )
                     elif channel_dict["state"] == CHANNEL_STATE.METAINFO_LOOKUP.value:
                         if not self.download_manager.metainfo_requests.get(
-                            bytes(channel.infohash)
+                                bytes(channel.infohash)
                         ) and self.download_manager.download_exists(bytes(channel.infohash)):
                             channel_dict["state"] = CHANNEL_STATE.DOWNLOADING.value
 
@@ -169,6 +169,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         },
     )
     async def get_channel_contents(self, request):
+        self._logger.info('Get channel content')
         sanitized = self.sanitize_parameters(request.query)
         include_total = request.query.get('include_total', '')
         channel_pk, channel_id = self.get_channel_from_request(request)
@@ -180,14 +181,20 @@ class ChannelsEndpoint(MetadataEndpointBase):
         remote_failed = False
         if remote:
             try:
+                self._logger.info('Receive remote content')
                 contents_list = await self.gigachannel_community.remote_select_channel_contents(**sanitized)
             except (RequestTimeoutException, NoChannelSourcesException, CancelledError):
                 remote_failed = True
+                self._logger.info('Remote request failed')
 
         if not remote or remote_failed:
+            self._logger.info('Receive local content')
             with db_session:
                 contents = self.mds.get_entries(**sanitized)
-                contents_list = [c.to_simple_dict() for c in contents]
+                contents_list = []
+                for entry in contents:
+                    self.extract_tags(entry)
+                    contents_list.append(entry.to_simple_dict())
                 total = self.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_tags_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
@@ -390,9 +397,9 @@ class ChannelsEndpoint(MetadataEndpointBase):
             elif uri.startswith("magnet:"):
                 _, xt, _ = parse_magnetlink(uri)
                 if (
-                    xt
-                    and is_infohash(codecs.encode(xt, 'hex'))
-                    and (self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt))
+                        xt
+                        and is_infohash(codecs.encode(xt, 'hex'))
+                        and (self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt))
                 ):
                     return RESTResponse({"added": 1})
 
@@ -492,7 +499,11 @@ class ChannelsEndpoint(MetadataEndpointBase):
 
         with db_session:
             contents = self.mds.get_entries(**sanitized)
-            contents_list = [c.to_simple_dict() for c in contents]
+            contents_list = []
+            for entry in contents:
+                self.extract_tags(entry)
+                contents_list.append(entry.to_simple_dict())
+
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_tags_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
         response_dict = {

@@ -46,7 +46,7 @@ def tdef_to_metadata_dict(tdef):
     }
 
 
-def define_binding(db, notifier: Notifier, tag_version: int):
+def define_binding(db, notifier: Notifier, tag_processor_version: int):
     class TorrentMetadata(db.MetadataNode):
         """
         This ORM binding class is intended to store Torrent objects, i.e. infohashes along with some related metadata.
@@ -63,7 +63,7 @@ def define_binding(db, notifier: Notifier, tag_version: int):
         # Local
         xxx = orm.Optional(float, default=0)
         health = orm.Optional('TorrentState', reverse='metadata')
-        tag_version = orm.Required(int, default=0)
+        tag_processor_version = orm.Required(int, default=0)
 
         # Special class-level properties
         _payload_class = TorrentMetadataPayload
@@ -93,7 +93,7 @@ def define_binding(db, notifier: Notifier, tag_version: int):
                 notifier.notify(NEW_TORRENT_METADATA_CREATED,
                                 infohash=kwargs.get("infohash"),
                                 title=self.title)
-                self.tag_version = tag_version
+                self.tag_processor_version = tag_processor_version
 
         def add_tracker(self, tracker_url):
             sanitized_url = get_uniformed_tracker_url(tracker_url)
@@ -140,6 +140,7 @@ def define_binding(db, notifier: Notifier, tag_version: int):
                     "num_leechers": self.health.leechers,
                     "last_tracker_check": self.health.last_check,
                     "updated": int((self.torrent_date - epoch).total_seconds()),
+                    "tag_processor_version": self.tag_processor_version,
                 }
             )
 
