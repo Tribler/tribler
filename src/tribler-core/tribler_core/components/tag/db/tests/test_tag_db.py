@@ -349,26 +349,46 @@ class TestTagDB(TestBase):
         assert len(self.db.get_tags_operations_for_gossip(time_delta)) == 1
 
     @db_session
-    async def test_get_infohashes(self):
+    async def test_get_infohashes_threshold(self):
+        # test that `get_infohashes` function returns only infohashes with tags
+        # above the threshold
         self.add_operation_set(
             self.db,
             {
                 b'infohash1': [
                     Tag(name='tag1', count=SHOW_THRESHOLD),
-                    Tag(name='tag2', count=SHOW_THRESHOLD - 1)
                 ],
                 b'infohash2': [
-                    Tag(name='tag1', count=SHOW_THRESHOLD)
-                ],
-                b'infohash3': [
                     Tag(name='tag1', count=SHOW_THRESHOLD - 1)
                 ]
             }
         )
 
-        # test that only tags above the threshold are associated with infohases
-        assert self.db.get_infohashes('tag1') == [b'infohash1', b'infohash2']
-        assert not self.db.get_infohashes('tag2')
+        assert self.db.get_infohashes({'tag1'}) == [b'infohash1']
+
+    @db_session
+    async def test_get_infohashes(self):
+        # test that `get_infohashes` function returns an intersection of result
+        # in case of more than one tag passed to the function
+        self.add_operation_set(
+            self.db,
+            {
+                b'infohash1': [
+                    Tag(name='tag1', count=SHOW_THRESHOLD),
+                    Tag(name='tag2', count=SHOW_THRESHOLD)
+                ],
+                b'infohash2': [
+                    Tag(name='tag1', count=SHOW_THRESHOLD)
+                ],
+                b'infohash3': [
+                    Tag(name='tag2', count=SHOW_THRESHOLD)
+                ]
+            }
+        )
+
+        assert self.db.get_infohashes({'tag1'}) == [b'infohash1', b'infohash2']
+        assert self.db.get_infohashes({'tag2'}) == [b'infohash1', b'infohash3']
+        assert self.db.get_infohashes({'tag1', 'tag2'}) == [b'infohash1']
 
     @db_session
     async def test_show_condition(self):

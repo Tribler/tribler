@@ -91,7 +91,7 @@ class TestRemoteSearchByTags(TestBase):
                         Tag(name='tag1', count=SHOW_THRESHOLD),
                     ],
                     b'infohash2': [
-                        Tag(name='tag2', count=SHOW_THRESHOLD - 1),
+                        Tag(name='tag1', count=SHOW_THRESHOLD - 1),
                     ]
                 })
 
@@ -110,7 +110,7 @@ class TestRemoteSearchByTags(TestBase):
         fill_mds()
 
         # Then we try to query search for three tags: 'tag1', 'tag2', 'tag3'
-        parameters = {'first': 0, 'infohash_set': None, 'last': 100, 'tags': ['tag1', 'tag2', 'tag3']}
+        parameters = {'first': 0, 'infohash_set': None, 'last': 100, 'tags': ['tag1']}
         json = dumps(parameters).encode('utf-8')
 
         with db_session:

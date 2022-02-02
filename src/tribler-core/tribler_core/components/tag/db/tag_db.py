@@ -3,7 +3,7 @@ import logging
 from typing import Callable, List, Optional, Set
 
 from pony import orm
-from pony.orm import select
+from pony.orm import exists, select
 from pony.utils import between
 
 from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
@@ -191,10 +191,24 @@ class TagDatabase:
         return self._get_tags(infohash, show_suggestions_condition)
 
     def get_infohashes(self, tags: Set[str]) -> List[bytes]:
-        """Get list of infohashes that belongs to the tag. Only tags with condition `_show_condition` will be returned
+        """Get list of infohashes that belongs to the tag.
+        Only tags with condition `_show_condition` will be returned.
+        In the case that the tags set contains more than one tag,
+        only torrents that contain all `tags` will be returned.
         """
-        return select(tt.torrent.infohash for tt in self.instance.TorrentTag
-                      if self._show_condition(tt) and tt.tag.name in tags).fetch()
+        query_results = select(
+            torrent.infohash for torrent in self.instance.Torrent
+            if not exists(
+                tag for tag in self.instance.Tag
+                if tag.name in tags and not exists(
+                    torrent_tag for torrent_tag in self.instance.TorrentTag
+                    if torrent_tag.torrent == torrent
+                    and torrent_tag.tag == tag
+                    and self._show_condition(torrent_tag)
+                )
+            )
+        ).fetch()
+        return query_results
 
     def get_clock(self, operation: TagOperation) -> int:
         """ Get the clock (int) of operation.
