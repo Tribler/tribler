@@ -11,12 +11,14 @@ import pytest
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
+from tribler_core.components.tag.db.tag_db import TagDatabase
 from tribler_core.notifier import Notifier
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.db8_to_db10 import calc_progress
 from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler_core.utilities.configparser import CallbackConfigParser
 
+# pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
 def state_dir(tmp_path):
@@ -46,16 +48,28 @@ def notifier():
     return Notifier()
 
 
-def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair):  # pylint: disable=W0621
+@pytest.fixture
+def mds_path(state_dir):
+    return state_dir / 'sqlite/metadata.db'
+
+
+def _copy(source_name, target):
+    source = TESTS_DATA_DIR / 'upgrade_databases' / source_name
+    shutil.copyfile(source, target)
+
+
+def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair,
+                                  mds_path):  # pylint: disable=W0621
     """
     Test complete update sequence for Pony DB (e.g. 6->7->8)
     """
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v8.db'
-    old_database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, old_database_path)
+    tags_path = state_dir / 'sqlite/tags.db'
+
+    _copy(source_name='pony_v8.db', target=mds_path)
+    _copy(source_name='tags_v13.db', target=tags_path)
 
     upgrader.run()
-    mds = MetadataStore(old_database_path, channels_dir, trustchain_keypair)
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair)
     db = mds._db  # pylint: disable=protected-access
 
     existing_indexes = [
@@ -80,7 +94,7 @@ def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
-        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
+        assert mds.get_value("db_version") == str(CURRENT_DB_VERSION)
         for index_name in existing_indexes:
             assert list(db.execute(f'PRAGMA index_info("{index_name}")'))
         for index_name in removed_indexes:
@@ -112,57 +126,65 @@ def test_delete_noncompliant_state(tmpdir):
     assert CHANNEL_DIR_NAME_LENGTH == len(pstate.get('state', 'metainfo')['info']['name'])
 
 
-def test_upgrade_pony_8to10(upgrader, channels_dir, state_dir, trustchain_keypair):  # pylint: disable=W0621
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v8.db'
-    database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, database_path)
+def test_upgrade_pony_8to10(upgrader, channels_dir, mds_path, trustchain_keypair):  # pylint: disable=W0621
+    _copy('pony_v8.db', mds_path)
 
     upgrader.upgrade_pony_db_8to10()
-    mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=10)
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
-        assert int(mds.MiscData.get(name="db_version").value) == 10
+        assert mds.get_value("db_version") == '10'
         assert mds.ChannelNode.select().count() == 23
     mds.shutdown()
 
 
 @pytest.mark.asyncio
-async def test_upgrade_pony_10to11(upgrader, channels_dir, state_dir, trustchain_keypair):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v10.db'
-    database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, database_path)
+async def test_upgrade_pony_10to11(upgrader, channels_dir, mds_path, trustchain_keypair):
+    _copy('pony_v10.db', mds_path)
 
     upgrader.upgrade_pony_db_10to11()
-    mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=11)
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
         assert upgrader.column_exists_in_table(mds._db, 'TorrentState', 'self_checked')
-        assert int(mds.MiscData.get(name="db_version").value) == 11
+        assert mds.get_value("db_version") == '11'
     mds.shutdown()
 
 
-def test_upgrade_pony11to12(upgrader, channels_dir, state_dir, trustchain_keypair):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v11.db'
-    database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, database_path)
+def test_upgrade_pony11to12(upgrader, channels_dir, mds_path, trustchain_keypair):
+    _copy('pony_v11.db', mds_path)
 
     upgrader.upgrade_pony_db_11to12()
-    mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=11)
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
         # pylint: disable=protected-access
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'json_text')
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'binary_data')
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'data_type')
-        assert int(mds.MiscData.get(name="db_version").value) == 12
+        assert mds.get_value("db_version") == '12'
     mds.shutdown()
 
 
-def test_upgrade_pony12to13(upgrader, channels_dir, state_dir, trustchain_keypair):  # pylint: disable=W0621
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'pony_v12.db'
-    database_path = state_dir / 'sqlite' / 'metadata.db'
-    shutil.copyfile(old_db_sample, database_path)
+def test_upgrade_pony13to14(upgrader: TriblerUpgrader, state_dir, channels_dir, trustchain_keypair, mds_path):
+    tags_path = state_dir / 'sqlite/tags.db'
+
+    _copy(source_name='pony_v13.db', target=mds_path)
+    _copy(source_name='tags_v13.db', target=tags_path)
+
+    upgrader.upgrade_pony_db_13to14()
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
+    tags = TagDatabase(str(tags_path), create_tables=False, check_tables=False)
+
+    with db_session:
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
+        assert upgrader.column_exists_in_table(tags.instance, 'TorrentTagOp', 'auto_generated')
+        assert mds.get_value('db_version') == '14'
+
+
+def test_upgrade_pony12to13(upgrader, channels_dir, mds_path, trustchain_keypair):  # pylint: disable=W0621
+    _copy('pony_v12.db', mds_path)
 
     upgrader.upgrade_pony_db_12to13()
-    mds = MetadataStore(database_path, channels_dir, trustchain_keypair, check_tables=False, db_version=12)
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=12)
     db = mds._db  # pylint: disable=protected-access
 
     existing_indexes = [
@@ -187,7 +209,7 @@ def test_upgrade_pony12to13(upgrader, channels_dir, state_dir, trustchain_keypai
     with db_session:
         assert mds.TorrentMetadata.select().count() == 23
         assert mds.ChannelMetadata.select().count() == 2
-        assert int(mds.MiscData.get(name="db_version").value) == CURRENT_DB_VERSION
+        assert mds.get_value("db_version") == '13'
         for index_name in existing_indexes:
             assert list(db.execute(f'PRAGMA index_info("{index_name}")')), index_name
         for index_name in removed_indexes:
@@ -216,13 +238,12 @@ def test_calc_progress():
 
 
 @pytest.mark.asyncio
-async def test_upgrade_bw_accounting_db_8to9(upgrader, channels_dir, state_dir, trustchain_keypair):
-    old_db_sample = TESTS_DATA_DIR / 'upgrade_databases' / 'bandwidth_v8.db'
-    database_path = state_dir / 'sqlite' / 'bandwidth.db'
-    shutil.copyfile(old_db_sample, database_path)
+async def test_upgrade_bw_accounting_db_8to9(upgrader, state_dir, trustchain_keypair):
+    bandwidth_path = state_dir / 'sqlite/bandwidth.db'
+    _copy('bandwidth_v8.db', bandwidth_path)
 
     upgrader.upgrade_bw_accounting_db_8to9()
-    db = BandwidthDatabase(database_path, trustchain_keypair.key.pk)
+    db = BandwidthDatabase(bandwidth_path, trustchain_keypair.key.pk)
     with db_session:
         assert not list(select(tx for tx in db.BandwidthTransaction))
         assert not list(select(item for item in db.BandwidthHistory))

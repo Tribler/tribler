@@ -1,3 +1,4 @@
+import logging
 import signal
 import sys
 
@@ -10,10 +11,13 @@ from tribler_core.start_core import CONFIG_FILE_NAME
 from tribler_core.upgrade.upgrade import TriblerUpgrader
 from tribler_core.utilities.path_util import Path
 
+logger = logging.getLogger(__name__)
+
 
 def upgrade_state_dir(root_state_dir: Path,
                       update_status_callback=None,
                       interrupt_upgrade_event=None):
+    logger.info('Upgrade state dir')
     # Before any upgrade, prepare a separate state directory for the update version so it does not
     # affect the older version state directory. This allows for safe rollback.
     version_history = VersionHistory(root_state_dir)
@@ -21,6 +25,7 @@ def upgrade_state_dir(root_state_dir: Path,
     version_history.save_if_necessary()
     state_dir = version_history.code_version.directory
     if not state_dir.exists():
+        logger.info('State dir does not exist. Exit upgrade procedure.')
         return
 
     config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
@@ -37,14 +42,18 @@ def upgrade_state_dir(root_state_dir: Path,
 
 
 if __name__ == "__main__":
-
+    logger.info('Run')
     _upgrade_interrupted_event = []
 
+
     def interrupt_upgrade(*_):
+        logger.info('Interrupt upgrade')
         _upgrade_interrupted_event.append(True)
+
 
     def upgrade_interrupted():
         return bool(_upgrade_interrupted_event)
+
 
     signal.signal(signal.SIGINT, interrupt_upgrade)
     signal.signal(signal.SIGTERM, interrupt_upgrade)

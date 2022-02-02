@@ -1,10 +1,13 @@
 from tribler_common.simpledefs import STATEDIR_DB_DIR
 
+import tribler_core.components.metadata_store.metadata_store_component as metadata_store_component
 from tribler_core.components.base import Component
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.key.key_component import KeyComponent
+from tribler_core.components.metadata_store.utils import generate_test_channels
 from tribler_core.components.tag.community.tag_community import TagCommunity
 from tribler_core.components.tag.db.tag_db import TagDatabase
+from tribler_core.components.tag.rules.tag_rules_processor import TagRulesProcessor
 
 
 class TagComponent(Component):
@@ -12,6 +15,7 @@ class TagComponent(Component):
 
     community: TagCommunity = None
     tags_db: TagDatabase = None
+    rules_processor: TagRulesProcessor = None
     _ipv8_component: Ipv8Component = None
 
     async def run(self):
@@ -19,12 +23,13 @@ class TagComponent(Component):
 
         self._ipv8_component = await self.require_component(Ipv8Component)
         key_component = await self.require_component(KeyComponent)
+        mds_component = await self.require_component(metadata_store_component.MetadataStoreComponent)
 
         db_path = self.session.config.state_dir / STATEDIR_DB_DIR / "tags.db"
         if self.session.config.gui_test_mode:
             db_path = ":memory:"
 
-        self.tags_db = TagDatabase(str(db_path))
+        self.tags_db = TagDatabase(str(db_path), create_tables=True)
         self.community = TagCommunity(
             self._ipv8_component.peer,
             self._ipv8_component.ipv8.endpoint,
@@ -32,8 +37,17 @@ class TagComponent(Component):
             db=self.tags_db,
             tags_key=key_component.secondary_key
         )
+        self.rules_processor = TagRulesProcessor(
+            notifier=self.session.notifier,
+            db=self.tags_db,
+            mds=mds_component.mds,
+        )
+        self.rules_processor.start()
 
         self._ipv8_component.initialise_community_by_default(self.community)
+
+        if self.session.config.gui_test_mode:
+            generate_test_channels(mds_component.mds, self.tags_db)
 
     async def shutdown(self):
         await super().shutdown()

@@ -4,7 +4,7 @@ import threading
 from asyncio import get_event_loop
 from datetime import datetime, timedelta
 from time import sleep, time
-from typing import Union
+from typing import Optional, Union
 
 from lz4.frame import LZ4FrameDecompressor
 
@@ -49,18 +49,18 @@ from tribler_core.components.metadata_store.db.serialization import (
 from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.pony_utils import get_or_create
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import MEMORY_DB
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 13
+CURRENT_DB_VERSION = 14
 
 MIN_BATCH_SIZE = 10
 MAX_BATCH_SIZE = 1000
 
 POPULAR_TORRENTS_FRESHNESS_PERIOD = 60 * 60 * 24  # Last day
 POPULAR_TORRENTS_COUNT = 100
-
 
 # This table should never be used from ORM directly.
 # It is created as a VIRTUAL table by raw SQL and
@@ -136,14 +136,15 @@ sql_create_partial_index_torrentstate_last_check = """
 
 class MetadataStore:
     def __init__(
-        self,
-        db_filename: Union[Path, type(MEMORY_DB)],
-        channels_dir,
-        my_key,
-        disable_sync=False,
-        notifier=None,
-        check_tables=True,
-        db_version: int = CURRENT_DB_VERSION,
+            self,
+            db_filename: Union[Path, type(MEMORY_DB)],
+            channels_dir,
+            my_key,
+            disable_sync=False,
+            notifier=None,
+            check_tables=True,
+            db_version: int = CURRENT_DB_VERSION,
+            tag_processor_version: int = 0
     ):
         self.notifier = notifier  # Reference to app-level notification service
         self.db_path = db_filename
@@ -190,7 +191,11 @@ class MetadataStore:
 
         self.MetadataNode = metadata_node.define_binding(self._db)
         self.CollectionNode = collection_node.define_binding(self._db)
-        self.TorrentMetadata = torrent_metadata.define_binding(self._db)
+        self.TorrentMetadata = torrent_metadata.define_binding(
+            self._db,
+            notifier=notifier,
+            tag_processor_version=tag_processor_version
+        )
         self.ChannelMetadata = channel_metadata.define_binding(self._db)
 
         self.JsonNode = json_node.define_binding(self._db, db_version)
@@ -241,6 +246,14 @@ class MetadataStore:
                 self.disconnect_thread()
 
         return await get_event_loop().run_in_executor(None, wrapper)
+
+    def set_value(self, key: str, value: str):
+        key_value = get_or_create(self.MiscData, name=key)
+        key_value.value = value
+
+    def get_value(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        data = self.MiscData.get(name=key)
+        return data.value if data else default
 
     def drop_indexes(self):
         cursor = self._db.get_connection().cursor()
@@ -391,9 +404,9 @@ class MetadataStore:
                 if not channel:
                     return
                 if (
-                    blob_sequence_number <= channel.start_timestamp
-                    or blob_sequence_number <= channel.local_version
-                    or blob_sequence_number > channel.timestamp
+                        blob_sequence_number <= channel.start_timestamp
+                        or blob_sequence_number <= channel.local_version
+                        or blob_sequence_number > channel.timestamp
                 ):
                     continue
             try:
@@ -595,28 +608,28 @@ class MetadataStore:
 
     @db_session
     def get_entries_query(
-        self,
-        metadata_type=None,
-        channel_pk=None,
-        exclude_deleted=False,
-        hide_xxx=False,
-        exclude_legacy=False,
-        origin_id=None,
-        sort_by=None,
-        sort_desc=True,
-        max_rowid=None,
-        txt_filter=None,
-        subscribed=None,
-        category=None,
-        attribute_ranges=None,
-        infohash=None,
-        infohash_set=None,
-        id_=None,
-        complete_channel=None,
-        self_checked_torrent=None,
-        cls=None,
-        health_checked_after=None,
-        popular=None,
+            self,
+            metadata_type=None,
+            channel_pk=None,
+            exclude_deleted=False,
+            hide_xxx=False,
+            exclude_legacy=False,
+            origin_id=None,
+            sort_by=None,
+            sort_desc=True,
+            max_rowid=None,
+            txt_filter=None,
+            subscribed=None,
+            category=None,
+            attribute_ranges=None,
+            infohash=None,
+            infohash_set=None,
+            id_=None,
+            complete_channel=None,
+            self_checked_torrent=None,
+            cls=None,
+            health_checked_after=None,
+            popular=None,
     ):
         """
         This method implements REST-friendly way to get entries from the database.
@@ -662,8 +675,8 @@ class MetadataStore:
         if attribute_ranges is not None:
             for attr, left, right in attribute_ranges:
                 if (
-                    self.ChannelNode._adict_.get(attr)  # pylint: disable=W0212
-                    or self.ChannelNode._subclass_adict_.get(attr)  # pylint: disable=W0212
+                        self.ChannelNode._adict_.get(attr)  # pylint: disable=W0212
+                        or self.ChannelNode._subclass_adict_.get(attr)  # pylint: disable=W0212
                 ) is None:  # Check against code injection
                     raise AttributeError("Tried to query for non-existent attribute")
                 if left is not None:
@@ -737,7 +750,7 @@ class MetadataStore:
         :return: A list of class members
         """
         pony_query = self.get_entries_query(**kwargs)
-        result = pony_query[(first or 1) - 1 : last]
+        result = pony_query[(first or 1) - 1: last]
         for entry in result:
             # ACHTUNG! This is necessary in order to load entry.health inside db_session,
             # to be able to perform successfully `entry.to_simple_dict()` later
@@ -760,7 +773,7 @@ class MetadataStore:
         return self.get_entries_query(**kwargs).count()
 
     @db_session
-    def get_max_rowid(self):
+    def get_max_rowid(self) -> int:
         return select(max(obj.rowid) for obj in self.ChannelNode).get() or 0
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)

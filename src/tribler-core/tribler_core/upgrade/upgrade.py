@@ -2,6 +2,8 @@ import logging
 import os
 import shutil
 from configparser import MissingSectionHeaderError, ParsingError
+from types import SimpleNamespace
+from typing import Optional
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
@@ -17,11 +19,13 @@ from tribler_core.components.metadata_store.db.store import (
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
+from tribler_core.components.tag.db.tag_db import TagDatabase
 from tribler_core.upgrade.config_converter import convert_config_to_tribler76
 from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler_core.utilities.configparser import CallbackConfigParser
 from tribler_core.utilities.path_util import Path
 
+# pylint: disable=protected-access
 
 def cleanup_noncompliant_channel_torrents(state_dir):
     logger = logging.getLogger(__name__)
@@ -87,6 +91,7 @@ class TriblerUpgrader:
         """
         Run the upgrader if it is enabled in the config.
         """
+        self._logger.info('Run')
 
         self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
@@ -94,6 +99,22 @@ class TriblerUpgrader:
         self.upgrade_bw_accounting_db_8to9()
         self.upgrade_pony_db_11to12()
         self.upgrade_pony_db_12to13()
+        self.upgrade_pony_db_13to14()
+
+    def upgrade_pony_db_13to14(self):
+        mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+        tagdb_path = self.state_dir / STATEDIR_DB_DIR / 'tags.db'
+
+        mds = MetadataStore(mds_path, self.channels_dir, self.trustchain_keypair, disable_sync=True,
+                            check_tables=False, db_version=13) if mds_path.exists() else None
+        tag_db = TagDatabase(str(tagdb_path), create_tables=False, check_tables=False) if tagdb_path.exists() else None
+
+        self.do_upgrade_pony_db_13to14(mds, tag_db)
+
+        if mds:
+            mds.shutdown()
+        if tag_db:
+            tag_db.shutdown()
 
     def upgrade_pony_db_12to13(self):
         """
@@ -149,6 +170,7 @@ class TriblerUpgrader:
         database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
         if not database_path.exists() or get_db_version(database_path) >= 9:
             return  # No need to update if the database does not exist or is already updated
+        self._logger.info('bw8->9')
         db = BandwidthDatabase(database_path, self.trustchain_keypair.key.pk)
 
         # Wipe all transactions and bandwidth history
@@ -183,7 +205,7 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != from_version:
                 return
-
+            self._logger.info(f'{from_version}->{to_version}')
             db.execute('DROP INDEX IF EXISTS idx_channelnode__public_key')
             db.execute('DROP INDEX IF EXISTS idx_channelnode__status')
             db.execute('DROP INDEX IF EXISTS idx_channelnode__size')
@@ -206,6 +228,29 @@ class TriblerUpgrader:
 
             db_version.value = str(to_version)
 
+    def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[TagDatabase]):
+        def add_column(db, table_name, column_name, column_type):
+            if not self.column_exists_in_table(db, table_name, column_name):
+                db.execute(f'ALTER TABLE "{table_name}" ADD "{column_name}" {column_type} DEFAULT 0')
+
+        if not mds:
+            return
+
+        version = SimpleNamespace(current='13', next='14')
+        with db_session:
+            db_version = mds.get_value(key='db_version')
+            if db_version != version.current:
+                return
+
+            self._logger.info(f'{version.current}->{version.next}')
+
+            add_column(db=mds._db, table_name='ChannelNode', column_name='tag_processor_version', column_type='INT')
+            add_column(db=tags.instance, table_name='TorrentTagOp', column_name='auto_generated', column_type='BOOLEAN')
+
+            tags.instance.commit()
+            mds._db.commit()
+            mds.set_value(key='db_version', value=version.next)
+
     def do_upgrade_pony_db_11to12(self, mds):
         from_version = 11
         to_version = 12
@@ -214,7 +259,7 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != from_version:
                 return
-
+            self._logger.info(f'{from_version}->{to_version}')
             # Just in case, we skip altering table if the column is somehow already there
             table_name = "ChannelNode"
             new_columns = [("json_text", "TEXT1"),
@@ -238,6 +283,7 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             if int(db_version.value) != from_version:
                 return
+            self._logger.info(f'{from_version}->{to_version}')
 
             # Just in case, we skip altering table if the column is somehow already there
             table_name = "TorrentState"
@@ -260,7 +306,7 @@ class TriblerUpgrader:
         if not database_path.exists() or get_db_version(database_path) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
-
+        self._logger.info('8->10')
         # Otherwise, start upgrading
         self.update_status("STARTING")
         tmp_database_path = database_path.parent / 'metadata_upgraded.db'

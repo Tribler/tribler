@@ -8,10 +8,12 @@ from tribler_core.components.metadata_store.category_filter.category import defa
 from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
 from tribler_core.components.metadata_store.db.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
+from tribler_core.notifier import Notifier
 from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 
 NULL_KEY_SUBST = b"\00"
+NEW_TORRENT_METADATA_CREATED: str = 'TorrentMetadata:new_torrent_metadata_created'
 
 
 # This function is used to devise id_ from infohash in deterministic way. Used in FFA channels.
@@ -44,7 +46,7 @@ def tdef_to_metadata_dict(tdef):
     }
 
 
-def define_binding(db):
+def define_binding(db, notifier: Notifier, tag_processor_version: int):
     class TorrentMetadata(db.MetadataNode):
         """
         This ORM binding class is intended to store Torrent objects, i.e. infohashes along with some related metadata.
@@ -61,12 +63,13 @@ def define_binding(db):
         # Local
         xxx = orm.Optional(float, default=0)
         health = orm.Optional('TorrentState', reverse='metadata')
+        tag_processor_version = orm.Required(int, default=0)
 
         # Special class-level properties
         _payload_class = TorrentMetadataPayload
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
-            : _payload_class.__init__.__code__.co_argcount
-        ][1:]
+                            : _payload_class.__init__.__code__.co_argcount
+                            ][1:]
         nonpersonal_attributes = db.MetadataNode.nonpersonal_attributes + (
             'infohash',
             'size',
@@ -86,6 +89,11 @@ def define_binding(db):
 
             if 'tracker_info' in kwargs:
                 self.add_tracker(kwargs["tracker_info"])
+            if notifier:
+                notifier.notify(NEW_TORRENT_METADATA_CREATED,
+                                infohash=kwargs.get("infohash"),
+                                title=self.title)
+                self.tag_processor_version = tag_processor_version
 
         def add_tracker(self, tracker_url):
             sanitized_url = get_uniformed_tracker_url(tracker_url)
@@ -132,6 +140,7 @@ def define_binding(db):
                     "num_leechers": self.health.leechers,
                     "last_tracker_check": self.health.last_check,
                     "updated": int((self.torrent_date - epoch).total_seconds()),
+                    "tag_processor_version": self.tag_processor_version,
                 }
             )
 
