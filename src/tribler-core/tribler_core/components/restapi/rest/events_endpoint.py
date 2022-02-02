@@ -76,7 +76,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         self.notifier = notifier
 
         for event_type, event_lambda in reactions_dict.items():
-            self.notifier.add_observer(event_type,
+            self.notifier.add_observer(event_type.value,
                                        lambda *args, el=event_lambda, et=event_type:
                                        self.write_data({"type": et.value, "event": el(*args)}))
 
@@ -91,7 +91,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                 self.write_data({"type": NTFY.TUNNEL_REMOVE.value, "event": event})
 
         # Tribler tunnel circuit has been removed
-        self.notifier.add_observer(NTFY.TUNNEL_REMOVE, on_circuit_removed)
+        self.notifier.add_observer(NTFY.TUNNEL_REMOVE.value, on_circuit_removed)
 
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()
