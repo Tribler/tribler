@@ -13,9 +13,6 @@ RUN mkdir /requirements
 COPY ./src/pyipv8/requirements.txt /requirements/pyipv8-requirements.txt
 RUN pip3 install -r /requirements/pyipv8-requirements.txt
 
-COPY ./src/tribler-common/tribler_common/requirements.txt /requirements/common-requirements.txt
-RUN pip3 install -r /requirements/common-requirements.txt
-
 COPY ./src/tribler-core/tribler_core/requirements.txt /requirements/core-requirements.txt
 RUN pip3 install -r /requirements/core-requirements.txt
 

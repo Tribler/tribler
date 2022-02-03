@@ -7,7 +7,7 @@ Type=simple
 User=crawler
 Group=crawler
 Restart=always
-Environment=PYTHONPATH=./src/pyipv8:./src/tribler-common:./src/tribler-core
+Environment=PYTHONPATH=./src/pyipv8:./src/tribler-core
 WorkingDirectory=/opt/tribler
 ExecStart=/usr/bin/python3 src/tribler-core/run_bandwidth_crawler.py --statedir /var/lib/crawler $EXTRA_CRAWLER_ARGS
 

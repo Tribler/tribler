@@ -244,7 +244,6 @@ class SentryReporter:
         Args:
             exception: exception to be sent.
         """
-        # Prevent importing PyQt globally in tribler-common module.
         # pylint: disable=import-outside-toplevel
         try:
             from PyQt5.QtWidgets import QApplication, QMessageBox

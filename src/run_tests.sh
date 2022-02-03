@@ -4,5 +4,5 @@ script_path() {
 }
 
 SRC_DIR="$(dirname "$(script_path "$0")")/src"
-export PYTHONPATH=$SRC_DIR/tribler-core:$SRC_DIR/tribler-common
+export PYTHONPATH=$SRC_DIR/tribler-core
 pytest $SRC_DIR/tribler-core "$@"

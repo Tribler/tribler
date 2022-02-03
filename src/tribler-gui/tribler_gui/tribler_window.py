@@ -165,7 +165,6 @@ class TriblerWindow(QMainWindow):
 
         self.tribler_started = False
         self.tribler_settings = None
-        # TODO: move version_id to tribler_common and get core version in the core crash message
         self.tribler_version = version_id
         self.debug_window = None
 
