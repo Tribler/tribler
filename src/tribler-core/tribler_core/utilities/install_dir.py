@@ -5,7 +5,7 @@ Author(s): Elric Milon
 """
 import sys
 
-from tribler_common.utilities import is_frozen
+from tribler_core.utilities.utilities import is_frozen
 
 import tribler_core
 from tribler_core.utilities.path_util import Path
