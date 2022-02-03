@@ -4,9 +4,8 @@ from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QAbstractScrollArea, QAction, QListWidget, QListWidgetItem
 
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_gui.tribler_action_menu import TriblerActionMenu
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest

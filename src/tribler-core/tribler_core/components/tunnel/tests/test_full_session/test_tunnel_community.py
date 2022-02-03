@@ -18,8 +18,6 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 import pytest
 
-from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
-
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -31,6 +29,7 @@ from tribler_core.components.socks_servers.socks_servers_component import NUM_SO
 from tribler_core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
 from tribler_core.components.tunnel.settings import TunnelCommunitySettings
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
 
 
 def crash_on_error():

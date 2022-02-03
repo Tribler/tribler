@@ -2,7 +2,6 @@ from pydantic import Field
 
 from tribler_core.config.tribler_config_section import TriblerConfigSection
 
-
 # pylint: disable=no-self-argument
 
 

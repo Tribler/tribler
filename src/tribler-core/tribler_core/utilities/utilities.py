@@ -182,8 +182,8 @@ def is_frozen():
     """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
-        sys._MEIPASS
-    except Exception:
+        sys._MEIPASS  # pylint: disable=protected-access
+    except Exception:  # pylint: disable=broad-except
         return False
     return True
 

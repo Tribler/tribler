@@ -4,8 +4,6 @@ from pathlib import Path
 from pony import orm
 from pony.orm import db_session, select
 
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import chunks
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (
@@ -24,8 +22,8 @@ from tribler_core.components.metadata_store.db.serialization import (
     COLLECTION_NODE,
     CollectionNodePayload,
 )
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 from tribler_core.utilities.utilities import random_infohash
-
 
 # pylint: disable=too-many-statements
 

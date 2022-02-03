@@ -3,10 +3,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler_core.sentry_reporter import sentry_reporter
 from tribler_core.sentry_reporter.sentry_reporter import SentryReporter
-
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler
 
 # pylint: disable=protected-access, redefined-outer-name
 # fmt: off

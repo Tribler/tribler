@@ -1,9 +1,8 @@
-from tribler_core.utilities.simpledefs import NTFY, STATEDIR_DB_DIR
-
 from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.rules.tag_rules_processor import TagRulesProcessor
+from tribler_core.utilities.simpledefs import NTFY, STATEDIR_DB_DIR
 
 
 class MetadataStoreComponent(Component):

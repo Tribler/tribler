@@ -1,5 +1,3 @@
-from tribler_core.utilities.simpledefs import STATEDIR_DB_DIR
-
 from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
@@ -7,6 +5,7 @@ from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.base import Component
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
+from tribler_core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
 class BandwidthAccountingComponent(Component):

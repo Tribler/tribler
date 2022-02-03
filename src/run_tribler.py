@@ -8,10 +8,9 @@ import logging.config
 import os
 import sys
 
+from tribler_core.components.reporter.exception_handler import default_core_exception_handler
 from tribler_core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler_core.sentry_reporter.sentry_scrubber import SentryScrubber
-
-from tribler_core.components.reporter.exception_handler import default_core_exception_handler
 
 logger = logging.getLogger(__name__)
 

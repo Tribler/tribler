@@ -5,10 +5,9 @@ Author(s): Arno Bakker, Niels Zeilemaker
 """
 import pytest
 
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
-
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
 
 
 @pytest.mark.asyncio

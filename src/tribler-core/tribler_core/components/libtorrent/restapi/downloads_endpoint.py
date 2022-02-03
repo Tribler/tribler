@@ -12,15 +12,6 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_core.utilities.simpledefs import (
-    DLSTATUS_CIRCUITS,
-    DLSTATUS_EXIT_NODES,
-    DLSTATUS_STOPPED,
-    DOWNLOAD,
-    UPLOAD,
-    dlstatus_strings,
-)
-
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
@@ -35,6 +26,14 @@ from tribler_core.components.restapi.rest.rest_endpoint import (
 )
 from tribler_core.components.restapi.rest.util import return_handled_exception
 from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.simpledefs import (
+    DLSTATUS_CIRCUITS,
+    DLSTATUS_EXIT_NODES,
+    DLSTATUS_STOPPED,
+    DOWNLOAD,
+    UPLOAD,
+    dlstatus_strings,
+)
 from tribler_core.utilities.unicode import ensure_unicode, hexlify
 from tribler_core.utilities.utilities import froze_it
 

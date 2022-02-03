@@ -11,8 +11,6 @@ from lz4.frame import LZ4FrameDecompressor
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
 
-from tribler_core.utilities.simpledefs import NTFY
-
 from tribler_core.components.metadata_store.db.orm_bindings import (
     binary_node,
     channel_description,
@@ -50,6 +48,7 @@ from tribler_core.components.metadata_store.remote_query_community.payload_check
 from tribler_core.exceptions import InvalidSignatureException
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.pony_utils import get_or_create
+from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import MEMORY_DB
 

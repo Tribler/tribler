@@ -2,9 +2,8 @@ from typing import Optional
 
 from pydantic import validator
 
-from tribler_core.utilities.network_utils import NetworkUtils
 from tribler_core.config.tribler_config_section import TriblerConfigSection
-
+from tribler_core.utilities.network_utils import NetworkUtils
 
 # pylint: disable=no-self-argument
 

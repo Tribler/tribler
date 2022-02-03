@@ -10,13 +10,12 @@ from ipv8.types import Peer
 
 from pony.orm import db_session
 
-from tribler_core.utilities.simpledefs import CHANNELS_VIEW_UUID, NTFY
-
 from tribler_core.components.ipv8.discovery_booster import DiscoveryBooster
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler_core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler_core.components.metadata_store.utils import NoChannelSourcesException
+from tribler_core.utilities.simpledefs import CHANNELS_VIEW_UUID, NTFY
 from tribler_core.utilities.unicode import hexlify
 
 minimal_blob_size = 200

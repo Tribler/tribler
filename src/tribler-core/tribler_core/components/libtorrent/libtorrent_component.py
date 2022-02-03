@@ -1,9 +1,8 @@
-from tribler_core.utilities.rest_utils import path_to_uri
-
 from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler_core.utilities.rest_utils import path_to_uri
 
 
 class LibtorrentComponent(Component):

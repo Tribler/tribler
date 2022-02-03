@@ -32,8 +32,6 @@ from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
 
-from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY
-
 from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler_core.components.socks_servers.socks5.server import Socks5Server
 from tribler_core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
@@ -49,6 +47,13 @@ from tribler_core.components.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler_core.utilities.bencodecheck import is_bencoded
+from tribler_core.utilities.simpledefs import (
+    DLSTATUS_DOWNLOADING,
+    DLSTATUS_METADATA,
+    DLSTATUS_SEEDING,
+    DLSTATUS_STOPPED,
+    NTFY,
+)
 from tribler_core.utilities.unicode import hexlify
 
 DESTROY_REASON_BALANCE = 65535

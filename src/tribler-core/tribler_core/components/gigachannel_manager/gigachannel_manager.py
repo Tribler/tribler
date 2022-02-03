@@ -6,8 +6,6 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, NTFY
-
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
@@ -15,6 +13,7 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.notifier import Notifier
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, NTFY
 from tribler_core.utilities.unicode import hexlify
 
 PROCESS_CHANNEL_DIR = 1

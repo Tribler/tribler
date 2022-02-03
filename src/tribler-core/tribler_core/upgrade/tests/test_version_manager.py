@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+import tribler_core.version
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
 from tribler_core.upgrade.version_manager import (
     TriblerVersion,
     VERSION_HISTORY_FILENAME,
@@ -14,9 +15,7 @@ from tribler_core.upgrade.version_manager import (
     VersionHistory,
     remove_state_dirs,
 )
-
-import tribler_core.version
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
 

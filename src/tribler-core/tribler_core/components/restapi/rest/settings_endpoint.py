@@ -6,11 +6,10 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Boolean
 
-from tribler_core.utilities.network_utils import default_network_utils
-
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.utilities.network_utils import default_network_utils
 from tribler_core.utilities.utilities import froze_it
 
 

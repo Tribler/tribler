@@ -5,9 +5,8 @@ from dataclasses import dataclass, field
 
 from PyQt5 import uic
 
-from tribler_core.utilities.utilities import Query, to_fts_query
-
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.utilities.utilities import Query, to_fts_query
 
 from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest
