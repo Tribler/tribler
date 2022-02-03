@@ -7,7 +7,7 @@ from typing import Callable, Dict
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
 
-from tribler_common.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
+from tribler_core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler_core.utilities.utilities import to_fts_query
 
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW

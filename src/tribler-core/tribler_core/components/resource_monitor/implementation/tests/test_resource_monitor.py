@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings

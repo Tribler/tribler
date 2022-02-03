@@ -38,11 +38,11 @@ from PyQt5.QtWidgets import (
 
 from psutil import LINUX
 
-from tribler_common.network_utils import default_network_utils
-from tribler_common.process_checker import ProcessChecker
-from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_is_valid_file, uri_to_path
+from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.process_checker import ProcessChecker
+from tribler_core.utilities.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_is_valid_file, uri_to_path
 from tribler_core.utilities.utilities import parse_query
-from tribler_common.version_manager import VersionHistory
+from tribler_core.upgrade.version_manager import VersionHistory
 
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.version import version_id

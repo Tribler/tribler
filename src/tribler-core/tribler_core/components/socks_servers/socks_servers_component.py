@@ -1,6 +1,6 @@
 from typing import List
 
-from tribler_common.network_utils import default_network_utils
+from tribler_core.utilities.network_utils import default_network_utils
 
 from tribler_core.components.base import Component
 from tribler_core.components.reporter.reporter_component import ReporterComponent

@@ -4,7 +4,7 @@ from configobj import ConfigObj
 
 from validate import Validator
 
-from tribler_common.osutils import get_home_dir
+from tribler_core.utilities.osutils import get_home_dir
 
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.exceptions import InvalidConfigException

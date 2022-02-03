@@ -4,7 +4,7 @@ from pathlib import Path
 from pony import orm
 from pony.orm import db_session, select
 
-from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import chunks

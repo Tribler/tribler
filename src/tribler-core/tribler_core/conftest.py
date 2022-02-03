@@ -11,8 +11,8 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_common.network_utils import default_network_utils
-from tribler_common.simpledefs import DLSTATUS_SEEDING
+from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.components.libtorrent.download_manager.download import Download
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig

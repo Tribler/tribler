@@ -10,7 +10,7 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_common.simpledefs import DLSTATUS_SEEDING
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef

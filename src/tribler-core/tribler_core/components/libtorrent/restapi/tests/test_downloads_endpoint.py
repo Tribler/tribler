@@ -8,8 +8,8 @@ from ipv8.util import fail, succeed
 
 import pytest
 
-from tribler_common.rest_utils import HTTP_SCHEME, path_to_uri
-from tribler_common.simpledefs import DLSTATUS_CIRCUITS, DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
+from tribler_core.utilities.rest_utils import HTTP_SCHEME, path_to_uri
+from tribler_core.utilities.simpledefs import DLSTATUS_CIRCUITS, DLSTATUS_DOWNLOADING, DLSTATUS_EXIT_NODES, DLSTATUS_STOPPED
 
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler_core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status

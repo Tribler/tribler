@@ -8,7 +8,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 
-from tribler_common.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
+from tribler_core.utilities.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
 
 from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog

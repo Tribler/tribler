@@ -7,7 +7,7 @@ from libtorrent import bencode
 
 import pytest
 
-from tribler_common.simpledefs import DLSTATUS_SEEDING
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.settings import LibtorrentSettings

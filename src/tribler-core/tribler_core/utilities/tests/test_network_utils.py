@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_common.network_utils import FreePortNotFoundError, NetworkUtils
+from tribler_core.utilities.network_utils import FreePortNotFoundError, NetworkUtils
 
 # fmt: off
 

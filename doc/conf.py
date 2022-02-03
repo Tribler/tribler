@@ -33,8 +33,8 @@ tribler_components = [
 for component in tribler_components:
     sys.path.append(str(component))
 
-from tribler_common.dependencies import Scope, get_dependencies
-from tribler_common.patch_import import patch_import
+from tribler_core.utilities.dependencies import Scope, get_dependencies
+from tribler_core.utilities.patch_import import patch_import
 
 modules_to_mock = set(get_dependencies(scope=Scope.core)) | \
                   set(get_dependencies(scope=Scope.common)) | {'libtorrent', 'validate'}

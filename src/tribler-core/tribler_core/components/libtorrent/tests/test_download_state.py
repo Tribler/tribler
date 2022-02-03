@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DOWNLOAD, UPLOAD
+from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DOWNLOAD, UPLOAD
 
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
 

@@ -9,8 +9,8 @@ from itertools import count
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar, Union
 
-from tribler_common.network_utils import default_network_utils
-from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier

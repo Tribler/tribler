@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef

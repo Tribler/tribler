@@ -7,10 +7,10 @@ import sys
 from typing import List
 
 from tribler_core.logger.logger import load_logger_config
-from tribler_common.process_checker import ProcessChecker
+from tribler_core.utilities.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
-from tribler_common.simpledefs import NTFY
-from tribler_common.version_manager import VersionHistory
+from tribler_core.utilities.simpledefs import NTFY
+from tribler_core.upgrade.version_manager import VersionHistory
 
 from tribler_core.check_os import (
     check_and_enable_code_tracing,

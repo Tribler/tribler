@@ -13,8 +13,8 @@ from ipaddress import AddressValueError, IPv4Address
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.osutils import get_root_state_directory
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.osutils import get_root_state_directory
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session

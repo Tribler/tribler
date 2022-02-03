@@ -1,4 +1,4 @@
-from tribler_common.simpledefs import STATEDIR_DB_DIR
+from tribler_core.utilities.simpledefs import STATEDIR_DB_DIR
 
 import tribler_core.components.metadata_store.metadata_store_component as metadata_store_component
 from tribler_core.components.base import Component

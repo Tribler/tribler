@@ -3,7 +3,7 @@ from aiohttp.web_app import Application
 
 import pytest
 
-from tribler_common.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+from tribler_core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.restapi.rest.base_api_test import do_request

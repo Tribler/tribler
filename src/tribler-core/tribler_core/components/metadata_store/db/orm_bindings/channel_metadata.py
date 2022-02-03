@@ -7,7 +7,7 @@ from lz4.frame import LZ4FrameCompressor
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (

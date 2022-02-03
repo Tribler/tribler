@@ -15,8 +15,8 @@ from typing import List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
-from tribler_common.network_utils import default_network_utils
-from tribler_common.rest_utils import (
+from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.rest_utils import (
     FILE_SCHEME,
     HTTPS_SCHEME,
     HTTP_SCHEME,
@@ -24,7 +24,7 @@ from tribler_common.rest_utils import (
     scheme_from_uri,
     uri_to_path,
 )
-from tribler_common.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
 
 from tribler_core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
 from tribler_core.components.libtorrent.download_manager.download import Download

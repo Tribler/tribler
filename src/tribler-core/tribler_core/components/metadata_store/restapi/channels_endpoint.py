@@ -15,7 +15,7 @@ from marshmallow.fields import Boolean, Integer, String
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
 from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager

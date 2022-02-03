@@ -6,7 +6,7 @@ from hashlib import sha1
 
 import aiohttp
 
-from tribler_common.simpledefs import INFOHASH_LENGTH
+from tribler_core.utilities.simpledefs import INFOHASH_LENGTH
 
 from tribler_core.utilities import maketorrent, path_util
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt

@@ -4,7 +4,7 @@ import sys
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
-from tribler_common.rest_utils import path_to_uri
+from tribler_core.utilities.rest_utils import path_to_uri
 
 from tribler_core.utilities.unicode import ensure_unicode
 

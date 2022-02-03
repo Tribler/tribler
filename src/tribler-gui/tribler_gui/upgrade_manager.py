@@ -4,7 +4,7 @@ from typing import List
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
-from tribler_common.version_manager import TriblerVersion, VersionHistory
+from tribler_core.upgrade.version_manager import TriblerVersion, VersionHistory
 
 from tribler_gui.utilities import connect, format_size, tr
 

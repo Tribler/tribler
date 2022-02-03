@@ -11,8 +11,8 @@ from asyncio import ensure_future, get_event_loop, sleep
 from datetime import date
 from socket import inet_aton
 
-from tribler_common.osutils import get_appstate_dir, get_root_state_directory
-from tribler_common.process_checker import ProcessChecker
+from tribler_core.utilities.osutils import get_appstate_dir, get_root_state_directory
+from tribler_core.utilities.process_checker import ProcessChecker
 
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.start_core import Session

@@ -6,7 +6,7 @@ from aiohttp import ClientSession, ClientTimeout
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.notifier import Notifier
 from tribler_core.version import version_id

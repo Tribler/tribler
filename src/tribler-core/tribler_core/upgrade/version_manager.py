@@ -11,7 +11,7 @@ from operator import attrgetter
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 import tribler_core.version
 

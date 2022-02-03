@@ -1,4 +1,4 @@
-from tribler_common.rest_utils import path_to_uri
+from tribler_core.utilities.rest_utils import path_to_uri
 
 from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent

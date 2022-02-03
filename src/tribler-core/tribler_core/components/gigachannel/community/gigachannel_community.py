@@ -10,7 +10,7 @@ from ipv8.types import Peer
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import CHANNELS_VIEW_UUID, NTFY
+from tribler_core.utilities.simpledefs import CHANNELS_VIEW_UUID, NTFY
 
 from tribler_core.components.ipv8.discovery_booster import DiscoveryBooster
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT

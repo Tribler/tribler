@@ -6,7 +6,7 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
-from tribler_common.simpledefs import DLSTATUS_SEEDING, NTFY
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, NTFY
 
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager

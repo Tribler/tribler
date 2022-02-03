@@ -12,7 +12,7 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_common.simpledefs import CHANNEL_STATE
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
 from tribler_core.components.libtorrent.torrentdef import TorrentDef

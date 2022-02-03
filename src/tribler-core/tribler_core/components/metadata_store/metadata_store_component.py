@@ -1,4 +1,4 @@
-from tribler_common.simpledefs import NTFY, STATEDIR_DB_DIR
+from tribler_core.utilities.simpledefs import NTFY, STATEDIR_DB_DIR
 
 from tribler_core.components.base import Component
 from tribler_core.components.key.key_component import KeyComponent

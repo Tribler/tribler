@@ -9,7 +9,7 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 from pony.orm import db_session, delete
 
-from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH

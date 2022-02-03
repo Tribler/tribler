@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from tribler_common.osutils import (
+from tribler_core.utilities.osutils import (
     dir_copy,
     fix_filebasename,
     get_appstate_dir,

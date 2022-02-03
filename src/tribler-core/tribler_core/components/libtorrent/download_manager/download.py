@@ -12,8 +12,8 @@ from typing import Optional
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
 
-from tribler_common.osutils import fix_filebasename
-from tribler_common.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
+from tribler_core.utilities.osutils import fix_filebasename
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
 
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_state import DownloadState

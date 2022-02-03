@@ -19,7 +19,7 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
 
-from tribler_common.network_utils import NetworkUtils
+from tribler_core.utilities.network_utils import NetworkUtils
 
 from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community \
     import BandwidthAccountingCommunity

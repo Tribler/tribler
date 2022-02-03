@@ -20,7 +20,7 @@ for a given fileindex of a torrent
 import logging
 from asyncio import sleep
 
-from tribler_common.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
+from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
 
 from tribler_core.components.libtorrent.utils.torrent_utils import check_vod, get_info_from_handle
 

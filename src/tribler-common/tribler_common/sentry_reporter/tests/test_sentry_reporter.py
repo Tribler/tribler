@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from tribler_common.patch_import import patch_import
+from tribler_core.utilities.patch_import import patch_import
 from tribler_common.sentry_reporter.sentry_reporter import (
     EXCEPTION,
     OS_ENVIRON,

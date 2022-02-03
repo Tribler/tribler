@@ -10,8 +10,8 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_common.rest_utils import path_to_uri
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.rest_utils import path_to_uri
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler_core.components.libtorrent.settings import LibtorrentSettings

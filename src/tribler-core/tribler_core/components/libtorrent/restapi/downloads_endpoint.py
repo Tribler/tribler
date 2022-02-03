@@ -12,7 +12,7 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_
 
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler_common.simpledefs import (
+from tribler_core.utilities.simpledefs import (
     DLSTATUS_CIRCUITS,
     DLSTATUS_EXIT_NODES,
     DLSTATUS_STOPPED,

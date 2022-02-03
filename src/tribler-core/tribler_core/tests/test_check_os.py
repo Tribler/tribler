@@ -5,7 +5,7 @@ import psutil
 
 import pytest
 
-from tribler_common.patch_import import patch_import
+from tribler_core.utilities.patch_import import patch_import
 
 from tribler_core.check_os import enable_fault_handler, error_and_exit, should_kill_other_tribler_instances
 

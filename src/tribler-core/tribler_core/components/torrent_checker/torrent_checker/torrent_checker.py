@@ -9,7 +9,7 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session, desc, select
 
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT

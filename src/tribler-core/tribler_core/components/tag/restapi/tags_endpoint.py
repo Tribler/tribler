@@ -12,7 +12,7 @@ from marshmallow.fields import Boolean, List, String
 
 from pony.orm import db_session
 
-from tribler_common.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+from tribler_core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler_core.components.restapi.rest.schema import HandledErrorSchema

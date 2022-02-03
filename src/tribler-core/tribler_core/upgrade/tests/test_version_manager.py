@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from tribler_common.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
-from tribler_common.version_manager import (
+from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+from tribler_core.upgrade.version_manager import (
     TriblerVersion,
     VERSION_HISTORY_FILENAME,
     VersionError,

@@ -11,7 +11,7 @@ from lz4.frame import LZ4FrameDecompressor
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
 
-from tribler_common.simpledefs import NTFY
+from tribler_core.utilities.simpledefs import NTFY
 
 from tribler_core.components.metadata_store.db.orm_bindings import (
     binary_node,

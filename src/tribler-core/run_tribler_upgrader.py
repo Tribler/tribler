@@ -3,7 +3,7 @@ import signal
 import sys
 
 from tribler_core.logger.logger import load_logger_config
-from tribler_common.version_manager import VersionHistory
+from tribler_core.upgrade.version_manager import VersionHistory
 
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.config.tribler_config import TriblerConfig
