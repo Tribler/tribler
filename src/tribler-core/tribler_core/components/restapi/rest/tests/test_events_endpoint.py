@@ -9,7 +9,7 @@ from ipv8.messaging.anonymization.tunnel import Circuit
 
 import pytest
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint

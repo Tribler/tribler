@@ -14,7 +14,7 @@ from ipv8.taskmanager import TaskManager, task
 
 from marshmallow.fields import Dict, String
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse

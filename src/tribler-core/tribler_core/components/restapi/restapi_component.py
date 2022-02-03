@@ -3,7 +3,7 @@ from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint

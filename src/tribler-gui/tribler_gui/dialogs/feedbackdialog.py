@@ -8,7 +8,7 @@ from collections import defaultdict
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler_common.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER

@@ -5,7 +5,7 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_common.simpledefs import NTFY
 
 from tribler_gui import gui_sentry_reporter

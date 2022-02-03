@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import NoneComponent, Session

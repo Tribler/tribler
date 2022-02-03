@@ -7,7 +7,7 @@ from socket import gaierror
 from traceback import print_exception
 from typing import Callable, Optional
 
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 
 from tribler_core.components.base import ComponentStartupException

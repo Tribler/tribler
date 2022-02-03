@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 import pytest
 
 import tribler_common
-from tribler_common.reported_error import ReportedError
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_common.rest_utils import path_to_uri
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_common.tag_constants import MIN_TAG_LENGTH
