@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import pytest
 
 from tribler_core.components.reporter.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 
 from tribler_gui.error_handler import ErrorHandler
 from tribler_gui.exceptions import CoreConnectTimeoutError, CoreCrashedError

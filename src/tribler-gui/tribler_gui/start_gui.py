@@ -6,7 +6,7 @@ from PyQt5.QtCore import QSettings
 
 from tribler_core.logger.logger import load_logger_config
 from tribler_core.utilities.rest_utils import path_to_uri
-from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler_core.sentry_reporter.sentry_reporter import SentryStrategy
 
 from tribler_core.check_os import (
     check_and_enable_code_tracing,

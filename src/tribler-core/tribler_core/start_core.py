@@ -8,7 +8,7 @@ from typing import List
 
 from tribler_core.logger.logger import load_logger_config
 from tribler_core.utilities.process_checker import ProcessChecker
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler_core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.upgrade.version_manager import VersionHistory
 

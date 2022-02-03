@@ -13,7 +13,7 @@ import pytest
 import tribler_common
 from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_core.utilities.rest_utils import path_to_uri
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler_core.components.tag.tag_constants import MIN_TAG_LENGTH
 
 from tribler_core.utilities.unicode import hexlify
