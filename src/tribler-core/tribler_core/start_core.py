@@ -6,7 +6,7 @@ import signal
 import sys
 from typing import List
 
-from tribler_common.logger import load_logger_config
+from tribler_core.logger.logger import load_logger_config
 from tribler_common.process_checker import ProcessChecker
 from tribler_common.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_common.simpledefs import NTFY
