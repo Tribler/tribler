@@ -103,9 +103,9 @@ async def test_events(rest_manager, notifier):
     messages_to_wait_for.add(NTFY.TRIBLER_EXCEPTION.value)
     for subject, data in testdata.items():
         if data:
-            notifier.notify(subject, *data)
+            notifier.notify(subject.value, *data)
         else:
-            notifier.notify(subject)
+            notifier.notify(subject.value)
     rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception(ReportedError('', '', {}, False))
     await events_up.wait()
 

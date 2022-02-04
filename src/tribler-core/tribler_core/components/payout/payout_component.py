@@ -25,14 +25,15 @@ class PayoutComponent(Component):
         self.payout_manager = PayoutManager(bandwidth_accounting_component.community,
                                             ipv8_component.dht_discovery_community)
 
-        self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT, self.payout_manager.do_payout)
-        self.session.notifier.add_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, self.payout_manager.update_peer)
+        self.session.notifier.add_observer(NTFY.PEER_DISCONNECTED_EVENT.value, self.payout_manager.do_payout)
+        self.session.notifier.add_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE.value, self.payout_manager.update_peer)
 
 
     async def shutdown(self):
         await super().shutdown()
         if self.payout_manager:
-            self.session.notifier.remove_observer(NTFY.PEER_DISCONNECTED_EVENT, self.payout_manager.do_payout)
-            self.session.notifier.remove_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE, self.payout_manager.update_peer)
+            self.session.notifier.remove_observer(NTFY.PEER_DISCONNECTED_EVENT.value, self.payout_manager.do_payout)
+            self.session.notifier.remove_observer(NTFY.TRIBLER_TORRENT_PEER_UPDATE.value,
+                                                  self.payout_manager.update_peer)
 
             await self.payout_manager.shutdown()
