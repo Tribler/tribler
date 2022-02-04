@@ -14,7 +14,7 @@ from tribler_core.utilities.path_util import Path
 
 logger = logging.getLogger(__name__)
 
-Scope = Enum('Scope', 'core gui common')
+Scope = Enum('Scope', 'core gui')
 
 # Exceptional pip packages where the name does not match with actual import.
 package_to_import_mapping = {
@@ -33,9 +33,6 @@ def get_dependencies(scope: Scope) -> Iterator[str]:
         if scope == Scope.gui:
             import tribler_gui
             return Path(tribler_gui.__file__).parent / requirements_txt
-        if scope == Scope.common:
-            import tribler_common
-            return Path(tribler_common.__file__).parent / requirements_txt
         raise AttributeError(f'Scope is {scope} but should be in {[s for s in Scope]}')  # pylint: disable=unnecessary-comprehension
 
     return _get_pip_dependencies(_get_path_to_requirements_txt())

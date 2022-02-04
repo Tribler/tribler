@@ -16,7 +16,6 @@ src_dir = os.path.join(root_dir, "src")
 
 tribler_components = [
     os.path.join(src_dir, "pyipv8"),
-    os.path.join(src_dir, "tribler-common"),
     os.path.join(src_dir, "tribler-core"),
     os.path.join(src_dir, "tribler-gui"),
 ]
@@ -42,7 +41,6 @@ data_to_copy = [
     (os.path.join(src_dir, "tribler-gui", "tribler_gui", "qt_resources"), 'qt_resources'),
     (os.path.join(src_dir, "tribler-gui", "tribler_gui", "images"), 'images'),
     (os.path.join(src_dir, "tribler-gui", "tribler_gui", "i18n"), 'i18n'),
-    (os.path.join(src_dir, "tribler-common", "tribler_common"), 'tribler_source/tribler_common'),
     (os.path.join(src_dir, "tribler-core", "tribler_core"), 'tribler_source/tribler_core'),
     (os.path.join(src_dir, "tribler-gui", "tribler_gui"), 'tribler_source/tribler_gui'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),

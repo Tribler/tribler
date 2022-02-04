@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tribler_common.patch_import import patch_import
+from tribler_core.utilities.patch_import import patch_import
 
 pytestmark = pytest.mark.asyncio
 

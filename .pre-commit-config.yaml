@@ -21,8 +21,7 @@ repos:
       files: |
           (?x)(
           ^src/tribler-gui/|
-          ^src/tribler-core/tribler_core/modules/metadata_store/|
-          ^src/tribler-common
+          ^src/tribler-core/tribler_core/modules/metadata_store/
           )
       types: [file, python]
 
@@ -45,8 +44,7 @@ repos:
       files: |
           (?x)(
           ^src/tribler-gui/|
-          ^src/tribler-core/|
-          ^src/tribler-common
+          ^src/tribler-core/
           )
       types: [file, python]
         

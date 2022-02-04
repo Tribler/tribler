@@ -3,8 +3,6 @@ from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
-from tribler_common.reported_error import ReportedError
-
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler_core.components.base import Component, NoneComponent
@@ -23,6 +21,7 @@ from tribler_core.components.metadata_store.restapi.metadata_endpoint import Met
 from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler_core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_core.components.reporter.reporter_component import ReporterComponent
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint

@@ -12,8 +12,6 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_common.simpledefs import CHANNEL_STATE
-
 from tribler_core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
@@ -24,6 +22,7 @@ from tribler_core.components.metadata_store.utils import RequestTimeoutException
 from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import random_infohash
 

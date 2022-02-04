@@ -4,11 +4,10 @@ import signal
 from pathlib import Path
 from typing import List
 
-from tribler_common.osutils import get_root_state_directory
-from tribler_common.process_checker import ProcessChecker
-
 from tribler_core.components.base import Component
 from tribler_core.start_core import Session
+from tribler_core.utilities.osutils import get_root_state_directory
+from tribler_core.utilities.process_checker import ProcessChecker
 
 
 class TinyTriblerService:

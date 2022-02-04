@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_common.sentry_reporter.sentry_reporter import (
+from tribler_core.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
     CONTEXTS,
     EXTRA,
@@ -11,7 +11,7 @@ from tribler_common.sentry_reporter.sentry_reporter import (
     SYSINFO,
     SYS_ARGV,
 )
-from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler_core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 
 @pytest.fixture(name="scrubber")  # this workaround implemented only for pylint

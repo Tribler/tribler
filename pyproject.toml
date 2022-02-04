@@ -1,7 +1,7 @@
 [tool.black]
 line-length = 120
 skip-string-normalization = true
-include = '(src/tribler-gui|src/tribler-common|src/tribler-core/tribler_core/modules/metadata_store)/.*\.pyi?$'
+include = '(src/tribler-core/tribler_core/modules/metadata_store)/.*\.pyi?$'
 
 exclude = '''
 /(

@@ -8,10 +8,9 @@ import logging.config
 import os
 import sys
 
-from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler_common.sentry_reporter.sentry_scrubber import SentryScrubber
-
 from tribler_core.components.reporter.exception_handler import default_core_exception_handler
+from tribler_core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler_core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +66,7 @@ if __name__ == "__main__":
     logger.info(f'Run Tribler: {parsed_args}')
 
     # Get root state directory (e.g. from environment variable or from system default)
-    from tribler_common.osutils import get_root_state_directory
+    from tribler_core.utilities.osutils import get_root_state_directory
 
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')

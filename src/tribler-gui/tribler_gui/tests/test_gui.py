@@ -10,12 +10,11 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QT
 
 import pytest
 
-import tribler_common
-from tribler_common.reported_error import ReportedError
-from tribler_common.rest_utils import path_to_uri
-from tribler_common.sentry_reporter.sentry_reporter import SentryReporter
-from tribler_common.tag_constants import MIN_TAG_LENGTH
-
+from tribler_core.components.reporter.reported_error import ReportedError
+from tribler_core.components.tag.tag_constants import MIN_TAG_LENGTH
+from tribler_core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler_core.tests.tools.common import TESTS_DATA_DIR
+from tribler_core.utilities.rest_utils import path_to_uri
 from tribler_core.utilities.unicode import hexlify
 
 import tribler_gui
@@ -31,8 +30,7 @@ from tribler_gui.widgets.tagbutton import TagButton
 from tribler_gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
-COMMON_DATA_DIR = Path(tribler_common.__file__).parent / "data"
-TORRENT_WITH_DIRS = COMMON_DATA_DIR / "multi_entries.torrent"
+TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
 
 @pytest.fixture(scope="module")

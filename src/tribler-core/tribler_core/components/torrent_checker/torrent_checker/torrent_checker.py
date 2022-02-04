@@ -9,8 +9,6 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session, desc, select
 
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler_core.components.metadata_store.db.store import MetadataStore
@@ -23,6 +21,7 @@ from tribler_core.components.torrent_checker.torrent_checker.torrentchecker_sess
 from tribler_core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.notifier import Notifier
+from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import has_bep33_support, is_valid_url

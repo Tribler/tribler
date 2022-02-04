@@ -7,11 +7,10 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from tribler_common.tag_constants import MIN_TAG_LENGTH
-
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.community.tag_payload import TagOperation
 from tribler_core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
+from tribler_core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler_core.tests.tools.common import PNG_FILE
 from tribler_core.utilities.utilities import random_infohash
 

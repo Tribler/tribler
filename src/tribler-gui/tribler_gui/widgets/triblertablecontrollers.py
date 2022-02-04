@@ -10,9 +10,8 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAction
 
-from tribler_common.simpledefs import CHANNEL_STATE
-
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler_gui.tribler_action_menu import TriblerActionMenu

@@ -2,8 +2,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tribler_common.reported_error import ReportedError
-
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import NoneComponent, Session
 from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
@@ -11,6 +9,7 @@ from tribler_core.components.ipv8.ipv8_component import Ipv8Component
 from tribler_core.components.key.key_component import KeyComponent
 from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler_core.components.restapi.restapi_component import RESTComponent

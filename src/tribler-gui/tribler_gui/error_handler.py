@@ -1,8 +1,8 @@
 import logging
 import traceback
 
-from tribler_common.reported_error import ReportedError
-from tribler_common.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler_core.components.reporter.reported_error import ReportedError
+from tribler_core.sentry_reporter.sentry_reporter import SentryStrategy
 
 from tribler_gui import gui_sentry_reporter
 from tribler_gui.dialogs.feedbackdialog import FeedbackDialog

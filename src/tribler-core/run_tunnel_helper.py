@@ -13,9 +13,6 @@ from ipaddress import AddressValueError, IPv4Address
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.osutils import get_root_state_directory
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
@@ -25,7 +22,9 @@ from tribler_core.components.restapi.restapi_component import RESTComponent
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler_core.config.tribler_config import TriblerConfig
+from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.simpledefs import NTFY
 
 logger = logging.getLogger(__name__)
 

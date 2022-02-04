@@ -7,8 +7,6 @@ from lz4.frame import LZ4FrameCompressor
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from tribler_common.simpledefs import CHANNEL_STATE
-
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (
     CHANNEL_DESCRIPTION_FLAG,
@@ -27,6 +25,7 @@ from tribler_core.components.metadata_store.db.serialization import (
     HealthItemsPayload,
 )
 from tribler_core.utilities.path_util import Path
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import random_infohash
 

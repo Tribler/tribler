@@ -5,7 +5,7 @@ Author(s): Arno Bakker
 """
 import logging
 
-from tribler_common.simpledefs import (
+from tribler_core.utilities.simpledefs import (
     DLSTATUS_ALLOCATING_DISKSPACE,
     DLSTATUS_DOWNLOADING,
     DLSTATUS_HASHCHECKING,

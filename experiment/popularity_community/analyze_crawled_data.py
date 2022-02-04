@@ -24,7 +24,7 @@ Where:
 ### Usage
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-common,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-core} | tr " " :`
 
 python3 analyze_crawled_data.py [-d <sqlite_db_path>] [-f <json_output_file_path>]
                                 [-l <torrent_limit>] [-v]

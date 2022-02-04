@@ -13,7 +13,7 @@ Environment=HOME=/var/lib/tunnel_helper/%I
 Environment=HELPER_INDEX=%I
 Environment=HELPER_BASE=35000
 Environment=EXTRA_TUNNEL_ARGS=--
-Environment=PYTHONPATH=./src/pyipv8:./src/anydex:./src/tribler-common:./src/tribler-core
+Environment=PYTHONPATH=./src/pyipv8:./src/anydex:./src/tribler-core
 
 WorkingDirectory=/opt/tribler
 ExecStartPre=/bin/mkdir -p ${HOME}

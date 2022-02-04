@@ -4,12 +4,11 @@ from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.notifier import Notifier
 from tribler_core.utilities import path_util
+from tribler_core.utilities.simpledefs import NTFY
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
 

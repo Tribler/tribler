@@ -7,10 +7,9 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 
 from psutil import LINUX
 
-from tribler_common.simpledefs import CHANNEL_STATE
-
 from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+from tribler_core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler_gui.defs import (
     BUTTON_TYPE_CONFIRM,

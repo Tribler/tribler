@@ -10,16 +10,6 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
-from tribler_common.rest_utils import (
-    FILE_SCHEME,
-    HTTPS_SCHEME,
-    HTTP_SCHEME,
-    MAGNET_SCHEME,
-    scheme_from_uri,
-    uri_to_path,
-)
-from tribler_common.simpledefs import NTFY
-
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
 from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
@@ -30,6 +20,15 @@ from tribler_core.components.restapi.rest.rest_endpoint import (
     RESTEndpoint,
     RESTResponse,
 )
+from tribler_core.utilities.rest_utils import (
+    FILE_SCHEME,
+    HTTPS_SCHEME,
+    HTTP_SCHEME,
+    MAGNET_SCHEME,
+    scheme_from_uri,
+    uri_to_path,
+)
+from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.utilities.unicode import hexlify, recursive_unicode
 from tribler_core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
 

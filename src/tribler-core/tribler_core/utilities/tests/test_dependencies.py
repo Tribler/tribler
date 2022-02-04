@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_common.dependencies import (
+from tribler_core.utilities.dependencies import (
     Scope,
     _extract_libraries_from_requirements,
     _get_pip_dependencies,
@@ -37,7 +37,6 @@ async def test_get_dependencies():
     # assert that in each scope dependencies are exist
     assert list(get_dependencies(Scope.gui))
     assert list(get_dependencies(Scope.core))
-    assert list(get_dependencies(Scope.common))
 
 
 async def test_get_dependencies_wrong_scope():

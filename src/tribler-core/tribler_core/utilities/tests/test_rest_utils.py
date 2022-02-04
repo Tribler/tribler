@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tribler_common.rest_utils import path_to_uri, scheme_from_uri, uri_is_valid_file, uri_to_path
+from tribler_core.utilities.rest_utils import path_to_uri, scheme_from_uri, uri_is_valid_file, uri_to_path
 
 NIX_PATHS = [
     ('/path/to/file', 'file:///path/to/file'),

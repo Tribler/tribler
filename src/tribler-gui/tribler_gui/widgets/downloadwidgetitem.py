@@ -4,7 +4,7 @@ from datetime import datetime
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from tribler_common.simpledefs import dlstatus_strings
+from tribler_core.utilities.simpledefs import dlstatus_strings
 
 from tribler_gui.defs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_STRINGS
 from tribler_gui.utilities import duration_to_string, format_size, format_speed

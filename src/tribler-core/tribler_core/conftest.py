@@ -11,9 +11,6 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_common.network_utils import default_network_utils
-from tribler_common.simpledefs import DLSTATUS_SEEDING
-
 from tribler_core.components.libtorrent.download_manager.download import Download
 from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
@@ -24,6 +21,8 @@ from tribler_core.components.tag.db.tag_db import TagDatabase
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
+from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
 from tribler_core.utilities.unicode import hexlify
 
 

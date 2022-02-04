@@ -2,10 +2,9 @@ import shutil
 
 import pytest
 
-from tribler_common.rest_utils import path_to_uri
-from tribler_common.simpledefs import DLSTATUS_DOWNLOADING
-
 from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler_core.utilities.rest_utils import path_to_uri
+from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING
 
 
 @pytest.mark.asyncio

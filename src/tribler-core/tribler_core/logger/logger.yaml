@@ -4,7 +4,7 @@ version: 1
 disable_existing_loggers: false
 filters:
     stdout_filter:
-        () : tribler_common.logger.StdoutFilter
+        () : tribler_core.logger.logger.StdoutFilter
 
 # Logging formatter
 formatters:
@@ -50,13 +50,13 @@ handlers:
         level: INFO
         formatter: standard
         filters: [stdout_filter]
-        stream: ext://tribler_common.logger_streams.stdout_wrapper
+        stream: ext://tribler_core.logger.logger_streams.stdout_wrapper
 
     stderr_handler:
         class: logging.StreamHandler
         level: ERROR
         formatter: error
-        stream: ext://tribler_common.logger_streams.stderr_wrapper
+        stream: ext://tribler_core.logger.logger_streams.stderr_wrapper
 
 # Root Logger Configuration
 root:

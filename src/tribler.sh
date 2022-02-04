@@ -10,7 +10,7 @@ UNAME="$(uname -s)"
 
 # Add all required modules to PYTHONPATH
 SRC_DIR="$(dirname "$(script_path "$0")")/src"
-PYTHONPATH="$PYTHONPATH:"$SRC_DIR/pyipv8":"$SRC_DIR/anydex":"$SRC_DIR/tribler-common":"$SRC_DIR/tribler-core":"$SRC_DIR/tribler-gui""
+PYTHONPATH="$PYTHONPATH:"$SRC_DIR/pyipv8":"$SRC_DIR/anydex":"$SRC_DIR/tribler-core":"$SRC_DIR/tribler-gui""
 export PYTHONPATH
 
 TRIBLER_SCRIPT=$SRC_DIR/run_tribler.py

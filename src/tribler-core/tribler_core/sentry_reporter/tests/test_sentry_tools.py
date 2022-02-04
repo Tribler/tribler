@@ -1,4 +1,4 @@
-from tribler_common.sentry_reporter.sentry_tools import (
+from tribler_core.sentry_reporter.sentry_tools import (
     delete_item,
     distinct_by,
     extract_dict,
