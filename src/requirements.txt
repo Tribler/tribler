@@ -1,2 +1,1 @@
--r tribler-core/tribler_core/requirements.txt
 -r tribler-gui/tribler_gui/requirements.txt
