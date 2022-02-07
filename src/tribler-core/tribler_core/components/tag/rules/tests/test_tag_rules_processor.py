@@ -23,7 +23,8 @@ def test_constructor(tag_rules_processor: TagRulesProcessor):
     assert tag_rules_processor.interval == TEST_INTERVAL
 
     m: MagicMock = tag_rules_processor.notifier.add_observer
-    m.assert_called_with(notifications.new_torrent_metadata_created, tag_rules_processor.process_torrent_title)
+    m.assert_called_with(notifications.new_torrent_metadata_created, tag_rules_processor.process_torrent_title,
+                         synchronous=True)
 
 
 @patch.object(TagRulesProcessor, 'save_tags')

@@ -36,7 +36,8 @@ class TagRulesProcessor(TaskManager):
         self.mds = mds
         self.batch_size = batch_size
         self.interval = interval
-        self.notifier.add_observer(notifications.new_torrent_metadata_created, self.process_torrent_title)
+        self.notifier.add_observer(notifications.new_torrent_metadata_created, self.process_torrent_title,
+                                   synchronous=True)
 
     @db_session
     def start(self):
