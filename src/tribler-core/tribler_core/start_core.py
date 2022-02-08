@@ -6,6 +6,7 @@ import signal
 import sys
 from typing import List
 
+from tribler_core import notifications
 from tribler_core.check_os import (
     check_and_enable_code_tracing,
     set_process_priority,
@@ -36,7 +37,6 @@ from tribler_core.logger.logger import load_logger_config
 from tribler_core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler_core.upgrade.version_manager import VersionHistory
 from tribler_core.utilities.process_checker import ProcessChecker
-from tribler_core.utilities.simpledefs import NTFY
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -97,13 +97,13 @@ async def core_session(config: TriblerConfig, components: List[Component]):
     async with session.start() as session:
         # If there is a config error, report to the user via GUI notifier
         if config.error:
-            session.notifier.notify(NTFY.REPORT_CONFIG_ERROR.value, config.error)
+            session.notifier[notifications.report_config_error](config.error)
 
         # SHUTDOWN
         await session.shutdown_event.wait()
 
         if not config.gui_test_mode:
-            session.notifier.notify(NTFY.TRIBLER_SHUTDOWN_STATE.value, "Saving configuration...")
+            session.notifier[notifications.tribler_shutdown_state]("Saving configuration...")
             config.write()
 
 

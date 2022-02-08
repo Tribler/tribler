@@ -6,8 +6,8 @@ from aiohttp import ClientSession, ClientTimeout
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.notifier import Notifier
-from tribler_core.utilities.simpledefs import NTFY
+from tribler_core import notifications
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.version import version_id
 
 VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
@@ -62,7 +62,7 @@ class VersionCheckManager(TaskManager):
                 response_dict = await response.json(content_type=None)
                 version = response_dict['name'][1:]
                 if LooseVersion(version) > LooseVersion(version_id):
-                    self.notifier.notify(NTFY.TRIBLER_NEW_VERSION.value, version)
+                    self.notifier[notifications.tribler_new_version](version)
                     return True
                 return False
 

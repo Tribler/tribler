@@ -1,7 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 from aiohttp import web
 
@@ -80,7 +80,7 @@ def enable_ipv8(tribler_config):
 
 @pytest.fixture
 def mock_dlmgr(state_dir):
-    dlmgr = Mock()
+    dlmgr = MagicMock()
     dlmgr.config = LibtorrentSettings()
     dlmgr.shutdown = lambda: succeed(None)
     checkpoints_dir = state_dir / 'dlcheckpoints'
@@ -112,7 +112,7 @@ async def video_seeder(tmp_path_factory, video_tdef):
     dlmgr = DownloadManager(
         config=config,
         state_dir=seeder_state_dir,
-        notifier=Mock(),
+        notifier=MagicMock(),
         peer_mid=b"0000")
     dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     dlmgr.initialize()
@@ -255,7 +255,7 @@ async def test_download(mock_dlmgr, test_tdef):
 
 @pytest.fixture
 def mock_lt_status():
-    lt_status = Mock()
+    lt_status = MagicMock()
     lt_status.upload_rate = 123
     lt_status.download_rate = 43
     lt_status.total_upload = 100
@@ -296,7 +296,7 @@ async def download_manager(tmp_path_factory):
     download_manager = DownloadManager(
         config=config,
         state_dir=tmp_path_factory.mktemp('state_dir'),
-        notifier=Mock(),
+        notifier=MagicMock(),
         peer_mid=b"0000")
     download_manager.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     download_manager.initialize()

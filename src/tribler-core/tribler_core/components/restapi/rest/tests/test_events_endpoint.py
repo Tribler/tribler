@@ -5,18 +5,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from aiohttp import ClientSession
 
-from ipv8.messaging.anonymization.tunnel import Circuit
-
 import pytest
 
+from tribler_core import notifications
 from tribler_core.components.reporter.reported_error import ReportedError
 from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler_core.components.restapi.rest.rest_endpoint import RESTStreamResponse
 from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.notifier import Notifier
-from tribler_core.utilities.simpledefs import NTFY
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.version import version_id
 
 messages_to_wait_for = set()
@@ -28,8 +26,8 @@ def fixture_api_port(free_port):
 
 
 @pytest.fixture(name='notifier')
-def fixture_notifier():
-    return Notifier()
+def fixture_notifier(loop):
+    return Notifier(loop=loop)
 
 
 @pytest.fixture(name='endpoint')
@@ -42,8 +40,8 @@ def fixture_reported_error():
     return ReportedError('type', 'text', {})
 
 
-@pytest.fixture
-async def rest_manager(api_port, tmp_path, endpoint):
+@pytest.fixture(name="rest_manager")
+async def fixture_rest_manager(api_port, tmp_path, endpoint):
     config = TriblerConfig()
     config.api.http_enabled = True
     config.api.http_port = api_port
@@ -71,14 +69,15 @@ async def open_events_socket(rest_manager_, connected_event, events_up):
             while True:
                 msg = await response.content.readline()
                 await response.content.readline()
-                messages_to_wait_for.remove(json.loads(msg[5:])["type"])
+                topic_name = json.loads(msg[5:])["topic"]
+                messages_to_wait_for.remove(topic_name)
                 if not messages_to_wait_for:
                     events_up.set()
                     break
 
 
 @pytest.mark.asyncio
-async def test_events(rest_manager, notifier):
+async def test_events(rest_manager, notifier: Notifier):
     """
     Testing whether various events are coming through the events endpoints
     """
@@ -89,24 +88,22 @@ async def test_events(rest_manager, notifier):
     event_socket_task = create_task(open_events_socket(rest_manager, connected_event, events_up))
     await connected_event.wait()
 
-    testdata = {
-        NTFY.CHANNEL_ENTITY_UPDATED: {"state": "Complete"},
-        NTFY.WATCH_FOLDER_CORRUPT_FILE: ("foo",),
-        NTFY.TRIBLER_NEW_VERSION: ("123",),
-        NTFY.CHANNEL_DISCOVERED: {"result": "bla"},
-        NTFY.TORRENT_FINISHED: (b'a' * 10, None, False),
-        NTFY.LOW_SPACE: ("",),
-        NTFY.TUNNEL_REMOVE: (Circuit(1234, None), 'test'),
-        NTFY.REMOTE_QUERY_RESULTS: {"query": "test"},
+    notifier[notifications.channel_entity_updated]({"state": "Complete"})
+    notifier[notifications.watch_folder_corrupt_file]("some_file_name")
+    notifier[notifications.tribler_new_version]("1.2.3")
+    notifier[notifications.channel_discovered]({"result": "bla"})
+    notifier[notifications.torrent_finished]('a' * 10, "torrent_name", False)
+    notifier[notifications.low_space]({})
+    notifier[notifications.tunnel_removed](circuit_id=1234, bytes_up=0, bytes_down=0, uptime=1000,
+                                           additional_info='test')
+    notifier[notifications.remote_query_results]({"query": "test"})
+    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception(ReportedError('', '', {}))
+
+    messages_to_wait_for = {
+        'channel_entity_updated', 'watch_folder_corrupt_file', 'tribler_new_version', 'channel_discovered',
+        'torrent_finished', 'low_space', 'tunnel_removed', 'remote_query_results', 'tribler_exception'
     }
-    messages_to_wait_for = {k.value for k in testdata}
-    messages_to_wait_for.add(NTFY.TRIBLER_EXCEPTION.value)
-    for subject, data in testdata.items():
-        if data:
-            notifier.notify(subject.value, *data)
-        else:
-            notifier.notify(subject.value)
-    rest_manager.root_endpoint.endpoints['/events'].on_tribler_exception(ReportedError('', '', {}, False))
+
     await events_up.wait()
 
     event_socket_task.cancel()

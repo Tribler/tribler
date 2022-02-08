@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 from aiohttp.web_app import Application
 
@@ -15,7 +15,7 @@ from tribler_core.components.restapi.rest.rest_manager import error_middleware
 
 @pytest.fixture
 def mock_tunnel_community():
-    return Mock()
+    return MagicMock()
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def endpoint(tmp_path, mock_tunnel_community, core_resource_monitor):  # pylint:
 
 @pytest.fixture
 async def core_resource_monitor(tmp_path):
-    resource_monitor = CoreResourceMonitor(notifier=Mock(),
+    resource_monitor = CoreResourceMonitor(notifier=MagicMock(),
                                            state_dir=tmp_path,
                                            config=ResourceMonitorSettings(),
                                            log_dir=tmp_path / 'logs')

@@ -1,5 +1,5 @@
 from asyncio import Future, gather, get_event_loop, sleep
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 from ipv8.util import succeed
 
@@ -23,7 +23,7 @@ def create_fake_download_and_state():
     tdef = TorrentDef()
     tdef.get_infohash = lambda: b'aaaa'
     fake_peer = {'extended_version': 'Tribler', 'id': 'a' * 20, 'dtotal': 10 * 1024 * 1024}
-    fake_download = Mock()
+    fake_download = MagicMock()
     fake_download.get_def = lambda: tdef
     fake_download.get_def().get_name_as_unicode = lambda: "test.iso"
     fake_download.get_peerlist = lambda: [fake_peer]
@@ -31,11 +31,11 @@ def create_fake_download_and_state():
     fake_download.checkpoint = lambda: succeed(None)
     fake_download.stop = lambda: succeed(None)
     fake_download.shutdown = lambda: succeed(None)
-    dl_state = Mock()
+    dl_state = MagicMock()
     dl_state.get_infohash = lambda: b'aaaa'
     dl_state.get_status = lambda: DLSTATUS_SEEDING
     dl_state.get_download = lambda: fake_download
-    fake_config = Mock()
+    fake_config = MagicMock()
     fake_config.get_hops = lambda: 0
     fake_config.get_safe_seeding = lambda: True
     fake_download.config = fake_config
@@ -46,10 +46,10 @@ def create_fake_download_and_state():
 @pytest.fixture
 async def fake_dlmgr(tmp_path_factory):
     config = LibtorrentSettings(dht_readiness_timeout=0)
-    dlmgr = DownloadManager(config=config, state_dir=tmp_path_factory.mktemp('state_dir'), notifier=Mock(),
+    dlmgr = DownloadManager(config=config, state_dir=tmp_path_factory.mktemp('state_dir'), notifier=MagicMock(),
                             peer_mid=b"0000")
     dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
-    dlmgr.get_session = lambda *_, **__: Mock()
+    dlmgr.get_session = lambda *_, **__: MagicMock()
     yield dlmgr
     await dlmgr.shutdown(timeout=0)
 
@@ -62,14 +62,14 @@ async def test_get_metainfo_valid_metadata(fake_dlmgr):
     infohash = b"a" * 20
     metainfo = {b'info': {b'pieces': [b'a']}, b'leechers': 0, b'nodes': [], b'seeders': 0}
 
-    download_impl = Mock()
+    download_impl = MagicMock()
     download_impl.tdef.get_metainfo = lambda: None
     download_impl.future_metainfo = succeed(metainfo)
 
     fake_dlmgr.initialize()
-    fake_dlmgr.start_download = Mock(return_value=download_impl)
+    fake_dlmgr.start_download = MagicMock(return_value=download_impl)
     fake_dlmgr.download_defaults.number_hops = 1
-    fake_dlmgr.remove_download = Mock(return_value=succeed(None))
+    fake_dlmgr.remove_download = MagicMock(return_value=succeed(None))
 
     assert await fake_dlmgr.get_metainfo(infohash) == metainfo
     fake_dlmgr.start_download.assert_called_once()
@@ -84,15 +84,15 @@ async def test_get_metainfo_add_fail(fake_dlmgr):
     infohash = b"a" * 20
     metainfo = {'pieces': ['a']}
 
-    download_impl = Mock()
+    download_impl = MagicMock()
     download_impl.future_metainfo = succeed(metainfo)
     download_impl.tdef.get_metainfo = lambda: None
 
     fake_dlmgr.initialize()
-    fake_dlmgr.start_download = Mock()
+    fake_dlmgr.start_download = MagicMock()
     fake_dlmgr.start_download.side_effect = TypeError
     fake_dlmgr.download_defaults.number_hops = 1
-    fake_dlmgr.remove = Mock(return_value=succeed(None))
+    fake_dlmgr.remove = MagicMock(return_value=succeed(None))
 
     assert await fake_dlmgr.get_metainfo(infohash) is None
     fake_dlmgr.start_download.assert_called_once()
@@ -107,15 +107,15 @@ async def test_get_metainfo_duplicate_request(fake_dlmgr):
     infohash = b"a" * 20
     metainfo = {'pieces': ['a']}
 
-    download_impl = Mock()
+    download_impl = MagicMock()
     download_impl.tdef.get_metainfo = lambda: None
     download_impl.future_metainfo = Future()
     get_event_loop().call_later(0.1, download_impl.future_metainfo.set_result, metainfo)
 
     fake_dlmgr.initialize()
-    fake_dlmgr.start_download = Mock(return_value=download_impl)
+    fake_dlmgr.start_download = MagicMock(return_value=download_impl)
     fake_dlmgr.download_defaults.number_hops = 1
-    fake_dlmgr.remove_download = Mock(return_value=succeed(None))
+    fake_dlmgr.remove_download = MagicMock(return_value=succeed(None))
 
     results = await gather(fake_dlmgr.get_metainfo(infohash), fake_dlmgr.get_metainfo(infohash))
     assert results == [metainfo, metainfo]
@@ -142,7 +142,7 @@ async def test_get_metainfo_with_already_added_torrent(fake_dlmgr):
     sample_torrent = TESTS_DATA_DIR / "bak_single.torrent"
     torrent_def = TorrentDef.load(sample_torrent)
 
-    download_impl = Mock()
+    download_impl = MagicMock()
     download_impl.future_metainfo = succeed(bencode(torrent_def.get_metainfo()))
     download_impl.checkpoint = lambda: succeed(None)
     download_impl.stop = lambda: succeed(None)
@@ -161,17 +161,17 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
     """
     infohash = b"a" * 20
 
-    metainfo_session = Mock()
+    metainfo_session = MagicMock()
     metainfo_session.get_torrents = lambda: []
 
-    metainfo_dl = Mock()
-    metainfo_dl.get_def = lambda: Mock(get_infohash=lambda: infohash)
+    metainfo_dl = MagicMock()
+    metainfo_dl.get_def = lambda: MagicMock(get_infohash=lambda: infohash)
 
     fake_dlmgr.initialize()
     fake_dlmgr.get_session = lambda *_: metainfo_session
     fake_dlmgr.downloads[infohash] = metainfo_dl
     fake_dlmgr.metainfo_requests[infohash] = [metainfo_dl, 1]
-    fake_dlmgr.remove_download = Mock(return_value=succeed(None))
+    fake_dlmgr.remove_download = MagicMock(return_value=succeed(None))
 
     tdef = TorrentDefNoMetainfo(infohash, 'name', f'magnet:?xt=urn:btih:{hexlify(infohash)}&')
     download = fake_dlmgr.start_download(tdef=tdef, checkpoint_disabled=True)
@@ -188,18 +188,18 @@ async def test_start_download(fake_dlmgr):
     """
     infohash = b'a' * 20
 
-    mock_handle = Mock()
+    mock_handle = MagicMock()
     mock_handle.info_hash = lambda: hexlify(infohash)
     mock_handle.is_valid = lambda: True
 
-    mock_error = Mock()
+    mock_error = MagicMock()
     mock_error.value = lambda: None
 
     mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle,
                                                            error=mock_error,
                                                            category=lambda _: None))()
 
-    mock_ltsession = Mock()
+    mock_ltsession = MagicMock()
     mock_ltsession.get_torrents = lambda: []
     mock_ltsession.async_add_torrent = lambda _: fake_dlmgr.register_task('post_alert',
                                                                           fake_dlmgr.process_alert,
@@ -216,7 +216,7 @@ async def test_start_download(fake_dlmgr):
     # Test waiting on DHT getting enough nodes and adding the torrent after timing out
     fake_dlmgr.dht_readiness_timeout = 0.5
     flag = []
-    check_was_run = Mock()
+    check_was_run = MagicMock()
 
     async def mock_check():
         while not flag:
@@ -225,10 +225,10 @@ async def test_start_download(fake_dlmgr):
     fake_dlmgr._check_dht_ready = mock_check
     fake_dlmgr.initialize()
 
-    mock_download = Mock()
+    mock_download = MagicMock()
     mock_download.get_def().get_infohash = lambda: b"1"*20
     mock_download.future_added = succeed(True)
-    mock_ltsession.async_add_torrent = Mock()
+    mock_ltsession.async_add_torrent = MagicMock()
     await fake_dlmgr.start_handle(mock_download, {})
     check_was_run.assert_called()
     fake_dlmgr.downloads.clear()
@@ -248,11 +248,11 @@ async def test_start_download_existing_handle(fake_dlmgr):
     """
     infohash = b'a' * 20
 
-    mock_handle = Mock()
+    mock_handle = MagicMock()
     mock_handle.info_hash = lambda: hexlify(infohash)
     mock_handle.is_valid = lambda: True
 
-    mock_ltsession = Mock()
+    mock_ltsession = MagicMock()
     mock_ltsession.get_torrents = lambda: [mock_handle]
 
     fake_dlmgr.get_session = lambda *_: mock_ltsession
@@ -271,10 +271,10 @@ async def test_start_download_existing_download(fake_dlmgr):
     """
     infohash = b'a' * 20
 
-    mock_download = Mock()
-    mock_download.get_def = lambda: Mock(get_trackers_as_single_tuple=lambda: ())
+    mock_download = MagicMock()
+    mock_download.get_def = lambda: MagicMock(get_trackers_as_single_tuple=lambda: ())
 
-    mock_ltsession = Mock()
+    mock_ltsession = MagicMock()
 
     fake_dlmgr.downloads[infohash] = mock_download
     fake_dlmgr.get_session = lambda *_: mock_ltsession
@@ -298,7 +298,7 @@ def test_remove_unregistered_torrent(fake_dlmgr):
     Tests a successful removal status of torrents which aren't known
     """
     fake_dlmgr.initialize()
-    mock_handle = Mock()
+    mock_handle = MagicMock()
     mock_handle.is_valid = lambda: False
     alert = type('torrent_removed_alert', (object, ), dict(handle=mock_handle, info_hash='0'*20))
     fake_dlmgr.process_alert(alert())
@@ -326,7 +326,7 @@ def test_set_proxy_settings(fake_dlmgr):
         assert settings['proxy_peer_connections']
         assert settings['proxy_hostnames']
 
-    mock_lt_session = Mock()
+    mock_lt_session = MagicMock()
     mock_lt_session.get_settings = lambda: {}
     mock_lt_session.set_settings = on_set_settings
     mock_lt_session.set_proxy = on_proxy_set  # Libtorrent < 1.1.0 uses set_proxy to set proxy settings
@@ -337,8 +337,8 @@ def test_payout_on_disconnect(fake_dlmgr):
     """
     Test whether a payout is initialized when a peer disconnects
     """
-    disconnect_alert = type('peer_disconnected', (object,), dict(pid=Mock(to_bytes=lambda: b'a' * 20)))()
-    fake_dlmgr.payout_manager = Mock()
+    disconnect_alert = type('peer_disconnected', (object,), dict(pid=MagicMock(to_bytes=lambda: b'a' * 20)))()
+    fake_dlmgr.payout_manager = MagicMock()
     fake_dlmgr.initialize()
     fake_dlmgr.get_session(0).pop_alerts = lambda: [disconnect_alert]
     fake_dlmgr._task_process_alerts()
@@ -350,7 +350,7 @@ async def test_post_session_stats(fake_dlmgr):
     """
     Test whether post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
     """
-    mock_lt_session = Mock()
+    mock_lt_session = MagicMock()
     fake_dlmgr.ltsessions[0] = mock_lt_session
 
     # Check for status with session stats alert
@@ -386,7 +386,7 @@ def test_load_empty_checkpoint(fake_dlmgr, tmpdir):
     Test whether download resumes with faulty pstate file.
     """
     fake_dlmgr.get_downloads_pstate_dir = lambda: tmpdir
-    fake_dlmgr.start_download = Mock()
+    fake_dlmgr.start_download = MagicMock()
 
     # Empty pstate file
     pstate_filename = fake_dlmgr.get_downloads_pstate_dir() / 'abcd.state'
@@ -448,7 +448,7 @@ def test_get_downloads_by_name(fake_dlmgr):
 
 @pytest.mark.asyncio
 async def test_check_for_dht_ready(fake_dlmgr):
-    fake_dlmgr.get_session = Mock()
+    fake_dlmgr.get_session = MagicMock()
     fake_dlmgr.get_session().status().dht_nodes = 1000
     # If the session has enough peers, it should finish instantly
     await fake_dlmgr._check_dht_ready()

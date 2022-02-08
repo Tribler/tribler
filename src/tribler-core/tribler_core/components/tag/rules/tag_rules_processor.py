@@ -5,12 +5,12 @@ from ipv8.taskmanager import TaskManager
 
 from pony.orm import db_session
 
-import tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata as torrent_metadata
-import tribler_core.components.metadata_store.db.store as MDS
+from tribler_core import notifications
 from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.tag.db.tag_db import TagDatabase
 from tribler_core.components.tag.rules.tag_rules import extract_only_valid_tags
-from tribler_core.notifier import Notifier
+from tribler_core.utilities.notifier import Notifier
 
 DEFAULT_INTERVAL = 10
 DEFAULT_BATCH_SIZE = 1000
@@ -22,7 +22,7 @@ class TagRulesProcessor(TaskManager):
     # this value must be incremented in the case of new rules set has been applied
     version: int = 1
 
-    def __init__(self, notifier: Notifier, db: TagDatabase, mds: MDS.MetadataStore,
+    def __init__(self, notifier: Notifier, db: TagDatabase, mds: MetadataStore,
                  batch_size: int = DEFAULT_BATCH_SIZE, interval: float = DEFAULT_INTERVAL):
         """
         Default values for batch_size and interval are chosen so that tag processing is not too heavy
@@ -36,8 +36,9 @@ class TagRulesProcessor(TaskManager):
         self.mds = mds
         self.batch_size = batch_size
         self.interval = interval
-        self.notifier.add_observer(torrent_metadata.NEW_TORRENT_METADATA_CREATED,
-                                   callback=self.process_torrent_title)
+        self.notifier.add_observer(notifications.new_torrent_metadata_created, self.process_torrent_title,
+                                   synchronous=True)
+
     @db_session
     def start(self):
         self.logger.info('Start')

@@ -5,8 +5,9 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
+from tribler_core import notifications
 from tribler_core.components.reporter.reported_error import ReportedError
-from tribler_core.utilities.simpledefs import NTFY
+from tribler_core.utilities.notifier import Notifier
 
 from tribler_gui import gui_sentry_reporter
 from tribler_gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
@@ -48,31 +49,57 @@ class EventRequestManager(QNetworkAccessManager):
         self._logger = logging.getLogger(self.__class__.__name__)
         # This flag is used to prevent race condition when starting GUI tests
         self.tribler_started_flag = False
-        self.reactions_dict = {
-            NTFY.CHANNEL_ENTITY_UPDATED.value: self.node_info_updated.emit,
-            NTFY.TRIBLER_NEW_VERSION.value: lambda data: self.new_version_available.emit(data["version"]),
-            NTFY.CHANNEL_DISCOVERED.value: self.discovered_channel.emit,
-            NTFY.TORRENT_FINISHED.value: self.torrent_finished.emit,
-            NTFY.LOW_SPACE.value: self.low_storage_signal.emit,
-            NTFY.REMOTE_QUERY_RESULTS.value: self.received_remote_query_results.emit,
-            NTFY.TRIBLER_SHUTDOWN_STATE.value: self.tribler_shutdown_signal.emit,
-            NTFY.EVENTS_START.value: self.events_start_received,
-            NTFY.REPORT_CONFIG_ERROR.value: self.config_error_signal.emit,
-            NTFY.TRIBLER_EXCEPTION.value: lambda data: self.error_handler.core_error(ReportedError(**data)),
-        }
 
         self.connect_timer.setSingleShot(True)
         connect(self.connect_timer.timeout, self.connect)
 
-    def events_start_received(self, event_dict):
-        if event_dict["version"]:
+        self.notifier = notifier = Notifier()
+        notifier.add_observer(notifications.events_start, self.on_events_start)
+        notifier.add_observer(notifications.tribler_exception, self.on_tribler_exception)
+        notifier.add_observer(notifications.channel_entity_updated, self.on_channel_entity_updated)
+        notifier.add_observer(notifications.tribler_new_version, self.on_tribler_new_version)
+        notifier.add_observer(notifications.channel_discovered, self.on_channel_discovered)
+        notifier.add_observer(notifications.torrent_finished, self.on_torrent_finished)
+        notifier.add_observer(notifications.low_space, self.on_low_space)
+        notifier.add_observer(notifications.remote_query_results, self.on_remote_query_results)
+        notifier.add_observer(notifications.tribler_shutdown_state, self.on_tribler_shutdown_state)
+        notifier.add_observer(notifications.report_config_error, self.on_report_config_error)
+
+    def on_events_start(self, public_key: str, version: str):
+        if version:
             self.tribler_started_flag = True
-            self.tribler_started.emit(event_dict["version"])
+            self.tribler_started.emit(version)
             # if public key format will be changed, don't forget to change it
             # at the core side as well
-            public_key = event_dict["public_key"]
             if public_key:
                 gui_sentry_reporter.set_user(public_key.encode('utf-8'))
+
+    def on_tribler_exception(self, error: dict):
+        self.error_handler.core_error(ReportedError(**error))
+
+    def on_channel_entity_updated(self, channel_update_dict: dict):
+        self.node_info_updated.emit(channel_update_dict)
+
+    def on_tribler_new_version(self, version: str):
+        self.new_version_available.emit(version)
+
+    def on_channel_discovered(self, data: dict):
+        self.discovered_channel.emit(data)
+
+    def on_torrent_finished(self, infohash: str, name: str, hidden: bool):
+        self.torrent_finished.emit(dict(infohash=infohash, name=name, hidden=hidden))
+
+    def on_low_space(self, disk_usage_data: dict):
+        self.low_storage_signal.emit(disk_usage_data)
+
+    def on_remote_query_results(self, data: dict):
+        self.received_remote_query_results.emit(data)
+
+    def on_tribler_shutdown_state(self,state: str):
+        self.tribler_shutdown_signal.emit(state)
+
+    def on_report_config_error(self, error):
+        self.config_error_signal.emit(error)
 
     def on_error(self, error, reschedule_on_err):
         if error == QNetworkReply.ConnectionRefusedError:
@@ -109,13 +136,11 @@ class EventRequestManager(QNetworkAccessManager):
                 if len(received_events) > 100:  # Only buffer the last 100 events
                     received_events.pop()
 
-                event_type, event = json_dict.get("type"), json_dict.get("event")
-                reaction = self.reactions_dict.get(event_type)
-                if reaction:
-                    if event:
-                        reaction(event)
-                    else:
-                        reaction()
+                topic_name = json_dict.get("topic", "noname")
+                args = json_dict.get("args", [])
+                kwargs = json_dict.get("kwargs", {})
+                self.notifier.notify_by_topic_name(topic_name, *args, **kwargs)
+
             self.current_event_string = ""
 
     def on_finished(self):

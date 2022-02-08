@@ -2,7 +2,7 @@ import asyncio
 from asyncio import Future
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 from ipv8.util import succeed
 
@@ -42,8 +42,8 @@ async def gigachannel_manager(metadata_store):
     chanman = GigaChannelManager(
         state_dir=metadata_store.channels_dir.parent,
         metadata_store=metadata_store,
-        download_manager=Mock(),
-        notifier=Mock(),
+        download_manager=MagicMock(),
+        notifier=MagicMock()
     )
     yield chanman
     await chanman.shutdown()
@@ -55,7 +55,7 @@ async def test_regen_personal_channel_no_torrent(personal_channel, gigachannel_m
     Test regenerating a non-existing personal channel torrent at startup
     """
     gigachannel_manager.download_manager.get_download = lambda _: None
-    gigachannel_manager.regenerate_channel_torrent = Mock()
+    gigachannel_manager.regenerate_channel_torrent = MagicMock()
     await gigachannel_manager.check_and_regen_personal_channels()
     gigachannel_manager.regenerate_channel_torrent.assert_called_once()
 
@@ -86,8 +86,8 @@ async def test_regenerate_channel_torrent(personal_channel, metadata_store, giga
     # Test trying to regenerate a non-existing channel
     assert await gigachannel_manager.regenerate_channel_torrent(chan_pk, chan_id + 1) is None
 
-    # Mock existing downloads removal-related functions
-    gigachannel_manager.download_manager.get_downloads_by_name = lambda *_: [Mock()]
+    # MagicMock existing downloads removal-related functions
+    gigachannel_manager.download_manager.get_downloads_by_name = lambda *_: [MagicMock()]
     downloads_to_remove = []
 
     async def mock_remove_download(download_obj, **_):
@@ -101,8 +101,8 @@ async def test_regenerate_channel_torrent(personal_channel, metadata_store, giga
     assert len(downloads_to_remove) == 1
 
     # Test regenerating a non-empty channel
-    gigachannel_manager.updated_my_channel = Mock()
-    metadata_store.ChannelMetadata.consolidate_channel_torrent = lambda *_: Mock()
+    gigachannel_manager.updated_my_channel = MagicMock()
+    metadata_store.ChannelMetadata.consolidate_channel_torrent = lambda *_: MagicMock()
     with patch("tribler_core.components.libtorrent.torrentdef.TorrentDef.load_from_dict"):
         await gigachannel_manager.regenerate_channel_torrent(chan_pk, chan_id)
         gigachannel_manager.updated_my_channel.assert_called_once()
@@ -110,7 +110,7 @@ async def test_regenerate_channel_torrent(personal_channel, metadata_store, giga
 
 def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
     tdef = TorrentDef.load_from_dict(update_metainfo)
-    gigachannel_manager.download_manager.start_download = Mock()
+    gigachannel_manager.download_manager.start_download = MagicMock()
     gigachannel_manager.download_manager.download_exists = lambda *_: False
     gigachannel_manager.updated_my_channel(tdef)
     gigachannel_manager.download_manager.start_download.assert_called_once()
@@ -120,7 +120,7 @@ def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
 async def test_check_and_regen_personal_channel_torrent(personal_channel, gigachannel_manager):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
-        chan_download = Mock()
+        chan_download = MagicMock()
 
         async def mock_wait(*_):
             pass
@@ -135,7 +135,7 @@ async def test_check_and_regen_personal_channel_torrent(personal_channel, gigach
         chan_download.wait_for_status = mock_wait_2
         # Test timeout waiting for seeding state and then regen
 
-        f = Mock()
+        f = MagicMock()
 
         async def mock_regen(*_):
             f()
@@ -212,7 +212,7 @@ async def test_check_channels_updates(personal_channel, gigachannel_manager, met
         gigachannel_manager.download_manager = MockObject()
         gigachannel_manager.download_manager.download_exists = lambda _: True
 
-        mock_download = Mock()
+        mock_download = MagicMock()
         mock_download.get_state.get_status = DLSTATUS_SEEDING
 
         gigachannel_manager.download_manager.get_download = lambda _: mock_download

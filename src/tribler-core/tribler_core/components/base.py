@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Type, TypeVar, Union
 
 from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.notifier import Notifier
 from tribler_core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler_core.utilities.install_dir import get_lib_path
 from tribler_core.utilities.network_utils import default_network_utils
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 

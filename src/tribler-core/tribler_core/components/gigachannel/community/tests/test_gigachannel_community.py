@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-from unittest import mock
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -20,7 +19,7 @@ from tribler_core.components.gigachannel.community.settings import ChantSettings
 from tribler_core.components.metadata_store.db.store import MetadataStore
 from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler_core.components.metadata_store.utils import RequestTimeoutException
-from tribler_core.notifier import Notifier
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.utilities import random_infohash
 
@@ -55,7 +54,7 @@ class TestGigaChannelUnits(TestBase):
         kwargs['metadata_store'] = metadata_store
         kwargs['settings'] = ChantSettings()
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
-        with mock.patch('tribler_core.components.gigachannel.community.gigachannel_community.DiscoveryBooster'):
+        with patch('tribler_core.components.gigachannel.community.gigachannel_community.DiscoveryBooster'):
             node = super().create_node(*args, **kwargs)
         self.count += 1
         return node
@@ -117,26 +116,23 @@ class TestGigaChannelUnits(TestBase):
             self.nodes[1].overlay.mds.TorrentMetadata(title=U_TORRENT, infohash=random_infohash())
             self.nodes[1].overlay.mds.TorrentMetadata(title="debian torrent", infohash=random_infohash())
 
-        notification_calls = []
-
-        def mock_notify(_, args):
-            notification_calls.append(args)
-
-        self.nodes[2].overlay.notifier = Notifier()
-        self.nodes[2].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[2].overlay, args)
+        notifier = Notifier(loop=self.loop)
+        notifier.notify = Mock()
+        self.nodes[2].overlay.notifier = notifier
 
         self.nodes[2].overlay.send_search_request(**{"txt_filter": "ubuntu*"})
 
         await self.deliver_messages(timeout=0.5)
+
+        # Check that the notifier callback was called on both entries
+        titles = sorted(call.args[1]["results"][0]["name"] for call in notifier.notify.call_args_list)
+        assert titles == [U_CHANNEL, U_TORRENT]
 
         with db_session:
             assert self.nodes[2].overlay.mds.ChannelNode.select().count() == 2
             assert (
                 self.nodes[2].overlay.mds.ChannelNode.select(lambda g: g.title in (U_CHANNEL, U_TORRENT)).count() == 2
             )
-
-        # Check that the notifier callback was called on both entries
-        assert [U_CHANNEL, U_TORRENT] == sorted([c["results"][0]["name"] for c in notification_calls])
 
     def test_query_on_introduction(self):
         """
@@ -198,17 +194,17 @@ class TestGigaChannelUnits(TestBase):
                 channel_uns = self.nodes[0].overlay.mds.ChannelMetadata.create_channel("channel unsub", "")
                 channel_uns.subscribed = False
 
-        def mock_notify(overlay, args):
-            overlay.notified_results = True
-            self.assertTrue("results" in args)
-
-        self.nodes[1].overlay.notifier = Notifier()
-        self.nodes[1].overlay.notifier.notify = lambda sub, args: mock_notify(self.nodes[1].overlay, args)
+        notifier = Notifier(loop=self.loop)
+        notifier.notify = Mock()
+        self.nodes[1].overlay.notifier = notifier
 
         peer = self.nodes[0].my_peer
         await self.introduce_nodes()
-
         await self.deliver_messages(timeout=0.5)
+
+        # Check that the notifier callback is called on new channel entries
+        notifier.notify.assert_called()
+        assert "results" in notifier.notify.call_args.args[1]
 
         with db_session:
             received_channels = self.nodes[1].overlay.mds.ChannelMetadata.select(lambda g: g.title == "channel sub")
@@ -224,9 +220,6 @@ class TestGigaChannelUnits(TestBase):
             )
             for chan in self.nodes[1].overlay.mds.ChannelMetadata.select():
                 self.assertTrue(chan.votes > 0.0)
-
-        # Check that the notifier callback is called on new channel entries
-        self.assertTrue(self.nodes[1].overlay.notified_results)
 
     def test_channels_peers_mapping_drop_excess_peers(self):
         """

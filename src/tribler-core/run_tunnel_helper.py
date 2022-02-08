@@ -11,8 +11,10 @@ import time
 from asyncio import ensure_future, get_event_loop
 from ipaddress import AddressValueError, IPv4Address
 
+from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager
 
+from tribler_core import notifications
 from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler_core.components.base import Session
 from tribler_core.components.ipv8.ipv8_component import Ipv8Component
@@ -24,7 +26,6 @@ from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler_core.config.tribler_config import TriblerConfig
 from tribler_core.utilities.osutils import get_root_state_directory
 from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.simpledefs import NTFY
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +131,7 @@ class TunnelHelperService(TaskManager):
                     new_strategies.append((strategy, target_peers))
             ipv8.strategies = new_strategies
 
-    def circuit_removed(self, circuit, additional_info):
+    def circuit_removed(self, circuit: Circuit, additional_info: str):
         ipv8 = Ipv8Component.instance().ipv8
         ipv8.network.remove_by_address(circuit.peer.address)
         if self.log_circuits:
@@ -146,7 +147,7 @@ class TunnelHelperService(TaskManager):
         session.set_as_default()
 
         self.log_circuits = options.log_circuits
-        session.notifier.add_observer(NTFY.TUNNEL_REMOVE.value, self.circuit_removed)
+        session.notifier.add_observer(notifications.circuit_removed, self.circuit_removed)
 
         await session.start_components()
 

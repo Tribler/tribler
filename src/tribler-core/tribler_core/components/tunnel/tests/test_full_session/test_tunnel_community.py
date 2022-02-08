@@ -7,7 +7,7 @@ from itertools import permutations
 from traceback import print_exception
 from typing import List
 
-from asynctest import Mock
+from asynctest import MagicMock
 
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
@@ -126,9 +126,9 @@ async def create_tunnel_community(temp_path_factory, comm_config: TunnelCommunit
 
         dlmgr = DownloadManager(state_dir=temp_path_factory.mktemp('state_dir'),
                                 config=dlmgr_settings,
-                                peer_mid=Mock(),
+                                peer_mid=MagicMock(),
                                 socks_listen_ports=socks_ports,
-                                notifier=Mock())
+                                notifier=MagicMock())
         dlmgr.metadata_tmpdir = temp_path_factory.mktemp('metadata_tmpdir')
 
     comm_config = comm_config or TunnelCommunitySettings()

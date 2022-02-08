@@ -419,7 +419,7 @@ class TriblerWindow(QMainWindow):
                 logging.debug("Tray icon already removed, no further deletion necessary.")
             self.tray_icon = None
 
-    def on_low_storage(self, _):
+    def on_low_storage(self, disk_usage_data):
         """
         Dealing with low storage space available. First stop the downloads and the core manager and ask user to user to
         make free space.

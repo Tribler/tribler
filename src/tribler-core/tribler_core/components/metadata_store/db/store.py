@@ -11,6 +11,7 @@ from lz4.frame import LZ4FrameDecompressor
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
 
+from tribler_core import notifications
 from tribler_core.components.metadata_store.db.orm_bindings import (
     binary_node,
     channel_description,
@@ -46,9 +47,9 @@ from tribler_core.components.metadata_store.db.serialization import (
 )
 from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
 from tribler_core.exceptions import InvalidSignatureException
+from tribler_core.utilities.notifier import Notifier
 from tribler_core.utilities.path_util import Path
 from tribler_core.utilities.pony_utils import get_or_create
-from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.utilities.unicode import hexlify
 from tribler_core.utilities.utilities import MEMORY_DB
 
@@ -140,7 +141,7 @@ class MetadataStore:
             channels_dir,
             my_key,
             disable_sync=False,
-            notifier=None,
+            notifier: Notifier = None,
             check_tables=True,
             db_version: int = CURRENT_DB_VERSION,
             tag_processor_version: int = 0
@@ -423,7 +424,7 @@ class MetadataStore:
                     if self.notifier:
                         channel_update_dict = channel.to_simple_dict()
                         channel_update_dict["progress"] = float(processed_blobs_size) / total_blobs_size
-                        self.notifier.notify(NTFY.CHANNEL_ENTITY_UPDATED, channel_update_dict)
+                        self.notifier[notifications.channel_entity_updated](channel_update_dict)
             except InvalidSignatureException:
                 self._logger.error("Not processing metadata located at %s: invalid signature", full_filename)
 

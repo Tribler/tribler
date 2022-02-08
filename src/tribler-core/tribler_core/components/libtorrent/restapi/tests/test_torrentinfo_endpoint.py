@@ -1,7 +1,7 @@
 import json
 import shutil
 from binascii import unhexlify
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 from aiohttp.web_app import Application
@@ -10,6 +10,7 @@ from ipv8.util import succeed
 
 import pytest
 
+from tribler_core import notifications
 from tribler_core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler_core.components.libtorrent.settings import LibtorrentSettings
 from tribler_core.components.libtorrent.torrentdef import TorrentDef
@@ -18,7 +19,6 @@ from tribler_core.components.restapi.rest.base_api_test import do_request
 from tribler_core.components.restapi.rest.rest_manager import error_middleware
 from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from tribler_core.utilities.rest_utils import path_to_uri
-from tribler_core.utilities.simpledefs import NTFY
 from tribler_core.utilities.unicode import hexlify
 
 SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
@@ -29,7 +29,7 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 @pytest.fixture
 def download_manager(state_dir):
-    dlmgr = Mock()
+    dlmgr = MagicMock()
     dlmgr.config = LibtorrentSettings()
     dlmgr.shutdown = lambda: succeed(None)
     checkpoints_dir = state_dir / 'dlcheckpoints'
@@ -41,7 +41,7 @@ def download_manager(state_dir):
     dlmgr.metainfo_requests = {}
     dlmgr.get_channel_downloads = lambda: []
     dlmgr.shutdown = lambda: succeed(None)
-    dlmgr.notifier = Mock()
+    dlmgr.notifier = MagicMock()
     return dlmgr
 
 
@@ -129,7 +129,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     # Ensure that correct torrent metadata was sent through notifier (to MetadataStore)
-    endpoint.download_manager.notifier.notify.assert_called_with(NTFY.TORRENT_METADATA_ADDED.value, metainfo_dict)
+    endpoint.download_manager.notifier[notifications.torrent_metadata_added].assert_called_with(metainfo_dict)
 
     endpoint.download_manager.get_metainfo = get_metainfo
     verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
@@ -142,7 +142,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
-    mock_download = Mock()
+    mock_download = MagicMock()
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn=test torrent')
     endpoint.download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
@@ -157,7 +157,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     # Check that we return "downloads_exists" if there is a metainfo download for the infohash,
     # but there is also a regular download for the same infohash
     endpoint.download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
-    endpoint.download_manager.metainfo_requests = {UBUNTU_1504_INFOHASH: [Mock()]}
+    endpoint.download_manager.metainfo_requests = {UBUNTU_1504_INFOHASH: [MagicMock()]}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 
