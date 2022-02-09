@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -24,6 +25,13 @@ from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler_core.utilities.network_utils import default_network_utils
 from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
 from tribler_core.utilities.unicode import hexlify
+
+
+# Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
+# some coroutine properly, we can see a traceback with the name of the test which created the coroutine.
+# Note that the error can happen in an unrelated test where the unhandled task from the previous test
+# was garbage collected. Without the origin tracking, it may be hard to see the test that created the task.
+sys.set_coroutine_origin_tracking_depth(10)
 
 
 @pytest.fixture(name="tribler_root_dir")
