@@ -11,15 +11,14 @@ async def test_masterkey_component(tribler_config):
         assert comp.primary_key
 
 
-async def test_get_private_key_filename(tribler_config):
+def test_get_private_key_filename(tribler_config):
     private_key_file_name = KeyComponent.get_private_key_filename(tribler_config)
     tribler_config.general.testnet = True
     testnet_private_key_file_name = KeyComponent.get_private_key_filename(tribler_config)
     assert private_key_file_name != testnet_private_key_file_name
 
 
-@pytest.mark.asyncio
-async def test_create(tmp_path):
+def test_create(tmp_path):
     private_key_path = tmp_path / 'private'
     public_key_path = tmp_path / 'public'
 
@@ -32,8 +31,7 @@ async def test_create(tmp_path):
     assert public_key_path.exists()
 
 
-@pytest.mark.asyncio
-async def test_create_no_public_key(tmp_path):
+def test_create_no_public_key(tmp_path):
     private_key_path = tmp_path / 'private'
 
     assert not private_key_path.exists()
@@ -43,8 +41,7 @@ async def test_create_no_public_key(tmp_path):
     assert private_key_path.exists()
 
 
-@pytest.mark.asyncio
-async def test_load(tmp_path):
+def test_load(tmp_path):
     private_key_path = tmp_path / 'private'
     public_key_path = tmp_path / 'public'
 

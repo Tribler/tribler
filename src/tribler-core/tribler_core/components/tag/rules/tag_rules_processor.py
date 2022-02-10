@@ -52,6 +52,9 @@ class TagRulesProcessor(TaskManager):
                                interval=self.interval,
                                task=self.process_batch)
 
+    async def shutdown(self):
+        await self.shutdown_task_manager()
+
     @db_session
     def process_batch(self) -> int:
         def query(_start, _end):

@@ -12,9 +12,11 @@ TEST_INTERVAL = 0.1
 
 # pylint: disable=redefined-outer-name, protected-access
 @pytest.fixture
-def tag_rules_processor():
-    return TagRulesProcessor(notifier=MagicMock(), db=MagicMock(), mds=MagicMock(), batch_size=TEST_BATCH_SIZE,
-                             interval=TEST_INTERVAL)
+async def tag_rules_processor():
+    processor = TagRulesProcessor(notifier=MagicMock(), db=MagicMock(), mds=MagicMock(), batch_size=TEST_BATCH_SIZE,
+                                  interval=TEST_INTERVAL)
+    yield processor
+    await processor.shutdown()
 
 
 def test_constructor(tag_rules_processor: TagRulesProcessor):
