@@ -31,6 +31,10 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
     if sys.platform == "darwin":
         logger.info('Enabling a workaround for macOS Big Sur')
         os.environ["QT_MAC_WANTS_LAYER"] = "1"
+    # Workaround for Ubuntu 21.04+, see https://github.com/Tribler/tribler/issues/6701
+    elif sys.platform == "linux":
+        logger.info('Enabling a workaround for Ubuntu 21.04+ wayland environment')
+        os.environ["GDK_BACKEND"] = "x11"
 
     # Set up logging
     load_logger_config('tribler-gui', root_state_dir)
