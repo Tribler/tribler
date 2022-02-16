@@ -6,19 +6,23 @@ FROM triblercore/libtorrent:1.2.10-x
 RUN apt update && apt upgrade -y
 RUN apt install -y libsodium23 python3-pip git
 
+RUN useradd -ms /bin/bash user
+USER user
+WORKDIR /home/user
+
 # Then, install pip dependencies so that it can be cached and does not
 # need to be built every time the source code changes.
 # This reduces the docker build time.
-RUN mkdir /requirements
-COPY ./src/pyipv8/requirements.txt /requirements/pyipv8-requirements.txt
-RUN pip3 install -r /requirements/pyipv8-requirements.txt
+RUN mkdir requirements
+COPY ./src/pyipv8/requirements.txt requirements/pyipv8-requirements.txt
+RUN pip3 install -r requirements/pyipv8-requirements.txt
 
-COPY ./src/tribler-core/tribler_core/requirements.txt /requirements/core-requirements.txt
-RUN pip3 install -r /requirements/core-requirements.txt
+COPY ./src/tribler-core/tribler_core/requirements.txt requirements/core-requirements.txt
+RUN pip3 install -r requirements/core-requirements.txt
 
 # Copy the source code and set the working directory
-COPY ./ /tribler
-WORKDIR /tribler
+COPY ./ tribler
+WORKDIR tribler
 
 # Set the REST API port and expose it
 ENV CORE_API_PORT=52194

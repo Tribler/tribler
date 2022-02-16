@@ -6,6 +6,8 @@ services:
     container_name: triblercore
     network_mode: "host"
     build: .
+    volumes:
+      - ~/.Tribler:/home/user/.Tribler
     environment:
       CORE_API_PORT: 52194
 
