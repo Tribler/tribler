@@ -277,8 +277,7 @@ class Download(TaskManager):
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir and b'save_path' in resume_data:
             save_path = Path(resume_data[b'save_path'].decode('utf8'))
-            if save_path.exists():
-                resume_data[b'save_path'] = str(save_path.normalize_to(self.state_dir))
+            resume_data[b'save_path'] = str(save_path.normalize_to(self.state_dir))
 
         metainfo = {
             'infohash': self.tdef.get_infohash(),
