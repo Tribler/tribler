@@ -13,9 +13,7 @@ jobs:
     steps:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
-      with:
-        submodules: recursive
-    - name: docker login
+    - name: Docker login
       env:
         DOCKER_USER: ${{secrets.DOCKER_USER}}
         DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
