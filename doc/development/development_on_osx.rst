@@ -83,7 +83,7 @@ The best solution to this problem is to link or copy ``libsodium.dylib`` into th
 
 .. code-block:: bash
 
-    git clone --recursive  https://github.com/Tribler/tribler.git
+    git clone  https://github.com/Tribler/tribler.git
     cd tribler
     cp /usr/local/lib/libsodium.dylib ./ || cp /opt/local/lib/libsodium.dylib ./
 
