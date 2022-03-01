@@ -13,7 +13,7 @@ Required packages
 
 Building Tribler on macOS
 -------------------------
-Start by checking out the directory you want to clone (using ``git clone --recursive``). Open a terminal and ``cd`` to this new cloned directory (referenced to as ``tribler_source`` in this guide).
+Start by checking out the directory you want to clone (using ``git clone``). Open a terminal and ``cd`` to this new cloned directory (referenced to as ``tribler_source`` in this guide).
 
 Next, we should inject version information into the files about the latest release. This is done by the ``update_version_from_git.py`` script found in ``Tribler/Main/Build``. Invoke it from the ``tribler_source`` directory by executing:
 

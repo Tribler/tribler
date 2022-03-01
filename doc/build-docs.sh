@@ -9,10 +9,6 @@ then
   echo "Please run this script from project root as:\n./doc/build-docs.sh"
 fi
 
-# Update git modules if necessary
-git submodule sync
-git submodule update --init --force --recursive src/pyipv8
-
 # all commands are executed from the doc directory
 cd doc
 

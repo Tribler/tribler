@@ -21,7 +21,7 @@ To build a Tribler installer, you'll need some additional scripts and packages. 
 Building & Packaging Tribler
 ----------------------------
 
-Start by cloning Tribler if you haven't done already (using the ``git clone --recursive`` command).
+Start by cloning Tribler if you haven't done already (using the ``git clone`` command).
 Next, create a ``build`` folder directly on your ``C:\`` drive.
 Inside the ``build`` folder, put the following items:
 

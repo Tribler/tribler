@@ -11,7 +11,7 @@ The seedbox consists of two parts:
 
 1. Clone the tribler repo include sub modules:
     ```shell
-    git clone --recursive https://github.com/Tribler/tribler.git
+    git clone https://github.com/Tribler/tribler.git
     ```
 1. Install requirements:
     ```bash

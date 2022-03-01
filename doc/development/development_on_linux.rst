@@ -13,7 +13,7 @@ Clone the Tribler repo:
 
 .. code-block:: bash
 
-    git clone https://github.com/tribler/tribler --recursive
+    git clone https://github.com/tribler/tribler
 
 
 Install python packages:
@@ -51,7 +51,7 @@ Clone the Tribler repo:
 
 .. code-block:: bash
 
-    git clone https://github.com/tribler/tribler --recursive
+    git clone https://github.com/tribler/tribler
 
 
 Install python packages:
