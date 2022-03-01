@@ -14,9 +14,6 @@ WORKDIR /home/user
 # need to be built every time the source code changes.
 # This reduces the docker build time.
 RUN mkdir requirements
-COPY ./src/pyipv8/requirements.txt requirements/pyipv8-requirements.txt
-RUN pip3 install -r requirements/pyipv8-requirements.txt
-
 COPY ./src/tribler-core/tribler_core/requirements.txt requirements/core-requirements.txt
 RUN pip3 install -r requirements/core-requirements.txt
 
