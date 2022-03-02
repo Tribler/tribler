@@ -1,10 +1,16 @@
 # Run Tribler
 
-Full instruction: [install requirements](https://github.com/Tribler/tribler#setting-up-your-development-environment)
+[Full instruction](https://tribler.readthedocs.io/en/latest/development/development.html)
+
+## Install requirements
 
 ```
 python3 -m pip install -r requirements.txt
+```
 
+## Execute Tribler
+
+```
 tribler.sh
 ```
 
