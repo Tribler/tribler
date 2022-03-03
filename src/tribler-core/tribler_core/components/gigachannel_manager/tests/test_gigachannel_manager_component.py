@@ -13,6 +13,7 @@ from tribler_core.components.tag.tag_component import TagComponent
 
 
 @pytest.mark.asyncio
+@pytest.mark.no_parallel
 async def test_gigachannel_manager_component(tribler_config):
     components = [Ipv8Component(), TagComponent(), SocksServersComponent(), KeyComponent(), MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]

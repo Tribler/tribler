@@ -9,6 +9,7 @@ from tribler_core.components.payout.payout_component import PayoutComponent
 
 
 @pytest.mark.asyncio
+@pytest.mark.no_parallel
 async def test_payout_component(tribler_config):
     components = [BandwidthAccountingComponent(), KeyComponent(), Ipv8Component(), PayoutComponent()]
     async with Session(tribler_config, components).start():

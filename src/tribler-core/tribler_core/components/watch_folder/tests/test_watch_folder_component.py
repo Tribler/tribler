@@ -6,11 +6,10 @@ from tribler_core.components.libtorrent.libtorrent_component import LibtorrentCo
 from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler_core.components.watch_folder.watch_folder_component import WatchFolderComponent
 
-pytestmark = pytest.mark.asyncio
-
 
 # pylint: disable=protected-access
-
+@pytest.mark.asyncio
+@pytest.mark.no_parallel
 async def test_watch_folder_component(tribler_config):
     components = [KeyComponent(), SocksServersComponent(), LibtorrentComponent(), WatchFolderComponent()]
     async with Session(tribler_config, components).start():
