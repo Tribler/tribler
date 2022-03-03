@@ -2,10 +2,15 @@
 Tribler
 *******
 
-|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed| |downloads_7_0|
-|downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4| |downloads_7_5|
-|downloads_7_6| |downloads_7_7| |downloads_7_8| |downloads_7_9| |downloads_7_10|
-|downloads_7_11| |doi| |openhub| |discord|
+|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed|
+
+|python_3_8| |python_3_9|
+
+|downloads_7_0| |downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4|
+|downloads_7_5| |downloads_7_6| |downloads_7_7| |downloads_7_8| |downloads_7_9|
+|downloads_7_10| |downloads_7_11|
+
+|doi| |openhub| |discord|
 
 *Towards making Bittorrent anonymous and impossible to shut down.*
 
@@ -191,3 +196,9 @@ We like to hear your feedback and suggestions. To reach out to us, you can join 
 .. |discord| image:: https://img.shields.io/badge/discord-join%20chat-blue.svg
     :target: https://discord.gg/UpPUcVGESe
     :alt: Join Discord chat
+
+.. |python_3_8| image:: https://img.shields.io/badge/python-3.8-blue.svg
+    :target: https://www.python.org/
+
+.. |python_3_9| image:: https://img.shields.io/badge/python-3.9-blue.svg
+    :target: https://www.python.org/
