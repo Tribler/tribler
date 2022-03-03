@@ -120,7 +120,8 @@ class AddToChannelDialog(DialogContainer):
         channel_id = self.get_selected_channel_id()
         if channel_id is None:
             return
-        self.confirm_clicked_callback(channel_id)
+        if self.confirm_clicked_callback:
+            self.confirm_clicked_callback(channel_id)
         self.close_dialog()
 
     def on_channel_contents(self, response, channel_id):
