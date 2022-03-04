@@ -10,6 +10,7 @@ from tribler_core.components.tag.tag_component import TagComponent
 
 
 @pytest.mark.asyncio
+@pytest.mark.no_parallel
 async def test_tag_component(tribler_config):
     components = [MetadataStoreComponent(), KeyComponent(), Ipv8Component(), TagComponent()]
     async with Session(tribler_config, components).start():

@@ -9,12 +9,10 @@ from tribler_core.components.socks_servers.socks_servers_component import SocksS
 from tribler_core.components.tag.tag_component import TagComponent
 from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 
-pytestmark = pytest.mark.asyncio
-
 
 # pylint: disable=protected-access
-
-
+@pytest.mark.asyncio
+@pytest.mark.no_parallel
 async def test_torrent_checker_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), KeyComponent(),
                   Ipv8Component(), TagComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]
