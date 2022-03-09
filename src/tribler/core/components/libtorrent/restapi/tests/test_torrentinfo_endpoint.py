@@ -98,7 +98,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
         with open(tmp_path / "ubuntu.torrent", 'rb') as f:
             return f.read()
 
-    with patch("tribler_core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
+    with patch("tribler.core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
         verify_valid_dict(await do_request(rest_api, url, params={'uri': path}, expected_code=200))
 
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'

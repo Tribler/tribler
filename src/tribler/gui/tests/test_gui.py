@@ -29,7 +29,7 @@ from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tagbutton import TagButton
 from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
-RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
+RUN_TRIBLER_PY = Path(tribler.gui.__file__).parent.parent.parent / "run_tribler.py"
 TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
 
@@ -130,7 +130,7 @@ def screenshot(widget, name=None):
     if name is not None:
         img_name = f"screenshot_{name}.jpg"
 
-    screenshots_dir = os.path.join(os.path.dirname(tribler_gui.__file__), 'screenshots')
+    screenshots_dir = os.path.join(os.path.dirname(tribler.gui.__file__), 'screenshots')
     if not os.path.exists(screenshots_dir):
         os.mkdir(screenshots_dir)
 

@@ -160,7 +160,7 @@ def test_parse_query():
 
 @patch_import(modules=['win32api'], MessageBox=MagicMock())
 @patch('platform.system', new=MagicMock(return_value='Windows'))
-@patch('tribler_core.utilities.utilities.print', new=MagicMock)
+@patch('tribler.core.utilities.utilities.print', new=MagicMock)
 def test_show_system_popup_win():
     # in this test "double mocking techniques" has been applied
     # there are different mocks that will work depending on the target machine's OS
@@ -181,7 +181,7 @@ def test_show_system_popup_win():
 
 @patch_import(modules=['subprocess'], Popen=MagicMock())
 @patch('platform.system', new=MagicMock(return_value='Linux'))
-@patch('tribler_core.utilities.utilities.print', new=MagicMock)
+@patch('tribler.core.utilities.utilities.print', new=MagicMock)
 def test_show_system_popup_linux():
     import subprocess
 
@@ -192,7 +192,7 @@ def test_show_system_popup_linux():
 
 @patch_import(modules=['subprocess'], Popen=MagicMock())
 @patch('platform.system', new=MagicMock(return_value='Darwin'))
-@patch('tribler_core.utilities.print', new=MagicMock)
+@patch('tribler.core.utilities.print', new=MagicMock)
 def test_show_system_popup_darwin():
     import subprocess
 
@@ -202,7 +202,7 @@ def test_show_system_popup_darwin():
 
 
 @patch('platform.system', new=MagicMock(return_value='Unknown'))
-@patch('tribler_core.utilities.utilities.print')
+@patch('tribler.core.utilities.utilities.print')
 def test_show_system_popup_unknown(mocked_print):
     show_system_popup('title', 'text')
     mocked_print.assert_called_with('cannot create native pop-up for system Unknown')
@@ -210,7 +210,7 @@ def test_show_system_popup_unknown(mocked_print):
 
 @patch_import(modules=['subprocess'], Popen=MagicMock(side_effect=ValueError))
 @patch('platform.system', new=MagicMock(return_value='Darwin'))
-@patch('tribler_core.utilities.utilities.print')
+@patch('tribler.core.utilities.utilities.print')
 def test_show_system_popup_exception(mocked_print):
     with patch('subprocess.Popen', new=MagicMock(side_effect=ValueError)):
         show_system_popup('title', 'text')

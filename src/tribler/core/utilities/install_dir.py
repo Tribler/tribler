@@ -24,5 +24,5 @@ def get_base_path():
 
 def get_lib_path():
     if is_frozen():
-        return get_base_path() / 'tribler_source' / 'tribler_core'
+        return get_base_path() / 'tribler_source/tribler/core'
     return get_base_path()

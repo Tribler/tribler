@@ -15,15 +15,13 @@ root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 
 tribler_components = [
-    os.path.join(src_dir, "pyipv8"),
-    os.path.join(src_dir, "tribler-core"),
-    os.path.join(src_dir, "tribler-gui"),
+    os.path.join(src_dir, "tribler"),
 ]
 
 for component in tribler_components:
     sys.path.append(str(component))
 
-from tribler_core.version import version_id
+from tribler.core.version import version_id
 version_str = version_id.split('-')[0]
 
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
@@ -33,16 +31,16 @@ if sys.platform == 'darwin':
     show_console = True
 
 widget_files = []
-for file in os.listdir(os.path.join(src_dir, "tribler-gui", "tribler_gui", "widgets")):
+for file in os.listdir(os.path.join(src_dir, "tribler", "gui", "widgets")):
     if file.endswith(".py"):
         widget_files.append('tribler_gui.widgets.%s' % file[:-3])
 
 data_to_copy = [
-    (os.path.join(src_dir, "tribler-gui", "tribler_gui", "qt_resources"), 'qt_resources'),
-    (os.path.join(src_dir, "tribler-gui", "tribler_gui", "images"), 'images'),
-    (os.path.join(src_dir, "tribler-gui", "tribler_gui", "i18n"), 'i18n'),
-    (os.path.join(src_dir, "tribler-core", "tribler_core"), 'tribler_source/tribler_core'),
-    (os.path.join(src_dir, "tribler-gui", "tribler_gui"), 'tribler_source/tribler_gui'),
+    (os.path.join(src_dir, "tribler", "gui", "qt_resources"), 'qt_resources'),
+    (os.path.join(src_dir, "tribler", "gui", "images"), 'images'),
+    (os.path.join(src_dir, "tribler", "gui", "i18n"), 'i18n'),
+    (os.path.join(src_dir, "tribler", "core"), 'tribler_source/tribler/core'),
+    (os.path.join(src_dir, "tribler", "gui"), 'tribler_source/tribler/gui'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]

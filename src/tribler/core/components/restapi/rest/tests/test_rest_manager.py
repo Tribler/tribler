@@ -85,7 +85,7 @@ async def test_unhandled_exception(rest_manager, api_port):
     Testing whether the API returns a formatted 500 error and
     calls exception handler if an unhandled Exception is raised
     """
-    with patch('tribler_core.components.restapi.rest.rest_manager.default_core_exception_handler') as handler:
+    with patch('tribler.core.components.restapi.rest.rest_manager.default_core_exception_handler') as handler:
         response_dict = await do_real_request(api_port, 'settings', expected_code=500,
                                               post_data={'general': 'invalid schema'},
                                               request_type='POST')

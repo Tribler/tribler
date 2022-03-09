@@ -533,7 +533,7 @@ class TestRemoteQueryCommunity(TestBase):
 
         kwargs_dict = {"txt_filter": "ubuntu*"}
 
-        basic_path = 'tribler_core.components.metadata_store.remote_query_community.remote_query_community'
+        basic_path = 'tribler.core.components.metadata_store.remote_query_community.remote_query_community'
 
         with self.overlay(1).request_cache.passthrough():
             # Stop peer 0 from responding

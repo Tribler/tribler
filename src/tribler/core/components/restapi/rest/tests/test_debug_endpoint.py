@@ -163,7 +163,7 @@ async def test_debug_pane_core_logs_in_root_dir(rest_api, tmp_path, endpoint):
     num_logs = 100
 
     create_dummy_logs(root_state_dir, process=process, num_logs=num_logs)
-    with patch('tribler_core.components.restapi.rest.debug_endpoint.get_root_state_directory',
+    with patch('tribler.core.components.restapi.rest.debug_endpoint.get_root_state_directory',
                new=lambda: root_state_dir):
         json_response = await do_request(rest_api, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
     logs = json_response['content'].strip().split("\n")
@@ -194,7 +194,7 @@ async def test_debug_pane_no_logs(rest_api, endpoint, tmp_path):
     Test whether the API returns the default response when no log files are found.
     """
     module = 'gui'
-    with patch('tribler_core.components.restapi.rest.debug_endpoint.get_root_state_directory',
+    with patch('tribler.core.components.restapi.rest.debug_endpoint.get_root_state_directory',
                new=lambda: tmp_path / 'nondir'):
         json_response = await do_request(rest_api, f'debug/log?process={module}&max_lines=', expected_code=200)
 

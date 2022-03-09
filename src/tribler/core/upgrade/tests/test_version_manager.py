@@ -388,7 +388,7 @@ def test_coverage(tmpdir):
     (root_state_dir / 'triblerd.conf').write_text("abc")
 
     history = VersionHistory(root_state_dir)
-    assert history.code_version.version_str == tribler_core.version.version_id
+    assert history.code_version.version_str == tribler.core.version.version_id
     assert repr(history) == "<VersionHistory[(7, 6), (7, 5)]>"
 
     dirs = history.get_disposable_state_directories()

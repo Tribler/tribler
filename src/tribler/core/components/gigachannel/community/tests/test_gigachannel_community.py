@@ -27,7 +27,7 @@ EMPTY_BLOB = b""
 
 # pylint:disable=protected-access
 
-BASE_PATH = 'tribler_core.components.metadata_store.remote_query_community.remote_query_community'
+BASE_PATH = 'tribler.core.components.metadata_store.remote_query_community.remote_query_community'
 
 
 class TestGigaChannelUnits(TestBase):
@@ -54,7 +54,7 @@ class TestGigaChannelUnits(TestBase):
         kwargs['metadata_store'] = metadata_store
         kwargs['settings'] = ChantSettings()
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
-        with patch('tribler_core.components.gigachannel.community.gigachannel_community.DiscoveryBooster'):
+        with patch('tribler.core.components.gigachannel.community.gigachannel_community.DiscoveryBooster'):
             node = super().create_node(*args, **kwargs)
         self.count += 1
         return node

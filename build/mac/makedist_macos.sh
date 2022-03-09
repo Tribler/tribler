@@ -14,7 +14,7 @@ export RESOURCES=build/mac/resources
 
 # ----- Build
 # ----- Install pip dependencies before the build
-python3 -m pip install --upgrade -r src/requirements.txt
+python3 -m pip install --upgrade -r requirements.txt
 
 PI=pyinstaller
 $PI tribler.spec
