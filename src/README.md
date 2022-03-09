@@ -25,17 +25,11 @@ from` requirements.txt`.
 
 ##
 
-Export to PYTHONPATH the following directories:
+Export to the `PYTHONPATH` the `src` directory:
 
-* tribler-core
-* tribler-gui
-
-Shortcut for macOS:
-```shell script
-export PYTHONPATH=${PYTHONPATH}:`echo {pyipv8,tribler-core,tribler-gui} | tr " " :`
-```
 Execute:
 ```
-python3 -m pytest tribler-core
-python3 -m pytest tribler-gui --guitests
+python3 -m pytest .
+python3 -m pytest . --no_parallel
+python3 -m pytest . --guitests
 ```

@@ -1,2 +1,2 @@
-set PYTHONPATH=%~dp0tribler-core;%~dp0tribler-gui;%~dp0pyipv8;%~dp0anydex
+set PYTHONPATH=%~dp0tribler
 python run_tribler.py
