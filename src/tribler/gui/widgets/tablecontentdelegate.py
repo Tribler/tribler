@@ -11,7 +11,7 @@ from tribler.core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 
-from tribler_gui.defs import (
+from tribler.gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
     COMMIT_STATUS_TODELETE,
@@ -33,9 +33,9 @@ from tribler_gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler_gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr
-from tribler_gui.widgets.tablecontentmodel import Column
-from tribler_gui.widgets.tableiconbuttons import DownloadIconButton
+from tribler.gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr
+from tribler.gui.widgets.tablecontentmodel import Column
+from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
 PROGRESS_BAR_BACKGROUND = QColor("#444444")
 PROGRESS_BAR_FOREGROUND = QColor("#BBBBBB")

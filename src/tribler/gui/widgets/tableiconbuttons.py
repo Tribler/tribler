@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QRect, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon
 
-from tribler_gui.utilities import get_image_path
+from tribler.gui.utilities import get_image_path
 
 
 class IconButton(QObject):

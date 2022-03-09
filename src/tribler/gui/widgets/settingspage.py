@@ -7,7 +7,7 @@ from tribler.core.upgrade.version_manager import remove_state_dirs
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
-from tribler_gui.defs import (
+from tribler.gui.defs import (
     DARWIN,
     DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
@@ -18,10 +18,10 @@ from tribler_gui.defs import (
     PAGE_SETTINGS_GENERAL,
     PAGE_SETTINGS_SEEDING,
 )
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import (
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import (
     AVAILABLE_TRANSLATIONS,
     connect,
     format_size,

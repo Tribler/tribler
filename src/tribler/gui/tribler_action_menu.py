@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMenu
 
-from tribler_gui.defs import CONTEXT_MENU_WIDTH
+from tribler.gui.defs import CONTEXT_MENU_WIDTH
 
 
 class TriblerActionMenu(QMenu):

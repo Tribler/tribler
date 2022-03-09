@@ -18,16 +18,16 @@ from tribler.core.utilities.rest_utils import path_to_uri
 from tribler.core.utilities.unicode import hexlify
 
 import tribler_gui
-from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
-from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler_gui.tests.gui_test_data import negative_token_balance_history
-from tribler_gui.tribler_app import TriblerApplication
-from tribler_gui.tribler_window import TriblerWindow
-from tribler_gui.utilities import connect
-from tribler_gui.widgets.loading_list_item import LoadingListItem
-from tribler_gui.widgets.tablecontentmodel import Column
-from tribler_gui.widgets.tagbutton import TagButton
-from tribler_gui.widgets.torrentfiletreewidget import CHECKBOX_COL
+from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
+from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler.gui.tests.gui_test_data import negative_token_balance_history
+from tribler.gui.tribler_app import TriblerApplication
+from tribler.gui.tribler_window import TriblerWindow
+from tribler.gui.utilities import connect
+from tribler.gui.widgets.loading_list_item import LoadingListItem
+from tribler.gui.widgets.tablecontentmodel import Column
+from tribler.gui.widgets.tagbutton import TagButton
+from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
 RUN_TRIBLER_PY = Path(tribler_gui.__file__).parent.parent.parent / "run_tribler.py"
 TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"

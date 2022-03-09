@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QAbstractButton, QSizePolicy
 
 # Toggle button in pure QT. Copy-pasted from StackOverflow answer https://stackoverflow.com/a/51825815/5553928
 # Courtesy of Stefan Scherfke.
-from tribler_gui.widgets.tablecontentdelegate import TRIBLER_PALETTE
+from tribler.gui.widgets.tablecontentdelegate import TRIBLER_PALETTE
 
 
 class ToggleButton(QAbstractButton):

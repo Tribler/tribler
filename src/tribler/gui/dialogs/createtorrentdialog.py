@@ -4,12 +4,12 @@ from PyQt5 import uic
 from PyQt5.QtCore import QDir, pyqtSignal
 from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
-from tribler_gui.defs import BUTTON_TYPE_NORMAL
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
+from tribler.gui.defs import BUTTON_TYPE_NORMAL
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.dialogs.dialogcontainer import DialogContainer
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):

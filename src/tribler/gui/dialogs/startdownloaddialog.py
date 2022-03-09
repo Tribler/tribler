@@ -10,11 +10,11 @@ from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 
 from tribler.core.utilities.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_uri, uri_to_path
 
-from tribler_gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import (
+from tribler.gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.dialogs.dialogcontainer import DialogContainer
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import (
     connect,
     format_size,
     get_gui_setting,
@@ -23,7 +23,7 @@ from tribler_gui.utilities import (
     is_dir_writable,
     tr,
 )
-from tribler_gui.widgets.torrentfiletreewidget import TORRENT_FILES_TREE_STYLESHEET
+from tribler.gui.widgets.torrentfiletreewidget import TORRENT_FILES_TREE_STYLESHEET
 
 
 class StartDownloadDialog(DialogContainer):

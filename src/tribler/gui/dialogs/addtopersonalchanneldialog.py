@@ -5,10 +5,10 @@ from PyQt5.QtCore import pyqtSignal
 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path
+from tribler.gui.dialogs.dialogcontainer import DialogContainer
+from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, get_ui_file_path
 
 
 class ChannelQTreeWidgetItem(QtWidgets.QTreeWidgetItem):

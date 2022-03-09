@@ -1,8 +1,8 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QSizePolicy
 
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.utilities import connect, get_ui_file_path
+from tribler.gui.dialogs.dialogcontainer import DialogContainer
+from tribler.gui.utilities import connect, get_ui_file_path
 
 
 class TrustExplanationDialog(DialogContainer):

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QMessageBox
 
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
 
-from tribler_gui.utilities import connect, format_size, tr
+from tribler.gui.utilities import connect, format_size, tr
 
 
 class StateDirUpgradeWorker(QObject):

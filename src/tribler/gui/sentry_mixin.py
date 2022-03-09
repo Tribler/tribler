@@ -1,4 +1,4 @@
-from tribler_gui import gui_sentry_reporter
+from tribler.gui import gui_sentry_reporter
 
 
 class AddBreadcrumbOnShowMixin:

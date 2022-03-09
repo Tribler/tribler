@@ -1,8 +1,8 @@
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import QGraphicsScene, QWidget
 
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.utilities import connect, get_image_path
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.utilities import connect, get_image_path
 
 
 def load_gears_animation():

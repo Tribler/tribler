@@ -6,10 +6,10 @@ from PyQt5.QtGui import QIcon, QImage, QPixmap
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QFileDialog, QPushButton
 
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_image_path, get_ui_file_path, tr
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, get_image_path, get_ui_file_path, tr
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('channel_description.ui'))
 

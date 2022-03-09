@@ -3,7 +3,7 @@ from urllib.parse import unquote_plus
 
 import pytest
 
-from tribler_gui.utilities import compose_magnetlink, create_api_key, dict_item_is_any_of, format_api_key, \
+from tribler.gui.utilities import compose_magnetlink, create_api_key, dict_item_is_any_of, format_api_key, \
     quote_plus_unicode, set_api_key, unicode_quoter
 
 

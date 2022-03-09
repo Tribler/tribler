@@ -8,7 +8,7 @@ import numpy as np
 
 import pyqtgraph as pg
 
-from tribler_gui.defs import (
+from tribler.gui.defs import (
     COLOR_DEFAULT,
     COLOR_GREEN,
     COLOR_NEUTRAL,
@@ -19,9 +19,9 @@ from tribler_gui.defs import (
     TB,
     TRUST_GRAPH_PEER_LEGENDS,
 )
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, format_size, html_label, tr
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, format_size, html_label, tr
 
 
 class TrustGraph(pg.GraphItem):

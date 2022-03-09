@@ -17,7 +17,7 @@ from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtWidgets import QApplication
 
 import tribler_gui
-from tribler_gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 logger = logging.getLogger(__name__)
 

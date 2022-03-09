@@ -7,9 +7,9 @@ from PyQt5.QtWidgets import QAbstractItemView, QAbstractScrollArea, QAction, QLi
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_image_path, tr
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, get_image_path, tr
 
 
 def entry_to_tuple(entry):

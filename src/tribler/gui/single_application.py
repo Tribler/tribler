@@ -7,7 +7,7 @@ from PyQt5.QtCore import QTextStream, Qt, pyqtSignal
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
-from tribler_gui.utilities import connect, disconnect
+from tribler.gui.utilities import connect, disconnect
 
 
 class QtSingleApplication(QApplication):

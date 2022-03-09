@@ -5,10 +5,10 @@ from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QApplication
 
-from tribler_gui.event_request_manager import EventRequestManager
-from tribler_gui.exceptions import CoreCrashedError
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect
+from tribler.gui.event_request_manager import EventRequestManager
+from tribler.gui.exceptions import CoreCrashedError
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect
 
 
 class CoreManager(QObject):

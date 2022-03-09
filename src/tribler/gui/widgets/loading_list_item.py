@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui.tribler_window import fc_loading_list_item
+from tribler.gui.tribler_window import fc_loading_list_item
 
 
 class LoadingListItem(QWidget, fc_loading_list_item):

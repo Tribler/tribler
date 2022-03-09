@@ -8,12 +8,12 @@ from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
-from tribler_gui.defs import COMMIT_STATUS_COMMITTED
-from tribler_gui.dialogs.addtagsdialog import AddTagsDialog
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, data_item2uri, get_image_path, index2uri
-from tribler_gui.widgets.tablecontentdelegate import TriblerContentDelegate
-from tribler_gui.widgets.tablecontentmodel import Column, EXPANDING
+from tribler.gui.defs import COMMIT_STATUS_COMMITTED
+from tribler.gui.dialogs.addtagsdialog import AddTagsDialog
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, data_item2uri, get_image_path, index2uri
+from tribler.gui.widgets.tablecontentdelegate import TriblerContentDelegate
+from tribler.gui.widgets.tablecontentmodel import Column, EXPANDING
 
 
 class FloatingAnimationWidget(QLabel):

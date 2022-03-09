@@ -1,8 +1,8 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHeaderView, QTreeWidget, QTreeWidgetItem
 
-from tribler_gui.utilities import connect, format_size, get_image_path
-from tribler_gui.widgets.downloadwidgetitem import create_progress_bar_widget
+from tribler.gui.utilities import connect, format_size, get_image_path
+from tribler.gui.widgets.downloadwidgetitem import create_progress_bar_widget
 
 CHECKBOX_COL = 1
 FILENAME_COL = 0

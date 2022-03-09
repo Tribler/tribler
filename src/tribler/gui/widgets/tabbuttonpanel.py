@@ -1,8 +1,8 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui import gui_sentry_reporter
-from tribler_gui.utilities import connect
+from tribler.gui import gui_sentry_reporter
+from tribler.gui.utilities import connect
 
 
 class TabButtonPanel(QWidget):

@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QProgressBar
 
-from tribler_gui.utilities import connect
+from tribler.gui.utilities import connect
 
 
 class TimeoutProgressBar(QProgressBar):

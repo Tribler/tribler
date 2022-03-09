@@ -19,14 +19,14 @@ import psutil
 
 from tribler.core.utilities.utilities import has_bep33_support
 
-from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.event_request_manager import received_events as tribler_received_events
-from tribler_gui.resource_monitor import GuiResourceMonitor
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
-from tribler_gui.utilities import connect, format_size, get_ui_file_path
-from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
-from tribler_gui.widgets.ipv8health import MonitorWidget
+from tribler.gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.event_request_manager import received_events as tribler_received_events
+from tribler.gui.resource_monitor import GuiResourceMonitor
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
+from tribler.gui.utilities import connect, format_size, get_ui_file_path
+from tribler.gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
+from tribler.gui.widgets.ipv8health import MonitorWidget
 
 COLOR_RGB_BLUE = (0, 153, 255)
 COLOR_WHITE_HEX = "#FFFFFF"

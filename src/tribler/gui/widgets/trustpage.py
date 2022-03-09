@@ -2,12 +2,12 @@ from typing import Dict
 
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui.defs import PB, TB
-from tribler_gui.dialogs.trustexplanationdialog import TrustExplanationDialog
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect
-from tribler_gui.widgets.graphs.dataplot import TimeSeriesDataPlot
+from tribler.gui.defs import PB, TB
+from tribler.gui.dialogs.trustexplanationdialog import TrustExplanationDialog
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect
+from tribler.gui.widgets.graphs.dataplot import TimeSeriesDataPlot
 
 
 class TrustSeriesPlot(TimeSeriesDataPlot):

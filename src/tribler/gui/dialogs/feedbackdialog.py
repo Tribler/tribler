@@ -13,11 +13,11 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 
-from tribler_gui.event_request_manager import received_events
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import performed_requests as tribler_performed_requests
-from tribler_gui.utilities import connect, get_ui_file_path, tr
+from tribler.gui.event_request_manager import received_events
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import performed_requests as tribler_performed_requests
+from tribler.gui.utilities import connect, get_ui_file_path, tr
 
 
 class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):

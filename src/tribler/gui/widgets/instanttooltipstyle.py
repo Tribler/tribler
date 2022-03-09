@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QProxyStyle, QStyle
 
-from tribler_gui.widgets.instanttooltipbutton import InstantTooltipButton
+from tribler.gui.widgets.instanttooltipbutton import InstantTooltipButton
 
 
 class InstantTooltipStyle(QProxyStyle):

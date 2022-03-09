@@ -13,11 +13,11 @@ from PyQt5.QtWidgets import QAction
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 
-from tribler_gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, dict_item_is_any_of, get_health, tr
-from tribler_gui.widgets.tablecontentmodel import Column
+from tribler.gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, dict_item_is_any_of, get_health, tr
+from tribler.gui.widgets.tablecontentmodel import Column
 
 HEALTHCHECK_DELAY_MS = 500
 

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tribler_gui.core_manager import CoreCrashedError, CoreManager
+from tribler.gui.core_manager import CoreCrashedError, CoreManager
 
 pytestmark = pytest.mark.asyncio
 

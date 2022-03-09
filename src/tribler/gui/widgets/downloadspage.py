@@ -6,7 +6,7 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
-from tribler_gui.defs import (
+from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
     DLSTATUS_CIRCUITS,
@@ -24,13 +24,13 @@ from tribler_gui.defs import (
     DOWNLOADS_FILTER_DOWNLOADING,
     DOWNLOADS_FILTER_INACTIVE,
 )
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, connect, format_speed, tr
-from tribler_gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDownloadWidgetItem
-from tribler_gui.widgets.loading_list_item import LoadingListItem
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
+from tribler.gui.utilities import compose_magnetlink, connect, format_speed, tr
+from tribler.gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDownloadWidgetItem
+from tribler.gui.widgets.loading_list_item import LoadingListItem
 
 button_name2filter = {
     "downloads_all_button": DOWNLOADS_FILTER_ALL,

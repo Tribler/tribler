@@ -11,19 +11,19 @@ from tribler.core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 
-from tribler_gui.defs import (
+from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
     CATEGORY_SELECTOR_FOR_SEARCH_ITEMS,
     ContentCategories,
 )
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
-from tribler_gui.widgets.tablecontentmodel import (
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
+from tribler.gui.widgets.tablecontentmodel import (
     ChannelContentModel,
     ChannelPreviewModel,
     DiscoveredChannelsModel,
@@ -31,7 +31,7 @@ from tribler_gui.widgets.tablecontentmodel import (
     SearchResultsModel,
     SimplifiedPersonalChannelsModel,
 )
-from tribler_gui.widgets.triblertablecontrollers import ContentTableViewController
+from tribler.gui.widgets.triblertablecontrollers import ContentTableViewController
 
 CHANNEL_COMMIT_DELAY = 30000  # milliseconds
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))

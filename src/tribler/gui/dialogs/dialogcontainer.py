@@ -4,8 +4,8 @@ from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.utilities import connect
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.utilities import connect
 
 
 class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):

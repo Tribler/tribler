@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QWidget
 
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.utilities import connect
-from tribler_gui.widgets.loadingpage import LOADING_ANIMATION
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.utilities import connect
+from tribler.gui.widgets.loadingpage import LOADING_ANIMATION
 
 
 class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):

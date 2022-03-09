@@ -4,9 +4,9 @@ import traceback
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 
-from tribler_gui import gui_sentry_reporter
-from tribler_gui.dialogs.feedbackdialog import FeedbackDialog
-from tribler_gui.exceptions import CoreError
+from tribler.gui import gui_sentry_reporter
+from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
+from tribler.gui.exceptions import CoreError
 
 # fmt: off
 

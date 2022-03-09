@@ -9,7 +9,7 @@ from pathlib import Path
 
 from PyQt5.QtNetwork import QTcpServer
 
-from tribler_gui.utilities import connect, take_screenshot
+from tribler.gui.utilities import connect, take_screenshot
 
 
 class CodeExecutor:

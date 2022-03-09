@@ -15,7 +15,7 @@ from PyQt5.QtGui import (
 )
 from PyQt5.QtWidgets import QLineEdit, QStyle, QStyleOptionFrame
 
-from tribler_gui.defs import (
+from tribler.gui.defs import (
     EDIT_TAG_BACKGROUND_COLOR,
     EDIT_TAG_BORDER_COLOR,
     EDIT_TAG_TEXT_COLOR,

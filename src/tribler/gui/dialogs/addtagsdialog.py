@@ -6,11 +6,11 @@ from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
-from tribler_gui.defs import TAG_HORIZONTAL_MARGIN
-from tribler_gui.dialogs.dialogcontainer import DialogContainer
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path, tr
-from tribler_gui.widgets.tagbutton import TagButton
+from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
+from tribler.gui.dialogs.dialogcontainer import DialogContainer
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, get_ui_file_path, tr
+from tribler.gui.widgets.tagbutton import TagButton
 
 
 class AddTagsDialog(DialogContainer):

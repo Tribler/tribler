@@ -5,9 +5,9 @@ from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
 from tribler.core.utilities.simpledefs import dlstatus_strings
 
-from tribler_gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
+from tribler.gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 
 INCLUDED_FILES_CHANGE_DELAY = 1000  # milliseconds
 

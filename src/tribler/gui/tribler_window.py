@@ -52,9 +52,9 @@ from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import parse_query
 from tribler.core.version import version_id
 
-from tribler_gui.core_manager import CoreManager
-from tribler_gui.debug_window import DebugWindow
-from tribler_gui.defs import (
+from tribler.gui.core_manager import CoreManager
+from tribler.gui.debug_window import DebugWindow
+from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
     CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
@@ -72,16 +72,16 @@ from tribler_gui.defs import (
     PAGE_TRUST_GRAPH_PAGE,
     SHUTDOWN_WAITING_PERIOD,
 )
-from tribler_gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
-from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler_gui.dialogs.createtorrentdialog import CreateTorrentDialog
-from tribler_gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler_gui.dialogs.startdownloaddialog import StartDownloadDialog
-from tribler_gui.error_handler import ErrorHandler
-from tribler_gui.tribler_action_menu import TriblerActionMenu
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
-from tribler_gui.upgrade_manager import UpgradeManager
-from tribler_gui.utilities import (
+from tribler.gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.dialogs.createtorrentdialog import CreateTorrentDialog
+from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
+from tribler.gui.error_handler import ErrorHandler
+from tribler.gui.tribler_action_menu import TriblerActionMenu
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
+from tribler.gui.upgrade_manager import UpgradeManager
+from tribler.gui.utilities import (
     connect,
     create_api_key,
     disconnect,
@@ -94,10 +94,10 @@ from tribler_gui.utilities import (
     set_api_key,
     tr,
 )
-from tribler_gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
-from tribler_gui.widgets.instanttooltipstyle import InstantTooltipStyle
-from tribler_gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
-from tribler_gui.widgets.triblertablecontrollers import PopularContentTableViewController
+from tribler.gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
+from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
+from tribler.gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
+from tribler.gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 

@@ -6,8 +6,8 @@ from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from tribler.core.utilities.simpledefs import dlstatus_strings
 
-from tribler_gui.defs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_STRINGS
-from tribler_gui.utilities import duration_to_string, format_size, format_speed
+from tribler.gui.defs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_STRINGS
+from tribler.gui.utilities import duration_to_string, format_size, format_speed
 
 
 class LoadingDownloadWidgetItem(QTreeWidgetItem):

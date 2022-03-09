@@ -1,8 +1,8 @@
 import pyqtgraph as pg
 from pyqtgraph import DateAxisItem
 
-from tribler_gui.utilities import format_size
-from tribler_gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
+from tribler.gui.utilities import format_size
+from tribler.gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 
 
 class DataAxisItem(pg.AxisItem):

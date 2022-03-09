@@ -8,10 +8,10 @@ from PyQt5 import uic
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.utilities.utilities import Query, to_fts_query
 
-from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler_gui.tribler_request_manager import TriblerNetworkRequest
-from tribler_gui.utilities import connect, get_ui_file_path, tr
-from tribler_gui.widgets.tablecontentmodel import SearchResultsModel
+from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.utilities import connect, get_ui_file_path, tr
+from tribler.gui.widgets.tablecontentmodel import SearchResultsModel
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('search_results.ui'))
 

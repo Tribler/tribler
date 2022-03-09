@@ -16,10 +16,10 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.utilities.rest_utils import path_to_uri
 
-from tribler_gui import gui_sentry_reporter
-from tribler_gui.tribler_app import TriblerApplication
-from tribler_gui.tribler_window import TriblerWindow
-from tribler_gui.utilities import get_translator
+from tribler.gui import gui_sentry_reporter
+from tribler.gui.tribler_app import TriblerApplication
+from tribler.gui.tribler_window import TriblerWindow
+from tribler.gui.utilities import get_translator
 
 logger = logging.getLogger(__name__)
 

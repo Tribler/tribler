@@ -4,7 +4,7 @@ import pyqtgraph as pg
 from pyqtgraph import DateAxisItem
 from pyqtgraph.graphicsItems.DateAxisItem import YEAR_SPACING
 
-from tribler_gui.defs import BITTORRENT_BIRTHDAY
+from tribler.gui.defs import BITTORRENT_BIRTHDAY
 
 
 class TimeSeriesPlot(pg.PlotWidget):
