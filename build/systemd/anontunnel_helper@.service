@@ -17,7 +17,7 @@ Environment=PYTHONPATH=./src
 
 WorkingDirectory=/opt/tribler
 ExecStartPre=/bin/mkdir -p ${HOME}
-ExecStart=/usr/bin/python3 scripts/tunnel_helper/run_tunnel_helper.py $EXTRA_TUNNEL_ARGS
+ExecStart=/usr/bin/python3 scripts/exit_node/run_exit_node.py.py $EXTRA_TUNNEL_ARGS
 
 [Install]
 WantedBy=multi-user.target

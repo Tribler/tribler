@@ -1,4 +1,4 @@
-# Bandwidth Crawler
+# Exit Node
 
 ## Requirements
 
@@ -8,5 +8,5 @@
 ## Execution
 
 ```shell
-python3 run_tunnel_helper.py
+python3 run_exit_node.py
 ```
