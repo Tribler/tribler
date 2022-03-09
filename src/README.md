@@ -25,11 +25,11 @@ from` requirements.txt`.
 
 ##
 
-Export to the `PYTHONPATH` the `src` directory:
+Export the `src` directory to to the `PYTHONPATH`:
 
 Execute:
 ```
-python3 -m pytest .
-python3 -m pytest . --no_parallel
-python3 -m pytest . --guitests
+python3 -m pytest src
+python3 -m pytest src --no_parallel
+python3 -m pytest src --guitests
 ```

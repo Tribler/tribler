@@ -1,4 +1,4 @@
--r ../../tribler-core/tribler_core/requirements.txt
+-r requirements-core.txt
 
 Pillow==9.0.1
 PyQt5==5.15.1
