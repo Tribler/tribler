@@ -6,12 +6,12 @@ from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.messaging.anonymization.utils import run_speed_test
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.restapi.restapi_component import RESTComponent
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 25))
 EXPERIMENT_NUM_CIRCUITS = int(os.environ.get('EXPERIMENT_NUM_CIRCUITS', 10))

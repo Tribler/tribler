@@ -42,14 +42,14 @@ from pony.orm import Database, Required, db_session
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.discovery import RandomWalk
-from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
-from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity, \
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity, \
     RemoteSelectPayload, \
     SelectRequest, \
     SelectResponsePayload
-from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
+from tribler.core.utilities.unicode import hexlify
 
 # flake8: noqa
 

@@ -12,18 +12,18 @@ from pony.orm import count, db_session
 
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8_service import IPv8
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.popularity.popularity_component import PopularityComponent
-from tribler_core.components.restapi.restapi_component import RESTComponent
-from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.components.gigachannel.community.sync_strategy import RemovePeers
-from tribler_core.components.popularity.community.popularity_community import PopularityCommunity
-from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler.core.components.popularity.popularity_component import PopularityComponent
+from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
+from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
 
 _logger = logging.getLogger(__name__)
 interval_in_sec = None

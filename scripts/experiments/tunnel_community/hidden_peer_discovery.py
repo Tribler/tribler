@@ -6,12 +6,12 @@ from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.restapi.restapi_component import RESTComponent
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.tiny_tribler_service import TinyTriblerService
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
 
 EXPERIMENT_RUN_TIME = int(os.environ.get('EXPERIMENT_RUN_TIME', 3600 * 3))
 

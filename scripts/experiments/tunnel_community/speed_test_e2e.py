@@ -6,9 +6,9 @@ from pathlib import Path
 from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.taskmanager import task
 
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 
-from experiment.tunnel_community.speed_test_exit import EXPERIMENT_NUM_CIRCUITS, EXPERIMENT_NUM_HOPS, \
+from scripts.experiments.tunnel_community.speed_test_exit import EXPERIMENT_NUM_CIRCUITS, EXPERIMENT_NUM_HOPS, \
     Service as SpeedTestExitService
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 10))
