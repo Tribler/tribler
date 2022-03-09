@@ -5,7 +5,7 @@ Author(s): Elric Milon
 """
 import sys
 
-import tribler_core
+import tribler.core
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import is_frozen
 
@@ -16,7 +16,7 @@ def get_base_path():
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = Path(sys._MEIPASS)
     except Exception:
-        base_path = Path(tribler_core.__file__).parent
+        base_path = Path(tribler.core.__file__).parent
 
     fixed_filename = Path.fix_win_long_file(base_path)
     return Path(fixed_filename)

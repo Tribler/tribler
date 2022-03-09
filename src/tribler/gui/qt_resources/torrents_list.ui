@@ -838,39 +838,39 @@ QTableView::item::hover {
   <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.ellipsebutton.h</header>
+   <header>tribler.gui.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>QtBug</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.qtbug.h</header>
+   <header>tribler.gui.widgets.qtbug.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SubscriptionsWidget</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.subscriptionswidget.h</header>
+   <header>tribler.gui.widgets.subscriptionswidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>TriblerContentTableView</class>
    <extends>QTableView</extends>
-   <header>tribler_gui.widgets.lazytableview.h</header>
+   <header>tribler.gui.widgets.lazytableview.h</header>
   </customwidget>
   <customwidget>
    <class>ToggleButton</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.togglebutton.h</header>
+   <header>tribler.gui.widgets.togglebutton.h</header>
   </customwidget>
   <customwidget>
    <class>ChannelDescriptionWidget</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.channeldescriptionwidget.h</header>
+   <header>tribler.gui.widgets.channeldescriptionwidget.h</header>
   </customwidget>
   <customwidget>
    <class>InstantTooltipButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.instanttooltipbutton.h</header>
+   <header>tribler.gui.widgets.instanttooltipbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

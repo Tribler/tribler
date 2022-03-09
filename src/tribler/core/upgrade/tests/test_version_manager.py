@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-import tribler_core.version
+import tribler.core.version
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.version_manager import (
     TriblerVersion,

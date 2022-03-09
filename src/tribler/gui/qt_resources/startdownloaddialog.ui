@@ -560,12 +560,12 @@ background: yellow;
   <customwidget>
    <class>ClickableLabel</class>
    <extends>QLabel</extends>
-   <header>tribler_gui.widgets.clickablewidgets.h</header>
+   <header>tribler.gui.widgets.clickablewidgets.h</header>
   </customwidget>
   <customwidget>
    <class>TorrentFileTreeWidget</class>
    <extends>QTreeWidget</extends>
-   <header>tribler_gui.widgets.torrentfiletreewidget.h</header>
+   <header>tribler.gui.widgets.torrentfiletreewidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

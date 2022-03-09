@@ -28,10 +28,10 @@ def get_dependencies(scope: Scope) -> Iterator[str]:
     def _get_path_to_requirements_txt() -> Optional[Path]:
         requirements_txt = 'requirements.txt'
         if scope == Scope.core:
-            import tribler_core
+            import tribler.core
             return Path(tribler_core.__file__).parent / requirements_txt
         if scope == Scope.gui:
-            import tribler_gui
+            import tribler.gui
             return Path(tribler_gui.__file__).parent / requirements_txt
         raise AttributeError(f'Scope is {scope} but should be in {[s for s in Scope]}')  # pylint: disable=unnecessary-comprehension
 

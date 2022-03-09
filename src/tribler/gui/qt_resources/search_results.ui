@@ -116,17 +116,17 @@
   <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.ellipsebutton.h</header>
+   <header>tribler.gui.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>ChannelContentsWidget</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.channelcontentswidget.h</header>
+   <header>tribler.gui.widgets.channelcontentswidget.h</header>
   </customwidget>
   <customwidget>
    <class>TimeoutProgressBar</class>
    <extends>QProgressBar</extends>
-   <header>tribler_gui.widgets.timeoutprogressbar.h</header>
+   <header>tribler.gui.widgets.timeoutprogressbar.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

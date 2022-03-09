@@ -368,17 +368,17 @@
   <customwidget>
    <class>ClickableLabel</class>
    <extends>QLabel</extends>
-   <header>tribler_gui.widgets.clickablewidgets.h</header>
+   <header>tribler.gui.widgets.clickablewidgets.h</header>
   </customwidget>
   <customwidget>
    <class>UnderlineTabButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.underlinetabbutton.h</header>
+   <header>tribler.gui.widgets.underlinetabbutton.h</header>
   </customwidget>
   <customwidget>
    <class>TabButtonPanel</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.tabbuttonpanel.h</header>
+   <header>tribler.gui.widgets.tabbuttonpanel.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -8,9 +8,9 @@ import logging.config
 import os
 import sys
 
-from tribler_core.components.reporter.exception_handler import default_core_exception_handler
-from tribler_core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler_core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
+from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def init_sentry_reporter():
     test mode
     """
     sentry_reporter = default_core_exception_handler.sentry_reporter
-    from tribler_core.version import sentry_url, version_id
+    from tribler.core.version import sentry_url, version_id
     test_sentry_url = sentry_reporter.get_test_sentry_url()
 
     if not test_sentry_url:
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     logger.info(f'Run Tribler: {parsed_args}')
 
     # Get root state directory (e.g. from environment variable or from system default)
-    from tribler_core.utilities.osutils import get_root_state_directory
+    from tribler.core.utilities.osutils import get_root_state_directory
 
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')
@@ -76,10 +76,10 @@ if __name__ == "__main__":
 
     # Check whether we need to start the core or the user interface
     if parsed_args.core:
-        from tribler_core.start_core import run_core
+        from tribler.core.start_core import run_core
 
         run_core(api_port, api_key, root_state_dir, parsed_args)
     else:  # GUI
-        from tribler_gui.start_gui import run_gui
+        from tribler.gui.start_gui import run_gui
 
         run_gui(api_port, api_key, root_state_dir, parsed_args)

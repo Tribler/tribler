@@ -1,4 +1,4 @@
-import tribler_core.components.metadata_store.metadata_store_component as metadata_store_component
+import tribler.core.components.metadata_store.metadata_store_component as metadata_store_component
 from tribler.core.components.base import Component
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent

@@ -403,7 +403,7 @@ background-color: #303030;
   <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.ellipsebutton.h</header>
+   <header>tribler.gui.widgets.ellipsebutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple
 
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
-import tribler_core.version
+import tribler.core.version
 
 VERSION_HISTORY_FILENAME = "version_history.json"
 
@@ -193,7 +193,7 @@ class VersionHistory:
     # pylint: disable=too-many-branches
     def __init__(self, root_state_dir: Path, code_version_id: Optional[str] = None):
         if code_version_id is None:
-            code_version_id = tribler_core.version.version_id
+            code_version_id = tribler.core.version.version_id
 
         self.root_state_dir = root_state_dir
         self.file_path = root_state_dir / VERSION_HISTORY_FILENAME

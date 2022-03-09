@@ -5612,96 +5612,96 @@ background: none;</string>
   <customwidget>
    <class>TorrentFileTreeWidget</class>
    <extends>QTreeWidget</extends>
-   <header>tribler_gui.widgets.torrentfiletreewidget.h</header>
+   <header>tribler.gui.widgets.torrentfiletreewidget.h</header>
   </customwidget>
   <customwidget>
    <class>EllipseButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.ellipsebutton.h</header>
+   <header>tribler.gui.widgets.ellipsebutton.h</header>
   </customwidget>
   <customwidget>
    <class>UnderlineTabButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.underlinetabbutton.h</header>
+   <header>tribler.gui.widgets.underlinetabbutton.h</header>
   </customwidget>
   <customwidget>
    <class>TabButtonPanel</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.tabbuttonpanel.h</header>
+   <header>tribler.gui.widgets.tabbuttonpanel.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SettingsPage</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.settingspage.h</header>
+   <header>tribler.gui.widgets.settingspage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DownloadsPage</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.downloadspage.h</header>
+   <header>tribler.gui.widgets.downloadspage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DownloadsDetailsTabWidget</class>
    <extends>QTabWidget</extends>
-   <header>tribler_gui.widgets.downloadsdetailstabwidget.h</header>
+   <header>tribler.gui.widgets.downloadsdetailstabwidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>LoadingPage</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.loadingpage.h</header>
+   <header>tribler.gui.widgets.loadingpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DiscoveringPage</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.discoveringpage.h</header>
+   <header>tribler.gui.widgets.discoveringpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>CircleButton</class>
    <extends>QToolButton</extends>
-   <header>tribler_gui.widgets.circlebutton.h</header>
+   <header>tribler.gui.widgets.circlebutton.h</header>
   </customwidget>
   <customwidget>
    <class>DownloadProgressBar</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.downloadprogressbar.h</header>
+   <header>tribler.gui.widgets.downloadprogressbar.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>TrustPage</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.trustpage.h</header>
+   <header>tribler.gui.widgets.trustpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>ChannelContentsWidget</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.channelcontentswidget.h</header>
+   <header>tribler.gui.widgets.channelcontentswidget.h</header>
   </customwidget>
   <customwidget>
    <class>TrustGraphPage</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.trustgraphpage.h</header>
+   <header>tribler.gui.widgets.trustgraphpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>ClickableLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>tribler_gui.widgets.clickable_line_edit.h</header>
+   <header>tribler.gui.widgets.clickable_line_edit.h</header>
   </customwidget>
   <customwidget>
    <class>ChannelsMenuListWidget</class>
    <extends>QListWidget</extends>
-   <header>tribler_gui.widgets.channelsmenulistwidget.h</header>
+   <header>tribler.gui.widgets.channelsmenulistwidget.h</header>
   </customwidget>
   <customwidget>
    <class>SearchResultsWidget</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.searchresultswidget.h</header>
+   <header>tribler.gui.widgets.searchresultswidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

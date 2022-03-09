@@ -17,7 +17,7 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import path_to_uri
 from tribler.core.utilities.unicode import hexlify
 
-import tribler_gui
+import tribler.gui
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.tests.gui_test_data import negative_token_balance_history

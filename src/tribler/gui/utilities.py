@@ -16,7 +16,7 @@ from PyQt5.QtCore import QCoreApplication, QLocale, QPoint, QSettings, QTranslat
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtWidgets import QApplication
 
-import tribler_gui
+import tribler.gui
 from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ def get_base_path():
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.dirname(tribler_gui.__file__)
+        base_path = os.path.dirname(tribler.gui.__file__)
     return base_path
 
 

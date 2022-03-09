@@ -7,7 +7,7 @@
   <customwidget>
    <class>QtBug</class>
    <extends>QWidget</extends>
-   <header>tribler_gui.widgets.qtbug.h</header>
+   <header>tribler.gui.widgets.qtbug.h</header>
    <container>0</container>
   </customwidget>
  </customwidgets>
