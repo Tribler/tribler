@@ -23,8 +23,20 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
         kwargs['description'] = 'Run Tribler BitTorrent client'
         super().__init__(*args, **kwargs)
         self.add_argument('torrent', help='torrent file to download', default='', nargs='?')
-        self.add_argument('--core', action="store_true")
-        self.add_argument('--gui-test-mode', action="store_true")
+        self.add_argument('--core', action="store_true", help="run core process")
+        self.add_argument('--gui-test-mode', action="store_true", help="use fake data to test GUI application")
+
+        self.add_argument('--allow-code-injection', action="store_true",
+                          help="accept remote code to test GUI application")
+
+        self.add_argument('--trace-exception', action="store_true", help="trace exceptions for debugging")
+        self.add_argument('--trace-debug', action="store_true", help="trace function calls for debugging")
+
+        self.add_argument('--testnet', action="store_true", help="run Tribler in a separate test network")
+
+        self.add_argument('--chant-testnet', action="store_true", help="use a separate test database for channels")
+        self.add_argument('--trustchain-testnet', action="store_true", help="use a separate trustchain community")
+        self.add_argument('--tunnel-testnet', action="store_true", help="use a separate tunnel community")
 
 
 def init_sentry_reporter():
