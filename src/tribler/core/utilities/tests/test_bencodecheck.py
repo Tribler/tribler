@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.utilities.bencodecheck import is_bencoded
+from tribler.core.utilities.bencodecheck import is_bencoded
 
 
 def test_bencode_checker():

@@ -5,12 +5,12 @@ from ipv8.taskmanager import TaskManager
 
 from pony.orm import db_session
 
-from tribler_core import notifications
-from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.components.tag.rules.tag_rules import extract_only_valid_tags
-from tribler_core.utilities.notifier import Notifier
+from tribler.core import notifications
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.rules.tag_rules import extract_only_valid_tags
+from tribler.core.utilities.notifier import Notifier
 
 DEFAULT_INTERVAL = 10
 DEFAULT_BATCH_SIZE = 1000

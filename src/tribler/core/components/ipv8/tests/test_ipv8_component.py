@@ -1,8 +1,8 @@
 import pytest
 
-from tribler_core.components.base import Session
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
+from tribler.core.components.base import Session
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
 
 
 # pylint: disable=protected-access

@@ -10,11 +10,11 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
-from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
-from tribler_core.conftest import TEST_PERSONAL_KEY
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
+from tribler.core.components.tag.restapi.tags_endpoint import TagsEndpoint
+from tribler.core.conftest import TEST_PERSONAL_KEY
+from tribler.core.utilities.unicode import hexlify
 
 # pylint: disable=redefined-outer-name
 

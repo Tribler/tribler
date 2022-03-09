@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.tag.community.tag_requests import TagRequests
+from tribler.core.components.tag.community.tag_requests import TagRequests
 
 
 # pylint: disable=protected-access, redefined-outer-name

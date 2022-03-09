@@ -4,9 +4,9 @@ from configobj import ParseError
 
 import pytest
 
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.path_util import Path
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.utilities.path_util import Path
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 

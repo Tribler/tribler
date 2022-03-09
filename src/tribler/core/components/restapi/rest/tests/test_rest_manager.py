@@ -3,13 +3,13 @@ from unittest.mock import patch
 
 import pytest
 
-from tribler_core.components.restapi.rest.base_api_test import do_real_request
-from tribler_core.components.restapi.rest.rest_endpoint import HTTP_UNAUTHORIZED
-from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.tests.tools.common import TESTS_DIR
+from tribler.core.components.restapi.rest.base_api_test import do_real_request
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_UNAUTHORIZED
+from tribler.core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpoint
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.tests.tools.common import TESTS_DIR
 
 
 @pytest.fixture()

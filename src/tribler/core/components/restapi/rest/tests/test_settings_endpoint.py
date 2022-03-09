@@ -3,12 +3,12 @@ from aiohttp.web_app import Application
 
 import pytest
 
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpoint
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 
 @pytest.fixture

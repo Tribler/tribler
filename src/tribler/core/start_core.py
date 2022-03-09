@@ -6,37 +6,37 @@ import signal
 import sys
 from typing import List
 
-from tribler_core import notifications
-from tribler_core.check_os import (
+from tribler.core import notifications
+from tribler.core.check_os import (
     check_and_enable_code_tracing,
     set_process_priority,
     should_kill_other_tribler_instances,
 )
-from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler_core.components.base import Component, Session
-from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
-from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.payout.payout_component import PayoutComponent
-from tribler_core.components.popularity.popularity_component import PopularityComponent
-from tribler_core.components.reporter.exception_handler import default_core_exception_handler
-from tribler_core.components.reporter.reporter_component import ReporterComponent
-from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
-from tribler_core.components.restapi.restapi_component import RESTComponent
-from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.tag.tag_component import TagComponent
-from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.components.version_check.version_check_component import VersionCheckComponent
-from tribler_core.components.watch_folder.watch_folder_component import WatchFolderComponent
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.logger.logger import load_logger_config
-from tribler_core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
-from tribler_core.upgrade.version_manager import VersionHistory
-from tribler_core.utilities.process_checker import ProcessChecker
+from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
+from tribler.core.components.base import Component, Session
+from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
+from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
+from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler.core.components.payout.payout_component import PayoutComponent
+from tribler.core.components.popularity.popularity_component import PopularityComponent
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
+from tribler.core.components.reporter.reporter_component import ReporterComponent
+from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
+from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler.core.components.tag.tag_component import TagComponent
+from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
+from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.components.version_check.version_check_component import VersionCheckComponent
+from tribler.core.components.watch_folder.watch_folder_component import WatchFolderComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.logger.logger import load_logger_config
+from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler.core.upgrade.version_manager import VersionHistory
+from tribler.core.utilities.process_checker import ProcessChecker
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'

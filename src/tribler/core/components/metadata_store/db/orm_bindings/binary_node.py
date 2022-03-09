@@ -1,6 +1,6 @@
 from pony.orm import Optional
 
-from tribler_core.components.metadata_store.db.serialization import BINARY_NODE, BinaryNodePayload
+from tribler.core.components.metadata_store.db.serialization import BINARY_NODE, BinaryNodePayload
 
 
 def define_binding(db, db_version: int):

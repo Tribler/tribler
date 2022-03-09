@@ -1,7 +1,7 @@
 import re
 from typing import AnyStr, Iterable, Optional, Pattern, Sequence
 
-from tribler_core.components.tag.community.tag_validator import is_valid_tag
+from tribler.core.components.tag.community.tag_validator import is_valid_tag
 
 # Each regex expression should contain just a single capturing group:
 square_brackets_re = re.compile(r'\[([^\[\]]+)]')

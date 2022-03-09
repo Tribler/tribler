@@ -5,9 +5,9 @@ import time
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-from tribler_core import notifications
-from tribler_core.components.reporter.reported_error import ReportedError
-from tribler_core.utilities.notifier import Notifier
+from tribler.core import notifications
+from tribler.core.components.reporter.reported_error import ReportedError
+from tribler.core.utilities.notifier import Notifier
 
 from tribler_gui import gui_sentry_reporter
 from tribler_gui.exceptions import CoreConnectTimeoutError, CoreConnectionError

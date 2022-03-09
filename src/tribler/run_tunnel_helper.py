@@ -14,18 +14,18 @@ from ipaddress import AddressValueError, IPv4Address
 from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager
 
-from tribler_core import notifications
-from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler_core.components.base import Session
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
-from tribler_core.components.restapi.restapi_component import RESTComponent
-from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.osutils import get_root_state_directory
-from tribler_core.utilities.path_util import Path
+from tribler.core import notifications
+from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
+from tribler.core.components.base import Session
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
+from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.path_util import Path
 
 logger = logging.getLogger(__name__)
 

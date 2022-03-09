@@ -1,13 +1,13 @@
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 
-from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler_core.components.base import Component
-from tribler_core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
-from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.tunnel.community.discovery import GoldenRatioStrategy
-from tribler_core.components.tunnel.community.tunnel_community import (
+from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
+from tribler.core.components.base import Component
+from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
+from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
+from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
+from tribler.core.components.tunnel.community.tunnel_community import (
     TriblerTunnelCommunity,
     TriblerTunnelTestnetCommunity,
 )

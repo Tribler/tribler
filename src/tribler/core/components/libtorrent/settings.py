@@ -3,9 +3,9 @@ from typing import Optional
 
 from pydantic import validator
 
-from tribler_core.components.libtorrent.download_manager.download_config import get_default_dest_dir
-from tribler_core.config.tribler_config_section import TriblerConfigSection
-from tribler_core.utilities.network_utils import NetworkUtils
+from tribler.core.components.libtorrent.download_manager.download_config import get_default_dest_dir
+from tribler.core.config.tribler_config_section import TriblerConfigSection
+from tribler.core.utilities.network_utils import NetworkUtils
 
 # pylint: disable=no-self-argument
 

@@ -6,16 +6,16 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, NTFY
-from tribler_core.utilities.unicode import hexlify
+from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, NTFY
+from tribler.core.utilities.unicode import hexlify
 
 PROCESS_CHANNEL_DIR = 1
 REMOVE_CHANNEL_DOWNLOAD = 2

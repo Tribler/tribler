@@ -1,6 +1,6 @@
 from ipv8.keyvault.crypto import default_eccrypto
 
-from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
 
 
 def test_sign_transaction():

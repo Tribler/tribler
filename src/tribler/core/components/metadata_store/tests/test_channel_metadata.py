@@ -13,23 +13,23 @@ from pony.orm import ObjectNotFound, db_session
 
 import pytest
 
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import (
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import (
     CHANNEL_DIR_NAME_LENGTH,
     MetadataCompressor,
     entries_to_chunk,
 )
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
+from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
     REGULAR_TORRENT,
     int2time,
 )
-from tribler_core.components.metadata_store.db.store import HealthItemsPayload
-from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-from tribler_core.utilities.utilities import random_infohash
+from tribler.core.components.metadata_store.db.store import HealthItemsPayload
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
+from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.utilities.utilities import random_infohash
 
 # pylint: disable=protected-access
 

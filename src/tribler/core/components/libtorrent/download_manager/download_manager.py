@@ -15,19 +15,19 @@ from typing import List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
-from tribler_core.components.libtorrent.download_manager.download import Download
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
-from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.components.libtorrent.utils import torrent_utils
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities import path_util
-from tribler_core.utilities.network_utils import default_network_utils
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.rest_utils import (
+from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
+from tribler.core.components.libtorrent.download_manager.download import Download
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.components.libtorrent.utils import torrent_utils
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.utilities import path_util
+from tribler.core.utilities.network_utils import default_network_utils
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     HTTPS_SCHEME,
     HTTP_SCHEME,
@@ -35,10 +35,10 @@ from tribler_core.utilities.rest_utils import (
     scheme_from_uri,
     uri_to_path,
 )
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
-from tribler_core.version import version_id
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
+from tribler.core.version import version_id
 
 SOCKS5_PROXY_DEF = 2
 

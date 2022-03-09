@@ -10,18 +10,18 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.gigachannel.community.gigachannel_community import (
+from tribler.core.components.gigachannel.community.gigachannel_community import (
     ChannelsPeersMapping,
     GigaChannelCommunity,
     NoChannelSourcesException,
 )
-from tribler_core.components.gigachannel.community.settings import ChantSettings
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.components.metadata_store.utils import RequestTimeoutException
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.utilities import random_infohash
+from tribler.core.components.gigachannel.community.settings import ChantSettings
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler.core.components.metadata_store.utils import RequestTimeoutException
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import random_infohash
 
 EMPTY_BLOB = b""
 

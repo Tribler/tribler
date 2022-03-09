@@ -12,19 +12,19 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_core.components.libtorrent.download_manager.download import Download
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.settings import LibtorrentSettings
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
-from tribler_core.tests.tools.tracker.udp_tracker import UDPTracker
-from tribler_core.utilities.network_utils import default_network_utils
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.libtorrent.download_manager.download import Download
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.settings import LibtorrentSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
+from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
+from tribler.core.utilities.network_utils import default_network_utils
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
+from tribler.core.utilities.unicode import hexlify
 
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle

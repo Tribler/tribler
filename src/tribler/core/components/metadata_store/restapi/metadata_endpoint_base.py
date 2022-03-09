@@ -3,12 +3,12 @@ from typing import Optional
 
 from pony.orm import db_session
 
-from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.components.tag.rules.tag_rules_processor import TagRulesProcessor
+from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.

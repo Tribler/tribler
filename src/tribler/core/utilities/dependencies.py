@@ -8,7 +8,7 @@ import re
 from enum import Enum
 from typing import Iterator, Optional
 
-from tribler_core.utilities.path_util import Path
+from tribler.core.utilities.path_util import Path
 
 # fmt: off
 

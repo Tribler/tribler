@@ -1,9 +1,9 @@
 from typing import List
 
-from tribler_core.components.base import Component
-from tribler_core.components.reporter.reporter_component import ReporterComponent
-from tribler_core.components.socks_servers.socks5.server import Socks5Server
-from tribler_core.utilities.network_utils import default_network_utils
+from tribler.core.components.base import Component
+from tribler.core.components.reporter.reporter_component import ReporterComponent
+from tribler.core.components.socks_servers.socks5.server import Socks5Server
+from tribler.core.utilities.network_utils import default_network_utils
 
 NUM_SOCKS_PROXIES = 5
 

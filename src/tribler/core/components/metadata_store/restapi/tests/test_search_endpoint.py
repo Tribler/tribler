@@ -7,10 +7,10 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.utilities.utilities import random_infohash, to_fts_query
+from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.utilities.utilities import random_infohash, to_fts_query
 
 
 # pylint: disable=unused-argument, redefined-outer-name

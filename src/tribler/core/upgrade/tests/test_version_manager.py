@@ -7,15 +7,15 @@ from pathlib import Path
 import pytest
 
 import tribler_core.version
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.version_manager import (
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.upgrade.version_manager import (
     TriblerVersion,
     VERSION_HISTORY_FILENAME,
     VersionError,
     VersionHistory,
     remove_state_dirs,
 )
-from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
 

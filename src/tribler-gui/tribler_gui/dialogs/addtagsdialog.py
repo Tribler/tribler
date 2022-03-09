@@ -4,7 +4,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
-from tribler_core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 from tribler_gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler_gui.dialogs.dialogcontainer import DialogContainer

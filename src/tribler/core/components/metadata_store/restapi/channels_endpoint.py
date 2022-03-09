@@ -15,20 +15,20 @@ from marshmallow.fields import Boolean, Integer, String
 
 from pony.orm import db_session
 
-from tribler_core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
-from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
-from tribler_core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler_core.components.metadata_store.restapi.metadata_schema import ChannelSchema, MetadataSchema, TorrentSchema
-from tribler_core.components.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
-from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
-from tribler_core.components.restapi.rest.schema import HandledErrorSchema
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import froze_it, is_infohash, parse_magnetlink
+from tribler.core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
+from tribler.core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler.core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
+from tribler.core.components.metadata_store.restapi.metadata_schema import ChannelSchema, MetadataSchema, TorrentSchema
+from tribler.core.components.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
+from tribler.core.components.restapi.rest.schema import HandledErrorSchema
+from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import froze_it, is_infohash, parse_magnetlink
 
 
 async def _fetch_uri(uri):

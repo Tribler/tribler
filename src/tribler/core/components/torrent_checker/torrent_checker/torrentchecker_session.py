@@ -12,12 +12,12 @@ from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 import async_timeout
 
 from ipv8.taskmanager import TaskManager
-from tribler_core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
-from tribler_core.components.socks_servers.socks5.client import Socks5Client
+from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
+from tribler.core.components.socks_servers.socks5.client import Socks5Client
 
-from tribler_core.utilities.tracker_utils import add_url_params, parse_tracker_url
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import bdecode_compat
+from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import bdecode_compat
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.

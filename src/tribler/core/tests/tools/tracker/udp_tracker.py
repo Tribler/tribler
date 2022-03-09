@@ -2,8 +2,8 @@ import random
 import struct
 from asyncio import DatagramProtocol, get_event_loop
 
-from tribler_core.components.torrent_checker.torrent_checker.torrentchecker_session import MAX_INT32
-from tribler_core.tests.tools.tracker.tracker_info import TrackerInfo
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import MAX_INT32
+from tribler.core.tests.tools.tracker.tracker_info import TrackerInfo
 
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 LENGTH_INFOHASH = 20

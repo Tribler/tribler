@@ -13,7 +13,7 @@ import sentry_sdk
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.threading import ThreadingIntegration
 
-from tribler_core.sentry_reporter.sentry_tools import (
+from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
     extract_dict,
     get_first_item,

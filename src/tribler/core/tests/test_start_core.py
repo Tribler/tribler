@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from tribler_core.start_core import run_tribler_core_session
-from tribler_core.utilities.path_util import Path
+from tribler.core.start_core import run_tribler_core_session
+from tribler.core.utilities.path_util import Path
 
 # pylint: disable=
 # fmt: off

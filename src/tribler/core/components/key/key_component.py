@@ -1,7 +1,7 @@
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from tribler_core.components.base import Component
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.path_util import Path
+from tribler.core.components.base import Component
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.path_util import Path
 
 
 class KeyComponent(Component):

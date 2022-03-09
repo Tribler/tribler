@@ -10,18 +10,18 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import String
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.components.restapi.rest.rest_endpoint import (
+from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
+from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
     RESTEndpoint,
     RESTResponse,
 )
-from tribler_core.utilities.rest_utils import (
+from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     HTTPS_SCHEME,
     HTTP_SCHEME,
@@ -29,8 +29,8 @@ from tribler_core.utilities.rest_utils import (
     scheme_from_uri,
     uri_to_path,
 )
-from tribler_core.utilities.unicode import hexlify, recursive_unicode
-from tribler_core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
+from tribler.core.utilities.unicode import hexlify, recursive_unicode
+from tribler.core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
 
 
 async def query_http_uri(uri: str) -> bytes:

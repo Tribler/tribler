@@ -3,41 +3,41 @@ from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
-from tribler_core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
-from tribler_core.components.base import Component, NoneComponent
-from tribler_core.components.gigachannel.gigachannel_component import GigaChannelComponent
-from tribler_core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
-from tribler_core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
-from tribler_core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
-from tribler_core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler_core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
-from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
-from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
-from tribler_core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler_core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
-from tribler_core.components.reporter.reported_error import ReportedError
-from tribler_core.components.reporter.reporter_component import ReporterComponent
-from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
-from tribler_core.components.restapi.rest.debug_endpoint import DebugEndpoint
-from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
-from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint
-from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler_core.components.restapi.rest.settings_endpoint import SettingsEndpoint
-from tribler_core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
-from tribler_core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
-from tribler_core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
-from tribler_core.components.tag.restapi.tags_endpoint import TagsEndpoint
-from tribler_core.components.tag.tag_component import TagComponent
-from tribler_core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
-from tribler_core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
+from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
+from tribler.core.components.base import Component, NoneComponent
+from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
+from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
+from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
+from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
+from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
+from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
+from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
+from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
+from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
+from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
+from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
+from tribler.core.components.reporter.reported_error import ReportedError
+from tribler.core.components.reporter.reporter_component import ReporterComponent
+from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
+from tribler.core.components.restapi.rest.debug_endpoint import DebugEndpoint
+from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
+from tribler.core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpoint
+from tribler.core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
+from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
+from tribler.core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
+from tribler.core.components.tag.restapi.tags_endpoint import TagsEndpoint
+from tribler.core.components.tag.tag_component import TagComponent
+from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
+from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.utilities.unicode import hexlify
 
 
 class RESTComponent(Component):

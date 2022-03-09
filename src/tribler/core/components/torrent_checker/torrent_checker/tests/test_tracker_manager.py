@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
+from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 
 
 @pytest.fixture

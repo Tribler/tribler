@@ -9,7 +9,7 @@ from configparser import DEFAULTSECT, RawConfigParser
 from io import StringIO
 from threading import RLock
 
-from tribler_core.exceptions import OperationNotPossibleAtRuntimeException
+from tribler.core.exceptions import OperationNotPossibleAtRuntimeException
 
 
 class CallbackConfigParser(RawConfigParser):

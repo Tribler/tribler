@@ -1,12 +1,12 @@
 import tribler_core.components.metadata_store.metadata_store_component as metadata_store_component
-from tribler_core.components.base import Component
-from tribler_core.components.ipv8.ipv8_component import Ipv8Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.metadata_store.utils import generate_test_channels
-from tribler_core.components.tag.community.tag_community import TagCommunity
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.components.tag.rules.tag_rules_processor import TagRulesProcessor
-from tribler_core.utilities.simpledefs import STATEDIR_DB_DIR
+from tribler.core.components.base import Component
+from tribler.core.components.ipv8.ipv8_component import Ipv8Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.metadata_store.utils import generate_test_channels
+from tribler.core.components.tag.community.tag_community import TagCommunity
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
+from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
 class TagComponent(Component):

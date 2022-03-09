@@ -6,10 +6,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tribler_core import notifications
-from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
-from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
-from tribler_core.utilities.notifier import Notifier
+from tribler.core import notifications
+from tribler.core.components.resource_monitor.implementation.core import CoreResourceMonitor
+from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
+from tribler.core.utilities.notifier import Notifier
 
 
 @pytest.fixture(name="resource_monitor")

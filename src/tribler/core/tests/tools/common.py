@@ -1,6 +1,6 @@
 import binascii
 
-from tribler_core.utilities.path_util import Path
+from tribler.core.utilities.path_util import Path
 
 UBUNTU_1504_INFOHASH = binascii.unhexlify('FC8A15A2FAF2734DBB1DC5F7AFDC5C9BEAEB1F59')
 

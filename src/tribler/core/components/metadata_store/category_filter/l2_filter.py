@@ -1,6 +1,6 @@
 import re
 
-from tribler_core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.install_dir import get_lib_path
 
 # !ACHTUNG! We must first read the line into a file, then release the lock, and only then pass it to regex compiler.
 # Otherwise, there is an annoying race condition that reads in an empty file!

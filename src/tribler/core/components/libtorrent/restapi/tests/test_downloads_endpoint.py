@@ -8,19 +8,19 @@ from ipv8.util import fail, succeed
 
 import pytest
 
-from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler_core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.rest_utils import HTTP_SCHEME, path_to_uri
-from tribler_core.utilities.simpledefs import (
+from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
+from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_uri
+from tribler.core.utilities.simpledefs import (
     DLSTATUS_CIRCUITS,
     DLSTATUS_DOWNLOADING,
     DLSTATUS_EXIT_NODES,
     DLSTATUS_STOPPED,
 )
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture

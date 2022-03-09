@@ -1,5 +1,5 @@
-from tribler_core.utilities.maketorrent import pathlist2filename
-from tribler_core.utilities.path_util import Path
+from tribler.core.utilities.maketorrent import pathlist2filename
+from tribler.core.utilities.path_util import Path
 
 
 def test_pathlist2filename_utf8():

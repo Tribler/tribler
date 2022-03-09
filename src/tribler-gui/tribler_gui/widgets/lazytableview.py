@@ -5,8 +5,8 @@ from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 
 from tribler_gui.defs import COMMIT_STATUS_COMMITTED
 from tribler_gui.dialogs.addtagsdialog import AddTagsDialog

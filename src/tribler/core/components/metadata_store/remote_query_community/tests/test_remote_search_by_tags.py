@@ -6,16 +6,16 @@ from ipv8.test.base import TestBase
 
 from pony.orm import db_session
 
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
-from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
+from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler_core.components.tag.db.tag_db import SHOW_THRESHOLD, TagDatabase
-from tribler_core.components.tag.db.tests.test_tag_db import Tag, TestTagDB
-from tribler_core.utilities.path_util import Path
+from tribler.core.components.tag.db.tag_db import SHOW_THRESHOLD, TagDatabase
+from tribler.core.components.tag.db.tests.test_tag_db import Tag, TestTagDB
+from tribler.core.utilities.path_util import Path
 
 
 class TestRemoteSearchByTags(TestBase):

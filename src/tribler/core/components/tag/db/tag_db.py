@@ -6,9 +6,9 @@ from pony import orm
 from pony.orm import exists, select
 from pony.utils import between
 
-from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
-from tribler_core.utilities.pony_utils import get_or_create
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
+from tribler.core.utilities.pony_utils import get_or_create
+from tribler.core.utilities.unicode import hexlify
 
 CLOCK_START_VALUE = 0
 

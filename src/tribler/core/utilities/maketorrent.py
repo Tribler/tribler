@@ -3,9 +3,9 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
-from tribler_core.utilities import path_util
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.unicode import ensure_unicode_detect_encoding
+from tribler.core.utilities import path_util
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.unicode import ensure_unicode_detect_encoding
 
 
 def pathlist2filename(pathlist):

@@ -1,7 +1,7 @@
 import pytest
 
-from tribler_core.components.tag.community.tag_payload import TagOperationEnum
-from tribler_core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_tag
+from tribler.core.components.tag.community.tag_payload import TagOperationEnum
+from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_tag
 
 pytestmark = pytest.mark.asyncio
 

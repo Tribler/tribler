@@ -10,12 +10,12 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.gigachannel.community.gigachannel_community import ChannelsPeersMapping
-from tribler_core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import random_infohash
+from tribler.core.components.gigachannel.community.gigachannel_community import ChannelsPeersMapping
+from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import random_infohash
 
 # pylint: disable=unused-argument
 

@@ -1,5 +1,5 @@
-from tribler_core.setuptools import find_packages, setup
-from tribler_core.version import version_id
+from tribler.core.setuptools import find_packages, setup
+from tribler.core.version import version_id
 
 with open('README.rst') as f:
     long_description = f.read()

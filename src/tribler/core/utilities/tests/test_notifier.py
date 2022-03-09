@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tribler_core.utilities.notifier import Notifier, NotifierError
+from tribler.core.utilities.notifier import Notifier, NotifierError
 
 
 # pylint: disable=unused-argument

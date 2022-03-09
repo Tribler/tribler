@@ -8,11 +8,11 @@ from marshmallow.fields import Integer, String
 
 from pony.orm import db_session
 
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
-from tribler_core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
-from tribler_core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler_core.utilities.utilities import froze_it
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
+from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler.core.utilities.utilities import froze_it
 
 
 @froze_it

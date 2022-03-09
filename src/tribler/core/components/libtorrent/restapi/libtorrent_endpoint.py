@@ -8,10 +8,10 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer
 
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import froze_it
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import froze_it
 
 
 @froze_it

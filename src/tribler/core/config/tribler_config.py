@@ -10,7 +10,7 @@ from configobj import ParseError
 
 from pydantic import PrivateAttr
 
-from tribler_core.config.tribler_config_sections import TriblerConfigSections
+from tribler.core.config.tribler_config_sections import TriblerConfigSections
 
 logger = logging.getLogger('Tribler Config')
 

@@ -1,6 +1,6 @@
 from ipv8.community import Community
 
-from tribler_core.config.tribler_config_section import TriblerConfigSection
+from tribler.core.config.tribler_config_section import TriblerConfigSection
 
 
 class TriblerCommunity(Community):

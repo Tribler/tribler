@@ -3,8 +3,8 @@ from asyncio import CancelledError, Future
 from contextlib import suppress
 from hashlib import sha1
 
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.path_util import Path
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.utilities.path_util import Path
 
 logger = logging.getLogger(__name__)
 

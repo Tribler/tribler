@@ -11,14 +11,14 @@ from libtorrent import bencode
 
 import pytest
 
-from tribler_core.components.torrent_checker.torrent_checker.torrentchecker_session import (
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     HttpTrackerSession,
     UdpSocketManager,
     UdpTrackerSession,
 )
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.utilities.unicode import hexlify
 
 
 class FakeUdpSocketManager:

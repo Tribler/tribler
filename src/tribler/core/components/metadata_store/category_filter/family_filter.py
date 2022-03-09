@@ -6,7 +6,7 @@ Author(s): Jelle Roozenburg
 import logging
 import re
 
-from tribler_core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.install_dir import get_lib_path
 
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 

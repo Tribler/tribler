@@ -1,23 +1,23 @@
 from pydantic import BaseSettings, Extra
 
-from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.components.gigachannel.community.settings import ChantSettings
-from tribler_core.components.ipv8.settings import (
+from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler.core.components.gigachannel.community.settings import ChantSettings
+from tribler.core.components.ipv8.settings import (
     BootstrapSettings,
     DHTSettings,
     DiscoveryCommunitySettings,
     Ipv8Settings,
 )
-from tribler_core.components.key.settings import TrustchainSettings
-from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
-from tribler_core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler_core.components.popularity.settings import PopularityCommunitySettings
-from tribler_core.components.resource_monitor.settings import ResourceMonitorSettings
-from tribler_core.components.restapi.rest.settings import APISettings
-from tribler_core.components.torrent_checker.settings import TorrentCheckerSettings
-from tribler_core.components.tunnel.settings import TunnelCommunitySettings
-from tribler_core.components.watch_folder.settings import WatchFolderSettings
-from tribler_core.settings import GeneralSettings
+from tribler.core.components.key.settings import TrustchainSettings
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
+from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
+from tribler.core.components.popularity.settings import PopularityCommunitySettings
+from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
+from tribler.core.components.restapi.rest.settings import APISettings
+from tribler.core.components.torrent_checker.settings import TorrentCheckerSettings
+from tribler.core.components.tunnel.settings import TunnelCommunitySettings
+from tribler.core.components.watch_folder.settings import WatchFolderSettings
+from tribler.core.settings import GeneralSettings
 
 
 class TriblerConfigSections(BaseSettings):

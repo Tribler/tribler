@@ -4,9 +4,9 @@ from typing import Dict, Optional
 
 from aiohttp import ClientSession
 
-from tribler_core.components.restapi.rest import get_param
-from tribler_core.utilities.path_util import Path
-from tribler_core.version import version_id
+from tribler.core.components.restapi.rest import get_param
+from tribler.core.utilities.path_util import Path
+from tribler.core.version import version_id
 
 
 def path_to_str(obj):

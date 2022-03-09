@@ -9,22 +9,22 @@ from ipv8.taskmanager import TaskManager, task
 
 from pony.orm import db_session, desc, select
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.metadata_store.db.serialization import REGULAR_TORRENT
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.torrent_checker.torrent_checker.torrentchecker_session import (
+from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     UdpSocketManager,
     create_tracker_session,
 )
-from tribler_core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.tracker_utils import MalformedTrackerURLException
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import has_bep33_support, is_valid_url
+from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.tracker_utils import MalformedTrackerURLException
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import has_bep33_support, is_valid_url
 
 TRACKER_SELECTION_INTERVAL = 20  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent

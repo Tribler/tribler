@@ -6,7 +6,7 @@
 # not go backwards between Tribler restarts.
 from datetime import datetime
 
-from tribler_core.components.metadata_store.db.serialization import time2int
+from tribler.core.components.metadata_store.db.serialization import time2int
 
 
 class DiscreteClock:

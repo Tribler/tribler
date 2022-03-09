@@ -1,7 +1,7 @@
 import pytest
 
-from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings, SeedingMode
-from tribler_core.utilities.network_utils import NetworkUtils
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings, SeedingMode
+from tribler.core.utilities.network_utils import NetworkUtils
 
 
 @pytest.mark.asyncio

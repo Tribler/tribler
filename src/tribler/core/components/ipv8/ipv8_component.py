@@ -15,8 +15,8 @@ from ipv8.taskmanager import TaskManager
 
 from ipv8_service import IPv8
 
-from tribler_core.components.base import Component
-from tribler_core.components.key.key_component import KeyComponent
+from tribler.core.components.base import Component
+from tribler.core.components.key.key_component import KeyComponent
 
 INFINITE = -1
 
@@ -73,7 +73,7 @@ class Ipv8Component(Component):
                 ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
 
         if config.ipv8.walk_scaling_enabled and not config.gui_test_mode:
-            from tribler_core.components.ipv8.ipv8_health_monitor import IPv8Monitor
+            from tribler.core.components.ipv8.ipv8_health_monitor import IPv8Monitor
             IPv8Monitor(ipv8,
                         config.ipv8.walk_interval,
                         config.ipv8.walk_scaling_upper_limit).start(self._task_manager)

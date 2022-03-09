@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.utilities.path_util import Path
+from tribler.core.utilities.path_util import Path
 
 
 @pytest.mark.asyncio

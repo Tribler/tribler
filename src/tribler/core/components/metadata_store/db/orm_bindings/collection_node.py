@@ -4,9 +4,9 @@ from pathlib import Path
 from pony import orm
 from pony.orm import db_session, select
 
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import chunks
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import chunks
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import (
     CHANNEL_DESCRIPTION_FLAG,
     CHANNEL_THUMBNAIL_FLAG,
     COMMITTED,
@@ -15,15 +15,15 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
     TODELETE,
     UPDATED,
 )
-from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
-from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.components.metadata_store.db.orm_bindings.discrete_clock import clock
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
+from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,
     COLLECTION_NODE,
     CollectionNodePayload,
 )
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-from tribler_core.utilities.utilities import random_infohash
+from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.utilities.utilities import random_infohash
 
 # pylint: disable=too-many-statements
 

@@ -4,7 +4,7 @@ from datetime import datetime
 from pony import orm
 from pony.orm import db_session
 
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 
 
 def define_binding(db):

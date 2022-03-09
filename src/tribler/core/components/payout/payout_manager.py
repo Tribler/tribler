@@ -2,7 +2,7 @@ import logging
 
 from ipv8.taskmanager import TaskManager, task
 
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.utilities.unicode import hexlify
 
 
 class PayoutManager(TaskManager):

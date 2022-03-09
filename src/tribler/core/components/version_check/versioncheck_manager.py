@@ -6,9 +6,9 @@ from aiohttp import ClientSession, ClientTimeout
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_core import notifications
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.version import version_id
+from tribler.core import notifications
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.version import version_id
 
 VERSION_CHECK_URLS = [f'https://release.tribler.org/releases/latest?current={version_id}',  # Tribler Release API
                       'https://api.github.com/repos/tribler/tribler/releases/latest']  # Fallback GitHub API

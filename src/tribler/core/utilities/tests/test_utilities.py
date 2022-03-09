@@ -5,10 +5,10 @@ from aiohttp import ClientSession
 
 import pytest
 
-from tribler_core.logger.logger import load_logger_config
-from tribler_core.utilities.patch_import import patch_import
-from tribler_core.utilities.tracker_utils import add_url_params
-from tribler_core.utilities.utilities import (
+from tribler.core.logger.logger import load_logger_config
+from tribler.core.utilities.patch_import import patch_import
+from tribler.core.utilities.tracker_utils import add_url_params
+from tribler.core.utilities.utilities import (
     Query,
     extract_tags,
     is_channel_public_key,

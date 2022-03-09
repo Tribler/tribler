@@ -9,17 +9,17 @@ from ipv8.types import Key
 
 from pony.orm import db_session
 
-from tribler_core.components.ipv8.tribler_community import TriblerCommunity
-from tribler_core.components.tag.community.tag_payload import (
+from tribler.core.components.ipv8.tribler_community import TriblerCommunity
+from tribler.core.components.tag.community.tag_payload import (
     RawTagOperationMessage,
     RequestTagOperationMessage,
     TagOperation,
     TagOperationMessage,
     TagOperationSignature,
 )
-from tribler_core.components.tag.community.tag_requests import PeerValidationError, TagRequests
-from tribler_core.components.tag.community.tag_validator import validate_operation, validate_tag
-from tribler_core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.community.tag_requests import PeerValidationError, TagRequests
+from tribler.core.components.tag.community.tag_validator import validate_operation, validate_tag
+from tribler.core.components.tag.db.tag_db import TagDatabase
 
 REQUESTED_TAGS_COUNT = 10
 

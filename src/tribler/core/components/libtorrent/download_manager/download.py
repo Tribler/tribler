@@ -12,21 +12,21 @@ from typing import Optional
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler_core.components.libtorrent.download_manager.stream import Stream
-from tribler_core.components.libtorrent.settings import DownloadDefaultsSettings
-from tribler_core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
-from tribler_core.exceptions import SaveResumeDataError
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.osutils import fix_filebasename
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
-from tribler_core.utilities.unicode import ensure_unicode, hexlify
-from tribler_core.utilities.utilities import bdecode_compat
+from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
+from tribler.core.components.libtorrent.download_manager.stream import Stream
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
+from tribler.core.exceptions import SaveResumeDataError
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.osutils import fix_filebasename
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
+from tribler.core.utilities.unicode import ensure_unicode, hexlify
+from tribler.core.utilities.utilities import bdecode_compat
 
 
 class Download(TaskManager):

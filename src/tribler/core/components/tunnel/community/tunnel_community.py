@@ -32,13 +32,13 @@ from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
 
-from tribler_core import notifications
-from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
-from tribler_core.components.socks_servers.socks5.server import Socks5Server
-from tribler_core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
-from tribler_core.components.tunnel.community.discovery import GoldenRatioStrategy
-from tribler_core.components.tunnel.community.dispatcher import TunnelDispatcher
-from tribler_core.components.tunnel.community.payload import (
+from tribler.core import notifications
+from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
+from tribler.core.components.socks_servers.socks5.server import Socks5Server
+from tribler.core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
+from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
+from tribler.core.components.tunnel.community.dispatcher import TunnelDispatcher
+from tribler.core.components.tunnel.community.payload import (
     BalanceRequestPayload,
     BalanceResponsePayload,
     BandwidthTransactionPayload,
@@ -47,14 +47,14 @@ from tribler_core.components.tunnel.community.payload import (
     RelayBalanceRequestPayload,
     RelayBalanceResponsePayload,
 )
-from tribler_core.utilities.bencodecheck import is_bencoded
-from tribler_core.utilities.simpledefs import (
+from tribler.core.utilities.bencodecheck import is_bencoded
+from tribler.core.utilities.simpledefs import (
     DLSTATUS_DOWNLOADING,
     DLSTATUS_METADATA,
     DLSTATUS_SEEDING,
     DLSTATUS_STOPPED,
 )
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.utilities.unicode import hexlify
 
 DESTROY_REASON_BALANCE = 65535
 

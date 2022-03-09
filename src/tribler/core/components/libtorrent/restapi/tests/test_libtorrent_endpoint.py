@@ -4,10 +4,10 @@ from aiohttp.web_app import Application
 
 import pytest
 
-from tribler_core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture

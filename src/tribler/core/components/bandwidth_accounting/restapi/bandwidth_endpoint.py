@@ -6,11 +6,11 @@ from ipv8.REST.schema import schema
 
 from marshmallow.fields import Integer, String
 
-from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
 )
-from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
-from tribler_core.utilities.utilities import froze_it
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.utilities.utilities import froze_it
 
 
 @froze_it

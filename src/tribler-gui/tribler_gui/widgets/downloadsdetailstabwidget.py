@@ -3,7 +3,7 @@ from pathlib import PurePosixPath
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
-from tribler_core.utilities.simpledefs import dlstatus_strings
+from tribler.core.utilities.simpledefs import dlstatus_strings
 
 from tribler_gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
 from tribler_gui.tribler_request_manager import TriblerNetworkRequest

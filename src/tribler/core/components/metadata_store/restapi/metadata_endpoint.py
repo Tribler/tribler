@@ -11,13 +11,13 @@ from marshmallow.fields import Integer, String
 
 from pony.orm import db_session
 
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler_core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler_core.components.restapi.rest.rest_endpoint import RESTResponse
-from tribler_core.components.restapi.rest.schema import HandledErrorSchema
-from tribler_core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import froze_it
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
+from tribler.core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
+from tribler.core.components.restapi.rest.rest_endpoint import RESTResponse
+from tribler.core.components.restapi.rest.schema import HandledErrorSchema
+from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import froze_it
 
 TORRENT_CHECK_TIMEOUT = 20
 

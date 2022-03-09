@@ -1,7 +1,7 @@
 from pydantic import Field
 
-from tribler_core.config.tribler_config_section import TriblerConfigSection
-from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR
+from tribler.core.config.tribler_config_section import TriblerConfigSection
+from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR
 
 
 class ChantSettings(TriblerConfigSection):

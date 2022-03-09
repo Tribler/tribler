@@ -5,7 +5,7 @@ from ipv8.messaging.serialization import PackError
 
 import pytest
 
-from tribler_core.components.socks_servers.socks5.conversion import (
+from tribler.core.components.socks_servers.socks5.conversion import (
     CommandRequest,
     CommandResponse,
     UdpPacket,

@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.base import Component, MissedDependency, NoneComponent, Session, SessionError
+from tribler.core.components.base import Component, MissedDependency, NoneComponent, Session, SessionError
 
 pytestmark = pytest.mark.asyncio
 

@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 
 from pony.orm import db_session
 
-from tribler_core.components.metadata_store.category_filter.l2_filter import is_forbidden
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.components.metadata_store.category_filter.l2_filter import is_forbidden
+from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_DESCRIPTION,
     CHANNEL_THUMBNAIL,
     CHANNEL_TORRENT,
@@ -13,8 +13,8 @@ from tribler_core.components.metadata_store.db.serialization import (
     NULL_KEY,
     REGULAR_TORRENT,
 )
-from tribler_core.utilities.sentinels import sentinel
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.utilities.sentinels import sentinel
+from tribler.core.utilities.unicode import hexlify
 
 
 class ObjState(enum.Enum):

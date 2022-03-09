@@ -1,8 +1,8 @@
 import pytest
 
-from tribler_core.components.base import Session
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
+from tribler.core.components.base import Session
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 
 
 # pylint: disable=protected-access

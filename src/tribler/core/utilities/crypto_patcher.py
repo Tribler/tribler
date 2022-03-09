@@ -1,6 +1,6 @@
 import sys
 
-from tribler_core.utilities.utilities import is_frozen
+from tribler.core.utilities.utilities import is_frozen
 
 
 def patch_crypto_be_discovery():

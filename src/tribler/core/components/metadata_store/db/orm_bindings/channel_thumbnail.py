@@ -1,4 +1,4 @@
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL
 
 
 def define_binding(db):

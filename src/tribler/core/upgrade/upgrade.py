@@ -9,20 +9,20 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
 from pony.orm import db_session, delete
 
-from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.components.metadata_store.db.store import (
+from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler.core.components.metadata_store.db.store import (
     MetadataStore,
     sql_create_partial_index_channelnode_metadata_type,
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.upgrade.config_converter import convert_config_to_tribler76
-from tribler_core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
-from tribler_core.utilities.configparser import CallbackConfigParser
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.upgrade.config_converter import convert_config_to_tribler76
+from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler.core.utilities.configparser import CallbackConfigParser
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 # pylint: disable=protected-access
 

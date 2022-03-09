@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.utilities.tracker_utils import (
+from tribler.core.utilities.tracker_utils import (
     MalformedTrackerURLException,
     get_uniformed_tracker_url,
     parse_tracker_url,

@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from tribler_core.utilities.osutils import (
+from tribler.core.utilities.osutils import (
     dir_copy,
     fix_filebasename,
     get_appstate_dir,
@@ -12,7 +12,7 @@ from tribler_core.utilities.osutils import (
     is_android,
 )
 
-from tribler_core.check_os import is_tribler_process
+from tribler.core.check_os import is_tribler_process
 
 
 def test_fix_filebasename():

@@ -17,7 +17,7 @@ import libtorrent
 
 import psutil
 
-from tribler_core.utilities.utilities import has_bep33_support
+from tribler.core.utilities.utilities import has_bep33_support
 
 from tribler_gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler_gui.dialogs.confirmationdialog import ConfirmationDialog

@@ -2,8 +2,8 @@ import logging
 from io import BytesIO, TextIOWrapper
 from unittest.mock import MagicMock, Mock, call, patch
 
-from tribler_core.logger.logger import get_logger_config_path, setup_logging
-from tribler_core.logger.logger_streams import StreamWrapper
+from tribler.core.logger.logger import get_logger_config_path, setup_logging
+from tribler.core.logger.logger_streams import StreamWrapper
 
 
 @patch('tribler_core.logger.logger.__file__', '/a/b/c/logger.py')

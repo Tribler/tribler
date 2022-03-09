@@ -1,5 +1,5 @@
-from tribler_core.components.base import Component
-from tribler_core.components.resource_monitor.implementation.core import CoreResourceMonitor
+from tribler.core.components.base import Component
+from tribler.core.components.resource_monitor.implementation.core import CoreResourceMonitor
 
 
 class ResourceMonitorComponent(Component):

@@ -6,16 +6,16 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony import orm
 from pony.orm.core import DEFAULT, db_session
 
-from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.components.metadata_store.db.orm_bindings.discrete_clock import clock
+from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_NODE,
     ChannelNodePayload,
     DELETED,
     DeletedMetadataPayload,
 )
-from tribler_core.exceptions import InvalidChannelNodeException, InvalidSignatureException
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.exceptions import InvalidChannelNodeException, InvalidSignatureException
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.unicode import hexlify
 
 # Metadata, torrents and channel statuses
 NEW = 0  # The entry is newly created and is not published yet. It will be committed at the next commit.

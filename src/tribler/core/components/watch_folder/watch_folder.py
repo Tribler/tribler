@@ -4,11 +4,11 @@ from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.utilities import path_util
-from tribler_core.utilities.notifier import Notifier
+from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.utilities import path_util
+from tribler.core.utilities.notifier import Notifier
 
 WATCH_FOLDER_CHECK_INTERVAL = 10
 

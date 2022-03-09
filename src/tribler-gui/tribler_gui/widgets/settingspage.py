@@ -3,9 +3,9 @@ import json
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
-from tribler_core.upgrade.version_manager import remove_state_dirs
-from tribler_core.utilities.osutils import get_root_state_directory
-from tribler_core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+from tribler.core.upgrade.version_manager import remove_state_dirs
+from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 from tribler_gui.defs import (
     DARWIN,

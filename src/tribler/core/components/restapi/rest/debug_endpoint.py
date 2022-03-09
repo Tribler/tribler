@@ -15,11 +15,11 @@ from marshmallow.fields import Boolean, Float, Integer, String
 
 import psutil
 
-from tribler_core.components.resource_monitor.implementation.base import ResourceMonitor
-from tribler_core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
-from tribler_core.utilities.instrumentation import WatchDog
-from tribler_core.utilities.osutils import get_root_state_directory
-from tribler_core.utilities.path_util import Path
+from tribler.core.components.resource_monitor.implementation.base import ResourceMonitor
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.utilities.instrumentation import WatchDog
+from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.path_util import Path
 
 HAS_MELIAE = True
 try:

@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tribler_core import notifications
-from tribler_core.components.tag.rules.tag_rules_processor import LAST_PROCESSED_TORRENT_ID, TagRulesProcessor
+from tribler.core import notifications
+from tribler.core.components.tag.rules.tag_rules_processor import LAST_PROCESSED_TORRENT_ID, TagRulesProcessor
 
 TEST_BATCH_SIZE = 100
 TEST_INTERVAL = 0.1

@@ -9,13 +9,13 @@ from libtorrent import bencode
 
 import pytest
 
-from tribler_core.exceptions import SaveResumeDataError
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.components.libtorrent.utils.torrent_utils import get_info_from_handle
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import bdecode_compat
+from tribler.core.exceptions import SaveResumeDataError
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.tests.tools.base_test import MockObject
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import bdecode_compat
 
 
 def test_download_properties(test_download, test_tdef):

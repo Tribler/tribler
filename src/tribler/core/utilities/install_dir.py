@@ -6,8 +6,8 @@ Author(s): Elric Milon
 import sys
 
 import tribler_core
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.utilities import is_frozen
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import is_frozen
 
 
 def get_base_path():

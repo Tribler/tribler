@@ -1,11 +1,11 @@
 import re
 
-from tribler_core.sentry_reporter.sentry_reporter import (
+from tribler.core.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
     RELEASE,
     VALUES,
 )
-from tribler_core.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value
+from tribler.core.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value
 
 
 class SentryScrubber:

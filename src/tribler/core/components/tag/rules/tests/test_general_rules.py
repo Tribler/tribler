@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.components.tag.rules.tag_rules import (
+from tribler.core.components.tag.rules.tag_rules import (
     delimiter_re,
     extension_re,
     extract_only_valid_tags,

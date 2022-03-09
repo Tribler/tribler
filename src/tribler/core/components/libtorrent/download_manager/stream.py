@@ -20,8 +20,8 @@ for a given fileindex of a torrent
 import logging
 from asyncio import sleep
 
-from tribler_core.components.libtorrent.utils.torrent_utils import check_vod, get_info_from_handle
-from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
+from tribler.core.components.libtorrent.utils.torrent_utils import check_vod, get_info_from_handle
+from tribler.core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
 
 # Header and footer sizes are necessary for video client to detect file codecs and muxer metadata.
 # Without below pieces are ready, streamer should not start

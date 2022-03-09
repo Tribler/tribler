@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 
 from pony.orm import Database, count, db_session, select, sum
 
-from tribler_core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
-from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
-from tribler_core.utilities.utilities import MEMORY_DB
+from tribler.core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
+from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
+from tribler.core.utilities.utilities import MEMORY_DB
 
 
 class BandwidthDatabase:

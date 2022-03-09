@@ -9,8 +9,8 @@ from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.payload import Payload
 from ipv8.messaging.serialization import default_serializer
 
-from tribler_core.exceptions import InvalidSignatureException
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.exceptions import InvalidSignatureException
+from tribler.core.utilities.unicode import hexlify
 
 EPOCH = datetime(1970, 1, 1)
 

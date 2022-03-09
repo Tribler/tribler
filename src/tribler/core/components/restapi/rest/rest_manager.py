@@ -9,16 +9,16 @@ from aiohttp_apispec import AiohttpApiSpec
 
 from apispec.core import VALID_METHODS_OPENAPI_V2
 
-from tribler_core.components.reporter.exception_handler import default_core_exception_handler
-from tribler_core.components.restapi.rest.rest_endpoint import (
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
+from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_INTERNAL_SERVER_ERROR,
     HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED,
     RESTResponse,
 )
-from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler_core.components.restapi.rest.settings import APISettings
-from tribler_core.version import version_id
+from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler.core.components.restapi.rest.settings import APISettings
+from tribler.core.version import version_id
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,10 @@
 import pytest
 
-from tribler_core.components.base import Session
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler_core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler_core.components.watch_folder.watch_folder_component import WatchFolderComponent
+from tribler.core.components.base import Session
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
+from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
+from tribler.core.components.watch_folder.watch_folder_component import WatchFolderComponent
 
 
 # pylint: disable=protected-access

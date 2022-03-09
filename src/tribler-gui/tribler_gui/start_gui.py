@@ -4,17 +4,17 @@ import sys
 
 from PyQt5.QtCore import QSettings
 
-from tribler_core.check_os import (
+from tribler.core.check_os import (
     check_and_enable_code_tracing,
     check_environment,
     check_free_space,
     enable_fault_handler,
     error_and_exit,
 )
-from tribler_core.exceptions import TriblerException
-from tribler_core.logger.logger import load_logger_config
-from tribler_core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler_core.utilities.rest_utils import path_to_uri
+from tribler.core.exceptions import TriblerException
+from tribler.core.logger.logger import load_logger_config
+from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.utilities.rest_utils import path_to_uri
 
 from tribler_gui import gui_sentry_reporter
 from tribler_gui.tribler_app import TriblerApplication

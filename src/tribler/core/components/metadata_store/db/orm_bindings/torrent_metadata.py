@@ -4,14 +4,14 @@ from struct import unpack
 from pony import orm
 from pony.orm import db_session
 
-from tribler_core import notifications
-from tribler_core.components.metadata_store.category_filter.category import default_category_filter
-from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
-from tribler_core.components.metadata_store.db.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.tracker_utils import get_uniformed_tracker_url
-from tribler_core.utilities.unicode import ensure_unicode, hexlify
+from tribler.core import notifications
+from tribler.core.components.metadata_store.category_filter.category import default_category_filter
+from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
+from tribler.core.components.metadata_store.db.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.tracker_utils import get_uniformed_tracker_url
+from tribler.core.utilities.unicode import ensure_unicode, hexlify
 
 NULL_KEY_SUBST = b"\00"
 

@@ -5,15 +5,15 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.exceptions import InvalidChannelNodeException, InvalidSignatureException
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.exceptions import InvalidChannelNodeException, InvalidSignatureException
+from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_NODE,
     ChannelNodePayload,
     KeysMismatchException,
     NULL_KEY,
     NULL_SIG,
 )
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.utilities.unicode import hexlify
 
 
 @db_session

@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from tribler_core.config.tribler_config_section import TriblerConfigSection
+from tribler.core.config.tribler_config_section import TriblerConfigSection
 
 
 class BandwidthAccountingSettings(TriblerConfigSection):

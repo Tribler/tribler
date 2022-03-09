@@ -9,14 +9,14 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
-from tribler_core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import has_bep33_support, random_infohash
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
+from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import has_bep33_support, random_infohash
 
 
 # pylint: disable=unused-argument

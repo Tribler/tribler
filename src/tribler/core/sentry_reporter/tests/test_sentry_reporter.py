@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from tribler_core.utilities.patch_import import patch_import
-from tribler_core.sentry_reporter.sentry_reporter import (
+from tribler.core.utilities.patch_import import patch_import
+from tribler.core.sentry_reporter.sentry_reporter import (
     EXCEPTION,
     OS_ENVIRON,
     PLATFORM_DETAILS,
@@ -12,7 +12,7 @@ from tribler_core.sentry_reporter.sentry_reporter import (
     VALUES,
     this_sentry_strategy,
 )
-from tribler_core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 # fmt: off
 # pylint: disable=redefined-outer-name, protected-access

@@ -1,6 +1,6 @@
 from pony import orm
 
-from tribler_core.utilities.tracker_utils import MalformedTrackerURLException, get_uniformed_tracker_url
+from tribler.core.utilities.tracker_utils import MalformedTrackerURLException, get_uniformed_tracker_url
 
 
 def define_binding(db):

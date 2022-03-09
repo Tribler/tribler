@@ -6,14 +6,14 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.settings import LibtorrentSettings
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.serialization import ChannelMetadataPayload
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.simpledefs import DLSTATUS_SEEDING
+from tribler.core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.settings import LibtorrentSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.serialization import ChannelMetadataPayload
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
 
 CHANNEL_DIR = TESTS_DATA_DIR / 'sample_channel'
 CHANNEL_TORRENT = CHANNEL_DIR / 'channel.torrent'

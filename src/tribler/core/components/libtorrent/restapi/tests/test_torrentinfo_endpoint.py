@@ -10,16 +10,16 @@ from ipv8.util import succeed
 
 import pytest
 
-from tribler_core import notifications
-from tribler_core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler_core.components.libtorrent.settings import LibtorrentSettings
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
-from tribler_core.utilities.rest_utils import path_to_uri
-from tribler_core.utilities.unicode import hexlify
+from tribler.core import notifications
+from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
+from tribler.core.components.libtorrent.settings import LibtorrentSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
+from tribler.core.utilities.rest_utils import path_to_uri
+from tribler.core.utilities.unicode import hexlify
 
 SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 

@@ -7,8 +7,8 @@ from lz4.frame import LZ4FrameCompressor
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import (
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import (
     CHANNEL_DESCRIPTION_FLAG,
     CHANNEL_THUMBNAIL_FLAG,
     COMMITTED,
@@ -18,16 +18,16 @@ from tribler_core.components.metadata_store.db.orm_bindings.channel_node import 
     TODELETE,
     UPDATED,
 )
-from tribler_core.components.metadata_store.db.orm_bindings.discrete_clock import clock
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.components.metadata_store.db.orm_bindings.discrete_clock import clock
+from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,
     ChannelMetadataPayload,
     HealthItemsPayload,
 )
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import random_infohash
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import random_infohash
 
 CHANNEL_DIR_NAME_PK_LENGTH = 32  # Its not 40 so it could be distinguished from infohash
 CHANNEL_DIR_NAME_ID_LENGTH = 16  # Zero-padded long int in hex form

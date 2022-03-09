@@ -8,14 +8,14 @@ from pony.orm import db_session, select
 
 import pytest
 
-from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler_core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
-from tribler_core.components.tag.db.tag_db import TagDatabase
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.upgrade.db8_to_db10 import calc_progress
-from tribler_core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
-from tribler_core.utilities.configparser import CallbackConfigParser
+from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.upgrade.db8_to_db10 import calc_progress
+from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
+from tribler.core.utilities.configparser import CallbackConfigParser
 
 # pylint: disable=redefined-outer-name, protected-access
 

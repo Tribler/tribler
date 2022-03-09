@@ -20,16 +20,16 @@ import pytest
 
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
-from tribler_core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler_core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler_core.components.libtorrent.settings import LibtorrentSettings
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.socks_servers.socks5.server import Socks5Server
-from tribler_core.components.socks_servers.socks_servers_component import NUM_SOCKS_PROXIES
-from tribler_core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
-from tribler_core.components.tunnel.settings import TunnelCommunitySettings
-from tribler_core.tests.tools.common import TESTS_DATA_DIR
-from tribler_core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
+from tribler.core.components.libtorrent.settings import LibtorrentSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.socks_servers.socks5.server import Socks5Server
+from tribler.core.components.socks_servers.socks_servers_component import NUM_SOCKS_PROXIES
+from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
+from tribler.core.components.tunnel.settings import TunnelCommunitySettings
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
 
 
 def crash_on_error():

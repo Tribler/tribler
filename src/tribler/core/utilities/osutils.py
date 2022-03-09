@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from tribler_core.utilities import path_util
+from tribler.core.utilities import path_util
 
 logger = logging.getLogger(__name__)
 

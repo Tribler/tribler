@@ -1,4 +1,4 @@
-from tribler_core.utilities.search_utils import filter_keywords, split_into_keywords
+from tribler.core.utilities.search_utils import filter_keywords, split_into_keywords
 
 
 def test_split_into_keywords():

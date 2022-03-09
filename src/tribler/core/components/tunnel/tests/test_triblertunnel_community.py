@@ -19,19 +19,19 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
 
-from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
 )
-from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.components.tunnel.community.payload import BandwidthTransactionPayload
-from tribler_core.components.tunnel.community.tunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
-from tribler_core.components.tunnel.settings import TunnelCommunitySettings
-from tribler_core.tests.tools.base_test import MockObject
-from tribler_core.tests.tools.tracker.http_tracker import HTTPTracker
-from tribler_core.utilities.network_utils import NetworkUtils
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.utilities import MEMORY_DB
+from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler.core.components.tunnel.community.payload import BandwidthTransactionPayload
+from tribler.core.components.tunnel.community.tunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
+from tribler.core.components.tunnel.settings import TunnelCommunitySettings
+from tribler.core.tests.tools.base_test import MockObject
+from tribler.core.tests.tools.tracker.http_tracker import HTTPTracker
+from tribler.core.utilities.network_utils import NetworkUtils
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import MEMORY_DB
 
 
 class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-methods

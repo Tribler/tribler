@@ -6,18 +6,18 @@ from ipv8.keyvault.crypto import default_eccrypto
 
 from pony.orm import db_session
 
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler_core.components.metadata_store.db.store import MetadataStore
-from tribler_core.components.metadata_store.tests.test_channel_download import (
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.metadata_store.tests.test_channel_download import (
     CHANNEL_METADATA,
     CHANNEL_METADATA_UPDATED,
     CHANNEL_TORRENT,
     CHANNEL_TORRENT_UPDATED,
 )
-from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.utilities import MEMORY_DB
+from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import MEMORY_DB
 
 DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
 SAMPLE_DIR = DATA_DIR / 'sample_channel'

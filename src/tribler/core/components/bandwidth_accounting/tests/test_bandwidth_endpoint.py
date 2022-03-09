@@ -4,15 +4,15 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 import pytest
 
-from tribler_core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
 )
-from tribler_core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler_core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
-from tribler_core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
-from tribler_core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
+from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.utilities.unicode import hexlify
 
 pytestmark = pytest.mark.asyncio
 

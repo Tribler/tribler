@@ -5,7 +5,7 @@ from time import sleep
 
 import pytest
 
-from tribler_core.utilities.process_checker import LOCK_FILE_NAME, ProcessChecker
+from tribler.core.utilities.process_checker import LOCK_FILE_NAME, ProcessChecker
 
 
 @pytest.fixture

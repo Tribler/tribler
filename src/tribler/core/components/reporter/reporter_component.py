@@ -1,7 +1,7 @@
-from tribler_core.components.base import Component
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.components.reporter.exception_handler import default_core_exception_handler
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.base import Component
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
+from tribler.core.utilities.unicode import hexlify
 
 
 class ReporterComponent(Component):

@@ -1,7 +1,7 @@
 import pytest
 
-from tribler_core.components.metadata_store.category_filter.category import Category, cmp_rank
-from tribler_core.components.metadata_store.category_filter.family_filter import XXXFilter
+from tribler.core.components.metadata_store.category_filter.category import Category, cmp_rank
+from tribler.core.components.metadata_store.category_filter.family_filter import XXXFilter
 
 
 @pytest.fixture(name="xxx_filter")

@@ -11,8 +11,8 @@ from lz4.frame import LZ4FrameDecompressor
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
 
-from tribler_core import notifications
-from tribler_core.components.metadata_store.db.orm_bindings import (
+from tribler.core import notifications
+from tribler.core.components.metadata_store.db.orm_bindings import (
     binary_node,
     channel_description,
     channel_metadata,
@@ -29,10 +29,10 @@ from tribler_core.components.metadata_store.db.orm_bindings import (
     tracker_state,
     vsids,
 )
-from tribler_core.components.metadata_store.db.orm_bindings.channel_metadata import get_mdblob_sequence_number
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
-from tribler_core.components.metadata_store.db.orm_bindings.torrent_metadata import NULL_KEY_SUBST
-from tribler_core.components.metadata_store.db.serialization import (
+from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import get_mdblob_sequence_number
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NULL_KEY_SUBST
+from tribler.core.components.metadata_store.db.serialization import (
     BINARY_NODE,
     CHANNEL_DESCRIPTION,
     CHANNEL_NODE,
@@ -45,13 +45,13 @@ from tribler_core.components.metadata_store.db.serialization import (
     REGULAR_TORRENT,
     read_payload_with_offset,
 )
-from tribler_core.components.metadata_store.remote_query_community.payload_checker import process_payload
-from tribler_core.exceptions import InvalidSignatureException
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.utilities.path_util import Path
-from tribler_core.utilities.pony_utils import get_or_create
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import MEMORY_DB
+from tribler.core.components.metadata_store.remote_query_community.payload_checker import process_payload
+from tribler.core.exceptions import InvalidSignatureException
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.pony_utils import get_or_create
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import MEMORY_DB
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 14

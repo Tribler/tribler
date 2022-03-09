@@ -7,15 +7,15 @@ from aiohttp import ClientSession
 
 import pytest
 
-from tribler_core import notifications
-from tribler_core.components.reporter.reported_error import ReportedError
-from tribler_core.components.restapi.rest.events_endpoint import EventsEndpoint
-from tribler_core.components.restapi.rest.rest_endpoint import RESTStreamResponse
-from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.utilities.notifier import Notifier
-from tribler_core.version import version_id
+from tribler.core import notifications
+from tribler.core.components.reporter.reported_error import ReportedError
+from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
+from tribler.core.components.restapi.rest.rest_endpoint import RESTStreamResponse
+from tribler.core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.notifier import Notifier
+from tribler.core.version import version_id
 
 messages_to_wait_for = set()
 

@@ -2,13 +2,13 @@ import logging
 import signal
 import sys
 
-from tribler_core.components.key.key_component import KeyComponent
-from tribler_core.config.tribler_config import TriblerConfig
-from tribler_core.logger.logger import load_logger_config
-from tribler_core.start_core import CONFIG_FILE_NAME
-from tribler_core.upgrade.upgrade import TriblerUpgrader
-from tribler_core.upgrade.version_manager import VersionHistory
-from tribler_core.utilities.path_util import Path
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.logger.logger import load_logger_config
+from tribler.core.start_core import CONFIG_FILE_NAME
+from tribler.core.upgrade.upgrade import TriblerUpgrader
+from tribler.core.upgrade.version_manager import VersionHistory
+from tribler.core.utilities.path_util import Path
 
 logger = logging.getLogger(__name__)
 

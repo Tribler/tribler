@@ -5,8 +5,8 @@ from asynctest import MagicMock
 
 import pytest
 
-from tribler_core.components.watch_folder.watch_folder import WatchFolder
-from tribler_core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
+from tribler.core.components.watch_folder.watch_folder import WatchFolder
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 
 
 @pytest.fixture

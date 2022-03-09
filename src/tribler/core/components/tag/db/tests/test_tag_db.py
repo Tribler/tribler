@@ -10,9 +10,9 @@ from pony import orm
 from pony.orm import commit, db_session
 
 # pylint: disable=protected-access
-from tribler_core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
-from tribler_core.components.tag.db.tag_db import PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, SHOW_THRESHOLD, TagDatabase
-from tribler_core.utilities.pony_utils import get_or_create
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
+from tribler.core.components.tag.db.tag_db import PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, SHOW_THRESHOLD, TagDatabase
+from tribler.core.utilities.pony_utils import get_or_create
 
 
 @dataclass

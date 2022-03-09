@@ -1,6 +1,6 @@
 import datetime
 
-from tribler_core.components.metadata_store.db.serialization import EPOCH, int2time, time2int
+from tribler.core.components.metadata_store.db.serialization import EPOCH, int2time, time2int
 
 
 def test_time_convert():

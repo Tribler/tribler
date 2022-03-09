@@ -8,10 +8,10 @@ from collections import defaultdict
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
 
-from tribler_core.components.reporter.reported_error import ReportedError
-from tribler_core.sentry_reporter.sentry_reporter import SentryReporter
-from tribler_core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler_core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
+from tribler.core.components.reporter.reported_error import ReportedError
+from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 
 from tribler_gui.event_request_manager import received_events
 from tribler_gui.sentry_mixin import AddBreadcrumbOnShowMixin

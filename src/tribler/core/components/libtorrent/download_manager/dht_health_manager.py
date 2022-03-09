@@ -3,8 +3,8 @@ from asyncio import Future
 
 from ipv8.taskmanager import TaskManager
 
-from tribler_core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler_core.utilities.unicode import hexlify
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.utilities.unicode import hexlify
 
 
 class DHTHealthManager(TaskManager):

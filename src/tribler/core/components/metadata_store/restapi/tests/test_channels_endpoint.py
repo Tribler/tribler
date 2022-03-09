@@ -12,19 +12,19 @@ from pony.orm import db_session
 
 import pytest
 
-from tribler_core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
-from tribler_core.components.libtorrent.torrentdef import TorrentDef
-from tribler_core.components.metadata_store.category_filter.family_filter import default_xxx_filter
-from tribler_core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler_core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler_core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
-from tribler_core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
-from tribler_core.components.restapi.rest.base_api_test import do_request
-from tribler_core.components.restapi.rest.rest_manager import error_middleware
-from tribler_core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler_core.utilities.simpledefs import CHANNEL_STATE
-from tribler_core.utilities.unicode import hexlify
-from tribler_core.utilities.utilities import random_infohash
+from tribler.core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
+from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
+from tribler.core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
+from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import random_infohash
 
 PNG_DATA = unhexlify(
     "89504e470d0a1a0a0000000d494844520"

@@ -1,6 +1,6 @@
 import pytest
 
-from tribler_core.utilities.dependencies import (
+from tribler.core.utilities.dependencies import (
     Scope,
     _extract_libraries_from_requirements,
     _get_pip_dependencies,
@@ -8,7 +8,7 @@ from tribler_core.utilities.dependencies import (
 )
 
 import tribler_core
-from tribler_core.utilities.path_util import Path
+from tribler.core.utilities.path_util import Path
 
 pytestmark = pytest.mark.asyncio
 

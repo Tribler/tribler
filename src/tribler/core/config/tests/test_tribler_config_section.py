@@ -3,7 +3,7 @@ from typing import Optional
 
 import pytest
 
-from tribler_core.config.tribler_config_section import TriblerConfigSection
+from tribler.core.config.tribler_config_section import TriblerConfigSection
 
 
 class TriblerTestConfigSection(TriblerConfigSection):
