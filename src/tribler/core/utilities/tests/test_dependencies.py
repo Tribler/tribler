@@ -29,7 +29,7 @@ async def test_extract_libraries_from_requirements():
 
 async def test_pip_dependencies_gen():
     # check that libraries extracts from file correctly
-    path = Path(tribler.core.__file__).parent / 'requirements.txt'
+    path = Path(tribler.__file__).parent.parent.parent / 'requirements.txt'
     assert list(_get_pip_dependencies(path))
 
 

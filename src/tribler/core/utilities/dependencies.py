@@ -5,9 +5,9 @@ Note that this file should not depend on any external modules itself other than 
 """
 import logging
 import re
+import tribler
 from enum import Enum
 from typing import Iterator, Optional
-
 from tribler.core.utilities.path_util import Path
 
 # fmt: off
@@ -26,13 +26,11 @@ package_to_import_mapping = {
 
 def get_dependencies(scope: Scope) -> Iterator[str]:
     def _get_path_to_requirements_txt() -> Optional[Path]:
-        requirements_txt = 'requirements.txt'
+        root_path = Path(tribler.__file__).parent.parent.parent
         if scope == Scope.core:
-            import tribler.core
-            return Path(tribler.core.__file__).parent / requirements_txt
+            return root_path / 'requirements-core.txt'
         if scope == Scope.gui:
-            import tribler.gui
-            return Path(tribler.gui.__file__).parent / requirements_txt
+            return root_path / 'requirements.txt'
         raise AttributeError(f'Scope is {scope} but should be in {[s for s in Scope]}')  # pylint: disable=unnecessary-comprehension
 
     return _get_pip_dependencies(_get_path_to_requirements_txt())
