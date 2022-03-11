@@ -17,6 +17,7 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.utilities.rest_utils import path_to_uri
 
 from tribler.gui import gui_sentry_reporter
+from tribler.gui.app_manager import AppManager
 from tribler.gui.tribler_app import TriblerApplication
 from tribler.gui.tribler_window import TriblerWindow
 from tribler.gui.utilities import get_translator
@@ -49,6 +50,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
 
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
         app = TriblerApplication(app_name, sys.argv)
+        app_manager = AppManager(app)
 
         # Note (@ichorid): translator MUST BE created and assigned to a separate variable
         # before calling installTranslator on app. Otherwise, it won't work for some reason
@@ -69,7 +71,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
             sys.exit(1)
 
         logger.info('Start Tribler Window')
-        window = TriblerWindow(settings, root_state_dir, api_port=api_port, api_key=api_key)
+        window = TriblerWindow(app_manager, settings, root_state_dir, api_port=api_port, api_key=api_key)
         window.setWindowTitle("Tribler")
         app.set_activation_window(window)
         app.parse_sys_args(sys.argv)

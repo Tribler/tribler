@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import traceback
 
@@ -5,6 +7,7 @@ from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 
 from tribler.gui import gui_sentry_reporter
+from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.exceptions import CoreError
 
@@ -18,6 +21,7 @@ class ErrorHandler:
         gui_sentry_reporter.ignore_logger(logger_name)
 
         self.tribler_window = tribler_window
+        self.app_manager: AppManager = tribler_window.app_manager
 
         self._handled_exceptions = set()
         self._tribler_stopped = False
@@ -49,6 +53,9 @@ class ErrorHandler:
             text=text,
             event=gui_sentry_reporter.event_from_exception(info_error),
         )
+
+        if self.app_manager.quitting_app:
+            return
 
         FeedbackDialog(
             parent=self.tribler_window,

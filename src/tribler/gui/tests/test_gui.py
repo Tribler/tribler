@@ -1,4 +1,3 @@
-# pylint: disable=redefined-outer-name
 import os
 import sys
 from pathlib import Path
@@ -6,7 +5,7 @@ from pathlib import Path
 from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import pytest
 
@@ -18,6 +17,7 @@ from tribler.core.utilities.rest_utils import path_to_uri
 from tribler.core.utilities.unicode import hexlify
 
 import tribler.gui
+from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.tests.gui_test_data import negative_token_balance_history
@@ -39,16 +39,18 @@ def window(tmpdir_factory):
     root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
+    app_manager = AppManager(app)
     # We must create a separate instance of QSettings and clear it.
     # Otherwise, previous runs of the same app will affect this run.
     settings = QSettings("tribler-guitest")
     settings.clear()
-    window = TriblerWindow(  # pylint: disable=W0621
+    window = TriblerWindow(
+        app_manager,
         settings,
         root_state_dir,
         api_key=api_key,
         core_args=[str(RUN_TRIBLER_PY.absolute()), '--core', '--gui-test-mode'],
-    )  # pylint: disable=W0621
+    )
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 
@@ -62,7 +64,7 @@ def window(tmpdir_factory):
 
     window.close_tribler()
     screenshot(window, name="tribler_closing")
-    QApplication.quit()
+    app_manager.quit_application()
 
 
 def no_abort(*args, **kwargs):

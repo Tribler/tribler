@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import platform
@@ -6,13 +8,14 @@ import time
 from collections import defaultdict
 
 from PyQt5 import uic
-from PyQt5.QtWidgets import QAction, QApplication, QDialog, QMessageBox, QTreeWidgetItem
+from PyQt5.QtWidgets import QAction, QDialog, QMessageBox, QTreeWidgetItem
 
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 
+from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import received_events
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -33,6 +36,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         retrieve_error_message_from_stacktrace=False,
     ):
         QDialog.__init__(self, parent)
+        self.app_manager: AppManager = parent.app_manager
 
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 
@@ -193,5 +197,5 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
     def closeEvent(self, close_event):
         if self.stop_application_on_close:
-            QApplication.quit()
+            self.app_manager.quit_application()
             close_event.ignore()

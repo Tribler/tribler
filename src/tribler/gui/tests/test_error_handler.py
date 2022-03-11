@@ -16,7 +16,9 @@ pytestmark = pytest.mark.asyncio
 
 @pytest.fixture
 def error_handler():
-    return ErrorHandler(MagicMock())
+    handler = ErrorHandler(MagicMock())
+    handler.app_manager.quitting_app = False
+    return handler
 
 
 @pytest.fixture
