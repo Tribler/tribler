@@ -72,7 +72,7 @@ There are a bunch of other packages that can easily be installed using pip and b
 .. code-block:: bash
 
     brew install gmp mpfr libmpc libsodium
-    cd src && python3 -m pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
 
 Tribler
 -------

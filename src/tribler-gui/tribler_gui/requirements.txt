@@ -1,7 +1,0 @@
--r ../../tribler-core/tribler_core/requirements.txt
-
-Pillow==9.0.1
-PyQt5==5.15.1
-PyQt5-sip==12.8.1
-pyqtgraph==0.12.3
-PyQtWebEngine==5.15.2

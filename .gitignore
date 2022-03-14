@@ -84,7 +84,7 @@ dist/
 annotations.txt
 
 # Screenshots taken by GUI tests
-tribler_gui/screenshots
+tribler/gui/screenshots
 
 #venv
 venv/

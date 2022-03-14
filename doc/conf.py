@@ -23,22 +23,19 @@ import sys
 # pylint: disable=wrong-import-position
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__name__), '..'))
 tribler_components = [
-    os.path.join(root_dir, "src", "pyipv8"),
-    os.path.join(root_dir, "src", "anydex"),
-    os.path.join(root_dir, "src", "tribler-core"),
-    os.path.join(root_dir, "src", "tribler-gui"),
+    os.path.join(root_dir, "src"),
     os.path.join(root_dir, "doc"),
 ]
 for component in tribler_components:
     sys.path.append(str(component))
 
-from tribler_core.utilities.dependencies import Scope, get_dependencies
-from tribler_core.utilities.patch_import import patch_import
+from tribler.core.utilities.dependencies import Scope, get_dependencies
+from tribler.core.utilities.patch_import import patch_import
 
 modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
 
 with patch_import(modules=modules_to_mock):
-    from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
+    from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
     add_endpoint = RootEndpoint.add_endpoint
     RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
         if path not in ['/ipv8', '/market', '/wallets'] else None

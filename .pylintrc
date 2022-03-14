@@ -5,11 +5,11 @@
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-init-hook='import sys; import os; sys.path.append(os.path.join("src", "pyipv8")); sys.path.append(os.path.join("src", "anydex"))'
+init-hook='import sys; import os;'
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=.git,libnacl,data,.pylint.rc,pyproject.toml
+ignore=.git,libnacl,data,.pylint.rc
 
 # Pickle collected data for later comparisons.
 persistent=yes

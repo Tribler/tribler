@@ -42,7 +42,7 @@ if __name__ == '__main__':
     logger.info("Build date: %s", build_date)
 
     logger.info('Writing runtime version info.')
-    with open(path.join('src', 'tribler-core', 'tribler_core', 'version.py'), 'w') as f:
+    with open(path.join('src', 'tribler', 'core', 'version.py'), 'w') as f:
         f.write(
             f'version_id = "{version_id}"{linesep}'
             f'build_date = "{build_date}"{linesep}'

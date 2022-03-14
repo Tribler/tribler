@@ -1,1 +1,0 @@
--r tribler-gui/tribler_gui/requirements.txt

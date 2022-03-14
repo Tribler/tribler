@@ -3,4 +3,4 @@ venv**
 .github
 .pytest**
 doc
-experiment
+scripts

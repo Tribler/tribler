@@ -7,9 +7,9 @@ import aiohttp
 
 import yaml
 
-from tribler_core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler_core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler_core.config.tribler_config import TriblerConfig
+from tribler.core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
+from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler.core.config.tribler_config import TriblerConfig
 
 
 async def extract_swagger(destination_fn):
