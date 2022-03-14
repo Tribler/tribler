@@ -20,8 +20,7 @@ repos:
     - id: black
       files: |
           (?x)(
-          ^src/tribler-gui/|
-          ^src/tribler-core/tribler_core/modules/metadata_store/
+          ^src/tribler/gui/
           )
       types: [file, python]
 
@@ -43,8 +42,8 @@ repos:
       language: system
       files: |
           (?x)(
-          ^src/tribler-gui/|
-          ^src/tribler-core/
+          ^src/tribler/gui/|
+          ^src/tribler/core/
           )
       types: [file, python]
         

@@ -33,7 +33,7 @@ if sys.platform == 'darwin':
 widget_files = []
 for file in os.listdir(os.path.join(src_dir, "tribler", "gui", "widgets")):
     if file.endswith(".py"):
-        widget_files.append('tribler_gui.widgets.%s' % file[:-3])
+        widget_files.append('tribler.gui.widgets.%s' % file[:-3])
 
 data_to_copy = [
     (os.path.join(src_dir, "tribler", "gui", "qt_resources"), 'qt_resources'),

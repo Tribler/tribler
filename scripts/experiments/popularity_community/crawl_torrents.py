@@ -1,7 +1,7 @@
 """This script crawl first 100 torrens from random nodes in the network.
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:../../../src
 
 python3 crawl_torrents.py [-t <timeout_in_sec>] [-f <db_file.sqlite>] [-v]
                           [--peers_count_csv=<csv_file_with_peers_count>]

@@ -4,6 +4,7 @@ from typing import List
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
+from tribler.run_tribler_upgrader import upgrade_state_dir
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
 
 from tribler.gui.utilities import connect, format_size, tr
@@ -109,7 +110,6 @@ class UpgradeManager(QObject):
 
         self._upgrade_worker = StateDirUpgradeWorker(self.version_history.root_state_dir)
         # We import it here because it is safer to do it in the main thread
-        from run_tribler_upgrader import upgrade_state_dir  # pylint: disable=C0415
 
         self._upgrade_worker._upgrade_state_dir = upgrade_state_dir  # pylint: disable=W0212
         self._upgrade_thread = QThread()

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* Export the `src` directory to to the `PYTHONPATH`
+* Export the `src` directory to `PYTHONPATH`
 * Install Tribler's requirements from `requirements.txt`
 
 ## Execution

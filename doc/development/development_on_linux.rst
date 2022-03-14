@@ -20,14 +20,8 @@ Install python packages:
 
 .. code-block:: bash
 
-    pip3 install --upgrade -r tribler/src/requirements.txt
+    pip3 install --upgrade -r tribler/requirements.txt
 
-
-Install py-ipv8 python dependencies:
-
-.. code-block:: bash
-
-    pip3 install --upgrade -r tribler/src/pyipv8/requirements.txt
 
 Run Tribler by executing the following commands:
 
@@ -58,14 +52,7 @@ Install python packages:
 
 .. code-block:: bash
 
-    pip3 install --upgrade -r tribler/src/requirements.txt
-
-
-Install py-ipv8 python dependencies
-
-.. code-block:: bash
-
-    pip3 install --upgrade -r tribler/src/pyipv8/requirements.txt
+    pip3 install --upgrade -r tribler/requirements.txt
 
 Run Tribler by executing the following commands:
 

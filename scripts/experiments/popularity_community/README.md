@@ -36,7 +36,7 @@ time_in_sec,total,alive
 ### Usage
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:../../../src
 
 python3 initial_filling.py [-i <check_interval_in_sec>] [-t <timeout_in_sec>] [-f <output_file.csv>]
 ```
@@ -79,7 +79,7 @@ Where:
 ### Usage
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:../../../src
 
 python3 crawl_torrents.py [-t <timeout_in_sec>] [-f <db_file.sqlite>] [-v]
                           [--peers_count_csv=<csv_file_with_peers_count>]
@@ -160,7 +160,7 @@ Where:
 ### Usage
 
 ```
-export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../../src/{pyipv8,tribler-core} | tr " " :`
+export PYTHONPATH=${PYTHONPATH}:../../../src
 
 python3 analyze_crawled_data.py [-d <sqlite_db_path>] [-f <json_output_file_path>]
                                 [-l <torrent_limit>] [-v]

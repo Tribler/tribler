@@ -18,9 +18,9 @@ The seedbox consists of two parts:
     python3 -m pip install -r requirements.txt 
     ```
 1. Add necessary folders to `PYTHONPATH` (below the bash example)
-    ```shell
-    export PYTHONPATH=${PYTHONPATH}:`echo ../.. ../{pyipv8,tribler-core} | tr " " :`
-    ```
+   ```shell
+    export PYTHONPATH=${PYTHONPATH}:../../../src
+   ```
    
 ## Torrent seeding
 

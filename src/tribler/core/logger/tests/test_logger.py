@@ -2,6 +2,7 @@ import logging
 from io import BytesIO, TextIOWrapper
 from unittest.mock import MagicMock, Mock, call, patch
 
+from tribler.core.utilities.path_util import Path
 from tribler.core.logger.logger import get_logger_config_path, setup_logging
 from tribler.core.logger.logger_streams import StreamWrapper
 
@@ -14,7 +15,7 @@ def test_get_logger_config_path():
 
     with patch('sys._MEIPASS', '/x/y/z/', create=True):
         config_path = get_logger_config_path()
-        assert config_path.parts[-7:] == ('x', 'y', 'z', 'tribler_source', 'tribler', 'core', 'logger', 'logger.yaml')
+        assert config_path == Path('/x/y/z/tribler_source/tribler/core/logger/logger.yaml')
 
 
 @patch('tribler.core.logger.logger.logger')

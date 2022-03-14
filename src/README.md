@@ -25,7 +25,7 @@ from` requirements.txt`.
 
 ##
 
-Export the `src` directory to to the `PYTHONPATH`:
+Export the `src` directory to `PYTHONPATH`
 
 Execute:
 ```
