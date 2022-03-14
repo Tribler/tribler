@@ -109,7 +109,6 @@ class UpgradeManager(QObject):
             self.upgrader_tick.emit(tr('Backing up state directory, please wait'))
 
         self._upgrade_worker = StateDirUpgradeWorker(self.version_history.root_state_dir)
-        # We import it here because it is safer to do it in the main thread
 
         self._upgrade_worker._upgrade_state_dir = upgrade_state_dir  # pylint: disable=W0212
         self._upgrade_thread = QThread()
