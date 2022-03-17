@@ -18,7 +18,6 @@ import libtorrent
 import psutil
 
 from tribler.core.utilities.utilities import has_bep33_support
-
 from tribler.gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.event_request_manager import received_events as tribler_received_events
@@ -641,7 +640,7 @@ class DebugWindow(QMainWindow):
         for event_dict, timestamp in tribler_received_events:
             item = QTreeWidgetItem(self.window().events_tree_widget)
             item.setData(0, Qt.UserRole, event_dict)
-            item.setText(0, f"{event_dict['type']}")
+            item.setText(0, f"{event_dict.get('topic', '')}")
             item.setText(1, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().events_tree_widget.addTopLevelItem(item)
 
