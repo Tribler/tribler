@@ -51,7 +51,6 @@ from tribler.core.utilities.rest_utils import (
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import parse_query
 from tribler.core.version import version_id
-
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
 from tribler.gui.defs import (
@@ -1165,7 +1164,10 @@ class TriblerWindow(QMainWindow):
         process_checker = ProcessChecker(self.root_state_dir)
         if process_checker.already_running:
             core_pid = process_checker.get_pid_from_lock_file()
-            os.kill(int(core_pid), 9)
+            try:
+                os.kill(int(core_pid), 9)
+            except OSError:  # The core process can exit before the GUI process attempts to kill it
+                pass
         # Stop the Qt application
         QApplication.quit()
 
