@@ -324,6 +324,7 @@ class Download(TaskManager):
 
         self.tracker_status[alert.url] = [peers, status]
 
+    @check_handle()
     def on_metadata_received_alert(self, _):
         torrent_info = get_info_from_handle(self.handle)
         if not torrent_info:
