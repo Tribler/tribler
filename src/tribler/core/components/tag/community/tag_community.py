@@ -75,7 +75,7 @@ class TagCommunity(TriblerCommunity):
             with db_session():
                 is_added = self.db.add_tag_operation(operation, signature.signature)
                 if is_added:
-                    self.logger.info(f'+ tag added ({operation.tag} ,{operation.infohash.hex()})')
+                    self.logger.info(f'+ tag added ({operation.tag!r}, {operation.infohash.hex()})')
 
         except PeerValidationError as e:  # peer has exhausted his response count
             self.logger.warning(e)
