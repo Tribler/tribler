@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
-from pony.orm import Database, count, db_session, select, sum
+from pony.orm import Database, count, db_session, desc, select, sum
 
 from tribler.core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
@@ -28,6 +28,7 @@ class BandwidthDatabase:
         self.store_all_transactions = store_all_transactions
 
         self.database = Database()
+
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         # pylint: disable=unused-variable
@@ -77,7 +78,7 @@ class BandwidthDatabase:
         """
         results = []
         db_txs = select(tx for tx in self.BandwidthTransaction
-                        if tx.public_key_a == self.my_pub_key or tx.public_key_b == self.my_pub_key)\
+                        if tx.public_key_a == self.my_pub_key or tx.public_key_b == self.my_pub_key) \
             .limit(limit)
         for db_tx in db_txs:
             results.append(BandwidthTransactionData.from_db(db_tx))
@@ -91,8 +92,12 @@ class BandwidthDatabase:
         :param public_key_b: The public key of the party receiving the bandwidth.
         :return The latest transaction between the two specified parties, or None if no such transaction exists.
         """
-        db_obj = self.BandwidthTransaction.get(public_key_a=public_key_a, public_key_b=public_key_b)
-        return BandwidthTransactionData.from_db(db_obj) if db_obj else None
+        db_txs = select(tx for tx in self.BandwidthTransaction
+                        if public_key_a == tx.public_key_a and public_key_b == tx.public_key_b) \
+            .order_by(desc(self.BandwidthTransaction.timestamp)) \
+            .limit(1)
+
+        return BandwidthTransactionData.from_db(db_txs[0]) if len(db_txs) == 1 else None
 
     @db_session
     def get_latest_transactions(self, public_key: bytes, limit: Optional[int] = 100) -> List[BandwidthTransactionData]:
@@ -103,7 +108,7 @@ class BandwidthDatabase:
         :return The latest transactions of the specified public key, or an empty list if no transactions exist.
         """
         db_txs = select(tx for tx in self.BandwidthTransaction
-                        if public_key in (tx.public_key_a, tx.public_key_b))\
+                        if public_key in (tx.public_key_a, tx.public_key_b)) \
             .limit(limit)
         return [BandwidthTransactionData.from_db(db_txn) for db_txn in db_txs]
 
