@@ -41,10 +41,21 @@ def get_random_word(min_length=0):
 
 
 def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
-    tags = tags or [get_random_word(min_length=MIN_TAG_LENGTH)
-                    for _ in range(random.randint(2, 6))]
-    suggested_tags = suggested_tags or [get_random_word(min_length=MIN_TAG_LENGTH)
-                                        for _ in range(random.randint(1, 3))]
+    if tags is None:
+        tags_count = random.randint(2, 6)
+        tags = []
+        while len(tags) < tags_count:
+            tag = get_random_word(min_length=MIN_TAG_LENGTH)
+            if tag not in tags:
+                tags.append(tag)
+
+    if suggested_tags is None:
+        suggested_tags_count = random.randint(1, 3)
+        suggested_tags = []
+        while len(suggested_tags) < suggested_tags_count:
+            tag = get_random_word(min_length=MIN_TAG_LENGTH)
+            if tag not in suggested_tags:
+                suggested_tags.append(tag)
 
     def _add_operation(_tag, _op, _key):
         operation = TagOperation(infohash=infohash, tag=_tag, operation=_op, clock=0,
