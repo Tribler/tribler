@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
-from pony.orm import Database, count, db_session, desc, select, sum
+from pony import orm
+from pony.orm import Database, count, db_session, desc, select
 
 from tribler.core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
@@ -119,7 +120,7 @@ class BandwidthDatabase:
         :param public_key: The public key of the peer of which we want to determine the total taken.
         :return The total amount of bandwidth taken by the specified peer, in bytes.
         """
-        return sum(transaction.amount for transaction in self.BandwidthTransaction
+        return orm.sum(transaction.amount for transaction in self.BandwidthTransaction
                    if transaction.public_key_a == public_key)
 
     @db_session
@@ -129,7 +130,7 @@ class BandwidthDatabase:
         :param public_key: The public key of the peer of which we want to determine the total given.
         :return The total amount of bandwidth given by the specified peer, in bytes.
         """
-        return sum(transaction.amount for transaction in self.BandwidthTransaction
+        return orm.sum(transaction.amount for transaction in self.BandwidthTransaction
                    if transaction.public_key_b == public_key)
 
     @db_session
