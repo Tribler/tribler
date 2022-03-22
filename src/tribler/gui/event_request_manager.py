@@ -26,7 +26,7 @@ class EventRequestManager(QNetworkAccessManager):
 
     node_info_updated = pyqtSignal(object)
     received_remote_query_results = pyqtSignal(object)
-    tribler_started = pyqtSignal(object)
+    core_connected = pyqtSignal(object)
     new_version_available = pyqtSignal(str)
     discovered_channel = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
@@ -68,7 +68,7 @@ class EventRequestManager(QNetworkAccessManager):
     def on_events_start(self, public_key: str, version: str):
         if version:
             self.tribler_started_flag = True
-            self.tribler_started.emit(version)
+            self.core_connected.emit(version)
             # if public key format will be changed, don't forget to change it
             # at the core side as well
             if public_key:

@@ -56,7 +56,7 @@ def window(tmpdir_factory):
 
     screenshot(window, name="tribler_loading")
     wait_for_signal(
-        window.core_manager.events_manager.tribler_started,
+        window.core_manager.events_manager.core_connected,
         flag=window.core_manager.events_manager.tribler_started_flag,
     )
     window.downloads_page.can_update_items = True

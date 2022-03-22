@@ -46,7 +46,7 @@ class CoreManager(QObject):
         self.last_core_stdout_output: str = ''
         self.last_core_stderr_output: str = ''
 
-        connect(self.events_manager.tribler_started, self.on_core_connected)
+        connect(self.events_manager.core_connected, self.on_core_connected)
 
     def on_core_connected(self, _):
         if not self.core_finished:

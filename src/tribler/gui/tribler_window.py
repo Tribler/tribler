@@ -320,7 +320,7 @@ class TriblerWindow(QMainWindow):
 
         connect(self.core_manager.events_manager.torrent_finished, self.on_torrent_finished)
         connect(self.core_manager.events_manager.new_version_available, self.on_new_version_available)
-        connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
+        connect(self.core_manager.events_manager.core_connected, self.on_core_connected)
         connect(self.core_manager.events_manager.low_storage_signal, self.on_low_storage)
         connect(self.core_manager.events_manager.tribler_shutdown_signal, self.on_tribler_shutdown_state_update)
         connect(self.core_manager.events_manager.config_error_signal, self.on_config_error_signal)
@@ -489,7 +489,7 @@ class TriblerWindow(QMainWindow):
             except RuntimeError as e:
                 logging.error("Failed to set tray message: %s", str(e))
 
-    def on_tribler_started(self, version):
+    def on_core_connected(self, version):
         if self.tribler_started:
             logging.warning("Received duplicate Tribler Core started event")
             return
