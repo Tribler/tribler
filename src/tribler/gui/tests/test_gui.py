@@ -1,8 +1,9 @@
 import os
 import sys
 from pathlib import Path
+from typing import Callable
 
-from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
+from PyQt5.QtCore import pyqtSignal, QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
@@ -57,8 +58,12 @@ def fixture_window(tmpdir_factory):
     screenshot(window, name="tribler_loading")
     wait_for_signal(
         window.core_manager.events_manager.core_connected,
-        flag=window.core_manager.events_manager.tribler_started_flag,
+        condition=lambda: window.tribler_started or (
+                window.core_manager.core_started and not window.core_manager.core_running)
     )
+    if not window.core_manager.core_running:
+        raise RuntimeError("The `window` fixture as not able to start the core process")
+
     window.downloads_page.can_update_items = True
     yield window
 
@@ -72,7 +77,6 @@ def no_abort(*args, **kwargs):
 
 
 screenshots_taken = 0
-signal_received = False
 sys.excepthook = no_abort
 
 
@@ -80,15 +84,17 @@ class TimeoutException(Exception):
     pass
 
 
-def wait_for_signal(signal, timeout=10, flag=None):
+def wait_for_signal(signal: pyqtSignal, timeout: int = 10, condition: Callable = None):
+    signal_received = False
+
     def on_signal(*args, **kwargs):
-        global signal_received
+        nonlocal signal_received
         signal_received = True
 
     connect(signal, on_signal)
 
     for _ in range(0, timeout * 1000, 100):
-        if signal_received or flag:
+        if signal_received or condition is not None and condition():
             return
         QTest.qWait(100)
 

@@ -47,8 +47,6 @@ class EventRequestManager(QNetworkAccessManager):
         self.shutting_down = False
         self.error_handler = error_handler
         self._logger = logging.getLogger(self.__class__.__name__)
-        # This flag is used to prevent race condition when starting GUI tests
-        self.tribler_started_flag = False
 
         self.connect_timer.setSingleShot(True)
         connect(self.connect_timer.timeout, self.connect)
@@ -66,13 +64,10 @@ class EventRequestManager(QNetworkAccessManager):
         notifier.add_observer(notifications.report_config_error, self.on_report_config_error)
 
     def on_events_start(self, public_key: str, version: str):
-        if version:
-            self.tribler_started_flag = True
-            self.core_connected.emit(version)
-            # if public key format will be changed, don't forget to change it
-            # at the core side as well
-            if public_key:
-                gui_sentry_reporter.set_user(public_key.encode('utf-8'))
+        # if public key format is changed, don't forget to change it at the core side as well
+        if public_key:
+            gui_sentry_reporter.set_user(public_key.encode('utf-8'))
+        self.core_connected.emit(version)
 
     def on_tribler_exception(self, error: dict):
         self.error_handler.core_error(ReportedError(**error))
