@@ -58,6 +58,7 @@ def fixture_window(tmpdir_factory):
     screenshot(window, name="tribler_loading")
     wait_for_signal(
         window.core_manager.events_manager.core_connected,
+        timeout=20,
         condition=lambda: window.tribler_started or (
                 window.core_manager.core_started and not window.core_manager.core_running)
     )
