@@ -1,23 +1,23 @@
-# pylint: disable=redefined-outer-name
 import os
 import sys
 from pathlib import Path
+from typing import Callable
 
-from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt
+from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt, pyqtSignal
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import pytest
 
+import tribler.gui
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import path_to_uri
 from tribler.core.utilities.unicode import hexlify
-
-import tribler.gui
+from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.tests.gui_test_data import negative_token_balance_history
@@ -33,36 +33,43 @@ RUN_TRIBLER_PY = Path(tribler.__file__).parent.parent / "run_tribler.py"
 TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
 
-@pytest.fixture(scope="module")
-def window(tmpdir_factory):
+@pytest.fixture(name='window', scope="module")
+def fixture_window(tmpdir_factory):
     api_key = hexlify(os.urandom(16))
     root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
 
     app = TriblerApplication("triblerapp-guitest", sys.argv)
+    app_manager = AppManager(app)
     # We must create a separate instance of QSettings and clear it.
     # Otherwise, previous runs of the same app will affect this run.
     settings = QSettings("tribler-guitest")
     settings.clear()
-    window = TriblerWindow(  # pylint: disable=W0621
+    window = TriblerWindow(
+        app_manager,
         settings,
         root_state_dir,
         api_key=api_key,
         core_args=[str(RUN_TRIBLER_PY.absolute()), '--core', '--gui-test-mode'],
-    )  # pylint: disable=W0621
+    )
     app.set_activation_window(window)
     QTest.qWaitForWindowExposed(window)
 
     screenshot(window, name="tribler_loading")
     wait_for_signal(
-        window.core_manager.events_manager.tribler_started,
-        flag=window.core_manager.events_manager.tribler_started_flag,
+        window.core_manager.events_manager.core_connected,
+        timeout=20,
+        condition=lambda: window.tribler_started or (
+                window.core_manager.core_started and not window.core_manager.core_running)
     )
+    if not window.core_manager.core_running:
+        raise RuntimeError("The `window` fixture as not able to start the core process")
+
     window.downloads_page.can_update_items = True
     yield window
 
     window.close_tribler()
     screenshot(window, name="tribler_closing")
-    QApplication.quit()
+    app_manager.quit_application()
 
 
 def no_abort(*args, **kwargs):
@@ -70,7 +77,6 @@ def no_abort(*args, **kwargs):
 
 
 screenshots_taken = 0
-signal_received = False
 sys.excepthook = no_abort
 
 
@@ -78,15 +84,17 @@ class TimeoutException(Exception):
     pass
 
 
-def wait_for_signal(signal, timeout=10, flag=None):
+def wait_for_signal(signal: pyqtSignal, timeout: int = 10, condition: Callable = None):
+    signal_received = False
+
     def on_signal(*args, **kwargs):
-        global signal_received
+        nonlocal signal_received
         signal_received = True
 
     connect(signal, on_signal)
 
     for _ in range(0, timeout * 1000, 100):
-        if signal_received or flag:
+        if signal_received or condition is not None and condition():
             return
         QTest.qWait(100)
 
@@ -601,9 +609,12 @@ def test_tags_dialog(window):
     assert widget.content_table.add_tags_dialog
     wait_for_signal(widget.content_table.add_tags_dialog.suggestions_loaded)
 
-    # Edit the first tag
+    # We expect for the tags input in gui tests run to have at least two tags
     tags_input = widget.content_table.add_tags_dialog.dialog_widget.edit_tags_input
     num_tags = len(tags_input.tags) - 1  # To account for the 'dummy' tag at the end of the input field.
+    assert num_tags >= 2
+
+    # Edit the first tag
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[0].rect.center().toPoint())
     QTest.keyClick(tags_input, Qt.Key_Home)
     assert tags_input.editing_index == 0
@@ -614,6 +625,9 @@ def test_tags_dialog(window):
     QTest.keyClick(tags_input, Qt.Key_Right)
     QTest.keySequence(tags_input, QKeySequence.SelectPreviousChar)
     assert tags_input.select_size == 1
+    # Without the next command, Qt removes previously selected chars and so modifies a tag. This looks like a bug in Qt.
+    # This behavior can make the tag too short and break the following actions if the tag length was just three chars.
+    QTest.keyClick(tags_input, Qt.Key_Right)
     QTest.keySequence(tags_input, QKeySequence.SelectNextChar)
     screenshot(window, name="edit_tags_dialog_first_tag_partial_selection")
     assert tags_input.select_size == 1
@@ -664,6 +678,7 @@ def test_tags_dialog(window):
     assert tags_input.editing_index == cur_editing_index - 1
 
     # Try adding a tag that overflows to the next line
+    QTest.keyClick(tags_input, Qt.Key_Space)
     for _ in range(70):
         QTest.keyClick(tags_input, "b")
 
@@ -681,6 +696,16 @@ def test_tags_dialog(window):
     assert tag_suggestion_buttons
     QTest.mouseClick(tag_suggestion_buttons[0], Qt.LeftButton)
     screenshot(window, name="edit_tags_dialog_suggestion_clicked")
+
+    # Remove the previously added very long tag to be able to save changes. Before clicking on the cross icon for the
+    # long tag, it is necessary to click somewhere inside the tag input field first, otherwise the tag remains
+    # undeleted sometimes for unknown reason.
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[0].rect.center().toPoint())
+    long_tag = tags_input.tags[-2]
+    cross_rect = tags_input.compute_cross_rect(long_tag.rect)
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=cross_rect.center().toPoint())
+    QTest.qWait(100)  # Removing tag can take some non-zero time
+    screenshot(window, name="edit_tags_dialog_long_tag_removed")
 
     QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
     wait_for_signal(widget.content_table.edited_tags)

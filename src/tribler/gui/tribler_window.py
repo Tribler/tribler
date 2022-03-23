@@ -51,6 +51,7 @@ from tribler.core.utilities.rest_utils import (
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import parse_query
 from tribler.core.version import version_id
+from tribler.gui.app_manager import AppManager
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
 from tribler.gui.defs import (
@@ -77,6 +78,7 @@ from tribler.gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
+from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
 from tribler.gui.upgrade_manager import UpgradeManager
@@ -134,6 +136,7 @@ class TriblerWindow(QMainWindow):
 
     def __init__(
         self,
+        app_manager: AppManager,
         settings,
         root_state_dir,
         core_args=None,
@@ -144,6 +147,7 @@ class TriblerWindow(QMainWindow):
     ):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.app_manager = app_manager
 
         QCoreApplication.setOrganizationDomain("nl")
         QCoreApplication.setOrganizationName("TUDelft")
@@ -175,8 +179,9 @@ class TriblerWindow(QMainWindow):
         self.core_args = core_args
         self.core_env = core_env
 
-        self.error_handler = ErrorHandler(self)
-        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, self.error_handler)
+        error_handler = ErrorHandler(self)
+        events_manager = EventRequestManager(api_port, api_key, error_handler)
+        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, app_manager, events_manager)
         self.version_history = VersionHistory(self.root_state_dir)
         self.upgrade_manager = UpgradeManager(self.version_history)
         self.pending_requests = {}
@@ -203,7 +208,7 @@ class TriblerWindow(QMainWindow):
                 if result == -1:
                     self.logger.warning("Failed to load font %s!", emoji_ttf_path)
 
-        sys.excepthook = self.error_handler.gui_error
+        sys.excepthook = error_handler.gui_error
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
@@ -315,7 +320,7 @@ class TriblerWindow(QMainWindow):
 
         connect(self.core_manager.events_manager.torrent_finished, self.on_torrent_finished)
         connect(self.core_manager.events_manager.new_version_available, self.on_new_version_available)
-        connect(self.core_manager.events_manager.tribler_started, self.on_tribler_started)
+        connect(self.core_manager.events_manager.core_connected, self.on_core_connected)
         connect(self.core_manager.events_manager.low_storage_signal, self.on_low_storage)
         connect(self.core_manager.events_manager.tribler_shutdown_signal, self.on_tribler_shutdown_state_update)
         connect(self.core_manager.events_manager.config_error_signal, self.on_config_error_signal)
@@ -429,8 +434,7 @@ class TriblerWindow(QMainWindow):
             self.close_tribler()
             # Since the core has already stopped at this point, it will not terminate the GUI.
             # So, we quit the GUI separately here.
-            if not QApplication.closingDown():
-                QApplication.quit()
+            self.app_manager.quit_application()
 
         self.downloads_page.stop_loading_downloads()
         self.core_manager.stop(quit_app_on_core_finished=False)
@@ -485,7 +489,7 @@ class TriblerWindow(QMainWindow):
             except RuntimeError as e:
                 logging.error("Failed to set tray message: %s", str(e))
 
-    def on_tribler_started(self, version):
+    def on_core_connected(self, version):
         if self.tribler_started:
             logging.warning("Received duplicate Tribler Core started event")
             return
@@ -1113,7 +1117,7 @@ class TriblerWindow(QMainWindow):
         if self.core_manager.use_existing_core:
             self._logger.info("Quitting Tribler GUI without stopping Tribler Core")
             # Don't close the core that we are using
-            QApplication.quit()
+            self.app_manager.quit_application()
 
         self.core_manager.stop()
         self.downloads_page.stop_loading_downloads()
@@ -1169,7 +1173,7 @@ class TriblerWindow(QMainWindow):
             except OSError:  # The core process can exit before the GUI process attempts to kill it
                 pass
         # Stop the Qt application
-        QApplication.quit()
+        self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):
         self.dialog = ConfirmationDialog(

@@ -1,10 +1,11 @@
 import logging
 import sys
+from pathlib import Path
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
-from PyQt5.QtWidgets import QApplication
 
+from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
 from tribler.gui.tribler_request_manager import TriblerNetworkRequest
@@ -17,16 +18,17 @@ class CoreManager(QObject):
     a fake API will be started.
     """
 
-    def __init__(self, root_state_dir, api_port, api_key, error_handler):
+    def __init__(self, root_state_dir: Path, api_port: int, api_key: str, app_manager: AppManager,
+                 events_manager: EventRequestManager):
         QObject.__init__(self, None)
 
         self._logger = logging.getLogger(self.__class__.__name__)
-
+        self.app_manager = app_manager
         self.root_state_dir = root_state_dir
         self.core_process = None
         self.api_port = api_port
         self.api_key = api_key
-        self.events_manager = EventRequestManager(self.api_port, self.api_key, error_handler)
+        self.events_manager = events_manager
 
         self.upgrade_manager = None
         self.core_args = None
@@ -37,7 +39,6 @@ class CoreManager(QObject):
         self.core_connected = False
         self.shutting_down = False
         self.core_finished = False
-        self.quitting_app = False
 
         self.should_quit_app_on_core_finished = False
 
@@ -45,14 +46,7 @@ class CoreManager(QObject):
         self.last_core_stdout_output: str = ''
         self.last_core_stderr_output: str = ''
 
-        connect(self.events_manager.tribler_started, self.on_core_connected)
-        app = QApplication.instance()
-        if app is not None:
-            # app can be None in tests where Qt application is not created
-            connect(app.aboutToQuit, self.on_about_to_quit)
-
-    def on_about_to_quit(self):
-        self.quitting_app = True
+        connect(self.events_manager.core_connected, self.on_core_connected)
 
     def on_core_connected(self, _):
         if not self.core_finished:
@@ -108,7 +102,7 @@ class CoreManager(QObject):
         self.core_running = True
 
     def on_core_stdout_read_ready(self):
-        if self.quitting_app:
+        if self.app_manager.quitting_app:
             # Reading at this stage can lead to the error "wrapped C/C++ object of type QProcess has been deleted"
             return
 
@@ -122,7 +116,7 @@ class CoreManager(QObject):
             pass
 
     def on_core_stderr_read_ready(self):
-        if self.quitting_app:
+        if self.app_manager.quitting_app:
             # Reading at this stage can lead to the error "wrapped C/C++ object of type QProcess has been deleted"
             return
 
@@ -154,7 +148,7 @@ class CoreManager(QObject):
         self.core_finished = True
         if self.shutting_down:
             if self.should_quit_app_on_core_finished:
-                self.quit_application()
+                self.app_manager.quit_application()
         else:
             error_message = (
                 f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}!\n"
@@ -162,13 +156,9 @@ class CoreManager(QObject):
             )
             self._logger.warning(error_message)
 
-            # Stop the event manager loop if it is running
-            if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
-                self.events_manager.connect_timer.stop()
+            if not self.app_manager.quitting_app:
+                # Stop the event manager loop if it is running
+                if self.events_manager.connect_timer and self.events_manager.connect_timer.isActive():
+                    self.events_manager.connect_timer.stop()
 
             raise CoreCrashedError(error_message)
-
-    def quit_application(self):
-        if not self.quitting_app:
-            self.quitting_app = True
-            QApplication.quit()
