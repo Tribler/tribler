@@ -32,6 +32,9 @@ class TriblerApplication(QtSingleApplication):
             self.handle_uri(msg)
 
     def handle_uri(self, uri):
+        if not self.activation_window():
+            return
+
         self.activation_window().pending_uri_requests.append(uri)
         if self.activation_window().tribler_started and not self.activation_window().start_download_dialog_active:
             self.activation_window().process_uri_request()
