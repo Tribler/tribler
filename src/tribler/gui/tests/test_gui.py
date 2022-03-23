@@ -609,9 +609,12 @@ def test_tags_dialog(window):
     assert widget.content_table.add_tags_dialog
     wait_for_signal(widget.content_table.add_tags_dialog.suggestions_loaded)
 
-    # Edit the first tag
+    # We expect for the tags input in gui tests run to have at least two tags
     tags_input = widget.content_table.add_tags_dialog.dialog_widget.edit_tags_input
     num_tags = len(tags_input.tags) - 1  # To account for the 'dummy' tag at the end of the input field.
+    assert num_tags >= 2
+
+    # Edit the first tag
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[0].rect.center().toPoint())
     QTest.keyClick(tags_input, Qt.Key_Home)
     assert tags_input.editing_index == 0
@@ -622,6 +625,9 @@ def test_tags_dialog(window):
     QTest.keyClick(tags_input, Qt.Key_Right)
     QTest.keySequence(tags_input, QKeySequence.SelectPreviousChar)
     assert tags_input.select_size == 1
+    # Without the next command, Qt removes previously selected chars and so modifies a tag. This looks like a bug in Qt.
+    # This behavior can make the tag too short and break the following actions if the tag length was just three chars.
+    QTest.keyClick(tags_input, Qt.Key_Right)
     QTest.keySequence(tags_input, QKeySequence.SelectNextChar)
     screenshot(window, name="edit_tags_dialog_first_tag_partial_selection")
     assert tags_input.select_size == 1
@@ -672,6 +678,7 @@ def test_tags_dialog(window):
     assert tags_input.editing_index == cur_editing_index - 1
 
     # Try adding a tag that overflows to the next line
+    QTest.keyClick(tags_input, Qt.Key_Space)
     for _ in range(70):
         QTest.keyClick(tags_input, "b")
 
@@ -689,6 +696,16 @@ def test_tags_dialog(window):
     assert tag_suggestion_buttons
     QTest.mouseClick(tag_suggestion_buttons[0], Qt.LeftButton)
     screenshot(window, name="edit_tags_dialog_suggestion_clicked")
+
+    # Remove the previously added very long tag to be able to save changes. Before clicking on the cross icon for the
+    # long tag, it is necessary to click somewhere inside the tag input field first, otherwise the tag remains
+    # undeleted sometimes for unknown reason.
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[0].rect.center().toPoint())
+    long_tag = tags_input.tags[-2]
+    cross_rect = tags_input.compute_cross_rect(long_tag.rect)
+    QTest.mouseClick(tags_input, Qt.LeftButton, pos=cross_rect.center().toPoint())
+    QTest.qWait(100)  # Removing tag can take some non-zero time
+    screenshot(window, name="edit_tags_dialog_long_tag_removed")
 
     QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
     wait_for_signal(widget.content_table.edited_tags)
