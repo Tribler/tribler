@@ -15,7 +15,6 @@ from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.utilities.rest_utils import path_to_uri
-
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.tribler_app import TriblerApplication

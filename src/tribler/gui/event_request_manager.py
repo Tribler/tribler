@@ -8,7 +8,6 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkReques
 from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.utilities.notifier import Notifier
-
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
 from tribler.gui.utilities import connect

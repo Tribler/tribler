@@ -14,7 +14,6 @@ from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
-
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import received_events
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin

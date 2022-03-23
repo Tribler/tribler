@@ -4,7 +4,6 @@ import pytest
 
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
-
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 
