@@ -51,7 +51,7 @@ def fixture_window(tmpdir_factory):
         api_key=api_key,
         core_args=[str(RUN_TRIBLER_PY.absolute()), '--core', '--gui-test-mode'],
     )
-    app.set_activation_window(window)
+    app.tribler_window = window
     QTest.qWaitForWindowExposed(window)
 
     screenshot(window, name="tribler_loading")

@@ -2,11 +2,13 @@
 
 import logging
 import sys
+from typing import Optional
 
-from PyQt5.QtCore import QTextStream, Qt, pyqtSignal
+from PyQt5.QtCore import QTextStream, pyqtSignal
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
+from tribler.gui.tribler_window import TriblerWindow
 from tribler.gui.utilities import connect, disconnect
 
 
@@ -24,10 +26,9 @@ class QtSingleApplication(QApplication):
                          f'Sys argv: "{sys.argv}"')
 
         QApplication.__init__(self, *argv)
+        self.tribler_window: Optional[TriblerWindow] = None
 
         self._id = win_id
-        self._activation_window = None
-        self._activate_on_message = False
 
         # Is there another instance running?
         self._outSocket = QLocalSocket()
@@ -74,19 +75,6 @@ class QtSingleApplication(QApplication):
     def get_id(self):
         return self._id
 
-    def activation_window(self):
-        return self._activation_window
-
-    def set_activation_window(self, activation_window, activate_on_message=True):
-        self._activation_window = activation_window
-        self._activate_on_message = activate_on_message
-
-    def activate_window(self):
-        if not self._activation_window:
-            return
-        self._activation_window.setWindowState(self._activation_window.windowState() & ~Qt.WindowMinimized)
-        self._activation_window.raise_()
-
     def send_message(self, msg):
         self.logger.info(f'Send message: {msg}')
         if not self._outStream:
@@ -104,8 +92,8 @@ class QtSingleApplication(QApplication):
         self._inStream = QTextStream(self._inSocket)
         self._inStream.setCodec('UTF-8')
         connect(self._inSocket.readyRead, self._on_ready_read)
-        if self._activate_on_message:
-            self.activate_window()
+        if self.tribler_window:
+            self.tribler_window.restore_from_minimised()
 
     def _on_ready_read(self):
         while True:

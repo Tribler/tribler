@@ -21,7 +21,14 @@ from PyQt5.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt5.QtGui import QDesktopServices, QFontDatabase, QIcon, QKeyEvent, QKeySequence, QPixmap
+from PyQt5.QtGui import (
+    QDesktopServices,
+    QFontDatabase,
+    QIcon,
+    QKeyEvent,
+    QKeySequence,
+    QPixmap,
+)
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -80,7 +87,11 @@ from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest, TriblerRequestManager, request_manager
+from tribler.gui.tribler_request_manager import (
+    TriblerNetworkRequest,
+    TriblerRequestManager,
+    request_manager,
+)
 from tribler.gui.upgrade_manager import UpgradeManager
 from tribler.gui.utilities import (
     connect,
@@ -97,8 +108,15 @@ from tribler.gui.utilities import (
 )
 from tribler.gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
-from tribler.gui.widgets.tablecontentmodel import DiscoveredChannelsModel, PopularTorrentsModel
-from tribler.gui.widgets.triblertablecontrollers import PopularContentTableViewController
+from tribler.gui.widgets.tablecontentmodel import (
+    DiscoveredChannelsModel,
+    PopularTorrentsModel,
+)
+from tribler.gui.widgets.triblertablecontrollers import (
+    PopularContentTableViewController,
+)
+
+# fmt: off
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -135,15 +153,15 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def __init__(
-        self,
-        app_manager: AppManager,
-        settings,
-        root_state_dir,
-        core_args=None,
-        core_env=None,
-        api_port=None,
-        api_key=None,
-        run_core=True,
+            self,
+            app_manager: AppManager,
+            settings,
+            root_state_dir,
+            core_args=None,
+            core_env=None,
+            api_port=None,
+            api_key=None,
+            run_core=True,
     ):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -598,14 +616,14 @@ class TriblerWindow(QMainWindow):
         self.gui_settings.setValue("recent_download_locations", ','.join(recent_locations))
 
     def perform_start_download_request(
-        self,
-        uri,
-        anon_download,
-        safe_seeding,
-        destination,
-        selected_files,
-        add_to_channel=False,
-        callback=None,
+            self,
+            uri,
+            anon_download,
+            safe_seeding,
+            destination,
+            selected_files,
+            add_to_channel=False,
+            callback=None,
     ):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
@@ -1134,10 +1152,10 @@ class TriblerWindow(QMainWindow):
     def event(self, event):
         # Minimize to tray
         if (
-            not DARWIN
-            and event.type() == QtCore.QEvent.WindowStateChange
-            and self.window().isMinimized()
-            and get_gui_setting(self.gui_settings, "minimize_to_tray", False, is_bool=True)
+                not DARWIN
+                and event.type() == QtCore.QEvent.WindowStateChange
+                and self.window().isMinimized()
+                and get_gui_setting(self.gui_settings, "minimize_to_tray", False, is_bool=True)
         ):
             self.window().hide()
             return True
@@ -1275,3 +1293,12 @@ class TriblerWindow(QMainWindow):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key_Escape:
             self.escape_pressed.emit()
+
+    def restore_from_minimised(self):
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
+        self.raise_()
+
+    def handle_uri(self, uri):
+        self.pending_uri_requests.append(uri)
+        if self.tribler_started and not self.start_download_dialog_active:
+            self.process_uri_request()

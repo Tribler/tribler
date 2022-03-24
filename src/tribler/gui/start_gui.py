@@ -72,7 +72,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         logger.info('Start Tribler Window')
         window = TriblerWindow(app_manager, settings, root_state_dir, api_port=api_port, api_key=api_key)
         window.setWindowTitle("Tribler")
-        app.set_activation_window(window)
+        app.tribler_window = window
         app.parse_sys_args(sys.argv)
         sys.exit(app.exec_())
 
