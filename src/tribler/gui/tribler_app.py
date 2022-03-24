@@ -6,7 +6,6 @@ from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
 from tribler.core.utilities.rest_utils import path_to_uri
 from tribler.core.utilities.unicode import ensure_unicode
-
 from tribler.gui.code_executor import CodeExecutor
 from tribler.gui.single_application import QtSingleApplication
 from tribler.gui.utilities import connect
@@ -14,8 +13,10 @@ from tribler.gui.utilities import connect
 # Set the QT application parameters before creating any instances of the application.
 QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = "1"
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
 
+
+# fmt: off
 
 class TriblerApplication(QtSingleApplication):
     """
@@ -32,6 +33,9 @@ class TriblerApplication(QtSingleApplication):
             self.handle_uri(msg)
 
     def handle_uri(self, uri):
+        if not self.activation_window():
+            return
+
         self.activation_window().pending_uri_requests.append(uri)
         if self.activation_window().tribler_started and not self.activation_window().start_download_dialog_active:
             self.activation_window().process_uri_request()
