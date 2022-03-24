@@ -33,12 +33,8 @@ class TriblerApplication(QtSingleApplication):
             self.handle_uri(msg)
 
     def handle_uri(self, uri):
-        if not self.activation_window():
-            return
-
-        self.activation_window().pending_uri_requests.append(uri)
-        if self.activation_window().tribler_started and not self.activation_window().start_download_dialog_active:
-            self.activation_window().process_uri_request()
+        if self.tribler_window:
+            self.tribler_window.handle_uri(uri)
 
     def parse_sys_args(self, args):
         for arg in args[1:]:
@@ -52,9 +48,9 @@ class TriblerApplication(QtSingleApplication):
         if '--allow-code-injection' in sys.argv[1:]:
             variables = globals().copy()
             variables.update(locals())
-            variables['window'] = self.activation_window()
+            variables['window'] = self.tribler_window
             self.code_executor = CodeExecutor(5500, shell_variables=variables)
-            connect(self.activation_window().tribler_crashed, self.code_executor.on_crash)
+            connect(self.tribler_window.tribler_crashed, self.code_executor.on_crash)
 
         if '--testnet' in sys.argv[1:]:
             os.environ['TESTNET'] = "YES"
