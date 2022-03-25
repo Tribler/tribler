@@ -1,3 +1,4 @@
+import hashlib
 from time import time
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -11,34 +12,44 @@ from tribler.core.components.metadata_store.utils import tag_torrent
 from tribler.core.utilities.utilities import random_infohash
 
 
+@db_session
+def create_channel(metadata_store, title, torrents_per_channel=5, local_version=0, subscribed=True):
+    def sha1_hash(value: str) -> bytes:
+        return hashlib.sha1(value.encode('utf-8')).digest()
+
+    def add_torrent_to_channel(torrent_title, seeders, self_checked):
+        t = metadata_store.TorrentMetadata(origin_id=channel.id_, title=torrent_title,
+                                           infohash=sha1_hash(torrent_title), sign_with=key)
+        t.health.seeders = seeders
+        t.health.self_checked = self_checked
+
+        one_week = 60 * 60 * 24 * 7
+        now = int(time())
+
+        t.health.last_check = now - one_week if self_checked else now
+
+    key = default_eccrypto.generate_key('curve25519')
+
+    channel = metadata_store.ChannelMetadata(title=title, subscribed=subscribed,
+                                             num_entries=torrents_per_channel,
+                                             infohash=sha1_hash(title), id_=123,
+                                             sign_with=key, version=10,
+                                             local_version=local_version)
+
+    for torrent_i in range(torrents_per_channel):
+        add_torrent_to_channel(f'torrent{channel.title}{torrent_i}', seeders=torrent_i,
+                               self_checked=bool(torrent_i % 2))
+
+
+@pytest.fixture
+def add_subscribed_and_not_downloaded_channel(metadata_store):
+    create_channel(metadata_store, 'Subscribed and not downloaded', subscribed=True, local_version=0)
+
+
 @pytest.fixture
 def add_fake_torrents_channels(metadata_store):
-    infohashes = []
-
-    torrents_per_channel = 5
-    # Add a few channels
-    with db_session:
-        for ind in range(10):
-            ext_key = default_eccrypto.generate_key('curve25519')
-            channel = metadata_store.ChannelMetadata(
-                title='channel%d' % ind,
-                subscribed=(ind % 2 == 0),
-                num_entries=torrents_per_channel,
-                infohash=random_infohash(),
-                id_=123,
-                sign_with=ext_key,
-                version=10,
-                local_version=(ind % 11),
-            )
-            for torrent_ind in range(torrents_per_channel):
-                rand_infohash = random_infohash()
-                infohashes.append(rand_infohash)
-                t = metadata_store.TorrentMetadata(
-                    origin_id=channel.id_, title='torrent%d' % torrent_ind, infohash=rand_infohash, sign_with=ext_key
-                )
-                t.health.seeders = int.from_bytes(t.infohash[:2], byteorder="big")
-                t.health.self_checked = bool(torrent_ind % 2 == 1)
-                t.health.last_check = int(time()) - (60 * 60 * 24 * 7 if torrent_ind % 2 else 0)
+    for i in range(10):
+        create_channel(metadata_store, f'channel{i}', subscribed=bool(i % 2), local_version=i)
 
 
 @pytest.fixture

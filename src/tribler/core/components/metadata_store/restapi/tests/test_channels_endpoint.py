@@ -33,7 +33,8 @@ PNG_DATA = unhexlify(
     "fff03000006000557bfabd40000000049454e44ae426082"
 )
 
-# pylint: disable=unused-argument
+
+# pylint: disable=unused-argument, redefined-outer-name
 
 
 @pytest.fixture
@@ -58,15 +59,15 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, tags_db):  # pyli
     return loop.run_until_complete(aiohttp_client(app))
 
 
-async def test_get_channels(rest_api, add_fake_torrents_channels, mock_dlmgr, metadata_store):
+async def test_get_channels(rest_api, add_fake_torrents_channels, add_subscribed_and_not_downloaded_channel, mock_dlmgr,
+                            metadata_store):
     """
     Test whether we can query some channels in the database with the REST API
     """
     mock_dlmgr.download_exists = lambda *args: None
     json_dict = await do_request(rest_api, 'channels')
-    assert len(json_dict['results']) == 10
-    # Default channel state should be METAINFO_LOOKUP
-    assert json_dict['results'][-1]['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value
+    assert len(json_dict['results']) == 11
+    assert json_dict['results'][0]['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value
 
     # We test out different combinations of channels' states and download progress
     # State UPDATING:
@@ -178,7 +179,7 @@ async def test_get_channel_contents_remote(metadata_store, add_fake_torrents_cha
 
 
 async def test_get_channel_contents_remote_request_timeout(
-    metadata_store, add_fake_torrents_channels, mock_dlmgr, rest_api
+        metadata_store, add_fake_torrents_channels, mock_dlmgr, rest_api
 ):
     """
     Test whether we can query torrents from a channel from a remote peer.
@@ -201,7 +202,7 @@ async def test_get_channel_contents_remote_request_timeout(
 
 
 async def test_get_channel_contents_remote_request_no_peers(
-    add_fake_torrents_channels, mock_dlmgr_get_download, rest_api, metadata_store
+        add_fake_torrents_channels, mock_dlmgr_get_download, rest_api, metadata_store
 ):
     """
     Test whether we can query torrents from a channel from a remote peer.
@@ -272,6 +273,8 @@ async def test_get_popular_torrents(add_fake_torrents_channels, mock_dlmgr_get_d
     Test getting the list of popular torrents. The list is served as contents of a pseudo-channel
     """
     json_dict = await do_request(rest_api, 'channels/popular_torrents', expected_code=200)
+    # torrents2 & torrent4 in each of 10 channels (but not torrent0, as it has 0 seeders)
+    assert len(json_dict['results']) == 20
 
     def fields(d, *args):
         return {key: d[key] for key in args}
@@ -285,7 +288,6 @@ async def test_get_popular_torrents(add_fake_torrents_channels, mock_dlmgr_get_d
         return (a, b, c)
 
     assert seeders_orig_order == sorted(seeders_orig_order, key=sort_key)
-    assert len(json_dict['results']) == 30  # torrents 1, 3, 5 in each of 10 channels
 
 
 async def test_get_popular_torrents_mdtype(add_fake_torrents_channels, mock_dlmgr_get_download, rest_api):
@@ -696,7 +698,8 @@ async def test_get_channel_thumbnail(rest_api, metadata_store):
             assert response.headers["Content-Type"] == "image/png"
 
 
-async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_channel, rest_api):  # pylint: disable=redefined-outer-name
+async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_channel,
+                                   rest_api):  # pylint: disable=redefined-outer-name
     """
     Test whether tags are correctly returned over the REST API
     """
@@ -713,7 +716,8 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
         assert len(item["tags"]) >= 2
 
 
-async def test_get_my_channel_tags_xxx(metadata_store, tags_db, mock_dlmgr_get_download, my_channel, rest_api):  # pylint: disable=redefined-outer-name
+async def test_get_my_channel_tags_xxx(metadata_store, tags_db, mock_dlmgr_get_download, my_channel,
+                                       rest_api):  # pylint: disable=redefined-outer-name
     """
     Test whether XXX tags are correctly filtered
     """
