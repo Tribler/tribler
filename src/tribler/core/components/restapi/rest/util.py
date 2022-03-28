@@ -4,21 +4,6 @@ This file contains some utility methods that are used by the API.
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
 
 
-def return_handled_exception(request, exception):
-    """
-    :param request: the request that encountered the exception
-    :param exception: the handled exception
-    :return: JSON dictionary describing the exception
-    """
-    return RESTResponse({
-        "error": {
-            "handled": True,
-            "code": exception.__class__.__name__,
-            "message": str(exception)
-        }
-    }, status=HTTP_INTERNAL_SERVER_ERROR)
-
-
 def get_parameter(parameters, name):
     """
     Return a specific parameter with a name from a HTTP request (or None if that parameter is not available).

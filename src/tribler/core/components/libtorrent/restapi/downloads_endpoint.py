@@ -21,7 +21,6 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
     RESTResponse,
     RESTStreamResponse,
 )
-from tribler.core.components.restapi.rest.util import return_handled_exception
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DLSTATUS_CIRCUITS,
@@ -413,7 +412,7 @@ class DownloadsEndpoint(RESTEndpoint):
             await self.download_manager.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
             self._logger.exception(e)
-            return return_handled_exception(request, e)
+            return self.internal_error(e)
 
         return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
 
@@ -486,7 +485,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 await self.download_manager.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
-                return return_handled_exception(request, e)
+                return self.internal_error(e)
             return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
         if 'selected_files' in parameters:
