@@ -12,12 +12,21 @@ from typing import Callable
 from urllib.parse import quote_plus
 from uuid import uuid4
 
-from PyQt5.QtCore import QCoreApplication, QLocale, QPoint, QSettings, QTranslator, pyqtSignal
+from PyQt5.QtCore import (
+    QCoreApplication,
+    QLocale,
+    QPoint,
+    QSettings,
+    QTranslator,
+    pyqtSignal,
+)
 from PyQt5.QtGui import QPixmap, QRegion
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
 from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+
+# fmt: off
 
 logger = logging.getLogger(__name__)
 
@@ -357,7 +366,8 @@ def format_votes_rich_text(votes=0.0):
     votes_count_empty = votes_count(1.0) - votes_count_full
 
     rating_rich_text = (
-        f"<font color=#BBBBBB>{'┃' * votes_count_full}</font>" + f"<font color=#444444>{'┃' * votes_count_empty}</font>"
+            f"<font color=#BBBBBB>{'┃' * votes_count_full}</font>" +
+            f"<font color=#444444>{'┃' * votes_count_empty}</font>"
     )
     return rating_rich_text
 
@@ -471,3 +481,12 @@ def take_screenshot(window, screenshots_dir):
     screenshots_dir.mkdir(exist_ok=True)
     img_name = 'exception_screenshot_%d.jpg' % timestamp
     pixmap.save(str(screenshots_dir / img_name))
+
+
+def show_message_box(text: str = '', title: str = 'Error', icon: QMessageBox.Icon = QMessageBox.Critical):
+    message_box = QMessageBox()
+    message_box.setIcon(icon)
+    message_box.setStandardButtons(QMessageBox.Yes)
+    message_box.setWindowTitle(title)
+    message_box.setText(text)
+    message_box.exec_()
