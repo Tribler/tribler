@@ -4,10 +4,9 @@ from typing import List
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
-from tribler.run_tribler_upgrader import upgrade_state_dir
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
-
 from tribler.gui.utilities import connect, format_size, tr
+from tribler.run_tribler_upgrader import upgrade_state_dir
 
 
 class StateDirUpgradeWorker(QObject):
