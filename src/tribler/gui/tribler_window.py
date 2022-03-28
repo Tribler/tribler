@@ -104,6 +104,7 @@ from tribler.gui.utilities import (
     get_ui_file_path,
     is_dir_writable,
     set_api_key,
+    show_message_box,
     tr,
 )
 from tribler.gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
@@ -967,6 +968,10 @@ class TriblerWindow(QMainWindow):
             if self.dialog.checkbox.isChecked():
                 # TODO: add recursive directory scanning
                 def on_add_button_pressed(channel_id):
+                    if not Path(self.chosen_dir).is_dir():
+                        show_message_box(f'"{self.chosen_dir}" is not a directory')
+                        return
+
                     TriblerNetworkRequest(
                         f"collections/mychannel/{channel_id}/torrents",
                         lambda _: self.tray_show_message(
