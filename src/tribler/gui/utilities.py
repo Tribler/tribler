@@ -266,14 +266,14 @@ def is_dir_writable(path):
     :return: True if writable, False otherwise
     """
 
-    random_name = "tribler_temp_delete_me_" + str(uuid4())
+    directory = Path(path)
+    random_file = directory / f'tribler_temp_delete_me_{uuid4()}'
     try:
-        if not os.path.exists(path):
-            os.makedirs(path)
-        open(os.path.join(path, random_name), 'w')
-        os.remove(os.path.join(path, random_name))
-    except OSError as os_error:
-        return False, os_error
+        directory.mkdir(parents=True, exist_ok=True)
+        random_file.open('w')
+        random_file.unlink()
+    except (OSError, UnicodeEncodeError) as e:
+        return False, e
     else:
         return True, None
 
