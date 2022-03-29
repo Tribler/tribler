@@ -1,16 +1,12 @@
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
+from marshmallow.fields import Integer, String
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
 )
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler.core.utilities.utilities import froze_it
-
-from marshmallow.fields import Integer, String  # incorrect import order to test the import order checks
 
 
 @froze_it
