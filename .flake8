@@ -1,5 +1,14 @@
 [flake8]
 max-line-length = 120
-select=E901,E999,F821,F822,F823,I100,I101,I201,I202,T001,T002,T003,T004
-ignore=E203,W503,C0330
-application-import-names=tribler,run_tribler
+extend-ignore =
+  I202, # Additional newline in a group of imports
+  E127, # continuation line over-indented for visual indent
+  E128, # continuation line under-indented for visual indent
+  E131, # continuation line unaligned for hanging indent
+  F722, # syntax error in forward annotation '20s'
+  E731, # do not assign a lambda expression, use a def
+  F401, # Pylint-checked, module imported but unused
+  F841, # Pylint-checked, local variable is assigned to but never used
+  E722, # Pylint-checked, do not use bare 'except'
+  E501 # Pylint-checked, line too long
+import-order-style=pycharm
