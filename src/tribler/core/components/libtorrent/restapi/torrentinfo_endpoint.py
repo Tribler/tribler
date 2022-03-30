@@ -26,8 +26,8 @@ from tribler.core.utilities.rest_utils import (
     HTTPS_SCHEME,
     HTTP_SCHEME,
     MAGNET_SCHEME,
-    scheme_from_uri,
-    uri_to_path,
+    scheme_from_url,
+    url_to_path,
 )
 from tribler.core.utilities.unicode import hexlify, recursive_unicode
 from tribler.core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
@@ -88,10 +88,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
         metainfo = None
-        scheme = scheme_from_uri(uri)
+        scheme = scheme_from_url(uri)
 
         if scheme == FILE_SCHEME:
-            file = uri_to_path(uri)
+            file = url_to_path(uri)
             try:
                 tdef = TorrentDef.load(file)
                 metainfo = tdef.metainfo

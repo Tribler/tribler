@@ -2,7 +2,7 @@ from tribler.core.components.base import Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.utilities.rest_utils import path_to_uri
+from tribler.core.utilities.rest_utils import path_to_url
 
 
 class LibtorrentComponent(Component):
@@ -34,7 +34,7 @@ class LibtorrentComponent(Component):
 
         if config.gui_test_mode:
             from tribler.core.tests.tools.common import TORRENT_WITH_DIRS  # pylint: disable=import-outside-toplevel
-            uri = path_to_uri(TORRENT_WITH_DIRS)
+            uri = path_to_url(TORRENT_WITH_DIRS)
             await self.download_manager.start_download_from_uri(uri)
 
     async def shutdown(self):

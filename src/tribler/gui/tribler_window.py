@@ -51,9 +51,9 @@ from tribler.core.utilities.process_checker import ProcessChecker
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     MAGNET_SCHEME,
-    scheme_from_uri,
-    uri_is_valid_file,
-    uri_to_path,
+    scheme_from_url,
+    url_is_valid_file,
+    url_to_path,
 )
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import parse_query
@@ -659,9 +659,9 @@ class TriblerWindow(QMainWindow):
     def show_add_torrent_to_channel_dialog_from_uri(self, uri):
         def on_add_button_pressed(channel_id):
             post_data = {}
-            scheme = scheme_from_uri(uri)
+            scheme = scheme_from_url(uri)
             if scheme == FILE_SCHEME:
-                file_path = uri_to_path(uri)
+                file_path = url_to_path(uri)
                 with open(file_path) as torrent_file:
                     post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
             elif scheme == MAGNET_SCHEME:
@@ -1172,7 +1172,7 @@ class TriblerWindow(QMainWindow):
 
     def dragEnterEvent(self, e):
         file_urls = self.get_urls_from_dragndrop_list(e)
-        if any(uri_is_valid_file(fu) for fu in file_urls):
+        if any(url_is_valid_file(fu) for fu in file_urls):
             e.accept()
         else:
             e.ignore()
@@ -1181,7 +1181,7 @@ class TriblerWindow(QMainWindow):
         file_urls = self.get_urls_from_dragndrop_list(e)
 
         for fu in file_urls:
-            path = Path(uri_to_path(fu))
+            path = Path(url_to_path(fu))
             if path.is_file():
                 self.start_download_from_uri(fu)
 

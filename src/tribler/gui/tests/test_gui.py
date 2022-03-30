@@ -3,19 +3,18 @@ import sys
 from pathlib import Path
 from typing import Callable
 
+import pytest
 from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt, pyqtSignal
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
-
-import pytest
 
 import tribler.gui
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.utilities.rest_utils import path_to_uri
+from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
@@ -400,7 +399,7 @@ def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
     screenshot(window, name="add_torrent_url_dialog")
-    uri = path_to_uri(TORRENT_WITH_DIRS)
+    uri = path_to_url(TORRENT_WITH_DIRS)
     window.dialog.dialog_widget.dialog_input.setText(uri)
     QTest.mouseClick(window.dialog.buttons[0], Qt.LeftButton)
     QTest.qWait(200)

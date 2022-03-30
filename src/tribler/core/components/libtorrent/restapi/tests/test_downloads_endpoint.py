@@ -2,18 +2,16 @@ import collections
 import os
 from unittest.mock import Mock
 
-from aiohttp.web_app import Application
-
-from ipv8.util import fail, succeed
-
 import pytest
+from aiohttp.web_app import Application
+from ipv8.util import fail, succeed
 
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_uri
+from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
 from tribler.core.utilities.simpledefs import (
     DLSTATUS_CIRCUITS,
     DLSTATUS_DOWNLOADING,
@@ -189,7 +187,7 @@ async def test_start_download_from_file(test_download, mock_dlmgr, rest_api):
     Testing whether we can start a download from a file
     """
     mock_dlmgr.start_download_from_uri = lambda *_, **__: succeed(test_download)
-    uri = path_to_uri(TESTS_DATA_DIR / 'video.avi.torrent')
+    uri = path_to_url(TESTS_DATA_DIR / 'video.avi.torrent')
     expected_json = {'started': True, 'infohash': 'c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5'}
     await do_request(rest_api, 'downloads', expected_code=200, request_type='PUT',
                      post_data={'uri': uri}, expected_json=expected_json)
@@ -204,7 +202,7 @@ async def test_start_download_with_selected_files(test_download, mock_dlmgr, res
         return succeed(test_download)
 
     mock_dlmgr.start_download_from_uri = mocked_start_download
-    uri = path_to_uri(TESTS_DATA_DIR / 'video.avi.torrent')
+    uri = path_to_url(TESTS_DATA_DIR / 'video.avi.torrent')
     post_data = {'uri': uri, 'selected_files': [0]}
     expected_json = {'started': True, 'infohash': 'c9a19e7fe5d9a6c106d6ea3c01746ac88ca3c7a5'}
     await do_request(rest_api, 'downloads', expected_code=200, request_type='PUT',
@@ -466,7 +464,7 @@ async def test_stream_unknown_download(mock_dlmgr, rest_api):
     Testing whether the API returns error 404 if we stream a non-existent download
     """
     mock_dlmgr.get_download = lambda _: None
-    await do_request(rest_api, f'downloads/abcd/stream/0',
+    await do_request(rest_api, 'downloads/abcd/stream/0',
                      headers={'range': 'bytes=0-'}, expected_code=404, request_type='GET')
 
 
