@@ -18,51 +18,6 @@ If you wish to run the Tribler Graphical User Interface, PyQt5 should be availab
 
     qmake --version # test whether qt is installed correctly
 
-Libtorrent
-~~~~~~~~~~
-
-You can install libtorrent with Brew using the following command:
-
-.. code-block:: bash
-
-    brew install libtorrent-rasterbar
-
-
-To verify a correct installation, you can execute:
-
-.. code-block:: bash
-
-    python3
-    >>> import libtorrent
-
-
-**Symbol not found: _kSCCompAnyRegex** error
-
-If you see `Symbol not found: _kSCCompAnyRegex` error, then follow
-https://github.com/Homebrew/homebrew-core/pull/43858 for the explanation.
-
-You can build libtorrent by yourself: http://libtorrent.org/python_binding.html
-or by using this workaround from PR:
-
-1. Edit brew formula:
-
-.. code-block:: bash
-
-    brew edit libtorrent-rasterbar
-
-2. Add on the top of the `install` function `ENV.append` string as described below:
-
-.. code-block:: bash
-
-    def install
-        ENV.append "LDFLAGS", "-framework SystemConfiguration -framework CoreFoundation"
-
-3. Build `libtorrent-rasterbar` from source:
-
-.. code-block:: bash
-
-    brew install libtorrent-rasterbar --build-from-source
-
 
 Other Packages
 ~~~~~~~~~~~~~~
