@@ -14,7 +14,7 @@ from tribler.core.check_os import (
 from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.core.utilities.rest_utils import path_to_uri
+from tribler.core.utilities.rest_utils import path_to_url
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.tribler_app import TriblerApplication
@@ -63,7 +63,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
             logger.info('GUI Application is already running. Passing a torrent file path to it.')
             for arg in sys.argv[1:]:
                 if os.path.exists(arg) and arg.endswith(".torrent"):
-                    app.send_message(path_to_uri(arg))
+                    app.send_message(path_to_url(arg))
                 elif arg.startswith('magnet'):
                     app.send_message(arg)
             logger.info('Close the current application.')

@@ -32,8 +32,8 @@ from tribler.core.utilities.rest_utils import (
     HTTPS_SCHEME,
     HTTP_SCHEME,
     MAGNET_SCHEME,
-    scheme_from_uri,
-    uri_to_path,
+    scheme_from_url,
+    url_to_path,
 )
 from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
 from tribler.core.utilities.unicode import hexlify
@@ -512,7 +512,7 @@ class DownloadManager(TaskManager):
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
     async def start_download_from_uri(self, uri, config=None):
-        scheme = scheme_from_uri(uri)
+        scheme = scheme_from_url(uri)
 
         if scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             tdef = await TorrentDef.load_from_url(uri)
@@ -527,7 +527,7 @@ class DownloadManager(TaskManager):
                 tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
             return self.start_download(tdef=tdef, config=config)
         if scheme == FILE_SCHEME:
-            file = uri_to_path(uri)
+            file = url_to_path(uri)
             return self.start_download(torrent_file=file, config=config)
         raise Exception("invalid uri")
 

@@ -4,11 +4,9 @@ from binascii import unhexlify
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus, unquote_plus
 
-from aiohttp.web_app import Application
-
-from ipv8.util import succeed
-
 import pytest
+from aiohttp.web_app import Application
+from ipv8.util import succeed
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
@@ -18,7 +16,7 @@ from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata imp
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
-from tribler.core.utilities.rest_utils import path_to_uri
+from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
 
 SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
@@ -62,7 +60,7 @@ async def test_get_torrentinfo_escaped_characters(tmp_path, rest_api):
     source = TORRENT_UBUNTU_FILE
     destination = tmp_path / 'ubuntu%20%21 15.04.torrent'
     shutil.copyfile(source, destination)
-    uri = path_to_uri(destination)
+    uri = path_to_url(destination)
     response = await do_request(rest_api, url='torrentinfo', params={'uri': uri}, expected_code=200)
 
     assert 'metainfo' in response
@@ -74,7 +72,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     """
 
     def _path(file):
-        return path_to_uri(TESTS_DATA_DIR / file)
+        return path_to_url(TESTS_DATA_DIR / file)
 
     shutil.copyfile(TORRENT_UBUNTU_FILE, tmp_path / 'ubuntu.torrent')
 
