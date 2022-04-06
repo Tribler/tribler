@@ -40,5 +40,5 @@ class LibtorrentComponent(Component):
     async def shutdown(self):
         await super().shutdown()
         if self.download_manager:
-            self.download_manager.stop_download_states_callback()
+            _ = self.download_manager.stop_download_states_callback()
             await self.download_manager.shutdown()

@@ -1,11 +1,9 @@
 from asyncio import Future, gather, get_event_loop, sleep
 from unittest.mock import MagicMock
 
-from ipv8.util import succeed
-
-from libtorrent import bencode
-
 import pytest
+from ipv8.util import succeed
+from libtorrent import bencode
 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
@@ -354,7 +352,7 @@ async def test_post_session_stats(fake_dlmgr):
     fake_dlmgr.ltsessions[0] = mock_lt_session
 
     # Check for status with session stats alert
-    fake_dlmgr.post_session_stats(hops=0)
+    fake_dlmgr.post_session_stats()
     mock_lt_session.post_session_stats.assert_called_once()
 
 

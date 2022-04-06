@@ -172,7 +172,9 @@ class Session:
             self._startup_exception = exc
 
     async def shutdown(self):
+        self.logger.info("Stopping components")
         await gather(*[create_task(component.stop()) for component in self.components.values()])
+        self.logger.info("All components are stopped")
 
     def __enter__(self):
         Session._stack.append(self)
@@ -232,10 +234,11 @@ class Component:
         self.started_event.set()
 
     async def stop(self):
-        self.logger.info(f'Stop: {self.__class__.__name__}')
-        self.logger.info("Waiting for other components to release me")
+        component_name = self.__class__.__name__
+        dependants = sorted(component.__class__.__name__ for component in self.reverse_dependencies)
+        self.logger.info(f'Stopping {component_name}: waiting for {dependants} to release it')
         await self.unused_event.wait()
-        self.logger.info("Component free, shutting down")
+        self.logger.info(f"Component {component_name} free, shutting down")
         try:
             await self.shutdown()
         except Exception as e:
@@ -245,7 +248,9 @@ class Component:
             self.stopped = True
             for dep in list(self.dependencies):
                 self._release_instance(dep)
-            self.logger.info("Component free, shutting down")
+            remaining_components = sorted(
+                c.__class__.__name__ for c in self.session.components.values() if not c.stopped)
+            self.logger.info(f"Component {component_name}, stopped. Remaining components: {remaining_components}")
 
     async def run(self):
         pass

@@ -35,7 +35,7 @@ from tribler.core.utilities.rest_utils import (
     scheme_from_url,
     url_to_path,
 )
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, NTFY, STATEDIR_CHECKPOINT_DIR
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler.core.version import version_id
@@ -159,25 +159,30 @@ class DownloadManager(TaskManager):
         self.set_download_states_callback(self.sesscb_states_callback)
 
     def notify_shutdown_state(self, state):
+        self._logger.info(f'Notify shutdown state: {state}')
         self.notifier[notifications.tribler_shutdown_state](state)
 
     async def shutdown(self, timeout=30):
+        self._logger.info('Shutting down...')
         if self.downloads:
+            self._logger.info('Stopping downloads...')
+
             self.notify_shutdown_state("Checkpointing Downloads...")
             await gather(*[download.stop() for download in self.downloads.values()], return_exceptions=True)
             self.notify_shutdown_state("Shutting down Downloads...")
             await gather(*[download.shutdown() for download in self.downloads.values()], return_exceptions=True)
 
-        self.notify_shutdown_state("Shutting down Libtorrent Manager...")
+        self.notify_shutdown_state("Shutting down LibTorrent Manager...")
         # If libtorrent session has pending disk io, wait until timeout (default: 30 seconds) to let it finish.
         # In between ask for session stats to check if state is clean for shutdown.
         # In dummy mode, we immediately shut down the download manager.
         while not self.dummy_mode and not self.is_shutdown_ready() and timeout >= 1:
-            self.notify_shutdown_state("Waiting for Libtorrent to finish...")
+            self.notify_shutdown_state("Waiting for LibTorrent to finish...")
             self.post_session_stats()
             timeout -= 1
             await asyncio.sleep(1)
 
+        self._logger.info('Awaiting shutdown task manager...')
         await self.shutdown_task_manager()
 
         if self.dht_health_manager:
@@ -185,20 +190,20 @@ class DownloadManager(TaskManager):
 
         # Save libtorrent state
         if self.has_session():
+            self._logger.info('Saving state...')
             with open(self.state_dir / LTSTATE_FILENAME, 'wb') as ltstate_file:
                 ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
         if self.has_session() and self.config.upnp:
+            self._logger.info('Stopping upnp...')
             self.get_session().stop_upnp()
-
-        for ltsession in self.ltsessions.values():
-            del ltsession
-        self.ltsessions = None
 
         # Remove metadata temporary directory
         if self.metadata_tmpdir:
+            self._logger.info('Removing temp directory...')
             rmtree(self.metadata_tmpdir, ignore_errors=True)
             self.metadata_tmpdir = None
+        self._logger.info('Shutdown completed')
 
     def is_shutdown_ready(self):
         return all(self.lt_session_shutdown_ready.values())
@@ -401,7 +406,6 @@ class DownloadManager(TaskManager):
             queued_disk_jobs = alert.values['disk.queued_disk_jobs']
             queued_write_bytes = alert.values['disk.queued_write_bytes']
             num_write_jobs = alert.values['disk.num_write_jobs']
-
             if queued_disk_jobs == queued_write_bytes == num_write_jobs == 0:
                 self.lt_session_shutdown_ready[hops] = True
 
@@ -672,10 +676,10 @@ class DownloadManager(TaskManager):
                         'upload_rate_limit': rate}
             self.set_session_settings(lt_session, settings)
 
-    def post_session_stats(self, hops=None):
-        for ltsession in self.ltsessions.values() if hops is None else [self.ltsessions[hops]]:
-            if hasattr(ltsession, "post_session_stats"):
-                ltsession.post_session_stats()
+    def post_session_stats(self):
+        self._logger.info('Post session stats')
+        for session in self.ltsessions.values():
+            session.post_session_stats()
 
     async def remove_download(self, download, remove_content=False, remove_checkpoint=True):
         infohash = download.get_def().get_infohash()
