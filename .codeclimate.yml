@@ -1,5 +1,8 @@
+# https://docs.codeclimate.com/docs/advanced-configuration
+version: "2"
+
 plugins:
-  pep8:
+  pylint: # it uses .pylintrc as a config file
     enabled: true
   bandit:
     enabled: true
