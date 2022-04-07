@@ -19,7 +19,6 @@ from tribler.core.components.tag.tag_component import TagComponent
 
 # pylint: disable=protected-access, not-callable, redefined-outer-name
 @pytest.mark.asyncio
-@pytest.mark.no_parallel
 async def test_rest_component(tribler_config):
     components = [KeyComponent(), RESTComponent(), Ipv8Component(), LibtorrentComponent(), ResourceMonitorComponent(),
                   BandwidthAccountingComponent(), GigaChannelComponent(), TagComponent(), SocksServersComponent(),

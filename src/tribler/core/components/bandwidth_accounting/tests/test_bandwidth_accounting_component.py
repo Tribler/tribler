@@ -9,7 +9,6 @@ from tribler.core.components.key.key_component import KeyComponent
 
 
 @pytest.mark.asyncio
-@pytest.mark.no_parallel
 async def test_bandwidth_accounting_component(tribler_config):
     components = [KeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
     async with Session(tribler_config, components).start():
