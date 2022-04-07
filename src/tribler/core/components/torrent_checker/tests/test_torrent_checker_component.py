@@ -12,7 +12,6 @@ from tribler.core.components.torrent_checker.torrent_checker_component import To
 
 # pylint: disable=protected-access
 @pytest.mark.asyncio
-@pytest.mark.no_parallel
 async def test_torrent_checker_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), KeyComponent(),
                   Ipv8Component(), TagComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]

@@ -1,0 +1,27 @@
+# See: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+name: Upload Coverage
+
+on:
+  workflow_run:
+    workflows: [ 'Coverage' ]
+    types:
+      - completed
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Download artifact
+      - uses: actions/download-artifact@v3
+        with:
+          name: coverage_report
+
+      - name: Upload a Coverage Report
+        uses: paambaati/codeclimate-action@v3.0.0
+        env:
+          CC_TEST_REPORTER_ID: ${{secrets.CODECLIMATE_TEST_REPORTER_ID}}
+        with:
+          coverageLocations: |
+            ./coverage.xml:cobertura

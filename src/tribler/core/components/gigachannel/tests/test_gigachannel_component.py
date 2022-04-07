@@ -11,7 +11,6 @@ from tribler.core.components.tag.tag_component import TagComponent
 
 
 @pytest.mark.asyncio
-@pytest.mark.no_parallel
 async def test_giga_channel_component(tribler_config):
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
