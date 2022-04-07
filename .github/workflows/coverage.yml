@@ -1,0 +1,49 @@
+name: Coverage
+
+on:
+  pull_request:
+
+
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [ '3.9' ]
+        os: [ ubuntu-latest ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ./requirements-test.txt
+
+      - name: Run Pytest with Coverage
+        run: |
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
+          coverage combine
+          coverage xml
+
+      - name: Code Coverage Summary Report
+        uses: irongut/CodeCoverageSummary@v1.2.0
+        with:
+          filename: coverage.xml
+          format: markdown
+          badge: true
+          output: console
+
+      - name: Upload a Coverage Report
+        uses: paambaati/codeclimate-action@v3.0.0
+        env:
+          CC_TEST_REPORTER_ID: ${{secrets.CODECLIMATE_TEST_REPORTER_ID}}
+        with:
+          coverageLocations: |
+            ./coverage.xml:cobertura
