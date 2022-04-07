@@ -3,8 +3,6 @@ name: Coverage
 on:
   pull_request:
 
-
-
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -12,6 +10,7 @@ jobs:
       matrix:
         python-version: [ '3.9' ]
         os: [ ubuntu-latest ]
+
     steps:
       - uses: actions/checkout@v3
 
@@ -40,10 +39,9 @@ jobs:
           badge: true
           output: console
 
-      - name: Upload a Coverage Report
-        uses: paambaati/codeclimate-action@v3.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{secrets.CODECLIMATE_TEST_REPORTER_ID}}
+      - uses: actions/upload-artifact@v2
         with:
-          coverageLocations: |
-            ./coverage.xml:cobertura
+          name: coverage_report
+          path: ./coverage.xml
+
+
