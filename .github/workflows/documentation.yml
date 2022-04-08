@@ -1,4 +1,4 @@
-name: Documentation (no publish)
+name: Documentation
 
 on:
   pull_request:
