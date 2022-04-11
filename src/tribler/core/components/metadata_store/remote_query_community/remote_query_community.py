@@ -7,11 +7,10 @@ from typing import List, Optional, Set
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
-
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
-from tribler.core.components.ipv8.eva_protocol import EVAProtocolMixin
+from tribler.core.components.ipv8.eva_protocol import EVAProtocolMixin, TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -150,19 +149,19 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
         self.eva_init()
-        self.eva_register_receive_callback(self.on_receive)
-        self.eva_register_send_complete_callback(self.on_send_complete)
-        self.eva_register_error_callback(self.on_error)
+        self.eva.register_receive_callback(self.on_receive)
+        self.eva.register_send_complete_callback(self.on_send_complete)
+        self.eva.register_error_callback(self.on_error)
 
-    def on_receive(self, peer, binary_info, binary_data, nonce):
-        self.logger.debug(f"EVA data received: peer {hexlify(peer.mid)}, info {binary_info}")
-        packet = (peer.address, binary_data)
+    async def on_receive(self, result: TransferResult):
+        self.logger.debug(f"EVA data received: peer {hexlify(result.peer.mid)}, info {result.info}")
+        packet = (result.peer.address, result.data)
         self.on_packet(packet)
 
-    def on_send_complete(self, peer, binary_info, binary_data, nonce):
-        self.logger.debug(f"EVA outgoing transfer complete: peer {hexlify(peer.mid)},  info {binary_info}")
+    async def on_send_complete(self, result: TransferResult):
+        self.logger.debug(f"EVA outgoing transfer complete: peer {hexlify(result.peer.mid)},  info {result.info}")
 
-    def on_error(self, peer, exception):
+    async def on_error(self, peer, exception):
         self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
 
     def send_remote_select(self, peer, processing_callback=None, force_eva_response=False, **kwargs):
@@ -220,14 +219,13 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         index = 0
         while index < len(db_results):
             transfer_size = (
-                self.eva_protocol.binary_size_limit if force_eva_response else self.rqc_settings.maximum_payload_size
+                self.eva.binary_size_limit if force_eva_response else self.rqc_settings.maximum_payload_size
             )
             data, index = entries_to_chunk(db_results, transfer_size, start_index=index, include_health=True)
             payload = SelectResponsePayload(request_payload_id, data)
             if force_eva_response or (len(data) > self.rqc_settings.maximum_payload_size):
-                self.eva_send_binary(
-                    peer, struct.pack('>i', request_payload_id), self.ezr_pack(payload.msg_id, payload)
-                )
+                self.eva.send_binary(peer, struct.pack('>i', request_payload_id),
+                                     self.ezr_pack(payload.msg_id, payload))
             else:
                 self.ez_send(peer, payload)
 
@@ -326,5 +324,6 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
             self.network.remove_peer(request_cache.peer)
 
     async def unload(self):
+        self.eva.shutdown()
         await self.request_cache.shutdown()
         await super().unload()

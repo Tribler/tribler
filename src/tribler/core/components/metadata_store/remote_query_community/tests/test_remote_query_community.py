@@ -570,9 +570,9 @@ class TestRemoteQueryCommunity(TestBase):
 
         kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
 
-        self.nodes[1].overlay.eva_send_binary = Mock()
+        self.nodes[1].overlay.eva.send_binary = Mock()
         self.nodes[0].overlay.send_remote_select(self.nodes[1].my_peer, **kwargs_dict, force_eva_response=True)
 
         await self.deliver_messages(timeout=0.5)
 
-        self.nodes[1].overlay.eva_send_binary.assert_called_once()
+        self.nodes[1].overlay.eva.send_binary.assert_called_once()
