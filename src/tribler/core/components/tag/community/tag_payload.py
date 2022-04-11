@@ -3,7 +3,6 @@ from enum import IntEnum
 
 from ipv8.messaging.payload_dataclass import overwrite_dataclass, type_from_format
 
-
 dataclass = overwrite_dataclass(dataclass)
 
 

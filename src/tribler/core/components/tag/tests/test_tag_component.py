@@ -6,6 +6,7 @@ from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.tag.tag_component import TagComponent
 
+
 # pylint: disable=protected-access
 
 

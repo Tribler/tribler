@@ -3,13 +3,9 @@ from binascii import unhexlify
 from typing import Optional, Set, Tuple
 
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Boolean, List, String
-
 from pony.orm import db_session
 
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse

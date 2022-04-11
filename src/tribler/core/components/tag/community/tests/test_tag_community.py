@@ -2,11 +2,9 @@ import datetime
 from unittest.mock import MagicMock, Mock
 
 from cryptography.exceptions import InvalidSignature
-
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
-
 from pony.orm import db_session
 
 from tribler.core.components.tag.community.tag_community import TagCommunity
