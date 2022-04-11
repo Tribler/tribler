@@ -1,7 +1,19 @@
+#https://docs.codeclimate.com/docs/advanced-configuration#section-configuration-file-structure-and-content
+
+version: "2"
+
 plugins:
+#   pep8 uses `tox.ini` as a config file
   pep8:
     enabled: true
-  bandit:
-    enabled: true
-  sonar-python:
-    enabled: true
+#  bandit:
+#    enabled: true
+#  sonar-python:
+#    enabled: true
+
+#   markdownlint uses `.mdlrc` as a config file
+#  markdownlint:
+#    enabled: true
+#  shellcheck:
+#    enabled: true
+
