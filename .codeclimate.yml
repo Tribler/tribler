@@ -3,10 +3,8 @@
 version: "2"
 
 plugins:
-  pylint: # this plugin uses .pylintrc as a config file
+  pep8: # this plugin uses `tox.ini` as a config file
     enabled: true
-    PYTHONPATH:
-      - ./src
   bandit:
     enabled: true
   sonar-python:
