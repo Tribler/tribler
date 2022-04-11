@@ -1,10 +1,7 @@
-from asynctest import MagicMock
-
-from ipv8.util import succeed
-
-from pony.orm import db_session
-
 import pytest
+from asynctest import MagicMock
+from ipv8.util import succeed
+from pony.orm import db_session
 
 from tribler.core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -59,7 +56,6 @@ async def gigachannel_manager(metadata_store, download_manager):
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(20)
 async def test_channel_update_and_download(
     channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
 ):

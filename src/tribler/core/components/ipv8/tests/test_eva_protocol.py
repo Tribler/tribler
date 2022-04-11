@@ -7,10 +7,9 @@ from itertools import permutations
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import pytest
 from ipv8.community import Community
 from ipv8.test.base import TestBase
-
-import pytest
 
 from tribler.core.components.ipv8.eva_protocol import (
     Acknowledgement,
@@ -133,7 +132,6 @@ class TestEVA(TestBase):
         assert len(self.overlay(0).sent_data[self.peer(1)]) == 0
         assert len(self.overlay(1).received_data[self.peer(0)]) == 0
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_one_megabyte_transfer(self):
         data_size = 1024 * 1024
         data = os.urandom(1), os.urandom(data_size), random.randrange(0, 256)
@@ -145,7 +143,6 @@ class TestEVA(TestBase):
         assert len(self.overlay(1).most_recent_received_data[1]) == data_size
         assert self.overlay(1).most_recent_received_data == data
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_termination_by_timeout(self):
         self.overlay(0).eva_protocol.terminate_by_timeout_enabled = True
         self.overlay(1).eva_protocol.terminate_by_timeout_enabled = True
@@ -241,7 +238,6 @@ class TestEVA(TestBase):
         assert not self.overlay(2).eva_protocol.outgoing
         assert len(self.overlay(0).sent_data[self.peer(2)]) == 0
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_duplex(self):
         count = 100
         block_size = 10
@@ -269,7 +265,6 @@ class TestEVA(TestBase):
         assert len(self.overlay(1).sent_data[self.peer(0)]) == 1
         assert len(self.overlay(1).received_data[self.peer(0)]) == 1
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_multiply_send(self):
         data_set_count = 10
         data_size = 1024
@@ -283,7 +278,6 @@ class TestEVA(TestBase):
         assert self.overlay(1).received_data[self.peer(0)] == data_list
         assert not self.overlay(0).eva_protocol.scheduled
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_multiply_duplex(self):
         data_set_count = 5
 
@@ -322,7 +316,6 @@ class TestEVA(TestBase):
 
         assert data_sets_checked == 6
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_survive_when_multiply_packets_lost(self):
         self.overlay(0).eva_protocol.retransmit_interval_in_sec = 0
         self.overlay(1).eva_protocol.retransmit_interval_in_sec = 0
@@ -377,7 +370,6 @@ class TestEVA(TestBase):
         assert len(self.overlay(1).received_data[self.peer(0)]) == data_set_count
         assert self.overlay(1).received_data[self.peer(0)] == data
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_dynamically_changed_window_size(self):
         window_size = 5
 
@@ -431,7 +423,6 @@ class TestEVA(TestBase):
         assert isinstance(self.overlay(0).most_recent_received_exception, TransferException)
         assert isinstance(self.overlay(1).most_recent_received_exception, SizeException)
 
-    @pytest.mark.timeout(PYTEST_TIMEOUT_IN_SEC)
     async def test_wrong_message_order_and_wrong_nonce(self):
         self.overlay(0).eva_protocol.retransmit_interval_in_sec = 0
         self.overlay(1).eva_protocol.retransmit_interval_in_sec = 0
