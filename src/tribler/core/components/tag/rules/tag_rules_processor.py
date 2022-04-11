@@ -2,7 +2,6 @@ import logging
 from typing import Optional, Set
 
 from ipv8.taskmanager import TaskManager
-
 from pony.orm import db_session
 
 from tribler.core import notifications

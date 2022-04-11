@@ -7,8 +7,6 @@ from tribler.core.components.metadata_store.metadata_store_component import Meta
 from tribler.core.components.tag.tag_component import TagComponent
 
 # pylint: disable=protected-access
-
-
 @pytest.mark.asyncio
 async def test_tag_component(tribler_config):
     components = [MetadataStoreComponent(), KeyComponent(), Ipv8Component(), TagComponent()]
@@ -16,3 +14,4 @@ async def test_tag_component(tribler_config):
         comp = TagComponent.instance()
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
+        print(f'test')

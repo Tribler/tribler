@@ -1,20 +1,17 @@
 from unittest.mock import Mock
 
-from aiohttp.web_app import Application
-
-from freezegun import freeze_time
-
-from ipv8.keyvault.crypto import default_eccrypto
-
-from pony.orm import db_session
-
 import pytest
+from aiohttp.web_app import Application
+from freezegun import freeze_time
+from ipv8.keyvault.crypto import default_eccrypto
+from pony.orm import db_session
 
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
 from tribler.core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler.core.conftest import TEST_PERSONAL_KEY
 from tribler.core.utilities.unicode import hexlify
+
 
 # pylint: disable=redefined-outer-name
 

@@ -2,11 +2,9 @@ import random
 from binascii import unhexlify
 
 from cryptography.exceptions import InvalidSignature
-
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.types import Key
-
 from pony.orm import db_session
 
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity

@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from ipv8.test.base import TestBase
-
 from pony import orm
 from pony.orm import commit, db_session
 

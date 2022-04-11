@@ -1,8 +1,7 @@
 *******
 Tribler
 *******
-
-|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed|
+|Pytest| |docs| |Maintainability| |Coverage| |contributors| |pr_closed| |issues_closed|
 
 |python_3_8| |python_3_9|
 
@@ -202,3 +201,14 @@ We like to hear your feedback and suggestions. To reach out to us, you can join 
 
 .. |python_3_9| image:: https://img.shields.io/badge/python-3.9-blue.svg
     :target: https://www.python.org/
+
+.. |Pytest| image:: https://github.com/Tribler/tribler/actions/workflows/pytest.yml/badge.svg?branch=main
+    :target: https://github.com/Tribler
+
+.. |Maintainability| image:: https://api.codeclimate.com/v1/badges/a2f61aa9829ac493f6d3/maintainability
+   :target: https://codeclimate.com/github/Tribler/tribler/maintainability
+
+.. |Coverage| image:: https://api.codeclimate.com/v1/badges/a2f61aa9829ac493f6d3/test_coverage
+   :target: https://codeclimate.com/github/Tribler/tribler/test_coverage
+   :alt: Test Coverage
+
