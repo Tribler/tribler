@@ -436,7 +436,6 @@ class TestRemoteQueryCommunity(TestBase):
             torrents1 = mds1.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
 
-    @pytest.mark.timeout(15)
     async def test_remote_select_query_back_thumbs_and_descriptions(self):
         """
         Test querying back preview thumbnail and description for previously unknown and updated channels.
