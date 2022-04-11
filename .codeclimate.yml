@@ -1,9 +1,12 @@
-# https://docs.codeclimate.com/docs/advanced-configuration
+#https://docs.codeclimate.com/docs/advanced-configuration#section-configuration-file-structure-and-content
+
 version: "2"
 
 plugins:
-  pylint: # it uses .pylintrc as a config file
+  pylint: # this plugin uses .pylintrc as a config file
     enabled: true
+    PYTHONPATH:
+      - ./src
   bandit:
     enabled: true
   sonar-python:
