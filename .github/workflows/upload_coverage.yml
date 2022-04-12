@@ -10,11 +10,11 @@ on:
 jobs:
   upload:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Download artifact
-      - uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v3
         with:
           name: coverage_report
       - name: Upload codacy-coverage-report
