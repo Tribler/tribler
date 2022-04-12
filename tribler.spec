@@ -84,6 +84,7 @@ hiddenimports = [
     'csv',
     'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
     'ecdsa',
+    'ipv8',
     'PIL',
     'pkg_resources', # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'pyaes',
