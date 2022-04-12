@@ -3,9 +3,9 @@ from typing import Optional
 
 from pydantic import validator
 
-from tribler.core.components.libtorrent.download_manager.download_config import get_default_dest_dir
 from tribler.core.config.tribler_config_section import TriblerConfigSection
 from tribler.core.utilities.network_utils import NetworkUtils
+
 
 # pylint: disable=no-self-argument
 
@@ -51,7 +51,7 @@ class DownloadDefaultsSettings(TriblerConfigSection):
     anonymity_enabled: bool = True
     number_hops: int = 1
     safeseeding_enabled: bool = True
-    saveas: Optional[str] = str(get_default_dest_dir())
+    saveas: Optional[str] = None
     seeding_mode: SeedingMode = SeedingMode.forever
     seeding_ratio: float = 2.0
     seeding_time: float = 60
