@@ -1,8 +1,7 @@
 *******
 Tribler
 *******
-
-|jenkins_build| |docs| |contributors| |pr_closed| |issues_closed|
+|Pytest| |docs| |Codacy| |contributors| |pr_closed| |issues_closed|
 
 |python_3_8| |python_3_9|
 
@@ -202,3 +201,9 @@ We like to hear your feedback and suggestions. To reach out to us, you can join 
 
 .. |python_3_9| image:: https://img.shields.io/badge/python-3.9-blue.svg
     :target: https://www.python.org/
+
+.. |Pytest| image:: https://github.com/Tribler/tribler/actions/workflows/pytest.yml/badge.svg?branch=main
+    :target: https://github.com/Tribler
+
+.. |Codacy| image:: https://app.codacy.com/project/badge/Grade/35785b4de0b84724bffdd2598eea3276
+   :target: https://www.codacy.com/gh/Tribler/tribler/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Tribler/tribler&amp;utm_campaign=Badge_Grade
