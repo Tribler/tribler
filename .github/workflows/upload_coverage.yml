@@ -17,11 +17,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: coverage_report
-
-      - name: Upload a Coverage Report
-        uses: paambaati/codeclimate-action@v3.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{secrets.CODECLIMATE_TEST_REPORTER_ID}}
+      - name: Upload codacy-coverage-report
+        uses: codacy/codacy-coverage-reporter-action@v1
         with:
-          coverageLocations: |
-            ./coverage.xml:cobertura
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: ./coverage.xml
