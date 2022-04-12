@@ -83,8 +83,7 @@ def components_gen(config: TriblerConfig):
         yield TunnelsComponent()
     if config.ipv8.enabled:
         yield PayoutComponent()
-    if config.watch_folder.enabled:
-        yield WatchFolderComponent()
+    yield WatchFolderComponent()
     if config.general.version_checker_enabled:
         yield VersionCheckComponent()
     if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled:
