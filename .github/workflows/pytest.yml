@@ -34,10 +34,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ./requirements-test.txt
 
-      - name: Override PYTEST_TIMEOUT
+      #https://pypi.org/project/pytest-timeout/
+      - name: Override PYTEST_TIMEOUT (mac)
         if: matrix.os == 'macos-latest'
         run: |
           echo "PYTEST_TIMEOUT=300" >> $GITHUB_ENV
+
+      - name: Override PYTEST_TIMEOUT (win)
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "PYTEST_TIMEOUT=300" >> $env:GITHUB_ENV
 
       - name: Run Pytest
         run: |
