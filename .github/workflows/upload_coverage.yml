@@ -14,9 +14,11 @@ jobs:
 
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: dawidd6/action-download-artifact@v2
         with:
+          workflow: Coverage
           name: coverage_report
+
       - name: Upload codacy-coverage-report
         uses: codacy/codacy-coverage-reporter-action@v1
         with:
