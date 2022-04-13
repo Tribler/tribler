@@ -1,7 +1,7 @@
 *******
 Tribler
 *******
-|Pytest| |docs| |Codacy| |contributors| |pr_closed| |issues_closed|
+|Pytest| |docs| |Codacy| |Coverage| |contributors| |pr_closed| |issues_closed|
 
 |python_3_8| |python_3_9|
 
@@ -207,3 +207,6 @@ We like to hear your feedback and suggestions. To reach out to us, you can join 
 
 .. |Codacy| image:: https://app.codacy.com/project/badge/Grade/35785b4de0b84724bffdd2598eea3276
    :target: https://www.codacy.com/gh/Tribler/tribler/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Tribler/tribler&amp;utm_campaign=Badge_Grade
+
+.. |Coverage| image:: https://app.codacy.com/project/badge/Coverage/35785b4de0b84724bffdd2598eea3276
+   :target: https://www.codacy.com/gh/Tribler/tribler/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Tribler/tribler&amp;utm_campaign=Badge_Coverage
