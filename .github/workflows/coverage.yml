@@ -1,26 +1,16 @@
 name: Coverage
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+on: [ push ]
 
 jobs:
   run:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        python-version: [ '3.9' ]
-        os: [ ubuntu-latest ]
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+      - uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9
 
       - name: Install dependencies
         run: |
@@ -34,17 +24,14 @@ jobs:
           coverage combine
           coverage xml
 
-      - name: Code Coverage Summary Report
-        uses: irongut/CodeCoverageSummary@v1.2.0
+      - name: Upload to Codacy
+        uses: codacy/codacy-coverage-reporter-action@v1
         with:
-          filename: coverage.xml
-          format: markdown
-          badge: true
-          output: console
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: ./coverage.xml
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v2
         with:
-          name: coverage_report
-          path: ./coverage.xml
-
-
+          token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
+          files: ./coverage.xml
