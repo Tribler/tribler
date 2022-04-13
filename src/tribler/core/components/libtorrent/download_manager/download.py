@@ -24,7 +24,7 @@ from tribler.core.exceptions import SaveResumeDataError
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.osutils import fix_filebasename
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD, NTFY
+from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, DOWNLOAD
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
@@ -180,6 +180,8 @@ class Download(TaskManager):
         return atp
 
     def on_add_torrent_alert(self, alert):
+        self._logger.info(f'On add torrent alert: {alert}')
+
         if hasattr(alert, 'error') and alert.error.value():
             self._logger.error("Failed to add torrent (%s)", self.tdef.get_name_as_unicode())
             raise RuntimeError(alert.error.message())
@@ -249,9 +251,11 @@ class Download(TaskManager):
                 future_setter(getter(alert) if getter else alert)
 
     def on_torrent_error_alert(self, alert):
-        self._logger.error("Error during download: %s", alert.error)
+        self._logger.error(f'On torrent error alert: {alert}')
 
     def on_state_changed_alert(self, alert):
+        self._logger.info(f'On state changed alert: {alert}')
+
         if not self.handle:
             return
         self.update_lt_status(self.handle.status())
@@ -269,7 +273,7 @@ class Download(TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
-        self._logger.debug(f'On save resume data alert: {alert}')
+        self._logger.info(f'On save resume data alert: {alert}.')
         if self.checkpoint_disabled:
             return
 
@@ -296,9 +300,13 @@ class Download(TaskManager):
         self._logger.debug('Saving download config to file %s', filename)
 
     def on_tracker_reply_alert(self, alert):
+        self._logger.info(f'On tracker reply alert: {alert}')
+
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
     def on_tracker_error_alert(self, alert):
+        self._logger.error(f'On tracker error alert: {alert}')
+
         # try-except block here is a workaround and has been added to solve
         # the issue: "UnicodeDecodeError: invalid continuation byte"
         try:
@@ -319,13 +327,17 @@ class Download(TaskManager):
             return
 
     def on_tracker_warning_alert(self, alert):
+        self._logger.warning(f'On tracker warning alert: {alert}')
+
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
         status = 'Warning: ' + str(alert.message())
 
         self.tracker_status[alert.url] = [peers, status]
 
     @check_handle()
-    def on_metadata_received_alert(self, _):
+    def on_metadata_received_alert(self, alert):
+        self._logger.info(f'On metadata received alert: {alert}')
+
         torrent_info = get_info_from_handle(self.handle)
         if not torrent_info:
             return
@@ -353,6 +365,8 @@ class Download(TaskManager):
         self.checkpoint()
 
     def on_performance_alert(self, alert):
+        self._logger.info(f'On performance alert: {alert}')
+
         if self.get_anon_mode() or self.dlmgr.ltsessions is None:
             return
 
@@ -373,11 +387,15 @@ class Download(TaskManager):
                 settings['max_queued_disk_bytes'] *= 2
                 self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
 
-    def on_torrent_removed_alert(self, _):
+    def on_torrent_removed_alert(self, alert):
+        self._logger.info(f'On torrent remove alert: {alert}')
+
         self._logger.debug("Removing %s", self.tdef.get_name())
         self.handle = None
 
-    def on_torrent_checked_alert(self, _):
+    def on_torrent_checked_alert(self, alert):
+        self._logger.info(f'On torrent checked alert: {alert}')
+
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
             self.handle.pause()
@@ -386,14 +404,16 @@ class Download(TaskManager):
             self.checkpoint()
 
     @check_handle()
-    def on_torrent_finished_alert(self, _):
+    def on_torrent_finished_alert(self, alert):
+        self._logger.info(f'On torrent finished alert: {alert}')
         self.update_lt_status(self.handle.status())
         self.checkpoint()
         downloaded = self.get_state().get_total_transferred(DOWNLOAD)
         if downloaded > 0 and self.stream is not None and self.notifier is not None:
-            self.notifier[notifications.torrent_finished](infohash=self.tdef.get_infohash().hex(),
-                                                          name=self.tdef.get_name_as_unicode(),
-                                                          hidden=self.hidden or self.config.get_channel_download())
+            name = self.tdef.get_name_as_unicode()
+            infohash = self.tdef.get_infohash().hex()
+            hidden = self.hidden or self.config.get_channel_download()
+            self.notifier[notifications.torrent_finished](infohash=infohash, name=name, hidden=hidden)
 
     def update_lt_status(self, lt_status):
         """ Update libtorrent stats and check if the download should be stopped."""
