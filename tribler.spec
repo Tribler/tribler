@@ -97,6 +97,7 @@ hiddenimports = [
     'requests',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
+    'tribler.core.logger.logger_streams',
     'typing_extensions',
 ] + widget_files + pony_deps + get_sentry_hooks()
 
