@@ -48,7 +48,7 @@ class WatchFolder(TaskManager):
         self.notifier[notifications.watch_folder_corrupt_file](name)
 
     def check_watch_folder(self):
-        self._logger.debug(f'Checking watch folder...')
+        self._logger.debug('Checking watch folder...')
 
         if not self.settings.enabled or not self.state_dir:
             self._logger.debug(f'Cancelled. Enabled: {self.settings.enabled}. State dir: {self.state_dir}.')
@@ -83,4 +83,4 @@ class WatchFolder(TaskManager):
                 if not self.download_manager.download_exists(infohash):
                     self._logger.info("Starting download from torrent file %s", name)
                     self.download_manager.start_download(torrent_file=root / name)
-        self._logger.debug(f'Checking watch folder completed.')
+        self._logger.debug('Checking watch folder completed.')

@@ -540,7 +540,7 @@ class DownloadManager(TaskManager):
         self._logger.debug(f'Starting download: filename: {torrent_file}, torrent def: {tdef}')
         if config is None:
             config = DownloadConfig.convert(self.download_defaults)
-            self._logger.debug(f'Use a default config.')
+            self._logger.debug('Use a default config.')
 
         # the priority of the parameters is: (1) tdef, (2) torrent_file.
         # so if we have tdef, and torrent_file will be ignored, and so on.
