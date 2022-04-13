@@ -1,0 +1,8 @@
+#https://bandit.readthedocs.io/en/latest/config.html
+
+skips:
+  - B101 # assert_used
+
+# skip tests:
+assert_used:
+  skips: [ "*/test_*.py", "*/test_*.py" ]
