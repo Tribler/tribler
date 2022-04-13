@@ -1,9 +1,9 @@
 import base64
 
 from configobj import ConfigObj
-
 from validate import Validator
 
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.exceptions import InvalidConfigException
 from tribler.core.utilities.install_dir import get_lib_path
@@ -39,6 +39,21 @@ class DownloadConfig:
     def load(config_path=None):
         return DownloadConfig(ConfigObj(infile=Path.fix_win_long_file(config_path), file_error=True,
                                         configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
+
+    @staticmethod
+    def convert(settings: DownloadDefaultsSettings):
+        config = DownloadConfig()
+
+        config.set_hops(settings.number_hops)
+        config.set_safe_seeding(settings.safeseeding_enabled)
+
+        destination_directory = settings.saveas
+        if destination_directory is None:
+            destination_directory = get_default_dest_dir()
+
+        config.set_dest_dir(destination_directory)
+
+        return config
 
     def copy(self):
         return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'),

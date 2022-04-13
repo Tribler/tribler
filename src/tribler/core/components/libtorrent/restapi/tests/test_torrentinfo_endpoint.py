@@ -10,7 +10,7 @@ from ipv8.util import succeed
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler.core.components.libtorrent.settings import LibtorrentSettings
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -29,6 +29,7 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 def download_manager(state_dir):
     dlmgr = MagicMock()
     dlmgr.config = LibtorrentSettings()
+    dlmgr.download_defaults = DownloadDefaultsSettings()
     dlmgr.shutdown = lambda: succeed(None)
     checkpoints_dir = state_dir / 'dlcheckpoints'
     checkpoints_dir.mkdir()

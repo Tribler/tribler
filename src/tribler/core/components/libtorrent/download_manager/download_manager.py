@@ -535,8 +535,12 @@ class DownloadManager(TaskManager):
             return self.start_download(torrent_file=file, config=config)
         raise Exception("invalid uri")
 
-    def start_download(self, torrent_file=None, tdef=None, config=None, checkpoint_disabled=False, hidden=False):
-        self._logger.debug("Starting download: filename: %s, torrent def: %s", torrent_file, tdef)
+    def start_download(self, torrent_file=None, tdef=None, config: DownloadConfig = None, checkpoint_disabled=False,
+                       hidden=False) -> Download:
+        self._logger.debug(f'Starting download: filename: {torrent_file}, torrent def: {tdef}')
+        if config is None:
+            config = DownloadConfig.convert(self.download_defaults)
+            self._logger.debug('Use a default config.')
 
         # the priority of the parameters is: (1) tdef, (2) torrent_file.
         # so if we have tdef, and torrent_file will be ignored, and so on.
@@ -548,7 +552,6 @@ class DownloadManager(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        config = config or DownloadConfig()
         infohash = tdef.get_infohash()
         download = self.get_download(infohash)
 
