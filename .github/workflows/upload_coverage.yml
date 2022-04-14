@@ -67,4 +67,4 @@ jobs:
           files: ./coverage.xml
           commit_parent: ${{github.event.workflow_run.head_sha}}
           override_branch: ${{github.event.workflow_run.head_branch}}
-          override_pr: ${{PR_NUMBER}}
+          override_pr: ${{env.PR_NUMBER}}
