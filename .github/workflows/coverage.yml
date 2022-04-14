@@ -10,46 +10,31 @@ jobs:
   generate_and_upload_report:
     name: Generate and upload coverage report
     runs-on: ubuntu-latest
-    #https://docs.github.com/en/enterprise-cloud@latest/actions/deployment/targeting-different-environments/using-environments-for-deployment
-    environment: coverage # use this environment to access `secrets.CODECOV_PROJECT_TOKEN` and `secrets.CODACY_PROJECT_TOKEN`
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
           python-version: 3.8
 
-#      - name: Install dependencies
-#        run: |
-#          python -m pip install --upgrade pip
-#          pip install -r ./requirements-test.txt
-#
-#      - name: Run Pytest with Coverage
-#        run: |
-#          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core
-#          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
-#          coverage combine
-#          coverage xml
-#
-#      - name: Upload Coverage Artifact
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: coverage_report
-#          path: ./coverage.xml
-      - name: Test
+      - name: Install dependencies
         run: |
-          echo start
-          echo ${{ secrets.CODECOV_PROJECT_TOKEN }}
-          echo ${{ secrets.CODACY_PROJECT_TOKEN }}
-          echo ${{ secrets.CODACY_API_TOKEN }}
-          echo finish
+          python -m pip install --upgrade pip
+          pip install -r ./requirements-test.txt
+
+      - name: Run Pytest with Coverage
+        run: |
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
+          coverage combine
+          coverage xml
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:
-          token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
 
       - name: Upload to Codacy
+        if: github.event_name == 'push'
         uses: codacy/codacy-coverage-reporter-action@v1
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
