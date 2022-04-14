@@ -59,6 +59,7 @@ jobs:
       - name: Add PR number to ENV
         run: |
           echo "PR_NUMBER=$(cat ./pr_number.txt)" >> $GITHUB_ENV
+          echo "PR number is: ${{env.PR_NUMBER}}"
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v2
@@ -66,5 +67,5 @@ jobs:
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
           override_commit: ${{github.event.workflow_run.head_sha}}
-          override_branch: ${{github.event.workflow_run.head_branch}}
+#          override_branch: ${{github.event.workflow_run.head_branch}}
           override_pr: ${{env.PR_NUMBER}}
