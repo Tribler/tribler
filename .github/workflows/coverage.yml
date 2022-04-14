@@ -10,12 +10,13 @@ jobs:
   generate_and_upload_report:
     name: Generate and upload coverage report
     runs-on: ubuntu-latest
-
+    #https://docs.github.com/en/enterprise-cloud@latest/actions/deployment/targeting-different-environments/using-environments-for-deployment
+    environment: coverage # use this environment to access `secrets.CODECOV_PROJECT_TOKEN` and `secrets.CODACY_PROJECT_TOKEN`
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: 3.9
+          python-version: 3.8
 
       - name: Install dependencies
         run: |
@@ -35,19 +36,14 @@ jobs:
           name: coverage_report
           path: ./coverage.xml
 
-  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run
-  upload_pr_number:
-    name: Upload PR number
-    runs-on: ubuntu-latest
-    if: github.event.event_name == 'pull_request'
-
-    steps:
-      - name: Save PR number
-        run: |
-          echo ${{github.event.number}} > ./pr_number.txt
-
-      - name: Upload PR number
-        uses: actions/upload-artifact@v3
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v3
         with:
-          name: pr_number
-          path: ./pr_number.txt
+          token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
+          files: ./coverage.xml
+
+      - name: Upload to Codacy
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: ./coverage.xml
