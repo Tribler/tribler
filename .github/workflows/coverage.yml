@@ -1,6 +1,10 @@
 name: Coverage
 
-on: [ push ]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   run:
@@ -24,14 +28,8 @@ jobs:
           coverage combine
           coverage xml
 
-      - name: Upload to Codacy
-        uses: codacy/codacy-coverage-reporter-action@v1
+      - uses: actions/upload-artifact@v2
         with:
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: ./coverage.xml
+          name: coverage_report
+          path: ./coverage.xml
 
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v2
-        with:
-          token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
-          files: ./coverage.xml
