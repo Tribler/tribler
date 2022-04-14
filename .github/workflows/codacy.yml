@@ -7,6 +7,7 @@ on:
 
 jobs:
   analyse:
+    name: Analyse whole codebase
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
