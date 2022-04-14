@@ -30,9 +30,9 @@ jobs:
           coverage-reports: ./coverage.xml
 
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
-          override_sha: ${{github.event.workflow_run.head_sha}}
+          override_commit: ${{github.event.workflow_run.head_sha}}
           override_branch: ${{github.event.workflow_run.head_branch}}
           directory: .
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
@@ -65,11 +65,11 @@ jobs:
           echo "PR number is: ${{env.PR_NUMBER}}"
 
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
-          override_sha: ${{github.event.workflow_run.head_sha}}
+          override_commit: ${{github.event.workflow_run.head_sha}}
           override_branch: ${{github.event.workflow_run.head_branch}}
           directory: .
           override_pr: ${{env.PR_NUMBER}}
