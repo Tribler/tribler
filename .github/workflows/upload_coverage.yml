@@ -33,6 +33,8 @@ jobs:
         uses: codecov/codecov-action@v2
         with:
           override_sha: ${{github.event.workflow_run.head_sha}}
+          override_branch: ${{github.event.workflow_run.head_branch}}
+          directory: .
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
 
@@ -68,5 +70,6 @@ jobs:
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
           override_sha: ${{github.event.workflow_run.head_sha}}
-#          override_branch: ${{github.event.workflow_run.head_branch}}
+          override_branch: ${{github.event.workflow_run.head_branch}}
+          directory: .
           override_pr: ${{env.PR_NUMBER}}
