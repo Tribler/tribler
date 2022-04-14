@@ -65,6 +65,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
-          commit_parent: ${{github.event.workflow_run.head_sha}}
+          override_commit: ${{github.event.workflow_run.head_sha}}
           override_branch: ${{github.event.workflow_run.head_branch}}
           override_pr: ${{env.PR_NUMBER}}
