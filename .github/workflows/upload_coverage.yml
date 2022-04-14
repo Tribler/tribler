@@ -32,6 +32,7 @@ jobs:
       - name: Upload to Codecov
         uses: codecov/codecov-action@v2
         with:
+          override_sha: ${{github.event.workflow_run.head_sha}}
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
 
@@ -66,6 +67,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_PROJECT_TOKEN }}
           files: ./coverage.xml
-          override_commit: ${{github.event.workflow_run.head_sha}}
+          override_sha: ${{github.event.workflow_run.head_sha}}
 #          override_branch: ${{github.event.workflow_run.head_branch}}
           override_pr: ${{env.PR_NUMBER}}
