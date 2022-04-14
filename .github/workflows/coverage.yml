@@ -7,7 +7,8 @@ on:
   pull_request:
 
 jobs:
-  run:
+  generate_and_upload_report:
+    name: Generate and upload coverage report
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +29,25 @@ jobs:
           coverage combine
           coverage xml
 
-      - uses: actions/upload-artifact@v2
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v3
         with:
           name: coverage_report
           path: ./coverage.xml
 
+  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run
+  upload_pr_number:
+    name: Upload PR number
+    runs-on: ubuntu-latest
+    if: github.event.event_name == 'pull_request'
+
+    steps:
+      - name: Save PR number
+        run: |
+          echo ${{github.event.number}} > ./pr_number.txt
+
+      - name: Upload PR number
+        uses: actions/upload-artifact@v3
+        with:
+          name: pr_number
+          path: ./pr_number.txt
