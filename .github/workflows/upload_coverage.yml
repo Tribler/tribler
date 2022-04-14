@@ -17,6 +17,10 @@ jobs:
       github.event.workflow_run.head_branch == 'main'
 
     steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
       - name: Download coverage report
         uses: dawidd6/action-download-artifact@v2
         with:
@@ -47,6 +51,10 @@ jobs:
       github.event.workflow_run.head_branch != 'main'
 
     steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
       - name: Download coverage report
         uses: dawidd6/action-download-artifact@v2
         with:
