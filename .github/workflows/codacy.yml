@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request_target: # for testing
+  pull_request: # for testing
 
 jobs:
   analyse:
@@ -15,7 +15,7 @@ jobs:
       - name: Run Codacy Analysis CLI
         uses: codacy/codacy-analysis-cli-action@master
         with:
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          project-token: 91398ce221e2480ea00993ac7985d028
           verbose: true
           output: results.sarif
           format: sarif
