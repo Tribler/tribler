@@ -3,6 +3,5 @@
 skips:
   - B101 # assert_used
 
-# skip tests:
-assert_used:
-  skips: [ "*/test_*.py", "*/test_*.py" ]
+exclude_dirs:
+  - '*/test_*.py'
