@@ -2,7 +2,6 @@ import random
 import string
 from asyncio import sleep
 from binascii import unhexlify
-from datetime import datetime
 from json import dumps
 from operator import attrgetter
 from os import urandom
@@ -11,11 +10,8 @@ from unittest.mock import Mock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
-
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
-
-import pytest
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
@@ -28,6 +24,7 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
+
 
 # pylint: disable=protected-access
 
@@ -550,6 +547,7 @@ class TestRemoteQueryCommunity(TestBase):
         self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
 
         was_called = []
+
         async def mock_on_remote_select_response(*_, **__):
             was_called.append(True)
             return []
@@ -570,9 +568,9 @@ class TestRemoteQueryCommunity(TestBase):
 
         kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
 
-        self.nodes[1].overlay.eva_send_binary = Mock()
+        self.nodes[1].overlay.eva.send_binary = Mock()
         self.nodes[0].overlay.send_remote_select(self.nodes[1].my_peer, **kwargs_dict, force_eva_response=True)
 
         await self.deliver_messages(timeout=0.5)
 
-        self.nodes[1].overlay.eva_send_binary.assert_called_once()
+        self.nodes[1].overlay.eva.send_binary.assert_called_once()
