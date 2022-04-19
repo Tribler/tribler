@@ -623,7 +623,7 @@ def test_send_scheduled_with_transfers_limit(eva: EVAProtocol):
     assert len(eva.scheduled['peer3']) == 1
 
 
-def test_send_write_request_released_transfer(eva: EVAProtocol, peer):
+def test_send_write_request_released_transfer(eva: EVAProtocol):
     transfer = Mock()
     transfer.released = True
     assert not eva.send_write_request(transfer)

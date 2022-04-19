@@ -1,35 +1,35 @@
-"""EVA protocol: a protocol for transferring big binary data over ipv8.
+"""
+EVA protocol: a protocol for transferring big binary data over ipv8.
 
-    Limitations and other useful information described in the corresponding class.
-    An example of use:
+Limitations and other useful information described in the corresponding class.
+An example of use:
 
-    >>> import os
-    >>> from ipv8.community import Community
-    >>> class MyCommunity(EVAProtocolMixin, Community):
-    ...     community_id = os.urandom(20)
-    ...
-    >>>     def __init__(self, *args, **kwargs):
-    ...         super().__init__(*args, **kwargs)
-    ...         self.eva_init()
-    ...
-    ...         self.eva.register_receive_callback(self.on_receive)
-    ...         self.eva.register_send_complete_callback(self.on_send_complete)
-    ...         self.eva.register_error_callback(self.on_error)
-    ...
-    >>>     async def my_function(self, peer):
-    ...         await self.eva.send_binary(peer, b'info1', b'data1')
-    ...         await self.eva.send_binary(peer, b'info2', b'data2')
-    ...         await self.eva.send_binary(peer, b'info3', b'data3')
-    ...
-    >>>     async def on_receive(self, result):
-    ...         self.logger.info(f'Data has been received: {result}')
-    ...
-    >>>     async def on_send_complete(self, result):
-    ...         self.logger.info(f'Transfer has been completed: {result}')
-    ...
-    >>>     async def on_error(self, peer, exception):
-    ...         self.logger.error(f'Error has been occurred: {exception}')
-
+>>> import os
+>>> from ipv8.community import Community
+>>> class MyCommunity(EVAProtocolMixin, Community):
+...     community_id = os.urandom(20)
+...
+>>>     def __init__(self, *args, **kwargs):
+...         super().__init__(*args, **kwargs)
+...         self.eva_init()
+...
+...         self.eva.register_receive_callback(self.on_receive)
+...         self.eva.register_send_complete_callback(self.on_send_complete)
+...         self.eva.register_error_callback(self.on_error)
+...
+>>>     async def my_function(self, peer):
+...         await self.eva.send_binary(peer, b'info1', b'data1')
+...         await self.eva.send_binary(peer, b'info2', b'data2')
+...         await self.eva.send_binary(peer, b'info3', b'data3')
+...
+>>>     async def on_receive(self, result):
+...         self.logger.info(f'Data has been received: {result}')
+...
+>>>     async def on_send_complete(self, result):
+...         self.logger.info(f'Transfer has been completed: {result}')
+...
+>>>     async def on_error(self, peer, exception):
+...         self.logger.error(f'Error has been occurred: {exception}')
 """
 __version__ = '2.0.0'
 
@@ -41,7 +41,7 @@ from asyncio import Future
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum, auto
-from random import randint
+from random import SystemRandom
 from typing import Awaitable, Callable, Dict, Optional, Type
 
 from ipv8.lazy_community import lazy_wrapper
@@ -153,6 +153,7 @@ class Transfer:  # pylint: disable=too-many-instance-attributes
     def __init__(self, transfer_type: TransferType, info: bytes, data: bytes, data_size: int, block_count: int,
                  nonce: int, peer: Peer, protocol, future: Optional[Future] = None, window_size: int = 0,
                  updated: float = 0):
+        """ This class has been used internally by the EVA protocol"""
         self.type = transfer_type
         self.info = info
         self.data = data
@@ -305,6 +306,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
         self.retransmit_enabled = True
         self.terminate_by_timeout_enabled = terminate_by_timeout_enabled
+        self.random = SystemRandom()
 
         community.register_task('scheduled send', self.send_scheduled, interval=scheduled_send_interval_in_sec)
 
@@ -362,7 +364,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             data=data,
             data_size=data_size,
             block_count=math.ceil(data_size / self.block_size),
-            nonce=nonce if nonce is not None else randint(0, MAX_U64),
+            nonce=nonce if nonce is not None else self.random.randint(0, MAX_U64),
             future=Future(),
             peer=peer,
             protocol=self
@@ -593,8 +595,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             self.start_outgoing_transfer(transfer)
 
     def shutdown(self):
-        """ This method terminates all current transfers
-        """
+        """This method terminates all current transfers"""
         logger.info('Shutting down...')
         transfers = list(self.incoming.values()) + list(self.outgoing.values())
         for transfer in transfers:
