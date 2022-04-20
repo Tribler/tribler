@@ -1,8 +1,7 @@
 import shutil
 
-from configobj import ParseError
-
 import pytest
+from configobj import ParseError
 
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
@@ -94,7 +93,15 @@ async def test_get_path_relative(tmpdir):
 async def test_get_path_absolute(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     config.general.log_dir = str(Path(tmpdir).parent)
-    assert config.general.get_path_as_absolute(property_name='log_dir', state_dir=tmpdir) == Path(tmpdir).parent
+    state_dir = Path(tmpdir)
+    assert config.general.get_path_as_absolute(property_name='log_dir', state_dir=state_dir) == Path(tmpdir).parent
+
+
+def test_get_path_absolute_none(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+    config.general.log_dir = None
+    state_dir = Path(tmpdir)
+    assert config.general.get_path_as_absolute(property_name='log_dir', state_dir=state_dir) is None
 
 
 @pytest.mark.asyncio
