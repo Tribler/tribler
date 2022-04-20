@@ -17,7 +17,7 @@ class TriblerConfigSection(BaseSettings):
 
     def put_path_as_relative(self, property_name: str, value: Path = None, state_dir: str = None):
         """Save a relative path if 'value' is relative to state_dir.
-        Save an absolute path overwise.
+        Save an absolute path otherwise.
         """
         if value is not None:
             # try to put a relative path (if it possible)
@@ -32,17 +32,12 @@ class TriblerConfigSection(BaseSettings):
 
     def get_path_as_absolute(self, property_name: str, state_dir: Path = None) -> Optional[Path]:
         """ Get path as absolute. If stored value already in absolute form, then it will be returned in "as is".
-           `state_dir / path` will be returned overwise.
+           `state_dir / path` will be returned otherwise.
         """
         value = self.__getattribute__(property_name)
         if value is None:
             return None
-
-        path = Path(value)
-        if path.is_absolute():
-            return path
-
-        return state_dir / path
+        return state_dir / value
 
     @root_validator(pre=True)
     def convert_from_none_string_to_none_type(cls, values):  # pylint: disable=no-self-argument
