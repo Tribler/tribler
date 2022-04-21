@@ -1,3 +1,4 @@
+import errno
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -61,3 +62,16 @@ def test_on_core_read_ready_os_error_suppressed(core_manager):
     core_manager.on_core_stdout_read_ready()
     core_manager.on_core_stderr_read_ready()
     assert print.call_count == 2
+
+
+def test_format_error_message():
+    actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1, last_core_output='last\noutput')
+    expected = '''The Tribler core has unexpectedly finished with exit code 2 and status: 1.
+
+Error message: No such file or directory
+
+Last core output:
+> last
+> output'''
+
+    assert actual == expected

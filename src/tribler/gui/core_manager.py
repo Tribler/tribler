@@ -1,8 +1,10 @@
 import logging
+import os
+import re
 import sys
 from pathlib import Path
 
-from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
+from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment
 from PyQt5.QtNetwork import QNetworkRequest
 
 from tribler.gui.app_manager import AppManager
@@ -143,6 +145,20 @@ class CoreManager(QObject):
             self.events_manager.shutting_down = True
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
 
+    @staticmethod
+    def format_error_message(exit_code: int, exit_status: int, last_core_output: str) -> str:
+        message = f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}."
+        try:
+            string_error = os.strerror(exit_code)
+        except ValueError:
+            # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
+            string_error = 'unknown error number'
+        message += f'\n\nError message: {string_error}'
+
+        quoted_output = re.sub(r'^', '> ', last_core_output, flags=re.MULTILINE)
+        message += f"\n\nLast core output:\n{quoted_output}"
+        return message
+
     def on_core_finished(self, exit_code, exit_status):
         self.core_running = False
         self.core_finished = True
@@ -150,10 +166,8 @@ class CoreManager(QObject):
             if self.should_quit_app_on_core_finished:
                 self.app_manager.quit_application()
         else:
-            error_message = (
-                f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}!\n"
-                f"Last core output: \n {self.last_core_stderr_output or self.last_core_stdout_output}"
-            )
+            output = self.last_core_stderr_output or self.last_core_stdout_output
+            error_message = self.format_error_message(exit_code, exit_status, output)
             self._logger.warning(error_message)
 
             if not self.app_manager.quitting_app:
