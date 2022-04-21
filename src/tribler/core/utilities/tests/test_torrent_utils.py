@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from tribler.core.components.libtorrent.utils.torrent_utils import (
-    commonprefix,
+    common_prefix,
     create_torrent_file,
     get_info_from_handle,
 )
@@ -65,13 +65,13 @@ def test_get_info_from_handle():
 
 @pytest.mark.asyncio
 def test_commonprefix(tmpdir):
-    assert commonprefix([Path(tmpdir) / '1.txt']) == Path(tmpdir)
+    assert common_prefix([Path(tmpdir) / '1.txt']) == Path(tmpdir)
 
-    assert commonprefix([Path(tmpdir)]) == Path(tmpdir).parent
+    assert common_prefix([Path(tmpdir)]) == Path(tmpdir).parent
 
-    assert commonprefix([Path(tmpdir),
-                         Path(tmpdir)]) == Path(tmpdir).parent
+    assert common_prefix([Path(tmpdir),
+                          Path(tmpdir)]) == Path(tmpdir).parent
 
-    assert commonprefix([Path(tmpdir) / '1' / '2.txt',
-                         Path(tmpdir) / '1' / '2' / '3' / '4.txt',
-                         Path(tmpdir) / '1.txt']) == Path(tmpdir)
+    assert common_prefix([Path(tmpdir) / '1' / '2.txt',
+                          Path(tmpdir) / '1' / '2' / '3' / '4.txt',
+                          Path(tmpdir) / '1.txt']) == Path(tmpdir)
