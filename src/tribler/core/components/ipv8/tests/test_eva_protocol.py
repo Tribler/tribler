@@ -23,7 +23,7 @@ from tribler.core.components.ipv8.eva_protocol import (
     Transfer, TransferException,
     TransferLimitException,
     TransferResult,
-    TransferType, ValueException,
+    TransferType, TransferWindow, ValueException,
     WriteRequest,
 )
 
@@ -346,9 +346,10 @@ class TestEVA(TestBase):
         packet_loss_probability = lost_packets_count_estimation / (block_count * data_set_count)
 
         self.bob.eva.retransmit_attempt_count = lost_packets_count_estimation
+        self.alice.eva.retransmit_interval_in_sec = 1
+        self.bob.eva.retransmit_interval_in_sec = 0.1
 
         for participant in [self.alice, self.bob]:
-            participant.eva.retransmit_interval_in_sec = 0
             participant.eva.block_size = 3
             participant.eva.window_size = 10
 
@@ -370,6 +371,7 @@ class TestEVA(TestBase):
 
             if chance_to_fake and not max_count_reached and not is_last_packet:
                 self.test_store.actual_packets_lost += 1
+                logging.info(f'Lost packet ({payload.number})')
                 return
 
             await bob_on_data(peer, payload)
@@ -431,14 +433,13 @@ class TestEVA(TestBase):
 
         bob_send_acknowledgement = self.bob.eva.send_acknowledgement
 
-        def bob_fake_send_acknowledgement(transfer):
-            if transfer.window_size == 1:
+        def bob_fake_send_acknowledgement(transfer: Transfer):
+            if self.bob.eva.window_size == 1:
                 # go up
                 self.test_store.window_size_increment = 2
 
-            transfer.window_size += self.test_store.window_size_increment
+            self.bob.eva.window_size += self.test_store.window_size_increment
 
-            self.test_store.actual_window_size = transfer.window_size
             bob_send_acknowledgement(transfer)
 
         self.bob.eva.send_acknowledgement = bob_fake_send_acknowledgement
@@ -451,31 +452,36 @@ class TestEVA(TestBase):
         # Alice will try to send b`extra` binary data over the original size.
 
         self.bob.eva.binary_size_limit = 5
-
         await self.send_sequence_from_alice_to_bob(
             WriteRequest(4, 1, b'info'),
             Data(0, 1, b'data'),
-            Data(1, 1, b'extra')
+            Data(100, 1, b'extra'),  # over the window, should be ignored
+
+            Data(1, 1, b''),
         )
 
-        assert isinstance(self.bob.most_recent_received_exception, SizeException)
+        assert self.bob.most_recent_received_data == (b'info', b'data', 1)
 
     async def test_wrong_message_order(self):
         # In this test we send a single transfer from Alice to Bob.
         # Alice will try to send packets in invalid order. These packets
-        # should be dropped
+        # should be delivered.
 
         self.bob.eva.block_size = 2
-
+        expected_data = b'ABCDEFJHI'
         await self.send_sequence_from_alice_to_bob(
-            WriteRequest(4, 1, b'info'),
-            Data(0, 1, b'da'),
-            Data(2, 1, b'xx'),  # should be dropped
-            Data(1, 1, b'ta'),
+            WriteRequest(len(expected_data), 1, b'info'),
+            Data(0, 1, b'ABC'),
+            Data(2, 1, b'JHI'),
+            Data(1, 1, b'DEF'),
+
+            Data(1, 1, b'xx'),  # should be ignored
+            Data(2, 2, b'xx'),  # should be ignored
+
             Data(2, 1, b''),
         )
 
-        assert self.bob.most_recent_received_data == (b'info', b'data', 1)
+        assert self.bob.most_recent_received_data == (b'info', expected_data, 1)
 
     async def test_wrong_message_order_and_wrong_nonce(self):
         # In this test we send a single transfer from Alice to Bob.
@@ -523,6 +529,13 @@ def peer():
     return Mock()
 
 
+def create_transfer() -> Transfer:
+    block_size = 10
+    data_size = 100
+    return Transfer(transfer_type=TransferType.INCOMING, info=b'', data=b'd' * data_size, data_size=data_size,
+                    block_count=10, nonce=0, peer=Mock(), protocol=EVAProtocol(Mock(), block_size=block_size))
+
+
 @pytest.mark.asyncio
 async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
     # validate that data_size can not be less or equal to 0
@@ -531,37 +544,6 @@ async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
         await eva.on_write_request(peer, WriteRequest(-1, 0, b''))
         assert peer not in eva.incoming
         assert method_mock.call_count == 2
-
-
-@pytest.mark.asyncio
-async def test_on_acknowledgement_window_size_attr(eva: EVAProtocol, peer):
-    # This test ensures that `window_size` will be always within the limits:
-    # 0 < window_size < binary_size_limit
-    nonce = 1
-    transfer = Transfer(
-        transfer_type=TransferType.OUTGOING,
-        info=b'',
-        data=b'',
-        data_size=0,
-        block_count=10,
-        nonce=nonce,
-        future=None,
-        peer=Mock(),
-        window_size=0,
-        protocol=eva
-    )
-
-    eva.outgoing[peer] = transfer
-    window_size = 0
-
-    # validate that window_size can not be less or equal to 0
-    await eva.on_acknowledgement(peer, Acknowledgement(1, window_size, nonce))
-    assert transfer.window_size == eva.MIN_WINDOWS_SIZE
-
-    # validate that window_size can not be greater than binary_size_limit
-    window_size = eva.binary_size_limit + 1
-    await eva.on_acknowledgement(peer, Acknowledgement(1, window_size, nonce))
-    assert transfer.window_size == eva.binary_size_limit
 
 
 def test_is_simultaneously_served_transfers_limit_exceeded(eva: EVAProtocol):
@@ -671,3 +653,21 @@ def test_shutdown(eva: EVAProtocol):
     eva.shutdown()
 
     assert all(t.terminate.called for t in [transfer1, transfer2, transfer3])
+
+
+def test_block():
+    transfer = create_transfer()
+
+    first_block = b'd' * 10
+    assert transfer.get_block(0) == first_block
+
+    last_block = transfer.get_block(10)
+    assert last_block == b''
+
+
+def test_finished():
+    window = TransferWindow(start=0, size=10)
+    assert not window.is_finished()
+
+    window.processed = 10
+    assert window.is_finished()
