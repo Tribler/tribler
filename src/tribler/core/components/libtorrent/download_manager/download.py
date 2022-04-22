@@ -7,7 +7,7 @@ import base64
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
@@ -139,7 +139,7 @@ class Download(TaskManager):
     def get_def(self) -> TorrentDef:
         return self.tdef
 
-    def get_handle(self) -> lt.torrent_handle:
+    def get_handle(self) -> Awaitable[lt.torrent_handle]:
         """
         Returns a deferred that fires with a valid libtorrent download handle.
         """
