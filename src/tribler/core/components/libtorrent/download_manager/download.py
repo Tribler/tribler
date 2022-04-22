@@ -11,12 +11,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import int2byte, succeed
-from libtorrent import add_torrent_alert, metadata_received_alert, performance_alert, save_resume_data_alert, \
-    state_changed_alert, torrent_alert, torrent_checked_alert, \
-    torrent_error_alert, torrent_finished_alert, torrent_handle, torrent_removed_alert, torrent_status, \
-    tracker_error_alert, \
-    tracker_reply_alert, \
-    tracker_warning_alert
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -54,7 +48,7 @@ class Download(TaskManager):
 
         self.dummy = dummy
         self.tdef = tdef
-        self.handle: Optional[torrent_handle] = None
+        self.handle: Optional[lt.torrent_handle] = None
         self.state_dir = state_dir
         self.dlmgr = download_manager
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
@@ -64,7 +58,7 @@ class Download(TaskManager):
         self.hidden = False
 
         # Libtorrent status
-        self.lt_status: Optional[torrent_status] = None
+        self.lt_status: Optional[lt.torrent_status] = None
         self.error = None
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
@@ -126,7 +120,7 @@ class Download(TaskManager):
         t = lt.create_torrent(torrent_info)
         return t.generate()
 
-    def register_alert_handler(self, alert_type: str, handler: torrent_handle):
+    def register_alert_handler(self, alert_type: str, handler: lt.torrent_handle):
         self.alert_handlers[alert_type].append(handler)
 
     def wait_for_alert(self, success_type: str, success_getter: Optional[Callable[[Any], Any]] = None,
@@ -145,7 +139,7 @@ class Download(TaskManager):
     def get_def(self) -> TorrentDef:
         return self.tdef
 
-    def get_handle(self) -> torrent_handle:
+    def get_handle(self) -> lt.torrent_handle:
         """
         Returns a deferred that fires with a valid libtorrent download handle.
         """
@@ -186,7 +180,7 @@ class Download(TaskManager):
 
         return atp
 
-    def on_add_torrent_alert(self, alert: add_torrent_alert):
+    def on_add_torrent_alert(self, alert: lt.add_torrent_alert):
         self._logger.info(f'On add torrent alert: {alert}')
 
         if hasattr(alert, 'error') and alert.error.value():
@@ -246,7 +240,7 @@ class Download(TaskManager):
         alert = type('anonymous_alert', (object,), alert_dict)()
         self.process_alert(alert, alert_type)
 
-    def process_alert(self, alert: torrent_alert, alert_type: str):
+    def process_alert(self, alert: lt.torrent_alert, alert_type: str):
         if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             self._logger.debug("Got alert: %s", alert)
 
@@ -257,10 +251,10 @@ class Download(TaskManager):
             if not future.done():
                 future_setter(getter(alert) if getter else alert)
 
-    def on_torrent_error_alert(self, alert: torrent_error_alert):
+    def on_torrent_error_alert(self, alert: lt.torrent_error_alert):
         self._logger.error(f'On torrent error alert: {alert}')
 
-    def on_state_changed_alert(self, alert: state_changed_alert):
+    def on_state_changed_alert(self, alert: lt.state_changed_alert):
         self._logger.info(f'On state changed alert: {alert}')
 
         if not self.handle:
@@ -275,7 +269,7 @@ class Download(TaskManager):
         if alert.state == lt.torrent_status.downloading and isinstance(self.tdef, TorrentDefNoMetainfo):
             self.post_alert('metadata_received_alert')
 
-    def on_save_resume_data_alert(self, alert: save_resume_data_alert):
+    def on_save_resume_data_alert(self, alert: lt.save_resume_data_alert):
         """
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
@@ -306,12 +300,12 @@ class Download(TaskManager):
         self.config.write(str(filename))
         self._logger.debug('Saving download config to file %s', filename)
 
-    def on_tracker_reply_alert(self, alert: tracker_reply_alert):
+    def on_tracker_reply_alert(self, alert: lt.tracker_reply_alert):
         self._logger.info(f'On tracker reply alert: {alert}')
 
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
-    def on_tracker_error_alert(self, alert: tracker_error_alert):
+    def on_tracker_error_alert(self, alert: lt.tracker_error_alert):
         self._logger.error(f'On tracker error alert: {alert}')
 
         # try-except block here is a workaround and has been added to solve
@@ -333,7 +327,7 @@ class Download(TaskManager):
             self._logger.exception(e)
             return
 
-    def on_tracker_warning_alert(self, alert: tracker_warning_alert):
+    def on_tracker_warning_alert(self, alert: lt.tracker_warning_alert):
         self._logger.warning(f'On tracker warning alert: {alert}')
 
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
@@ -342,7 +336,7 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = [peers, status]
 
     @check_handle()
-    def on_metadata_received_alert(self, alert: metadata_received_alert):
+    def on_metadata_received_alert(self, alert: lt.metadata_received_alert):
         self._logger.info(f'On metadata received alert: {alert}')
 
         torrent_info = get_info_from_handle(self.handle)
@@ -371,7 +365,7 @@ class Download(TaskManager):
         self.set_selected_files()
         self.checkpoint()
 
-    def on_performance_alert(self, alert: performance_alert):
+    def on_performance_alert(self, alert: lt.performance_alert):
         self._logger.info(f'On performance alert: {alert}')
 
         if self.get_anon_mode() or self.dlmgr.ltsessions is None:
@@ -394,13 +388,13 @@ class Download(TaskManager):
                 settings['max_queued_disk_bytes'] *= 2
                 self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
 
-    def on_torrent_removed_alert(self, alert: torrent_removed_alert):
+    def on_torrent_removed_alert(self, alert: lt.torrent_removed_alert):
         self._logger.info(f'On torrent remove alert: {alert}')
 
         self._logger.debug("Removing %s", self.tdef.get_name())
         self.handle = None
 
-    def on_torrent_checked_alert(self, alert: torrent_checked_alert):
+    def on_torrent_checked_alert(self, alert: lt.torrent_checked_alert):
         self._logger.info(f'On torrent checked alert: {alert}')
 
         if self.pause_after_next_hashcheck:
@@ -411,7 +405,7 @@ class Download(TaskManager):
             self.checkpoint()
 
     @check_handle()
-    def on_torrent_finished_alert(self, alert: torrent_finished_alert):
+    def on_torrent_finished_alert(self, alert: lt.torrent_finished_alert):
         self._logger.info(f'On torrent finished alert: {alert}')
         self.update_lt_status(self.handle.status())
         self.checkpoint()
@@ -422,7 +416,7 @@ class Download(TaskManager):
             hidden = self.hidden or self.config.get_channel_download()
             self.notifier[notifications.torrent_finished](infohash=infohash, name=name, hidden=hidden)
 
-    def update_lt_status(self, lt_status: torrent_status):
+    def update_lt_status(self, lt_status: lt.torrent_status):
         """ Update libtorrent stats and check if the download should be stopped."""
         self.lt_status = lt_status
         self._stop_if_finished()

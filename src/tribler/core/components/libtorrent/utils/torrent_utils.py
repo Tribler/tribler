@@ -4,8 +4,6 @@ from contextlib import suppress
 from hashlib import sha1
 from typing import Any, Dict, Iterable, List, Optional
 
-from libtorrent import torrent_handle, torrent_info
-
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities.path_util import Path
 
@@ -158,7 +156,7 @@ def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], to
     }
 
 
-def get_info_from_handle(handle: torrent_handle) -> Optional[torrent_info]:
+def get_info_from_handle(handle: lt.torrent_handle) -> Optional[lt.torrent_info]:
     # In libtorrent 0.16.18, the torrent_handle.torrent_file method is not available.
     # this method checks whether the torrent_file method is available on a given handle.
     # If not, fall back on the deprecated get_torrent_info
