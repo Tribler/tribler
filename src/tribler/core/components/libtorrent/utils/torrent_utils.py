@@ -2,6 +2,7 @@ import logging
 from asyncio import CancelledError, Future
 from contextlib import suppress
 from hashlib import sha1
+from typing import Any, Dict, Iterable, List, Optional
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities.path_util import Path
@@ -48,15 +49,19 @@ def check_vod(default=None):
     """
     Check if torrent is vod mode, else return default
     """
+
     def wrap(f):
         def invoke_func(self, *args, **kwargs):
             if self.enabled:
                 return f(self, *args, **kwargs)
             return default
+
         return invoke_func
+
     return wrap
 
-def commonprefix(paths_list):
+
+def common_prefix(paths_list: List[Path]) -> Path:
     # this unlike the os path .commonprefix version always returns path prefixes as it compares
     # path component wise.
     base_set = set(paths_list[0].parents)
@@ -66,7 +71,7 @@ def commonprefix(paths_list):
     return sorted(base_set, reverse=True)[0]
 
 
-def _existing_files(path_list):
+def _existing_files(path_list: List[Path]) -> Iterable[Path]:
     for path in path_list:
         path = Path(path)
         if not path.exists():
@@ -75,7 +80,7 @@ def _existing_files(path_list):
             yield path
 
 
-def create_torrent_file(file_path_list, params, torrent_filepath=None):
+def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], torrent_filepath: Optional[str] = None):
     fs = lt.file_storage()
 
     # filter all non-files
@@ -84,7 +89,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     # ACHTUNG!
     # In the case of a multi-file torrent, the torrent name plays the role of the toplevel dir name.
     # get the directory where these files are in. If there are multiple files, take the common directory they are in
-    base_dir = (commonprefix(path_list).parent if len(path_list) > 1 else path_list[0].parent).absolute()
+    base_dir = (common_prefix(path_list).parent if len(path_list) > 1 else path_list[0].parent).absolute()
     for path in path_list:
         relative = path.relative_to(base_dir)
         fs.add_file(str(relative), path.size())
@@ -151,7 +156,7 @@ def create_torrent_file(file_path_list, params, torrent_filepath=None):
     }
 
 
-def get_info_from_handle(handle):
+def get_info_from_handle(handle: lt.torrent_handle) -> Optional[lt.torrent_info]:
     # In libtorrent 0.16.18, the torrent_handle.torrent_file method is not available.
     # this method checks whether the torrent_file method is available on a given handle.
     # If not, fall back on the deprecated get_torrent_info
