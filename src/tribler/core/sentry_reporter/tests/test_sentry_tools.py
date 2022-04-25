@@ -1,3 +1,5 @@
+import pytest
+
 from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
     distinct_by,
@@ -117,21 +119,21 @@ def test_distinct():
     assert distinct_by([{'a': {}}], 'b') == [{'a': {}}]
 
 
-def test_skip_dev_version():
-    assert format_version(None) is None
-    assert format_version('') == ''
-    assert format_version('7.6.0') == '7.6.0'
-    assert format_version('7.6.0-GIT') is None
+FORMATTED_VERSIONS = [
+    (None, None),
+    ('', ''),
+    ('7.6.0', '7.6.0'),
+    ('7.6.0-GIT', 'dev'),  # version from developers machines
+    ('7.7.1-17-gcb73f7baa', '7.7.1'),  # version from deployment tester
+    ('7.7.1-RC1-10-abcd', '7.7.1-RC1'),  # release candidate
+    ('7.7.1-exp1-1-abcd ', '7.7.1-exp1'),  # experimental versions
+    ('7.7.1-someresearchtopic-7-abcd ', '7.7.1-someresearchtopic'),
+]
 
-    # version from deployment tester
-    assert format_version('7.7.1-17-gcb73f7baa') == '7.7.1'
 
-    # release candidate
-    assert format_version('7.7.1-RC1-10-abcd') == '7.7.1-RC1'
-
-    # experimental versions
-    assert format_version('7.7.1-exp1-1-abcd ') == '7.7.1-exp1'
-    assert format_version('7.7.1-someresearchtopic-7-abcd ') == '7.7.1-someresearchtopic'
+@pytest.mark.parametrize('git_version, sentry_version', FORMATTED_VERSIONS)
+def test_format_version(git_version, sentry_version):
+    assert format_version(git_version) == sentry_version
 
 
 def test_extract_dict():
