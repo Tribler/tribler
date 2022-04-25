@@ -2,6 +2,7 @@
 simplify work with several data structures.
 """
 import re
+from typing import Optional
 
 LONG_TEXT_DELIMITER = '--LONG TEXT--'
 CONTEXT_DELIMITER = '--CONTEXT--'
@@ -138,7 +139,7 @@ def distinct_by(list_of_dict, key):
     return result
 
 
-def format_version(version):
+def format_version(version: Optional[str]) -> Optional[str]:
     if not version:
         return version
 
@@ -146,7 +147,7 @@ def format_version(version):
     # to keep the meaning of the `latest` keyword:
     # See Also:https://docs.sentry.io/product/sentry-basics/search/
     if 'GIT' in version:
-        return None
+        return 'dev'
 
     parts = version.split('-', maxsplit=2)
     if len(parts) < 2:

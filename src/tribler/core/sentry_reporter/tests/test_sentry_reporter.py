@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from tribler.core.utilities.patch_import import patch_import
 from tribler.core.sentry_reporter.sentry_reporter import (
     EXCEPTION,
     OS_ENVIRON,
@@ -13,6 +12,8 @@ from tribler.core.sentry_reporter.sentry_reporter import (
     this_sentry_strategy,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.utilities.patch_import import patch_import
+
 
 # fmt: off
 # pylint: disable=redefined-outer-name, protected-access
@@ -119,6 +120,20 @@ def test_get_actual_strategy(sentry_reporter):
 
     sentry_reporter.thread_strategy.set(None)
     assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+
+def test_get_sentry_url_not_specified():
+    assert not SentryReporter.get_sentry_url()
+
+
+@patch('tribler.core.version.sentry_url', 'sentry_url')
+def test_get_sentry_url_from_version_file():
+    assert SentryReporter.get_sentry_url() == 'sentry_url'
+
+
+@patch('os.environ', {'TRIBLER_SENTRY_URL': 'env_url'})
+def test_get_sentry_url_from_env():
+    assert SentryReporter.get_sentry_url() == 'env_url'
 
 
 @patch('os.environ', {})
@@ -311,7 +326,7 @@ def test_before_send(sentry_reporter):
 
     # check release
     assert sentry_reporter._before_send({'release': '7.6.0'}, None) == {'release': '7.6.0'}
-    assert sentry_reporter._before_send({'release': '7.6.0-GIT'}, None) == {'release': None}
+    assert sentry_reporter._before_send({'release': '7.6.0-GIT'}, None) == {'release': 'dev'}
 
     # check confirmation
     sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION

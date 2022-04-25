@@ -8,9 +8,10 @@ import logging.config
 import os
 import sys
 
-from tribler.core.components.reporter.exception_handler import default_core_exception_handler
-from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.version import version_id
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +40,30 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
         self.add_argument('--tunnel-testnet', action="store_true", help="use a separate tunnel community")
 
 
-def init_sentry_reporter():
+def init_sentry_reporter(reporter: SentryReporter):
     """ Initialise sentry reporter
 
     We use `sentry_url` as a URL for normal tribler mode and TRIBLER_TEST_SENTRY_URL
     as a URL for sending sentry's reports while a Tribler client running in
     test mode
     """
-    sentry_reporter = default_core_exception_handler.sentry_reporter
-    from tribler.core.version import sentry_url, version_id
-    test_sentry_url = sentry_reporter.get_test_sentry_url()
-
+    sentry_url = reporter.get_sentry_url()
+    test_sentry_url = reporter.get_test_sentry_url()
     if not test_sentry_url:
-        sentry_reporter.init(sentry_url=sentry_url,
-                             release_version=version_id,
-                             scrubber=SentryScrubber(),
-                             strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION)
+        reporter.init(
+            sentry_url=sentry_url,
+            release_version=version_id,
+            scrubber=SentryScrubber(),
+            strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+        )
         logger.info('Sentry has been initialised in normal mode')
     else:
-        sentry_reporter.init(sentry_url=test_sentry_url,
-                             release_version=version_id,
-                             scrubber=None,
-                             strategy=SentryStrategy.SEND_ALLOWED)
+        reporter.init(
+            sentry_url=test_sentry_url,
+            release_version=version_id,
+            scrubber=None,
+            strategy=SentryStrategy.SEND_ALLOWED
+        )
         logger.info('Sentry has been initialised in debug mode')
 
 
@@ -72,13 +75,9 @@ def init_boot_logger():
 
 if __name__ == "__main__":
     init_boot_logger()
-    init_sentry_reporter()
 
     parsed_args = RunTriblerArgsParser().parse_args()
     logger.info(f'Run Tribler: {parsed_args}')
-
-    # Get root state directory (e.g. from environment variable or from system default)
-    from tribler.core.utilities.osutils import get_root_state_directory
 
     root_state_dir = get_root_state_directory()
     logger.info(f'Root state dir: {root_state_dir}')
@@ -89,9 +88,13 @@ if __name__ == "__main__":
     # Check whether we need to start the core or the user interface
     if parsed_args.core:
         from tribler.core.start_core import run_core
+        from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 
+        init_sentry_reporter(default_core_exception_handler.sentry_reporter)
         run_core(api_port, api_key, root_state_dir, parsed_args)
     else:  # GUI
         from tribler.gui.start_gui import run_gui
+        from tribler.gui import gui_sentry_reporter
 
+        init_sentry_reporter(gui_sentry_reporter)
         run_gui(api_port, api_key, root_state_dir, parsed_args)
