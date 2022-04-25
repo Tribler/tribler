@@ -1,6 +1,6 @@
 import logging
 
-from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QPoint, pyqtSignal
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
@@ -9,6 +9,8 @@ from tribler.gui.utilities import connect
 
 
 class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
+    close_event = pyqtSignal()
+
     def __init__(self, parent, left_right_margin=100):
         QWidget.__init__(self, parent)
 
@@ -28,6 +30,7 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
 
     def close_dialog(self, checked=False):
         try:
+            self.close_event.emit()
             self.setParent(None)
             self.deleteLater()
             self.closed = True

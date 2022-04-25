@@ -42,7 +42,6 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QTreeWidget,
 )
-
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
@@ -999,6 +998,9 @@ class TriblerWindow(QMainWindow):
             self.dialog = None
 
     def on_add_torrent_from_url(self, checked=False):
+        def on_close_event():
+            self.add_torrent_url_dialog_active = False
+
         # Make sure that the window is visible (this action might be triggered from the tray icon)
         self.raise_window()
 
@@ -1013,11 +1015,11 @@ class TriblerWindow(QMainWindow):
             self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
             self.dialog.dialog_widget.dialog_input.setFocus()
             connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
+            connect(self.dialog.close_event, on_close_event)
             self.dialog.show()
             self.add_torrent_url_dialog_active = True
 
     def on_torrent_from_url_dialog_done(self, action):
-        self.add_torrent_url_dialog_active = False
         if self.dialog and self.dialog.dialog_widget:
             uri = self.dialog.dialog_widget.dialog_input.text().strip()
 
