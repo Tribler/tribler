@@ -15,7 +15,7 @@ from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.test.base import TestBase
 from ipv8.types import Peer
 
-from tribler.core.components.ipv8.eva_protocol import (
+from tribler.core.components.ipv8.eva.eva_protocol import (
     Acknowledgement,
     Data, EVAProtocol,
     Error, OutgoingTransfer, SizeException,
