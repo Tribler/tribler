@@ -7,12 +7,12 @@ from enum import Enum, auto
 from hashlib import md5
 from typing import Dict, List, Optional
 
-from faker import Faker
-
 import sentry_sdk
+from faker import Faker
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.threading import ThreadingIntegration
 
+from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
     extract_dict,
@@ -328,7 +328,11 @@ class SentryReporter:
         return strategy if strategy else self.global_strategy
 
     @staticmethod
-    def get_test_sentry_url():
+    def get_sentry_url() -> Optional[str]:
+        return version.sentry_url or os.environ.get('TRIBLER_SENTRY_URL', None)
+
+    @staticmethod
+    def get_test_sentry_url() -> Optional[str]:
         return os.environ.get('TRIBLER_TEST_SENTRY_URL', None)
 
     @staticmethod
