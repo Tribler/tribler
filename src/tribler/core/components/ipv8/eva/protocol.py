@@ -36,7 +36,7 @@ from collections.abc import Coroutine
 from dataclasses import dataclass
 from itertools import chain
 from random import SystemRandom
-from typing import Awaitable, Callable, Dict, List, Optional, Type
+from typing import Awaitable, Callable, Dict, Optional, Type
 
 from ipv8.community import Community
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
@@ -47,7 +47,7 @@ from tribler.core.components.ipv8.eva.exceptions import SizeException, TransferE
 from tribler.core.components.ipv8.eva.transfer import IncomingTransfer, OutgoingTransfer, Transfer
 from tribler.core.components.ipv8.protocol_decorator import make_protocol_decorator
 
-__version__ = '2.1.1'
+__version__ = '2.1.2'
 
 logger = logging.getLogger('EVA')
 
@@ -414,29 +414,3 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
     def _is_simultaneously_served_transfers_limit_exceeded(self) -> bool:
         transfers_count = len(self.incoming) + len(self.outgoing)
         return transfers_count >= self.max_simultaneous_transfers
-
-
-class TransferWindow:
-    def __init__(self, start: int, size: int):
-        self.blocks: List[Optional[bytes]] = [None] * size
-
-        self.start = start
-        self.processed: int = 0
-
-    def add(self, index: int, block: bytes):
-        if self.blocks[index] is not None:
-            return
-        self.blocks[index] = block
-        self.processed += 1
-
-    def is_finished(self) -> bool:
-        return self.processed == len(self.blocks)
-
-    def consecutive_blocks(self):
-        for block in self.blocks:
-            if block is None:
-                break
-            yield block
-
-    def __str__(self):
-        return f'{{start: {self.start}, processed: {self.processed}, size: {len(self.blocks)}}}'

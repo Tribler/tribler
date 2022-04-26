@@ -78,7 +78,7 @@ class IncomingTransfer(Transfer):
                  on_complete: Optional[eva.TransferCompleteCallback] = None):
         super().__init__(protocol, peer, info, data_size, nonce, on_complete)
         self.data_list: List[bytes] = []
-        self.window: Optional[eva.TransferWindow] = None
+        self.window: Optional[TransferWindow] = None
         self.last_window = False
 
         self.update()
@@ -108,7 +108,7 @@ class IncomingTransfer(Transfer):
         if self.window:
             self.data_list.extend(self.window.consecutive_blocks())
 
-        self.window = eva.TransferWindow(start=len(self.data_list), size=self.protocol.window_size)
+        self.window = TransferWindow(start=len(self.data_list), size=self.protocol.window_size)
         eva.logger.debug(f'Transfer window: {self.window}')
         return eva.Acknowledgement(self.window.start, len(self.window.blocks), self.nonce)
 
@@ -155,3 +155,29 @@ class OutgoingTransfer(Transfer):
         start_position = number * self.protocol.block_size
         stop_position = start_position + self.protocol.block_size
         return self.data[start_position:stop_position]
+
+
+class TransferWindow:
+    def __init__(self, start: int, size: int):
+        self.blocks: List[Optional[bytes]] = [None] * size
+
+        self.start = start
+        self.processed: int = 0
+
+    def add(self, index: int, block: bytes):
+        if self.blocks[index] is not None:
+            return
+        self.blocks[index] = block
+        self.processed += 1
+
+    def is_finished(self) -> bool:
+        return self.processed == len(self.blocks)
+
+    def consecutive_blocks(self):
+        for block in self.blocks:
+            if block is None:
+                break
+            yield block
+
+    def __str__(self):
+        return f'{{start: {self.start}, processed: {self.processed}, size: {len(self.blocks)}}}'

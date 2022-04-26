@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
-from tribler.core.components.ipv8.eva.protocol import EVAProtocol, TransferWindow
-from tribler.core.components.ipv8.eva.transfer import OutgoingTransfer
+from tribler.core.components.ipv8.eva.protocol import EVAProtocol
+from tribler.core.components.ipv8.eva.transfer import OutgoingTransfer, TransferWindow
 
 
 def create_transfer() -> OutgoingTransfer:
