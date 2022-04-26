@@ -15,17 +15,14 @@ from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.test.base import TestBase
 from ipv8.types import Peer
 
+import tribler.core.components.ipv8.eva.exceptions as exceptions
 from tribler.core.components.ipv8.eva.protocol import (
     Acknowledgement,
     Data, EVAProtocol,
-    Error, OutgoingTransfer, SizeException,
-    TimeoutException,
-    TransferException,
-    TransferLimitException,
-    TransferResult,
-    TransferWindow, ValueException,
-    WriteRequest,
+    Error, TransferResult,
+    TransferWindow, WriteRequest,
 )
+from tribler.core.components.ipv8.eva.transfer import OutgoingTransfer
 
 # pylint: disable=redefined-outer-name, protected-access, attribute-defined-outside-init
 
@@ -139,8 +136,8 @@ class TestEVA(TestBase):
 
     async def test_self_send(self):
         # In this test we send a single transfer from Alice to Alice.
-        # `ValueException` should be raised.
-        with pytest.raises(ValueException):
+        # `exceptions.ValueException` should be raised.
+        with pytest.raises(exceptions.ValueException):
             await self.alice.eva.send_binary(self.alice.my_peer, b'test1', b'1234')
 
     async def test_two_blocks_binary(self):
@@ -158,8 +155,8 @@ class TestEVA(TestBase):
     async def test_zero_transfer(self):
         # In this test we send a single transfer from Alice to Bob.
         # The transfer size is equal to zero and the transfer attempt should
-        # lead to `ValueException`.
-        with pytest.raises(ValueException):
+        # lead to `exceptions.ValueException`.
+        with pytest.raises(exceptions.ValueException):
             await self.alice.eva.send_binary(self.bob.my_peer, b'', b'')
 
     async def test_one_megabyte_transfer(self):
@@ -184,7 +181,7 @@ class TestEVA(TestBase):
         self.alice.eva.terminate_by_timeout_enabled = True
         self.alice.eva.send_message = Mock()
 
-        with pytest.raises(TimeoutException):
+        with pytest.raises(exceptions.TimeoutException):
             await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'data')
 
         assert len(self.alice.eva.outgoing) == 0
@@ -194,7 +191,7 @@ class TestEVA(TestBase):
         # In this test we send a single transfer from Alice to Bob.
         # Alice will not answer the Bob in this test.
         # Therefore, Bob should accomplish `retransmit_attempt_count` attempts of
-        # re-sending Acknowledgement to Alice and ends up with TimeoutException
+        # re-sending Acknowledgement to Alice and ends up with exceptions.TimeoutException
         # exception.
 
         self.bob.eva.terminate_by_timeout_enabled = True
@@ -206,14 +203,14 @@ class TestEVA(TestBase):
 
         await self.bob.error_has_been_raised.wait()
 
-        assert isinstance(self.bob.most_recent_received_exception, TimeoutException)
+        assert isinstance(self.bob.most_recent_received_exception, exceptions.TimeoutException)
         assert transfer.attempt == self.bob.eva.retransmit_attempt_count
 
     async def test_retransmit_disabled(self):
         # In this test we send a single transfer from Alice to Bob.
         # Alice will not answer the Bob in this test.
         # Therefore, Bob should accomplish `0` attempts of
-        # re-sending Acknowledgement to Alice and ends up with TimeoutException
+        # re-sending Acknowledgement to Alice and ends up with exceptions.TimeoutException
         # exception.
 
         self.bob.eva.retransmit_enabled = False
@@ -226,7 +223,7 @@ class TestEVA(TestBase):
 
         await self.bob.error_has_been_raised.wait()
 
-        assert isinstance(self.bob.most_recent_received_exception, TimeoutException)
+        assert isinstance(self.bob.most_recent_received_exception, exceptions.TimeoutException)
         assert transfer.attempt == 0
 
     async def test_size_limit(self):
@@ -236,12 +233,12 @@ class TestEVA(TestBase):
 
         # First, try to exceed size limit on a receiver (bob) side.
         self.bob.eva.binary_size_limit = 4
-        with pytest.raises(TransferException):
+        with pytest.raises(exceptions.TransferException):
             await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'12345')
 
         # Second, try to exceed size limit on a sender (alice) side.
         self.alice.eva.binary_size_limit = 4
-        with pytest.raises(SizeException):
+        with pytest.raises(exceptions.SizeException):
             await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'12345')
 
     async def test_duplex_transfer(self):
@@ -589,7 +586,7 @@ async def test_on_write_request_with_transfers_limit(eva: EVAProtocol):
 
     await eva.on_write_request_packet(Mock(), WriteRequest(10, 0, b''))
     actual_exception = eva._finish_with_error.call_args[0][-1]
-    assert isinstance(actual_exception, TransferLimitException)
+    assert isinstance(actual_exception, exceptions.TransferLimitException)
 
 
 def test_send_scheduled_with_transfers_limit(eva: EVAProtocol):
@@ -622,7 +619,7 @@ async def test_on_error_correct_nonce(eva: EVAProtocol):
 
     await eva.on_error_packet(peer, Error(nonce, b'error'))
 
-    assert isinstance(transfer.finish.call_args.kwargs['exception'], TransferException)
+    assert isinstance(transfer.finish.call_args.kwargs['exception'], exceptions.TransferException)
 
 
 @pytest.mark.asyncio
@@ -653,7 +650,7 @@ def test_shutdown(eva: EVAProtocol):
     eva.shutdown()
 
     for t in [transfer1, transfer2, transfer3]:
-        assert isinstance(t.finish.call_args.kwargs['exception'], TransferException)
+        assert isinstance(t.finish.call_args.kwargs['exception'], exceptions.TransferException)
 
 
 def test_block():
