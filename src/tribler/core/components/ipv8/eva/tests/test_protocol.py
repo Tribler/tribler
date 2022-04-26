@@ -18,7 +18,7 @@ from ipv8.types import Peer
 from tribler.core.components.ipv8.eva.exceptions import SizeException, TimeoutException, TransferException, \
     TransferLimitException, ValueException
 from tribler.core.components.ipv8.eva.protocol import Acknowledgement, Data, EVAProtocol, Error, TransferResult, \
-    TransferWindow, WriteRequest
+    WriteRequest
 from tribler.core.components.ipv8.eva.transfer import OutgoingTransfer
 
 # pylint: disable=redefined-outer-name, protected-access, attribute-defined-outside-init
@@ -523,13 +523,6 @@ def peer():
     return Mock()
 
 
-def create_transfer() -> OutgoingTransfer:
-    block_size = 10
-    data_size = 100
-    return OutgoingTransfer(info=b'', data=b'd' * data_size, nonce=0, peer=Mock(),
-                            protocol=EVAProtocol(Mock(), block_size=block_size))
-
-
 @pytest.mark.asyncio
 async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
     # validate that data_size can not be less or equal to 0
@@ -650,19 +643,5 @@ def test_shutdown(eva: EVAProtocol):
         assert isinstance(t.finish.call_args.kwargs['exception'], TransferException)
 
 
-def test_block():
-    transfer = create_transfer()
-
-    first_block = b'd' * 10
-    assert transfer._get_block(0) == first_block
-
-    last_block = transfer._get_block(10)
-    assert last_block == b''
 
 
-def test_finished():
-    window = TransferWindow(start=0, size=10)
-    assert not window.is_finished()
-
-    window.processed = 10
-    assert window.is_finished()
