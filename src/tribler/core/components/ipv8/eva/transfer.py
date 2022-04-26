@@ -12,7 +12,7 @@ import tribler.core.components.ipv8.eva.protocol as eva
 from tribler.core.components.ipv8.eva.exceptions import SizeException, TimeoutException, TransferException
 
 
-class Transfer:  # pylint: disable=too-many-instance-attributes
+class Transfer:
     """The class describes an incoming or an outgoing transfer"""
 
     NONE = -1
