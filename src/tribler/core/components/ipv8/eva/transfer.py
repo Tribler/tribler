@@ -8,8 +8,8 @@ from typing import Iterable, List, Optional
 
 from ipv8.types import Peer
 
-import tribler.core.components.ipv8.eva.exceptions as exceptions
 import tribler.core.components.ipv8.eva.protocol as eva
+from tribler.core.components.ipv8.eva.exceptions import SizeException, TimeoutException, TransferException
 
 
 class Transfer:  # pylint: disable=too-many-instance-attributes
@@ -34,7 +34,7 @@ class Transfer:  # pylint: disable=too-many-instance-attributes
     def update(self):
         self.updated = time.time()
 
-    def finish(self, *, result: Optional[eva.TransferResult] = None, exception: Optional[exceptions.TransferException] = None):
+    def finish(self, *, result: Optional[eva.TransferResult] = None, exception: Optional[TransferException] = None):
         if self.finished:
             return
 
@@ -68,7 +68,7 @@ class Transfer:  # pylint: disable=too-many-instance-attributes
 
             remaining_time = timeout - (time.time() - self.updated)
             if remaining_time <= 0:  # it is time to terminate
-                exception = exceptions.TimeoutException('Terminated by timeout', self)
+                exception = TimeoutException('Terminated by timeout', self)
                 self.finish(exception=exception)
                 return
 
@@ -112,7 +112,7 @@ class IncomingTransfer(Transfer):
         eva.logger.debug(f'Transfer window: {self.window}')
         return eva.Acknowledgement(self.window.start, len(self.window.blocks), self.nonce)
 
-    def finish(self, *, result: Optional[eva.TransferResult] = None, exception: Optional[exceptions.TransferException] = None):
+    def finish(self, *, result: Optional[eva.TransferResult] = None, exception: Optional[TransferException] = None):
         self.protocol.incoming.pop(self.peer, None)
         super().finish(result=result, exception=exception)
         self.data_list = None
@@ -124,7 +124,7 @@ class OutgoingTransfer(Transfer):
         limit = protocol.binary_size_limit
         data_size = len(data)
         if data_size > limit:
-            raise exceptions.SizeException(f'Current data size limit {limit} has been exceeded: {data_size}')
+            raise SizeException(f'Current data size limit {limit} has been exceeded: {data_size}')
 
         super().__init__(protocol, peer, info, data_size, nonce, on_complete)
         self.data = data
@@ -146,7 +146,7 @@ class OutgoingTransfer(Transfer):
             if len(block) == 0:
                 return
 
-    def finish(self, *, result: Optional[eva.TransferResult] = None, exception: Optional[exceptions.TransferException] = None):
+    def finish(self, *, result: Optional[eva.TransferResult] = None, exception: Optional[TransferException] = None):
         self.protocol.outgoing.pop(self.peer, None)
         super().finish(result=result, exception=exception)
         self.data = None
