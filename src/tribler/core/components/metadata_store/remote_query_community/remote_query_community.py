@@ -10,7 +10,7 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
-from tribler.core.components.ipv8.eva_protocol import EVAProtocolMixin, TransferResult
+from tribler.core.components.ipv8.eva_protocol import EVAProtocol, TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -123,7 +123,7 @@ class PushbackWindow(NumberCache):
         pass
 
 
-class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
+class RemoteQueryCommunity(TriblerCommunity):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
@@ -148,10 +148,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         self.add_message_handler(RemoteSelectPayloadEva, self.on_remote_select_eva)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
-        self.eva_init()
-        self.eva.register_receive_callback(self.on_receive)
-        self.eva.register_send_complete_callback(self.on_send_complete)
-        self.eva.register_error_callback(self.on_error)
+        self.eva = EVAProtocol(self, self.on_receive, self.on_send_complete, self.on_error)
 
     async def on_receive(self, result: TransferResult):
         self.logger.debug(f"EVA data received: peer {hexlify(result.peer.mid)}, info {result.info}")
@@ -162,7 +159,7 @@ class RemoteQueryCommunity(TriblerCommunity, EVAProtocolMixin):
         self.logger.debug(f"EVA outgoing transfer complete: peer {hexlify(result.peer.mid)},  info {result.info}")
 
     async def on_error(self, peer, exception):
-        self.logger.warning(f"EVA transfer error: peer {hexlify(peer.mid)}, exception: {exception}")
+        self.logger.warning(f"EVA transfer error:{exception.__class__.__name__}:{exception}, Peer: {hexlify(peer.mid)}")
 
     def send_remote_select(self, peer, processing_callback=None, force_eva_response=False, **kwargs):
         request_class = EvaSelectRequest if force_eva_response else SelectRequest
