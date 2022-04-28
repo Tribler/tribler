@@ -10,7 +10,6 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
 
 
-@pytest.mark.asyncio
 async def test_seeding(download_manager, video_seeder, video_tdef, tmp_path):
     """
     Test whether a torrent is correctly seeded

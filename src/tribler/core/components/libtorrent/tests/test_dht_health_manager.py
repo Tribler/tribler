@@ -1,7 +1,6 @@
 from asyncio import Future
 from binascii import unhexlify
-
-from asynctest import Mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -16,7 +15,6 @@ async def dht_health_manager():
     await manager.shutdown_task_manager()
 
 
-@pytest.mark.asyncio
 async def test_get_health(dht_health_manager):
     """
     Test fetching the health of a trackerless torrent.
@@ -27,14 +25,12 @@ async def test_get_health(dht_health_manager):
     assert response['DHT'][0]['infohash'] == hexlify(b'a' * 20)
 
 
-@pytest.mark.asyncio
 async def test_existing_get_health(dht_health_manager):
     lookup_future = dht_health_manager.get_health(b'a' * 20, timeout=0.1)
     assert dht_health_manager.get_health(b'a' * 20, timeout=0.1) == lookup_future
     await lookup_future
 
 
-@pytest.mark.asyncio
 async def test_combine_bloom_filters(dht_health_manager):
     """
     Test combining two bloom filters
@@ -48,7 +44,6 @@ async def test_combine_bloom_filters(dht_health_manager):
     assert dht_health_manager.combine_bloomfilters(bf1, bf2) == bf2
 
 
-@pytest.mark.asyncio
 async def test_get_size_from_bloom_filter(dht_health_manager):
     """
     Test whether we can successfully estimate the size from a bloom filter
@@ -69,7 +64,6 @@ async def test_get_size_from_bloom_filter(dht_health_manager):
     assert dht_health_manager.get_size_from_bloomfilter(bf) == 6000
 
 
-@pytest.mark.asyncio
 async def test_receive_bloomfilters(dht_health_manager):
     """
     Test whether the right operations happen when receiving a bloom filter

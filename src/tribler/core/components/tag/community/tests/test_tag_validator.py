@@ -3,7 +3,6 @@ import pytest
 from tribler.core.components.tag.community.tag_payload import TagOperationEnum
 from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_tag
 
-pytestmark = pytest.mark.asyncio
 
 
 async def test_correct_tag_size():

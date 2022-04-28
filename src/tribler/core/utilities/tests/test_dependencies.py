@@ -10,7 +10,6 @@ from tribler.core.utilities.dependencies import (
 import tribler.core
 from tribler.core.utilities.path_util import Path
 
-pytestmark = pytest.mark.asyncio
 
 
 # pylint: disable=protected-access

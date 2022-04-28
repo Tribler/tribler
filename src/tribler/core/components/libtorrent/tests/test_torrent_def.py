@@ -105,7 +105,6 @@ def test_is_private():
     assert not t2.is_private()
 
 
-@pytest.mark.asyncio
 async def test_load_from_url(file_server, tmpdir):
     shutil.copyfile(TORRENT_UBUNTU_FILE, tmpdir / 'ubuntu.torrent')
 
@@ -115,7 +114,6 @@ async def test_load_from_url(file_server, tmpdir):
     assert torrent_def.infohash == TorrentDef.load(TORRENT_UBUNTU_FILE).infohash
 
 
-@pytest.mark.asyncio
 async def test_load_from_url_404(file_server, tmpdir):
     torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server
     try:

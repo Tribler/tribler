@@ -49,7 +49,6 @@ async def gigachannel_manager(metadata_store):
     await chanman.shutdown()
 
 
-@pytest.mark.asyncio
 async def test_regen_personal_channel_no_torrent(personal_channel, gigachannel_manager):
     """
     Test regenerating a non-existing personal channel torrent at startup
@@ -60,7 +59,6 @@ async def test_regen_personal_channel_no_torrent(personal_channel, gigachannel_m
     gigachannel_manager.regenerate_channel_torrent.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_regen_personal_channel_damaged_torrent(personal_channel, gigachannel_manager):
     """
     Test regenerating a damaged personal channel torrent at startup
@@ -75,7 +73,6 @@ async def test_regen_personal_channel_damaged_torrent(personal_channel, gigachan
     await complete
 
 
-@pytest.mark.asyncio
 async def test_regenerate_channel_torrent(personal_channel, metadata_store, gigachannel_manager):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
@@ -116,7 +113,6 @@ def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
     gigachannel_manager.download_manager.start_download.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_check_and_regen_personal_channel_torrent(personal_channel, gigachannel_manager):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
@@ -145,7 +141,6 @@ async def test_check_and_regen_personal_channel_torrent(personal_channel, gigach
         f.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_check_channels_updates(personal_channel, gigachannel_manager, metadata_store):
     torrents_added = 0
     # We add our personal channel in an inconsistent state to make sure the GigaChannel Manager will
@@ -231,7 +226,6 @@ async def test_check_channels_updates(personal_channel, gigachannel_manager, met
         assert not gigachannel_manager.channels_processing_queue
 
 
-@pytest.mark.asyncio
 async def test_remove_cruft_channels(torrent_template, personal_channel, gigachannel_manager, metadata_store):
     remove_list = []
     with db_session:
@@ -324,7 +318,6 @@ async def test_remove_cruft_channels(torrent_template, personal_channel, gigacha
 initiated_download = False
 
 
-@pytest.mark.asyncio
 async def test_reject_malformed_channel(
     gigachannel_manager, metadata_store
 ):  # pylint: disable=unused-argument, redefined-outer-name

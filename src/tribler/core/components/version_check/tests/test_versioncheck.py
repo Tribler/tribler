@@ -78,7 +78,6 @@ async def fixture_version_server(free_port):
     await site.stop()
 
 
-@pytest.mark.asyncio
 async def test_start(version_check_manager, version_server):
     """
     Test whether the periodic version lookup works as expected
@@ -99,7 +98,6 @@ async def test_start(version_check_manager, version_server):
     vcm.version_id = old_id
 
 
-@pytest.mark.asyncio
 async def test_user_agent(version_check_manager, version_server):
     global response, last_request_user_agent  # pylint: disable=global-statement
     response = json.dumps({'name': 'v1.0'})
@@ -108,7 +106,6 @@ async def test_user_agent(version_check_manager, version_server):
     assert last_request_user_agent == TEST_USER_AGENT
 
 
-@pytest.mark.asyncio
 async def test_old_version(version_check_manager, version_server):
     global response  # pylint: disable=global-statement
     response = json.dumps({'name': 'v1.0'})
@@ -116,7 +113,6 @@ async def test_old_version(version_check_manager, version_server):
     assert not has_new_version
 
 
-@pytest.mark.asyncio
 async def test_new_version(version_check_manager, version_server):
     global response  # pylint: disable=global-statement
     response = json.dumps({'name': NEW_VERSION_ID})
@@ -124,7 +120,6 @@ async def test_new_version(version_check_manager, version_server):
     assert has_new_version
 
 
-@pytest.mark.asyncio
 async def test_bad_request(version_check_manager, version_server):
     global response, response_code  # pylint: disable=global-statement
     response = json.dumps({'name': 'v1.0'})
@@ -133,7 +128,6 @@ async def test_bad_request(version_check_manager, version_server):
     assert not has_new_version
 
 
-@pytest.mark.asyncio
 async def test_connection_error(version_check_manager):
     global response  # pylint: disable=global-statement
     response = json.dumps({'name': 'v1.0'})
@@ -142,7 +136,6 @@ async def test_connection_error(version_check_manager):
     assert not has_new_version
 
 
-@pytest.mark.asyncio
 async def test_version_check_api_timeout(free_port, version_check_manager, version_server):
     global response, response_lag  # pylint: disable=global-statement
     response = json.dumps({'name': NEW_VERSION_ID})
@@ -161,7 +154,6 @@ async def test_version_check_api_timeout(free_port, version_check_manager, versi
     vcm.VERSION_CHECK_TIMEOUT = old_timeout
 
 
-@pytest.mark.asyncio
 async def test_fallback_on_multiple_urls(free_port, version_check_manager, version_server):
     """
     Scenario: Two release API URLs. First one is a non-existing URL so is expected to fail.

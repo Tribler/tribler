@@ -47,13 +47,11 @@ async def rest_manager(request, tribler_config, api_port, tmp_path):
 
 
 @pytest.mark.enable_https
-@pytest.mark.asyncio
 async def test_https(tribler_config, rest_manager, api_port):
     await do_real_request(api_port, f'https://localhost:{api_port}/settings')
 
 
 @pytest.mark.api_key('')
-@pytest.mark.asyncio
 async def test_api_key_disabled(rest_manager, api_port):
     await do_real_request(api_port, 'settings')
     await do_real_request(api_port, 'settings?apikey=111')
@@ -61,7 +59,6 @@ async def test_api_key_disabled(rest_manager, api_port):
 
 
 @pytest.mark.api_key('0' * 32)
-@pytest.mark.asyncio
 async def test_api_key_success(rest_manager, api_port):
     api_key = rest_manager.config.key
     await do_real_request(api_port, 'settings?apikey=' + api_key)
@@ -69,7 +66,6 @@ async def test_api_key_success(rest_manager, api_port):
 
 
 @pytest.mark.api_key('0' * 32)
-@pytest.mark.asyncio
 async def test_api_key_fail(rest_manager, api_port):
     await do_real_request(api_port, 'settings', expected_code=HTTP_UNAUTHORIZED,
                           expected_json={'error': 'Unauthorized access'})
@@ -79,7 +75,6 @@ async def test_api_key_fail(rest_manager, api_port):
                           expected_code=HTTP_UNAUTHORIZED, expected_json={'error': 'Unauthorized access'})
 
 
-@pytest.mark.asyncio
 async def test_unhandled_exception(rest_manager, api_port):
     """
     Testing whether the API returns a formatted 500 error and

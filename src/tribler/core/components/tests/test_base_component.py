@@ -2,7 +2,6 @@ import pytest
 
 from tribler.core.components.base import Component, MissedDependency, NoneComponent, Session, SessionError
 
-pytestmark = pytest.mark.asyncio
 
 
 class ComponentTestException(Exception):

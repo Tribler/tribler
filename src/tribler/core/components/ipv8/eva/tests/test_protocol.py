@@ -523,7 +523,6 @@ def peer():
     return Mock()
 
 
-@pytest.mark.asyncio
 async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
     # validate that data_size can not be less or equal to 0
     with patch.object(EVAProtocol, '_finish_with_error') as method_mock:
@@ -548,7 +547,6 @@ def test_is_simultaneously_served_transfers_limit_exceeded(eva: EVAProtocol):
     assert eva._is_simultaneously_served_transfers_limit_exceeded()
 
 
-@pytest.mark.asyncio
 async def test_send_binary_with_transfers_limit(eva: EVAProtocol):
     # Test that in case `max_simultaneous_transfers` limit exceeded, call of
     # `send_binary` function will lead to schedule a transfer
@@ -564,7 +562,6 @@ async def test_send_binary_with_transfers_limit(eva: EVAProtocol):
     assert eva.scheduled
 
 
-@pytest.mark.asyncio
 async def test_on_write_request_with_transfers_limit(eva: EVAProtocol):
     # Test that in case of exceeded incoming transfers limit, TransferLimitException
     # will be returned
@@ -598,7 +595,6 @@ def test_send_write_request_finished_transfer(eva: EVAProtocol):
     assert not eva.send_write_request(transfer)
 
 
-@pytest.mark.asyncio
 async def test_on_error_correct_nonce(eva: EVAProtocol):
     # In this test we call `eva.on_error` and ensure that the corresponding transfer
     # is terminated
@@ -612,7 +608,6 @@ async def test_on_error_correct_nonce(eva: EVAProtocol):
     assert isinstance(transfer.finish.call_args.kwargs['exception'], TransferException)
 
 
-@pytest.mark.asyncio
 async def test_on_error_wrong_nonce(eva: EVAProtocol):
     # In this test we call `eva.on_error` with incorrect nonce and ensure that
     # the corresponding transfer is not terminated

@@ -6,10 +6,10 @@ from asyncio import all_tasks, get_event_loop, sleep
 from collections import defaultdict
 from itertools import permutations
 from typing import List, Optional, Tuple
+from unittest.mock import MagicMock
 
 import pytest
 from _pytest.tmpdir import TempPathFactory
-from asynctest import MagicMock
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
 from ipv8.test.messaging.anonymization import test_community
@@ -224,7 +224,6 @@ async def tunnel_community(tmp_path_factory: TempPathFactory):
 
 
 @pytest.mark.tunneltest
-@pytest.mark.asyncio
 async def test_anon_download(proxy_factory: ProxyFactory, video_seeder: DownloadManager, video_tdef: TorrentDef,
                              tunnel_community: TriblerTunnelCommunity, crash_on_error):
     """
@@ -248,7 +247,6 @@ async def test_anon_download(proxy_factory: ProxyFactory, video_seeder: Download
 
 
 @pytest.mark.tunneltest
-@pytest.mark.asyncio
 async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: TriblerTunnelCommunity,
                                video_tdef: TorrentDef, crash_on_error):
     """

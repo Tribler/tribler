@@ -4,7 +4,6 @@ import pytest
 
 from tribler.core.utilities.patch_import import patch_import
 
-pytestmark = pytest.mark.asyncio
 
 
 # pylint: disable=import-outside-toplevel, import-error, unused-import

@@ -4,7 +4,6 @@ from tribler.core.components.base import Session
 from tribler.core.components.key.key_component import KeyComponent
 
 
-@pytest.mark.asyncio
 async def test_masterkey_component(tribler_config):
     async with Session(tribler_config, [KeyComponent()]).start():
         comp = KeyComponent.instance()

@@ -1,5 +1,6 @@
+from unittest.mock import MagicMock
+
 import pytest
-from asynctest import MagicMock
 from ipv8.util import succeed
 from pony.orm import db_session
 
@@ -55,7 +56,6 @@ async def gigachannel_manager(metadata_store, download_manager):
     await gigachannel_manager.shutdown()
 
 
-@pytest.mark.asyncio
 async def test_channel_update_and_download(
     channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
 ):

@@ -11,7 +11,6 @@ from tribler.core.utilities.patch_import import patch_import
 # pylint: disable=import-outside-toplevel
 # fmt: off
 
-pytestmark = pytest.mark.asyncio
 
 
 @patch('sys.exit')

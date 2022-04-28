@@ -99,7 +99,6 @@ def test_store_large_transaction(bandwidth_db):
     assert latest_tx
 
 
-@pytest.mark.asyncio
 async def test_totals(bandwidth_db):
     with db_session:
         tx1 = BandwidthTransactionData(1, b"a", b"b", EMPTY_SIGNATURE, EMPTY_SIGNATURE, 3000)

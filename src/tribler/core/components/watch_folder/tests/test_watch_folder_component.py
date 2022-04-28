@@ -8,7 +8,6 @@ from tribler.core.components.watch_folder.watch_folder_component import WatchFol
 
 
 # pylint: disable=protected-access
-@pytest.mark.asyncio
 async def test_watch_folder_component(tribler_config):
     components = [KeyComponent(), SocksServersComponent(), LibtorrentComponent(), WatchFolderComponent()]
     async with Session(tribler_config, components).start():

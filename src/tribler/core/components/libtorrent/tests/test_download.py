@@ -32,14 +32,12 @@ def test_download_resume(mock_handle, mock_download_config, test_download):
     test_download.handle.resume.assert_called()
 
 
-@pytest.mark.asyncio
 async def test_download_resume_in_upload_mode(mock_handle, mock_download_config, test_download):
     await test_download.set_upload_mode(True)
     test_download.resume()
     test_download.handle.set_upload_mode.assert_called_with(test_download.get_upload_mode())
 
 
-@pytest.mark.asyncio
 async def test_save_resume(mock_handle, test_download, test_tdef):
     """
     testing call resume data alert
@@ -77,7 +75,6 @@ def test_move_storage(mock_handle, test_download, test_tdef, test_tdef_no_metain
     assert len(result) == 1
 
 
-@pytest.mark.asyncio
 async def test_save_checkpoint(test_download, test_tdef):
     await test_download.checkpoint()
     basename = hexlify(test_tdef.get_infohash()) + '.conf'
@@ -146,7 +143,6 @@ def test_get_share_mode(test_download):
     assert test_download.get_share_mode()
 
 
-@pytest.mark.asyncio
 async def test_set_share_mode(mock_handle, test_download):
     """
     Test whether we set the right share mode in Download
@@ -188,7 +184,6 @@ def test_get_num_connected_seeds_peers(mock_handle, test_download):
     assert num_peers == mock_leechers, "Expected peers differ"
 
 
-@pytest.mark.asyncio
 async def test_set_priority(mock_handle, test_download):
     """
     Test whether setting the priority calls the right methods in Download
@@ -249,7 +244,6 @@ def test_tracker_warning_alert(test_download):
     assert test_download.tracker_status[url][1] == 'Warning: test'
 
 
-@pytest.mark.asyncio
 async def test_on_metadata_received_alert(mock_handle, test_download):
     """
     Testing whether the right operations happen when we receive metadata
@@ -362,7 +356,6 @@ def test_get_pieces_bitmask(mock_handle, test_download):
     assert test_download.get_pieces_base64() == b"gA=="
 
 
-@pytest.mark.asyncio
 async def test_resume_data_failed(test_download):
     """
     Testing whether the correct operations happen when an error is raised during resume data saving
@@ -394,7 +387,6 @@ def test_on_state_changed(mock_handle, test_download):
     test_download.apply_ip_filter.assert_called_with(False)
 
 
-@pytest.mark.asyncio
 async def test_checkpoint_timeout(test_download):
     """
     Testing whether making a checkpoint times out when we receive no alert from libtorrent

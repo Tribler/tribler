@@ -7,7 +7,6 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryS
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 
-pytestmark = pytest.mark.asyncio
 
 
 # pylint: disable=redefined-outer-name, protected-access, function-redefined, unused-argument

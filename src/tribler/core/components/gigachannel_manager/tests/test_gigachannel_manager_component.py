@@ -12,7 +12,6 @@ from tribler.core.components.tag.tag_component import TagComponent
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio
 async def test_gigachannel_manager_component(tribler_config):
     components = [Ipv8Component(), TagComponent(), SocksServersComponent(), KeyComponent(), MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]

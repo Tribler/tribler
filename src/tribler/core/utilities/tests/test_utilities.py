@@ -58,7 +58,6 @@ def test_valid_url():
     assert is_valid_url(test_url4)
 
 
-@pytest.mark.asyncio
 async def test_http_get_with_redirect(magnet_redirect_server):
     """
     Test if http_get is working properly if url redirects to a magnet link.
