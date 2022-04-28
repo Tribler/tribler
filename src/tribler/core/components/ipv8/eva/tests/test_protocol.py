@@ -19,7 +19,7 @@ from tribler.core.components.ipv8.eva.exceptions import SizeException, TimeoutEx
     TransferLimitException, ValueException
 from tribler.core.components.ipv8.eva.protocol import Acknowledgement, Data, EVAProtocol, Error, TransferResult, \
     WriteRequest
-from tribler.core.components.ipv8.eva.transfer import OutgoingTransfer
+from tribler.core.components.ipv8.eva.transfer.outgoing_transfer import OutgoingTransfer
 
 # pylint: disable=redefined-outer-name, protected-access, attribute-defined-outside-init
 

@@ -44,7 +44,9 @@ from ipv8.types import Peer
 
 from tribler.core.components.ipv8.eva.exceptions import SizeException, TransferException, TransferLimitException, \
     ValueException
-from tribler.core.components.ipv8.eva.transfer import IncomingTransfer, OutgoingTransfer, Transfer
+from tribler.core.components.ipv8.eva.transfer.transfer import Transfer
+from tribler.core.components.ipv8.eva.transfer.outgoing_transfer import OutgoingTransfer
+from tribler.core.components.ipv8.eva.transfer.incoming_transfer import IncomingTransfer
 from tribler.core.components.ipv8.protocol_decorator import make_protocol_decorator
 
 __version__ = '2.1.2'
