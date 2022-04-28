@@ -10,7 +10,6 @@ def tag_requests():
     return TagRequests()
 
 
-pytestmark = pytest.mark.asyncio
 
 
 async def test_add_peer(tag_requests):

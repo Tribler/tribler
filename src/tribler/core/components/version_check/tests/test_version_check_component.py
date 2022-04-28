@@ -3,7 +3,6 @@ import pytest
 from tribler.core.components.base import Session
 from tribler.core.components.version_check.version_check_component import VersionCheckComponent
 
-pytestmark = pytest.mark.asyncio
 
 
 # pylint: disable=protected-access

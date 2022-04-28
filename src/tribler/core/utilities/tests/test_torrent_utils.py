@@ -63,7 +63,6 @@ def test_get_info_from_handle():
     assert not get_info_from_handle(mock_handle)
 
 
-@pytest.mark.asyncio
 def test_commonprefix(tmpdir):
     assert common_prefix([Path(tmpdir) / '1.txt']) == Path(tmpdir)
 

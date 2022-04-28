@@ -457,7 +457,6 @@ class ThreadedTestException(Exception):
     pass
 
 
-@pytest.mark.asyncio
 async def test_run_threaded(metadata_store):
     thread_id = threading.get_ident()
 

@@ -3,7 +3,6 @@ import pytest
 from tribler.core.utilities.path_util import Path
 
 
-@pytest.mark.asyncio
 async def test_put_path_relative(tmpdir):
     assert Path(tmpdir).normalize_to(None) == Path(tmpdir)
     assert Path(tmpdir).normalize_to('') == Path(tmpdir)
@@ -12,7 +11,6 @@ async def test_put_path_relative(tmpdir):
     assert Path(tmpdir / '1').normalize_to(tmpdir) == Path('1')
 
 
-@pytest.mark.asyncio
 async def test_normalize_to(tmpdir):
     assert Path(tmpdir).normalize_to(None) == Path(tmpdir)
     assert Path(tmpdir).normalize_to('') == Path(tmpdir)

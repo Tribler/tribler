@@ -8,7 +8,6 @@ from tribler.core.components.key.key_component import KeyComponent
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio
 async def test_bandwidth_accounting_component(tribler_config):
     components = [KeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
     async with Session(tribler_config, components).start():

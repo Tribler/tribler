@@ -13,7 +13,6 @@ from tribler.core.components.torrent_checker.torrent_checker_component import To
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio
 async def test_popularity_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), TorrentCheckerComponent(), TagComponent(),
                   MetadataStoreComponent(), KeyComponent(), Ipv8Component(), PopularityComponent()]

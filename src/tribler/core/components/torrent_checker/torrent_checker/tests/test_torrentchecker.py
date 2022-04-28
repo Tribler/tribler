@@ -2,14 +2,11 @@ import os
 import random
 import secrets
 import time
-
-from asynctest import MagicMock
-
-from ipv8.util import succeed
-
-from pony.orm import db_session
+from unittest.mock import MagicMock
 
 import pytest
+from ipv8.util import succeed
+from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
@@ -38,7 +35,6 @@ async def fixture_torrent_checker(tribler_config, tracker_manager, metadata_stor
     await torrent_checker.shutdown()
 
 
-@pytest.mark.asyncio
 async def test_initialize(torrent_checker):  # pylint: disable=unused-argument
     """
     Test the initialization of the torrent checker
@@ -48,7 +44,6 @@ async def test_initialize(torrent_checker):  # pylint: disable=unused-argument
     assert torrent_checker.is_pending_task_active("torrent_check")
 
 
-@pytest.mark.asyncio
 async def test_create_socket_fail(torrent_checker):
     """
     Test creation of the UDP socket of the torrent checker when it fails
@@ -64,7 +59,6 @@ async def test_create_socket_fail(torrent_checker):
     assert torrent_checker.is_pending_task_active("listen_udp_port")
 
 
-@pytest.mark.asyncio
 async def test_health_check_blacklisted_trackers(torrent_checker):
     """
     Test whether only cached results of a torrent are returned with only blacklisted trackers
@@ -81,7 +75,6 @@ async def test_health_check_blacklisted_trackers(torrent_checker):
     assert result['db']['leechers'] == 10
 
 
-@pytest.mark.asyncio
 async def test_health_check_cached(torrent_checker):
     """
     Test whether cached results of a torrent are returned when fetching the health of a torrent
@@ -97,7 +90,6 @@ async def test_health_check_cached(torrent_checker):
     assert result['db']['leechers'] == 10
 
 
-@pytest.mark.asyncio
 async def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused-argument
     """
     Test if the torrents_checked set is properly initialized based on the last_check
@@ -146,7 +138,6 @@ async def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=
     assert len(torrent_checker.torrents_checked) == return_size
 
 
-@pytest.mark.asyncio
 async def test_task_select_no_tracker(torrent_checker):
     """
     Test whether we are not checking a random tracker if there are no trackers in the database.
@@ -155,7 +146,6 @@ async def test_task_select_no_tracker(torrent_checker):
     assert not result
 
 
-@pytest.mark.asyncio
 async def test_check_random_tracker_shutdown(torrent_checker):
     """
     Test whether we are not performing a tracker check if we are shutting down.
@@ -165,7 +155,6 @@ async def test_check_random_tracker_shutdown(torrent_checker):
     assert not result
 
 
-@pytest.mark.asyncio
 async def test_check_random_tracker_not_alive(torrent_checker):
     """
     Test whether we correctly update the tracker state when the number of failures is too large.
@@ -181,7 +170,6 @@ async def test_check_random_tracker_not_alive(torrent_checker):
         assert not tracker.alive
 
 
-@pytest.mark.asyncio
 async def test_task_select_tracker(torrent_checker):
     with db_session:
         tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
@@ -197,7 +185,6 @@ async def test_task_select_tracker(torrent_checker):
     assert len(controlled_session.infohash_list) == 1
 
 
-@pytest.mark.asyncio
 async def test_tracker_test_error_resolve(torrent_checker):
     """
     Test whether we capture the error when a tracker check fails
@@ -213,7 +200,6 @@ async def test_tracker_test_error_resolve(torrent_checker):
     assert len(torrent_checker._session_list) == 1
 
 
-@pytest.mark.asyncio
 async def test_tracker_no_infohashes(torrent_checker):
     """
     Test the check of a tracker without associated torrents

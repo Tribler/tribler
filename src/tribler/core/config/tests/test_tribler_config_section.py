@@ -10,7 +10,6 @@ class TriblerTestConfigSection(TriblerConfigSection):
     path: Optional[str]
 
 
-@pytest.mark.asyncio
 async def test_put_path_relative(tmpdir):
     section = TriblerTestConfigSection()
 
@@ -21,7 +20,6 @@ async def test_put_path_relative(tmpdir):
     assert section.path == '1'
 
 
-@pytest.mark.asyncio
 async def test_put_path_absolute(tmpdir):
     section = TriblerTestConfigSection()
 
@@ -35,7 +33,6 @@ async def test_put_path_absolute(tmpdir):
     assert section.path == str(Path('/Tribler'))
 
 
-@pytest.mark.asyncio
 async def test_null_replacement():
     section = TriblerTestConfigSection(path='None')
     assert section.path is None

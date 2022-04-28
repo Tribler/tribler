@@ -1,8 +1,8 @@
 import os
 import shutil
+from unittest.mock import MagicMock
 
 import pytest
-from asynctest import MagicMock
 
 from tribler.core.components.watch_folder.settings import WatchFolderSettings
 from tribler.core.components.watch_folder.watch_folder import WatchFolder

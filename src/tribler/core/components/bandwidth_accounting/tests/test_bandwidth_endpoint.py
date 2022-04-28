@@ -14,7 +14,6 @@ from tribler.core.components.bandwidth_accounting.settings import BandwidthAccou
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 
-pytestmark = pytest.mark.asyncio
 
 # pylint: disable=redefined-outer-name
 @pytest.fixture

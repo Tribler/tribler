@@ -10,14 +10,12 @@ from tribler.core.utilities.path_util import Path
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 
-@pytest.mark.asyncio
 async def test_create(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     assert config
     assert config.state_dir == Path(tmpdir)
 
 
-@pytest.mark.asyncio
 async def test_base_getters_and_setters(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     assert config.state_dir == Path(tmpdir)
@@ -26,7 +24,6 @@ async def test_base_getters_and_setters(tmpdir):
     assert config.state_dir == Path('.')
 
 
-@pytest.mark.asyncio
 async def test_load_write(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     filename = 'test_read_write.ini'
@@ -48,7 +45,6 @@ async def test_load_write(tmpdir):
     assert config.file == tmpdir / filename
 
 
-@pytest.mark.asyncio
 async def test_load_write_nonascii(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     filename = 'test_read_write.ini'
@@ -65,7 +61,6 @@ async def test_load_write_nonascii(tmpdir):
     assert config.file == tmpdir / filename
 
 
-@pytest.mark.asyncio
 async def test_copy(tmpdir):
     config = TriblerConfig(state_dir=tmpdir, file=tmpdir / '1.txt')
     config.api.http_port = 42
@@ -76,7 +71,6 @@ async def test_copy(tmpdir):
     assert cloned.file == tmpdir / '1.txt'
 
 
-@pytest.mark.asyncio
 async def test_get_path_relative(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     config.general.log_dir = None
@@ -89,7 +83,6 @@ async def test_get_path_relative(tmpdir):
     assert config.general.get_path_as_absolute('log_dir', tmpdir) == Path(tmpdir) / '1'
 
 
-@pytest.mark.asyncio
 async def test_get_path_absolute(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     config.general.log_dir = str(Path(tmpdir).parent)
@@ -104,7 +97,6 @@ def test_get_path_absolute_none(tmpdir):
     assert config.general.get_path_as_absolute(property_name='log_dir', state_dir=state_dir) is None
 
 
-@pytest.mark.asyncio
 async def test_invalid_config_recovers(tmpdir):
     default_config_file = tmpdir / 'triblerd.conf'
     shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', default_config_file)

@@ -79,7 +79,6 @@ def test_on_socks_in_udp(dispatcher, mock_circuit):
     assert dispatcher.on_socks5_udp_data(mock_udp_connection, mock_request)
 
 
-@pytest.mark.asyncio
 async def test_on_socks_in_tcp(dispatcher):
     """
     Test whether TCP connect request are correctly dispatched to the TunnelCommunity

@@ -9,7 +9,6 @@ from tribler.core.components.tag.tag_component import TagComponent
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio
 async def test_metadata_store_component(tribler_config):
     components = [TagComponent(), Ipv8Component(), KeyComponent(), MetadataStoreComponent()]
     async with Session(tribler_config, components).start():

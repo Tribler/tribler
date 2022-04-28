@@ -76,7 +76,6 @@ async def open_events_socket(rest_manager_, connected_event, events_up):
                     break
 
 
-@pytest.mark.asyncio
 async def test_events(rest_manager, notifier: Notifier):
     """
     Testing whether various events are coming through the events endpoints
@@ -111,7 +110,6 @@ async def test_events(rest_manager, notifier: Notifier):
         await event_socket_task
 
 
-@pytest.mark.asyncio
 @patch.object(EventsEndpoint, 'write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=True))
 async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, endpoint, reported_error):
@@ -123,7 +121,6 @@ async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, end
     assert not endpoint.undelivered_error
 
 
-@pytest.mark.asyncio
 @patch.object(EventsEndpoint, 'write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
 async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, endpoint, reported_error):
@@ -135,7 +132,6 @@ async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, endp
     assert endpoint.undelivered_error == endpoint.error_message(reported_error)
 
 
-@pytest.mark.asyncio
 @patch.object(EventsEndpoint, 'write_data', new=MagicMock())
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
 async def test_on_tribler_exception_stores_only_first_error(endpoint, reported_error):
@@ -150,7 +146,6 @@ async def test_on_tribler_exception_stores_only_first_error(endpoint, reported_e
     assert endpoint.undelivered_error == endpoint.error_message(first_reported_error)
 
 
-@pytest.mark.asyncio
 @patch.object(EventsEndpoint, 'register_anonymous_task', new=AsyncMock(side_effect=CancelledError))
 @patch.object(RESTStreamResponse, 'prepare', new=AsyncMock())
 @patch.object(RESTStreamResponse, 'write', new_callable=AsyncMock)

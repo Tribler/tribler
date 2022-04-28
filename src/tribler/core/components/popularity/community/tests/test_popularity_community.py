@@ -181,7 +181,6 @@ class TestPopularityCommunity(TestBase):
         self.nodes[1].overlay.send_remote_select.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_select_torrents_to_gossip_small_list():
     torrents = [
         # infohash, seeders, leechers, last_check
@@ -196,7 +195,6 @@ async def test_select_torrents_to_gossip_small_list():
     assert not rand
 
 
-@pytest.mark.asyncio
 async def test_select_torrents_to_gossip_big_list():
     # torrent structure is (infohash, seeders, leechers, last_check)
     dead_torrents = {(random_infohash(), 0, randint(1, 10), None)
@@ -218,7 +216,6 @@ async def test_select_torrents_to_gossip_big_list():
     assert rand <= alive_torrents
 
 
-@pytest.mark.asyncio
 async def test_no_alive_torrents():
     torrents = {(random_infohash(), 0, randint(1, 10), None)
                 for _ in range(10)}
@@ -229,7 +226,6 @@ async def test_no_alive_torrents():
 
 
 # pylint: disable=super-init-not-called
-@pytest.mark.asyncio
 async def test_gossip_torrents_health_returns():
     class MockPopularityCommunity(PopularityCommunity):
         def __init__(self):

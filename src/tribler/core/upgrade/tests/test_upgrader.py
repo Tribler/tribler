@@ -131,7 +131,6 @@ def test_upgrade_pony_8to10(upgrader, channels_dir, mds_path, trustchain_keypair
     mds.shutdown()
 
 
-@pytest.mark.asyncio
 async def test_upgrade_pony_10to11(upgrader, channels_dir, mds_path, trustchain_keypair):
     _copy('pony_v10.db', mds_path)
 
@@ -231,7 +230,6 @@ def test_calc_progress():
     assert calc_progress(1000, 100) == pytest.approx(99.158472, abs=EPSILON)
 
 
-@pytest.mark.asyncio
 async def test_upgrade_bw_accounting_db_8to9(upgrader, state_dir, trustchain_keypair):
     bandwidth_path = state_dir / 'sqlite/bandwidth.db'
     _copy('bandwidth_v8.db', bandwidth_path)

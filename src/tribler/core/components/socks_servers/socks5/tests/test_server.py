@@ -18,7 +18,6 @@ async def fixture_socks5_server(free_port):
     await socks5_server.stop()
 
 
-@pytest.mark.asyncio
 async def test_start_server(socks5_server):
     """
     Test writing an invalid version to the socks5 server
@@ -26,7 +25,6 @@ async def test_start_server(socks5_server):
     await socks5_server.start()
 
 
-@pytest.mark.asyncio
 async def test_socks5_udp_associate(socks5_server):
     """
     Test if sending a UDP associate request to the server succeeds.
@@ -39,7 +37,6 @@ async def test_socks5_udp_associate(socks5_server):
     assert client.connection.transport is not None
 
 
-@pytest.mark.asyncio
 async def test_socks5_sendto_fail(socks5_server):
     """
     Test if sending a UDP packet without a successful association fails.
@@ -50,7 +47,6 @@ async def test_socks5_sendto_fail(socks5_server):
         client.sendto(b'\x00', ('127.0.0.1', 123))
 
 
-@pytest.mark.asyncio
 async def test_socks5_sendto_success(socks5_server):
     """
     Test if sending/receiving a UDP packet works correctly.
@@ -76,7 +72,6 @@ async def test_socks5_sendto_success(socks5_server):
     client.callback.assert_called_once_with(data, target)
 
 
-@pytest.mark.asyncio
 async def test_socks5_tcp_connect(socks5_server):
     """
     Test if sending a TCP connect request to the server succeeds.
@@ -88,7 +83,6 @@ async def test_socks5_tcp_connect(socks5_server):
     assert client.connection is None
 
 
-@pytest.mark.asyncio
 async def test_socks5_write(socks5_server):
     """
     Test if sending a TCP data to the server succeeds.
@@ -102,7 +96,6 @@ async def test_socks5_write(socks5_server):
                                                                            ('127.0.0.1', 123), b' ')
 
 
-@pytest.mark.asyncio
 async def test_socks5_aiohttp_connector(socks5_server):
     """
     Test if making a HTTP request through Socks5Server using the Socks5Connector works as expected.

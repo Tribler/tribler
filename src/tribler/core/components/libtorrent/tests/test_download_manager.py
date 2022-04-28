@@ -52,7 +52,6 @@ async def fake_dlmgr(tmp_path_factory):
     await dlmgr.shutdown(timeout=0)
 
 
-@pytest.mark.asyncio
 async def test_get_metainfo_valid_metadata(fake_dlmgr):
     """
     Testing the get_metainfo method when the handle has valid metadata immediately
@@ -74,7 +73,6 @@ async def test_get_metainfo_valid_metadata(fake_dlmgr):
     fake_dlmgr.remove_download.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_get_metainfo_add_fail(fake_dlmgr):
     """
     Test whether we try to add a torrent again if the atp is rejected
@@ -97,7 +95,6 @@ async def test_get_metainfo_add_fail(fake_dlmgr):
     fake_dlmgr.remove.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_get_metainfo_duplicate_request(fake_dlmgr):
     """
     Test whether the same request is returned when invoking get_metainfo twice with the same infohash
@@ -121,7 +118,6 @@ async def test_get_metainfo_duplicate_request(fake_dlmgr):
     fake_dlmgr.remove_download.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_get_metainfo_cache(fake_dlmgr):
     """
     Testing whether cached metainfo is returned, if available
@@ -132,7 +128,6 @@ async def test_get_metainfo_cache(fake_dlmgr):
     assert await fake_dlmgr.get_metainfo(b"a" * 20) == "test"
 
 
-@pytest.mark.asyncio
 async def test_get_metainfo_with_already_added_torrent(fake_dlmgr):
     """
     Testing metainfo fetching for a torrent which is already in session.
@@ -152,7 +147,6 @@ async def test_get_metainfo_with_already_added_torrent(fake_dlmgr):
     assert await fake_dlmgr.get_metainfo(torrent_def.infohash)
 
 
-@pytest.mark.asyncio
 async def test_start_download_while_getting_metainfo(fake_dlmgr):
     """
     Testing adding a torrent while a metainfo request is running.
@@ -179,7 +173,6 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
     fake_dlmgr.remove_download.assert_called_once_with(metainfo_dl, remove_content=True, remove_checkpoint=False)
 
 
-@pytest.mark.asyncio
 async def test_start_download(fake_dlmgr):
     """
     Testing the addition of a torrent to the libtorrent manager
@@ -239,7 +232,6 @@ async def test_start_download(fake_dlmgr):
     fake_dlmgr.downloads.clear()
 
 
-@pytest.mark.asyncio
 async def test_start_download_existing_handle(fake_dlmgr):
     """
     Testing the addition of a torrent to the libtorrent manager, if there is a pre-existing handle.
@@ -262,7 +254,6 @@ async def test_start_download_existing_handle(fake_dlmgr):
     await download.shutdown()
 
 
-@pytest.mark.asyncio
 async def test_start_download_existing_download(fake_dlmgr):
     """
     Testing the addition of a torrent to the libtorrent manager, if there is a pre-existing download.
@@ -343,7 +334,6 @@ def test_payout_on_disconnect(fake_dlmgr):
     fake_dlmgr.payout_manager.do_payout.is_called_with(b'a' * 20)
 
 
-@pytest.mark.asyncio
 async def test_post_session_stats(fake_dlmgr):
     """
     Test whether post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
@@ -395,7 +385,6 @@ def test_load_empty_checkpoint(fake_dlmgr, tmpdir):
     fake_dlmgr.start_download.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_load_checkpoints(fake_dlmgr, tmpdir):
     """
     Test whether we are resuming downloads after loading checkpoints
@@ -415,7 +404,6 @@ async def test_load_checkpoints(fake_dlmgr, tmpdir):
     assert mocked_load_checkpoint.called
 
 
-@pytest.mark.asyncio
 async def test_readd_download_safe_seeding(fake_dlmgr):
     """
     Test whether a download is re-added when doing safe seeding
@@ -444,7 +432,6 @@ def test_get_downloads_by_name(fake_dlmgr):
     assert fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso", channels_only=True)
 
 
-@pytest.mark.asyncio
 async def test_check_for_dht_ready(fake_dlmgr):
     fake_dlmgr.get_session = MagicMock()
     fake_dlmgr.get_session().status().dht_nodes = 1000

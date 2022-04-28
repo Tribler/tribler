@@ -53,7 +53,6 @@ def test_invalid_version(connection):
     assert not connection.transport.connected
 
 
-@pytest.mark.asyncio
 def test_method_request(connection):
     """
     Test sending a method request to the socks5 server
@@ -63,7 +62,6 @@ def test_method_request(connection):
     assert connection.state == ConnectionState.CONNECTED
 
 
-@pytest.mark.asyncio
 async def test_udp_associate(connection):
     """
     Test sending a udp associate request to the socks5 server
@@ -83,7 +81,6 @@ def test_bind(connection):
     assert len(connection.transport.written_data) == 2
 
 
-@pytest.mark.asyncio
 async def test_connect(connection):
     """
     Test sending a connect command and proxying data

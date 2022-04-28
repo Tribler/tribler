@@ -37,7 +37,6 @@ def fixture_ipv8_health_monitor(ipv8):
     return IPv8Monitor(ipv8, DEFAULT_WALK_INTERVAL, 3.0, 0.01)
 
 
-@pytest.mark.asyncio
 async def test_start(task_manager, ipv8_health_monitor):
     mock_interval = 7.7
 

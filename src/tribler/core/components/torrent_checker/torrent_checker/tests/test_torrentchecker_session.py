@@ -51,7 +51,6 @@ async def fake_dht_session(mock_dlmgr):
     await fake_dht_session.shutdown_task_manager()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_scrape_no_body():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
     session._infohash_list = []
@@ -61,7 +60,6 @@ async def test_httpsession_scrape_no_body():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_bdecode_fails():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
     session._infohash_list = []
@@ -71,7 +69,6 @@ async def test_httpsession_bdecode_fails():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_code_not_200():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
 
@@ -84,7 +81,6 @@ async def test_httpsession_code_not_200():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_failure_reason_in_dict():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
     session._infohash_list = []
@@ -94,7 +90,6 @@ async def test_httpsession_failure_reason_in_dict():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_unicode_err():
     session = HttpTrackerSession("retracker.local", ("retracker.local", 80),
                                  "/announce?comment=%26%23%3B%28%2C%29%5B%5D%E3%5B%D4%E8%EB%FC%EC%EE%E2", 5, None)
@@ -104,7 +99,6 @@ async def test_httpsession_unicode_err():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_timeout():
     sleep_task = Future()
 
@@ -122,7 +116,6 @@ async def test_httpsession_timeout():
     server.close()
 
 
-@pytest.mark.asyncio
 async def test_udpsession_timeout(fake_udp_socket_manager):
     sleep_future = Future()
     fake_udp_socket_manager.send_request = lambda *_: sleep_future
@@ -136,7 +129,6 @@ async def test_udpsession_timeout(fake_udp_socket_manager):
     transport.close()
 
 
-@pytest.mark.asyncio
 async def test_pop_finished_transaction():
     """
     Test that receiving a datagram for an already finished tracker session does not result in InvalidStateError
@@ -155,7 +147,6 @@ async def test_pop_finished_transaction():
     assert task.done()
 
 
-@pytest.mark.asyncio
 async def test_proxy_transport():
     """
     Test that the UdpSocketManager uses a proxy if specified
@@ -176,7 +167,6 @@ async def test_proxy_transport():
     mgr.tracker_sessions[123].cancel()
 
 
-@pytest.mark.asyncio
 async def test_httpsession_cancel_operation():
     session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5, None)
     task = ensure_future(session.connect_to_tracker())
@@ -186,7 +176,6 @@ async def test_httpsession_cancel_operation():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_udpsession_cancel_operation(fake_udp_socket_manager):
     session = UdpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 0, None, fake_udp_socket_manager)
     task = ensure_future(session.connect_to_tracker())
@@ -196,7 +185,6 @@ async def test_udpsession_cancel_operation(fake_udp_socket_manager):
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_udpsession_handle_response_wrong_len(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -213,7 +201,6 @@ async def test_udpsession_handle_response_wrong_len(fake_udp_socket_manager):
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_no_port(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -223,7 +210,6 @@ async def test_udpsession_no_port(fake_udp_socket_manager):
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_handle_connection_wrong_action_transaction(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -233,7 +219,6 @@ async def test_udpsession_handle_connection_wrong_action_transaction(fake_udp_so
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_handle_packet(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     session.action = 123
@@ -244,7 +229,6 @@ async def test_udpsession_handle_packet(fake_udp_socket_manager):
     assert not session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_handle_wrong_action_transaction(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -254,7 +238,6 @@ async def test_udpsession_handle_wrong_action_transaction(fake_udp_socket_manage
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_mismatch(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     session.action = 123
@@ -267,7 +250,6 @@ async def test_udpsession_mismatch(fake_udp_socket_manager):
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_response_too_short(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -277,7 +259,6 @@ async def test_udpsession_response_too_short(fake_udp_socket_manager):
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_response_wrong_transaction_id(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -287,7 +268,6 @@ async def test_udpsession_response_wrong_transaction_id(fake_udp_socket_manager)
     assert session.is_failed
 
 
-@pytest.mark.asyncio
 async def test_udpsession_response_list_len_mismatch(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, fake_udp_socket_manager)
     session.action = 123
@@ -301,7 +281,6 @@ async def test_udpsession_response_list_len_mismatch(fake_udp_socket_manager):
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_udpsession_correct_handle(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5, None, fake_udp_socket_manager)
     session.ip_address = "127.0.0.1"
@@ -314,7 +293,6 @@ async def test_udpsession_correct_handle(fake_udp_socket_manager):
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_big_correct_run(fake_udp_socket_manager):
     session = UdpTrackerSession("localhost", ("192.168.1.1", 1234), "/announce", 0, None, fake_udp_socket_manager)
     assert not session.is_failed
@@ -327,7 +305,6 @@ async def test_big_correct_run(fake_udp_socket_manager):
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_http_unprocessed_infohashes():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
     session.infohash_list.append(b"test")
@@ -337,7 +314,6 @@ async def test_http_unprocessed_infohashes():
     await session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_failed_unicode():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
     with pytest.raises(ValueError):
@@ -351,7 +327,6 @@ def test_failed_unicode_udp(fake_udp_socket_manager):
         session.failed('\xd0')
 
 
-@pytest.mark.asyncio
 async def test_cleanup(bep33_session):
     """
     Test the cleanup of a DHT session
@@ -359,7 +334,6 @@ async def test_cleanup(bep33_session):
     await bep33_session.cleanup()
 
 
-@pytest.mark.asyncio
 async def test_connect_to_tracker(mock_dlmgr, fake_dht_session):
     """
     Test the metainfo lookup of the DHT session
@@ -374,7 +348,6 @@ async def test_connect_to_tracker(mock_dlmgr, fake_dht_session):
     assert metainfo['DHT'][0]['seeders'] == 42
 
 
-@pytest.mark.asyncio
 async def test_connect_to_tracker_fail(mock_dlmgr, fake_dht_session):
     """
     Test the metainfo lookup of the DHT session when it fails
@@ -384,7 +357,6 @@ async def test_connect_to_tracker_fail(mock_dlmgr, fake_dht_session):
         await fake_dht_session.connect_to_tracker()
 
 
-@pytest.mark.asyncio
 async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr):
     """
     Test the metainfo lookup of the BEP33 DHT session

@@ -6,7 +6,6 @@ from tribler.core.components.key.key_component import KeyComponent
 
 
 # pylint: disable=protected-access
-@pytest.mark.asyncio
 async def test_ipv8_component(tribler_config):
     async with Session(tribler_config, [KeyComponent(), Ipv8Component()]).start():
         comp = Ipv8Component.instance()
@@ -18,7 +17,6 @@ async def test_ipv8_component(tribler_config):
         assert not comp._peer_discovery_community
 
 
-@pytest.mark.asyncio
 async def test_ipv8_component_dht_disabled(tribler_config):
     tribler_config.ipv8.enabled = True
     tribler_config.dht.enabled = True
@@ -27,7 +25,6 @@ async def test_ipv8_component_dht_disabled(tribler_config):
         assert comp.dht_discovery_community
 
 
-@pytest.mark.asyncio
 async def test_ipv8_component_discovery_community_enabled(tribler_config):
     tribler_config.ipv8.enabled = True
     tribler_config.gui_test_mode = False

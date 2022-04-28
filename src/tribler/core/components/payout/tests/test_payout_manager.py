@@ -22,7 +22,6 @@ async def payout_manager():
     await payout_manager.shutdown()
 
 
-@pytest.mark.asyncio
 async def test_do_payout(payout_manager):
     """
     Test doing a payout
@@ -40,7 +39,6 @@ async def test_do_payout(payout_manager):
     assert res
 
 
-@pytest.mark.asyncio
 async def test_do_payout_dht_error(payout_manager):
     """
     Test whether we are not doing a payout when the DHT lookup fails
@@ -54,7 +52,6 @@ async def test_do_payout_dht_error(payout_manager):
     assert not res
 
 
-@pytest.mark.asyncio
 async def test_do_payout_no_dht_peers(payout_manager):
     """
     Test whether we are not doing a payout when there are no peers returned by the DHT
@@ -68,7 +65,6 @@ async def test_do_payout_no_dht_peers(payout_manager):
     assert not res
 
 
-@pytest.mark.asyncio
 async def test_do_payout_error(payout_manager):
     """
     Test whether we are not doing a payout when the payout fails

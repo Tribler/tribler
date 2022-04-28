@@ -6,7 +6,6 @@ from tribler.core.components.resource_monitor.resource_monitor_component import 
 
 
 # pylint: disable=protected-access
-@pytest.mark.asyncio
 async def test_resource_monitor_component(tribler_config):
     components = [KeyComponent(), ResourceMonitorComponent()]
     async with Session(tribler_config, components).start():

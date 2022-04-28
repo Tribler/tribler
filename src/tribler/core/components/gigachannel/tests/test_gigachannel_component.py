@@ -10,7 +10,6 @@ from tribler.core.components.tag.tag_component import TagComponent
 # pylint: disable=protected-access
 
 
-@pytest.mark.asyncio
 async def test_giga_channel_component(tribler_config):
     tribler_config.ipv8.enabled = True
     tribler_config.libtorrent.enabled = True
