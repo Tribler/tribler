@@ -3,14 +3,26 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
-from tribler.core.components.ipv8.eva.transfer.incoming_transfer import IncomingTransfer
-from tribler.core.components.ipv8.eva.transfer.transfer_window import TransferWindow
+from tribler.core.components.ipv8.eva.settings import EVASettings
+from tribler.core.components.ipv8.eva.transfer.incoming import IncomingTransfer
+from tribler.core.components.ipv8.eva.transfer.window import TransferWindow
+
+
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
 def incoming_transfer() -> IncomingTransfer:
-    return IncomingTransfer(info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(), peer=Mock(),
-                            protocol=EVAProtocol(Mock(), block_size=10))
+    settings = EVASettings(block_size=10)
+    eva = EVAProtocol(Mock(), settings=settings)
+    peer = Mock()
+
+    transfer = IncomingTransfer(container=eva.incoming, info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(),
+                                peer=peer, settings=settings)
+
+    eva.incoming[peer] = transfer
+
+    return transfer
 
 
 def test_on_data_normal_packet(incoming_transfer: IncomingTransfer):
@@ -77,7 +89,7 @@ def test_make_acknowledgement_no_window(incoming_transfer: IncomingTransfer):
     assert incoming_transfer.window
     assert acknowledgement
     assert acknowledgement.number == 0
-    assert acknowledgement.window_size == incoming_transfer.protocol.window_size
+    assert acknowledgement.window_size == incoming_transfer.settings.window_size
 
 
 def test_make_acknowledgement_next_window(incoming_transfer: IncomingTransfer):
@@ -90,18 +102,18 @@ def test_make_acknowledgement_next_window(incoming_transfer: IncomingTransfer):
     assert incoming_transfer.window
     assert incoming_transfer.window.start == 4
     assert incoming_transfer.window.processed == 0
-    assert len(incoming_transfer.window.blocks) == incoming_transfer.protocol.window_size
+    assert len(incoming_transfer.window.blocks) == incoming_transfer.settings.window_size
     assert acknowledgement
     assert acknowledgement.number == 4
-    assert acknowledgement.window_size == incoming_transfer.protocol.window_size
+    assert acknowledgement.window_size == incoming_transfer.settings.window_size
 
 
 async def test_finish(incoming_transfer: IncomingTransfer):
-    eva = incoming_transfer.protocol
-    incoming_transfer.data_list = [b'data', b'list']
-    eva.incoming[incoming_transfer.peer] = incoming_transfer
+    container = incoming_transfer.container
+    assert container
 
     incoming_transfer.finish()
 
     assert incoming_transfer.data_list is None
-    assert not eva.incoming
+    assert not incoming_transfer.container
+    assert not container

@@ -4,14 +4,16 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferException
-from tribler.core.components.ipv8.eva.protocol import EVAProtocol
-from tribler.core.components.ipv8.eva.transfer.transfer import Transfer
+from tribler.core.components.ipv8.eva.settings import EVASettings
+from tribler.core.components.ipv8.eva.transfer.base import Transfer
 
+
+# pylint: disable=redefined-outer-name
 
 @pytest.fixture
 def transfer() -> Transfer:
-    return Transfer(info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(), peer=Mock(),
-                    protocol=EVAProtocol(Mock(), block_size=10))
+    return Transfer(container=Mock(), info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(), peer=Mock(),
+                    settings=EVASettings(block_size=2))
 
 
 @patch('time.time', Mock(return_value=42))
@@ -25,16 +27,16 @@ def test_finish_double_call(transfer: Transfer):
     assert not transfer.finished
 
     # The first call of the finish method should process exception and result
-    # and clean the protocol property
+    # and clean the container property
     transfer.finish()
     assert transfer.finished
-    assert not transfer.protocol
+    assert not transfer.container
 
     # The second call should do nothing. To check correctness we have to set any
-    # value to transfer.protocol and ensure that it will not bt changed.
-    transfer.protocol = 'any'
+    # value to transfer.container and ensure that it will not bt changed.
+    transfer.container = 'any'
     transfer.finish()
-    assert transfer.protocol == 'any'
+    assert transfer.container == 'any'
 
 
 async def test_finish_with_result(transfer: Transfer):
@@ -65,7 +67,7 @@ async def test_finish_with_exception_and_result(transfer: Transfer):
 
 
 async def test_terminate_by_timeout_task(transfer: Transfer):
-    transfer.protocol.timeout_interval_in_sec = 0
+    transfer.settings.timeout_interval_in_sec = 0
 
     await transfer.terminate_by_timeout_task()
 
@@ -75,7 +77,7 @@ async def test_terminate_by_timeout_task(transfer: Transfer):
 
 
 async def test_terminate_by_timeout_task_disable(transfer: Transfer):
-    transfer.protocol.terminate_by_timeout_enabled = False
+    transfer.settings.terminate_by_timeout_enabled = False
 
     await transfer.terminate_by_timeout_task()
 
@@ -84,7 +86,7 @@ async def test_terminate_by_timeout_task_disable(transfer: Transfer):
 
 
 async def test_terminate_by_timeout_task_finished(transfer: Transfer):
-    transfer.protocol.timeout_interval_in_sec = 0
+    transfer.settings.timeout_interval_in_sec = 0
     transfer.finished = True
 
     await transfer.terminate_by_timeout_task()

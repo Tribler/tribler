@@ -1,7 +1,9 @@
 import pytest
 
-from tribler.core.components.ipv8.eva.transfer.transfer_window import TransferWindow
+from tribler.core.components.ipv8.eva.transfer.window import TransferWindow
 
+
+# pylint: disable=redefined-outer-name
 
 @pytest.fixture
 def window() -> TransferWindow:

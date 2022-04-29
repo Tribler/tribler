@@ -10,7 +10,8 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
-from tribler.core.components.ipv8.eva.protocol import EVAProtocol, TransferResult
+from tribler.core.components.ipv8.eva.protocol import EVAProtocol
+from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -216,7 +217,7 @@ class RemoteQueryCommunity(TriblerCommunity):
         index = 0
         while index < len(db_results):
             transfer_size = (
-                self.eva.binary_size_limit if force_eva_response else self.rqc_settings.maximum_payload_size
+                self.eva.settings.binary_size_limit if force_eva_response else self.rqc_settings.maximum_payload_size
             )
             data, index = entries_to_chunk(db_results, transfer_size, start_index=index, include_health=True)
             payload = SelectResponsePayload(request_payload_id, data)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tribler.core.components.ipv8.eva.transfer.transfer import Transfer
+    from tribler.core.components.ipv8.eva.transfer.base import Transfer
 
 
 class TransferException(Exception):

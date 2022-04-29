@@ -3,22 +3,34 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from tribler.core.components.ipv8.eva.exceptions import SizeException
-from tribler.core.components.ipv8.eva.protocol import Data, EVAProtocol, TransferResult
-from tribler.core.components.ipv8.eva.transfer.outgoing_transfer import OutgoingTransfer
+from tribler.core.components.ipv8.eva.payload import Data
+from tribler.core.components.ipv8.eva.protocol import EVAProtocol
+from tribler.core.components.ipv8.eva.result import TransferResult
+from tribler.core.components.ipv8.eva.settings import EVASettings
+from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 
+
+# pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
 def outgoing_transfer() -> OutgoingTransfer:
-    return OutgoingTransfer(info=b'info', data=b'binary_data', nonce=0, on_complete=AsyncMock(), peer=Mock(),
-                            protocol=EVAProtocol(Mock(), block_size=2))
+    settings = EVASettings(block_size=2)
+    eva = EVAProtocol(Mock(), settings=settings)
+    peer = Mock()
+
+    transfer = OutgoingTransfer(container=eva.outgoing, info=b'info', data=b'binary_data', nonce=0,
+                                on_complete=AsyncMock(), peer=peer, settings=settings)
+
+    eva.outgoing[peer] = transfer
+    return transfer
 
 
 def test_size_exception():
-    eva = EVAProtocol(Mock(), block_size=10)
-    limit = eva.binary_size_limit
+    settings = EVASettings(binary_size_limit=10)
+    limit = settings.binary_size_limit
     with pytest.raises(SizeException):
-        OutgoingTransfer(info=b'info', data=b'd' * (limit + 1), nonce=0, on_complete=AsyncMock(), peer=Mock(),
-                         protocol=eva)
+        OutgoingTransfer(container=Mock(), info=b'info', data=b'd' * (limit + 1), nonce=0, on_complete=AsyncMock(),
+                         peer=Mock(), settings=settings)
 
 
 def test_block_count(outgoing_transfer: OutgoingTransfer):
@@ -57,13 +69,14 @@ def test_on_final_acknowledgement(outgoing_transfer: OutgoingTransfer):
 
 
 async def test_finish(outgoing_transfer: OutgoingTransfer):
-    eva = outgoing_transfer.protocol
-    eva.outgoing[outgoing_transfer.peer] = outgoing_transfer
+    container = outgoing_transfer.container
+    assert container
 
     outgoing_transfer.finish()
 
-    assert not eva.outgoing
+    assert not outgoing_transfer.container
     assert not outgoing_transfer.data
+    assert not container
 
 
 def test_get_block(outgoing_transfer: OutgoingTransfer):
