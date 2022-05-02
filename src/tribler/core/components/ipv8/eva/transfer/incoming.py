@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from tribler.core.components.ipv8.eva.exceptions import TransferException
 from tribler.core.components.ipv8.eva.payload import Acknowledgement
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
@@ -47,7 +46,6 @@ class IncomingTransfer(Transfer):
         self.logger.debug(f'Transfer window: {self.window}')
         return Acknowledgement(self.window.start, len(self.window.blocks), self.nonce)
 
-    def finish(self, *, result: Optional[TransferResult] = None, exception: Optional[TransferException] = None):
-        self.container.pop(self.peer, None)
-        super().finish(result=result, exception=exception)
+    def _release(self):
+        super()._release()
         self.data_list = None

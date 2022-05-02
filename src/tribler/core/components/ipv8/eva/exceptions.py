@@ -26,3 +26,7 @@ class ValueException(TransferException):
 
 class TransferLimitException(TransferException):
     """Maximum simultaneous transfers limit exceeded"""
+
+
+class TransferCancelledException(TransferException):
+    """Raised in the case that future was cancelled"""
