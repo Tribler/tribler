@@ -16,15 +16,6 @@ REM Arno: Add . to find our core
 SET PYTHONPATH=.;%PYTHONHOME%
 ECHO PYTHONPATH SET TO %PYTHONPATH%
 
-REM ----- Check for PyInstaller
-
-IF NOT EXIST %PYTHONHOME%\Scripts\pyinstaller.exe (
-  ECHO .
-  ECHO Could not locate pyinstaller in %PYTHONHOME%\Scripts.
-  ECHO Please modify this script or install PyInstaller [www.pyinstaller.org]
-  EXIT /b
-)
-
 REM ----- Check for NSIS installer
 SET NSIS="C:\Program Files\NSIS\makensis.exe"
 
@@ -47,6 +38,9 @@ python3 -m pip install --upgrade -r requirements.txt
 
 REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
+
+REM ----- Install PyInstaller
+python3 -m pip install --upgrade PyInstaller
 
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
