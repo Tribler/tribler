@@ -84,10 +84,12 @@ class CodeExecutor:
 
         try:
             code = b64decode(parts[0]).decode('utf8')
-            task_id = parts[1].replace(b'\n', b'')
-            self.run_code(code, task_id)
         except binascii.Error:
             self.logger.error("Invalid base64 code string received!")
+            return
+
+        task_id = parts[1].replace(b'\n', b'')
+        self.run_code(code, task_id)
 
     def _on_socket_disconnect(self, socket):
         def on_socket_disconnect_handler():
