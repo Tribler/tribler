@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import InvalidStateError
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -8,22 +9,26 @@ from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
 
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
-def transfer() -> Transfer:
-    return Transfer(container=Mock(), info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(), peer=Mock(),
-                    settings=EVASettings(block_size=2))
+async def transfer() -> Transfer:
+    peer = Mock()
+    container = {}
+    transfer = Transfer(container=container, info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(), peer=peer,
+                        settings=EVASettings(block_size=2))
+    container[peer] = transfer
+    return transfer
 
 
 @patch('time.time', Mock(return_value=42))
-def test_update(transfer: Transfer):
+async def test_update(transfer: Transfer):
     transfer.update()
 
     assert transfer.updated == 42
 
 
-def test_finish_double_call(transfer: Transfer):
+async def test_finish_double_call(transfer: Transfer):
     assert not transfer.finished
 
     # The first call of the finish method should process exception and result
@@ -37,6 +42,31 @@ def test_finish_double_call(transfer: Transfer):
     transfer.container = 'any'
     transfer.finish()
     assert transfer.container == 'any'
+
+
+async def test_release(transfer: Transfer):
+    container = transfer.container
+    assert container
+
+    transfer._release()
+
+    assert transfer.finished
+    assert not transfer.container
+    assert not container
+
+
+async def test_release_double_call(transfer: Transfer):
+    transfer._release()
+    transfer._release()
+
+    assert transfer.finished
+
+
+async def test_finish_cancelled(transfer: Transfer):
+    transfer.future.cancel()
+    transfer.finish(result=Mock())
+    await asyncio.sleep(0.1)  # sleep to process cancel callback
+    assert transfer.finished
 
 
 async def test_finish_with_result(transfer: Transfer):

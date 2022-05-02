@@ -12,7 +12,7 @@ from tribler.core.components.ipv8.eva.transfer.window import TransferWindow
 
 
 @pytest.fixture
-def incoming_transfer() -> IncomingTransfer:
+async def incoming_transfer() -> IncomingTransfer:
     settings = EVASettings(block_size=10)
     eva = EVAProtocol(Mock(), settings=settings)
     peer = Mock()
@@ -25,7 +25,7 @@ def incoming_transfer() -> IncomingTransfer:
     return transfer
 
 
-def test_on_data_normal_packet(incoming_transfer: IncomingTransfer):
+async def test_on_data_normal_packet(incoming_transfer: IncomingTransfer):
     incoming_transfer.window = Mock(is_finished=Mock(return_value=False))
     incoming_transfer.make_acknowledgement = Mock()
     incoming_transfer.update = Mock()
@@ -39,7 +39,7 @@ def test_on_data_normal_packet(incoming_transfer: IncomingTransfer):
     assert not incoming_transfer.make_acknowledgement.called
 
 
-def test_on_data_window_is_finished(incoming_transfer: IncomingTransfer):
+async def test_on_data_window_is_finished(incoming_transfer: IncomingTransfer):
     incoming_transfer.window = Mock(is_finished=Mock(return_value=True))
     incoming_transfer.make_acknowledgement = Mock()
     incoming_transfer.update = Mock()
@@ -54,7 +54,7 @@ def test_on_data_window_is_finished(incoming_transfer: IncomingTransfer):
     assert not incoming_transfer.finished
 
 
-def test_on_data_window_is_last_and_finished(incoming_transfer: IncomingTransfer):
+async def test_on_data_window_is_last_and_finished(incoming_transfer: IncomingTransfer):
     incoming_transfer.window = Mock(is_finished=Mock(return_value=True))
     incoming_transfer.make_acknowledgement = Mock()
     incoming_transfer.update = Mock()
@@ -71,7 +71,7 @@ def test_on_data_window_is_last_and_finished(incoming_transfer: IncomingTransfer
     assert incoming_transfer.finish.called
 
 
-def test_on_data_final_packet(incoming_transfer: IncomingTransfer):
+async def test_on_data_final_packet(incoming_transfer: IncomingTransfer):
     incoming_transfer.window = TransferWindow(0, 10)
     index = 3
 
@@ -81,7 +81,7 @@ def test_on_data_final_packet(incoming_transfer: IncomingTransfer):
     assert len(incoming_transfer.window.blocks) == index + 1
 
 
-def test_make_acknowledgement_no_window(incoming_transfer: IncomingTransfer):
+async def test_make_acknowledgement_no_window(incoming_transfer: IncomingTransfer):
     assert not incoming_transfer.window
 
     acknowledgement = incoming_transfer.make_acknowledgement()
@@ -92,7 +92,7 @@ def test_make_acknowledgement_no_window(incoming_transfer: IncomingTransfer):
     assert acknowledgement.window_size == incoming_transfer.settings.window_size
 
 
-def test_make_acknowledgement_next_window(incoming_transfer: IncomingTransfer):
+async def test_make_acknowledgement_next_window(incoming_transfer: IncomingTransfer):
     incoming_transfer.window = TransferWindow(10, 7)
     incoming_transfer.window.blocks = [b'd', b'a', b't', b'a', None, None, None]
 

@@ -3,13 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from asyncio import Future
 from typing import Dict, Optional, Type
 
 from ipv8.types import Peer
 
 from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, TransferErrorCallback
-from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferException
+from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferCancelledException, TransferException
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.settings import EVASettings
 
@@ -31,17 +30,25 @@ class Transfer:
         self.on_complete = on_complete
         self.on_error = on_error
         self.settings = settings
-        self.future = Future()
+        self.future = asyncio.get_running_loop().create_future()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.updated = 0
         self.attempt = 0
         self.finished = False
 
+        self.future.add_done_callback(self.on_future_cancelled)
+
     def update(self):
         self.updated = time.time()
 
+    def _release(self):
+        if self.container:
+            self.container.pop(self.peer, None)
+        self.container = None
+        self.finished = True
+
     def finish(self, *, result: Optional[TransferResult] = None, exception: Optional[TransferException] = None):
-        if self.finished:
+        if self.finished or self.future.done():
             return
 
         if exception:
@@ -60,8 +67,18 @@ class Transfer:
             if self.on_complete:
                 asyncio.create_task(self.on_complete(result))
 
-        self.finished = True
-        self.container = None
+        self._release()
+
+    def on_future_cancelled(self, _):
+        if not self.future.cancelled():
+            return
+
+        if self.on_error:
+            self.logger.warning('Future was cancelled')
+            exception = TransferCancelledException('The future was cancelled', self)
+            asyncio.create_task(self.on_error(self.peer, exception))
+
+        self._release()
 
     async def terminate_by_timeout_task(self):
         timeout = self.settings.timeout_interval_in_sec

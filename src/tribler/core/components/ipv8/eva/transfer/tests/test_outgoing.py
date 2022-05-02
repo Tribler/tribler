@@ -13,7 +13,7 @@ from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 # pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
-def outgoing_transfer() -> OutgoingTransfer:
+async def outgoing_transfer() -> OutgoingTransfer:
     settings = EVASettings(block_size=2)
     eva = EVAProtocol(Mock(), settings=settings)
     peer = Mock()
@@ -25,7 +25,7 @@ def outgoing_transfer() -> OutgoingTransfer:
     return transfer
 
 
-def test_size_exception():
+async def test_size_exception():
     settings = EVASettings(binary_size_limit=10)
     limit = settings.binary_size_limit
     with pytest.raises(SizeException):
@@ -33,12 +33,12 @@ def test_size_exception():
                          peer=Mock(), settings=settings)
 
 
-def test_block_count(outgoing_transfer: OutgoingTransfer):
+async def test_block_count(outgoing_transfer: OutgoingTransfer):
     # data is b'binary_data' and block_size is `2`
     assert outgoing_transfer.block_count == 6
 
 
-def test_on_acknowledgement(outgoing_transfer: OutgoingTransfer):
+async def test_on_acknowledgement(outgoing_transfer: OutgoingTransfer):
     assert not outgoing_transfer.acknowledgement_received
     assert not outgoing_transfer.updated
 
@@ -59,7 +59,7 @@ def test_on_acknowledgement(outgoing_transfer: OutgoingTransfer):
     assert all(a.data == e.data and a.number == e.number for a, e in zip(actual, expected))
 
 
-def test_on_final_acknowledgement(outgoing_transfer: OutgoingTransfer):
+async def test_on_final_acknowledgement(outgoing_transfer: OutgoingTransfer):
     outgoing_transfer.finish = Mock()
     data_list = list(outgoing_transfer.on_acknowledgement(ack_number=10, window_size=16))
     expected_result = TransferResult(peer=outgoing_transfer.peer, info=outgoing_transfer.info,
@@ -79,7 +79,7 @@ async def test_finish(outgoing_transfer: OutgoingTransfer):
     assert not container
 
 
-def test_get_block(outgoing_transfer: OutgoingTransfer):
+async def test_get_block(outgoing_transfer: OutgoingTransfer):
     assert outgoing_transfer._get_block(0) == b'bi'
     assert outgoing_transfer._get_block(1) == b'na'
     ...
