@@ -50,7 +50,9 @@ class TriblerApplication(QtSingleApplication):
             variables.update(locals())
             variables['window'] = self.tribler_window
             self.code_executor = CodeExecutor(5500, shell_variables=variables)
+            connect(self.tribler_window.events_manager.core_connected, self.code_executor.on_core_connected)
             connect(self.tribler_window.tribler_crashed, self.code_executor.on_crash)
+
 
         if '--testnet' in sys.argv[1:]:
             os.environ['TESTNET'] = "YES"

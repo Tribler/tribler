@@ -27,15 +27,26 @@ class CodeExecutor:
 
     def __init__(self, port, shell_variables=None):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.port = port
         self.tcp_server = QTcpServer()
         self.sockets = []
         self.stack_trace = None
-        if not self.tcp_server.listen(port=port):
+        self.shell = Console(locals=shell_variables or {}, logger=self.logger)
+        self.started = False
+
+    def on_core_connected(self, _):
+        self.logger.info('Core connected, starting code executor')
+
+        if self.started:
+            return
+
+        if not self.tcp_server.listen(port=self.port):
             self.logger.error("Unable to start code execution socket! Error: %s", self.tcp_server.errorString())
         else:
             connect(self.tcp_server.newConnection, self._on_new_connection)
 
-        self.shell = Console(locals=shell_variables or {}, logger=self.logger)
+        self.started = True
+        self.logger.info('Code executor started')
 
     def _on_new_connection(self):
         self.logger.info("CodeExecutor has new connection")
