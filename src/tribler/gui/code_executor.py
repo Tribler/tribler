@@ -60,7 +60,7 @@ class CodeExecutor:
             pass
 
         if self.shell.last_traceback:
-            self.on_crash(self.shell.last_traceback)
+            self.on_crash(f'{self.shell.last_traceback}\n\ntask_id: {task_id!r}\ncode:\n{code}\n\n(end of code)')
             return
 
         self.logger.info("Code execution with task %s finished:", task_id)
