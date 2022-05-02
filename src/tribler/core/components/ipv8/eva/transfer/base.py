@@ -30,7 +30,7 @@ class Transfer:
         self.on_complete = on_complete
         self.on_error = on_error
         self.settings = settings
-        self.future = asyncio.get_event_loop().create_future()
+        self.future = asyncio.get_running_loop().create_future()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.updated = 0
         self.attempt = 0

@@ -12,7 +12,7 @@ from tribler.core.components.ipv8.eva.transfer.base import Transfer
 # pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
-def transfer() -> Transfer:
+async def transfer() -> Transfer:
     peer = Mock()
     container = {}
     transfer = Transfer(container=container, info=b'info', data_size=100, nonce=0, on_complete=AsyncMock(), peer=peer,
@@ -22,13 +22,13 @@ def transfer() -> Transfer:
 
 
 @patch('time.time', Mock(return_value=42))
-def test_update(transfer: Transfer):
+async def test_update(transfer: Transfer):
     transfer.update()
 
     assert transfer.updated == 42
 
 
-def test_finish_double_call(transfer: Transfer):
+async def test_finish_double_call(transfer: Transfer):
     assert not transfer.finished
 
     # The first call of the finish method should process exception and result
