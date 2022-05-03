@@ -13,6 +13,10 @@ export RESOURCES=build/mac/resources
 /bin/rm -rf dist
 
 # ----- Build
+
+# ----- Upgrade pip to fix potential PyInstaller problems with module discovering
+python3 -m pip install --upgrade pip
+
 # ----- Install pip dependencies before the build
 python3 -m pip install --upgrade -r requirements.txt
 
