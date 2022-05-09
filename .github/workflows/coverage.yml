@@ -23,8 +23,8 @@ jobs:
 
       - name: Run Pytest with Coverage
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core
-          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core --looptime
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --looptime
           coverage combine
           coverage xml
 
