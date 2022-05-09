@@ -13,6 +13,13 @@ jobs:
       matrix:
         python-version: [ '3.8' ]
         os: [ macos-latest, windows-latest, ubuntu-latest ]
+        include:
+          - os: macos-latest
+            pytest-arguments: --timeout=300 --looptime
+          - os: windows-latest
+            pytest-arguments: --timeout=300
+          - os: ubuntu-latest
+            pytest-arguments: --timeout=60 --looptime
 
     steps:
       - uses: actions/checkout@v3
@@ -22,7 +29,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Libsodium
+      - name: Install Libsodium (win)
         if: matrix.os == 'windows-latest'
         run: |
           C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-1.0.17-msvc.zip
@@ -34,21 +41,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ./requirements-test.txt
 
-      #https://pypi.org/project/pytest-timeout/
-      - name: Override PYTEST_TIMEOUT (mac)
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "PYTEST_TIMEOUT=300" >> $GITHUB_ENV
-
-      - name: Override PYTEST_TIMEOUT (win)
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "PYTEST_TIMEOUT=300" >> $env:GITHUB_ENV
-
       - name: Run Pytest
         run: |
-          pytest ./src/tribler/core
+          pytest ./src/tribler/core ${{matrix.pytest-arguments}}
 
       - name: Run Tunnels Tests
         run: |
-          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
+          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests ${{matrix.pytest-arguments}}
