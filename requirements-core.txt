@@ -14,7 +14,7 @@ networkx==2.6.3
 pony==0.7.14
 psutil==5.8.0
 pyasn1==0.4.8
-pydantic==1.8.2
+pydantic==1.9.0
 PyOpenSSL==21.0.0
 pyyaml==6.0
 sentry-sdk==1.5.0
@@ -24,3 +24,4 @@ yarl==1.7.2 # keep this dependency higher than 1.6.3. See: https://github.com/ai
 Faker==9.8.2
 sentry-sdk==1.5.0
 pyipv8==2.8.0
+libtorrent==1.2.15

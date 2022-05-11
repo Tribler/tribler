@@ -1,14 +1,14 @@
 -r requirements.txt
 
-pytest==6.2.5
-pytest-aiohttp==0.3.0
-pytest-asyncio==0.16.0
-pytest-cov==3.0.0
-pytest-mock==3.6.1
-pytest-randomly==3.10.2
-pytest-timeout==2.0.1
-pytest-xdist==2.4.0
+pytest==7.1.2
+pytest-aiohttp==1.0.4
+pytest-asyncio==0.18.3
+pytest-mock==3.7.0
+pytest-randomly==3.11.0
+pytest-timeout==2.1.0
 pytest-freezegun==0.4.2
-freezegun==1.1.0
+freezegun==1.2.1
+coverage==6.3.2
+looptime==0.2
 
-asynctest==0.13.0
+asynctest==0.13.0 # this library has to be installed to properly work with ipv8 TestBase.
