@@ -11,7 +11,7 @@ lz4==3.1.3
 marshmallow==3.14.1
 netifaces==0.11.0
 networkx==2.6.3
-pony==0.7.14
+pony==0.7.16
 psutil==5.8.0
 pyasn1==0.4.8
 pydantic==1.9.0
