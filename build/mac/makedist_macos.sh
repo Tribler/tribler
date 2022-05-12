@@ -17,7 +17,7 @@ export RESOURCES=build/mac/resources
 python3 -m pip install --upgrade -r requirements.txt
 
 PI=pyinstaller
-$PI tribler.spec
+$PI tribler.spec --log-level=DEBUG
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
