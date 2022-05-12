@@ -19,10 +19,16 @@ rm -rf build/debian/tribler/usr/share/tribler
 
 python3 build/update_version_from_git.py
 
-# ----- Install pip dependencies before the build
+# ----- Prepare venv & install dependencies before the build
+
+python3 -m venv build-env
+. ./build-env/bin/activate
+python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements.txt
 
-python3 -m PyInstaller tribler.spec
+# ----- Build
+
+python3 -m PyInstaller tribler.spec --log-level=DEBUG
 
 cp -r dist/tribler build/debian/tribler/usr/share/tribler
 

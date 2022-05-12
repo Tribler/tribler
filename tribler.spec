@@ -13,13 +13,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
-
-tribler_components = [
-    os.path.join(src_dir, "tribler"),
-]
-
-for component in tribler_components:
-    sys.path.append(str(component))
+sys.path.append(src_dir)
 
 from tribler.core.version import version_id
 version_str = version_id.split('-')[0]
@@ -90,6 +84,7 @@ hiddenimports = [
     'csv',
     'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
     'ecdsa',
+    'ipv8',
     'PIL',
     'pkg_resources', # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'pyaes',
@@ -102,6 +97,7 @@ hiddenimports = [
     'requests',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
+    'tribler.core.logger.logger_streams',
     'typing_extensions',
 ] + widget_files + pony_deps + get_sentry_hooks()
 

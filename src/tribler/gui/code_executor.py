@@ -27,15 +27,26 @@ class CodeExecutor:
 
     def __init__(self, port, shell_variables=None):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.port = port
         self.tcp_server = QTcpServer()
         self.sockets = []
         self.stack_trace = None
-        if not self.tcp_server.listen(port=port):
+        self.shell = Console(locals=shell_variables or {}, logger=self.logger)
+        self.started = False
+
+    def on_core_connected(self, _):
+        self.logger.info('Core connected, starting code executor')
+
+        if self.started:
+            return
+
+        if not self.tcp_server.listen(port=self.port):
             self.logger.error("Unable to start code execution socket! Error: %s", self.tcp_server.errorString())
         else:
             connect(self.tcp_server.newConnection, self._on_new_connection)
 
-        self.shell = Console(locals=shell_variables or {}, logger=self.logger)
+        self.started = True
+        self.logger.info('Code executor started')
 
     def _on_new_connection(self):
         self.logger.info("CodeExecutor has new connection")
@@ -60,7 +71,7 @@ class CodeExecutor:
             pass
 
         if self.shell.last_traceback:
-            self.on_crash(self.shell.last_traceback)
+            self.on_crash(f'{self.shell.last_traceback}\n\ntask_id: {task_id!r}\ncode:\n{code}\n\n(end of code)')
             return
 
         self.logger.info("Code execution with task %s finished:", task_id)
@@ -84,10 +95,12 @@ class CodeExecutor:
 
         try:
             code = b64decode(parts[0]).decode('utf8')
-            task_id = parts[1].replace(b'\n', b'')
-            self.run_code(code, task_id)
         except binascii.Error:
             self.logger.error("Invalid base64 code string received!")
+            return
+
+        task_id = parts[1].replace(b'\n', b'')
+        self.run_code(code, task_id)
 
     def _on_socket_disconnect(self, socket):
         def on_socket_disconnect_handler():

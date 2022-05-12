@@ -11,7 +11,10 @@ class StreamWrapper:
         self.stream = stream
 
     def flush(self):
-        self.stream.flush()
+        try:
+            self.stream.flush()
+        except:
+            pass
 
     def write(self, s: str):
         try:
@@ -22,7 +25,10 @@ class StreamWrapper:
             self.stream.write(s2)
 
     def close(self):
-        self.stream.close()
+        try:
+            self.stream.close()
+        except:
+            pass
 
 
 stdout_wrapper = StreamWrapper(sys.stdout)  # specified in logger.yaml for `console` handler
