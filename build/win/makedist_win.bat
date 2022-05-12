@@ -31,19 +31,18 @@ REM ----- Clean up
 
 call build\win\clean.bat
 
-REM ----- Build
+REM ----- Prepare venv & install dependencies before the build
 
-REM ----- Upgrade pip to fix potential PyInstaller problems with module discovering
+python3 -m venv build-env
+./build-env/Scripts/activate.bat
 python3 -m pip install --upgrade pip
-
-REM ----- Install pip dependencies before the build
 python3 -m pip install --upgrade -r requirements.txt
+python3 -m pip install --upgrade PyInstaller
+
+REM ----- Build
 
 REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
-
-REM ----- Install PyInstaller
-python3 -m pip install --upgrade PyInstaller
 
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
