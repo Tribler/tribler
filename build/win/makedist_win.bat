@@ -47,7 +47,7 @@ REM packs them in the installer .EXE
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
 
-%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec
+%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=DEBUG
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
