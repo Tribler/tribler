@@ -9,8 +9,9 @@ from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
+from bitarray import bitarray
 from ipv8.taskmanager import TaskManager, task
-from ipv8.util import int2byte, succeed
+from ipv8.util import succeed
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -225,14 +226,9 @@ class Download(TaskManager):
         """
         Returns a base64 encoded bitmask of the pieces that we have.
         """
-        bitstr = b""
-        for bit in self.handle.status().pieces:
-            bitstr += b'1' if bit else b'0'
-
-        encoded_str = b""
-        for i in range(0, len(bitstr), 8):
-            encoded_str += int2byte(int(bitstr[i:i + 8].ljust(8, b'0'), 2))
-        return base64.b64encode(encoded_str)
+        binary_gen = (int(boolean) for boolean in self.handle.status().pieces)
+        bits = bitarray(binary_gen)
+        return base64.b64encode(bits.tobytes())
 
     def post_alert(self, alert_type: str, alert_dict: Optional[Dict] = None):
         alert_dict = alert_dict or {}
