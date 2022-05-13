@@ -18,7 +18,9 @@ NONPERSISTENT_DEFAULTS = {}
 
 
 def _from_dict(value: Dict) -> str:
-    return base64.b64encode(lt.bencode(value)).decode('utf-8')
+    binary = lt.bencode(value)
+    base64_bytes = base64.b64encode(binary)
+    return base64_bytes.decode('utf-8')
 
 
 def _to_dict(value: str) -> Optional[Dict]:
