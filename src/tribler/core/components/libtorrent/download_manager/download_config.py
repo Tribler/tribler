@@ -22,7 +22,10 @@ def _from_dict(value: Dict) -> str:
 
 
 def _to_dict(value: str) -> Optional[Dict]:
-    return bdecode_compat(base64.b64decode(value.encode('utf-8')))
+    binary = value.encode('utf-8')
+    # b'==' is added to avoid incorrect padding
+    base64_bytes = base64.b64decode(binary + b'==')
+    return bdecode_compat(base64_bytes)
 
 
 class DownloadConfig:
