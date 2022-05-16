@@ -8,6 +8,10 @@ then
   echo "Please run this script from project root as:\n./build/debian/makedist_debian.sh"
 fi
 
+rm -rf build/tribler
+rm -rf dist/tribler
+rm -rf build/debian/tribler/usr/share/tribler
+
 if [ ! -z "$VENV" ]; then
   echo "Setting venv to $VENV"
   source $VENV/bin/activate
@@ -17,18 +21,14 @@ else
   . ./build-env/bin/activate
 fi
 
-rm -rf build/tribler
-rm -rf dist/tribler
-rm -rf build/debian/tribler/usr/share/tribler
-
-python3 build/update_version_from_git.py
-
 # ----- Install dependencies before the build
 python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements-build.txt
 
-# ----- Build
+# ----- Update version
+python3 build/update_version_from_git.py
 
+# ----- Build
 python3 -m PyInstaller tribler.spec --log-level=DEBUG
 
 cp -r dist/tribler build/debian/tribler/usr/share/tribler
