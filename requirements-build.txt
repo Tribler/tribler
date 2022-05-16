@@ -2,3 +2,4 @@
 
 PyInstaller==5.0.1
 defusedxml==0.7.1; sys_platform == 'linux2' or sys_platform == 'linux'
+requests==2.25.1
