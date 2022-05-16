@@ -49,7 +49,7 @@ async def test_save_resume(mock_handle, test_download, test_tdef):
     basename = hexlify(test_tdef.get_infohash()) + '.conf'
     filename = test_download.dlmgr.get_checkpoint_dir() / basename
     dcfg = DownloadConfig.load(str(filename))
-    assert test_tdef.get_infohash(), dcfg.get_engineresumedata().get(b'info-hash')
+    assert test_tdef.get_infohash() == dcfg.get_engineresumedata().get(b'info-hash')
 
 
 def test_move_storage(mock_handle, test_download, test_tdef, test_tdef_no_metainfo):

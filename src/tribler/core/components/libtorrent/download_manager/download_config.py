@@ -1,4 +1,5 @@
 import base64
+from typing import Dict, Optional
 
 from configobj import ConfigObj
 from validate import Validator
@@ -14,6 +15,20 @@ from tribler.core.utilities.utilities import bdecode_compat
 SPEC_FILENAME = 'download_config.spec'
 CONFIG_SPEC_PATH = get_lib_path() / 'components/libtorrent/download_manager' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {}
+
+
+def _from_dict(value: Dict) -> str:
+    binary = lt.bencode(value)
+    base64_bytes = base64.b64encode(binary)
+    return base64_bytes.decode('utf-8')
+
+
+def _to_dict(value: str) -> Optional[Dict]:
+    binary = value.encode('utf-8')
+    # b'==' is added to avoid incorrect padding
+    base64_bytes = base64.b64decode(binary + b'==')
+    return bdecode_compat(base64_bytes)
+
 
 class DownloadConfig:
     def __init__(self, config=None, state_dir=None):
@@ -150,17 +165,17 @@ class DownloadConfig:
     def get_bootstrap_download(self):
         return self.config['download_defaults']['bootstrap_download']
 
-    def set_metainfo(self, metainfo):
-        self.config['state']['metainfo'] = base64.b64encode(lt.bencode(metainfo)).decode('utf-8')
+    def set_metainfo(self, metainfo: Dict):
+        self.config['state']['metainfo'] = _from_dict(metainfo)
 
-    def get_metainfo(self):
-        return bdecode_compat(base64.b64decode(self.config['state']['metainfo'].encode('utf-8')))
+    def get_metainfo(self) -> Optional[Dict]:
+        return _to_dict(self.config['state']['metainfo'])
 
-    def set_engineresumedata(self, engineresumedata):
-        self.config['state']['engineresumedata'] = base64.b64encode(lt.bencode(engineresumedata)).decode('utf-8')
+    def set_engineresumedata(self, engineresumedata: Dict):
+        self.config['state']['engineresumedata'] = _from_dict(engineresumedata)
 
-    def get_engineresumedata(self):
-        return bdecode_compat(base64.b64decode(self.config['state']['engineresumedata'].encode('utf-8')))
+    def get_engineresumedata(self) -> Optional[Dict]:
+        return _to_dict(self.config['state']['engineresumedata'])
 
 
 def get_default_dest_dir():

@@ -1,12 +1,11 @@
 from pathlib import Path
 
+import pytest
 from configobj import ConfigObjError
 
-import pytest
-
-from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig, get_default_dest_dir
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig, _from_dict, _to_dict, \
+    get_default_dest_dir
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-
 
 CONFIG_FILES_DIR = TESTS_DATA_DIR / "config_files"
 
@@ -71,3 +70,15 @@ def test_user_stopped(download_config):
 
     download_config.set_user_stopped(True)
     assert download_config.get_user_stopped()
+
+
+def test_to_dict():
+    d = {b'a': b'b'}
+    s = _from_dict(d)
+    assert d == _to_dict(s)
+
+
+def test_avoid_incorrect_padding():
+    assert {b'a': b'b'} == _to_dict('ZDE6YTE6YmU==')
+    assert {b'a': b'b'} == _to_dict('ZDE6YTE6YmU=')
+    assert {b'a': b'b'} == _to_dict('ZDE6YTE6YmU')

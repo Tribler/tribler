@@ -13,7 +13,7 @@ import sys
 from base64 import b32decode
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 from urllib.parse import parse_qsl, urlsplit
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
@@ -160,7 +160,7 @@ def is_hex_string(text):
         return False
 
 
-def bdecode_compat(packet_buffer):
+def bdecode_compat(packet_buffer: bytes) -> Optional[Dict]:
     """
     Utility method to make libtorrent bdecode() with Python3 in the existing Tribler codebase.
     We should change this when Libtorrent wrapper is refactored.
@@ -226,7 +226,7 @@ def extract_tags(text: str) -> Tuple[Set[str], str]:
         positions.extend(itertools.chain.from_iterable(m.regs))
     positions.append(len(text))
 
-    remaining_text = ''.join(text[positions[i] : positions[i + 1]] for i in range(0, len(positions) - 1, 2))
+    remaining_text = ''.join(text[positions[i]: positions[i + 1]] for i in range(0, len(positions) - 1, 2))
     return tags, remaining_text
 
 
