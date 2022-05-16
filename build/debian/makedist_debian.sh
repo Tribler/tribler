@@ -34,7 +34,6 @@ python3 -m PyInstaller tribler.spec --log-level=DEBUG
 cp -r dist/tribler build/debian/tribler/usr/share/tribler
 
 TRIBLER_VERSION=$(cat .TriblerVersion)
-sed -i "s/__VERSION__/$TRIBLER_VERSION/g" build/debian/snap/snapcraft.yaml
 
 pushd build/debian/tribler || exit
 # Compose the changelog
@@ -43,16 +42,3 @@ dch -v $TRIBLER_VERSION "See https://github.com/Tribler/tribler/releases/tag/$TR
 # Build the package afterwards
 dpkg-buildpackage -b -rfakeroot -us -uc
 popd || exit
-
-# Build Tribler snap if $BUILD_TRIBLER_SNAP
-if [ "$BUILD_TRIBLER_SNAP" == "false" ]; then
-  exit 0
-fi
-
-# Build snap with docker if exists
-if [ -x "$(command -v docker)" ]; then
-    echo "Running snapcraft in docker"
-    cd build/debian && docker run -v "$PWD":/debian -w /debian triblertester/snap_builder:core18 /bin/bash ./build-snap.sh
-else
-    cd build/debian && /bin/bash ./build-snap.sh
-fi
