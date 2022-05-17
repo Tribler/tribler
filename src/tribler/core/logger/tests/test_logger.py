@@ -89,7 +89,7 @@ def test_setup_logging_exception(basic_config: Mock, print_: Mock, stderr: Mock,
     logger.info.assert_called_once_with(
         "Load logger config: app_mode=<app-mode>, " "config_path=<config-path>, dir=<log-dir>"
     )
-    print_.assert_called_once_with('Error in loading logger config. Using default configs. Error:', error, file=stderr)
+    print_.assert_called_once_with('Error in loading logger config. Using default configs. ', 'ZeroDivisionError: ', file=stderr)
     basic_config.assert_called_once_with(level=logging.INFO, stream=stdout)
 
 

@@ -198,8 +198,8 @@ class TriblerWindow(QMainWindow):
         self.core_env = core_env
 
         error_handler = ErrorHandler(self)
-        events_manager = EventRequestManager(api_port, api_key, error_handler)
-        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, app_manager, events_manager)
+        self.events_manager = EventRequestManager(api_port, api_key, error_handler)
+        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, app_manager, self.events_manager)
         self.version_history = VersionHistory(self.root_state_dir)
         self.upgrade_manager = UpgradeManager(self.version_history)
         self.pending_requests = {}

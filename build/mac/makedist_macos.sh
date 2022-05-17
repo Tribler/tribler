@@ -12,12 +12,17 @@ export RESOURCES=build/mac/resources
 # ----- Clean up
 /bin/rm -rf dist
 
-# ----- Build
-# ----- Install pip dependencies before the build
+# ----- Prepare venv & install dependencies before the build
+
+python3 -m venv build-env
+. ./build-env/bin/activate
+python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements.txt
 
+# ----- Build
+
 PI=pyinstaller
-$PI tribler.spec
+$PI tribler.spec --log-level=DEBUG
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
