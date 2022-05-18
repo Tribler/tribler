@@ -7,8 +7,8 @@ on:
   pull_request:
 
 jobs:
-  generate_and_upload_report:
-    name: Generate and upload coverage report
+  generate_and_upload:
+    name: generate and upload
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
