@@ -79,7 +79,7 @@ class DownloadProgressBar(QWidget):
                     for j in range(begin_piece, end_piece):
                         piece_sum += self.pieces[j]
                     qt_color = QColor()
-                    qt_color.setHsl(26, 255, 128 + 127 * (1 - piece_sum // pieces_per_pixel))
+                    qt_color.setHsl(26, 255, 128 + int(127 * (1 - piece_sum // pieces_per_pixel)))
                     painter.fillRect(QRect(i, 0, 10, self.height()), qt_color)
         else:
-            painter.fillRect(QRect(0, 0, self.width() * self.fraction, self.height()), QColor(230, 115, 0))
+            painter.fillRect(QRect(0, 0, int(self.width() * self.fraction), self.height()), QColor(230, 115, 0))
