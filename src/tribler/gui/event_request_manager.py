@@ -102,10 +102,8 @@ class EventRequestManager(QNetworkAccessManager):
             raise CoreConnectionError(f"Error {error} while trying to connect to Tribler Core")
 
         if self.remaining_connection_attempts <= 0:
-            raise CoreConnectTimeoutError(
-                f"Could not connect with the Tribler Core \
-                within {RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT} seconds"
-            )
+            raise CoreConnectTimeoutError("Could not connect with the Tribler Core within "
+                                          f"{RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT//1000} seconds")
 
         self.remaining_connection_attempts -= 1
 
