@@ -1,0 +1,29 @@
+name: PR
+
+on:
+  pull_request:
+    types:
+      - synchronize
+      - ready_for_review
+
+jobs:
+  coverage:
+    uses: ./.github/workflows/coverage.yml
+    with:
+      python-version: 3.8
+
+  pytest:
+    uses: ./.github/workflows/pytest.yml
+    with:
+      python-version: 3.8
+
+  guitest:
+    uses: ./.github/workflows/guitest.yml
+    with:
+      python-version: 3.8
+
+  documentation:
+    if: github.event.pull_request.draft == false
+    uses: ./.github/workflows/documentation.yml
+    with:
+      python-version: 3.8

@@ -1,17 +1,18 @@
 name: Pytest
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
 
 jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ '3.8' ]
         os: [ macos-latest, windows-latest, ubuntu-latest ]
         include:
           - os: macos-latest
@@ -24,10 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+      - uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{inputs.python-version}}
 
       - name: Install Libsodium (win)
         if: matrix.os == 'windows-latest'
