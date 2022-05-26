@@ -1,0 +1,57 @@
+name: Ubuntu
+
+on:
+  workflow_call:
+    inputs:
+      upload:
+        default: false
+        type: boolean
+        required: true
+      os:
+        default: ubuntu-latest
+        type: string
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{inputs.os}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{github.event.pull_request.head.sha}}
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.8
+
+      - name: Save Git info
+        run: |
+          git describe | python -c 'import sys; print(next(sys.stdin).lstrip("v"))' > .TriblerVersion
+          git rev-parse HEAD > .TriblerCommit
+          echo "TRIBLER_VERSION=$(head -n 1 .TriblerVersion)" >> $GITHUB_ENV
+
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install debhelper devscripts
+          # for qt:
+          sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5
+
+      - name: Run build script
+        timeout-minutes: 10
+        env:
+          SENTRY_URL: ${{secrets.SENTRY_URL}}
+          QT_QPA_PLATFORM: offscreen
+          QT_ACCESSIBILITY: 1
+          QT_IM_MODULE: ibus
+        run: |
+          ./build/debian/makedist_debian.sh
+
+      - name: Upload Artifact
+        if: inputs.upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: tribler.deb
+          path: ./build/debian/tribler_${{env.TRIBLER_VERSION}}_all.deb
+          retention-days: 1
