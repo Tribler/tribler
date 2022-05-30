@@ -1,10 +1,8 @@
-#!/bin/bash
-# Script to build Tribler Debian package.
-# Note: Run the script from root directory, eg.
-# ./build/debian/makedist_debian.sh
+#!/usr/bin/env bash
+set -x # print all commands
+set -e # exit when any command fails
 
-if [[ ! -d build/debian ]]
-then
+if [[ ! -d build/debian ]]; then
   echo "Please run this script from project root as:\n./build/debian/makedist_debian.sh"
 fi
 
@@ -26,19 +24,21 @@ python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Update version
-python3 build/update_version_from_git.py
+python3 ./build/update_version.py -r .
+python3 ./build/debian/update_metainfo.py -r .
 
-# ----- Build
+# ----- Build binaries
 python3 -m PyInstaller tribler.spec --log-level=DEBUG
 
-cp -r dist/tribler build/debian/tribler/usr/share/tribler
+# ----- Build dpkg
+cp -r ./dist/tribler ./build/debian/tribler/usr/share/tribler
 
-TRIBLER_VERSION=$(cat .TriblerVersion)
+TRIBLER_VERSION=$(head -n 1 .TriblerVersion) # read the first line only
 
-pushd build/debian/tribler || exit
 # Compose the changelog
+cd ./build/debian/tribler
+
 dch -v $TRIBLER_VERSION "New release"
 dch -v $TRIBLER_VERSION "See https://github.com/Tribler/tribler/releases/tag/$TRIBLER_VERSION for more info"
-# Build the package afterwards
+
 dpkg-buildpackage -b -rfakeroot -us -uc
-popd || exit
