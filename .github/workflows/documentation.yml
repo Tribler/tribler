@@ -1,7 +1,12 @@
 name: Documentation
 
 on:
-  pull_request:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
 
 jobs:
   build:
@@ -11,7 +16,7 @@ jobs:
 
       - uses: actions/setup-python@v3
         with:
-          python-version: 3.8
+          python-version: ${{inputs.python-version}}
 
       - name: Install dependencies
         run: |

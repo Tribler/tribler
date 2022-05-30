@@ -1,0 +1,23 @@
+name: Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    uses: ./.github/workflows/docker-image.yml
+
+  codacy:
+    uses: ./.github/workflows/codacy.yml
+
+  coverage:
+    uses: ./.github/workflows/coverage.yml
+    with:
+      python-version: 3.8
+
+  pytest:
+    uses: ./.github/workflows/pytest.yml
+    with:
+      python-version: 3.8
