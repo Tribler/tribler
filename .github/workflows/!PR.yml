@@ -27,3 +27,10 @@ jobs:
     uses: ./.github/workflows/documentation.yml
     with:
       python-version: 3.8
+
+  ubuntu:
+    if: github.event.pull_request.draft == false
+    uses: ./.github/workflows/build_ubuntu.yml
+    with:
+      upload: false
+      os: ubuntu-20.04
