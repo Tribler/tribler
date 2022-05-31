@@ -3,6 +3,7 @@ name: PR
 on:
   pull_request:
     types:
+      - opened
       - synchronize
       - ready_for_review
 
@@ -34,3 +35,5 @@ jobs:
     with:
       upload: false
       os: ubuntu-20.04
+      python-version: 3.8
+
