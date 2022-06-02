@@ -322,6 +322,6 @@ class RemoteQueryCommunity(TriblerCommunity):
             self.network.remove_peer(request_cache.peer)
 
     async def unload(self):
-        self.eva.shutdown()
+        await self.eva.shutdown()
         await self.request_cache.shutdown()
         await super().unload()
