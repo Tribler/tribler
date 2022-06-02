@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from tribler.core.components.ipv8.eva.exceptions import SizeException
 from tribler.core.components.ipv8.eva.payload import Data
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
@@ -13,24 +12,29 @@ from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 # pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture
-async def outgoing_transfer() -> OutgoingTransfer:
+async def outgoing_transfer():
     settings = EVASettings(block_size=2)
-    eva = EVAProtocol(Mock(), settings=settings)
+    eva = EVAProtocol(community=Mock(), settings=settings)
     peer = Mock()
 
-    transfer = OutgoingTransfer(container=eva.outgoing, info=b'info', data=b'binary_data', nonce=0,
-                                on_complete=AsyncMock(), peer=peer, settings=settings)
+    transfer = OutgoingTransfer(
+        container=eva.outgoing,
+        info=b'info',
+        data=b'binary_data',
+        data_size=len(b'binary_data'),
+        nonce=0,
+        protocol_task_group=eva.task_group,
+        send_message=Mock(),
+        on_complete=AsyncMock(),
+        on_error=AsyncMock(),
+        peer=peer,
+        settings=settings
+    )
 
-    eva.outgoing[peer] = transfer
-    return transfer
+    transfer.container[peer] = transfer
+    yield transfer
 
-
-async def test_size_exception():
-    settings = EVASettings(binary_size_limit=10)
-    limit = settings.binary_size_limit
-    with pytest.raises(SizeException):
-        OutgoingTransfer(container=Mock(), info=b'info', data=b'd' * (limit + 1), nonce=0, on_complete=AsyncMock(),
-                         peer=Mock(), settings=settings)
+    await eva.shutdown()
 
 
 async def test_block_count(outgoing_transfer: OutgoingTransfer):
@@ -39,13 +43,13 @@ async def test_block_count(outgoing_transfer: OutgoingTransfer):
 
 
 async def test_on_acknowledgement(outgoing_transfer: OutgoingTransfer):
-    assert not outgoing_transfer.acknowledgement_received
+    assert not outgoing_transfer.request_received
     assert not outgoing_transfer.updated
 
     actual = list(outgoing_transfer.on_acknowledgement(ack_number=0, window_size=16))
 
-    assert outgoing_transfer.acknowledgement_received
-    assert outgoing_transfer.updated
+    assert outgoing_transfer.request_received
+    assert outgoing_transfer.updated is not None
     expected = [
         Data(0, 0, b'bi'),
         Data(1, 0, b'na'),
@@ -60,7 +64,7 @@ async def test_on_acknowledgement(outgoing_transfer: OutgoingTransfer):
 
 
 async def test_on_final_acknowledgement(outgoing_transfer: OutgoingTransfer):
-    outgoing_transfer.finish = Mock()
+    outgoing_transfer.finish = AsyncMock()
     data_list = list(outgoing_transfer.on_acknowledgement(ack_number=10, window_size=16))
     expected_result = TransferResult(peer=outgoing_transfer.peer, info=outgoing_transfer.info,
                                      data=outgoing_transfer.data, nonce=outgoing_transfer.nonce)

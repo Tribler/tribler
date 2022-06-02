@@ -7,3 +7,4 @@ from tribler.core.components.ipv8.eva.result import TransferResult
 
 TransferCompleteCallback = Callable[[TransferResult], Coroutine]
 TransferErrorCallback = Callable[[Peer, TransferException], Coroutine]
+TransferRequestCallback = Callable[[Peer, bytes], Coroutine]

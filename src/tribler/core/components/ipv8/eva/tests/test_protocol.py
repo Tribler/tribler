@@ -1,14 +1,14 @@
 import asyncio
-import collections
 import logging
 import os
 import random
 from asyncio import AbstractEventLoop
 from collections import defaultdict
-from copy import copy
+from copy import deepcopy
 from itertools import permutations
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from typing import Type
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from ipv8.community import Community
@@ -16,22 +16,24 @@ from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.test.base import TestBase
 from ipv8.types import Peer
 
-from tribler.core.components.ipv8.eva.exceptions import SizeException, TimeoutException, TransferCancelledException, \
-    TransferException, \
+from tribler.core.components.ipv8.eva.exceptions import RequestRejected, SizeException, TimeoutException, \
+    TransferCancelledException, TransferException, \
     TransferLimitException, ValueException
 from tribler.core.components.ipv8.eva.payload import Acknowledgement, Data, Error, WriteRequest
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
-from tribler.core.components.ipv8.eva.settings import EVASettings
-from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
+from tribler.core.components.ipv8.eva.settings import EVASettings, Retransmission, Termination
 
 # pylint: disable=redefined-outer-name, protected-access, attribute-defined-outside-init
 
-
 default_settings = EVASettings(
-    terminate_by_timeout_enabled=False,
-    timeout_interval_in_sec=0.2,
-    retransmit_interval_in_sec=0.1
+    termination=Termination(
+        enabled=False,
+        timeout=0.2
+    ),
+    retransmission=Retransmission(
+        interval=0.1
+    )
 )
 
 
@@ -60,7 +62,7 @@ class MockCommunity(Community):  # pylint: disable=too-many-ancestors
 
         self.eva = EVAProtocol(
             community=self,
-            settings=copy(default_settings),
+            settings=deepcopy(default_settings),
             start_message_id=100,
             on_receive=self.on_receive,
             on_send_complete=self.on_send_complete,
@@ -88,6 +90,10 @@ class TestEVA(TestBase):
 
         self.test_store = SimpleNamespace()
 
+    async def tearDown(self):
+        await asyncio.wait([asyncio.create_task(node.overlay.eva.shutdown()) for node in self.nodes])
+        await super().tearDown()
+
     @property
     def alice(self) -> MockCommunity:
         return self.overlay(0)
@@ -100,7 +106,7 @@ class TestEVA(TestBase):
     def carol(self) -> MockCommunity:
         return self.overlay(2)
 
-    async def send_sequence_from_alice_to_bob(self, *sequence: VariablePayload):
+    async def send_sequence_from_alice_to_bob(self, *sequence: Type[VariablePayload]):
         for message in sequence:
             self.alice.eva.send_message(self.bob.my_peer, message)
             await drain_loop(asyncio.get_event_loop())
@@ -128,6 +134,38 @@ class TestEVA(TestBase):
         assert isinstance(self.alice.most_recent_received_exception, TransferCancelledException)
         assert transfer.finished
         assert not self.alice.eva.outgoing
+
+    async def test_get_binary(self):
+        # In this test we request binary from Bob to Alice
+        async def on_request(peer: Peer, info: bytes):
+            response = {
+                b'0': b'zero',
+                b'1': b'one',
+                b'2': b'two',
+            }
+            return response[info]
+
+        self.bob.eva.on_request = on_request
+
+        result = await self.alice.eva.get_binary(self.bob.my_peer, b'1')
+        assert result.data == b'one'
+
+    async def test_get_binary_self_send(self):
+        # In this test we request binary from Alice to Alice.
+        # It should lead to `ValueException`
+        with pytest.raises(ValueException):
+            await self.alice.eva.get_binary(self.alice.my_peer, b'1')
+
+    async def test_get_binary_rejected(self):
+        # In this test we request binary from Bob to Alice.
+        # But Bob's `on_request` is not defined.
+        # It should lead to `RequestRejected` error.
+        with pytest.raises(RequestRejected) as exception:
+            await self.alice.eva.get_binary(self.bob.my_peer, b'give me an error')
+        assert exception.value.remote
+
+        assert type(self.bob.most_recent_received_exception) == RequestRejected  # pylint: disable=unidiomatic-typecheck
+        assert not self.bob.most_recent_received_exception.remote
 
     async def test_block_count_fits_a_single_window(self):
         # In this test we send three transfers from Alice to Bob to ensure that
@@ -193,7 +231,7 @@ class TestEVA(TestBase):
         #
         # After a failed sending attempt from Alice to Bob we should see that Alice's
         # instance had terminated its transfer by timeout.
-        self.alice.eva.settings.terminate_by_timeout_enabled = True
+        self.alice.eva.settings.termination.enabled = True
         self.alice.eva.send_message = Mock()
 
         with pytest.raises(TimeoutException):
@@ -209,28 +247,8 @@ class TestEVA(TestBase):
         # re-sending Acknowledgement to Alice and ends up with TimeoutException
         # exception.
 
-        self.bob.eva.settings.terminate_by_timeout_enabled = True
-        self.bob.eva.settings.retransmit_interval_in_sec = 0
-
-        await self.bob.eva.on_write_request_packet(self.alice.my_peer, WriteRequest(4, 1, b'info'))
-
-        transfer = self.bob.eva.incoming[self.alice.my_peer]
-
-        await self.bob.error_has_been_raised.wait()
-
-        assert isinstance(self.bob.most_recent_received_exception, TimeoutException)
-        assert transfer.attempt == self.bob.eva.settings.retransmit_attempt_count
-
-    async def test_retransmit_disabled(self):
-        # In this test we send a single transfer from Alice to Bob.
-        # Alice will not answer the Bob in this test.
-        # Therefore, Bob should accomplish `0` attempts of
-        # re-sending Acknowledgement to Alice and ends up with TimeoutException
-        # exception.
-
-        self.bob.eva.settings.retransmit_enabled = False
-        self.bob.eva.settings.terminate_by_timeout_enabled = True
-        self.bob.eva.settings.retransmit_interval_in_sec = 0
+        self.bob.eva.settings.termination.enabled = True
+        self.bob.eva.settings.retransmission.interval = 0
 
         await self.bob.eva.on_write_request_packet(self.alice.my_peer, WriteRequest(4, 1, b'info'))
 
@@ -248,13 +266,15 @@ class TestEVA(TestBase):
 
         # First, try to exceed size limit on a receiver (bob) side.
         self.bob.eva.settings.binary_size_limit = 4
-        with pytest.raises(TransferException):
+        with pytest.raises(SizeException) as exception:
             await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'12345')
+        assert exception.value.remote
 
         # Second, try to exceed size limit on a sender (alice) side.
         self.alice.eva.settings.binary_size_limit = 4
-        with pytest.raises(SizeException):
+        with pytest.raises(SizeException) as exception:
             await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'12345')
+        assert not exception.value.remote
 
     async def test_duplex_transfer(self):
         # In this test we send a single transfer from Alice to Bob and `1 transfer
@@ -296,7 +316,7 @@ class TestEVA(TestBase):
         futures = []
         for data in alice_data_list:
             futures.append(self.alice.eva.send_binary(self.bob.my_peer, *data))
-        assert len(self.alice.eva.scheduled[self.bob.my_peer]) == data_set_count - 1
+        assert len(self.alice.eva.scheduler.scheduled) == data_set_count - 1
 
         await drain_loop(asyncio.get_event_loop())  # wait for transfer's complete
 
@@ -304,7 +324,7 @@ class TestEVA(TestBase):
             assert future.done()
 
         assert self.bob.received_data[self.alice.my_peer] == alice_data_list
-        assert not self.alice.eva.scheduled
+        assert not self.alice.eva.scheduler.scheduled
 
     async def test_multiply_duplex(self):
         # In this test we will send `5` transfers in the following directions
@@ -367,9 +387,9 @@ class TestEVA(TestBase):
 
         packet_loss_probability = lost_packets_count_estimation / (block_count * data_set_count)
 
-        self.bob.eva.settings.retransmit_attempt_count = lost_packets_count_estimation
-        self.alice.eva.settings.retransmit_interval_in_sec = 1
-        self.bob.eva.settings.retransmit_interval_in_sec = 0.1
+        self.bob.eva.settings.retransmission.attempts = lost_packets_count_estimation
+        self.alice.eva.settings.retransmission.interval = 1
+        self.bob.eva.settings.retransmission.interval = 0.1
 
         for participant in [self.alice, self.bob]:
             participant.eva.settings.block_size = 3
@@ -414,7 +434,7 @@ class TestEVA(TestBase):
         # The EVA protocol should handle this situation by retransmitting
         # dropped packets.
 
-        self.alice.eva.settings.retransmit_interval_in_sec = 0
+        self.alice.eva.settings.retransmission.interval = 0
         self.packets_to_drop = 3
 
         # replace `EVAProtocol.send_message` method with `lossy_send_message`
@@ -516,6 +536,21 @@ class TestEVA(TestBase):
 
         assert self.bob.most_recent_received_data == (b'info', b'data')
 
+    async def test_send_binary_on_error(self):
+        # In this test we try to send a single transfer from Alice to Bob.
+        # On the Bob's side `_is_simultaneously_served_transfers_limit_exceeded` always return `True`
+        # That is why Alice's attempt to sent any data to Bob will lead to `RequestRejected` exception.
+
+        self.bob.eva._is_simultaneously_served_transfers_limit_exceeded = Mock(True)
+
+        with pytest.raises(TransferLimitException) as exception:
+            await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'data')
+        assert exception.value.remote
+
+        received_exception = self.bob.most_recent_received_exception
+        assert type(received_exception) == TransferLimitException  # pylint: disable=unidiomatic-typecheck
+        assert not received_exception.remote
+
     async def test_received_packet_that_have_no_transfer(self):
         # In this test we send a single transfer from Alice to Bob.
         # Alice will try to send packets without requesting WriteRequest
@@ -528,12 +563,23 @@ class TestEVA(TestBase):
         assert not self.alice.most_recent_received_exception
         assert not self.bob.most_recent_received_exception
 
+    async def test_trim_on_error(self):
+        # In this test we send a single transfer from Eva to Bob.
+        # On Bob's size we set `binary_size_limit=100` to trigger `SizeException` error.
+        # Also we set `block_size=15` in order to trim error message to 'Data s'
+        self.bob.eva.settings.block_size = 15
+        self.bob.eva.settings.binary_size_limit = 100
+        with pytest.raises(SizeException) as exception:
+            await self.alice.eva.send_binary(self.bob.my_peer, b'info', b'0' * 101)
+
+        assert str(exception.value) == 'Data s'
+
 
 @pytest.fixture
-def eva():
+async def eva():
     protocol = EVAProtocol(Mock())
     yield protocol
-    protocol.shutdown()
+    await protocol.shutdown()
 
 
 @pytest.fixture
@@ -550,41 +596,11 @@ async def test_on_write_request_data_size_le0(eva: EVAProtocol, peer):
         assert method_mock.call_count == 2
 
 
-def test_is_simultaneously_served_transfers_limit_exceeded(eva: EVAProtocol):
-    # In this test we will try to exceed `max_simultaneous_transfers` limit.
-    eva.settings.max_simultaneous_transfers = 3
-
-    assert not eva._is_simultaneously_served_transfers_limit_exceeded()
-
-    eva.incoming['peer1'] = Mock()
-    eva.outgoing['peer2'] = Mock()
-
-    assert not eva._is_simultaneously_served_transfers_limit_exceeded()
-
-    eva.outgoing['peer3'] = Mock()
-    assert eva._is_simultaneously_served_transfers_limit_exceeded()
-
-
-async def test_send_binary_with_transfers_limit(eva: EVAProtocol):
-    # Test that in case `max_simultaneous_transfers` limit exceeded, call of
-    # `send_binary` function will lead to schedule a transfer
-    eva.settings.max_simultaneous_transfers = 2
-    assert eva.send_binary(peer=Mock(), info=b'info', data=b'data')
-    assert not eva.scheduled
-
-    assert eva.send_binary(peer=Mock(), info=b'info', data=b'data')
-    assert not eva.scheduled
-
-    assert eva.send_binary(peer=Mock(), info=b'info', data=b'data')
-    assert eva._is_simultaneously_served_transfers_limit_exceeded()
-    assert eva.scheduled
-
-
 async def test_on_write_request_with_transfers_limit(eva: EVAProtocol):
     # Test that in case of exceeded incoming transfers limit, TransferLimitException
     # will be returned
     eva.settings.max_simultaneous_transfers = 1
-    eva._finish_with_error = Mock()
+    eva._finish_with_error = AsyncMock()
 
     await eva.on_write_request_packet(Mock(), WriteRequest(10, 0, b''))
     eva._finish_with_error.assert_not_called()
@@ -594,35 +610,14 @@ async def test_on_write_request_with_transfers_limit(eva: EVAProtocol):
     assert isinstance(actual_exception, TransferLimitException)
 
 
-def test_send_scheduled_with_transfers_limit(eva: EVAProtocol):
-    # Test that `max_simultaneous_transfers` limit uses during `send_scheduled`
-    eva.settings.max_simultaneous_transfers = 2
-    eva.scheduled['peer1'] = collections.deque([Mock()])
-    eva.scheduled['peer2'] = collections.deque([Mock()])
-    eva.scheduled['peer3'] = collections.deque([Mock()])
-    eva.send_scheduled()
-
-    assert len(eva.scheduled['peer1']) == 0
-    assert len(eva.scheduled['peer2']) == 0
-    assert len(eva.scheduled['peer3']) == 1
-
-
-async def test_send_write_request_finished_transfer(eva: EVAProtocol):
-    transfer = OutgoingTransfer(container=eva.outgoing, peer=Mock(), info=b'123', data=b'456', nonce=42,
-                                settings=EVASettings())
-    transfer.finished = True
-    assert not eva.send_write_request(transfer)
-
-
 async def test_on_error_correct_nonce(eva: EVAProtocol):
     # In this test we call `eva.on_error` and ensure that the corresponding transfer
     # is terminated
     peer = Mock()
-    nonce = 1
-    transfer = Mock(nonce=nonce)
+    transfer = AsyncMock(nonce=1)
     eva.outgoing[peer] = transfer
 
-    await eva.on_error_packet(peer, Error(nonce, b'error'))
+    await eva.on_error_packet(peer, Error(incoming=True, nonce=1, message=b'error', code=0))
 
     assert isinstance(transfer.finish.call_args.kwargs['exception'], TransferException)
 
@@ -631,27 +626,26 @@ async def test_on_error_wrong_nonce(eva: EVAProtocol):
     # In this test we call `eva.on_error` with incorrect nonce and ensure that
     # the corresponding transfer is not terminated
     peer = Mock()
-    nonce = 1
-    transfer = Mock(nonce=nonce)
+    transfer = AsyncMock(nonce=1)
     eva.outgoing[peer] = transfer
 
-    await eva.on_error_packet(peer, Error(nonce + 1, b'error'))
+    await eva.on_error_packet(peer, Error(incoming=True, nonce=2, message=b'error', code=0))
 
     transfer.terminate.assert_not_called()
 
 
-def test_shutdown(eva: EVAProtocol):
+async def test_shutdown(eva: EVAProtocol):
     # Test that for all transfers will be called terminate in the case of a 'shutdown'
-    transfer1 = Mock()
-    transfer2 = Mock()
-    transfer3 = Mock()
+    transfer1 = AsyncMock()
+    transfer2 = AsyncMock()
+    transfer3 = AsyncMock()
 
     eva.incoming['peer1'] = transfer1
     eva.incoming['peer2'] = transfer2
 
     eva.outgoing['peer3'] = transfer3
 
-    eva.shutdown()
+    await eva.shutdown()
 
     for t in [transfer1, transfer2, transfer3]:
         assert isinstance(t.finish.call_args.kwargs['exception'], TransferException)

@@ -28,42 +28,67 @@ An example of use:
 """
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
-from collections import defaultdict, deque
+from asyncio import Future
+from functools import wraps
 from itertools import chain
 from random import SystemRandom
-from typing import Awaitable, Callable, Dict, Optional, Type
+from typing import Awaitable, Callable, Dict, Optional, Type, TypeVar
 
 from ipv8.community import Community
 from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.types import Peer
 
-from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, TransferErrorCallback
-from tribler.core.components.ipv8.eva.exceptions import SizeException, TransferException, TransferLimitException, \
-    ValueException
-from tribler.core.components.ipv8.eva.payload import Acknowledgement, Data, Error, WriteRequest
+from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, TransferErrorCallback, \
+    TransferRequestCallback
+from tribler.core.components.ipv8.eva.container import Container
+from tribler.core.components.ipv8.eva.exceptions import RequestRejected, SizeException, TransferException, \
+    TransferLimitException, \
+    ValueException, to_class, to_code
+from tribler.core.components.ipv8.eva.payload import Acknowledgement, Data, Error, ReadRequest, WriteRequest
 from tribler.core.components.ipv8.eva.result import TransferResult
+from tribler.core.components.ipv8.eva.scheduler import Scheduler
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
 from tribler.core.components.ipv8.eva.transfer.incoming import IncomingTransfer
 from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 from tribler.core.components.ipv8.protocol_decorator import make_protocol_decorator
+from tribler.core.utilities.async_group import AsyncGroup
 
-__version__ = '2.1.3'
+__version__ = '2.2.0'
 
 logger = logging.getLogger('EVA')
 
 MAX_U32 = 0xFFFFFFFF
 
-message_handler = make_protocol_decorator('eva')
+eva_packet_handler = make_protocol_decorator('eva')
+
+
+def message_handler(packet_type):
+    def eva_method_decorator(func):
+        @eva_packet_handler(packet_type)
+        @wraps(func)
+        async def wrapped_func(self: EVAProtocol, peer: Peer, packet: VariablePayload):
+            if self.shutting_down:
+                return
+            await func(self, peer, packet)
+
+        return wrapped_func
+
+    return eva_method_decorator
+
+
+T = TypeVar('T', bound=Transfer)
+
+
+async def blank(*_, **__):
+    ...
 
 
 class EVAProtocol:  # pylint: disable=too-many-instance-attributes
     """EVAProtocol makes it possible to transfer big binary data over ipv8.
 
-        The protocol based on TFTP with windowsize (RFC 7440).
+        The protocol based on TFTP with window size (RFC 7440).
         Features:
             * timeout
             * retransmit
@@ -82,6 +107,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             on_receive: Optional[TransferCompleteCallback] = None,
             on_send_complete: Optional[TransferCompleteCallback] = None,
             on_error: Optional[TransferErrorCallback] = None,
+            on_request: Optional[TransferRequestCallback] = None,
             start_message_id: int = 186,
             settings: Optional[EVASettings] = None
     ):
@@ -91,17 +117,20 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         """
         self.community = community
 
-        self.scheduled = defaultdict(deque)
         self.settings = settings or EVASettings()
 
-        self.on_send_complete = on_send_complete
-        self.on_receive = on_receive
-        self.on_error = on_error
+        self.on_send_complete = on_send_complete or blank
+        self.on_receive = on_receive or blank
+        self.on_error = on_error or blank
+        self.on_request = on_request
 
-        self.incoming: Dict[Peer, IncomingTransfer] = {}
-        self.outgoing: Dict[Peer, OutgoingTransfer] = {}
+        self.incoming: Container[Peer, IncomingTransfer] = Container(self)
+        self.outgoing: Container[Peer, OutgoingTransfer] = Container(self)
 
         self.random = SystemRandom()
+        self.scheduler = Scheduler(eva=self)
+        self.task_group = AsyncGroup()
+        self.shutting_down = False
 
         self.start_message_id = self.last_message_id = start_message_id
         self.eva_messages: Dict[Type[VariablePayload], int] = {}
@@ -113,9 +142,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self._register_message_handler(Acknowledgement, self.on_acknowledgement_packet)
         self._register_message_handler(Data, self.on_data_packet)
         self._register_message_handler(Error, self.on_error_packet)
-
-        community.register_task('scheduled send', self.send_scheduled,
-                                interval=self.settings.scheduled_send_interval_in_sec)
+        self._register_message_handler(ReadRequest, self.on_read_request)
 
         logger.debug(f'Initialized. Settings: {self.settings}.')
 
@@ -124,7 +151,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self.eva_messages[message_class] = self.last_message_id
         self.last_message_id += 1
 
-    def send_binary(self, peer: Peer, info: bytes, data: bytes) -> Awaitable[TransferResult]:
+    def send_binary(self, peer: Peer, info: bytes, data: bytes) -> Future[TransferResult]:
         """Send a big binary data.
 
         Due to ipv8 specifics, we can use only one socket port per one peer.
@@ -152,6 +179,9 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
                 It is limited by several GB, but the protocol is slow by design, so
                 try to send less rather than more.
         """
+        if self.shutting_down:
+            raise TransferException('The protocol is shutting down')
+
         if not data:
             raise ValueException('The empty data binary passed')
 
@@ -159,24 +189,93 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             raise ValueException('The receiver can not be equal to the sender')
 
         nonce = self.random.randint(0, MAX_U32)
-        transfer = OutgoingTransfer(data, self.outgoing, peer, info, nonce, self.settings,
-                                    on_complete=self.on_send_complete, on_error=self.on_error)
+        data_size = len(data)
+        if data_size > self.settings.binary_size_limit:
+            raise SizeException(f'Data size limit {self.settings.binary_size_limit} has been exceeded: {data_size}')
 
-        need_to_schedule = peer in self.outgoing or self._is_simultaneously_served_transfers_limit_exceeded()
-        if need_to_schedule:
-            self.scheduled[peer].append(transfer)
-        else:
-            self.start_outgoing_transfer(transfer)
-        return transfer.future
+        transfer = OutgoingTransfer(
+            container=self.outgoing,
+            peer=peer,
+            info=info,
+            data=data,
+            data_size=data_size,
+            nonce=nonce,
+            settings=self.settings,
+            protocol_task_group=self.task_group,
+            send_message=self.send_message,
+            on_complete=self.on_send_complete,
+            on_error=self.on_error,
+            request=WriteRequest(data_size, nonce, info)
+        )
+
+        return self.scheduler.schedule(transfer)
+
+    def get_binary(self, peer: Peer, info: bytes) -> Awaitable[TransferResult]:
+        """Receive a big binary data.
+
+         Due to ipv8 specifics, we can use only one socket port per one peer.
+         Therefore, at one point in time, the protocol can only transmit one particular
+         piece of data for one particular peer.
+
+         In case "get_binary" is invoked multiply times for a single peer, the data
+         transfer will be scheduled and performed when the current sending session is finished.
+
+         An example:
+         >>> class MyCommunity(Community):
+         ...     def __init__(self, *args, **kwargs):
+         ...         super().__init__(*args, **kwargs)
+         ...         self.eva = EVAProtocol(self)
+         ...
+         ...     async def my_function(self, peer):
+         ...         result = await self.eva.get_binary(peer, b'id: 1')
+         ...         print(result.data)
+
+         Args:
+             peer: the target peer
+             info: a binary info, limited by <block_size> bytes
+         """
+        logger.debug(f'Get binary. Peer: {peer}. Info: {info}.')
+
+        if self.shutting_down:
+            raise TransferException('The protocol is shutting down')
+
+        if peer == self.community.my_peer:
+            raise ValueException('The receiver can not be equal to the sender')
+
+        nonce = self.random.randint(0, MAX_U32)
+        transfer = IncomingTransfer(
+            container=self.incoming,
+            peer=peer,
+            info=info,
+            nonce=nonce,
+            settings=self.settings,
+            protocol_task_group=self.task_group,
+            send_message=self.send_message,
+            on_complete=self.on_receive,
+            on_error=self.on_error,
+            data_size=0,
+            request=ReadRequest(info=info, nonce=nonce)
+        )
+
+        return self.scheduler.schedule(transfer)
 
     def send_message(self, peer: Peer, message: VariablePayload):
         self.community.endpoint.send(peer.address, self.community.ezr_pack(self.eva_messages[type(message)], message))
 
-    def start_outgoing_transfer(self, transfer: OutgoingTransfer):
-        self.outgoing[transfer.peer] = transfer
+    def check_transfer_correctness(self, transfer: Transfer) -> bool:
+        exception = None
+        if transfer.data_size <= 0:
+            exception = ValueException('Data size can not be less or equal to 0', transfer)
+        elif transfer.data_size > self.settings.binary_size_limit:
+            exception = SizeException(f'Data size limit({self.settings.binary_size_limit}) has been exceeded', transfer)
+        elif self._is_simultaneously_served_transfers_limit_exceeded():
+            exception = TransferLimitException('Maximum simultaneous transfers limit exceeded')
 
-        self.community.register_anonymous_task('eva_terminate_by_timeout', transfer.terminate_by_timeout_task)
-        self.community.register_anonymous_task('eva_send_write_request', self._send_write_request_task, transfer)
+        if exception:
+            self._finish_with_error(transfer, exception)
+            return False
+
+        return True
 
     @message_handler(WriteRequest)
     async def on_write_request_packet(self, peer: Peer, payload: WriteRequest):
@@ -185,46 +284,73 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         if peer in self.incoming:
             return
 
-        transfer = IncomingTransfer(self.incoming, peer, payload.info, payload.nonce, self.settings,
-                                    on_complete=self.on_receive, on_error=self.on_error, data_size=payload.data_size)
+        transfer = IncomingTransfer(
+            container=self.incoming,
+            peer=peer,
+            info=payload.info,
+            nonce=payload.nonce,
+            data_size=payload.data_size,
+            settings=self.settings,
+            protocol_task_group=self.task_group,
+            send_message=self.send_message,
+            on_complete=self.on_receive,
+            on_error=self.on_error,
+        )
 
-        if payload.data_size <= 0:
-            self._finish_with_error(transfer, ValueException('Data size can not be less or equal to 0'))
+        if self.check_transfer_correctness(transfer):
+            transfer.start()
+
+    @message_handler(ReadRequest)
+    async def on_read_request(self, peer: Peer, payload: ReadRequest):
+        logger.debug(f'On read request. Peer: {peer}. Info: {payload.info}.')
+        if peer in self.outgoing:
             return
 
-        if payload.data_size > self.settings.binary_size_limit:
-            e = SizeException(f'Current data size limit({self.settings.binary_size_limit}) has been exceeded', transfer)
-            self._finish_with_error(transfer, e)
+        data = b''
+        exception = None
+        if self.on_request:
+            try:
+                data = await self.on_request(peer, payload.info)
+            except Exception as e:  # pylint: disable=broad-except
+                exception = e
+        else:
+            exception = NotImplementedError('on_request callback is not defined')
+
+        transfer = OutgoingTransfer(
+            container=self.outgoing,
+            peer=peer,
+            info=payload.info,
+            data=data,
+            data_size=len(data),
+            nonce=payload.nonce,
+            settings=self.settings,
+            protocol_task_group=self.task_group,
+            send_message=self.send_message,
+            on_complete=self.on_send_complete,
+            on_error=self.on_error
+        )
+
+        if exception:
+            message = f'{exception.__class__.__name__}: {exception}'
+            logger.warning(f'Exception during data retrieval. {message}')
+            self._finish_with_error(transfer, RequestRejected(message, transfer))
             return
 
-        if self._is_simultaneously_served_transfers_limit_exceeded():
-            exception = TransferLimitException('Maximum simultaneous transfers limit exceeded')
-            self._finish_with_error(transfer, exception)
-            return
-
-        self.incoming[peer] = transfer
-
-        self.community.register_anonymous_task('eva_terminate_by_timeout', transfer.terminate_by_timeout_task)
-        self.community.register_anonymous_task('eva_resend_acknowledge', self._resend_acknowledge_task, transfer)
-        self.send_message(peer, transfer.make_acknowledgement())
+        if self.check_transfer_correctness(transfer):
+            transfer.start()
 
     @message_handler(Acknowledgement)
     async def on_acknowledgement_packet(self, peer: Peer, payload: Acknowledgement):
         logger.debug(f'On acknowledgement({payload.number}). Window size: {payload.window_size}. Peer: {peer}.')
 
-        transfer = self.outgoing.get(peer)
+        transfer = self._get_transfer(peer=peer, container=self.outgoing, nonce=payload.nonce)
         if not transfer:
-            logger.warning(f'No outgoing transfer found with peer {peer} associated with incoming acknowledgement.')
-            return
-
-        if transfer.nonce != payload.nonce:
-            logger.warning(f'Cannot handle incoming acknowledgement from peer {peer} - nonce mismatch.')
             return
 
         data_list = list(transfer.on_acknowledgement(payload.number, payload.window_size))
         is_transfer_finished = not data_list
         if is_transfer_finished:
-            self.send_scheduled()
+            transfer.finish(result=transfer.create_result())
             return
 
         for data in data_list:
@@ -233,107 +359,74 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
 
     @message_handler(Data)
     async def on_data_packet(self, peer, payload):
-        # Separate protected method for easier overriding in tests
         logger.debug(f'On data({payload.number}). Peer: {peer}. Data hash: {hash(payload.data)}')
-        transfer = self.incoming.get(peer)
+        transfer = self._get_transfer(peer=peer, container=self.incoming, nonce=payload.nonce)
         if not transfer:
             return
 
         window_index = payload.number - transfer.window.start
         # The packet can be handled if payload number within [window_start..window_start+window_size)
         can_be_handled = 0 <= window_index < len(transfer.window.blocks)
-        if not can_be_handled or transfer.nonce != payload.nonce:
+        if not can_be_handled:
             return
 
         acknowledgement = transfer.on_data(index=window_index, data=payload.data)
         if acknowledgement:
             self.send_message(transfer.peer, acknowledgement)
-        if transfer.finished:
-            self.send_scheduled()
 
     @message_handler(Error)
     async def on_error_packet(self, peer: Peer, error: Error):
         message = error.message.decode('utf-8')
         logger.debug(f'On error. Peer: {peer}. Message: "{message}"')
 
-        transfer = self.outgoing.get(peer)
-        if not transfer or transfer.nonce != error.nonce:
-            return
+        container = self.outgoing if error.incoming else self.incoming
+        transfer = self._get_transfer(peer=peer, container=container, nonce=error.nonce)
+        if transfer:
+            exception_cls = to_class(error.code)
+            transfer.finish(exception=exception_cls(message, transfer, remote=True))
 
-        transfer.finish(exception=TransferException(message, transfer))
-        self.send_scheduled()
+    @staticmethod
+    def _get_transfer(peer: Peer, container: Dict[Peer, T], nonce: int) -> Optional[T]:
+        transfer = container.get(peer)
+        if not transfer:
+            logger.warning(f'No transfer found with peer {peer} associated with incoming acknowledgement.')
+            return None
 
-    def send_scheduled(self):
-        logger.debug('Looking for scheduled transfers for send...')
+        if transfer.nonce != nonce:
+            logger.warning(f'Cannot handle acknowledgement from peer {peer} - nonce mismatch.')
+            return None
 
-        free_peers = [peer for peer in self.scheduled if peer not in self.outgoing]
+        return transfer
 
-        for peer in free_peers:
-            if not self.scheduled[peer]:
-                self.scheduled.pop(peer, None)
-                continue
-
-            if self._is_simultaneously_served_transfers_limit_exceeded():
-                break
-
-            transfer = self.scheduled[peer].popleft()
-
-            logger.debug(f'Scheduled send: {transfer}')
-            self.start_outgoing_transfer(transfer)
-
-    def shutdown(self):
+    async def shutdown(self):
         """This method terminates all current transfers"""
         logger.info('Shutting down...')
+        self.shutting_down = True
+
+        await self.scheduler.shutdown()
+
         transfers = list(chain(self.incoming.values(), self.outgoing.values()))
+        exception = TransferException('Terminated due to shutdown')
+
         for transfer in transfers:
-            transfer.finish(exception=TransferException('Terminated due to shutdown'))
+            transfer.finish(exception=exception)
+
+        await self.task_group.wait()
+
         logger.info('Shutting down completed')
 
     def _finish_with_error(self, transfer: Transfer, exception: TransferException):
-        self.send_message(transfer.peer, Error(transfer.nonce, str(exception).encode('utf-8')))
+        message = str(exception).encode('utf-8')
+        message_limit = self.settings.block_size - (1 + 4 + 4)  # bool+int+int
+        message = message[:message_limit]
+        error = Error(
+            incoming=isinstance(transfer, IncomingTransfer),
+            nonce=transfer.nonce,
+            code=to_code(exception.__class__),
+            message=message
+        )
+        self.send_message(transfer.peer, error)
         transfer.finish(exception=exception)
-
-    async def _resend_acknowledge_task(self, transfer: IncomingTransfer):
-        remaining_time = self.settings.retransmit_interval_in_sec
-
-        while self.settings.retransmit_enabled:
-            await asyncio.sleep(remaining_time)
-
-            attempts_are_over = transfer.attempt >= self.settings.retransmit_attempt_count
-            if attempts_are_over or transfer.finished:
-                return
-
-            remaining_time = self.settings.retransmit_interval_in_sec - (time.time() - transfer.updated)
-            if remaining_time <= 0:  # it is time to retransmit
-                transfer.attempt += 1
-                remaining_time = self.settings.retransmit_interval_in_sec
-
-                current_attempt = f'{transfer.attempt + 1}/{self.settings.retransmit_attempt_count}'
-                logger.debug(f'Re-ack. Attempt: {current_attempt} for peer: {transfer.peer}')
-                self.send_message(transfer.peer, transfer.make_acknowledgement())
-
-    async def _send_write_request_task(self, transfer: OutgoingTransfer):
-        for attempt in range(self.settings.retransmit_attempt_count + 1):
-            if attempt:
-                current_attempt = f'{attempt}/{self.settings.retransmit_attempt_count}'
-                logger.debug(f'Re-write request. Attempt: {current_attempt} for peer: {transfer.peer}')
-
-            if self.send_write_request(transfer):
-                await asyncio.sleep(self.settings.retransmit_interval_in_sec)
-
-            if not self.settings.retransmit_enabled or transfer.finished or transfer.acknowledgement_received:
-                break
-
-    def send_write_request(self, transfer: OutgoingTransfer) -> bool:
-        # Returns True is the message was sent
-        if transfer.finished:
-            return False
-
-        transfer.update()
-        write_request = WriteRequest(transfer.data_size, transfer.nonce, transfer.info)
-        logger.debug(f'Write Request. Peer: {transfer.peer}. Transfer: {self}')
-        self.send_message(transfer.peer, write_request)
-        return True
 
     def _is_simultaneously_served_transfers_limit_exceeded(self) -> bool:
         transfers_count = len(self.incoming) + len(self.outgoing)

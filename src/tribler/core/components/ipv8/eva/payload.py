@@ -1,10 +1,21 @@
+from dataclasses import dataclass
+
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+from ipv8.messaging.payload_dataclass import overwrite_dataclass
+
+dataclass = overwrite_dataclass(dataclass)
 
 
 @vp_compile
 class WriteRequest(VariablePayload):
     format_list = ['I', 'I', 'raw']
     names = ['data_size', 'nonce', 'info']
+
+
+@vp_compile
+class ReadRequest(VariablePayload):
+    format_list = ['I', 'raw']
+    names = ['nonce', 'info']
 
 
 @vp_compile
@@ -21,5 +32,5 @@ class Data(VariablePayload):
 
 @vp_compile
 class Error(VariablePayload):
-    format_list = ['I', 'raw']
-    names = ['nonce', 'message']
+    format_list = ['?', 'I', 'I', 'raw']
+    names = ['incoming', 'code', 'nonce', 'message']
