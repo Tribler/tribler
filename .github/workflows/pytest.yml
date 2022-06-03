@@ -31,12 +31,9 @@ jobs:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
 
-      - name: Install Libsodium (win)
-        if: matrix.os == 'windows-latest'
-        run: |
-          C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-1.0.17-msvc.zip
-          7z x libsodium-1.0.17-msvc.zip
-          copy ./x64/Release/v141/dynamic/libsodium.dll C:\Windows\system32\
+      - name: Install windows dependencies
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/windows_dependencies
 
       - name: Run Pytest
         run: |
