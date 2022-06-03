@@ -388,7 +388,7 @@ class DebugEndpoint(RESTEndpoint):
             try:
                 raise TriblerCoreTestException('Tribler Core Test Exception')
             except TriblerCoreTestException as e:
-                context = dict(should_stop=False, message='Test message', exception=e)
+                context = dict(should_stop=True, message='Test message', exception=e)
                 self.core_exception_handler.unhandled_error_observer(None, context)
         else:
             self._logger.info('Exception handler is not set in DebugEndpoint')
