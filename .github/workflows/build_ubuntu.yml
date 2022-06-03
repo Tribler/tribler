@@ -27,9 +27,12 @@ jobs:
           fetch-depth: 0
           ref: ${{github.event.pull_request.head.sha}}
 
-      - uses: actions/setup-python@v3
+      - name: Create python environment
+        id: pyenv
+        uses: ./.github/actions/pyenv
         with:
           python-version: ${{inputs.python-version}}
+          requirements: requirements-build.txt
 
       - name: Save Git info
         run: |
@@ -51,6 +54,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QT_ACCESSIBILITY: 1
           QT_IM_MODULE: ibus
+          VENV: ${{steps.pyenv.outputs.virtualenv-directory}}
         run: |
           ./build/debian/makedist_debian.sh
 
