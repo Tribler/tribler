@@ -1,5 +1,10 @@
 name: windows_dependencies
 description: Setup windows dependencies for Tribler
+inputs:
+  libsodium-version:
+    default: '1.0.17'
+    description: 'Libsodium version'
+    required: false
 
 runs:
   using: 'composite'
@@ -20,17 +25,18 @@ runs:
       id: check_libsodium
       uses: andstor/file-existence-action@v1
       with:
-        files: "cached-bin/libsodium.dll"
+        files: "cached-bin/libsodium-${{inputs.libsodium-version}}/libsodium.dll"
 
     - name: Download Libsodium
       if: steps.check_libsodium.outputs.files_exists == 'false'
       shell: cmd
       run: |
-        C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-1.0.17-msvc.zip
-        7z x libsodium-1.0.17-msvc.zip
-        copy .\x64\Release\v141\dynamic\libsodium.dll .\cached-bin\
+        C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-${{inputs.libsodium-version}}-msvc.zip
+        7z x libsodium-${{inputs.libsodium-version}}-msvc.zip
+        if not exist "cached-bin\libsodium-${{inputs.libsodium-version}}" mkdir "cached-bin\libsodium-${{inputs.libsodium-version}}"
+        copy .\x64\Release\v141\dynamic\libsodium.dll .\cached-bin\libsodium-${{inputs.libsodium-version}}\libsodium.dll
 
     - name: Install Libsodium
       shell: cmd
       run: |
-        copy .\cached-bin\libsodium.dll C:\Windows\system32\
+        copy .\cached-bin\libsodium-${{inputs.libsodium-version}}\libsodium.dll C:\Windows\system32\
