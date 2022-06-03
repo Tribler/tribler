@@ -18,14 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v3
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
         with:
           python-version: ${{inputs.python-version}}
-
-      - name: Install pip dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r ./requirements-test.txt
+          requirements: requirements-test.txt
 
       - name: Install xvfb dependencies
         run: |
