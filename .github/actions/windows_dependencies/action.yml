@@ -1,0 +1,36 @@
+name: windows_dependencies
+description: Setup windows dependencies for Tribler
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache Binaries
+      id: cache-binaries
+      uses: actions/cache@v3
+      with:
+        path: cached-bin
+        key: ${{ runner.os }}-cached-bin
+
+    - name: Create bin folder
+      shell: cmd
+      run: |
+        if not exist "cached-bin" mkdir "cached-bin"
+
+    - name: Check Libsodium existence
+      id: check_libsodium
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "cached-bin/libsodium.dll"
+
+    - name: Download Libsodium
+      if: steps.check_libsodium.outputs.files_exists == 'false'
+      shell: cmd
+      run: |
+        C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-1.0.17-msvc.zip
+        7z x libsodium-1.0.17-msvc.zip
+        copy .\x64\Release\v141\dynamic\libsodium.dll .\cached-bin\
+
+    - name: Install Libsodium
+      shell: cmd
+      run: |
+        copy .\cached-bin\libsodium.dll C:\Windows\system32\
