@@ -46,7 +46,7 @@ REM packs them in the installer .EXE
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
 
-%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=DEBUG
+%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=DEBUG || exit /b
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
@@ -69,9 +69,6 @@ copy C:\build\libsodium.dll dist\tribler
 REM Sandip, 2019-10-24: No need to copy openssl dlls separately
 REM copy C:\build\openssl\*.dll dist\tribler
 
-REM Copy missing dll files
-copy C:\build\missing_dlls\*.dll dist\tribler
-
 
 @echo Running NSIS
 cd dist\tribler
@@ -81,13 +78,14 @@ set /p PASSWORD="Enter the PFX password:"
 
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
 REM --- Doing this in ugly way for now
-
-signtool.exe sign /f C:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" tribler.exe
-
+if not defined SKIP_SIGNING_TRIBLER_BINARIES (
+    signtool.exe sign /f C:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" tribler.exe
+)
 :makeinstaller
-%NSIS% tribler.nsi
+%NSIS% tribler.nsi || exit /b
 move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
-signtool.exe sign /f c:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
-cd ..
+if not defined SKIP_SIGNING_TRIBLER_BINARIES (
+    signtool.exe sign /f c:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
+)
