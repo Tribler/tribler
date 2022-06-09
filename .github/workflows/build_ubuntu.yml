@@ -6,7 +6,7 @@ on:
       os:
         default: ubuntu-latest
         type: string
-        required: true
+        required: false
 
       python-version:
         default: 3.8
@@ -16,7 +16,7 @@ on:
       upload:
         default: false
         type: boolean
-        required: true
+        required: false
 
   workflow_dispatch:
     inputs:
