@@ -3,11 +3,6 @@ name: Windows
 on:
   workflow_call:
     inputs:
-      upload:
-        default: false
-        type: boolean
-        required: false
-
       os:
         default: windows-latest
         type: string
@@ -18,14 +13,13 @@ on:
         type: string
         required: false
 
+      upload:
+        default: false
+        type: boolean
+        required: false
+
   workflow_dispatch:
     inputs:
-      upload:
-        description: Upload
-        default: true
-        type: boolean
-        required: true
-
       os:
         description: Environment
         default: windows-latest
@@ -37,6 +31,13 @@ on:
         default: '3.8'
         type: string
         required: true
+
+      upload:
+        description: Upload
+        default: true
+        type: boolean
+        required: true
+
 jobs:
   build:
     runs-on: ${{ github.event.inputs.os || inputs.os }}

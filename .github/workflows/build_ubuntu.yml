@@ -3,29 +3,23 @@ name: Ubuntu
 on:
   workflow_call:
     inputs:
-      upload:
-        default: false
-        type: boolean
-        required: true
-
       os:
         default: ubuntu-latest
         type: string
-        required: true
+        required: false
 
       python-version:
         default: 3.8
         type: string
         required: false
 
+      upload:
+        default: false
+        type: boolean
+        required: false
+
   workflow_dispatch:
     inputs:
-      upload:
-        description: Upload
-        default: true
-        type: boolean
-        required: true
-
       os:
         description: Environment
         default: ubuntu-latest
@@ -36,6 +30,12 @@ on:
         description: Python version
         default: '3.8'
         type: string
+        required: true
+
+      upload:
+        description: Upload
+        default: true
+        type: boolean
         required: true
 
 jobs:
