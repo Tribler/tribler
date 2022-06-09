@@ -1,0 +1,120 @@
+name: Windows
+
+on:
+  workflow_call:
+    inputs:
+      upload:
+        default: false
+        type: boolean
+        required: false
+
+      os:
+        default: windows-latest
+        type: string
+        required: false
+
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: Upload
+        default: true
+        type: boolean
+        required: true
+
+      os:
+        description: Environment
+        default: windows-latest
+        type: string
+        required: true
+
+      python-version:
+        description: Python version
+        default: '3.8'
+        type: string
+        required: true
+jobs:
+  build:
+    runs-on: ${{ github.event.inputs.os || inputs.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{github.event.pull_request.head.sha}}
+
+      - name: Modify PATH
+        run: |
+          echo "C:\msys64\usr\bin" >> $env:GITHUB_PATH
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
+
+      - name: Save Git info
+        run: |
+          git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
+          git rev-parse HEAD > .TriblerCommit
+
+      - name: Install windows dependencies
+        uses: ./.github/actions/windows_dependencies
+
+      - name: Prepare files
+        env:
+          SENTRY_URL: ${{secrets.SENTRY_URL}}
+        shell: cmd
+        run: |
+          python ./build/update_version.py -r .
+          python ./build/win/replace_nsi.py -r . --architecture x64
+
+      - name: Collect required binaries
+        shell: cmd
+        run: |
+          mkdir C:\build\
+          wget -q https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x64.exe
+          move vc_redist.x64.exe C:\build\vc_redist_140.exe
+          copy C:\Windows\system32\libsodium.dll C:\build\
+
+      - name: Install NSIS plugins
+        env:
+          NSIS_PLUGINS: C:\Program Files (x86)\NSIS\Plugins
+          NSIS_INCLUDE: C:\Program Files (x86)\NSIS\Include
+        shell: cmd
+        run: |
+          wget -q https://nsis.sourceforge.io/mediawiki/images/1/18/NsProcess.zip
+          7z x NsProcess.zip -oNsProcess
+          move .\NsProcess\Plugin\nsProcessW.dll "%NSIS_PLUGINS%\x86-unicode\nsProcess.dll"
+          move .\NsProcess\Plugin\nsProcess.dll "%NSIS_PLUGINS%\x86-ansi\nsProcess.dll"
+          move .\NsProcess\Include\* "%NSIS_INCLUDE%"
+          echo AccessControl
+          wget -q https://nsis.sourceforge.io/mediawiki/images/4/4a/AccessControl.zip
+          7z x AccessControl.zip -oAccessControl
+          move .\AccessControl\Plugins\i386-unicode\* "%NSIS_PLUGINS%\x86-unicode"
+          move .\AccessControl\Plugins\i386-ansi\* "%NSIS_PLUGINS%\x86-ansi"
+          echo NSIS_Simple_Firewall_Plugin
+          wget -q https://nsis.sourceforge.io/mediawiki/images/e/e0/NSIS_Simple_Firewall_Plugin_Unicode_1.21.zip
+          7z x NSIS_Simple_Firewall_Plugin_Unicode_1.21.zip -oSFP
+          move .\SFP\SimpleFC.dll "%NSIS_PLUGINS%\x86-unicode"
+
+      - name: Run build script
+        timeout-minutes: 10
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_ACCESSIBILITY: 1
+          QT_IM_MODULE: ibus
+          SKIP_SIGNING_TRIBLER_BINARIES: 'yes please'
+        shell: cmd
+        run: |
+          ./build/win/makedist_win.bat
+
+      - name: Upload Artifact
+        if: github.event.inputs.upload || inputs.upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: tribler
+          path: dist/
+          retention-days: 1
