@@ -1,8 +1,13 @@
-#!/bin/sh -xe
+#!/usr/bin/env bash
+set -x # print all commands
+set -e # exit when any command fails
+
 # Script to build Tribler 64-bit on Mac
-# Author(s): Riccardo Petrocco, Arno Bakker
+# Initial author(s): Riccardo Petrocco, Arno Bakker
 
 APPNAME=Tribler
+LOG_LEVEL=${LOG_LEVEL:-"DEBUG"}
+
 if [ -e .TriblerVersion ]; then
     DMGNAME="Tribler-$(cat .TriblerVersion)"
 fi
@@ -17,12 +22,11 @@ export RESOURCES=build/mac/resources
 python3 -m venv build-env
 . ./build-env/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade -r requirements.txt
+python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Build
 
-PI=pyinstaller
-$PI tribler.spec --log-level=DEBUG
+pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
@@ -99,7 +103,7 @@ hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$AP
 rm -f dist/temp/rw.dmg
 
 # add EULA
-eulagise --license LICENSE --target dist/$APPNAME.dmg
+python3 ./build/mac/licenseDMG.py dist/$APPNAME.dmg LICENSE
 
 if [ ! -z "$DMGNAME" ]; then
     mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
