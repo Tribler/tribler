@@ -108,6 +108,7 @@ jobs:
           QT_ACCESSIBILITY: 1
           QT_IM_MODULE: ibus
           SKIP_SIGNING_TRIBLER_BINARIES: 'yes please'
+          LOG_LEVEL: INFO
         shell: cmd
         run: |
           ./build/win/makedist_win.bat

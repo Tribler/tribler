@@ -75,6 +75,7 @@ jobs:
           QT_ACCESSIBILITY: 1
           QT_IM_MODULE: ibus
           VENV: ${{steps.pyenv.outputs.virtualenv-directory}}
+          LOG_LEVEL: INFO
         run: |
           ./build/debian/makedist_debian.sh
 
