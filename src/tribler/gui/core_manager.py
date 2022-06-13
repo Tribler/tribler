@@ -109,7 +109,7 @@ class CoreManager(QObject):
             return
 
         raw_output = bytes(self.core_process.readAllStandardOutput())
-        self.last_core_stdout_output = raw_output.decode("utf-8").strip()
+        self.last_core_stdout_output = self.decode_raw_core_output(raw_output).strip()
 
         try:
             print(self.last_core_stdout_output)  # print core output # noqa: T001
@@ -123,7 +123,7 @@ class CoreManager(QObject):
             return
 
         raw_output = bytes(self.core_process.readAllStandardError())
-        self.last_core_stderr_output = raw_output.decode("utf-8").strip()
+        self.last_core_stderr_output = self.decode_raw_core_output(raw_output).strip()
 
         try:
             print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001
@@ -176,3 +176,14 @@ class CoreManager(QObject):
                     self.events_manager.connect_timer.stop()
 
             raise CoreCrashedError(error_message)
+
+    @staticmethod
+    def decode_raw_core_output(output: bytes) -> str:
+        try:
+            # Let's optimistically try to decode from UTF8.
+            # If it is not UTF8, we should get UnicodeDecodeError "invalid continuation byte".
+            return output.decode('utf-8')
+        except UnicodeDecodeError:
+            # It may be hard to guess the real encoding on some systems,
+            # but by using the "backslashreplace" error handler we can keep all the received data.
+            return output.decode('ascii', errors='backslashreplace')

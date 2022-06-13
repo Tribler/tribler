@@ -332,7 +332,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if action != 2:
             for selected_item in self.selected_items:
                 infohash = selected_item.download_info["infohash"]
-                if self.window().download_details_widget.current_download.get(infohash) == infohash:
+                current_download = self.window().download_details_widget.current_download
+                if current_download and current_download.get(infohash) == infohash:
                     self.window().download_details_widget.current_download = None
 
                 TriblerNetworkRequest(
