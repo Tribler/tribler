@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 """
+https://bitbucket.org/jaredhobbs/pyhacker/raw/master/licenseDMG.py
+
 This script adds a license file to a DMG. Requires Xcode and a plain ascii text
 license file or an RTF license file.
 Obviously only runs on a Mac.
