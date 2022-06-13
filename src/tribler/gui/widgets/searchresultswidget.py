@@ -64,39 +64,10 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.hide_xxx = hide_xxx
         self.results_page.initialize_content_page(hide_xxx=hide_xxx)
         self.results_page.channel_torrents_filter_input.setHidden(True)
-        connect(self.timeout_progress_bar.timeout, self.show_results)
-        connect(self.show_results_button.clicked, self.show_results)
 
     @property
     def has_results(self):
         return self.last_search_query is not None
-
-    def show_results(self, *_):
-        if self.search_request is None:
-            # Fixes a race condition where the user clicks the show_results button before the search request
-            # has been registered by the Core
-            return
-        self.timeout_progress_bar.stop()
-        query = self.search_request.query
-        self.results_page.initialize_root_model(
-            SearchResultsModel(
-                channel_info={
-                    "name": (tr("Search results for %s") % query.original_query)
-                    if len(query.original_query) < 50
-                    else f"{query.original_query[:50]}..."
-                },
-                endpoint_url="search",
-                hide_xxx=self.results_page.hide_xxx,
-                text_filter=to_fts_query(query.fts_text),
-                tags=list(query.tags),
-                type_filter=[REGULAR_TORRENT],
-            )
-        )
-        self.setCurrentWidget(self.results_page)
-
-        # After transitioning to the page with search results, we refresh the viewport since some rows might have been
-        # rendered already with an incorrect row height.
-        self.results_page.run_brain_dead_refresh()
 
     def check_can_show(self, query):
         if (
@@ -119,16 +90,25 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.last_search_query = query.original_query
         self.last_search_time = time.time()
 
-        # Trigger remote search
-        def register_request(response):
-            self._logger.info(f'Request registered: {response}')
-            self.search_request = SearchRequest(response["request_uuid"], query, set(response["peers"]))
-            self.state_label.setText(format_search_loading_label(self.search_request))
-            self.timeout_progress_bar.start()
-            self.setCurrentWidget(self.loading_page)
+        self.results_page.initialize_root_model(
+            SearchResultsModel(
+                channel_info={
+                    "name": (tr("Search results for %s") % query.original_query)
+                    if len(query.original_query) < 50
+                    else f"{query.original_query[:50]}..."
+                },
+                endpoint_url="search",
+                hide_xxx=self.results_page.hide_xxx,
+                text_filter=to_fts_query(query.fts_text),
+                tags=list(query.tags),
+                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
+            )
+        )
+        self.setCurrentWidget(self.results_page)
 
-        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags)}
-        TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
+        # After transitioning to the page with search results, we refresh the viewport since some rows might have been
+        # rendered already with an incorrect row height.
+        self.results_page.run_brain_dead_refresh()
         return True
 
     def reset(self):
