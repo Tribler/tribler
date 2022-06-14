@@ -73,8 +73,8 @@ def init_boot_logger():
 if __name__ == "__main__":
     init_boot_logger()
     init_sentry_reporter()
-
-    parsed_args = RunTriblerArgsParser().parse_args()
+    
+    parsed_args, _ = RunTriblerArgsParser().parse_known_args()
     logger.info(f'Run Tribler: {parsed_args}')
 
     # Get root state directory (e.g. from environment variable or from system default)
