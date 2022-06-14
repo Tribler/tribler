@@ -2,6 +2,8 @@
 set -x # print all commands
 set -e # exit when any command fails
 
+LOG_LEVEL=${LOG_LEVEL:-"DEBUG"}
+
 if [[ ! -d build/debian ]]; then
   echo "Please run this script from project root as:\n./build/debian/makedist_debian.sh"
 fi
@@ -28,7 +30,7 @@ python3 ./build/update_version.py -r .
 python3 ./build/debian/update_metainfo.py -r .
 
 # ----- Build binaries
-python3 -m PyInstaller tribler.spec --log-level=DEBUG
+python3 -m PyInstaller tribler.spec --log-level="${LOG_LEVEL}"
 
 # ----- Build dpkg
 cp -r ./dist/tribler ./build/debian/tribler/usr/share/tribler

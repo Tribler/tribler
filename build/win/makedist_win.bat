@@ -1,6 +1,8 @@
 REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
+if not defined LOG_LEVEL set LOG_LEVEL="DEBUG"
+
 REM Check that we are running from the expected directory
 IF NOT EXIST build\win (
   ECHO .
@@ -46,7 +48,7 @@ REM packs them in the installer .EXE
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
 
-%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=DEBUG || exit /b
+%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
