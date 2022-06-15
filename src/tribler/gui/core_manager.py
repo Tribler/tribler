@@ -87,6 +87,10 @@ class CoreManager(QObject):
         core_args = self.core_args
         if not core_args:
             core_args = sys.argv + ['--core']
+            if getattr(sys, 'frozen', False):
+                # remove duplicate tribler.exe from core_args when running complied binary
+                # https://pyinstaller.org/en/v3.3.1/runtime-information.html#using-sys-executable-and-sys-argv-0
+                core_args = core_args[1:]
 
         self.core_process = QProcess()
         self.core_process.setProcessEnvironment(core_env)
@@ -95,6 +99,7 @@ class CoreManager(QObject):
         connect(self.core_process.readyReadStandardOutput, self.on_core_stdout_read_ready)
         connect(self.core_process.readyReadStandardError, self.on_core_stderr_read_ready)
         connect(self.core_process.finished, self.on_core_finished)
+        self._logger.info(f'Start Tribler core process {sys.executable} with arguments: {core_args}')
         self.core_process.start(sys.executable, core_args)
 
     def on_core_started(self):
