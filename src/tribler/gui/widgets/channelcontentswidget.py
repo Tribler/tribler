@@ -318,6 +318,16 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             # Reset the view if the user clicks on the last part of the breadcrumb
             self.reset_view()
 
+    def format_search_title(self):
+        self.channel_name_label.setTextFormat(Qt.RichText)
+        text = self.format_link(self.model.format_title())
+        self.channel_name_label.setText(text)
+        self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        self.channel_name_label.setFocusPolicy(Qt.NoFocus)
+
+    def format_link(self, text):
+        return f'<a style="text-decoration:none;color:#eee;" href="/">{text}</a>'
+
     def _set_filter_controls_from_model(self):
         # This should typically be called under freeze_controls context manager
         content_category = ContentCategories.get(self.model.category_filter)

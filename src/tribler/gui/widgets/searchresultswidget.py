@@ -92,23 +92,27 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
 
         self.results_page.initialize_root_model(
             SearchResultsModel(
-                channel_info={
-                    "name": (tr("Search results for %s") % query.original_query)
-                    if len(query.original_query) < 50
-                    else f"{query.original_query[:50]}..."
-                },
                 endpoint_url="search",
                 hide_xxx=self.results_page.hide_xxx,
+                original_query=query.original_query,
                 text_filter=to_fts_query(query.fts_text),
                 tags=list(query.tags),
                 type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
             )
         )
         self.setCurrentWidget(self.results_page)
+        self.results_page.format_search_title()
 
         # After transitioning to the page with search results, we refresh the viewport since some rows might have been
         # rendered already with an incorrect row height.
         self.results_page.run_brain_dead_refresh()
+
+        def register_request(response):
+            self.search_request = SearchRequest(response["request_uuid"], query, set(response["peers"]))
+
+        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags)}
+        TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
+
         return True
 
     def reset(self):
@@ -116,15 +120,13 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.results_page.go_back_to_level(0)
 
     def update_loading_page(self, remote_results):
-        if (
-            not self.search_request
-            or remote_results.get("uuid") != self.search_request.uuid
-            or self.currentWidget() == self.results_page
-        ):
+        if not self.search_request or self.search_request.uuid != remote_results.get("uuid"):
             return
+
         peer = remote_results["peer"]
+        results = remote_results.get("results", [])
         self.search_request.peers_complete.add(peer)
-        self.search_request.remote_results.append(remote_results.get("results", []))
-        self.state_label.setText(format_search_loading_label(self.search_request))
-        if self.search_request.complete:
-            self.show_results()
+        self.search_request.remote_results.append(results)
+
+        self.results_page.model.on_remote_results(results)
+        self.results_page.format_search_title()

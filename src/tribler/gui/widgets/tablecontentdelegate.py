@@ -374,11 +374,20 @@ class TagsMixin:
 
     def draw_title_and_tags(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex,
                             data_item: Dict) -> None:
+        debug = False  # change to True to see the search rank of items and to highlight remote items
         item_name = data_item["name"]
+
         group = data_item.get("group")
         if group:
-            plural = len(group) > 1
-            item_name += f"    (and {len(group)} similar item{'s' if plural else ''})"
+            has_remote_items = any(group_item.get('remote') for group_item in group.values())
+            item_name += f"    (+ {len(group)} similar{' *' if debug and has_remote_items else ''})"
+
+        if debug:
+            rank = data_item.get("rank")
+            if rank is not None:
+                item_name += f'    rank: {rank:.6}'
+            if data_item.get('remote'):
+                item_name = '*  ' + item_name
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
         title_text_height = 60 if data_item["type"] == SNIPPET else 28

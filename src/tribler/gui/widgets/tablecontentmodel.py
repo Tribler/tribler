@@ -10,6 +10,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, py
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
+from tribler.core.utilities.search_utils import item_rank
 from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
 
@@ -98,7 +99,6 @@ class RemoteTableModel(QAbstractTableModel):
         self.columns_dict = define_columns()
 
         self.data_items = []
-        self.remote_items = []
         self.max_rowid = None
         self.local_total = None
         self.item_load_batch = 50
@@ -109,6 +109,8 @@ class RemoteTableModel(QAbstractTableModel):
         self.qt_object_destroyed = False
 
         self.group_by_name = False
+        self.sort_by_rank = False
+        self.text_filter = ''
 
         connect(self.destroyed, self.on_destroy)
         # Every remote query must be attributed to its specific model to avoid updating wrong models
@@ -140,7 +142,6 @@ class RemoteTableModel(QAbstractTableModel):
         self.beginResetModel()
         self.loaded = False
         self.data_items = []
-        self.remote_items = []
         self.max_rowid = None
         self.local_total = None
         self.item_uid_map = {}
@@ -170,10 +171,6 @@ class RemoteTableModel(QAbstractTableModel):
         if not new_items:
             return
 
-        if remote and not self.all_local_entries_loaded:
-            self.remote_items.extend(new_items)
-            return
-
         # Note: If we want to block the signal like itemChanged, we must use QSignalBlocker object or blockSignals
 
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
@@ -181,6 +178,12 @@ class RemoteTableModel(QAbstractTableModel):
         unique_new_items = []
         name_mapping = {item['name']: item for item in self.data_items} if self.group_by_name else {}
         for item in new_items:
+            if remote:
+                item['remote'] = True
+            if self.sort_by_rank:
+                if 'rank' not in item:
+                    item['rank'] = item_rank(self.text_filter, item)
+
             item_uid = get_item_uid(item)
             if item_uid not in self.item_uid_map:
 
@@ -204,6 +207,21 @@ class RemoteTableModel(QAbstractTableModel):
         if not unique_new_items:
             return
 
+        if remote and self.sort_by_rank:
+            new_data_items = self.data_items + unique_new_items
+            new_data_items.sort(key = lambda item: item['rank'], reverse=True)
+            new_item_uid_map = {}
+            for item in new_data_items:
+                item_uid = get_item_uid(item)
+                new_item_uid_map[item_uid] = insert_index
+                if 'infohash' in item:
+                    new_item_uid_map[item['infohash']] = insert_index
+            self.beginResetModel()
+            self.data_items = new_data_items
+            self.item_uid_map = new_item_uid_map
+            self.endResetModel()
+            return
+
         # Else if remote items, to make space for new unique items shift the existing items
         if on_top and insert_index > 0:
             new_items_map = {}
@@ -224,11 +242,6 @@ class RemoteTableModel(QAbstractTableModel):
             self.beginInsertRows(QModelIndex(), len(self.data_items), len(self.data_items) + len(unique_new_items) - 1)
             self.data_items.extend(unique_new_items)
         self.endInsertRows()
-
-        if self.all_local_entries_loaded:
-            remote_items = self.remote_items
-            self.remote_items = []
-            self.add_items(remote_items, remote=True)  # to filter non-unique entries
 
     def remove_items(self, items):
         uids_to_remove = []
@@ -321,7 +334,7 @@ class RemoteTableModel(QAbstractTableModel):
             if not remote:
                 if "total" in response:
                     self.local_total = response["total"]
-                    self.channel_info["total"] = self.local_total + len(self.remote_items)
+                    self.channel_info["total"] = self.local_total
             elif self.channel_info.get("total"):
                 self.channel_info["total"] += len(response["results"])
 
@@ -565,9 +578,23 @@ class ChannelPreviewModel(ChannelContentModel):
 
 
 class SearchResultsModel(ChannelContentModel):
-    def __init__(self,**kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, original_query, **kwargs):
+        self.original_query = original_query
+        self.remote_results = {}
+        title = self.format_title()
+        super().__init__(channel_info={"name": title}, **kwargs)
+        self.remote_results_received = False
+        self.postponed_remote_results = []
         self.group_by_name = True
+        self.sort_by_rank = True
+
+    def format_title(self):
+        q = self.original_query
+        q = q if len(q) < 50 else q[:50] + '...'
+        title = f'Search results for {q}'
+        if self.remote_results:
+            title += f' (click to add {len(self.remote_results)} remote results)'
+        return title
 
     def perform_initial_query(self):
         return self.perform_query(first=1, last=200)
@@ -575,6 +602,29 @@ class SearchResultsModel(ChannelContentModel):
     @property
     def all_local_entries_loaded(self):
         return self.loaded
+
+    def on_remote_results(self, results):
+        self.remote_results_received = True
+        if not self.all_local_entries_loaded:
+            self.postponed_remote_results.extend(results)
+            return
+
+        results = self.postponed_remote_results + results
+        self.postponed_remote_results = []
+        for item in results:
+            uid = get_item_uid(item)
+            if uid not in self.item_uid_map and uid not in self.remote_results:
+                self.remote_results[uid] = item
+
+    def show_remote_results(self):
+        if not self.all_local_entries_loaded:
+            return
+
+        remote_items = list(self.remote_results.values())
+        self.remote_results.clear()
+        self.remote_results_received = False
+        self.add_items(remote_items, remote=True)
+
 
 class PopularTorrentsModel(ChannelContentModel):
     columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.UPDATED)

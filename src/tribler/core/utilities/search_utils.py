@@ -4,6 +4,7 @@ Search utilities.
 Author(s): Jelle Roozenburg, Arno Bakker, Alexander Kozlovsky
 """
 import re
+import time
 from collections import deque
 from typing import Deque, List, Optional, Tuple
 
@@ -31,6 +32,14 @@ def split_into_keywords(string, to_filter_stopwords=False):
 
 def filter_keywords(keywords):
     return [kw for kw in keywords if len(kw) > 0 and kw not in DIALOG_STOPWORDS]
+
+
+def item_rank(query: str, item: dict):
+    title = item['name']
+    seeders = item.get('num_seeders', 0)
+    leechers = item.get('num_leechers', 0)
+    freshness = time.time() - item.get('updated', 0)
+    return torrent_rank(query, title, seeders + leechers * 0.1, freshness)
 
 
 def torrent_rank(query: str, title: str, seeders: int = 0, freshness: Optional[float] = 0) -> float:
