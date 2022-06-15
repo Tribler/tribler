@@ -22,6 +22,7 @@ export RESOURCES=build/mac/resources
 python3 -m venv build-env
 . ./build-env/bin/activate
 python3 -m pip install --upgrade pip
+python3 -m pip install PyInstaller==4.2 --no-use-pep517
 python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Build
