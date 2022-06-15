@@ -258,6 +258,9 @@ class RemoteTableModel(QAbstractTableModel):
 
         self.info_changed.emit(items)
 
+    def perform_initial_query(self):
+        self.perform_query()
+
     def perform_query(self, **kwargs):
         """
         Fetch results for a given query.
@@ -316,8 +319,8 @@ class RemoteTableModel(QAbstractTableModel):
             if update_labels:
                 self.info_changed.emit(response['results'])
 
-        self.query_complete.emit()
         self.loaded = True
+        self.query_complete.emit()
         return True
 
 
@@ -360,7 +363,7 @@ class ChannelContentModel(RemoteTableModel):
         self.endpoint_url_override = endpoint_url
 
         # Load the initial batch of entries
-        self.perform_query()
+        self.perform_initial_query()
 
     @property
     def edit_enabled(self):
@@ -548,8 +551,12 @@ class ChannelPreviewModel(ChannelContentModel):
 
 
 class SearchResultsModel(ChannelContentModel):
-    pass
+    def perform_initial_query(self):
+        return self.perform_query(first=1, last=200)
 
+    @property
+    def all_local_entries_loaded(self):
+        return self.loaded
 
 class PopularTorrentsModel(ChannelContentModel):
     columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.UPDATED)
