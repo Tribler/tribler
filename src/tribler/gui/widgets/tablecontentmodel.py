@@ -108,6 +108,8 @@ class RemoteTableModel(QAbstractTableModel):
         self.saved_scroll_state = None
         self.qt_object_destroyed = False
 
+        self.group_by_name = False
+
         connect(self.destroyed, self.on_destroy)
         # Every remote query must be attributed to its specific model to avoid updating wrong models
         # on receiving a result. We achieve this by maintaining a set of in-flight remote queries.
@@ -177,14 +179,26 @@ class RemoteTableModel(QAbstractTableModel):
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
         insert_index = 0 if on_top else len(self.data_items)
         unique_new_items = []
+        name_mapping = {item['name']: item for item in self.data_items} if self.group_by_name else {}
         for item in new_items:
             item_uid = get_item_uid(item)
             if item_uid not in self.item_uid_map:
-                self.item_uid_map[item_uid] = insert_index
-                if 'infohash' in item:
-                    self.item_uid_map[item['infohash']] = insert_index
-                unique_new_items.append(item)
-                insert_index += 1
+
+                prev_item = name_mapping.get(item['name'])
+                if self.group_by_name and prev_item is not None and not on_top:
+                    group = prev_item.setdefault('group', {})
+                    if item_uid not in group:
+                        group[item_uid] = item
+                else:
+                    self.item_uid_map[item_uid] = insert_index
+                    if 'infohash' in item:
+                        self.item_uid_map[item['infohash']] = insert_index
+                    unique_new_items.append(item)
+
+                    if self.group_by_name and item['type'] == REGULAR_TORRENT and prev_item is None:
+                        name_mapping[item['name']] = item
+
+                    insert_index += 1
 
         # If no new items are found, skip
         if not unique_new_items:
@@ -551,6 +565,10 @@ class ChannelPreviewModel(ChannelContentModel):
 
 
 class SearchResultsModel(ChannelContentModel):
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.group_by_name = True
+
     def perform_initial_query(self):
         return self.perform_query(first=1, last=200)
 

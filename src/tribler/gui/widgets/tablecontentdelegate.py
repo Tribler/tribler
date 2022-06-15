@@ -372,9 +372,13 @@ class TagsMixin:
     edit_tags_icon = QIcon(get_image_path("edit_white.png"))
     edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
 
-    def draw_title_and_tags(
-            self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
-    ) -> None:
+    def draw_title_and_tags(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex,
+                            data_item: Dict) -> None:
+        item_name = data_item["name"]
+        group = data_item.get("group")
+        if group:
+            plural = len(group) > 1
+            item_name += f"    (and {len(group)} similar item{'s' if plural else ''})"
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
         title_text_height = 60 if data_item["type"] == SNIPPET else 28
@@ -391,7 +395,7 @@ class TagsMixin:
         painter.drawText(
             QRectF(title_text_x, title_text_y, option.rect.width() - 6, title_text_height),
             Qt.AlignVCenter,
-            data_item["name"],
+            item_name,
         )
 
         if data_item["type"] == SNIPPET:
