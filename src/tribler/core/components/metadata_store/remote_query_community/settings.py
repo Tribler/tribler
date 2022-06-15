@@ -5,7 +5,7 @@ class RemoteQueryCommunitySettings(TriblerConfigSection):
     minimal_blob_size: int = 200
     maximum_payload_size: int = 1300
     max_entries: int = maximum_payload_size // minimal_blob_size
-    max_query_peers: int = 5
+    max_query_peers: int = 20
     max_response_size: int = 100  # Max number of entries returned by SQL query
     max_channel_query_back: int = 4  # Max number of entries to query back on receiving an unknown channel
     push_updates_back_enabled = True
