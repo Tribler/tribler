@@ -133,7 +133,7 @@ class ChannelsMenuListWidget(QListWidget):
 
         self.items_set = frozenset(entry_to_tuple(channel_info) for channel_info in channels)
 
-    def load_channels(self, request=None):
+    def load_channels(self):
         TriblerNetworkRequest(self.base_url, self.on_query_results, url_params={"subscribed": True, "last": 1000})
 
     def reload_if_necessary(self, changed_entries):
