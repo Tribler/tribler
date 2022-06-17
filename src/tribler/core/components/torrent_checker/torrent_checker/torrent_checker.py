@@ -76,9 +76,9 @@ class TorrentChecker(TaskManager):
 
     async def initialize(self):
         self.register_task("tracker_check", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
-        self.register_task("torrent_check", self.check_local_torrents, interval=5)
+        self.register_task("torrent_check", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
         self.register_task("user_channel_torrent_check", self.check_torrents_in_user_channel,
-                           interval=5)
+                           interval=USER_CHANNEL_TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self):

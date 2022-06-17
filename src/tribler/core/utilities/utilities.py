@@ -280,7 +280,22 @@ def get_random_normal_variate(limit=100) -> int:
     Returns a random number based on normal distribution with mean set as zero.
     This favors the lower number to be selected more than the higher value numbers.
     """
+    if limit <= 1:
+        return 0
+
     while True:
         result = int(abs(random.normalvariate(0, limit / 3)))
         if result < limit:
             return result
+
+
+def get_random_normal_variate_list(size=1, limit=100) -> list:
+    """
+    Returns a list of random number based on normal distribution with mean set as zero.
+    """
+    random_list = []
+    while len(random_list) < size:
+        random_num = get_random_normal_variate(limit)
+        if random_num not in random_list:
+            random_list.append(random_num)
+    return random_list
