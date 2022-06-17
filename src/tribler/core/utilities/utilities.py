@@ -273,3 +273,14 @@ def show_system_popup(title, text):
         # non-obvious types of exceptions:
         # (SubprocessError, ImportError, win32api.error, FileNotFoundError)
         print(f'Error while showing a message box: {exception}')  # noqa: T001
+
+
+def get_random_normal_variate(limit=100) -> int:
+    """
+    Returns a random number based on normal distribution with mean set as zero.
+    This favors the lower number to be selected more than the higher value numbers.
+    """
+    while True:
+        result = int(abs(random.normalvariate(0, limit / 3)))
+        if result < limit:
+            return result
