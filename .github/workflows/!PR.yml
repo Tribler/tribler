@@ -39,4 +39,4 @@ jobs:
   win:
     uses: ./.github/workflows/build_windows.yml
     with:
-      upload: false
+      upload: true

@@ -86,7 +86,7 @@ jobs:
           wget -q https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x64.exe
           move vc_redist.x64.exe C:\build\vc_redist_140.exe
           copy C:\Windows\system32\libsodium.dll C:\build\
-          copy certificate.pfx C:\build\certs\
+          move certificate.pfx C:\build\certs\
 
       - name: Install NSIS plugins
         env:
@@ -109,15 +109,12 @@ jobs:
           7z x NSIS_Simple_Firewall_Plugin_Unicode_1.21.zip -oSFP
           move .\SFP\SimpleFC.dll "%NSIS_PLUGINS%\x86-unicode"
 
-
-
       - name: Run build script
         timeout-minutes: 10
         env:
           QT_QPA_PLATFORM: offscreen
           QT_ACCESSIBILITY: 1
           QT_IM_MODULE: ibus
-          SKIP_SIGNING_TRIBLER_BINARIES: 'yes please'
           LOG_LEVEL: INFO
         shell: cmd
         run: |
