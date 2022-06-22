@@ -8,31 +8,35 @@ on:
       - ready_for_review
 
 jobs:
-  coverage:
-    uses: ./.github/workflows/coverage.yml
-    with:
-      python-version: 3.8
+  #  coverage:
+  #    uses: ./.github/workflows/coverage.yml
+  #    with:
+  #      python-version: 3.8
+  #
+  #  pytest:
+  #    uses: ./.github/workflows/pytest.yml
+  #    with:
+  #      python-version: 3.8
+  #
+  #  guitest:
+  #    uses: ./.github/workflows/guitest.yml
+  #    with:
+  #      python-version: 3.8
+  #
+  #  documentation:
+  #    if: github.event.pull_request.draft == false
+  #    uses: ./.github/workflows/documentation.yml
+  #    with:
+  #      python-version: 3.8
 
-  pytest:
-    uses: ./.github/workflows/pytest.yml
-    with:
-      python-version: 3.8
-
-  guitest:
-    uses: ./.github/workflows/guitest.yml
-    with:
-      python-version: 3.8
-
-  documentation:
-    if: github.event.pull_request.draft == false
-    uses: ./.github/workflows/documentation.yml
-    with:
-      python-version: 3.8
-
-  ubuntu:
-    if: github.event.pull_request.draft == false
-    uses: ./.github/workflows/build_ubuntu.yml
+  #  ubuntu:
+  #    if: github.event.pull_request.draft == false
+  #    uses: ./.github/workflows/build_ubuntu.yml
+  #    with:
+  #      upload: false
+  #      os: ubuntu-20.04
+  #      python-version: 3.8
+  win:
+    uses: ./.github/workflows/build_windows.yml
     with:
       upload: false
-      os: ubuntu-20.04
-      python-version: 3.8

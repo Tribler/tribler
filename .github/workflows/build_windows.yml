@@ -70,7 +70,7 @@ jobs:
         run: |
           echo -n "${{ secrets.WINDOWS_CERTIFICATE }}" | base64 --decode > certificate.pfx
           test -f certificate.pfx || exit 1
-          
+
       - name: Prepare files
         env:
           SENTRY_URL: ${{secrets.SENTRY_URL}}
