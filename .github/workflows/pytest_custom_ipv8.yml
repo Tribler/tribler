@@ -1,0 +1,59 @@
+name: Run pytest with custom ipv8 version
+
+on:
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: Python version
+        default: '3.8'
+        type: string
+        required: true
+
+      ipv8-git-ref:
+        description: IPv8 Git Ref
+        default: 'master'
+        type: string
+        required: true
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        include:
+          - os: macos-latest
+            pytest-arguments: --timeout=300 --looptime
+          - os: windows-latest
+            pytest-arguments: --timeout=300
+          - os: ubuntu-latest
+            pytest-arguments: --timeout=60 --looptime
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{inputs.python-version}}
+
+      - name: Install pip dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Upgrade pyipv8 to the specified version
+        run: |
+          python -m pip install --upgrade pyipv8@git+https://github.com/Tribler/py-ipv8.git@${{inputs.ipv8-git-ref}}
+          python -m pip show pyipv8
+
+      - name: Install windows dependencies
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/windows_dependencies
+
+      - name: Run Pytest
+        run: |
+          pytest ./src/tribler/core ${{matrix.pytest-arguments}}
+
+      - name: Run Tunnels Tests
+        run: |
+          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests ${{matrix.pytest-arguments}}
