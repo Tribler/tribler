@@ -12,8 +12,6 @@ from tribler.core.utilities.osutils import (
     is_android,
 )
 
-from tribler.core.check_os import is_tribler_process
-
 
 def test_fix_filebasename():
     default_name = '_'
@@ -126,15 +124,3 @@ def test_dir_copy(tmpdir):
     dir_copy(src_dir, dest_dir2, merge_if_exists=True)
     assert len(os.listdir(src_dir)) == len(os.listdir(dest_dir2))
     assert Path(dest_dir2, dummy_file).read_text() == "source: hello world"
-
-
-def test_is_tribler_process():
-    assert is_tribler_process('python.exe')
-    assert is_tribler_process('run_tribler.py')
-    assert is_tribler_process('usr/bin/python')
-    assert is_tribler_process('usr/bin/tribler')
-    assert is_tribler_process('Tribler.exe')
-    assert is_tribler_process('Tribler.sh')
-    assert is_tribler_process('Contents/MacOS/tribler')
-
-    assert not is_tribler_process('any other string')

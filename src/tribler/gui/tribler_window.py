@@ -46,7 +46,6 @@ from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.network_utils import default_network_utils
-from tribler.core.utilities.process_checker import ProcessChecker
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     MAGNET_SCHEME,
@@ -1190,14 +1189,12 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        process_checker = ProcessChecker(self.root_state_dir)
-        if process_checker.already_running:
-            core_pid = process_checker.get_pid_from_lock_file()
-            try:
-                os.kill(int(core_pid), 9)
-            except OSError:  # The core process can exit before the GUI process attempts to kill it
-                pass
-        # Stop the Qt application
+        pid = self.core_manager.core_process.pid()
+        try:
+            os.kill(pid, 9)
+        except OSError:
+            pass
+
         self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):
