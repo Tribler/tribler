@@ -22,6 +22,7 @@ jobs:
           requirements: requirements-test.txt
 
       - name: Run Pytest with Coverage
+        timeout-minutes: 7
         run: |
           coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core --looptime
           coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --looptime

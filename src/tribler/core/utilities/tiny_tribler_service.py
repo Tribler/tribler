@@ -2,7 +2,7 @@ import asyncio
 import logging
 import signal
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from tribler.core.components.base import Component
 from tribler.core.start_core import Session
@@ -20,7 +20,7 @@ class TinyTriblerService:
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
-        self.process_checker = None
+        self.process_checker: Optional[ProcessChecker] = None
         self.working_dir = working_dir
         self.config = config
         self.timeout_in_sec = timeout_in_sec
@@ -57,9 +57,8 @@ class TinyTriblerService:
 
         root_state_dir = get_root_state_directory()
         self.process_checker = ProcessChecker(root_state_dir)
-        if self.process_checker.already_running:
-            self.logger.error(f"Another Tribler instance is already using directory: {self.working_dir}")
-            asyncio.get_running_loop().stop()
+        self.process_checker.check_and_restart_if_necessary()
+        self.process_checker.create_lock()
 
     def _enable_graceful_shutdown(self):
         self.logger.info("Enabling graceful shutdown")
@@ -73,6 +72,9 @@ class TinyTriblerService:
 
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
+
+        if self.process_checker:
+            self.process_checker.remove_lock()
 
         task = asyncio.create_task(self.session.shutdown())
         task.add_done_callback(lambda result: asyncio.get_running_loop().stop())
