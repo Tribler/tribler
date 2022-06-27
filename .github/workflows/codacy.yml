@@ -2,7 +2,9 @@ name: Codacy Security Scan
 
 on:
   workflow_call:
-
+    secrets:
+      CODACY_PROJECT_TOKEN:
+        required: true
 jobs:
   analyse:
     runs-on: ubuntu-latest

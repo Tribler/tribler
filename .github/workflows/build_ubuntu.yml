@@ -17,6 +17,9 @@ on:
         default: false
         type: boolean
         required: false
+    secrets:
+      SENTRY_URL:
+        required: false
 
   workflow_dispatch:
     inputs:

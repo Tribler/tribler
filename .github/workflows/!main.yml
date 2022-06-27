@@ -8,16 +8,30 @@ on:
 jobs:
   docker:
     uses: ./.github/workflows/docker-image.yml
+    secrets:
+      DOCKER_USER: ${{ secrets.DOCKER_USER }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   codacy:
     uses: ./.github/workflows/codacy.yml
+    secrets:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
 
   coverage:
     uses: ./.github/workflows/coverage.yml
     with:
       python-version: 3.8
+    secrets:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
 
   pytest:
     uses: ./.github/workflows/pytest.yml
     with:
       python-version: 3.8
+
+  ubuntu:
+    uses: ./.github/workflows/build_ubuntu.yml
+    with:
+      python-version: 3.8
+    secrets:
+      SENTRY_URL: ${{ secrets.SENTRY_URL }}
