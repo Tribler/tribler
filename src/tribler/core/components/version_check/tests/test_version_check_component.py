@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.base import Session
+from tribler.core.components.session import Session
 from tribler.core.components.version_check.version_check_component import VersionCheckComponent
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.base import Session
+from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 
 
