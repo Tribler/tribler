@@ -7,6 +7,9 @@ on:
         default: 3.8
         type: string
         required: false
+    secrets:
+      CODACY_PROJECT_TOKEN:
+        required: false
 
 jobs:
   generate_and_upload:
