@@ -10,8 +10,8 @@ from tribler.core.components.key.key_component import KeyComponent
 
 async def test_bandwidth_accounting_component(tribler_config):
     components = [KeyComponent(), Ipv8Component(), BandwidthAccountingComponent()]
-    async with Session(tribler_config, components).start():
-        comp = BandwidthAccountingComponent.instance()
+    async with Session(tribler_config, components) as session:
+        comp = session.get_instance(BandwidthAccountingComponent)
         assert comp.started_event.is_set() and not comp.failed
         assert comp.community
         assert comp._ipv8_component

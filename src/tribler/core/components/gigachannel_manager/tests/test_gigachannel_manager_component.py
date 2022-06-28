@@ -15,7 +15,7 @@ from tribler.core.components.tag.tag_component import TagComponent
 async def test_gigachannel_manager_component(tribler_config):
     components = [Ipv8Component(), TagComponent(), SocksServersComponent(), KeyComponent(), MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]
-    async with Session(tribler_config, components).start():
-        comp = GigachannelManagerComponent.instance()
+    async with Session(tribler_config, components) as session:
+        comp = session.get_instance(GigachannelManagerComponent)
         assert comp.started_event.is_set() and not comp.failed
         assert comp.gigachannel_manager

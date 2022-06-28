@@ -13,7 +13,6 @@ from tribler.core.check_os import (
 )
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.base import Component
-from tribler.core.components.session import Session
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -26,6 +25,7 @@ from tribler.core.components.reporter.exception_handler import default_core_exce
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler.core.components.tag.tag_component import TagComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
@@ -91,14 +91,17 @@ def components_gen(config: TriblerConfig):
 
 
 async def core_session(config: TriblerConfig, components: List[Component]):
+    logger.info('Start tribler core session...')
     session = Session(config, components, failfast=False)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
-    async with session.start() as session:
+    async with session:
         # If there is a config error, report to the user via GUI notifier
         if config.error:
+            logger.warning(f'Config error: {config.error}')
             session.notifier[notifications.report_config_error](config.error)
 
         # SHUTDOWN
+        logger.warning(f'Waiting for the shutdown...')
         await session.shutdown_event.wait()
 
         if not config.gui_test_mode:

@@ -11,7 +11,7 @@ from tribler.core.components.tag.tag_component import TagComponent
 
 async def test_metadata_store_component(tribler_config):
     components = [TagComponent(), Ipv8Component(), KeyComponent(), MetadataStoreComponent()]
-    async with Session(tribler_config, components).start():
-        comp = MetadataStoreComponent.instance()
+    async with Session(tribler_config, components) as session:
+        comp = session.get_instance(MetadataStoreComponent)
         assert comp.started_event.is_set() and not comp.failed
         assert comp.mds

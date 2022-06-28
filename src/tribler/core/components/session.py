@@ -5,14 +5,16 @@ import os
 import sys
 from asyncio import Event, create_task, gather, get_event_loop
 from contextlib import asynccontextmanager
-from itertools import count
+from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar
 
-from tribler.core.components.base import Component, ComponentError, create_state_directory_structure, reserve_ports
+from tribler.core.components.base import Component, ComponentError
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 
 class SessionError(Exception):
@@ -31,7 +33,7 @@ async def session_manager(session: Session):
     Example of use:
         ...
         async with Session(config, components).start():
-            print(session.current())
+            print(session)
         ...
     """
     with session:  # set the current session as a default session
@@ -43,15 +45,11 @@ async def session_manager(session: Session):
 
 
 class Session:
-    _next_session_id = count(1)
-    _default: Optional[Session] = None
-    _stack: List[Session] = []
     _startup_exception: Optional[Exception] = None
 
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
-        self.id = next(Session._next_session_id)
         self.failfast = failfast
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
@@ -68,35 +66,21 @@ class Session:
                        config.api.https_port,
                        config.ipv8.port])
 
-    def __repr__(self):
-        return f'<{self.__class__.__name__}:{self.id}>'
+    async def __aenter__(self):
+        await self.start_components()
+        return self
 
-    @staticmethod
-    def _get_default_session() -> Session:
-        if Session._default is None:
-            raise SessionError("Default session was not set")
-        return Session._default
+    async def __aexit__(self, *_):
+        await self.shutdown()
 
-    def set_as_default(self):
-        Session._default = self
+    def get_instance(self, comp_cls: Type[T]) -> Optional[T]:
+        return self.components.get(comp_cls)
 
-    @staticmethod
-    def unset_default_session():
-        Session._default = None
-
-    @staticmethod
-    def current() -> Session:
-        if Session._stack:
-            return Session._stack[-1]
-        return Session._get_default_session()
-
-    def register(self, comp_cls: Type[Component], comp: Component):
-        if comp.session is not None:
-            raise ComponentError(f'Component {comp.__class__.__name__} is already registered in session {comp.session}')
+    def register(self, comp_cls: Type[Component], component: Component):
         if comp_cls in self.components:
             raise ComponentError(f'Component class {comp_cls.__name__} is already registered in session {self}')
-        self.components[comp_cls] = comp
-        comp.session = self
+        self.components[comp_cls] = component
+        component.session = self
 
     async def start_components(self):
         self.logger.info("Session is using state directory: %s", self.config.state_dir)
@@ -111,20 +95,6 @@ class Session:
         await gather(*coros, return_exceptions=not self.failfast)
         if self._startup_exception:
             self._reraise_startup_exception_in_separate_task()
-
-    def start(self):
-        """ This method returns session manager that will:
-        1. Set the current session as a default on the enter the block nested in the with statement
-        2. Call `await session._start() on the enter the block nested in the with statement
-        3. Call `await session.shutdown() on the leave the block nested in the with statement
-
-        Example of use:
-            ...
-            async with Session(tribler_config, components).start():
-                # do work with the components
-            ...
-        """
-        return session_manager(self)
 
     def _reraise_startup_exception_in_separate_task(self):
         async def exception_reraiser():
@@ -142,12 +112,18 @@ class Session:
         await gather(*[create_task(component.stop()) for component in self.components.values()])
         self.logger.info("All components are stopped")
 
-    def __enter__(self):
-        Session._stack.append(self)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        assert Session._stack and Session._stack[-1] is self
-        Session._stack.pop()
-
 
 T = TypeVar('T', bound='Component')
+
+
+def create_state_directory_structure(state_dir: Path):
+    """Create directory structure of the state directory."""
+    state_dir.mkdir(exist_ok=True)
+    (state_dir / STATEDIR_DB_DIR).mkdir(exist_ok=True)
+    (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
+
+
+def reserve_ports(ports_list: List[None, int]):
+    for port in ports_list:
+        if port is not None:
+            default_network_utils.remember(port)

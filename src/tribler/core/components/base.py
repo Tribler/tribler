@@ -3,12 +3,10 @@ from __future__ import annotations
 import logging
 import sys
 from asyncio import Event
-from pathlib import Path
-from typing import List, Optional, Set, Type, Union
+from typing import Optional, Set, TYPE_CHECKING, Type, Union
 
-from tribler.core.components.session import Session, T
-from tribler.core.utilities.network_utils import default_network_utils
-from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+if TYPE_CHECKING:
+    from tribler.core.components.session import Session, T
 
 
 class ComponentError(Exception):
@@ -28,19 +26,6 @@ class MissedDependency(ComponentError):
         super().__init__(msg)
         self.component = component
         self.dependency = dependency
-
-
-def create_state_directory_structure(state_dir: Path):
-    """Create directory structure of the state directory."""
-    state_dir.mkdir(exist_ok=True)
-    (state_dir / STATEDIR_DB_DIR).mkdir(exist_ok=True)
-    (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
-
-
-def reserve_ports(ports_list: List[None, int]):
-    for port in ports_list:
-        if port is not None:
-            default_network_utils.remember(port)
 
 
 class NoneComponent:
@@ -63,11 +48,6 @@ class Component:
         self.stopped = False
         # Every component starts unused, so it does not lock the whole system on shutdown
         self.unused_event.set()
-
-    @classmethod
-    def instance(cls: Type[T]) -> T:
-        session = Session.current()
-        return session.components.get(cls)
 
     async def start(self):
         self.logger.info(f'Start: {self.__class__.__name__}')
@@ -133,7 +113,7 @@ class Component:
         Returns:    The component instance.
                     In case of a missed or failed dependency None will be returned.
         """
-        dep = dependency.instance()
+        dep = self.session.get_instance(dependency)
         if not dep:
             return None
 
@@ -142,7 +122,7 @@ class Component:
             self.logger.warning(f'Component {self.__class__.__name__} has failed dependency {dependency.__name__}')
             return None
 
-        if dep not in self.dependencies:
+        if dep not in self.dependencies and dep is not self:
             self.dependencies.add(dep)
             dep._use_by(self)  # pylint: disable=protected-access
 
@@ -160,7 +140,7 @@ class Component:
         return await self.get_component(dependency) or NoneComponent()
 
     def release_component(self, dependency: Type[T]):
-        dep = dependency.instance()
+        dep = self.session.get_instance(dependency)
         if dep:
             self._release_instance(dep)
 

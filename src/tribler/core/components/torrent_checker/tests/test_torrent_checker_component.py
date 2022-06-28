@@ -14,7 +14,7 @@ from tribler.core.components.torrent_checker.torrent_checker_component import To
 async def test_torrent_checker_component(tribler_config):
     components = [SocksServersComponent(), LibtorrentComponent(), KeyComponent(),
                   Ipv8Component(), TagComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]
-    async with Session(tribler_config, components).start():
-        comp = TorrentCheckerComponent.instance()
+    async with Session(tribler_config, components) as session:
+        comp = session.get_instance(TorrentCheckerComponent)
         assert comp.started_event.is_set() and not comp.failed
         assert comp.torrent_checker

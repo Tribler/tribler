@@ -5,8 +5,8 @@ from tribler.core.components.key.key_component import KeyComponent
 
 
 async def test_masterkey_component(tribler_config):
-    async with Session(tribler_config, [KeyComponent()]).start():
-        comp = KeyComponent.instance()
+    async with Session(tribler_config, [KeyComponent()]) as session:
+        comp = session.get_instance(KeyComponent)
         assert comp.primary_key
 
 

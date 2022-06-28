@@ -47,7 +47,6 @@ class TinyTriblerService:
     async def _start_session(self):
         self.logger.info(f"Starting Tribler session with config: {self.config}")
         self.session = Session(self.config, self.components)
-        self.session.set_as_default()
         await self.session.start_components()
 
         self.logger.info("Tribler session started")

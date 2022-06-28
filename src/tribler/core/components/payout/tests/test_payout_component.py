@@ -11,7 +11,7 @@ from tribler.core.components.payout.payout_component import PayoutComponent
 @pytest.mark.no_parallel
 async def test_payout_component(tribler_config):
     components = [BandwidthAccountingComponent(), KeyComponent(), Ipv8Component(), PayoutComponent()]
-    async with Session(tribler_config, components).start():
-        comp = PayoutComponent.instance()
+    async with Session(tribler_config, components) as session:
+        comp = session.get_instance(PayoutComponent)
         assert comp.started_event.is_set() and not comp.failed
         assert comp.payout_manager
