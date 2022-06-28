@@ -34,7 +34,7 @@ def checker(tmp_path):
 
 
 def idle():
-    sleep(100)
+    sleep(1)
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def process():
     process = Process(target=idle)
     process.start()
     yield psutil.Process(process.pid)
-    process.terminate()
+    process.kill()
 
 
 def test_get_pid_lock_file(checker: ProcessChecker):
