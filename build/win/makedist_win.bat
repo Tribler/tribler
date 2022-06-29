@@ -91,3 +91,6 @@ REM Arno: Sign installer
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (
     signtool.exe sign /f c:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
 )
+
+REM to neglect error code from the previous command we do exit 0
+exit 0
