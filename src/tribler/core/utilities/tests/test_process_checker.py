@@ -144,6 +144,7 @@ def test_contextmanager(tmp_path):
     assert checker.remove_lock.called
 
 
+@patch.object(ProcessChecker, '_close_process', Mock())
 @patch.object(ProcessChecker, '_restart_tribler', Mock())
 @patch.object(ProcessChecker, '_ask_to_restart', Mock())
 @patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'tribler'}))
@@ -154,14 +155,17 @@ def test_check(checker: ProcessChecker, process: psutil.Process):
     assert not checker.check_and_restart_if_necessary()
     assert not checker._restart_tribler.called
     assert not checker._ask_to_restart.called
+    assert not checker._close_process.called
 
     checker.create_lock(process.pid)
 
     assert checker.check_and_restart_if_necessary()
     assert checker._ask_to_restart.called
     assert not checker._restart_tribler.called
+    assert not checker._close_process.called
 
 
+@patch.object(ProcessChecker, '_close_process', Mock())
 @patch.object(ProcessChecker, '_restart_tribler', Mock())
 @patch.object(ProcessChecker, '_ask_to_restart', Mock())
 @patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'tribler'}))
@@ -173,12 +177,14 @@ def test_check_zombie(checker: ProcessChecker, process: psutil.Process):
     assert not checker.check_and_restart_if_necessary()
     assert not checker._restart_tribler.called
     assert not checker._ask_to_restart.called
+    assert not checker._close_process.called
 
     checker.create_lock(process.pid)
 
     assert checker.check_and_restart_if_necessary()
     assert not checker._ask_to_restart.called
     assert checker._restart_tribler.called
+    assert checker._close_process.called
 
 
 @patch.object(psutil.Process, 'status', Mock(side_effect=psutil.Error))
