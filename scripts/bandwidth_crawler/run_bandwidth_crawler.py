@@ -12,7 +12,7 @@ from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.start_core import Session
+from tribler.core.components.session import Session
 
 
 class PortAction(argparse.Action):

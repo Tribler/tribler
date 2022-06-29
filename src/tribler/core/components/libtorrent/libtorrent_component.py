@@ -1,4 +1,4 @@
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent

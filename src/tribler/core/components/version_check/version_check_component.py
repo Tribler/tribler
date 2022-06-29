@@ -1,4 +1,4 @@
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.version_check.versioncheck_manager import VersionCheckManager
 

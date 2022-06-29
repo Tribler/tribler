@@ -1,4 +1,4 @@
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.watch_folder.watch_folder import WatchFolder
 

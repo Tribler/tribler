@@ -1,6 +1,6 @@
 from typing import List
 
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.socks_servers.socks5.server import Socks5Server
 from tribler.core.utilities.network_utils import default_network_utils

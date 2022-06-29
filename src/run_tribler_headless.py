@@ -12,7 +12,7 @@ from datetime import date
 from socket import inet_aton
 
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.start_core import Session
+from tribler.core.components.session import Session
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.process_checker import ProcessChecker
