@@ -1,0 +1,45 @@
+name: Coverage
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+    secrets:
+      CODACY_PROJECT_TOKEN:
+        required: false
+
+jobs:
+  generate_and_upload:
+    name: generate and upload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{inputs.python-version}}
+          requirements: requirements-test.txt
+
+      - name: Run Pytest with Coverage
+        timeout-minutes: 10
+        run: |
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core --looptime
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --looptime
+          coverage combine
+          coverage xml
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+
+      - name: Upload to Codacy
+        if: github.event_name == 'push'
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: ./coverage.xml

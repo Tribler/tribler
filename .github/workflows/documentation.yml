@@ -1,0 +1,26 @@
+name: Documentation
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{inputs.python-version}}
+          requirements: ./doc/requirements.txt
+
+      - name: Build documentation
+        run: |
+          python -m sphinx -T -E -b html -d _build/doctrees -D language=en ./doc _build/html
+
