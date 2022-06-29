@@ -2,7 +2,7 @@ from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent

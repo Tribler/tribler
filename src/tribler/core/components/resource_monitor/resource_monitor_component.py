@@ -1,4 +1,4 @@
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.resource_monitor.implementation.core import CoreResourceMonitor
 
 

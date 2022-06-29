@@ -4,11 +4,10 @@ import logging
 import os
 import sys
 from asyncio import Event, create_task, gather, get_event_loop
-from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar
 
-from tribler.core.components.base import Component, ComponentError
+from tribler.core.components.component import Component, ComponentError
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
@@ -19,29 +18,6 @@ from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB
 
 class SessionError(Exception):
     pass
-
-
-@asynccontextmanager
-async def session_manager(session: Session):
-    """ Session context manager automates routine operations on session object.
-
-    In simple terms, it does the following things:
-    1. Set the current session as a default session
-    2. Call await session.start_components()
-    2. Call await session.shutdown()
-
-    Example of use:
-        ...
-        async with Session(config, components).start():
-            print(session)
-        ...
-    """
-    with session:  # set the current session as a default session
-        try:
-            await session.start_components()  # on enter
-            yield session
-        finally:
-            await session.shutdown()  # on leave
 
 
 class Session:

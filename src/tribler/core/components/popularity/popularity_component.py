@@ -1,6 +1,6 @@
 from ipv8.peerdiscovery.network import Network
 
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent

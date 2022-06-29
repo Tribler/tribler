@@ -53,7 +53,7 @@ class Component:
         self.logger.info(f'Start: {self.__class__.__name__}')
         try:
             await self.run()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             # Writing to stderr is for the case when logger is not configured properly (as my happen in local tests,
             # for example) to avoid silent suppression of the important exceptions
             sys.stderr.write(f'\nException in {self.__class__.__name__}.start(): {type(e).__name__}:{e}\n')
@@ -77,7 +77,7 @@ class Component:
         self.logger.info(f"Component {component_name} free, shutting down")
         try:
             await self.shutdown()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             self.logger.exception(f"Exception in {self.__class__.__name__}.shutdown(): {type(e).__name__}:{e}")
             raise
         finally:

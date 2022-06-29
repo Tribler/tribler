@@ -12,7 +12,7 @@ from tribler.core.check_os import (
     set_process_priority,
 )
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -101,7 +101,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
             session.notifier[notifications.report_config_error](config.error)
 
         # SHUTDOWN
-        logger.warning(f'Waiting for the shutdown...')
+        logger.warning('Waiting for the shutdown...')
         await session.shutdown_event.wait()
 
         if not config.gui_test_mode:

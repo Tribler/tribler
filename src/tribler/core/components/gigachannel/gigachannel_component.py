@@ -1,6 +1,6 @@
 from ipv8.peerdiscovery.network import Network
 
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.gigachannel.community.gigachannel_community import (
     GigaChannelCommunity,
     GigaChannelTestnetCommunity,

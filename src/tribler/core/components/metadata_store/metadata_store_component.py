@@ -1,5 +1,5 @@
 from tribler.core import notifications
-from tribler.core.components.base import Component
+from tribler.core.components.component import Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor

@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.base import Component, MissedDependency, NoneComponent
+from tribler.core.components.component import Component, MissedDependency, NoneComponent
 from tribler.core.components.session import Session
 
 
