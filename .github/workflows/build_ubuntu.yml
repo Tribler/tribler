@@ -1,0 +1,91 @@
+name: Ubuntu
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        default: ubuntu-latest
+        type: string
+        required: false
+
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+      upload:
+        default: false
+        type: boolean
+        required: false
+    secrets:
+      SENTRY_URL:
+        required: false
+
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Environment
+        default: ubuntu-latest
+        type: string
+        required: true
+
+      python-version:
+        description: Python version
+        default: '3.8'
+        type: string
+        required: true
+
+      upload:
+        description: Upload
+        default: true
+        type: boolean
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{ github.event.inputs.os || inputs.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{github.event.pull_request.head.sha}}
+
+      - name: Create python environment
+        id: pyenv
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
+          requirements: requirements-build.txt
+
+      - name: Save Git info
+        run: |
+          git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
+          git rev-parse HEAD > .TriblerCommit
+          echo "TRIBLER_VERSION=$(head -n 1 .TriblerVersion)" >> $GITHUB_ENV
+
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install debhelper devscripts
+          # for qt:
+          sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5
+
+      - name: Run build script
+        timeout-minutes: 10
+        env:
+          SENTRY_URL: ${{secrets.SENTRY_URL}}
+          QT_QPA_PLATFORM: offscreen
+          QT_ACCESSIBILITY: 1
+          QT_IM_MODULE: ibus
+          VENV: ${{steps.pyenv.outputs.virtualenv-directory}}
+          LOG_LEVEL: INFO
+        run: |
+          ./build/debian/makedist_debian.sh
+
+      - name: Upload Artifact
+        if: github.event.inputs.upload || inputs.upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: tribler.deb
+          path: ./build/debian/tribler_${{env.TRIBLER_VERSION}}_all.deb
+          retention-days: 1

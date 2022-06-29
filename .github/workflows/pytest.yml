@@ -1,0 +1,44 @@
+name: Pytest
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        include:
+          - os: macos-latest
+            pytest-arguments: --timeout=300 --looptime
+          - os: windows-latest
+            pytest-arguments: --timeout=300
+          - os: ubuntu-latest
+            pytest-arguments: --timeout=60 --looptime
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{inputs.python-version}}
+          requirements: requirements-test.txt
+
+      - name: Install windows dependencies
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/windows_dependencies
+
+      - name: Run Pytest
+        run: |
+          pytest ./src/tribler/core ${{matrix.pytest-arguments}}
+
+      - name: Run Tunnels Tests
+        run: |
+          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests ${{matrix.pytest-arguments}}

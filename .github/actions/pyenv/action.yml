@@ -1,0 +1,49 @@
+name: pyenv
+description: Setup python and install required dependencies to venv with cache
+inputs:
+  python-version:
+    default: '3.8'
+    description: 'Python version'
+    required: false
+
+  requirements:
+    default: 'requirements.txt'
+    description: 'The path to requirements.txt file'
+    required: false
+
+  invalidate-cache:
+    default: 'false'
+    description: 'Force create a virtualenv'
+    required: false
+
+outputs:
+  virtualenv-directory:
+    description: 'The path to the restored or created virtualenv'
+    value: ${{steps.cache-virtualenv.outputs.virtualenv-directory}}
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-python@v3
+      with:
+        python-version: ${{inputs.python-version}}
+
+    - name: Restore virtual env
+      uses: drew2a/restore-virtualenv@v1.2.1
+      id: cache-virtualenv
+      with:
+        requirement_files: ${{inputs.requirements}}
+
+    - name: Invalidate cache
+      if: inputs.invalidate-cache == 'true'
+      shell: bash
+      run: |
+        rm -rf ${{steps.cache-virtualenv.outputs.virtualenv-directory}}
+        python -m venv ${{steps.cache-virtualenv.outputs.virtualenv-directory}}
+
+    - name: Install pip dependencies
+      if: steps.cache-virtualenv.outputs.cache-hit != 'true' || inputs.invalidate-cache == 'true'
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ${{inputs.requirements}}
