@@ -24,7 +24,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.tracker_utils import MalformedTrackerURLException
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import has_bep33_support, is_valid_url, get_random_normal_variate
+from tribler.core.utilities.utilities import has_bep33_support, is_valid_url, get_normally_distributed_positive_integer
 
 TRACKER_SELECTION_INTERVAL = 20  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
@@ -32,14 +32,7 @@ USER_CHANNEL_TORRENT_SELECTION_INTERVAL = 15  # The interval for checking the he
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
-
-# Constants for selecting random torrents to check
-TORRENT_SELECTION_POOL_SIZE = 100  # Total pool size selected from the database
-TORRENT_CHECKER_POOL_SIZE = 2  # Number of torrents that will actually be checked from the pool
-
-# Constants for selecting torrents from user channel to check
-USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 100  # Total pool size selected from the database
-USER_CHANNEL_TORRENT_CHECKER_POOL_SIZE = 5  # Number of torrents that will actually be checked from the pool
+USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
 
 HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
 TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
@@ -209,7 +202,7 @@ class TorrentChecker(TaskManager):
         """
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
         total_torrents = self.mds.TorrentState.select().count()
-        random_index = get_random_normal_variate(total_torrents)
+        random_index = self._select_randomly_likely_popular_torrent_index(total_torrents)
 
         random_popular_torrent = self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time)\
                                                       .order_by(lambda g: (desc(g.seeders), g.last_check))\
@@ -220,6 +213,18 @@ class TorrentChecker(TaskManager):
                                                   .fetch(limit=1, offset=random_index)[:]
 
         return random_popular_torrent + random_old_torrent
+
+    def _select_randomly_likely_popular_torrent_index(self, max_index):
+        """
+        Select randomly an index from normal distribution with mean zero.
+
+        This implies that low value index are more likely to be selected.
+        If the indices represent popularity of the torrents, it returns
+        more likely popular torrent index.
+        @param max_index: Max index
+        @return: A positive integer likely with low value
+        """
+        return get_normally_distributed_positive_integer(mean=0, limit=max_index)
 
     @db_session
     def check_local_torrents(self):

@@ -275,27 +275,31 @@ def show_system_popup(title, text):
         print(f'Error while showing a message box: {exception}')  # noqa: T001
 
 
-def get_random_normal_variate(limit=100) -> int:
+def get_normally_distributed_number(mean=0, limit=100) -> float:
     """
-    Returns a random number based on normal distribution with mean set as zero.
-    This favors the lower number to be selected more than the higher value numbers.
+    Returns a random floating point number based on normal distribution with default mean set as zero.
+    This favors the lower value numbers to be selected more than the higher value numbers.
     """
     if limit <= 1:
         return 0
 
     while True:
-        result = int(abs(random.normalvariate(0, limit / 3)))
-        if result < limit:
+        result = random.normalvariate(mean, limit / 3)
+        if abs(result) < limit:
             return result
+        return result
 
 
-def get_random_normal_variate_list(size=1, limit=100) -> list:
+def get_normally_distributed_positive_integers(size=1, limit=100) -> list:
     """
-    Returns a list of random number based on normal distribution with mean set as zero.
+    Returns a list of non-repeated integer numbers based on normal distribution with mean value zero.
     """
-    random_list = []
-    while len(random_list) < size:
-        random_num = get_random_normal_variate(limit)
-        if random_num not in random_list:
-            random_list.append(random_num)
-    return random_list
+    if size >= limit:
+        raise Exception("Cannot more numbers than the limit")
+
+    numbers = []
+    while len(numbers) < size:
+        number = abs(int(get_normally_distributed_number(mean=0, limit=limit)))
+        if number not in numbers:
+            numbers.append(number)
+    return numbers

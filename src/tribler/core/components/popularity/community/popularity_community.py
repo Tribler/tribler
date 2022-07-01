@@ -10,7 +10,7 @@ from tribler.core.components.metadata_store.remote_query_community.remote_query_
 from tribler.core.components.popularity.community.payload import TorrentsHealthPayload, PopularTorrentsRequest
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import get_random_normal_variate, get_random_normal_variate_list
+from tribler.core.utilities.utilities import get_normally_distributed_number, get_normally_distributed_positive_integers
 
 
 class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
@@ -104,11 +104,23 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
         num_torrents = len(checked_and_alive)
         num_torrents_to_send = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, num_torrents)
+        likely_popular_indices = self._get_likely_popular_indices(num_torrents_to_send, num_torrents)
 
         sorted_torrents = sorted(checked_and_alive, key=lambda t: -t[1])
-        likely_popular_indices = get_random_normal_variate_list(size=num_torrents_to_send, limit=num_torrents)
         likely_popular_torrents = {sorted_torrents[i] for i in likely_popular_indices}
         return likely_popular_torrents
+
+    def _get_likely_popular_indices(self, size, limit):
+        """
+        Returns a list of indices favoring the lower value numbers.
+
+        Assuming lower indices being more popular than higher value indices, the returned list
+        favors the lower indexed popular values.
+        @param size: Number of indices to return
+        @param limit: Max number of indices that can be returned.
+        @return: List of non-repeated positive indices.
+        """
+        return get_normally_distributed_positive_integers(size=size, limit=limit)
 
     def get_random_torrents(self):
         checked_and_alive = list(self.get_alive_checked_torrents())
