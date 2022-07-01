@@ -243,10 +243,12 @@ class TriblerUpgrader:
 
             self._logger.info(f'{version.current}->{version.next}')
 
-            add_column(db=mds._db, table_name='ChannelNode', column_name='tag_processor_version', column_type='INT')
-            add_column(db=tags.instance, table_name='TorrentTagOp', column_name='auto_generated', column_type='BOOLEAN')
+            if tags is not None:
+                add_column(db=tags.instance, table_name='TorrentTagOp', column_name='auto_generated',
+                           column_type='BOOLEAN')
+                tags.instance.commit()
 
-            tags.instance.commit()
+            add_column(db=mds._db, table_name='ChannelNode', column_name='tag_processor_version', column_type='INT')
             mds._db.commit()
             mds.set_value(key='db_version', value=version.next)
 
