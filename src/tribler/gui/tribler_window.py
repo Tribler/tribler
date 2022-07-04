@@ -85,6 +85,7 @@ from tribler.gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
+from tribler.gui.exceptions import TriblerGuiTestException
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.tribler_request_manager import (
@@ -240,10 +241,18 @@ class TriblerWindow(QMainWindow):
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         connect(self.debug_pane_shortcut.activated, self.clicked_debug_panel_button)
+
         self.import_torrent_shortcut = QShortcut(QKeySequence("Ctrl+o"), self)
         connect(self.import_torrent_shortcut.activated, self.on_add_torrent_browse_file)
+
         self.add_torrent_url_shortcut = QShortcut(QKeySequence("Ctrl+i"), self)
         connect(self.add_torrent_url_shortcut.activated, self.on_add_torrent_from_url)
+
+        self.tribler_gui_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+G"), self)
+        connect(self.tribler_gui_test_exception_shortcut.activated, self.on_test_tribler_gui_exception)
+
+        self.tribler_core_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+C"), self)
+        connect(self.tribler_core_test_exception_shortcut.activated, self.on_test_tribler_core_exception)
 
         connect(self.top_search_bar.clicked, self.clicked_search_bar)
         connect(self.top_search_bar.returnPressed, self.on_top_search_bar_return_pressed)
@@ -396,6 +405,15 @@ class TriblerWindow(QMainWindow):
             run_core=run_core,
             upgrade_manager=self.upgrade_manager,
         )
+
+    def on_test_tribler_gui_exception(self, *args):
+        raise TriblerGuiTestException("Tribler GUI Test Exception")
+
+    def on_test_tribler_core_exception(self, *args):
+        def dummy_callback(_):
+            pass
+
+        TriblerNetworkRequest("/debug/core_test_exception", dummy_callback, method='POST')
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
