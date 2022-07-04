@@ -34,3 +34,7 @@ class InvalidConfigException(TriblerException):
 
 class TrustGraphException(TriblerException):
     """Exception specific to Trust graph."""
+
+
+class TriblerCoreTestException(TriblerException):
+    """Can be intentionally generated in Core by pressing Ctrl+Alt+Shift+C"""

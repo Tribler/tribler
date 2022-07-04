@@ -251,6 +251,9 @@ class TriblerWindow(QMainWindow):
         self.tribler_gui_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+G"), self)
         connect(self.tribler_gui_test_exception_shortcut.activated, self.on_test_tribler_gui_exception)
 
+        self.tribler_core_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+C"), self)
+        connect(self.tribler_core_test_exception_shortcut.activated, self.on_test_tribler_core_exception)
+
         connect(self.top_search_bar.clicked, self.clicked_search_bar)
         connect(self.top_search_bar.returnPressed, self.on_top_search_bar_return_pressed)
 
@@ -405,6 +408,12 @@ class TriblerWindow(QMainWindow):
 
     def on_test_tribler_gui_exception(self, *args):
         raise TriblerGuiTestException("Tribler GUI Test Exception")
+
+    def on_test_tribler_core_exception(self, *args):
+        def dummy_callback(_):
+            pass
+
+        TriblerNetworkRequest("/debug/core_test_exception", dummy_callback, method='POST')
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
