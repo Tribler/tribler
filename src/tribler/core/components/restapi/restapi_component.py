@@ -43,6 +43,7 @@ from tribler.core.utilities.unicode import hexlify
 class RESTComponent(Component):
     rest_manager: RESTManager = None
     root_endpoint: RootEndpoint = None
+    swagger_doc_extraction_mode: bool = False
 
     _events_endpoint: EventsEndpoint
     _core_exception_handler: CoreExceptionHandler = default_core_exception_handler
@@ -51,12 +52,15 @@ class RESTComponent(Component):
         """ Add the corresponding endpoint to the path in case there are no `NoneComponent`
         in *args or **kwargs
         """
+        self.logger.info(f'Adding: "{path}"...')
         arguments_chain = chain(args, kwargs.values())
-        if any(isinstance(arg, NoneComponent) for arg in arguments_chain):
-            self.logger.info("Endpoint %s can't load component, skipping init", path)
+        need_to_skip = any(isinstance(arg, NoneComponent) for arg in arguments_chain)
+        if need_to_skip and not self.swagger_doc_extraction_mode:
+            self.logger.warning("Skipped")
             return
 
         self.root_endpoint.add_endpoint(path, endpoint_cls(*args, **kwargs))
+        self.logger.info("OK")
 
     async def run(self):
         await super().run()
@@ -69,7 +73,7 @@ class RESTComponent(Component):
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
         metadata_store_component = await self.maybe_component(MetadataStoreComponent)
 
-        key_component = await self.require_component(KeyComponent)
+        key_component = await self.maybe_component(KeyComponent)
         ipv8_component = await self.maybe_component(Ipv8Component)
         libtorrent_component = await self.maybe_component(LibtorrentComponent)
         resource_monitor_component = await self.maybe_component(ResourceMonitorComponent)
@@ -80,7 +84,8 @@ class RESTComponent(Component):
         torrent_checker_component = await self.maybe_component(TorrentCheckerComponent)
         gigachannel_manager_component = await self.maybe_component(GigachannelManagerComponent)
 
-        self._events_endpoint = EventsEndpoint(notifier, public_key=hexlify(key_component.primary_key.key.pk))
+        public_key = key_component.primary_key.key.pk if not isinstance(key_component, NoneComponent) else b''
+        self._events_endpoint = EventsEndpoint(notifier, public_key=hexlify(public_key))
         self.root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
         torrent_checker = None if config.gui_test_mode else torrent_checker_component.torrent_checker
@@ -117,7 +122,8 @@ class RESTComponent(Component):
 
         ipv8_root_endpoint = IPV8RootEndpoint()
         for _, endpoint in ipv8_root_endpoint.endpoints.items():
-            endpoint.initialize(ipv8_component.ipv8)
+            if not isinstance(ipv8_component, NoneComponent):
+                endpoint.initialize(ipv8_component.ipv8)
         self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
 
         # Note: AIOHTTP endpoints cannot be added after the app has been started!

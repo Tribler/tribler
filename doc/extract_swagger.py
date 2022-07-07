@@ -1,34 +1,43 @@
 import json
+import logging
 from asyncio import get_event_loop
 from io import StringIO
+from pathlib import Path
 from unittest.mock import Mock
 
 import aiohttp
-
 import yaml
 
-from tribler.core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+from tribler.core.components.reporter.reporter_component import ReporterComponent
+from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 
 
-async def extract_swagger(destination_fn):
-    config = TriblerConfig()
-    config.api.key = 'apikey'
-    config.api.http_enabled = False
-    config.api.https_enabled = False
+async def extract_swagger(destination):
+    logging.info(f'Extract swagger for "{destination}"')
+    config = TriblerConfig(state_dir=Path('.'))
+    config.api.http_enabled = True
+    config.api.http_port = 8080
 
-    root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
-    api_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=config.state_dir)
-    await api_manager.start()
+    rest_component = RESTComponent()
+    rest_component.swagger_doc_extraction_mode = True
 
-    fp = StringIO()
-    proto = aiohttp.web_protocol.RequestHandler(api_manager.runner._server, loop=get_event_loop())
-    proto.connection_made(Mock(is_closing=lambda: False, write=lambda b: fp.write(b.decode())))
-    proto.data_received(b'GET /docs/swagger.json HTTP/1.1\r\n'
-                        b'Connection: close\r\n\r\n')
-    await proto.start()
-    api_spec = json.loads(fp.getvalue().split('\r\n\r\n')[1])
+    async with Session(config, [ReporterComponent(), rest_component], failfast=False):
+        fp = StringIO()
+        proto = aiohttp.web_protocol.RequestHandler(rest_component.rest_manager.runner._server, loop=get_event_loop())
+        proto.connection_made(Mock(is_closing=lambda: False, write=lambda b: fp.write(b.decode())))
+        proto.data_received(b'GET /docs/swagger.json HTTP/1.1\r\n'
+                            b'Connection: close\r\n\r\n')
+        await proto.start()
+        logging.info('Proto has been started.')
+
+        response = fp.getvalue()
+        logging.info(f'Response size: {len(response)}')
+        logging.debug(f'Response content: {response}')
+
+    api_spec = json.loads(response.split('\r\n\r\n')[1])
+    logging.debug(f'API spec content: {api_spec}')
 
     # All responses should have a description
     for _, path in api_spec['paths'].items():
@@ -37,8 +46,8 @@ async def extract_swagger(destination_fn):
                 if 'description' not in response:
                     response['description'] = ''
     # Convert to yaml
-    with open(destination_fn, 'w') as destination_fp:
-        destination_fp.write(yaml.dump(api_spec))
+    with open(destination, 'w') as f:
+        f.write(yaml.dump(api_spec))
 
 
 if __name__ == '__main__':
