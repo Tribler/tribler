@@ -17,6 +17,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import asyncio
+import logging
 import os
 import sys
 
@@ -32,10 +33,12 @@ for component in tribler_components:
 from tribler.core.utilities.dependencies import Scope, get_dependencies
 from tribler.core.utilities.patch_import import patch_import
 
+logging.basicConfig(level=logging.INFO)
 modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
 
 with patch_import(modules=modules_to_mock):
     from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+
     add_endpoint = RootEndpoint.add_endpoint
     RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
         if path not in ['/ipv8', '/market', '/wallets'] else None

@@ -88,3 +88,5 @@ tribler/gui/screenshots
 
 #venv
 venv/
+
+_build/

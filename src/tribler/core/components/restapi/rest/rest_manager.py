@@ -4,9 +4,7 @@ import traceback
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPNotFound
-
 from aiohttp_apispec import AiohttpApiSpec
-
 from apispec.core import VALID_METHODS_OPENAPI_V2
 
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
@@ -21,7 +19,6 @@ from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.version import version_id
 
 logger = logging.getLogger(__name__)
-
 
 
 @web.middleware
@@ -92,14 +89,7 @@ class RESTManager:
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
-        try:
-            pass
-        except ImportError:
-            pass
-        else:
-            # self.root_endpoint.add_endpoint('/debug-ui', DebugUIEndpoint(self.session))
-            # self._logger.info('Loaded tribler-debug-ui')
-            pass
+        self._logger.info(f'Start {self.http_host}:{self.config.http_port}')
 
         # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
         aiohttp_apispec = AiohttpApiSpec(
@@ -110,19 +100,26 @@ class RESTManager:
             swagger_path='/docs'
         )
         if self.config.key:
-            # Set security scheme and apply to all endpoints
+            self._logger.info('Set security scheme and apply to all endpoints')
+
             aiohttp_apispec.spec.options['security'] = [{'apiKey': []}]
             aiohttp_apispec.spec.components.security_scheme('apiKey', {'type': 'apiKey',
                                                                        'in': 'header',
                                                                        'name': 'X-Api-Key'})
 
+        self._logger.info(f'Swagger docs: http://{self.http_host}:{self.config.http_port}/docs')
+        self._logger.info(f'Swagger JSON: http://{self.http_host}:{self.config.http_port}/docs/swagger.json')
+
         if 'head' in VALID_METHODS_OPENAPI_V2:
+            self._logger.info('Remove head')
             VALID_METHODS_OPENAPI_V2.remove('head')
 
         self.runner = web.AppRunner(self.root_endpoint.app, access_log=None)
         await self.runner.setup()
 
         if self.config.http_enabled:
+            self._logger.info('Http enabled')
+
             api_port = self.config.http_port
             if not self.config.retry_port:
                 self.site = web.TCPSite(self.runner, self.http_host, api_port)
@@ -141,6 +138,8 @@ class RESTManager:
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
         if self.config.https_enabled:
+            self._logger.info('Https enabled')
+
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
             cert = self.config.get_path_as_absolute('https_certfile', self.state_dir)
@@ -156,6 +155,8 @@ class RESTManager:
         """
         Stop the HTTP API and return a deferred that fires when the server has shut down.
         """
+        self._logger.info('Stop')
+
         if self.site:
             await self.site.stop()
         if self.site_https:

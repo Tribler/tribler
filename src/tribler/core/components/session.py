@@ -59,7 +59,8 @@ class Session:
         component.session = self
 
     async def start_components(self):
-        self.logger.info("Session is using state directory: %s", self.config.state_dir)
+        self.logger.info('Start components...')
+        self.logger.info(f'State directory: "{self.config.state_dir}"')
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
