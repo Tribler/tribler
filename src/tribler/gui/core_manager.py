@@ -143,10 +143,15 @@ class CoreManager(QObject):
 
         self.shutting_down = True
         self._logger.info("Stopping Core manager")
-        if self.core_process or self.core_connected:
+
+        need_to_shutdown_core = (self.core_process or self.core_connected) and not self.core_finished
+        if need_to_shutdown_core:
             self._logger.info("Sending shutdown request to Tribler Core")
             self.events_manager.shutting_down = True
             TriblerNetworkRequest("shutdown", lambda _: None, method="PUT", priority=QNetworkRequest.HighPriority)
+        elif self.should_quit_app_on_core_finished:
+            self._logger.info('Core finished, quitting GUI application')
+            self.app_manager.quit_application()
 
     def on_core_finished(self, exit_code, exit_status):
         self.core_running = False
