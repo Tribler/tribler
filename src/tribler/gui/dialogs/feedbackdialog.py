@@ -40,7 +40,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 
         self.setWindowTitle(tr("Unexpected error"))
-        self.selected_item_index = 0
         self.tribler_version = tribler_version
         self.reported_error = reported_error
         self.scrubber = SentryScrubber()
@@ -122,20 +121,18 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             self.stop_application_on_close = True
             self.on_send_clicked(True)
 
-    def on_remove_entry(self):
-        self.env_variables_list.takeTopLevelItem(self.selected_item_index)
+    def on_remove_entry(self, index):
+        self.env_variables_list.takeTopLevelItem(index)
 
     def on_right_click_item(self, pos):
         item_clicked = self.env_variables_list.itemAt(pos)
         if not item_clicked:
             return
 
-        self.selected_item_index = self.env_variables_list.indexOfTopLevelItem(item_clicked)
-
+        selected_item_index = self.env_variables_list.indexOfTopLevelItem(item_clicked)
         menu = TriblerActionMenu(self)
-
         remove_action = QAction(tr("Remove entry"), self)
-        connect(remove_action.triggered, self.on_remove_entry)
+        connect(remove_action.triggered, lambda checked: self.on_remove_entry(selected_item_index))
         menu.addAction(remove_action)
         menu.exec_(self.env_variables_list.mapToGlobal(pos))
 
