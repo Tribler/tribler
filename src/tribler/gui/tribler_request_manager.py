@@ -245,6 +245,7 @@ class TriblerNetworkRequest(QObject):
         """
         Cancel the request by aborting the reply handle and calling on_cancel if available.
         """
+        logging.warning(f'Request from GUI to Core was canceled: {self.url}')
         if self.reply:
             self.reply.abort()
         self.on_cancel()

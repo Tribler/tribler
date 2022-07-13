@@ -101,6 +101,7 @@ async def core_session(config: TriblerConfig, components: List[Component]):
 
         # SHUTDOWN
         await session.shutdown_event.wait()
+        logger.info('Shutdown event fired')
 
         if not config.gui_test_mode:
             session.notifier[notifications.tribler_shutdown_state]("Saving configuration...")
