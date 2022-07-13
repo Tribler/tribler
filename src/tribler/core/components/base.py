@@ -172,6 +172,7 @@ class Session:
             self._startup_exception = exc
 
     async def shutdown(self):
+        self.logger.info('Session shutdown process started')
         await gather(*[create_task(component.stop()) for component in self.components.values()])
 
     def __enter__(self):
