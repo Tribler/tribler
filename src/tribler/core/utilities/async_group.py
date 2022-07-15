@@ -9,15 +9,14 @@ class AsyncGroup:
     correct cancel a group asyncio Tasks/Futures
 
     Example:
-    >>> import asyncio
     >>> from tribler.core.utilities.async_group import AsyncGroup
     >>> async def void():
     ...     pass
     >>> group = AsyncGroup()
     >>> group.add([
-    ...     asyncio.create_task(void()),
-    ...     asyncio.create_task(void()),
-    ...     asyncio.create_task(void())
+    ...     void(),
+    ...     void(),
+    ...     void()
     ... ])
     >>> await group.cancel()
     """
