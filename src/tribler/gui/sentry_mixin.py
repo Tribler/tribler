@@ -1,4 +1,4 @@
-from tribler.gui import gui_sentry_reporter
+from tribler.core.sentry_reporter.sentry_reporter import default_sentry_reporter
 
 
 class AddBreadcrumbOnShowMixin:
@@ -9,4 +9,4 @@ class AddBreadcrumbOnShowMixin:
     def showEvent(self, *args):
         super().showEvent(*args)
 
-        gui_sentry_reporter.add_breadcrumb(message=f'{self.__class__.__name__}.Show', category='UI', level='info')
+        default_sentry_reporter.add_breadcrumb(message=f'{self.__class__.__name__}.Show', category='UI', level='info')

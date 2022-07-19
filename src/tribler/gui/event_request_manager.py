@@ -7,10 +7,11 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkReques
 
 from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
+from tribler.core.sentry_reporter.sentry_reporter import default_sentry_reporter
 from tribler.core.utilities.notifier import Notifier
-from tribler.gui import gui_sentry_reporter
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
 from tribler.gui.utilities import connect
+
 
 received_events = []
 
@@ -65,7 +66,7 @@ class EventRequestManager(QNetworkAccessManager):
     def on_events_start(self, public_key: str, version: str):
         # if public key format is changed, don't forget to change it at the core side as well
         if public_key:
-            gui_sentry_reporter.set_user(public_key.encode('utf-8'))
+            default_sentry_reporter.set_user(public_key.encode('utf-8'))
         self.core_connected.emit(version)
 
     def on_tribler_exception(self, error: dict):

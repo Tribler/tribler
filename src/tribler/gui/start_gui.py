@@ -13,13 +13,13 @@ from tribler.core.check_os import (
 )
 from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
-from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy, default_sentry_reporter
 from tribler.core.utilities.rest_utils import path_to_url
-from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.tribler_app import TriblerApplication
 from tribler.gui.tribler_window import TriblerWindow
 from tribler.gui.utilities import get_translator
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,5 +93,5 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         for handler in logging.getLogger().handlers:
             handler.flush()
 
-        gui_sentry_reporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
+        default_sentry_reporter.global_strategy = SentryStrategy.SEND_SUPPRESSED
         raise

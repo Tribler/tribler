@@ -56,8 +56,7 @@ def test_get_long_text_from(exception_handler):
     assert 'raise_error' in actual_string
 
 
-@patch(f'{sentry_reporter.__name__}.{SentryReporter.__name__}.{SentryReporter.event_from_exception.__name__}',
-       new=MagicMock(return_value={'sentry': 'event'}))
+@patch.object(SentryReporter, 'event_from_exception', new=MagicMock(return_value={'sentry': 'event'}))
 def test_unhandled_error_observer_exception(exception_handler):
     # test that unhandled exception, represented by Exception, reported to the GUI
     context = {'exception': raise_error(AttributeError('Any')), 'Any key': 'Any value'}

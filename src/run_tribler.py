@@ -8,8 +8,7 @@ import logging.config
 import os
 import sys
 
-from tribler.core.components.reporter.exception_handler import default_core_exception_handler
-from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.sentry_reporter.sentry_reporter import default_sentry_reporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 logger = logging.getLogger(__name__)
@@ -46,7 +45,7 @@ def init_sentry_reporter():
     as a URL for sending sentry's reports while a Tribler client running in
     test mode
     """
-    sentry_reporter = default_core_exception_handler.sentry_reporter
+    sentry_reporter = default_sentry_reporter
     from tribler.core.version import sentry_url, version_id
     test_sentry_url = sentry_reporter.get_test_sentry_url()
 

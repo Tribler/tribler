@@ -4,8 +4,7 @@ import logging
 import traceback
 
 from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.gui import gui_sentry_reporter
+from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy, default_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.exceptions import CoreError
@@ -17,7 +16,7 @@ class ErrorHandler:
     def __init__(self, tribler_window):
         logger_name = self.__class__.__name__
         self._logger = logging.getLogger(logger_name)
-        gui_sentry_reporter.ignore_logger(logger_name)
+        default_sentry_reporter.ignore_logger(logger_name)
 
         self.tribler_window = tribler_window
         self.app_manager: AppManager = tribler_window.app_manager
@@ -34,7 +33,7 @@ class ErrorHandler:
         if self._tribler_stopped:
             return
 
-        if gui_sentry_reporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
+        if default_sentry_reporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
             self._logger.info(f'GUI error was suppressed and not sent to Sentry: {info_type.__name__}: {info_error}')
             return
 
@@ -50,7 +49,7 @@ class ErrorHandler:
         reported_error = ReportedError(
             type=type(info_type).__name__,
             text=text,
-            event=gui_sentry_reporter.event_from_exception(info_error),
+            event=default_sentry_reporter.event_from_exception(info_error),
         )
 
         if self.app_manager.quitting_app:
@@ -58,7 +57,6 @@ class ErrorHandler:
 
         FeedbackDialog(
             parent=self.tribler_window,
-            sentry_reporter=gui_sentry_reporter,
             reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
@@ -79,7 +77,6 @@ class ErrorHandler:
 
         FeedbackDialog(
             parent=self.tribler_window,
-            sentry_reporter=gui_sentry_reporter,
             reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,

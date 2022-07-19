@@ -382,3 +382,6 @@ class SentryReporter:
             event = self.scrubber.scrub_event(event)
 
         return event
+
+
+default_sentry_reporter = SentryReporter()

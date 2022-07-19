@@ -11,7 +11,7 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QDialog, QMessageBox, QTreeWidgetItem
 
 from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.sentry_reporter.sentry_reporter import default_sentry_reporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 from tribler.gui.core_manager import CoreManager
@@ -26,7 +26,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         parent,
-        sentry_reporter: SentryReporter,
         reported_error: ReportedError,
         tribler_version,
         start_time,
@@ -43,7 +42,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.tribler_version = tribler_version
         self.reported_error = reported_error
         self.scrubber = SentryScrubber()
-        self.sentry_reporter = sentry_reporter
+        self.sentry_reporter = default_sentry_reporter
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
         self.retrieve_error_message_from_stacktrace = retrieve_error_message_from_stacktrace
@@ -116,7 +115,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Users can remove specific lines in the report
         connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
 
-        self.send_automatically = SentryReporter.is_in_test_mode()
+        self.send_automatically = self.sentry_reporter.is_in_test_mode()
         if self.send_automatically:
             self.stop_application_on_close = True
             self.on_send_clicked(True)

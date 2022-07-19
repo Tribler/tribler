@@ -34,7 +34,7 @@ from tribler.core.components.version_check.version_check_component import Versio
 from tribler.core.components.watch_folder.watch_folder_component import WatchFolderComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.logger.logger import load_logger_config
-from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
+from tribler.core.sentry_reporter.sentry_reporter import default_sentry_reporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.process_checker import ProcessChecker
 
@@ -124,7 +124,7 @@ def run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=False):
         reset_config_on_error=True)
     config.gui_test_mode = gui_test_mode
 
-    if SentryReporter.is_in_test_mode():
+    if default_sentry_reporter.is_in_test_mode():
         default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
     config.api.http_port = int(api_port)
