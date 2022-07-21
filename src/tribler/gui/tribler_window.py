@@ -406,10 +406,10 @@ class TriblerWindow(QMainWindow):
             upgrade_manager=self.upgrade_manager,
         )
 
-    def on_test_tribler_gui_exception(self, *args):
+    def on_test_tribler_gui_exception(self, *_):
         raise TriblerGuiTestException("Tribler GUI Test Exception")
 
-    def on_test_tribler_core_exception(self, *args):
+    def on_test_tribler_core_exception(self, *_):
         def dummy_callback(_):
             pass
 
@@ -879,7 +879,7 @@ class TriblerWindow(QMainWindow):
     def on_create_torrent_updates(self, update_dict):
         self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
 
-    def on_add_torrent_browse_file(self, index):
+    def on_add_torrent_browse_file(self, *_):
         self.raise_window()  # For the case when the action is triggered by tray icon
         filenames = QFileDialog.getOpenFileNames(
             self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
@@ -1124,7 +1124,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_debug_panel_button(self, *args):  # pylint: disable=unused-argument
+    def clicked_debug_panel_button(self, *_):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
