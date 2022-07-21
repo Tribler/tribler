@@ -24,6 +24,7 @@ STATE_FILES_TO_COPY = (
     'ec_trustchain_testnet.pem',
     'ecpub_trustchain_testnet.pem',
     'triblerd.conf',
+    'lt.state',
 )
 
 STATE_DIRS_TO_COPY = (STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR)
