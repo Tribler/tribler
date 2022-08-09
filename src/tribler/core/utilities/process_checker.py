@@ -32,10 +32,11 @@ class ProcessChecker:
     """
 
     def __init__(self, directory: Path, lock_file_name: Optional[str] = None):
+        lock_file_name = lock_file_name or LOCK_FILE_NAME
+        self.lock_file = directory / lock_file_name
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.lock_file = directory / (lock_file_name or LOCK_FILE_NAME)
-        self.re_tribler = re.compile(r'tribler\b(?![/\\])')
         self.logger.info(f'Lock file: {self.lock_file}')
+        self.re_tribler = re.compile(r'tribler\b(?![/\\])')
 
     def check_and_restart_if_necessary(self) -> bool:
         self.logger.info('Check')
