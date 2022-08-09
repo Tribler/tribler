@@ -12,6 +12,9 @@ import psutil
 from tribler.core.utilities.path_util import Path
 
 
+LOCK_FILE_NAME = 'triblerd.lock'
+
+
 @contextmanager
 def single_tribler_instance(directory: Path):
     checker = ProcessChecker(directory)
@@ -28,9 +31,9 @@ class ProcessChecker:
     This class contains code to check whether a Tribler process is already running.
     """
 
-    def __init__(self, directory: Path, lock_file_name: str = 'tribler.lock'):
+    def __init__(self, directory: Path, lock_file_name: Optional[str] = None):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.lock_file = directory / lock_file_name
+        self.lock_file = directory / (lock_file_name or LOCK_FILE_NAME)
         self.re_tribler = re.compile(r'tribler\b(?![/\\])')
         self.logger.info(f'Lock file: {self.lock_file}')
 
