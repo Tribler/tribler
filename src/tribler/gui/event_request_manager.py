@@ -9,7 +9,7 @@ from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.utilities.notifier import Notifier
 from tribler.gui import gui_sentry_reporter
-from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
+from tribler.gui.exceptions import CoreConnectTimeoutError
 from tribler.gui.utilities import connect, make_network_errors_dict
 
 received_events = []
@@ -98,23 +98,26 @@ class EventRequestManager(QNetworkAccessManager):
         self.config_error_signal.emit(error)
 
     def on_error(self, error: int, reschedule_on_err: bool):
-        should_retry = self.remaining_connection_attempts > 0
+        # If the REST API server is not started yet and the port is not opened, the error will be received.
+        # The specific error can be different on different systems:
+        #   - QNetworkReply.ConnectionRefusedError (code 1);
+        #   - QNetworkReply.HostNotFoundError (code 3);
+        #   - QNetworkReply.TimeoutError (code 4);
+        #   - QNetworkReply.UnknownNetworkError (code 99).
+        # Tribler GUI should retry on any of these errors.
 
-        if error == QNetworkReply.ConnectionRefusedError:
-            self._logger.info("Tribler Core refused connection" + (', will retry...' if should_retry else ''))
-        else:
-            error_name = self.network_errors.get(error, error)
-            raise CoreConnectionError(f"Error {error_name} while trying to connect to Tribler Core")
-
-        if should_retry:
-            raise CoreConnectTimeoutError("Could not connect with the Tribler Core within "
-                                          f"{RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT//1000} seconds")
-
-        self.remaining_connection_attempts -= 1
+        should_retry = reschedule_on_err and self.remaining_connection_attempts > 0
+        error_name = self.network_errors.get(error, error)
+        self._logger.info(f"Error {error_name} while trying to connect to Tribler Core"
+                          + (', will retry...' if should_retry else ''))
 
         if reschedule_on_err:
-            # Reschedule an attempt
-            self.connect_timer.start(RECONNECT_INTERVAL_MS)
+            if should_retry:
+                self.remaining_connection_attempts -= 1
+                self.connect_timer.start(RECONNECT_INTERVAL_MS)  # Reschedule an attempt
+            else:
+                raise CoreConnectTimeoutError("Could not connect with the Tribler Core within "
+                                              f"{RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT//1000} seconds")
 
     def on_read_data(self):
         if not self.receiving_data:
