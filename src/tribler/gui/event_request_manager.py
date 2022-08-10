@@ -14,8 +14,8 @@ from tribler.gui.utilities import connect, make_network_errors_dict
 
 received_events = []
 
-CORE_CONNECTION_ATTEMPTS_LIMIT = 120
-RECONNECT_INTERVAL_MS = 500
+CORE_CONNECTION_TIMEOUT = 60
+RECONNECT_INTERVAL_MS = 100
 
 
 class EventRequestManager(QNetworkAccessManager):
@@ -39,7 +39,7 @@ class EventRequestManager(QNetworkAccessManager):
         url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
         self.request.setRawHeader(b'X-Api-Key', api_key.encode('ascii'))
-        self.remaining_connection_attempts = CORE_CONNECTION_ATTEMPTS_LIMIT
+        self.start_time = time.time()
         self.connect_timer = QTimer()
         self.current_event_string = ""
         self.reply = None
@@ -106,18 +106,23 @@ class EventRequestManager(QNetworkAccessManager):
         #   - QNetworkReply.UnknownNetworkError (code 99).
         # Tribler GUI should retry on any of these errors.
 
-        should_retry = reschedule_on_err and self.remaining_connection_attempts > 0
+        # Depending on the system, while the server is not started, the error can be returned with some delay
+        # (like, five seconds). But don't try to specify a timeout using request.setTransferTimeout(REQUEST_TIMEOUT_MS).
+        # First, it is unnecessary, as the reply is sent almost immediately after the REST API is started,
+        # so the GUI will not wait five seconds for that. Also, with TransferTimeout specified, AIOHTTP starts
+        # raising ConnectionResetError "Cannot write to closing transport".
+
+        should_retry = reschedule_on_err and time.time() < self.start_time + CORE_CONNECTION_TIMEOUT
         error_name = self.network_errors.get(error, error)
         self._logger.info(f"Error {error_name} while trying to connect to Tribler Core"
                           + (', will retry...' if should_retry else ''))
 
         if reschedule_on_err:
             if should_retry:
-                self.remaining_connection_attempts -= 1
                 self.connect_timer.start(RECONNECT_INTERVAL_MS)  # Reschedule an attempt
             else:
-                raise CoreConnectTimeoutError("Could not connect with the Tribler Core within "
-                                              f"{RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT//1000} seconds")
+                raise CoreConnectTimeoutError(
+                    f"Could not connect with the Tribler Core within {CORE_CONNECTION_TIMEOUT} seconds")
 
     def on_read_data(self):
         if not self.receiving_data:
@@ -154,7 +159,7 @@ class EventRequestManager(QNetworkAccessManager):
         if self.shutting_down:
             return
         self._logger.warning("Events connection dropped, attempting to reconnect")
-        self.remaining_connection_attempts = CORE_CONNECTION_ATTEMPTS_LIMIT
+        self.start_time = time.time()
         self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def connect(self, reschedule_on_err=True):
