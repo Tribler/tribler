@@ -56,6 +56,10 @@ class CoreManager(QObject):
             self._logger.warning('Core connected after the core process is already finished')
             return
 
+        if self.shutting_down:
+            self._logger.warning('Core connected after the shutting down is already started')
+            return
+
         self.core_connected = True
 
     def start(self, core_args=None, core_env=None, upgrade_manager=None, run_core=True):
@@ -151,8 +155,13 @@ class CoreManager(QObject):
         self.shutting_down = True
         self._logger.info("Stopping Core manager")
 
-        need_to_shutdown_core = (self.core_process or self.core_connected) and not self.core_finished
-        if need_to_shutdown_core:
+        if self.core_process and not self.core_finished:
+            if not self.core_connected:
+                # If Core is not connected via events_manager it also most probably cannot process API requests.
+                self._logger.warning('Core is not connected during the CoreManager shutdown, killing it...')
+                self.kill_core_process_and_remove_the_lock_file()
+                return
+
             self.events_manager.shutting_down = True
 
             def shutdown_request_processed(response):
@@ -170,7 +179,7 @@ class CoreManager(QObject):
             send_shutdown_request(initial=True)
 
         elif self.should_quit_app_on_core_finished:
-            self._logger.info('Core finished, quitting GUI application')
+            self._logger.info('Core is not running, quitting GUI application')
             self.app_manager.quit_application()
 
     def kill_core_process_and_remove_the_lock_file(self):
