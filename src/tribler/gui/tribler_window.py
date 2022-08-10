@@ -527,8 +527,10 @@ class TriblerWindow(QMainWindow):
 
     def on_core_connected(self, version):
         if self.tribler_started:
-            logging.warning("Received duplicate Tribler Core started event")
+            self._logger.warning("Received duplicate Tribler Core connected event")
             return
+
+        self._logger.info("Core connected")
 
         self.tribler_started = True
         self.tribler_version = version

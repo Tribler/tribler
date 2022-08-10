@@ -51,8 +51,11 @@ class CoreManager(QObject):
         connect(self.events_manager.core_connected, self.on_core_connected)
 
     def on_core_connected(self, _):
-        if not self.core_finished:
-            self.core_connected = True
+        if self.core_finished:
+            self._logger.warning('Core connected after the core process is already finished')
+            return
+
+        self.core_connected = True
 
     def start(self, core_args=None, core_env=None, upgrade_manager=None, run_core=True):
         """
@@ -170,6 +173,7 @@ class CoreManager(QObject):
             self.app_manager.quit_application()
 
     def on_core_finished(self, exit_code, exit_status):
+        self._logger.info("Core process finished")
         self.core_running = False
         self.core_finished = True
         if self.shutting_down:

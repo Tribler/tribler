@@ -43,6 +43,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.connect_timer = QTimer()
         self.current_event_string = ""
         self.reply = None
+        self.receiving_data = False
         self.shutting_down = False
         self.error_handler = error_handler
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -97,13 +98,15 @@ class EventRequestManager(QNetworkAccessManager):
         self.config_error_signal.emit(error)
 
     def on_error(self, error: int, reschedule_on_err: bool):
+        should_retry = self.remaining_connection_attempts > 0
+
         if error == QNetworkReply.ConnectionRefusedError:
-            self._logger.debug("Tribler Core refused connection, retrying...")
+            self._logger.info("Tribler Core refused connection" + (', will retry...' if should_retry else ''))
         else:
             error_name = self.network_errors.get(error, error)
             raise CoreConnectionError(f"Error {error_name} while trying to connect to Tribler Core")
 
-        if self.remaining_connection_attempts <= 0:
+        if should_retry:
             raise CoreConnectTimeoutError("Could not connect with the Tribler Core within "
                                           f"{RECONNECT_INTERVAL_MS*CORE_CONNECTION_ATTEMPTS_LIMIT//1000} seconds")
 
@@ -114,6 +117,10 @@ class EventRequestManager(QNetworkAccessManager):
             self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def on_read_data(self):
+        if not self.receiving_data:
+            self.receiving_data = True
+            self._logger.info('Starts receiving data from Core')
+
         if self.receivers(self.finished) == 0:
             connect(self.finished, lambda reply: self.on_finished())
         self.connect_timer.stop()
@@ -148,7 +155,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def connect(self, reschedule_on_err=True):
-        self._logger.debug("Will connect to events endpoint")
+        self._logger.info(f"Connecting to events endpoint ({'with' if reschedule_on_err else 'without'} retrying)")
         if self.reply is not None:
             self.reply.deleteLater()
         self.reply = self.get(self.request)
