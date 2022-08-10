@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from typing import Optional
 
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
@@ -42,7 +43,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.start_time = time.time()
         self.connect_timer = QTimer()
         self.current_event_string = ""
-        self.reply = None
+        self.reply: Optional[QNetworkReply] = None
         self.receiving_data = False
         self.shutting_down = False
         self.error_handler = error_handler
