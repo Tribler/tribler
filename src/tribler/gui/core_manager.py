@@ -177,11 +177,10 @@ class CoreManager(QObject):
         if not self.core_process:
             self._logger.warning("Cannot kill the Core process as it is not initialized")
 
-        pid = self.core_process.pid()
-        try:
-            os.kill(pid, 9)
-        except OSError:
-            pass
+        self.core_process.kill()
+        finished = self.core_process.waitForFinished()
+        if not finished:
+            self._logger.error('Cannot kill the core process')
 
         process_checker = ProcessChecker(self.root_state_dir)
         process_checker.remove_lock()
