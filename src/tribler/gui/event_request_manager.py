@@ -10,7 +10,7 @@ from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.utilities.notifier import Notifier
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
-from tribler.gui.utilities import connect
+from tribler.gui.utilities import connect, make_network_errors_dict
 
 received_events = []
 
@@ -46,6 +46,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.shutting_down = False
         self.error_handler = error_handler
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.network_errors = make_network_errors_dict()
 
         self.connect_timer.setSingleShot(True)
         connect(self.connect_timer.timeout, self.connect)
@@ -95,11 +96,12 @@ class EventRequestManager(QNetworkAccessManager):
     def on_report_config_error(self, error):
         self.config_error_signal.emit(error)
 
-    def on_error(self, error, reschedule_on_err):
+    def on_error(self, error: int, reschedule_on_err: bool):
         if error == QNetworkReply.ConnectionRefusedError:
             self._logger.debug("Tribler Core refused connection, retrying...")
         else:
-            raise CoreConnectionError(f"Error {error} while trying to connect to Tribler Core")
+            error_name = self.network_errors.get(error, error)
+            raise CoreConnectionError(f"Error {error_name} while trying to connect to Tribler Core")
 
         if self.remaining_connection_attempts <= 0:
             raise CoreConnectTimeoutError("Could not connect with the Tribler Core within "
