@@ -83,6 +83,7 @@ class CoreManager(QObject):
             core_env.insert("CORE_API_PORT", f"{self.api_port}")
             core_env.insert("CORE_API_KEY", self.api_key)
             core_env.insert("TSTATEDIR", str(self.root_state_dir))
+            core_env.insert("TRIBLER_GUI_PID", str(os.getpid()))
 
         core_args = self.core_args
         if not core_args:
