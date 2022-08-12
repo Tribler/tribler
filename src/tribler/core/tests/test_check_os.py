@@ -1,6 +1,8 @@
 from logging import Logger
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from tribler.core.check_os import enable_fault_handler, error_and_exit
 from tribler.core.utilities.patch_import import patch_import
 
