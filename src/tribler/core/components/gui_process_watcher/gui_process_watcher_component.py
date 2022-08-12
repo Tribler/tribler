@@ -1,4 +1,4 @@
-from tribler.core.components.component import Component
+from tribler.core.components.base import Component
 from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessWatcher
 
 
