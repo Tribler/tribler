@@ -33,7 +33,7 @@ def tdef_to_metadata_dict(tdef):
 
     try:
         torrent_date = datetime.fromtimestamp(tdef.get_creation_date())
-    except ValueError:
+    except (ValueError, TypeError):
         torrent_date = EPOCH
 
     return {
