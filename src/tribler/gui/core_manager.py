@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
@@ -26,7 +27,7 @@ class CoreManager(QObject):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.app_manager = app_manager
         self.root_state_dir = root_state_dir
-        self.core_process = None
+        self.core_process: Optional[QProcess] = None
         self.api_port = api_port
         self.api_key = api_key
         self.events_manager = events_manager

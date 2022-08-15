@@ -63,7 +63,7 @@ class TriblerService:
                 await self.session.shutdown()
                 print("Tribler shut down")
                 get_event_loop().stop()
-                self.process_checker.remove_lock_file()
+                self.process_checker.remove_lock()
 
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
@@ -73,11 +73,10 @@ class TriblerService:
 
         # Check if we are already running a Tribler instance
         root_state_dir = get_root_state_directory()
+
         self.process_checker = ProcessChecker(root_state_dir)
-        if self.process_checker.already_running:
-            print(f"Another Tribler instance is already using statedir {config.state_dir}")
-            get_event_loop().stop()
-            return
+        self.process_checker.check_and_restart_if_necessary()
+        self.process_checker.create_lock()
 
         print("Starting Tribler")
 
