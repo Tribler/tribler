@@ -172,6 +172,16 @@ class CoreManager(QObject):
             self._logger.info('Core finished, quitting GUI application')
             self.app_manager.quit_application()
 
+    def kill_core_process(self):
+        if not self.core_process:
+            self._logger.warning("Cannot kill the Core process as it is not initialized")
+
+        pid = self.core_process.pid()
+        try:
+            os.kill(pid, 9)
+        except OSError:
+            pass
+
     def on_core_finished(self, exit_code, exit_status):
         self._logger.info("Core process finished")
         self.core_running = False

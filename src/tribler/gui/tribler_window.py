@@ -1207,12 +1207,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        pid = self.core_manager.core_process.pid()
-        try:
-            os.kill(pid, 9)
-        except OSError:
-            pass
-
+        self.core_manager.kill_core_process()
         self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):
