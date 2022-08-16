@@ -7,6 +7,7 @@ from typing import Optional
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 
+from tribler.core.utilities.process_checker import ProcessChecker
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
@@ -172,7 +173,7 @@ class CoreManager(QObject):
             self._logger.info('Core finished, quitting GUI application')
             self.app_manager.quit_application()
 
-    def kill_core_process(self):
+    def kill_core_process_and_remove_the_lock_file(self):
         if not self.core_process:
             self._logger.warning("Cannot kill the Core process as it is not initialized")
 
@@ -181,6 +182,9 @@ class CoreManager(QObject):
             os.kill(pid, 9)
         except OSError:
             pass
+
+        process_checker = ProcessChecker(self.root_state_dir)
+        process_checker.remove_lock()
 
     def on_core_finished(self, exit_code, exit_status):
         self._logger.info("Core process finished")

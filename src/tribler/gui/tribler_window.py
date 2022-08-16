@@ -1207,7 +1207,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        self.core_manager.kill_core_process()
+        self.core_manager.kill_core_process_and_remove_the_lock_file()
         self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):
