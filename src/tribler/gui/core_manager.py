@@ -68,7 +68,7 @@ class CoreManager(QObject):
         If so, use that one and don't start a new, fresh Core.
         """
         # Connect to the events manager
-        self.events_manager.connect()
+        self.events_manager.connect(reschedule_on_err=False)  # do not retry if tribler Core is not running yet
 
         if run_core:
             self.core_args = core_args
@@ -116,6 +116,7 @@ class CoreManager(QObject):
     def on_core_started(self):
         self.core_started = True
         self.core_running = True
+        self.events_manager.connect(reschedule_on_err=True)  # retry until REST API is ready
 
     def on_core_stdout_read_ready(self):
         if self.app_manager.quitting_app:
