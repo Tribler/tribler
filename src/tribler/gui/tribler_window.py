@@ -527,8 +527,10 @@ class TriblerWindow(QMainWindow):
 
     def on_core_connected(self, version):
         if self.tribler_started:
-            logging.warning("Received duplicate Tribler Core started event")
+            self._logger.warning("Received duplicate Tribler Core connected event")
             return
+
+        self._logger.info("Core connected")
 
         self.tribler_started = True
         self.tribler_version = version
@@ -1205,12 +1207,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        pid = self.core_manager.core_process.pid()
-        try:
-            os.kill(pid, 9)
-        except OSError:
-            pass
-
+        self.core_manager.kill_core_process_and_remove_the_lock_file()
         self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):

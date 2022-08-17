@@ -7,6 +7,7 @@ from typing import Optional
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 from PyQt5.QtNetwork import QNetworkRequest
 
+from tribler.core.utilities.process_checker import ProcessChecker
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
@@ -51,8 +52,15 @@ class CoreManager(QObject):
         connect(self.events_manager.core_connected, self.on_core_connected)
 
     def on_core_connected(self, _):
-        if not self.core_finished:
-            self.core_connected = True
+        if self.core_finished:
+            self._logger.warning('Core connected after the core process is already finished')
+            return
+
+        if self.shutting_down:
+            self._logger.warning('Core connected after the shutting down is already started')
+            return
+
+        self.core_connected = True
 
     def start(self, core_args=None, core_env=None, upgrade_manager=None, run_core=True):
         """
@@ -147,8 +155,13 @@ class CoreManager(QObject):
         self.shutting_down = True
         self._logger.info("Stopping Core manager")
 
-        need_to_shutdown_core = (self.core_process or self.core_connected) and not self.core_finished
-        if need_to_shutdown_core:
+        if self.core_process and not self.core_finished:
+            if not self.core_connected:
+                # If Core is not connected via events_manager it also most probably cannot process API requests.
+                self._logger.warning('Core is not connected during the CoreManager shutdown, killing it...')
+                self.kill_core_process_and_remove_the_lock_file()
+                return
+
             self.events_manager.shutting_down = True
 
             def shutdown_request_processed(response):
@@ -166,10 +179,23 @@ class CoreManager(QObject):
             send_shutdown_request(initial=True)
 
         elif self.should_quit_app_on_core_finished:
-            self._logger.info('Core finished, quitting GUI application')
+            self._logger.info('Core is not running, quitting GUI application')
             self.app_manager.quit_application()
 
+    def kill_core_process_and_remove_the_lock_file(self):
+        if not self.core_process:
+            self._logger.warning("Cannot kill the Core process as it is not initialized")
+
+        self.core_process.kill()
+        finished = self.core_process.waitForFinished()
+        if not finished:
+            self._logger.error('Cannot kill the core process')
+
+        process_checker = ProcessChecker(self.root_state_dir)
+        process_checker.remove_lock()
+
     def on_core_finished(self, exit_code, exit_status):
+        self._logger.info("Core process finished")
         self.core_running = False
         self.core_finished = True
         if self.shutting_down:
