@@ -30,6 +30,10 @@ IGNORED_ERRORS_BY_REGEX = {
 }
 
 
+class NoCrashException(Exception):
+    """Raising exceptions of this type doesn't lead to forced Tribler stop"""
+
+
 class CoreExceptionHandler:
     """
     This class handles Python errors arising in the Core by catching them, adding necessary context,
@@ -83,6 +87,9 @@ class CoreExceptionHandler:
             text = str(exception)
             if isinstance(exception, ComponentStartupException):
                 should_stop = exception.component.tribler_should_stop_on_component_error
+                exception = exception.__cause__
+            if isinstance(exception, NoCrashException):
+                should_stop = False
                 exception = exception.__cause__
 
             if self._is_ignored(exception):

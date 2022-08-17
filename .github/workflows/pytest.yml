@@ -36,6 +36,7 @@ jobs:
         uses: ./.github/actions/windows_dependencies
 
       - name: Run Pytest
+        timeout-minutes: 10
         run: |
           pytest ./src/tribler/core ${{matrix.pytest-arguments}}
 
