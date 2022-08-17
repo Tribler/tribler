@@ -194,5 +194,5 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def closeEvent(self, close_event):
         if self.stop_application_on_close:
             self.core_manager.stop()
-            if self.core_manager.shutting_down and not self.core_manager.core_finished:
+            if self.core_manager.shutting_down and self.core_manager.core_running:
                 close_event.ignore()

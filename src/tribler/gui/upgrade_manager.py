@@ -5,12 +5,13 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
+from tribler.gui.exceptions import UpgradeError
 from tribler.gui.utilities import connect, format_size, tr
 from tribler.run_tribler_upgrader import upgrade_state_dir
 
 
 class StateDirUpgradeWorker(QObject):
-    finished = pyqtSignal()
+    finished = pyqtSignal(object)
     status_update = pyqtSignal(str)
     stop_upgrade = pyqtSignal()
 
@@ -31,12 +32,16 @@ class StateDirUpgradeWorker(QObject):
         self.status_update.emit(text)
 
     def run(self):
-        self._upgrade_state_dir(
-            self.root_state_dir,
-            update_status_callback=self._update_status_callback,
-            interrupt_upgrade_event=self.upgrade_interrupted,
-        )
-        self.finished.emit()
+        try:
+            self._upgrade_state_dir(
+                self.root_state_dir,
+                update_status_callback=self._update_status_callback,
+                interrupt_upgrade_event=self.upgrade_interrupted,
+            )
+        except Exception as exc:
+            self.finished.emit(exc)
+        else:
+            self.finished.emit(None)
 
 
 class UpgradeManager(QObject):
@@ -120,12 +125,18 @@ class UpgradeManager(QObject):
         # ACHTUNG!!! the following signals cannot be properly handled by our "connect" method.
         # These must be connected directly to prevent problems with disconnecting and thread handling.
         self._upgrade_worker.status_update.connect(self.upgrader_tick.emit)
-        self._upgrade_thread.finished.connect(self._upgrade_thread.deleteLater)
-        self._upgrade_worker.finished.connect(self._upgrade_thread.quit)
-        self._upgrade_worker.finished.connect(self.upgrader_finished.emit)
-        self._upgrade_worker.finished.connect(self._upgrade_worker.deleteLater)
+        self._upgrade_worker.finished.connect(self.on_worker_finished)
 
         self._upgrade_thread.start()
+
+    def on_worker_finished(self, exc):
+        self._upgrade_thread.deleteLater()
+        self._upgrade_thread.quit()
+        self._upgrade_worker.deleteLater()
+        if exc is None:
+            self.upgrader_finished.emit()
+        else:
+            raise UpgradeError(f'{exc.__class__.__name__}: {exc}') from exc
 
     def stop_upgrade(self):
         self._upgrade_worker.stop_upgrade.emit()
