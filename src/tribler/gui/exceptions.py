@@ -16,3 +16,7 @@ class CoreCrashedError(CoreError):
 
 class TriblerGuiTestException(Exception):
     """Can be intentionally generated in GUI by pressing Ctrl+Alt+Shift+G"""
+
+
+class UpgradeError(CoreError):
+    """The error raises by UpgradeManager in GUI process and should stop Tribler"""
