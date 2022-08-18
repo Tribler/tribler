@@ -76,7 +76,8 @@ class MetadataEndpointBase(RESTEndpoint):
         if not is_torrent or not self.tag_rules_processor:
             return
 
-        is_auto_generated_tags_not_created = entry.tag_processor_version < self.tag_rules_processor.version
+        is_auto_generated_tags_not_created = entry.tag_processor_version is None or \
+                                             entry.tag_processor_version < self.tag_rules_processor.version
         if is_auto_generated_tags_not_created:
             generated = self.tag_rules_processor.process_torrent_title(infohash=entry.infohash, title=entry.title)
             entry.tag_processor_version = self.tag_rules_processor.version
