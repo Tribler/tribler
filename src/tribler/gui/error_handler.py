@@ -70,6 +70,7 @@ class ErrorHandler:
     def core_error(self, reported_error: ReportedError):
         if self._tribler_stopped or reported_error.type in self._handled_exceptions:
             return
+        self._handled_exceptions.add(reported_error.type)
 
         error_text = f'{reported_error.text}\n{reported_error.long_text}'
         self._logger.error(error_text)

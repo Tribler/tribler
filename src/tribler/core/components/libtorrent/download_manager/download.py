@@ -293,8 +293,12 @@ class Download(TaskManager):
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
         filename = self.dlmgr.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
-        self.config.write(str(filename))
-        self._logger.debug('Saving download config to file %s', filename)
+        try:
+            self.config.write(str(filename))
+        except OSError as e:
+            self._logger.warning(f'{e.__class__.__name__}: {e}')
+        else:
+            self._logger.debug(f'Resume data has been saved to: {filename}')
 
     def on_tracker_reply_alert(self, alert: lt.tracker_reply_alert):
         self._logger.info(f'On tracker reply alert: {alert}')

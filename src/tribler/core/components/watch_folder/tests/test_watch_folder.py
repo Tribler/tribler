@@ -1,15 +1,20 @@
-import os
+import asyncio
 import shutil
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.components.watch_folder.settings import WatchFolderSettings
 from tribler.core.components.watch_folder.watch_folder import WatchFolder
-from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
-
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
+from tribler.core.utilities.path_util import Path
 
 # pylint: disable=redefined-outer-name, protected-access
+TEST_TORRENT = "test.torrent"
+TEST_CHECK_INTERVAL = 0.1
+
 
 @pytest.fixture
 async def watch_folder(tmp_path):
@@ -20,49 +25,96 @@ async def watch_folder(tmp_path):
             directory=''
         ),
         download_manager=MagicMock(),
-        notifier=MagicMock()
+        notifier=MagicMock(),
+        check_interval=TEST_CHECK_INTERVAL
     )
     yield watch
     await watch.stop()
 
 
-def test_watchfolder_no_files(watch_folder):
-    watch_folder.check_watch_folder()
-    watch_folder.download_manager.start_download.assert_not_called()
+def test_watch_folder_no_files(watch_folder):
+    # Test that in the case of an empty folder, downloads are not started
+    watch_folder._check_watch_folder()
+
+    assert not watch_folder.download_manager.start_download.called
 
 
-def test_watchfolder_no_torrent_file(watch_folder: WatchFolder):
+def test_watch_folder_no_torrent_file(watch_folder: WatchFolder):
+    # Test that in the case of a folder without torrents, downloads are not started
     directory = watch_folder.settings.get_path_as_absolute('directory', watch_folder.state_dir)
-
     shutil.copyfile(TORRENT_UBUNTU_FILE, directory / "test.txt")
-    watch_folder.check_watch_folder()
-    watch_folder.download_manager.start_download.assert_not_called()
+
+    watch_folder._check_watch_folder()
+
+    assert not watch_folder.download_manager.start_download.called
 
 
-def test_watchfolder_utf8_dir(watch_folder, tmp_path):
-    new_watch_dir = tmp_path / "\xe2\x82\xac"
-    os.mkdir(new_watch_dir)
-    shutil.copyfile(TORRENT_UBUNTU_FILE, new_watch_dir / "\xe2\x82\xac.torrent")
-    watch_folder.watch_folder = new_watch_dir
-    watch_folder.check_watch_folder()
+def test_watch_folder_utf8_dir(watch_folder, tmp_path):
+    # Test that torrents with UTF characters in the path are processed correctly
+    watch_folder.download_manager.download_exists = Mock(return_value=False)
+    unicode_folder = tmp_path / "\xe2\x82\xac"
+    unicode_folder.mkdir()
+    shutil.copyfile(TORRENT_UBUNTU_FILE, unicode_folder / "\xe2\x82\xac.torrent")
+
+    watch_folder._check_watch_folder()
+
+    assert watch_folder.download_manager.start_download.called
 
 
-def test_watchfolder_torrent_file_one_corrupt(watch_folder: WatchFolder):
-    directory = watch_folder.settings.get_path_as_absolute('directory', watch_folder.state_dir)
-    def mock_start_download(*_, **__):
-        mock_start_download.downloads_started += 1
+async def test_watch_folder_torrent_file_corrupt(watch_folder: WatchFolder):
+    # Test that all corrupted files are renamed to `<file_name>.corrupt`
+    corrupted_torrent = watch_folder.state_dir / "test2.torrent"
+    shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', corrupted_torrent)
 
-    mock_start_download.downloads_started = 0
+    await watch_folder._check_watch_folder_handle_exceptions()
 
-    shutil.copyfile(TORRENT_UBUNTU_FILE, directory / "test.torrent")
-    shutil.copyfile(TESTS_DATA_DIR / 'test_rss.xml', directory / "test2.torrent")
-    watch_folder.download_manager.start_download = mock_start_download
-    watch_folder.download_manager.download_exists = lambda *_: False
-    watch_folder.check_watch_folder()
-    assert mock_start_download.downloads_started == 1
-    assert (directory / "test2.torrent.corrupt").is_file()
+    assert not corrupted_torrent.exists()
+    assert Path(f'{corrupted_torrent}.corrupt').exists()
 
 
-def test_cleanup(watch_folder):
-    watch_folder.cleanup_torrent_file(TESTS_DATA_DIR, 'thisdoesnotexist123.bla')
-    assert not (TESTS_DATA_DIR / 'thisdoesnotexist123.bla.corrupt').exists()
+@patch.object(TorrentDef, 'get_metainfo', Mock(return_value=None))
+def test_watch_folder_torrent_file_no_metainfo(watch_folder: WatchFolder):
+    # Test that in the case of missing metainfo, the torrent file will be skipped
+    watch_folder.download_manager.download_exists = Mock(return_value=False)
+    shutil.copyfile(TORRENT_UBUNTU_FILE, watch_folder.state_dir / "test.torrent")
+
+    watch_folder._check_watch_folder()
+
+    assert not watch_folder.download_manager.start_download.called
+
+
+def test_watch_folder_torrent_file_start_download(watch_folder: WatchFolder):
+    # Test that in the case of presence of a torrent file, a download is started
+    watch_folder.download_manager.download_exists = Mock(return_value=False)
+    shutil.copyfile(TORRENT_VIDEO_FILE, watch_folder.state_dir / "test.torrent")
+
+    watch_folder._check_watch_folder()
+
+    assert watch_folder.download_manager.start_download.call_count == 1
+
+
+@patch.object(WatchFolder, '_check_watch_folder_handle_exceptions')
+async def test_watch_folder_start_schedule(mocked_check_watch_folder: Mock, watch_folder: WatchFolder):
+    # Test that the `start` method schedules the `check_watch_folder` execution
+    watch_folder.start()
+    await asyncio.sleep(TEST_CHECK_INTERVAL * 3)
+
+    assert 2 <= mocked_check_watch_folder.call_count <= 3
+
+
+@patch.object(WatchFolder, '_check_watch_folder')
+async def test_watch_folder_start_schedule_with_exception(mocked_check_watch_folder: Mock, watch_folder: WatchFolder):
+    # Test that errors in the `check_watch_folder` method don't affect the `start` execution
+    mocked_check_watch_folder.side_effect = PermissionError
+
+    watch_folder.start()
+    await asyncio.sleep(TEST_CHECK_INTERVAL * 3)
+
+    assert 2 <= mocked_check_watch_folder.call_count <= 3
+
+
+@patch.object(WatchFolder, '_check_watch_folder', Mock(side_effect=PermissionError))
+async def test_watch_folder_no_crash_exception(watch_folder: WatchFolder):
+    # Test that errors raised in `_check_watch_folder` reraise as `NoCrashException`
+    with pytest.raises(NoCrashException):
+        await watch_folder._check_watch_folder_handle_exceptions()

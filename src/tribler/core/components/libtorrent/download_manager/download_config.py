@@ -56,8 +56,8 @@ class DownloadConfig:
                                         configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'))
 
     @staticmethod
-    def convert(settings: DownloadDefaultsSettings):
-        config = DownloadConfig()
+    def from_defaults(settings: DownloadDefaultsSettings, state_dir=None):
+        config = DownloadConfig(state_dir=state_dir)
 
         config.set_hops(settings.number_hops)
         config.set_safe_seeding(settings.safeseeding_enabled)
