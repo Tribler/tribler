@@ -12,9 +12,8 @@ from PyQt5.QtCore import (
     QCoreApplication,
     QDir,
     QObject,
-    QPoint,
     QRect,
-    QStringListModel,
+    QSize, QStringListModel,
     QTimer,
     QUrl,
     Qt,
@@ -349,18 +348,7 @@ class TriblerWindow(QMainWindow):
         signal.signal(signal.SIGINT, sigint_handler)
 
         # Resize and move the window according to the settings
-        size = self.gui_settings.value("size", self.size())
-        self.resize(size)
-
-        center = QApplication.desktop().availableGeometry(self).center()
-        screen_center_pos = QPoint(int(center.x() - self.width() // 2), int(center.y() - self.height() // 2))
-        pos = self.gui_settings.value("pos", screen_center_pos)
-
-        if not QApplication.desktop().availableGeometry(self).intersects(QRect(pos, self.size())):
-            self._logger.info("Resetting window position since it's outside the screen boundaries")
-            pos = screen_center_pos
-
-        self.move(pos)
+        self.restore_window_geometry()
 
         self.show()
 
@@ -394,6 +382,38 @@ class TriblerWindow(QMainWindow):
             run_core=run_core,
             upgrade_manager=self.upgrade_manager,
         )
+
+    def restore_window_geometry(self):
+        screen_geometry: QRect = QApplication.desktop().availableGeometry()
+        size: QSize = self.gui_settings.value("size", self.size())
+
+        def restore_size():
+            self._logger.info(f'Available screen geometry: {screen_geometry}')
+            self._logger.info(f'Restored window size: {size}')
+
+            bounded_size = QSize(
+                min(size.width(), screen_geometry.width()),
+                min(size.height(), screen_geometry.height())
+            )
+            self._logger.info(f'Resize window to the bounded size: {bounded_size}')
+            self.resize(bounded_size)
+
+        def restore_position():
+            pos = self.gui_settings.value("pos", self.pos())
+            self._logger.info(f'Restored window position: {pos}')
+
+            window_geometry = QRect(pos, size)
+            union: QRect = screen_geometry | window_geometry
+            window_outside_the_screen = union.width() > screen_geometry.width() or \
+                                        union.height() > screen_geometry.height()
+            self._logger.info(f'Is window outside the screen: {window_outside_the_screen}')
+
+            actual_position = pos if not window_outside_the_screen else screen_geometry.topLeft()
+            self._logger.info(f'Move the window to the: {actual_position}')
+            self.move(actual_position)
+
+        restore_size()
+        restore_position()
 
     def create_new_channel(self, checked):
         # TODO: DRY this with tablecontentmodel, possibly using QActions
