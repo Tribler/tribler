@@ -44,7 +44,7 @@ class ErrorHandler:
 
         is_core_exception = issubclass(info_type, CoreError)
         if is_core_exception:
-            text = text + self.tribler_window.core_manager.last_core_stderr_output
+            text = f'{text}\n\nLast Core output:\n{self.tribler_window.core_manager.get_last_core_output()}'
             self._stop_tribler(text)
 
         reported_error = ReportedError(

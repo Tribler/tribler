@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import sys
+from collections import deque
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +15,9 @@ from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
 from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect
+
+
+CORE_OUTPUT_DEQUE_LENGTH = 10
 
 
 class CoreManager(QObject):
@@ -47,8 +51,8 @@ class CoreManager(QObject):
         self.should_quit_app_on_core_finished = False
 
         self.use_existing_core = True
-        self.last_core_stdout_output: str = ''
-        self.last_core_stderr_output: str = ''
+        self.last_core_stdout_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
+        self.last_core_stderr_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
 
         connect(self.events_manager.core_connected, self.on_core_connected)
 
@@ -125,10 +129,11 @@ class CoreManager(QObject):
             return
 
         raw_output = bytes(self.core_process.readAllStandardOutput())
-        self.last_core_stdout_output = self.decode_raw_core_output(raw_output).strip()
+        output = self.decode_raw_core_output(raw_output).strip()
+        self.last_core_stdout_output.append(output)
 
         try:
-            print(self.last_core_stdout_output)  # print core output # noqa: T001
+            print(output)  # print core output # noqa: T001
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             pass
@@ -139,10 +144,11 @@ class CoreManager(QObject):
             return
 
         raw_output = bytes(self.core_process.readAllStandardError())
-        self.last_core_stderr_output = self.decode_raw_core_output(raw_output).strip()
+        output = self.decode_raw_core_output(raw_output).strip()
+        self.last_core_stderr_output.append(output)
 
         try:
-            print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001
+            print(output, file=sys.stderr)  # print core output # noqa: T001
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             pass
@@ -196,8 +202,14 @@ class CoreManager(QObject):
         process_checker = ProcessChecker(self.root_state_dir)
         process_checker.remove_lock()
 
+    def get_last_core_output(self, quoted=True):
+        output = ''.join(self.last_core_stderr_output) or ''.join(self.last_core_stdout_output)
+        if quoted:
+            output = re.sub(r'^', '> ', output, flags=re.MULTILINE)
+        return output
+
     @staticmethod
-    def format_error_message(exit_code: int, exit_status: int, last_core_output: str) -> str:
+    def format_error_message(exit_code: int, exit_status: int) -> str:
         message = f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}."
         try:
             string_error = os.strerror(exit_code)
@@ -205,9 +217,6 @@ class CoreManager(QObject):
             # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
             string_error = 'unknown error number'
         message += f'\n\nError message: {string_error}'
-
-        quoted_output = re.sub(r'^', '> ', last_core_output, flags=re.MULTILINE)
-        message += f"\n\nLast core output:\n{quoted_output}"
         return message
 
     def on_core_finished(self, exit_code, exit_status):
@@ -218,8 +227,7 @@ class CoreManager(QObject):
             if self.should_quit_app_on_core_finished:
                 self.app_manager.quit_application()
         else:
-            output = self.last_core_stderr_output or self.last_core_stdout_output
-            error_message = self.format_error_message(exit_code, exit_status, output)
+            error_message = self.format_error_message(exit_code, exit_status)
             self._logger.warning(error_message)
 
             if not self.app_manager.quitting_app:

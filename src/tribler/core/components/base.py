@@ -162,6 +162,10 @@ class Session:
 
     def _reraise_startup_exception_in_separate_task(self):
         async def exception_reraiser():
+            e = self._startup_exception
+            if isinstance(e, ComponentStartupException) and e.component.tribler_should_stop_on_component_error:
+                self.shutdown_event.set()
+
             # the exception should be intercepted by event loop exception handler
             raise self._startup_exception
 
