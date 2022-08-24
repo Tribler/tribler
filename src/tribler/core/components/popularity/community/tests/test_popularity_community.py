@@ -1,8 +1,5 @@
-import logging
 import time
-from functools import reduce
 from random import randint
-from types import SimpleNamespace
 from typing import Set, Tuple
 from unittest.mock import Mock
 
@@ -12,8 +9,6 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from pony.orm import db_session
 
-import pytest
-
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
@@ -22,18 +17,25 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import random_infohash
 
 
-def _generate_single_checked_torrent(status: str = 'alive') -> Tuple:
-    def get_seeders(status):
-        return 0 if status == 'dead' else randint(1, 10) if status == 'alive' else randint(11, 100)
-
-    def get_leechers(status):
-        return 0 if status == 'dead' else randint(1, 10) if status == 'alive' else randint(11, 100)
+def _generate_single_checked_torrent(status: str = None) -> Tuple:
+    """
+    Assumptions
+    DEAD    -> peers: 0
+    POPULAR -> Peers: [101, 1000]
+    DEFAULT -> peers: [1, 100]  # alive
+    """
+    def get_peers_for(health_status):
+        if health_status == 'DEAD':
+            return 0
+        if health_status == 'POPULAR':
+            return randint(101, 1000)
+        return randint(1, 100)
 
     # checked torrent structure is (infohash, seeders, leechers, last_check)
-    return random_infohash(), get_seeders(status), get_leechers(status), int(time.time())
+    return random_infohash(), get_peers_for(status), get_peers_for(status), int(time.time())
 
 
-def _generate_checked_torrents(count: int, status: str = 'alive') -> Set:
+def _generate_checked_torrents(count: int, status: str = None) -> Set:
     return {_generate_single_checked_torrent(status) for _ in range(count)}
 
 
@@ -105,31 +107,28 @@ class TestPopularityCommunity(TestBase):
             assert torrent.last_check == checked_torrent_info[3]
 
     def test_get_alive_torrents(self):
-        dead_torrents = _generate_checked_torrents(100, 'dead')
-        alive_torrents = _generate_checked_torrents(100, 'alive')
-        top_popular_torrents = _generate_checked_torrents(100, 'popular')
+        dead_torrents = _generate_checked_torrents(100, 'DEAD')
+        popular_torrents = _generate_checked_torrents(100, 'POPULAR')
+        alive_torrents = _generate_checked_torrents(100)
 
-        all_checked_torrents = dead_torrents | alive_torrents | top_popular_torrents
+        all_checked_torrents = dead_torrents | alive_torrents | popular_torrents
         self.nodes[0].overlay.torrent_checker.torrents_checked.update(all_checked_torrents)
 
         actual_alive_torrents = self.nodes[0].overlay.get_alive_checked_torrents()
-        assert len(actual_alive_torrents) == len(alive_torrents | top_popular_torrents)
+        assert len(actual_alive_torrents) == len(alive_torrents | popular_torrents)
 
     async def test_torrents_health_gossip_multiple(self):
         """
         Test whether torrent health information is correctly gossiped around
         """
-        dead_torrents = _generate_checked_torrents(100, 'dead')
-        alive_torrents = _generate_checked_torrents(100, 'alive')
-        top_popular_torrents = _generate_checked_torrents(100, 'popular')
+        dead_torrents = _generate_checked_torrents(100, 'DEAD')
+        popular_torrents = _generate_checked_torrents(100, 'POPULAR')
+        alive_torrents = _generate_checked_torrents(100)
 
-        all_checked_torrents = dead_torrents | alive_torrents | top_popular_torrents
+        all_checked_torrents = dead_torrents | alive_torrents | popular_torrents
 
         node0_db = self.nodes[0].overlay.mds.TorrentState
         node1_db = self.nodes[1].overlay.mds.TorrentState
-
-        node0_db_last_count = 0
-        node1_db_last_count = 0
 
         # Given, initially there are no torrents in the database
         with db_session:
@@ -137,8 +136,6 @@ class TestPopularityCommunity(TestBase):
             node1_count = node1_db.select().count()
             assert node0_count == 0
             assert node1_count == 0
-            node0_db_last_count = node0_count
-            node1_db_last_count = node1_count
 
         # Setup, node 0 checks some torrents, both dead and alive (including popular ones).
         self.nodes[0].overlay.torrent_checker.torrents_checked.update(all_checked_torrents)
@@ -151,9 +148,10 @@ class TestPopularityCommunity(TestBase):
         with db_session:
             node0_count = node0_db.select().count()
             node1_count = node1_db.select().count()
+
             assert node0_count == 0  # Nothing received from Node 1 because it hasn't checked anything to share.
             assert node1_count == PopularityCommunity.GOSSIP_POPULAR_TORRENT_COUNT
-            node0_db_last_count = node0_count
+
             node1_db_last_count = node1_count
 
         # Now, assuming Node 0 gossips random torrents to Node 1 multiple times to simulate periodic nature
@@ -167,10 +165,10 @@ class TestPopularityCommunity(TestBase):
             with db_session:
                 node0_count = node0_db.select().count()
                 node1_count = node1_db.select().count()
+
                 assert node0_count == 0  # Still nothing received from Node 1 because it hasn't checked torrents
                 assert node1_count >= node1_db_last_count
 
-                node0_db_last_count = node0_count
                 node1_db_last_count = node1_count
 
     async def test_torrents_health_update(self):

@@ -10,7 +10,7 @@ from tribler.core.components.metadata_store.remote_query_community.remote_query_
 from tribler.core.components.popularity.community.payload import TorrentsHealthPayload, PopularTorrentsRequest
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import get_normally_distributed_number, get_normally_distributed_positive_integers
+from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
 
 
 class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
@@ -20,7 +20,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     Push:
         - Every 5 seconds it gossips 10 random torrents to a random peer.
     Pull:
-        - Everytime it receives an introduction request, it sends a request
+        - Every time it receives an introduction request, it sends a request
         to return their popular torrents.
 
     Gossiping is for checked torrents only.
@@ -46,7 +46,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         # Init version community message handlers
         self.init_version_community()
 
-    def introduction_request_callback(self, peer, dist, payload):
+    def introduction_request_callback(self, peer, _dist, _payload):
         # Send request to peer to send popular torrents
         self.ez_send(peer, PopularTorrentsRequest())
 
@@ -93,12 +93,12 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     @lazy_wrapper(PopularTorrentsRequest)
     async def on_popular_torrents_request(self, peer, payload):
-        self.logger.debug(f"Received popular torrents health request")
+        self.logger.debug("Received popular torrents health request")
         popular_torrents = self.get_likely_popular_torrents()
         self.ez_send(peer, TorrentsHealthPayload.create({}, popular_torrents))
 
     def get_likely_popular_torrents(self):
-        checked_and_alive = list(self.get_alive_checked_torrents())
+        checked_and_alive = self.get_alive_checked_torrents()
         if not checked_and_alive:
             return {}
 
@@ -106,7 +106,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         num_torrents_to_send = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, num_torrents)
         likely_popular_indices = self._get_likely_popular_indices(num_torrents_to_send, num_torrents)
 
-        sorted_torrents = sorted(checked_and_alive, key=lambda t: -t[1])
+        sorted_torrents = sorted(list(checked_and_alive), key=lambda t: -t[1])
         likely_popular_torrents = {sorted_torrents[i] for i in likely_popular_indices}
         return likely_popular_torrents
 

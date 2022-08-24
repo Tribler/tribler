@@ -1,11 +1,10 @@
 import logging
-import random
 from unittest.mock import MagicMock, patch
 
 from aiohttp import ClientSession
 
 import pytest
-from scipy.stats import kstest, shapiro
+from scipy.stats import shapiro
 
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.utilities.patch_import import patch_import
@@ -281,5 +280,8 @@ def test_get_normally_distributed_positive_integers():
     assert len(set(random_integer_numbers)) == len(random_integer_numbers)
 
     # check if all numbers are integers and positive
-    is_positive_and_unique = all([number >= 0 and isinstance(number, int) for number in random_integer_numbers])
+    is_positive_and_unique = all(number >= 0 and isinstance(number, int) for number in random_integer_numbers)
     assert is_positive_and_unique
+
+    with pytest.raises(ValueError):
+        _ = get_normally_distributed_positive_integers(size=11, limit=10)
