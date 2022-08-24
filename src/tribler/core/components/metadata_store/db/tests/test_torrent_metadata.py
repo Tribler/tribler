@@ -1,12 +1,11 @@
 from datetime import datetime
 from time import time
-
-from ipv8.keyvault.crypto import default_eccrypto
-
-from pony import orm
-from pony.orm import db_session
+from unittest.mock import MagicMock, Mock
 
 import pytest
+from ipv8.keyvault.crypto import default_eccrypto
+from pony import orm
+from pony.orm import db_session
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import TODELETE
@@ -393,3 +392,23 @@ def test_popular_torrens_with_metadata_type(metadata_store):
 
     with pytest.raises(TypeError):
         metadata_store.get_entries(popular=True, metadata_type=[REGULAR_TORRENT, CHANNEL_TORRENT])
+
+
+WRONG_TRACKERS_OBJECTS = [
+    ["b'udp://tracker/announce'"],
+    None
+]
+
+
+@pytest.mark.parametrize('tracker', WRONG_TRACKERS_OBJECTS)
+def test_tdef_to_metadata_dict_wrong_tracker(tracker):
+    # Ensure that in the case of wrong returned `get_tracker` object, `tdef_to_metadata_dict` function produces a
+    # correct dictionary
+    # see: https://github.com/Tribler/tribler/issues/6987
+    metadata_dict = tdef_to_metadata_dict(
+        tdef=MagicMock(
+            get_tracker=Mock(return_value=tracker)
+        ),
+        category_filter=MagicMock())
+
+    assert metadata_dict['tracker_info'] == ''
