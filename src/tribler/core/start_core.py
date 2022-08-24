@@ -4,6 +4,7 @@ import logging.config
 import os
 import signal
 import sys
+from pathlib import Path
 from typing import List
 
 from tribler.core import notifications
@@ -92,7 +93,12 @@ def components_gen(config: TriblerConfig):
         yield GigachannelManagerComponent()
 
 
-async def core_session(config: TriblerConfig, components: List[Component]):
+async def core_session(config: TriblerConfig, components: List[Component]) -> int:
+    """
+    Async task for running a new Tribler session.
+
+    Returns an exit code, which is non-zero if the Tribler session finished with an error.
+    """
     session = Session(config, components, failfast=False)
     signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
     async with session.start() as session:
@@ -108,12 +114,16 @@ async def core_session(config: TriblerConfig, components: List[Component]):
             session.notifier[notifications.tribler_shutdown_state]("Saving configuration...")
             config.write()
 
+    return session.exit_code
 
-def run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=False):
+
+def run_tribler_core_session(api_port: str, api_key: str, state_dir: Path, gui_test_mode: bool = False) -> int:
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
     through the HTTP API.
+
+    Returns an exit code value, which is non-zero if the Tribler session finished with an error.
     """
     logger.info(f'Start tribler core. API port: "{api_port}". '
                 f'API key: "{api_key}". State dir: "{state_dir}". '
@@ -154,7 +164,7 @@ def run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=False):
     loop.set_exception_handler(exception_handler.unhandled_error_observer)
 
     try:
-        loop.run_until_complete(core_session(config, components=list(components_gen(config))))
+        exit_code = loop.run_until_complete(core_session(config, components=list(components_gen(config))))
     finally:
         if trace_logger:
             trace_logger.close()
@@ -162,6 +172,8 @@ def run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=False):
         # Flush the logs to the file before exiting
         for handler in logging.getLogger().handlers:
             handler.flush()
+
+    return exit_code
 
 
 def run_core(api_port, api_key, root_state_dir, parsed_args):
@@ -171,4 +183,7 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
     with single_tribler_instance(root_state_dir):
         version_history = VersionHistory(root_state_dir)
         state_dir = version_history.code_version.directory
-        run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
+        exit_code = run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
+
+    if exit_code:
+        sys.exit(exit_code)

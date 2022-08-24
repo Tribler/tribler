@@ -211,11 +211,14 @@ class CoreManager(QObject):
     @staticmethod
     def format_error_message(exit_code: int, exit_status: int) -> str:
         message = f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}."
-        try:
-            string_error = os.strerror(exit_code)
-        except ValueError:
-            # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
-            string_error = 'unknown error number'
+        if exit_code == 1:
+            string_error = "Application error"
+        else:
+            try:
+                string_error = os.strerror(exit_code)
+            except ValueError:
+                # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
+                string_error = 'unknown error number'
         message += f'\n\nError message: {string_error}'
         return message
 
