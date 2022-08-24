@@ -5,7 +5,7 @@ from pony import orm
 from pony.orm import db_session
 
 from tribler.core import notifications
-from tribler.core.components.metadata_store.category_filter.category import default_category_filter
+from tribler.core.components.metadata_store.category_filter.category import Category, default_category_filter
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
 from tribler.core.components.metadata_store.db.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload
@@ -21,13 +21,14 @@ def infohash_to_id(infohash):
     return abs(unpack(">q", infohash[:8])[0])
 
 
-def tdef_to_metadata_dict(tdef):
+def tdef_to_metadata_dict(tdef, category_filter: Category = None):
     """
     Helper function to create a TorrentMetadata-compatible dict from TorrentDef
     """
     # We only want to determine the type of the data. XXX filtering is done by the receiving side
+    category_filter = category_filter or default_category_filter
     try:
-        tags = default_category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
+        tags = category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())
     except UnicodeDecodeError:
         tags = "Unknown"
 
@@ -36,13 +37,18 @@ def tdef_to_metadata_dict(tdef):
     except ValueError:
         torrent_date = EPOCH
 
+    tracker = tdef.get_tracker()
+    if not isinstance(tracker, bytes):
+        tracker = b''
+    tracker_url = ensure_unicode(tracker, 'utf-8')
+    tracker_info = get_uniformed_tracker_url(tracker_url) or ''
     return {
         "infohash": tdef.get_infohash(),
         "title": tdef.get_name_as_unicode()[:300],
         "tags": tags[:200],
         "size": tdef.get_length(),
         "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
-        "tracker_info": get_uniformed_tracker_url(ensure_unicode(tdef.get_tracker() or '', 'utf-8')) or '',
+        "tracker_info": tracker_info,
     }
 
 
