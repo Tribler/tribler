@@ -195,8 +195,8 @@ class TriblerWindow(QMainWindow):
         self.core_args = core_args
         self.core_env = core_env
 
-        error_handler = ErrorHandler(self)
-        self.events_manager = EventRequestManager(api_port, api_key, error_handler)
+        self.error_handler = ErrorHandler(self)
+        self.events_manager = EventRequestManager(api_port, api_key, self.error_handler)
         self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, app_manager, self.events_manager)
         self.version_history = VersionHistory(self.root_state_dir)
         self.upgrade_manager = UpgradeManager(self.version_history)
@@ -224,7 +224,7 @@ class TriblerWindow(QMainWindow):
                 if result == -1:
                     self.logger.warning("Failed to load font %s!", emoji_ttf_path)
 
-        sys.excepthook = error_handler.gui_error
+        sys.excepthook = self.error_handler.gui_error
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         TriblerRequestManager.window = self
