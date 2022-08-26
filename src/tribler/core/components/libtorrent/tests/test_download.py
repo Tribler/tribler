@@ -1,6 +1,6 @@
 from asyncio import Future, sleep
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import libtorrent as lt
 import pytest
@@ -403,3 +403,15 @@ async def test_checkpoint_timeout(test_download):
     test_download.futures['save_resume_data'].pop(0)
     await sleep(0.2)
     assert task.done()
+
+
+@patch.object(DownloadConfig, 'write', new_callable=MagicMock)
+@patch('tribler.core.components.libtorrent.download_manager.download.hexlify', Mock(return_value=''))
+def test_on_save_resume_data_alert_permission_denied(mocked_write: Mock, test_download):
+    """
+    Test that the `on_save_resume_data_alert` method doesn't raises an Exception in the case `DownloadConfig.write()`
+    raises a PermissionError
+    """
+    mocked_write.side_effect = PermissionError()
+    test_download.on_save_resume_data_alert(MagicMock())
+    assert mocked_write.called
