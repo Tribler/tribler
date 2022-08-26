@@ -32,6 +32,8 @@ RUN_TRIBLER_PY = Path(tribler.__file__).parent.parent / "run_tribler.py"
 TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
 
+# pylint: disable=protected-access
+
 @pytest.fixture(name='window', scope="module")
 def fixture_window(tmpdir_factory):
     api_key = hexlify(os.urandom(16))
