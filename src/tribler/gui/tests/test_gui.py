@@ -32,6 +32,8 @@ RUN_TRIBLER_PY = Path(tribler.__file__).parent.parent / "run_tribler.py"
 TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
 
+# pylint: disable=protected-access
+
 @pytest.fixture(name='window', scope="module")
 def fixture_window(tmpdir_factory):
     api_key = hexlify(os.urandom(16))
@@ -421,6 +423,30 @@ def test_add_download_url(window):
 
     QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
     wait_for_signal(window.downloads_page.received_downloads)
+
+
+# @pytest.mark.guitest
+def test_add_deeptorrent(window):
+    # Test that the `deeptorrent.torrent` file doesn't cause the RecursionError
+    #
+    # For more information: https://github.com/Tribler/tribler/issues/3037#issuecomment-1223946682
+
+    go_to_and_wait_for_downloads(window)
+    deep_torrent = Path(__file__).parent / 'data/deeptorrent.torrent'
+    window.pending_uri_requests.append(Path(deep_torrent).as_uri())
+    window.process_uri_request()
+    # set the download directory to a writable path
+    download_dir = os.path.join(os.path.expanduser("~"), "downloads")
+    window.dialog.dialog_widget.destination_input.setCurrentText(download_dir)
+    dfl = window.dialog.dialog_widget.files_list_view
+    wait_for_list_populated(dfl)
+    item = dfl.topLevelItem(0).child(0)
+    dfl.expand(dfl.indexFromItem(item))
+    clickItem(dfl, item, CHECKBOX_COL)
+    QTest.mouseClick(window.dialog.dialog_widget.download_button, Qt.LeftButton)
+    wait_for_signal(window.downloads_page.received_downloads)
+
+    assert not window.error_handler._handled_exceptions
 
 
 @pytest.mark.guitest

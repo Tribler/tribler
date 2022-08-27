@@ -1,14 +1,17 @@
+import sys
+
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHeaderView, QTreeWidget, QTreeWidgetItem
 
 from tribler.gui.utilities import connect, format_size, get_image_path
 from tribler.gui.widgets.downloadwidgetitem import create_progress_bar_widget
 
+MAX_ALLOWED_RECURSION_DEPTH = sys.getrecursionlimit() - 100
+
 CHECKBOX_COL = 1
 FILENAME_COL = 0
 SIZE_COL = 1
 PROGRESS_COL = 2
-
 
 """
  !!! ACHTUNG !!!!
@@ -26,7 +29,6 @@ PROGRESS_COL = 2
    putting *any* styling for ::indicator thing into the .ui file result in broken styling.
  """
 
-
 TORRENT_FILES_TREE_STYLESHEET_NO_ITEM = """
     TorrentFileTreeWidget::indicator { width: 18px; height: 18px;}
     TorrentFileTreeWidget::indicator:checked { image: url("%s"); }
@@ -43,8 +45,8 @@ TORRENT_FILES_TREE_STYLESHEET_NO_ITEM = """
 # Note the amount of padding is aligned to the size of progress bars to give both list variants
 # (with and without progress bars) a similiar look
 TORRENT_FILES_TREE_STYLESHEET = (
-    TORRENT_FILES_TREE_STYLESHEET_NO_ITEM
-    + """
+        TORRENT_FILES_TREE_STYLESHEET_NO_ITEM
+        + """
     TorrentFileTreeWidget::item { color: white; padding-top: 7px; padding-bottom: 7px; }
 """
 )
@@ -66,20 +68,23 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
     def children(self):
         return (self.child(index) for index in range(0, self.childCount()))
 
-    def subtree(self, filter_by=lambda x: True):
-        if not filter_by(self):
+    def subtree(self, filter_by=lambda x: True, max_depth=MAX_ALLOWED_RECURSION_DEPTH):
+        if not filter_by(self) or max_depth <= 0:
             return []
         result = [self]
         for child in self.children:
             if filter_by(child):
-                result.extend(child.subtree())
+                result.extend(child.subtree(max_depth=max_depth - 1))
         return result
 
-    def fill_directory_sizes(self):
+    def fill_directory_sizes(self, max_depth=MAX_ALLOWED_RECURSION_DEPTH) -> int:
+        if max_depth <= 0:
+            return 0
+
         if self.file_size is None:
             self.file_size = 0
             for child in self.children:
-                self.file_size += child.fill_directory_sizes()
+                self.file_size += child.fill_directory_sizes(max_depth=max_depth - 1)
         self.setText(SIZE_COL, format_size(float(self.file_size)))
         return self.file_size
 
@@ -226,8 +231,8 @@ class TorrentFileTreeWidget(QTreeWidget):
         if draw_progress_bars:
             # make vertical space for progress bars
             stylesheet = (
-                TORRENT_FILES_TREE_STYLESHEET_NO_ITEM
-                + """
+                    TORRENT_FILES_TREE_STYLESHEET_NO_ITEM
+                    + """
             TorrentFileTreeWidget::item { color: white; padding-top: 0px; padding-bottom: 0px; }
             """
             )
@@ -245,7 +250,7 @@ class TorrentFileTreeWidget(QTreeWidget):
         for ind in range(self.topLevelItemCount()):
             item = self.topLevelItem(ind)
             for subitem in item.subtree(
-                filter_by=lambda x: x.checkState(CHECKBOX_COL) in (Qt.PartiallyChecked, Qt.Checked)
+                    filter_by=lambda x: x.checkState(CHECKBOX_COL) in (Qt.PartiallyChecked, Qt.Checked)
             ):
                 if subitem.checkState(CHECKBOX_COL) == Qt.Checked:
                     selected_items.append(subitem)
