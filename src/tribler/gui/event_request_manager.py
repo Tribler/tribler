@@ -167,6 +167,10 @@ class EventRequestManager(QNetworkAccessManager):
         self._logger.info(f"Connecting to events endpoint ({'with' if reschedule_on_err else 'without'} retrying)")
         if self.reply is not None:
             self.reply.deleteLater()
+
+        # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
+        self.setNetworkAccessible(QNetworkAccessManager.Accessible)
+
         self.reply = self.get(self.request)
 
         connect(self.reply.readyRead, self.on_read_data)
