@@ -8,6 +8,7 @@ from typing import Optional
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment
 from PyQt5.QtNetwork import QNetworkRequest
 
+from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
@@ -112,6 +113,11 @@ class CoreManager(QObject):
 
         raw_output = bytes(self.core_process.readAllStandardOutput())
         self.last_core_stdout_output = self.decode_raw_core_output(raw_output).strip()
+        gui_sentry_reporter.add_breadcrumb(
+            message=self.last_core_stdout_output,
+            category='CORE_STDOUT',
+            level='info'
+        )
 
         try:
             print(self.last_core_stdout_output)  # print core output # noqa: T001
