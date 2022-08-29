@@ -17,14 +17,10 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.restapi.rest.rest_endpoint import (
-    HTTP_BAD_REQUEST,
-    HTTP_INTERNAL_SERVER_ERROR,
-    HTTP_NOT_FOUND,
     RESTEndpoint,
     RESTResponse,
     RESTStreamResponse,
 )
-from tribler.core.components.restapi.rest.util import return_handled_exception
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DLSTATUS_CIRCUITS,
@@ -103,13 +99,6 @@ class DownloadsEndpoint(RESTEndpoint):
                              web.get('/{infohash}/torrent', self.get_torrent),
                              web.get('/{infohash}/files', self.get_files),
                              web.get('/{infohash}/stream/{fileindex}', self.stream, allow_head=False)])
-
-    @staticmethod
-    def return_404(request, message="this download does not exist"):
-        """
-        Returns a 404 response code if your channel has not been created.
-        """
-        return RESTResponse({"error": message}, status=HTTP_NOT_FOUND)
 
     @staticmethod
     def create_dconfig_from_params(parameters):
@@ -376,16 +365,16 @@ class DownloadsEndpoint(RESTEndpoint):
         params = await request.json()
         uri = params.get('uri')
         if not uri:
-            return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("uri parameter missing")
 
         download_config, error = DownloadsEndpoint.create_dconfig_from_params(params)
         if error:
-            return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
+            return self.bad_request(error)
 
         try:
             download = await self.download_manager.start_download_from_uri(uri, config=download_config)
         except Exception as e:
-            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return self.internal_error(e)
 
         return RESTResponse({"started": True, "infohash": hexlify(download.get_def().get_infohash())})
 
@@ -412,18 +401,18 @@ class DownloadsEndpoint(RESTEndpoint):
     async def delete_download(self, request):
         parameters = await request.json()
         if 'remove_data' not in parameters:
-            return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("parameter remove_data is missing", parameters=parameters)
 
         infohash = unhexlify(request.match_info['infohash'])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return self.not_found("download does not exist")
 
         try:
             await self.download_manager.remove_download(download, remove_content=parameters['remove_data'])
         except Exception as e:
             self._logger.exception(e)
-            return return_handled_exception(request, e)
+            return self.internal_error(e)
 
         return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
 
@@ -432,8 +421,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if vod_mode:
             file_index = parameters.get("fileindex")
             if file_index is None:
-                return RESTResponse({"error": "fileindex is necessary to enable vod_mode"},
-                                    status=HTTP_BAD_REQUEST)
+                return self.bad_request("fileindex is necessary to enable vod_mode", parameters=parameters)
             if download.stream is None:
                 download.add_stream()
             if not download.stream.enabled or download.stream.fileindex != file_index:
@@ -480,34 +468,34 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info['infohash'])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return self.not_found("download does not exist")
 
         parameters = await request.json()
         vod_mode = parameters.get("vod_mode")
         if vod_mode is not None:
             if not isinstance(vod_mode, bool):
-                return RESTResponse({"error": "vod_mode must be bool flag"},
-                                    status=HTTP_BAD_REQUEST)
+                return self.bad_request(f"vod_mode must be bool flag. Got: {vod_mode!r}")
             return await self.vod_response(download, parameters, request, vod_mode)
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
-            return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
-                                status=HTTP_BAD_REQUEST)
+            return self.bad_request("anon_hops must be the only parameter in request", parameters=parameters)
         elif 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
                 await self.download_manager.update_hops(download, anon_hops)
             except Exception as e:
                 self._logger.exception(e)
-                return return_handled_exception(request, e)
+                return self.internal_error(e)
             return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
         if 'selected_files' in parameters:
-            selected_files_list = parameters['selected_files']
+            selected_files = parameters['selected_files']
             num_files = len(download.tdef.get_files())
-            if not all([0 <= index < num_files for index in selected_files_list]):
-                return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
-            download.set_selected_files(selected_files_list)
+            for index in selected_files:
+                if not 0 <= index < num_files:
+                    return self.bad_request(f"index of file out of range: {index}", num_files=num_files,
+                                            selected_files=selected_files)
+            download.set_selected_files(selected_files)
 
         if parameters.get('state'):
             state = parameters['state']
@@ -524,7 +512,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 download.move_storage(dest_dir)
                 download.checkpoint()
             else:
-                return RESTResponse({"error": "unknown state parameter"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request(f"unknown state parameter: {state!r}")
 
         return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash())})
 
@@ -546,11 +534,11 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info['infohash'])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return self.not_found("download does not exist")
 
         torrent = download.get_torrent_data()
         if not torrent:
-            return DownloadsEndpoint.return_404(request)
+            return self.not_found("download does not exist")
 
         return RESTResponse(lt.bencode(torrent), headers={'content-type': 'application/x-bittorrent',
                                                           'Content-Disposition': 'attachment; filename=%s.torrent'
@@ -580,7 +568,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info['infohash'])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return self.not_found("download does not exist")
         return RESTResponse({"files": self.get_files_info_json(download)})
 
     @docs(
@@ -608,7 +596,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info['infohash'])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return self.not_found("download does not exist")
 
         file_index = int(request.match_info['fileindex'])
 

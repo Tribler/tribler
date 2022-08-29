@@ -14,7 +14,7 @@ from pony.orm import db_session
 from tribler.core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import RemoteQueryParameters
-from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler.core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import froze_it
 
@@ -56,7 +56,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
         try:
             sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
-            return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request(f"Error processing request parameters: {e}")
         self._logger.info(f'Parameters: {sanitized}')
 
         request_uuid, peers_list = self.gigachannel_community.send_search_request(**sanitized)

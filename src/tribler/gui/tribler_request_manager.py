@@ -62,15 +62,19 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     @staticmethod
     def get_message_from_error(error):
-        return_error = None
+        result = None
         if isinstance(error['error'], str):
-            return_error = error['error']
+            result = error['error']
         elif 'message' in error['error']:
-            return_error = error['error']['message']
+            result = error['error']['message']
 
-        if not return_error:
+        if not result:
             return json.dumps(error)  # Just print the json object
-        return return_error
+
+        if 'context' in error and isinstance(error['context'], dict):
+            result += '\n\n' + '\n'.join(f'{key}={value!r}' for key, value in sorted(error['context'].items()))
+
+        return result
 
     def show_error(self, error_text):
         main_text = f"An error occurred during the request:\n\n{error_text}"

@@ -285,16 +285,17 @@ class ChannelsEndpoint(MetadataEndpointBase):
             try:
                 request_parsed = await request.json()
             except (ContentTypeError, ValueError):
-                return RESTResponse({"error": "Bad JSON"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request("Bad JSON")
 
             if not target_collection and not personal_root:
-                return RESTResponse({"error": "Target channel not found"}, status=HTTP_NOT_FOUND)
+                return self.not_found("Target channel not found")
+
             results_list = []
             for entry in request_parsed:
                 public_key, id_ = unhexlify(entry["public_key"]), entry["id"]
                 source = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not source:
-                    return RESTResponse({"error": "Source entry not found"}, status=HTTP_BAD_REQUEST)
+                    return self.bad_request("Source entry not found")
                 # We must upgrade Collections to Channels when moving them to root channel, and, vice-versa,
                 # downgrade Channels to Collections when moving them into existing channels
                 if isinstance(source, self.mds.CollectionNode):
@@ -379,7 +380,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         with db_session:
             channel = self.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
         if not channel:
-            return RESTResponse({"error": "Unknown channel"}, status=HTTP_NOT_FOUND)
+            return self.not_found("Unknown channel")
 
         parameters = await request.json()
 
@@ -407,7 +408,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                     raise RuntimeError("Metainfo timeout")
                 tdef = TorrentDef.load_from_dict(meta_info)
             else:
-                return RESTResponse({"error": "unknown uri type"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request("unknown uri type")
 
             added = 0
             if tdef:
@@ -419,23 +420,21 @@ class ChannelsEndpoint(MetadataEndpointBase):
         if parameters.get('torrents_dir', None):
             torrents_dir = parameters['torrents_dir']
             if not Path(torrents_dir).is_absolute():
-                return RESTResponse({"error": "the torrents_dir should point to a directory"}, status=HTTP_BAD_REQUEST)
+                return self.bad_request("the torrents_dir should point to a directory")
 
         recursive = False
         if parameters.get('recursive'):
             recursive = parameters['recursive']
             if not torrents_dir:
-                return RESTResponse(
-                    {"error": "the torrents_dir parameter should be provided when the recursive parameter is set"},
-                    status=HTTP_BAD_REQUEST,
-                )
+                return self.bad_request(
+                    "the torrents_dir parameter should be provided when the recursive parameter is set")
 
         if torrents_dir:
             torrents_list, errors_list = channel.add_torrents_from_dir(torrents_dir, recursive)
             return RESTResponse({"added": len(torrents_list), "errors": errors_list})
 
         if not parameters.get('torrent', None):
-            return RESTResponse({"error": "torrent parameter missing"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("torrent parameter missing")
 
         # Try to parse the torrent data
         # Any errors will be handled by the error_middleware
@@ -458,7 +457,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             else:
                 coll = self.mds.CollectionNode.get(public_key=channel_pk, id_=channel_id)
                 if not coll:
-                    return RESTResponse({"success": False}, status=HTTP_NOT_FOUND)
+                    return self.not_found("Collection not found", public_key=channel_pk, id_=channel_id)
                 torrent_dict = coll.commit_channel_torrent()
                 if torrent_dict:
                     self.gigachannel_manager.updated_my_channel(TorrentDef.load_from_dict(torrent_dict))

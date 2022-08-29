@@ -11,7 +11,7 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
-from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler.core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler.core.utilities.utilities import froze_it
 
 
@@ -55,7 +55,7 @@ class SearchEndpoint(MetadataEndpointBase):
             sanitized = self.sanitize_parameters(request.query)
             tags = sanitized.pop('tags', None)
         except (ValueError, KeyError):
-            return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("Error processing request parameters")
 
         include_total = request.query.get('include_total', '')
 
@@ -81,7 +81,7 @@ class SearchEndpoint(MetadataEndpointBase):
             search_results, total, max_rowid = await mds.run_threaded(search_db)
         except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
-            return RESTResponse(status=HTTP_BAD_REQUEST)
+            return self.bad_request("Error while performing DB search: %s: %s")
 
         self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
 
@@ -115,7 +115,7 @@ class SearchEndpoint(MetadataEndpointBase):
     async def completions(self, request):
         args = request.query
         if 'q' not in args:
-            return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("query parameter missing")
 
         keywords = args['q'].strip().lower()
         # TODO: add XXX filtering for completion terms

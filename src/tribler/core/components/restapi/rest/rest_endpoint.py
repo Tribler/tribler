@@ -24,6 +24,24 @@ class RESTEndpoint:
         self.endpoints[prefix] = endpoint
         self.app.add_subapp(prefix, endpoint.app)
 
+    def bad_request(self, msg: str, status: int = HTTP_BAD_REQUEST, exc_info=None, **kwargs):
+        logger_msg = msg
+        if kwargs:
+            logger_msg += f', context: {kwargs!r}'
+        self._logger.error(logger_msg, exc_info=exc_info)
+        result = {"error": msg}
+        if kwargs:
+            result["context"] = kwargs
+        return RESTResponse(result, status=status)
+
+    def not_found(self, msg, **kwargs):
+        return self.bad_request(msg, status=HTTP_NOT_FOUND, **kwargs)
+
+    def internal_error(self, exc: Exception = None, msg: str = None, **kwargs):
+        if msg is None and exc is not None:
+            msg = f'{exc.__class__.__name__}: {exc}'
+        return self.bad_request(msg, status=HTTP_INTERNAL_SERVER_ERROR, exc_info=exc, **kwargs)
+
 
 class RESTResponse(web.Response):
 

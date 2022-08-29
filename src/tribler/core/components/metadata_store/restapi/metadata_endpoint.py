@@ -1,4 +1,5 @@
 from binascii import unhexlify
+from typing import Optional, Tuple
 
 from aiohttp import ContentTypeError, web
 
@@ -22,30 +23,8 @@ from tribler.core.utilities.utilities import froze_it
 TORRENT_CHECK_TIMEOUT = 20
 
 
-class UpdateEntryMixin:
-    @db_session
-    def update_entry(self, public_key, id_, update_dict):
-        entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
-        if not entry:
-            return HTTP_NOT_FOUND, {"error": "Object with the specified pk+id could not be found."}
-
-        signed_parameters_to_change = set(entry.payload_arguments).intersection(set(update_dict.keys()))
-        if signed_parameters_to_change:
-            if 'status' in update_dict:
-                return HTTP_BAD_REQUEST, {"error": "Cannot set status manually when changing signed attributes."}
-            if entry.status == LEGACY_ENTRY:
-                return HTTP_BAD_REQUEST, {"error": "Changing parameters of legacy entries is not supported."}
-            if not entry.is_personal:
-                return (
-                    HTTP_BAD_REQUEST,
-                    {"error": "Changing signed parameters in non-personal entries is not supported."},
-                )
-
-        return None, entry.update_properties(update_dict).to_simple_dict()
-
-
 @froze_it
-class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
+class MetadataEndpoint(MetadataEndpointBase):
     """
     This is the top-level endpoint class that serves other endpoints.
 
@@ -91,15 +70,15 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         try:
             request_parsed = await request.json()
         except (ContentTypeError, ValueError):
-            return RESTResponse({"error": "Bad JSON"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("Bad JSON")
         results_list = []
         for entry in request_parsed:
             public_key = unhexlify(entry.pop("public_key"))
             id_ = entry.pop("id")
-            error, result = self.update_entry(public_key, id_, entry)
+            error_response, result = self.update_entry(public_key, id_, entry)
             # TODO: handle the results for a list that contains some errors in a smarter way
-            if error:
-                return RESTResponse(result, status=error)
+            if error_response is not None:
+                return error_response
             results_list.append(result)
         return RESTResponse(results_list)
 
@@ -129,7 +108,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 id_ = entry.pop("id")
                 entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
                 if not entry:
-                    return RESTResponse({"error": "Entry %i not found" % id_}, status=HTTP_BAD_REQUEST)
+                    return self.bad_request("Entry %i not found" % id_)
                 entry.delete()
                 result = {"public_key": hexlify(public_key), "id": id_, "state": "Deleted"}
                 results_list.append(result)
@@ -149,12 +128,34 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         try:
             parameters = await request.json()
         except (ContentTypeError, ValueError):
-            return RESTResponse({"error": "Bad JSON input data"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request("Bad JSON input data")
 
         public_key = unhexlify(request.match_info['public_key'])
         id_ = request.match_info['id']
-        error, result = self.update_entry(public_key, id_, parameters)
-        return RESTResponse(result, status=error or 200)
+        error_response, result = self.update_entry(public_key, id_, parameters)
+        if error_response is not None:
+            return error_response
+        return RESTResponse(result)
+
+    @db_session
+    def update_entry(self, public_key, id_, parameters) -> Tuple[Optional[RESTResponse], Optional[dict]]:
+        entry = self.mds.ChannelNode.get(public_key=public_key, id_=id_)
+        if not entry:
+            return self.not_found("Object with the specified pk+id could not be found"), None
+
+        signed_parameters_to_change = set(entry.payload_arguments).intersection(set(parameters.keys()))
+        if signed_parameters_to_change:
+            if 'status' in parameters:
+                return self.bad_request("Cannot set status manually when changing signed attributes"), None
+
+            if entry.status == LEGACY_ENTRY:
+                return self.bad_request("Changing parameters of legacy entries is not supported"), None
+
+            if not entry.is_personal:
+                return self.bad_request("Changing signed parameters in non-personal entries is not supported"), None
+
+        result = entry.update_properties(parameters).to_simple_dict()
+        return None, result
 
     @docs(
         tags=['Metadata'],
@@ -171,7 +172,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 # TODO: handle costly attributes in a more graceful and generic way for all types of metadata
                 entry_dict = entry.to_simple_dict()
             else:
-                return RESTResponse({"error": "entry not found in database"}, status=HTTP_NOT_FOUND)
+                return self.not_found("entry not found in database")
 
         return RESTResponse(entry_dict)
 
@@ -245,7 +246,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         elif timeout.isdigit():
             timeout = int(timeout)
         else:
-            return RESTResponse({"error": f"Error processing timeout parameter '{timeout}'"}, status=HTTP_BAD_REQUEST)
+            return self.bad_request(f"Error processing timeout parameter '{timeout}'")
         refresh = request.query.get('refresh', '0') == '1'
         nowait = request.query.get('nowait', '0') == '1'
 
