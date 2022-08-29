@@ -113,6 +113,9 @@ class TriblerRequestManager(QNetworkAccessManager):
             buf.setData(request.raw_data)
         buf.open(QIODevice.ReadOnly)
 
+        # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
+        self.setNetworkAccessible(QNetworkAccessManager.Accessible)
+
         request.reply = self.sendCustomRequest(qt_request, request.method.encode("utf8"), buf)
         buf.setParent(request.reply)
 
