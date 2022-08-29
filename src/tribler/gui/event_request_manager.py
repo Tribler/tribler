@@ -116,14 +116,16 @@ class EventRequestManager(QNetworkAccessManager):
         should_retry = reschedule_on_err and time.time() < self.start_time + CORE_CONNECTION_TIMEOUT
         error_name = self.network_errors.get(error, error)
         self._logger.info(f"Error {error_name} while trying to connect to Tribler Core"
-                          + (', will retry...' if should_retry else ''))
+                          + (', will retry' if should_retry else ', will not retry'))
 
         if reschedule_on_err:
             if should_retry:
                 self.connect_timer.start(RECONNECT_INTERVAL_MS)  # Reschedule an attempt
             else:
                 raise CoreConnectTimeoutError(
-                    f"Could not connect with the Tribler Core within {CORE_CONNECTION_TIMEOUT} seconds")
+                    f"Could not connect with the Tribler Core within {CORE_CONNECTION_TIMEOUT} seconds: "
+                    f"{error_name} (code {error})"
+                )
 
     def on_read_data(self):
         if not self.receiving_data:
