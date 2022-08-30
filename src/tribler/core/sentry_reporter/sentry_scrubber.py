@@ -1,4 +1,5 @@
 import re
+from typing import Dict
 
 from tribler.core.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
@@ -26,8 +27,7 @@ class SentryScrubber:
             'Documents and Settings',
             'Users',
         ]
-
-        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN']
+        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN', 'server_name']
         self.event_fields_to_cut = []
         self.exclusions = ['local', '127.0.0.1']
 
@@ -145,7 +145,7 @@ class SentryScrubber:
 
         return text
 
-    def scrub_entity_recursively(self, entity, depth=10):
+    def scrub_entity_recursively(self, entity: Dict, depth=10):
         """Recursively traverses entity and remove all sensitive information.
 
         Can work with:

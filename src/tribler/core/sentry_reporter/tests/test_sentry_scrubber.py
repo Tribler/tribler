@@ -97,7 +97,8 @@ def test_scrub_text_ip(scrubber):
 def test_scrub_text_hash(scrubber):
     # negative
     assert (
-        scrubber.scrub_text('0a303030303030303030303030303030303030300') == '0a303030303030303030303030303030303030300'
+            scrubber.scrub_text(
+                '0a303030303030303030303030303030303030300') == '0a303030303030303030303030303030303030300'
     )
     assert scrubber.scrub_text('0a3030303030303030303303030303030303030') == '0a3030303030303030303303030303030303030'
 
@@ -119,10 +120,10 @@ def test_scrub_text_complex_string(scrubber):
     actual = scrubber.scrub_text(source)
 
     assert (
-        actual == f'this is a string that have been sent from '
-        f'{scrubber.placeholder_ip}({scrubber.placeholder_hash}) '
-        f'located at usr/{scrubber.placeholder_user}/path at '
-        f'{scrubber.placeholder_user} machine(someuserany)'
+            actual == f'this is a string that have been sent from '
+                      f'{scrubber.placeholder_ip}({scrubber.placeholder_hash}) '
+                      f'located at usr/{scrubber.placeholder_user}/path at '
+                      f'{scrubber.placeholder_user} machine(someuserany)'
     )
 
     assert 'someuser' in scrubber.sensitive_occurrences
@@ -138,10 +139,12 @@ def test_scrub_simple_event(scrubber):
 def test_scrub_event(scrubber):
     event = {
         'the very first item': 'username',
+        'server_name': 'userhost',
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
                     'USERNAME': 'User Name',
+                    'USERDOMAIN_ROAMINGPROFILE': 'userhost',
                     'PATH': '/users/username/apps',
                     'TMP_WIN': r'C:\Users\USERNAM~1\AppData\Local\Temp',
                     'USERDOMAIN': 'a',
@@ -166,10 +169,12 @@ def test_scrub_event(scrubber):
 
     assert scrubber.scrub_event(event) == {
         'the very first item': scrubber.placeholder_user,
+        'server_name': '<server_name>',
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
                     'USERNAME': '<USERNAME>',
+                    'USERDOMAIN_ROAMINGPROFILE': '<server_name>',
                     'PATH': f'/users/{scrubber.placeholder_user}/apps',
                     'TMP_WIN': f'C:\\Users\\{scrubber.placeholder_user}\\AppData\\Local\\Temp',
                     'USERDOMAIN': '<USERDOMAIN>',
@@ -249,11 +254,11 @@ def test_scrub_dict(scrubber):
     assert scrubber.scrub_entity_recursively(
         {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U'}
     ) == {
-        'PATH': f'/home/{scrubber.placeholder_user}/some/',
-        'USERDOMAIN': '<USERDOMAIN>',
-        'USERNAME': '<USERNAME>',
-        'REPEATED': f'user {scrubber.placeholder_user} <USERDOMAIN> <USERNAME>',
-    }
+               'PATH': f'/home/{scrubber.placeholder_user}/some/',
+               'USERDOMAIN': '<USERDOMAIN>',
+               'USERNAME': '<USERNAME>',
+               'REPEATED': f'user {scrubber.placeholder_user} <USERDOMAIN> <USERNAME>',
+           }
 
     assert 'username' in scrubber.sensitive_occurrences.keys()
     assert 'UD' in scrubber.sensitive_occurrences.keys()
