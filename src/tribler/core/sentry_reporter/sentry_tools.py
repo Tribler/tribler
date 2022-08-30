@@ -2,7 +2,6 @@
 simplify work with several data structures.
 """
 import re
-from hashlib import md5
 from typing import Optional
 
 from faker import Faker
@@ -165,6 +164,10 @@ def format_version(version: Optional[str]) -> Optional[str]:
 
 
 def obfuscate_string(s: str, part_of_speech: str = 'noun') -> str:
+    """Obfuscate string by replacing it with random word.
+
+    The same random words will be generated for the same given strings.
+    """
     if not s:
         return s
 

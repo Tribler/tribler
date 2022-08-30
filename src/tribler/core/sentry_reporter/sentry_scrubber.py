@@ -6,7 +6,8 @@ from tribler.core.sentry_reporter.sentry_reporter import (
     RELEASE,
     VALUES,
 )
-from tribler.core.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value
+from tribler.core.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value, \
+    obfuscate_string
 
 
 class SentryScrubber:
@@ -36,10 +37,6 @@ class SentryScrubber:
 
         # placeholders
         self.create_placeholder = lambda text: f'<{text}>'
-
-        self.placeholder_user = self.create_placeholder('user')
-        self.placeholder_ip = self.create_placeholder('IP')
-        self.placeholder_hash = self.create_placeholder('hash')
 
         # compiled regular expressions
         self.re_folders = []
@@ -112,24 +109,26 @@ class SentryScrubber:
             return text
 
         def scrub_username(m):
-            group = m.group(0)
-            if group in self.exclusions:
-                return group
-            self.add_sensitive_pair(group, self.placeholder_user)
-            replacement = self.placeholder_user
-            return replacement
+            user_name = m.group(0)
+            if user_name in self.exclusions:
+                return user_name
+            fake_username = obfuscate_string(user_name)
+            placeholder = self.create_placeholder(fake_username)
+            self.add_sensitive_pair(user_name, placeholder)
+            return placeholder
 
         for regex in self.re_folders:
             text = regex.sub(scrub_username, text)
 
         # cut an IP
         def scrub_ip(m):
-            return self.placeholder_ip if m.group(0) not in self.exclusions else m.group(0)
+            return self.create_placeholder('IP') if m.group(0) not in self.exclusions else m.group(0)
 
         text = self.re_ip.sub(scrub_ip, text)
 
         # cut hash
-        text = self.re_hash.sub(self.placeholder_hash, text)
+        hash_placeholder = self.create_placeholder('hash')
+        text = self.re_hash.sub(hash_placeholder, text)
 
         # replace all sensitive occurrences in the whole string
         if self.sensitive_occurrences:
@@ -177,7 +176,8 @@ class SentryScrubber:
             result = {}
             for key, value in entity.items():
                 if key in self.dict_keys_for_scrub:
-                    placeholder = self.create_placeholder(key)
+                    fake_value = obfuscate_string(value)
+                    placeholder = self.create_placeholder(fake_value)
                     self.add_sensitive_pair(value, placeholder)
                 result[key] = self.scrub_entity_recursively(value, depth)
             return result

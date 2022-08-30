@@ -72,13 +72,13 @@ def test_scrub_path(scrubber):
 
     # scrub positive
 
-    # this particular example is kinda bug (<<user>>)
+    # this particular example is kinda bug (<<highlight>>)
     # but it is not really important what placeholder we use
     # hence, let's leave it at that for now.
-    assert scrubber.scrub_text('/users/user/apps') == f'/users/{scrubber.placeholder_user}/apps'
+    assert scrubber.scrub_text('/users/user/apps') == f'/users/<boot>/apps'
     assert 'user' in scrubber.sensitive_occurrences
 
-    assert scrubber.scrub_text('/users/username/some/long_path') == f'/users/{scrubber.placeholder_user}/some/long_path'
+    assert scrubber.scrub_text('/users/username/some/long_path') == f'/users/<highlight>/some/long_path'
     assert 'username' in scrubber.sensitive_occurrences
 
 
@@ -88,8 +88,8 @@ def test_scrub_text_ip(scrubber):
     assert scrubber.scrub_text('0.0.0') == '0.0.0'
 
     # positive
-    assert scrubber.scrub_text('0.0.0.1') == scrubber.placeholder_ip
-    assert scrubber.scrub_text('0.100.0.1') == scrubber.placeholder_ip
+    assert scrubber.scrub_text('0.0.0.1') == '<IP>'
+    assert scrubber.scrub_text('0.100.0.1') == '<IP>'
 
     assert not scrubber.sensitive_occurrences
 
@@ -103,8 +103,8 @@ def test_scrub_text_hash(scrubber):
     assert scrubber.scrub_text('0a3030303030303030303303030303030303030') == '0a3030303030303030303303030303030303030'
 
     # positive
-    assert scrubber.scrub_text('3030303030303030303030303030303030303030') == scrubber.placeholder_hash
-    assert scrubber.scrub_text('hash:3030303030303030303030303030303030303030') == f'hash:{scrubber.placeholder_hash}'
+    assert scrubber.scrub_text('3030303030303030303030303030303030303030') == '<hash>'
+    assert scrubber.scrub_text('hash:3030303030303030303030303030303030303030') == f'hash:<hash>'
 
     assert not scrubber.sensitive_occurrences
 
@@ -121,13 +121,13 @@ def test_scrub_text_complex_string(scrubber):
 
     assert (
             actual == f'this is a string that have been sent from '
-                      f'{scrubber.placeholder_ip}({scrubber.placeholder_hash}) '
-                      f'located at usr/{scrubber.placeholder_user}/path at '
-                      f'{scrubber.placeholder_user} machine(someuserany)'
+                      f'<IP>(<hash>) '
+                      f'located at usr/<effect>/path at '
+                      f'<effect> machine(someuserany)'
     )
 
     assert 'someuser' in scrubber.sensitive_occurrences
-    assert scrubber.scrub_text('someuser') == scrubber.placeholder_user
+    assert scrubber.scrub_text('someuser') == '<effect>'
 
 
 def test_scrub_simple_event(scrubber):
@@ -166,45 +166,44 @@ def test_scrub_event(scrubber):
             ]
         },
     }
-
     assert scrubber.scrub_event(event) == {
-        'the very first item': scrubber.placeholder_user,
-        'server_name': '<server_name>',
+        'the very first item': '<highlight>',
+        'server_name': '<protection>',
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
-                    'USERNAME': '<USERNAME>',
-                    'USERDOMAIN_ROAMINGPROFILE': '<server_name>',
-                    'PATH': f'/users/{scrubber.placeholder_user}/apps',
-                    'TMP_WIN': f'C:\\Users\\{scrubber.placeholder_user}\\AppData\\Local\\Temp',
-                    'USERDOMAIN': '<USERDOMAIN>',
+                    'USERNAME': '<father>',
+                    'USERDOMAIN_ROAMINGPROFILE': '<protection>',
+                    'PATH': f'/users/<highlight>/apps',
+                    'TMP_WIN': f'C:\\Users\\<restaurant>\\AppData\\Local\\Temp',
+                    'USERDOMAIN': '<answer>',
                 },
                 STACKTRACE: [
                     'Traceback (most recent call last):',
-                    f'File "/Users/{scrubber.placeholder_user}/Tribler/tribler/src/tribler-gui/tribler_gui/"',
+                    f'File "/Users/<highlight>/Tribler/tribler/src/tribler-gui/tribler_gui/"',
                 ],
                 SYSINFO: {
                     'sys.path': [
-                        f'/Users/{scrubber.placeholder_user}/Tribler/',
-                        f'/Users/{scrubber.placeholder_user}/',
+                        f'/Users/<highlight>/Tribler/',
+                        f'/Users/<highlight>/',
                         '.',
                     ]
                 },
             },
         },
         LOGENTRY: {
-            'message': f'Exception with {scrubber.placeholder_user}',
-            'params': [f'Traceback File: /Users/{scrubber.placeholder_user}/Tribler/'],
+            'message': f'Exception with <highlight>',
+            'params': [f'Traceback File: /Users/<highlight>/Tribler/'],
         },
-        EXTRA: {SYS_ARGV: [f'/Users/{scrubber.placeholder_user}/Tribler']},
+        EXTRA: {SYS_ARGV: [f'/Users/<highlight>/Tribler']},
         BREADCRUMBS: {
             'values': [
                 {
                     'type': 'log',
-                    'message': f'Traceback File: /Users/{scrubber.placeholder_user}/Tribler/',
+                    'message': f'Traceback File: /Users/<highlight>/Tribler/',
                     'timestamp': '1',
                 },
-                {'type': 'log', 'message': f'IP: {scrubber.placeholder_ip}', 'timestamp': '2'},
+                {'type': 'log', 'message': f'IP: <IP>', 'timestamp': '2'},
             ]
         },
     }
@@ -220,7 +219,7 @@ def test_entities_recursively(scrubber):
 
     event = {'some': {'value': [{'path': '/Users/username/Tribler'}]}}
     assert scrubber.scrub_entity_recursively(event) == {
-        'some': {'value': [{'path': f'/Users/{scrubber.placeholder_user}/Tribler'}]}
+        'some': {'value': [{'path': f'/Users/<highlight>/Tribler'}]}
     }
     # stop on depth
 
@@ -251,14 +250,11 @@ def test_scrub_dict(scrubber):
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively({}) == {}
 
-    assert scrubber.scrub_entity_recursively(
-        {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U'}
-    ) == {
-               'PATH': f'/home/{scrubber.placeholder_user}/some/',
-               'USERDOMAIN': '<USERDOMAIN>',
-               'USERNAME': '<USERNAME>',
-               'REPEATED': f'user {scrubber.placeholder_user} <USERDOMAIN> <USERNAME>',
-           }
+    given = {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U'}
+    assert scrubber.scrub_entity_recursively(given) == {'PATH': '/home/<highlight>/some/',
+                                                        'REPEATED': 'user <highlight> <school> <night>',
+                                                        'USERDOMAIN': '<school>',
+                                                        'USERNAME': '<night>'}
 
     assert 'username' in scrubber.sensitive_occurrences.keys()
     assert 'UD' in scrubber.sensitive_occurrences.keys()
@@ -269,5 +265,5 @@ def test_scrub_list(scrubber):
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively([]) == []
 
-    assert scrubber.scrub_entity_recursively(['/home/username/some/']) == [f'/home/{scrubber.placeholder_user}/some/']
+    assert scrubber.scrub_entity_recursively(['/home/username/some/']) == [f'/home/<highlight>/some/']
     assert 'username' in scrubber.sensitive_occurrences
