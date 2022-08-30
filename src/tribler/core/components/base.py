@@ -86,6 +86,7 @@ class Session:
                  shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
         self.id = next(Session._next_session_id)
+        self.exit_code = 0
         self.failfast = failfast
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
@@ -162,6 +163,11 @@ class Session:
 
     def _reraise_startup_exception_in_separate_task(self):
         async def exception_reraiser():
+            e = self._startup_exception
+            if isinstance(e, ComponentStartupException) and e.component.tribler_should_stop_on_component_error:
+                self.exit_code = 1
+                self.shutdown_event.set()
+
             # the exception should be intercepted by event loop exception handler
             raise self._startup_exception
 
