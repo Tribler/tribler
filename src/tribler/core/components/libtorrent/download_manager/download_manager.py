@@ -32,6 +32,7 @@ from tribler.core.utilities.rest_utils import (
     HTTPS_SCHEME,
     HTTP_SCHEME,
     MAGNET_SCHEME,
+    path_to_url,
     scheme_from_url,
     url_to_path,
 )
@@ -72,6 +73,7 @@ class DownloadManager(TaskManager):
                  notifier: Notifier,
                  peer_mid: bytes,
                  config: LibtorrentSettings = None,
+                 gui_test_mode: bool = False,
                  download_defaults: DownloadDefaultsSettings = None,
                  bootstrap_infohash=None,
                  socks_listen_ports: Optional[List[int]] = None,
@@ -92,6 +94,7 @@ class DownloadManager(TaskManager):
         self.notifier = notifier
         self.peer_mid = peer_mid
         self.config = config or LibtorrentSettings()
+        self.gui_test_mode = gui_test_mode
         self.bootstrap_infohash = bootstrap_infohash
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
         self._libtorrent_port = None
@@ -158,10 +161,23 @@ class DownloadManager(TaskManager):
 
         self.set_download_states_callback(self.sesscb_states_callback)
 
+    def start(self):
+        self.register_task("start", self._start)
+
+    async def _start(self):
+        await self.load_checkpoints()
+
+        if self.gui_test_mode:
+            from tribler.core.tests.tools.common import TORRENT_WITH_DIRS  # pylint: disable=import-outside-toplevel
+            uri = path_to_url(TORRENT_WITH_DIRS)
+            await self.start_download_from_uri(uri)
+
     def notify_shutdown_state(self, state):
         self.notifier[notifications.tribler_shutdown_state](state)
 
     async def shutdown(self, timeout=30):
+        self.cancel_pending_task("start")
+        self.cancel_pending_task("download_states_lc")
         if self.downloads:
             self.notify_shutdown_state("Checkpointing Downloads...")
             await gather(*[download.stop() for download in self.downloads.values()], return_exceptions=True)
@@ -782,9 +798,6 @@ class DownloadManager(TaskManager):
         self._logger.debug("Starting the download state callback with interval %f", interval)
         self.replace_task("download_states_lc", self._invoke_states_cb, user_callback, interval=interval)
 
-    def stop_download_states_callback(self):
-        return self.cancel_pending_task("download_states_lc")
-
     async def _invoke_states_cb(self, callback):
         """
         Invoke the download states callback with a list of the download states.
@@ -825,9 +838,11 @@ class DownloadManager(TaskManager):
         return self._last_states_list
 
     async def load_checkpoints(self):
+        self._logger.info("Load checkpoints...")
         for filename in self.get_checkpoint_dir().glob('*.conf'):
             self.load_checkpoint(filename)
             await sleep(.01)
+        self._logger.info("Checkpoints are loaded")
 
     def load_checkpoint(self, filename):
         try:
