@@ -11,6 +11,11 @@ inputs:
     description: 'The path to requirements.txt file'
     required: false
 
+  requirements-key:
+    default: '**/requirements*.txt'
+    description: 'Requirements-files to use for building the cache key'
+    required: false
+
   invalidate-cache:
     default: 'false'
     description: 'Force create a virtualenv'
@@ -32,7 +37,7 @@ runs:
       uses: drew2a/restore-virtualenv@v1.2.1
       id: cache-virtualenv
       with:
-        requirement_files: ${{inputs.requirements}}
+        requirement_files: ${{inputs.requirements-key}}
 
     - name: Invalidate cache
       if: inputs.invalidate-cache == 'true'
