@@ -117,10 +117,10 @@ def test_scrub_path_negative_match(scrubber: SentryScrubber):
 
 def test_scrub_path_positive_match(scrubber: SentryScrubber):
     """ Test that the scrubber scrubs paths """
-    assert scrubber.scrub_text('/users/user/apps') == f'/users/<boot>/apps'
+    assert scrubber.scrub_text('/users/user/apps') == '/users/<boot>/apps'
     assert 'user' in scrubber.sensitive_occurrences
 
-    assert scrubber.scrub_text('/users/username/some/long_path') == f'/users/<highlight>/some/long_path'
+    assert scrubber.scrub_text('/users/username/some/long_path') == '/users/<highlight>/some/long_path'
     assert 'username' in scrubber.sensitive_occurrences
 
 
@@ -149,7 +149,7 @@ def test_scrub_text_hash_negative_match(scrubber: SentryScrubber):
 def test_scrub_text_hash_positive_match(scrubber: SentryScrubber):
     """ Test that the scrubber scrubs hashes """
     assert scrubber.scrub_text('3' * 40) == '<hash>'
-    assert scrubber.scrub_text('hash:' + '4' * 40) == f'hash:<hash>'
+    assert scrubber.scrub_text('hash:' + '4' * 40) == 'hash:<hash>'
 
     assert not scrubber.sensitive_occurrences
 
@@ -220,36 +220,36 @@ def test_scrub_event(scrubber):
                 OS_ENVIRON: {
                     'USERNAME': '<father>',
                     'USERDOMAIN_ROAMINGPROFILE': '<protection>',
-                    'PATH': f'/users/<highlight>/apps',
-                    'TMP_WIN': f'C:\\Users\\<restaurant>\\AppData\\Local\\Temp',
+                    'PATH': '/users/<highlight>/apps',
+                    'TMP_WIN': 'C:\\Users\\<restaurant>\\AppData\\Local\\Temp',
                     'USERDOMAIN': '<answer>',
                 },
                 STACKTRACE: [
                     'Traceback (most recent call last):',
-                    f'File "/Users/<highlight>/Tribler/tribler/src/tribler-gui/tribler_gui/"',
+                    'File "/Users/<highlight>/Tribler/tribler/src/tribler-gui/tribler_gui/"',
                 ],
                 SYSINFO: {
                     'sys.path': [
-                        f'/Users/<highlight>/Tribler/',
-                        f'/Users/<highlight>/',
+                        '/Users/<highlight>/Tribler/',
+                        '/Users/<highlight>/',
                         '.',
                     ]
                 },
             },
         },
         LOGENTRY: {
-            'message': f'Exception with <highlight>',
-            'params': [f'Traceback File: /Users/<highlight>/Tribler/'],
+            'message': 'Exception with <highlight>',
+            'params': ['Traceback File: /Users/<highlight>/Tribler/'],
         },
-        EXTRA: {SYS_ARGV: [f'/Users/<highlight>/Tribler']},
+        EXTRA: {SYS_ARGV: ['/Users/<highlight>/Tribler']},
         BREADCRUMBS: {
             'values': [
                 {
                     'type': 'log',
-                    'message': f'Traceback File: /Users/<highlight>/Tribler/',
+                    'message': 'Traceback File: /Users/<highlight>/Tribler/',
                     'timestamp': '1',
                 },
-                {'type': 'log', 'message': f'IP: <IP>', 'timestamp': '2'},
+                {'type': 'log', 'message': 'IP: <IP>', 'timestamp': '2'},
             ]
         },
     }
@@ -275,7 +275,7 @@ def test_entities_recursively(scrubber):
         }
     }
     assert scrubber.scrub_entity_recursively(event) == {
-        'some': {'value': [{'path': f'/Users/<highlight>/Tribler'}]}
+        'some': {'value': [{'path': '/Users/<highlight>/Tribler'}]}
     }
     # stop on depth
     assert scrubber.scrub_entity_recursively(event) != event
@@ -316,5 +316,5 @@ def test_scrub_list(scrubber):
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively([]) == []
 
-    assert scrubber.scrub_entity_recursively(['/home/username/some/']) == [f'/home/<highlight>/some/']
+    assert scrubber.scrub_entity_recursively(['/home/username/some/']) == ['/home/<highlight>/some/']
     assert 'username' in scrubber.sensitive_occurrences

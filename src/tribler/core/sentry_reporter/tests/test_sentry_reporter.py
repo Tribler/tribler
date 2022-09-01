@@ -321,7 +321,7 @@ def test_before_send(sentry_reporter):
 
     # check information has been scrubbed
     assert sentry_reporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
-        'contexts': {'reporter': {'_stacktrace': [f'/Users/<highlight>/']}}
+        'contexts': {'reporter': {'_stacktrace': ['/Users/<highlight>/']}}
     }
 
     # check release

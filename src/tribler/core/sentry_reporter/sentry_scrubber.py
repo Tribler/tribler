@@ -37,6 +37,8 @@ class SentryScrubber:
 
         # placeholders
         self.create_placeholder = lambda text: f'<{text}>'
+        self.hash_placeholder = self.create_placeholder('hash')
+        self.ip_placeholder = self.create_placeholder('IP')
 
         # compiled regular expressions
         self.re_folders = []
@@ -122,13 +124,12 @@ class SentryScrubber:
 
         # cut an IP
         def scrub_ip(m):
-            return self.create_placeholder('IP') if m.group(0) not in self.exclusions else m.group(0)
+            return self.ip_placeholder if m.group(0) not in self.exclusions else m.group(0)
 
         text = self.re_ip.sub(scrub_ip, text)
 
         # cut hash
-        hash_placeholder = self.create_placeholder('hash')
-        text = self.re_hash.sub(hash_placeholder, text)
+        text = self.re_hash.sub(self.hash_placeholder, text)
 
         # replace all sensitive occurrences in the whole string
         if self.sensitive_occurrences:
