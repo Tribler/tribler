@@ -19,6 +19,7 @@ jobs:
         with:
           python-version: ${{inputs.python-version}}
           requirements: ./doc/requirements.txt
+          requirements-key: ./doc/requirements*.txt
 
       - name: Build documentation
         run: |
