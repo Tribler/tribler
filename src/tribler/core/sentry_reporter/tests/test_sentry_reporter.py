@@ -15,7 +15,6 @@ from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.utilities.patch_import import patch_import
 
 
-# fmt: off
 # pylint: disable=redefined-outer-name, protected-access
 
 
@@ -122,6 +121,7 @@ def test_get_actual_strategy(sentry_reporter):
     assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
 
 
+@patch('os.environ', {})
 def test_get_sentry_url_not_specified():
     assert not SentryReporter.get_sentry_url()
 
@@ -321,7 +321,7 @@ def test_before_send(sentry_reporter):
 
     # check information has been scrubbed
     assert sentry_reporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
-        'contexts': {'reporter': {'_stacktrace': [f'/Users/{scrubber.placeholder_user}/']}}
+        'contexts': {'reporter': {'_stacktrace': ['/Users/<highlight>/']}}
     }
 
     # check release

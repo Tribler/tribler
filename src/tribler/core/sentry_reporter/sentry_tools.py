@@ -4,6 +4,8 @@ simplify work with several data structures.
 import re
 from typing import Optional
 
+from faker import Faker
+
 LONG_TEXT_DELIMITER = '--LONG TEXT--'
 CONTEXT_DELIMITER = '--CONTEXT--'
 
@@ -159,3 +161,16 @@ def format_version(version: Optional[str]) -> Optional[str]:
 
     # for all other cases keep <version>-<first_part>
     return f"{parts[0]}-{parts[1]}"
+
+
+def obfuscate_string(s: str, part_of_speech: str = 'noun') -> str:
+    """Obfuscate string by replacing it with random word.
+
+    The same random words will be generated for the same given strings.
+    """
+    if not s:
+        return s
+
+    faker = Faker(locale='en_US')
+    faker.seed_instance(s)
+    return faker.word(part_of_speech=part_of_speech)

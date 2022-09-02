@@ -9,7 +9,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
     get_last_item,
     get_value,
     modify_value,
-    parse_os_environ,
+    obfuscate_string, parse_os_environ,
     parse_stacktrace,
 )
 
@@ -141,3 +141,16 @@ def test_extract_dict():
 
     assert extract_dict({}, '') == {}
     assert extract_dict({'k': 'v', 'k1': 'v1'}, r'\w$') == {'k': 'v'}
+
+
+OBFUSCATED_STRINGS = [
+    (None, None),
+    ('', ''),
+    ('any', 'challenge'),
+    ('string', 'quality'),
+]
+
+
+@pytest.mark.parametrize('given, expected', OBFUSCATED_STRINGS)
+def test_obfuscate_string(given, expected):
+    assert obfuscate_string(given) == expected

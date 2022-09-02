@@ -14,134 +14,183 @@ from tribler.core.sentry_reporter.sentry_reporter import (
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 
-@pytest.fixture(name="scrubber")  # this workaround implemented only for pylint
-def fixture_scrubber():
+# pylint: disable=redefined-outer-name
+@pytest.fixture
+def scrubber():
     return SentryScrubber()
 
 
-def test_patterns(scrubber):
-    # folders negative
-    assert not any(regex.search('') for regex in scrubber.re_folders)
-    assert not any(regex.search('some text') for regex in scrubber.re_folders)
-    assert not any(regex.search('/home//some/') for regex in scrubber.re_folders)
+FOLDERS_POSITIVE_MATCH = [
+    '/home/username/some/',
+    '/usr/local/path/',
+    '/Users/username/some/',
+    '/users/username/some/long_path',
+    '/home/username/some/',
+    '/data/media/username3/some/',
+    'WINNT\\Profiles\\username\\some',
+    'Documents and Settings\\username\\some',
+    'C:\\Users\\Some User\\',
+    'C:\\Users\\USERNAM~1\\',
+]
 
-    # folders positive
-    assert any(regex.search('/home/username/some/') for regex in scrubber.re_folders)
-    assert any(regex.search('/usr/local/path/') for regex in scrubber.re_folders)
-    assert any(regex.search('/Users/username/some/') for regex in scrubber.re_folders)
-    assert any(regex.search('/users/username/some/long_path') for regex in scrubber.re_folders)
-    assert any(regex.search('/home/username/some/') for regex in scrubber.re_folders)
-    assert any(regex.search('/data/media/username3/some/') for regex in scrubber.re_folders)
-    assert any(regex.search('WINNT\\Profiles\\username\\some') for regex in scrubber.re_folders)
-    assert any(regex.search('Documents and Settings\\username\\some') for regex in scrubber.re_folders)
-    assert any(regex.search('C:\\Users\\Some User\\') for regex in scrubber.re_folders)
-    assert any(regex.search('C:\\Users\\USERNAM~1\\') for regex in scrubber.re_folders)
-
-    # ip negative
-    assert not scrubber.re_ip.search('0.0.0')
-    assert not scrubber.re_ip.search('0.0.0.0.0')
-    assert not scrubber.re_ip.search('0.1000.0.1')
-    assert not scrubber.re_ip.search('0.a.0.1')
-    assert not scrubber.re_ip.search('0123.0.0.1')
-    assert not scrubber.re_ip.search('03.0.0.1234')
-    assert not scrubber.re_ip.search('a0.0.0.1')
-
-    # ip positive
-    assert scrubber.re_ip.search('127.0.0.1')
-    assert scrubber.re_ip.search('0.0.0.1')
-    assert scrubber.re_ip.search('0.100.0.1')
-    assert scrubber.re_ip.search('(0.100.0.1)')
-
-    # hash negative
-    assert not scrubber.re_hash.search('0a303030303030303030303030303030303030300')
-    assert not scrubber.re_hash.search('0a3030303030303030303303030303030303030')
-    assert not scrubber.re_hash.search('z030303030303030303030303030303030303030')
-
-    # hash positive
-    assert scrubber.re_hash.search('3030303030303030303030303030303030303030')
-    assert scrubber.re_hash.search('0a30303030303030303030303030303030303030')
-    assert scrubber.re_hash.search('hash:3030303030303030303030303030303030303030')
+FOLDERS_NEGATIVE_MATCH = [
+    '',
+    'any text',
+    '/home//some/',
+]
 
 
-def test_scrub_path(scrubber):
-    # scrub negative
+@pytest.mark.parametrize('folder', FOLDERS_NEGATIVE_MATCH)
+def test_patterns_folders_negative_match(folder: str, scrubber: SentryScrubber):
+    """ Test that the scrubber does not match folders """
+    assert not any(regex.search(folder) for regex in scrubber.re_folders)
+
+
+@pytest.mark.parametrize('folder', FOLDERS_POSITIVE_MATCH)
+def test_patterns_folders_positive_match(folder: str, scrubber: SentryScrubber):
+    """ Test that the scrubber matches folders """
+    assert any(regex.search(folder) for regex in scrubber.re_folders)
+
+
+IP_POSITIVE_MATCH = [
+    '127.0.0.1',
+    '0.0.0.1',
+    '0.100.0.1',
+    '(0.100.0.1)'
+]
+
+IP_NEGATIVE_MATCH = [
+    '0.0.0',
+    '0.0.0.0.0',
+    '0.1000.0.1',
+    '0.a.0.1',
+    '0123.0.0.1',
+    '03.0.0.1234',
+    'a0.0.0.1',
+]
+
+
+@pytest.mark.parametrize('ip', IP_NEGATIVE_MATCH)
+def test_patterns_ip_negative_match(ip: str, scrubber: SentryScrubber):
+    """ Test that the scrubber does not match IPs """
+    assert not scrubber.re_ip.search(ip)
+
+
+@pytest.mark.parametrize('ip', IP_POSITIVE_MATCH)
+def test_patterns_ip_positive_match(ip: str, scrubber: SentryScrubber):
+    """ Test that the scrubber matches IPs """
+    assert scrubber.re_ip.search(ip)
+
+
+HASH_POSITIVE_MATCH = [
+    '3030303030303030303030303030303030303030',
+    '0a30303030303030303030303030303030303030',
+    'hash:3030303030303030303030303030303030303030'
+]
+
+HASH_NEGATIVE_MATCH = [
+    '0a303030303030303030303030303030303030300',
+    '0a3030303030303030303303030303030303030',
+    'z030303030303030303030303030303030303030'
+]
+
+
+@pytest.mark.parametrize('h', HASH_NEGATIVE_MATCH)
+def test_patterns_hash_negative_match(h: str, scrubber: SentryScrubber):
+    """ Test that the scrubber does not match hashes """
+    assert not scrubber.re_hash.search(h)
+
+
+@pytest.mark.parametrize('h', HASH_POSITIVE_MATCH)
+def test_patterns_hash_positive_match(h: str, scrubber: SentryScrubber):
+    """ Test that the scrubber scrub hashes """
+    assert scrubber.re_hash.search(h)
+
+
+def test_scrub_path_negative_match(scrubber: SentryScrubber):
+    """ Test that the scrubber does not scrub paths """
     assert scrubber.scrub_text('/usr/local/path/') == '/usr/local/path/'
     assert scrubber.scrub_text('some text') == 'some text'
 
     assert not scrubber.sensitive_occurrences
 
-    # scrub positive
 
-    # this particular example is kinda bug (<<user>>)
-    # but it is not really important what placeholder we use
-    # hence, let's leave it at that for now.
-    assert scrubber.scrub_text('/users/user/apps') == f'/users/{scrubber.placeholder_user}/apps'
+def test_scrub_path_positive_match(scrubber: SentryScrubber):
+    """ Test that the scrubber scrubs paths """
+    assert scrubber.scrub_text('/users/user/apps') == '/users/<boot>/apps'
     assert 'user' in scrubber.sensitive_occurrences
 
-    assert scrubber.scrub_text('/users/username/some/long_path') == f'/users/{scrubber.placeholder_user}/some/long_path'
+    assert scrubber.scrub_text('/users/username/some/long_path') == '/users/<highlight>/some/long_path'
     assert 'username' in scrubber.sensitive_occurrences
 
 
-def test_scrub_text_ip(scrubber):
-    # negative
+def test_scrub_text_ip_negative_match(scrubber: SentryScrubber):
+    """ Test that the scrubber does not scrub IPs """
     assert scrubber.scrub_text('127.0.0.1') == '127.0.0.1'
     assert scrubber.scrub_text('0.0.0') == '0.0.0'
 
-    # positive
-    assert scrubber.scrub_text('0.0.0.1') == scrubber.placeholder_ip
-    assert scrubber.scrub_text('0.100.0.1') == scrubber.placeholder_ip
+
+def test_scrub_text_ip_positive_match(scrubber: SentryScrubber):
+    """ Test that the scrubber scrubs IPs """
+    assert scrubber.scrub_text('0.0.0.1') == '<IP>'
+    assert scrubber.scrub_text('0.100.0.1') == '<IP>'
 
     assert not scrubber.sensitive_occurrences
 
 
-def test_scrub_text_hash(scrubber):
-    # negative
-    assert (
-        scrubber.scrub_text('0a303030303030303030303030303030303030300') == '0a303030303030303030303030303030303030300'
-    )
-    assert scrubber.scrub_text('0a3030303030303030303303030303030303030') == '0a3030303030303030303303030303030303030'
+def test_scrub_text_hash_negative_match(scrubber: SentryScrubber):
+    """ Test that the scrubber does not scrub hashes """
+    too_long_hash = '1' * 41
+    assert scrubber.scrub_text(too_long_hash) == too_long_hash
+    too_short_hash = '2' * 39
+    assert scrubber.scrub_text(too_short_hash) == too_short_hash
 
-    # positive
-    assert scrubber.scrub_text('3030303030303030303030303030303030303030') == scrubber.placeholder_hash
-    assert scrubber.scrub_text('hash:3030303030303030303030303030303030303030') == f'hash:{scrubber.placeholder_hash}'
+
+def test_scrub_text_hash_positive_match(scrubber: SentryScrubber):
+    """ Test that the scrubber scrubs hashes """
+    assert scrubber.scrub_text('3' * 40) == '<hash>'
+    assert scrubber.scrub_text('hash:' + '4' * 40) == 'hash:<hash>'
 
     assert not scrubber.sensitive_occurrences
 
 
 def test_scrub_text_complex_string(scrubber):
+    """ Test that the scrubber scrubs complex strings """
     source = (
-        'this is a string that have been sent from '
+        'this is a string that has been sent from '
         '192.168.1.1(3030303030303030303030303030303030303030) '
-        'located at usr/someuser/path at '
-        'someuser machine(someuserany)'
+        'located at usr/someuser/path on '
+        "someuser's machine(someuser_with_postfix)"
     )
 
     actual = scrubber.scrub_text(source)
 
-    assert (
-        actual == f'this is a string that have been sent from '
-        f'{scrubber.placeholder_ip}({scrubber.placeholder_hash}) '
-        f'located at usr/{scrubber.placeholder_user}/path at '
-        f'{scrubber.placeholder_user} machine(someuserany)'
-    )
+    assert actual == ('this is a string that has been sent from '
+                      '<IP>(<hash>) '
+                      'located at usr/<effect>/path on '
+                      "<effect>'s machine(someuser_with_postfix)")
 
     assert 'someuser' in scrubber.sensitive_occurrences
-    assert scrubber.scrub_text('someuser') == scrubber.placeholder_user
+    assert scrubber.scrub_text('someuser') == '<effect>'
 
 
 def test_scrub_simple_event(scrubber):
+    """ Test that the scrubber scrubs simple events """
     assert scrubber.scrub_event(None) is None
     assert scrubber.scrub_event({}) == {}
     assert scrubber.scrub_event({'some': 'field'}) == {'some': 'field'}
 
 
 def test_scrub_event(scrubber):
+    """ Test that the scrubber scrubs events """
     event = {
         'the very first item': 'username',
+        'server_name': 'userhost',
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
                     'USERNAME': 'User Name',
+                    'USERDOMAIN_ROAMINGPROFILE': 'userhost',
                     'PATH': '/users/username/apps',
                     'TMP_WIN': r'C:\Users\USERNAM~1\AppData\Local\Temp',
                     'USERDOMAIN': 'a',
@@ -163,49 +212,52 @@ def test_scrub_event(scrubber):
             ]
         },
     }
-
     assert scrubber.scrub_event(event) == {
-        'the very first item': scrubber.placeholder_user,
+        'the very first item': '<highlight>',
+        'server_name': '<protection>',
         CONTEXTS: {
             REPORTER: {
                 OS_ENVIRON: {
-                    'USERNAME': '<USERNAME>',
-                    'PATH': f'/users/{scrubber.placeholder_user}/apps',
-                    'TMP_WIN': f'C:\\Users\\{scrubber.placeholder_user}\\AppData\\Local\\Temp',
-                    'USERDOMAIN': '<USERDOMAIN>',
+                    'USERNAME': '<father>',
+                    'USERDOMAIN_ROAMINGPROFILE': '<protection>',
+                    'PATH': '/users/<highlight>/apps',
+                    'TMP_WIN': 'C:\\Users\\<restaurant>\\AppData\\Local\\Temp',
+                    'USERDOMAIN': '<answer>',
                 },
                 STACKTRACE: [
                     'Traceback (most recent call last):',
-                    f'File "/Users/{scrubber.placeholder_user}/Tribler/tribler/src/tribler-gui/tribler_gui/"',
+                    'File "/Users/<highlight>/Tribler/tribler/src/tribler-gui/tribler_gui/"',
                 ],
                 SYSINFO: {
                     'sys.path': [
-                        f'/Users/{scrubber.placeholder_user}/Tribler/',
-                        f'/Users/{scrubber.placeholder_user}/',
+                        '/Users/<highlight>/Tribler/',
+                        '/Users/<highlight>/',
                         '.',
                     ]
                 },
             },
         },
         LOGENTRY: {
-            'message': f'Exception with {scrubber.placeholder_user}',
-            'params': [f'Traceback File: /Users/{scrubber.placeholder_user}/Tribler/'],
+            'message': 'Exception with <highlight>',
+            'params': ['Traceback File: /Users/<highlight>/Tribler/'],
         },
-        EXTRA: {SYS_ARGV: [f'/Users/{scrubber.placeholder_user}/Tribler']},
+        EXTRA: {SYS_ARGV: ['/Users/<highlight>/Tribler']},
         BREADCRUMBS: {
             'values': [
                 {
                     'type': 'log',
-                    'message': f'Traceback File: /Users/{scrubber.placeholder_user}/Tribler/',
+                    'message': 'Traceback File: /Users/<highlight>/Tribler/',
                     'timestamp': '1',
                 },
-                {'type': 'log', 'message': f'IP: {scrubber.placeholder_ip}', 'timestamp': '2'},
+                {'type': 'log', 'message': 'IP: <IP>', 'timestamp': '2'},
             ]
         },
     }
 
 
 def test_entities_recursively(scrubber):
+    """ Test that the scrubber scrubs entities recursively """
+
     # positive
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively({}) == {}
@@ -213,17 +265,25 @@ def test_entities_recursively(scrubber):
     assert scrubber.scrub_entity_recursively('') == ''
     assert scrubber.scrub_entity_recursively(42) == 42
 
-    event = {'some': {'value': [{'path': '/Users/username/Tribler'}]}}
+    event = {
+        'some': {
+            'value': [
+                {
+                    'path': '/Users/username/Tribler'
+                }
+            ]
+        }
+    }
     assert scrubber.scrub_entity_recursively(event) == {
-        'some': {'value': [{'path': f'/Users/{scrubber.placeholder_user}/Tribler'}]}
+        'some': {'value': [{'path': '/Users/<highlight>/Tribler'}]}
     }
     # stop on depth
-
     assert scrubber.scrub_entity_recursively(event) != event
     assert scrubber.scrub_entity_recursively(event, depth=2) == event
 
 
 def test_scrub_unnecessary_fields(scrubber):
+    """ Test that the scrubber scrubs unnecessary fields """
     # default
     assert scrubber.scrub_event({'default': 'field'}) == {'default': 'field'}
 
@@ -237,23 +297,15 @@ def test_scrub_text_none(scrubber):
     assert scrubber.scrub_text(None) is None
 
 
-def test_scrub_some_text(scrubber):
-    assert scrubber.scrub_text('some text') == 'some text'
-    assert not scrubber.sensitive_occurrences
-
-
 def test_scrub_dict(scrubber):
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively({}) == {}
 
-    assert scrubber.scrub_entity_recursively(
-        {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U'}
-    ) == {
-        'PATH': f'/home/{scrubber.placeholder_user}/some/',
-        'USERDOMAIN': '<USERDOMAIN>',
-        'USERNAME': '<USERNAME>',
-        'REPEATED': f'user {scrubber.placeholder_user} <USERDOMAIN> <USERNAME>',
-    }
+    given = {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U'}
+    assert scrubber.scrub_entity_recursively(given) == {'PATH': '/home/<highlight>/some/',
+                                                        'REPEATED': 'user <highlight> <school> <night>',
+                                                        'USERDOMAIN': '<school>',
+                                                        'USERNAME': '<night>'}
 
     assert 'username' in scrubber.sensitive_occurrences.keys()
     assert 'UD' in scrubber.sensitive_occurrences.keys()
@@ -264,5 +316,5 @@ def test_scrub_list(scrubber):
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively([]) == []
 
-    assert scrubber.scrub_entity_recursively(['/home/username/some/']) == [f'/home/{scrubber.placeholder_user}/some/']
+    assert scrubber.scrub_entity_recursively(['/home/username/some/']) == ['/home/<highlight>/some/']
     assert 'username' in scrubber.sensitive_occurrences
