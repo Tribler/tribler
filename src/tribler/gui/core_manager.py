@@ -132,6 +132,11 @@ class CoreManager(QObject):
 
         raw_output = bytes(self.core_process.readAllStandardError())
         self.last_core_stderr_output = self.decode_raw_core_output(raw_output).strip()
+        gui_sentry_reporter.add_breadcrumb(
+            message=self.last_core_stderr_output,
+            category='CORE_STDOUT',
+            level='error'
+        )
 
         try:
             print(self.last_core_stderr_output, file=sys.stderr)  # print core output # noqa: T001

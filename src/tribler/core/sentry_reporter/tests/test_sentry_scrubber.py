@@ -318,3 +318,19 @@ def test_scrub_list(scrubber):
 
     assert scrubber.scrub_entity_recursively(['/home/username/some/']) == ['/home/<highlight>/some/']
     assert 'username' in scrubber.sensitive_occurrences
+
+
+def test_remove_breadcrumbs():
+    """ Test that the function `SentryScrubber.remove_breadcrumbs` removes breadcrumbs from a dictionary """
+    event = {
+        BREADCRUMBS: {
+            'values': [
+                {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/', 'timestamp': '1'},
+                {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/', 'timestamp': '1'},
+                {'type': 'log', 'message': 'IP: 192.168.1.1', 'timestamp': '2'},
+            ]
+        },
+        'key': 'value'
+    }
+
+    assert SentryScrubber.remove_breadcrumbs(event) == {'key': 'value'}
