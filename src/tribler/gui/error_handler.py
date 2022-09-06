@@ -5,10 +5,12 @@ import traceback
 
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.exceptions import CoreError
+
 
 # fmt: off
 
@@ -77,6 +79,8 @@ class ErrorHandler:
 
         if reported_error.should_stop:
             self._stop_tribler(error_text)
+
+        SentryScrubber.remove_breadcrumbs(reported_error.event)
 
         FeedbackDialog(
             parent=self.tribler_window,

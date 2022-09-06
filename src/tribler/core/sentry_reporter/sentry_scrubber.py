@@ -47,6 +47,10 @@ class SentryScrubber:
 
         self._compile_re()
 
+    @staticmethod
+    def remove_breadcrumbs(event: Dict) -> Dict:
+        return delete_item(event, BREADCRUMBS)
+
     def _compile_re(self):
         """Compile all regular expressions."""
         for folder in self.home_folders:
