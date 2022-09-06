@@ -134,7 +134,7 @@ class CoreManager(QObject):
         self.last_core_stderr_output = self.decode_raw_core_output(raw_output).strip()
         gui_sentry_reporter.add_breadcrumb(
             message=self.last_core_stderr_output,
-            category='CORE_STDOUT',
+            category='CORE_STDERR',
             level='error'
         )
 
