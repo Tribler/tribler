@@ -104,6 +104,10 @@ class DownloadManager(TaskManager):
 
         self.downloads = {}
 
+        self.checkpoints_count = None
+        self.checkpoints_loaded = 0
+        self.all_checkpoints_are_loaded = False
+
         self.metadata_tmpdir = None
         # Dictionary that maps infohashes to download instances. These include only downloads that have
         # been made specifically for fetching metainfo, and will be removed afterwards.
@@ -839,9 +843,13 @@ class DownloadManager(TaskManager):
 
     async def load_checkpoints(self):
         self._logger.info("Load checkpoints...")
-        for filename in self.get_checkpoint_dir().glob('*.conf'):
+        checkpoint_filenames = list(self.get_checkpoint_dir().glob('*.conf'))
+        self.checkpoints_count = len(checkpoint_filenames)
+        for i, filename in enumerate(checkpoint_filenames, start=1):
             self.load_checkpoint(filename)
+            self.checkpoints_loaded = i
             await sleep(.01)
+        self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
     def load_checkpoint(self, filename):

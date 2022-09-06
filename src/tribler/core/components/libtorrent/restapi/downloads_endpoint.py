@@ -84,7 +84,7 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    def __init__(self, download_manager, metadata_store=None, tunnel_community=None):
+    def __init__(self, download_manager: DownloadManager, metadata_store=None, tunnel_community=None):
         super().__init__()
         self.download_manager = download_manager
         self.mds = metadata_store
@@ -219,6 +219,11 @@ class DownloadsEndpoint(RESTEndpoint):
                         'vod_prebuffering_progress_consec': Float,
                         'error': String,
                         'time_added': Integer
+                    }),
+                    'checkpoints': schema(Checkpoints={
+                        'total': Integer,
+                        'loaded': Integer,
+                        'all_loaded': Boolean,
                     })
                 }),
             }
@@ -236,6 +241,15 @@ class DownloadsEndpoint(RESTEndpoint):
         get_peers = params.get('get_peers', '0') == '1'
         get_pieces = params.get('get_pieces', '0') == '1'
         get_files = params.get('get_files', '0') == '1'
+
+        checkpoints = {
+            "total": self.download_manager.checkpoints_count,
+            "loaded": self.download_manager.checkpoints_loaded,
+            "all_loaded": self.download_manager.all_checkpoints_are_loaded,
+        }
+
+        if not self.download_manager.all_checkpoints_are_loaded:
+            return RESTResponse({"downloads": [], "checkpoints": checkpoints})
 
         downloads_json = []
         downloads = self.download_manager.get_downloads()
@@ -332,7 +346,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
-        return RESTResponse({"downloads": downloads_json})
+        return RESTResponse({"downloads": downloads_json, "checkpoints": checkpoints})
 
     @docs(
         tags=["Libtorrent"],
