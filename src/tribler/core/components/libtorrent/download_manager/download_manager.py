@@ -67,6 +67,7 @@ def encode_atp(atp):
 
 
 class DownloadManager(TaskManager):
+    START_TASK = "start"
 
     def __init__(self,
                  state_dir,
@@ -166,7 +167,7 @@ class DownloadManager(TaskManager):
         self.set_download_states_callback(self.sesscb_states_callback)
 
     def start(self):
-        self.register_task("start", self._start)
+        self.register_task(self.START_TASK, self._start)
 
     async def _start(self):
         await self.load_checkpoints()
@@ -180,7 +181,7 @@ class DownloadManager(TaskManager):
         self.notifier[notifications.tribler_shutdown_state](state)
 
     async def shutdown(self, timeout=30):
-        self.cancel_pending_task("start")
+        self.cancel_pending_task(self.START_TASK)
         self.cancel_pending_task("download_states_lc")
         if self.downloads:
             self.notify_shutdown_state("Checkpointing Downloads...")
