@@ -38,6 +38,11 @@ from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import froze_it
 
 
+TOTAL = 'total'
+LOADED = 'loaded'
+ALL_LOADED = 'all_loaded'
+
+
 def _safe_extended_peer_info(ext_peer_info):
     """
     Given a string describing peer info, return a json.dumps() safe representation.
@@ -221,9 +226,9 @@ class DownloadsEndpoint(RESTEndpoint):
                         'time_added': Integer
                     }),
                     'checkpoints': schema(Checkpoints={
-                        'total': Integer,
-                        'loaded': Integer,
-                        'all_loaded': Boolean,
+                        TOTAL: Integer,
+                        LOADED: Integer,
+                        ALL_LOADED: Boolean,
                     })
                 }),
             }
@@ -243,9 +248,9 @@ class DownloadsEndpoint(RESTEndpoint):
         get_files = params.get('get_files', '0') == '1'
 
         checkpoints = {
-            "total": self.download_manager.checkpoints_count,
-            "loaded": self.download_manager.checkpoints_loaded,
-            "all_loaded": self.download_manager.all_checkpoints_are_loaded,
+            TOTAL: self.download_manager.checkpoints_count,
+            LOADED: self.download_manager.checkpoints_loaded,
+            ALL_LOADED: self.download_manager.all_checkpoints_are_loaded,
         }
 
         if not self.download_manager.all_checkpoints_are_loaded:
