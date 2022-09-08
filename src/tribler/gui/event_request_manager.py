@@ -15,7 +15,7 @@ from tribler.gui.utilities import connect, make_network_errors_dict
 
 received_events = []
 
-CORE_CONNECTION_TIMEOUT = 60
+CORE_CONNECTION_TIMEOUT = 120
 RECONNECT_INTERVAL_MS = 100
 
 

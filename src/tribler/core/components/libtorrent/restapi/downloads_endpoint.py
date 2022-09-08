@@ -38,6 +38,11 @@ from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import froze_it
 
 
+TOTAL = 'total'
+LOADED = 'loaded'
+ALL_LOADED = 'all_loaded'
+
+
 def _safe_extended_peer_info(ext_peer_info):
     """
     Given a string describing peer info, return a json.dumps() safe representation.
@@ -84,7 +89,7 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    def __init__(self, download_manager, metadata_store=None, tunnel_community=None):
+    def __init__(self, download_manager: DownloadManager, metadata_store=None, tunnel_community=None):
         super().__init__()
         self.download_manager = download_manager
         self.mds = metadata_store
@@ -219,6 +224,11 @@ class DownloadsEndpoint(RESTEndpoint):
                         'vod_prebuffering_progress_consec': Float,
                         'error': String,
                         'time_added': Integer
+                    }),
+                    'checkpoints': schema(Checkpoints={
+                        TOTAL: Integer,
+                        LOADED: Integer,
+                        ALL_LOADED: Boolean,
                     })
                 }),
             }
@@ -236,6 +246,15 @@ class DownloadsEndpoint(RESTEndpoint):
         get_peers = params.get('get_peers', '0') == '1'
         get_pieces = params.get('get_pieces', '0') == '1'
         get_files = params.get('get_files', '0') == '1'
+
+        checkpoints = {
+            TOTAL: self.download_manager.checkpoints_count,
+            LOADED: self.download_manager.checkpoints_loaded,
+            ALL_LOADED: self.download_manager.all_checkpoints_are_loaded,
+        }
+
+        if not self.download_manager.all_checkpoints_are_loaded:
+            return RESTResponse({"downloads": [], "checkpoints": checkpoints})
 
         downloads_json = []
         downloads = self.download_manager.get_downloads()
@@ -332,7 +351,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
-        return RESTResponse({"downloads": downloads_json})
+        return RESTResponse({"downloads": downloads_json, "checkpoints": checkpoints})
 
     @docs(
         tags=["Libtorrent"],

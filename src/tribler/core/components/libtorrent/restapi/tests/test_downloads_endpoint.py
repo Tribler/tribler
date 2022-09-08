@@ -149,13 +149,25 @@ def test_get_extended_status_circuits(mock_extended_status):
     assert mock_extended_status == DLSTATUS_CIRCUITS
 
 
+async def test_get_downloads_if_checkpoints_are_not_loaded(mock_dlmgr, rest_api):
+    mock_dlmgr.checkpoints_count = 10
+    mock_dlmgr.checkpoints_loaded = 5
+    mock_dlmgr.all_checkpoints_are_loaded = False
+
+    expected_json = {"downloads": [], "checkpoints": {"total": 10, "loaded": 5, "all_loaded": False}}
+    await do_request(rest_api, "downloads?get_peers=1&get_pieces=1", expected_code=200, expected_json=expected_json)
+
+
 async def test_get_downloads_no_downloads(mock_dlmgr, rest_api):
     """
     Testing whether the API returns an empty list when downloads are fetched but no downloads are active
     """
-    result = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1',
-                              expected_code=200, expected_json={"downloads": []})
-    assert result["downloads"] == []
+    mock_dlmgr.checkpoints_count = 0
+    mock_dlmgr.checkpoints_loaded = 0
+    mock_dlmgr.all_checkpoints_are_loaded = True
+
+    expected_json = {"downloads": [], "checkpoints": {"total": 0, "loaded": 0, "all_loaded": True}}
+    await do_request(rest_api, "downloads?get_peers=1&get_pieces=1", expected_code=200, expected_json=expected_json)
 
 
 async def test_get_downloads(mock_dlmgr, test_download, rest_api):
@@ -163,8 +175,13 @@ async def test_get_downloads(mock_dlmgr, test_download, rest_api):
     Testing whether the API returns the right download when a download is added
     """
     mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.checkpoints_count = 1
+    mock_dlmgr.checkpoints_loaded = 1
+    mock_dlmgr.all_checkpoints_are_loaded = True
+
     downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1', expected_code=200)
     assert len(downloads["downloads"]) == 1
+    assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
 
 
 async def test_start_download_no_uri(rest_api):
