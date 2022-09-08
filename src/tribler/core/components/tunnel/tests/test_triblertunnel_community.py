@@ -2,8 +2,9 @@ import os
 from asyncio import Future, TimeoutError as AsyncTimeoutError, sleep, wait_for
 from collections import defaultdict
 from random import random
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
@@ -12,6 +13,7 @@ from ipv8.messaging.anonymization.tunnel import (
     PEER_FLAG_EXIT_BT,
 )
 from ipv8.peer import Peer
+from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
@@ -32,6 +34,24 @@ from tribler.core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler.core.utilities.network_utils import NetworkUtils
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import MEMORY_DB
+
+
+# pylint: disable=redefined-outer-name
+
+@pytest.fixture()
+def tunnel_community():
+    community = TriblerTunnelCommunity(MagicMock(),
+                                       MagicMock(),
+                                       MagicMock(),
+                                       socks_servers=MagicMock(),
+                                       config=MagicMock(),
+                                       notifier=MagicMock(),
+                                       dlmgr=MagicMock(),
+                                       bandwidth_community=MagicMock(),
+                                       dht_provider=MagicMock(),
+                                       exitnode_cache=MagicMock(),
+                                       settings=MagicMock())
+    return community
 
 
 class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-methods
@@ -180,6 +200,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
         def mock_create_ip(*_, **__):
             mock_create_ip.called = True
+
         mock_create_ip.called = False
         self.nodes[0].overlay.create_introduction_point = mock_create_ip
 
@@ -200,8 +221,10 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         """
         Test whether rendezvous points are removed when a download is stopped
         """
+
         def mocked_remove_circuit(circuit_id, *_, **__):
             mocked_remove_circuit.circuit_id = circuit_id
+
         mocked_remove_circuit.circuit_id = -1
 
         mock_circuit = MockObject()
@@ -224,8 +247,10 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         """
         Test whether circuits are removed when all downloads are stopped
         """
+
         def mocked_remove_circuit(circuit_id, *_, **__):
             mocked_remove_circuit.circuit_id = circuit_id
+
         mocked_remove_circuit.circuit_id = -1
 
         mock_circuit = MockObject()
@@ -644,3 +669,21 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
             await wait_for(self.nodes[0].overlay.perform_http_request(('127.0.0.1', 1234),
                                                                       b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
                            timeout=.3)
+
+
+@patch.object(Network, 'snapshot', Mock(return_value=b'snapshot'))
+def test_cache_exitnodes_to_disk(tunnel_community: TriblerTunnelCommunity, tmp_path):
+    """ Test whether we can cache exit nodes to disk """
+    tunnel_community.exitnode_cache = tmp_path / 'exitnode_cache.dat'
+    tunnel_community.cache_exitnodes_to_disk()
+
+    assert tunnel_community.exitnode_cache.read_bytes() == b'snapshot'
+
+
+@patch.object(Network, 'snapshot', Mock(return_value=b'snapshot'))
+def test_cache_exitnodes_to_disk_os_error(tunnel_community: TriblerTunnelCommunity):
+    """ Test whether we can handle an OSError when caching exit nodes to disk and raise no errors """
+    tunnel_community.exitnode_cache = Mock(write_bytes=Mock(side_effect=FileNotFoundError))
+    tunnel_community.cache_exitnodes_to_disk()
+
+    assert tunnel_community.exitnode_cache.write_bytes.called

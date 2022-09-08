@@ -6,10 +6,9 @@ from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
-from typing import List
+from typing import List, Optional
 
 import async_timeout
-
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
@@ -48,6 +47,7 @@ from tribler.core.components.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler.core.utilities.bencodecheck import is_bencoded
+from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DLSTATUS_DOWNLOADING,
     DLSTATUS_METADATA,
@@ -72,7 +72,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def __init__(self, *args, **kwargs):
         self.bandwidth_community = kwargs.pop('bandwidth_community', None)
-        self.exitnode_cache = kwargs.pop('exitnode_cache', None)
+        self.exitnode_cache: Optional[Path] = kwargs.pop('exitnode_cache', None)
         self.config = kwargs.pop('config', None)
         self.notifier = kwargs.pop('notifier', None)
         self.dlmgr = kwargs.pop('dlmgr', None)
@@ -140,9 +140,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         exit_nodes = Network()
         for peer in self.get_candidates(PEER_FLAG_EXIT_BT):
             exit_nodes.add_verified_peer(peer)
-        self.logger.debug('Writing exit nodes to cache: %s', self.exitnode_cache)
-        with open(self.exitnode_cache, 'wb') as cache:
-            cache.write(exit_nodes.snapshot())
+        snapshot = exit_nodes.snapshot()
+        self.logger.info(f'Writing exit nodes to cache file: {self.exitnode_cache}')
+        try:
+            self.exitnode_cache.write_bytes(snapshot)
+        except OSError as e:
+            self.logger.warning(f'{e.__class__.__name__}: {e}')
 
     def restore_exitnodes_from_disk(self):
         """
@@ -601,7 +604,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                     response += line
                     if not line.strip():
                         # Read HTTP response body (1MB max)
-                        response += await reader.read(1024**2)
+                        response += await reader.read(1024 ** 2)
                         break
         except OSError:
             self.logger.warning('Tunnel HTTP request failed')
@@ -624,7 +627,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for i in range(num_cells):
             self.send_cell(source_address,
                            HTTPResponsePayload(circuit_id, payload.identifier, i, num_cells,
-                                               response[i*MAX_HTTP_PACKET_SIZE:(i+1)*MAX_HTTP_PACKET_SIZE]))
+                                               response[i * MAX_HTTP_PACKET_SIZE:(i + 1) * MAX_HTTP_PACKET_SIZE]))
 
     @unpack_cell(HTTPResponsePayload)
     def on_http_response(self, source_address, payload, circuit_id):
