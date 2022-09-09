@@ -1,19 +1,18 @@
 from asyncio import Future, sleep
 from pathlib import Path
-from unittest.mock import Mock
-
-from ipv8.util import succeed
+from unittest.mock import MagicMock, Mock
 
 import libtorrent as lt
+import pytest
+from ipv8.util import succeed
 from libtorrent import bencode
 
-import pytest
-
-from tribler.core.exceptions import SaveResumeDataError
+from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
+from tribler.core.exceptions import SaveResumeDataError
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
@@ -89,6 +88,7 @@ def test_selected_files(mock_handle, test_download):
     """
     Test whether the selected files are set correctly
     """
+
     def mocked_set_file_prios(_):
         mocked_set_file_prios.called = True
 
@@ -116,6 +116,7 @@ def test_selected_files_no_files(mock_handle, test_download):
     """
     Test that no files are selected if torrent info is not available.
     """
+
     def mocked_set_file_prios(_):
         mocked_set_file_prios.called = True
 
@@ -151,6 +152,7 @@ async def test_set_share_mode(mock_handle, test_download):
     """
     Test whether we set the right share mode in Download
     """
+
     def mocked_set_share_mode(val):
         assert val
         mocked_set_share_mode.called = True
@@ -165,11 +167,12 @@ def test_get_num_connected_seeds_peers(mock_handle, test_download):
     """
     Test whether connected peers and seeds are correctly returned
     """
+
     def get_peer_info(seeders, leechers):
         peer_info = []
         for _ in range(seeders):
             seeder = MockObject()
-            seeder.flags = 140347   # some value where seed flag(1024) is true
+            seeder.flags = 140347  # some value where seed flag(1024) is true
             seeder.seed = 1024
             peer_info.append(seeder)
         for _ in range(leechers):
@@ -193,6 +196,7 @@ async def test_set_priority(mock_handle, test_download):
     """
     Test whether setting the priority calls the right methods in Download
     """
+
     def mocked_set_priority(prio):
         assert prio == 1234
         mocked_set_priority.called = True
@@ -207,6 +211,7 @@ def test_add_trackers(mock_handle, test_download):
     """
     Testing whether trackers are added to the libtorrent handler in Download
     """
+
     def mocked_add_trackers(tracker_info):
         assert isinstance(tracker_info, dict)
         assert tracker_info['url'] == 'http://google.com'
@@ -284,6 +289,7 @@ def test_metadata_received_invalid_info(mock_handle, test_download):
     """
     Testing whether the right operations happen when we receive metadata but the torrent info is invalid
     """
+
     def mocked_checkpoint():
         raise RuntimeError("This code should not be reached!")
 
@@ -297,6 +303,7 @@ def test_metadata_received_invalid_torrent_with_value_error(mock_handle, test_do
     Testing whether the right operations happen when we receive metadata but the torrent info is invalid and throws
     Value Error
     """
+
     def mocked_checkpoint():
         raise RuntimeError("This code should not be reached!")
 
@@ -318,6 +325,7 @@ def test_torrent_checked_alert(mock_handle, test_download):
     """
     Testing whether the right operations happen after a torrent checked alert is received
     """
+
     def mocked_pause_checkpoint():
         mocked_pause_checkpoint.called = True
         return succeed(None)
@@ -404,3 +412,17 @@ async def test_checkpoint_timeout(test_download):
     test_download.futures['save_resume_data'].pop(0)
     await sleep(0.2)
     assert task.done()
+
+
+def test_get_tracker_status_unicode_decode_error(test_download: Download):
+    """
+    Sometimes a tracker entry raises UnicodeDecodeError while accessing it's values.
+    The reason for this is unknown.
+    In this test we ensures that this types of bugs don't affect `get_tracker_status` method.
+    See: https://github.com/Tribler/tribler/issues/7036
+    """
+
+    test_download.handle = MagicMock(trackers=MagicMock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))
+    test_download.get_tracker_status()
+
+    assert test_download.handle.trackers.called

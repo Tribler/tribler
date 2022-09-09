@@ -222,6 +222,7 @@ class TriblerNetworkRequest(QObject):
                 and not TriblerRequestManager.window.core_manager.shutting_down
             ):
                 # TODO: Report REST API errors to Sentry
+                logging.error(f'REST API error: {json_result}')
                 request_manager.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result)
