@@ -1,5 +1,7 @@
+import logging
 import os
 import time
+from typing import Optional
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
@@ -53,6 +55,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.export_dir = None
         self.filter = DOWNLOADS_FILTER_ALL
         self.download_widgets = {}  # key: infohash, value: QTreeWidgetItem
@@ -62,7 +65,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.downloads_last_update = 0
         self.selected_items = []
         self.dialog = None
-        self.loading_message_widget = None
+        self.loading_message_widget: Optional[LoadingDownloadWidgetItem] = None
+        self.loading_list_item: Optional[LoadingListItem] = None
         self.total_download = 0
         self.total_upload = 0
 
@@ -109,10 +113,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def start_loading_downloads(self):
         self.window().downloads_list.setSelectionMode(QAbstractItemView.NoSelection)
         self.loading_message_widget = LoadingDownloadWidgetItem()
+        self.loading_list_item = LoadingListItem(self.window().downloads_list)
         self.window().downloads_list.addTopLevelItem(self.loading_message_widget)
-        self.window().downloads_list.setItemWidget(
-            self.loading_message_widget, 2, LoadingListItem(self.window().downloads_list)
-        )
+        self.window().downloads_list.setItemWidget(self.loading_message_widget, 2, self.loading_list_item)
         self.schedule_downloads_timer(now=True)
 
     def schedule_downloads_timer(self, now=False):
@@ -148,6 +151,20 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads:
             return  # This might happen when closing Tribler
+
+        checkpoints = downloads.get('checkpoints', {})
+        if checkpoints and self.loading_message_widget:
+            # If not all checkpoints are loaded, display the number of the loaded checkpoints
+            total = checkpoints['total']
+            loaded = checkpoints['loaded']
+            if not checkpoints['all_loaded']:
+                # The column is too narrow for a long message, probably we should redesign this UI element later
+                message = f'{loaded}/{total} checkpoints'
+                self._logger.info(f'Loading checkpoints: {message}')
+                self.loading_list_item.textlabel.setText(message)
+                self.schedule_downloads_timer()
+                return
+
         loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)
         if loading_widget_index > -1:
             self.window().downloads_list.takeTopLevelItem(loading_widget_index)

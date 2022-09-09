@@ -173,6 +173,26 @@ def test_upgrade_pony13to14(upgrader: TriblerUpgrader, state_dir, channels_dir, 
         assert mds.get_value('db_version') == '14'
 
 
+def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channels_dir, trustchain_keypair, mds_path):
+    tags_path = state_dir / 'sqlite/tags.db'
+
+    _copy(source_name='pony_v13.db', target=mds_path)
+
+    upgrader.upgrade_pony_db_13to14()  # No exception if the tags database file is missing before the upgrade
+    assert not tags_path.exists()  # Tags' database file is still missing after upgrade if it has not existed before
+
+    # TagsComponent specifies create_tables=True option when it creates TagDatabase.
+    # That means that the empty tags' database will be automatically created if it was not already present
+    tags = TagDatabase(str(tags_path), create_tables=True, check_tables=False)
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
+
+    with db_session:
+        # The end result is the same as in the previous test
+        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
+        assert upgrader.column_exists_in_table(tags.instance, 'TorrentTagOp', 'auto_generated')
+        assert mds.get_value('db_version') == '14'
+
+
 def test_upgrade_pony12to13(upgrader, channels_dir, mds_path, trustchain_keypair):  # pylint: disable=W0621
     _copy('pony_v12.db', mds_path)
 

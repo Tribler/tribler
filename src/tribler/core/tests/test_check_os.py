@@ -8,7 +8,6 @@ from tribler.core.utilities.patch_import import patch_import
 # pylint: disable=import-outside-toplevel
 # fmt: off
 
-
 @patch('sys.exit')
 @patch('tribler.core.check_os.show_system_popup')
 async def test_error_and_exit(mocked_show_system_popup, mocked_sys_exit):

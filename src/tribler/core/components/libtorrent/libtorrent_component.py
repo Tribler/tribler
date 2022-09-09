@@ -2,7 +2,6 @@ from tribler.core.components.component import Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.utilities.rest_utils import path_to_url
 
 
 class LibtorrentComponent(Component):
@@ -21,6 +20,7 @@ class LibtorrentComponent(Component):
 
         self.download_manager = DownloadManager(
             config=config.libtorrent,
+            gui_test_mode=config.gui_test_mode,
             state_dir=config.state_dir,
             notifier=self.session.notifier,
             peer_mid=key_component.primary_key.key_to_hash(),
@@ -30,15 +30,10 @@ class LibtorrentComponent(Component):
             dummy_mode=config.gui_test_mode)
         self.download_manager.initialize()
 
-        await self.download_manager.load_checkpoints()
-
-        if config.gui_test_mode:
-            from tribler.core.tests.tools.common import TORRENT_WITH_DIRS  # pylint: disable=import-outside-toplevel
-            uri = path_to_url(TORRENT_WITH_DIRS)
-            await self.download_manager.start_download_from_uri(uri)
+        # load checkpoints in a background task to not delay initialization of dependent components (e.g. RESTComponent)
+        self.download_manager.start()
 
     async def shutdown(self):
         await super().shutdown()
         if self.download_manager:
-            _ = self.download_manager.stop_download_states_callback()
             await self.download_manager.shutdown()

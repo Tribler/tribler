@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import Future, gather, get_event_loop, sleep
 from unittest.mock import MagicMock
 
@@ -369,6 +370,13 @@ def test_load_checkpoint(fake_dlmgr):
     assert not good
 
 
+@pytest.mark.asyncio
+async def test_download_manager_start(fake_dlmgr):
+    fake_dlmgr.start()
+    await asyncio.sleep(0.01)
+    assert fake_dlmgr.all_checkpoints_are_loaded
+
+
 def test_load_empty_checkpoint(fake_dlmgr, tmpdir):
     """
     Test whether download resumes with faulty pstate file.
@@ -400,8 +408,16 @@ async def test_load_checkpoints(fake_dlmgr, tmpdir):
         state_file.write(b"hi")
 
     fake_dlmgr.load_checkpoint = mocked_load_checkpoint
+    assert fake_dlmgr.all_checkpoints_are_loaded is False
+    assert fake_dlmgr.checkpoints_count is None
+    assert fake_dlmgr.checkpoints_loaded == 0
+
     await fake_dlmgr.load_checkpoints()
+
     assert mocked_load_checkpoint.called
+    assert fake_dlmgr.all_checkpoints_are_loaded is True
+    assert fake_dlmgr.checkpoints_count == 1
+    assert fake_dlmgr.checkpoints_loaded == 1
 
 
 async def test_readd_download_safe_seeding(fake_dlmgr):

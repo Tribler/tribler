@@ -32,6 +32,7 @@ from tribler.core.utilities.rest_utils import (
     HTTPS_SCHEME,
     HTTP_SCHEME,
     MAGNET_SCHEME,
+    path_to_url,
     scheme_from_url,
     url_to_path,
 )
@@ -66,12 +67,14 @@ def encode_atp(atp):
 
 
 class DownloadManager(TaskManager):
+    START_TASK = "start"
 
     def __init__(self,
                  state_dir,
                  notifier: Notifier,
                  peer_mid: bytes,
                  config: LibtorrentSettings = None,
+                 gui_test_mode: bool = False,
                  download_defaults: DownloadDefaultsSettings = None,
                  bootstrap_infohash=None,
                  socks_listen_ports: Optional[List[int]] = None,
@@ -92,6 +95,7 @@ class DownloadManager(TaskManager):
         self.notifier = notifier
         self.peer_mid = peer_mid
         self.config = config or LibtorrentSettings()
+        self.gui_test_mode = gui_test_mode
         self.bootstrap_infohash = bootstrap_infohash
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
         self._libtorrent_port = None
@@ -100,6 +104,10 @@ class DownloadManager(TaskManager):
         self.set_download_rate_limit(0)
 
         self.downloads = {}
+
+        self.checkpoints_count = None
+        self.checkpoints_loaded = 0
+        self.all_checkpoints_are_loaded = False
 
         self.metadata_tmpdir = None
         # Dictionary that maps infohashes to download instances. These include only downloads that have
@@ -158,12 +166,25 @@ class DownloadManager(TaskManager):
 
         self.set_download_states_callback(self.sesscb_states_callback)
 
+    def start(self):
+        self.register_task(self.START_TASK, self._start)
+
+    async def _start(self):
+        await self.load_checkpoints()
+
+        if self.gui_test_mode:
+            from tribler.core.tests.tools.common import TORRENT_WITH_DIRS  # pylint: disable=import-outside-toplevel
+            uri = path_to_url(TORRENT_WITH_DIRS)
+            await self.start_download_from_uri(uri)
+
     def notify_shutdown_state(self, state):
         self._logger.info(f'Notify shutdown state: {state}')
         self.notifier[notifications.tribler_shutdown_state](state)
 
     async def shutdown(self, timeout=30):
         self._logger.info('Shutting down...')
+        self.cancel_pending_task(self.START_TASK)
+        self.cancel_pending_task("download_states_lc")
         if self.downloads:
             self._logger.info('Stopping downloads...')
 
@@ -789,9 +810,6 @@ class DownloadManager(TaskManager):
         self._logger.debug("Starting the download state callback with interval %f", interval)
         self.replace_task("download_states_lc", self._invoke_states_cb, user_callback, interval=interval)
 
-    def stop_download_states_callback(self):
-        return self.cancel_pending_task("download_states_lc")
-
     async def _invoke_states_cb(self, callback):
         """
         Invoke the download states callback with a list of the download states.
@@ -832,9 +850,15 @@ class DownloadManager(TaskManager):
         return self._last_states_list
 
     async def load_checkpoints(self):
-        for filename in self.get_checkpoint_dir().glob('*.conf'):
+        self._logger.info("Load checkpoints...")
+        checkpoint_filenames = list(self.get_checkpoint_dir().glob('*.conf'))
+        self.checkpoints_count = len(checkpoint_filenames)
+        for i, filename in enumerate(checkpoint_filenames, start=1):
             self.load_checkpoint(filename)
+            self.checkpoints_loaded = i
             await sleep(.01)
+        self.all_checkpoints_are_loaded = True
+        self._logger.info("Checkpoints are loaded")
 
     def load_checkpoint(self, filename):
         try:

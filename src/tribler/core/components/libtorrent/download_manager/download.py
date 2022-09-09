@@ -270,7 +270,7 @@ class Download(TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
-        self._logger.info(f'On save resume data alert: {alert}.')
+        self._logger.debug('On save resume data alert: %s', alert)
         if self.checkpoint_disabled:
             return
 
@@ -578,13 +578,13 @@ class Download(TaskManager):
     @check_handle(default={})
     def get_tracker_status(self):
         # Make sure all trackers are in the tracker_status dict
-        for announce_entry in self.handle.trackers():
-            if announce_entry['url'] not in self.tracker_status:
-                try:
-                    url = announce_entry['url']
+        try:
+            for announce_entry in self.handle.trackers():
+                url = announce_entry['url']
+                if url not in self.tracker_status:
                     self.tracker_status[url] = [0, 'Not contacted yet']
-                except UnicodeDecodeError:
-                    pass
+        except UnicodeDecodeError:
+            self._logger.warning('UnicodeDecodeError in get_tracker_status')
 
         # Count DHT and PeX peers
         dht_peers = pex_peers = 0

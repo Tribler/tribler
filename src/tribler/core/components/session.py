@@ -7,7 +7,7 @@ from asyncio import Event, create_task, gather, get_event_loop
 from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar
 
-from tribler.core.components.component import Component, ComponentError
+from tribler.core.components.component import Component, ComponentError, ComponentStartupException
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
@@ -26,6 +26,7 @@ class Session:
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
+        self.exit_code = 0
         self.failfast = failfast
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
@@ -75,6 +76,11 @@ class Session:
 
     def _reraise_startup_exception_in_separate_task(self):
         async def exception_reraiser():
+            e = self._startup_exception
+            if isinstance(e, ComponentStartupException) and e.component.tribler_should_stop_on_component_error:
+                self.exit_code = 1
+                self.shutdown_event.set()
+
             # the exception should be intercepted by event loop exception handler
             raise self._startup_exception
 

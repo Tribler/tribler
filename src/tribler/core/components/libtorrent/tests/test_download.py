@@ -7,6 +7,7 @@ import pytest
 from ipv8.util import succeed
 from libtorrent import bencode
 
+from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
 from tribler.core.exceptions import SaveResumeDataError
@@ -415,3 +416,17 @@ def test_on_save_resume_data_alert_permission_denied(mocked_write: Mock, test_do
     mocked_write.side_effect = PermissionError()
     test_download.on_save_resume_data_alert(MagicMock())
     assert mocked_write.called
+
+
+def test_get_tracker_status_unicode_decode_error(test_download: Download):
+    """
+    Sometimes a tracker entry raises UnicodeDecodeError while accessing it's values.
+    The reason for this is unknown.
+    In this test we ensures that this types of bugs don't affect `get_tracker_status` method.
+    See: https://github.com/Tribler/tribler/issues/7036
+    """
+
+    test_download.handle = MagicMock(trackers=MagicMock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))
+    test_download.get_tracker_status()
+
+    assert test_download.handle.trackers.called

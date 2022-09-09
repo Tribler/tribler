@@ -30,6 +30,5 @@ Export the `src` directory to `PYTHONPATH`
 Execute:
 ```
 python3 -m pytest src
-python3 -m pytest src --no_parallel
 python3 -m pytest src --guitests
 ```

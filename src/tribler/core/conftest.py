@@ -96,6 +96,9 @@ def mock_dlmgr(state_dir):
     dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
     dlmgr.state_dir = state_dir
     dlmgr.get_downloads = lambda: []
+    dlmgr.checkpoints_count = 1
+    dlmgr.checkpoints_loaded = 1
+    dlmgr.all_checkpoints_are_loaded = True
     return dlmgr
 
 

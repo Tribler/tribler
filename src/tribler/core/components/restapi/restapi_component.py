@@ -96,8 +96,10 @@ class RESTComponent(Component):
         self.root_endpoint.add_endpoint('/events', self._events_endpoint)
         self.maybe_add('/settings', SettingsEndpoint, config, download_manager=libtorrent_component.download_manager)
         self.maybe_add('/shutdown', ShutdownEndpoint, shutdown_event.set)
-        self.maybe_add('/debug', DebugEndpoint, config.state_dir, log_dir, tunnel_community=tunnel_community,
-                       resource_monitor=resource_monitor_component.resource_monitor)
+        self.maybe_add('/debug', DebugEndpoint, config.state_dir, log_dir,
+                       tunnel_community=tunnel_community,
+                       resource_monitor=resource_monitor_component.resource_monitor,
+                       core_exception_handler=self._core_exception_handler)
         self.maybe_add('/bandwidth', BandwidthEndpoint, bandwidth_accounting_component.community)
         self.maybe_add('/trustview', TrustViewEndpoint, bandwidth_accounting_component.database)
         self.maybe_add('/downloads', DownloadsEndpoint, libtorrent_component.download_manager,

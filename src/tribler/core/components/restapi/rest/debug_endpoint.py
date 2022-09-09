@@ -15,8 +15,10 @@ from marshmallow.fields import Boolean, Float, Integer, String
 
 import psutil
 
+from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.components.resource_monitor.implementation.base import ResourceMonitor
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.exceptions import TriblerCoreTestException
 from tribler.core.utilities.instrumentation import WatchDog
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.path_util import Path
@@ -47,12 +49,14 @@ class DebugEndpoint(RESTEndpoint):
                  state_dir: Path,
                  log_dir: Path,
                  tunnel_community: TunnelCommunity = None,
-                 resource_monitor: ResourceMonitor = None):
+                 resource_monitor: ResourceMonitor = None,
+                 core_exception_handler: CoreExceptionHandler = None):
         super().__init__()
         self.state_dir = state_dir
         self.log_dir = log_dir
         self.tunnel_community = tunnel_community
         self.resource_monitor = resource_monitor
+        self.core_exception_handler = core_exception_handler
 
     def setup_routes(self):
         self.app.add_routes([web.get('/circuits/slots', self.get_circuit_slots),
@@ -64,7 +68,9 @@ class DebugEndpoint(RESTEndpoint):
                              web.get('/log', self.get_log),
                              web.get('/profiler', self.get_profiler_state),
                              web.put('/profiler', self.start_profiler),
-                             web.delete('/profiler', self.stop_profiler)])
+                             web.delete('/profiler', self.stop_profiler),
+                             web.post('/core_test_exception', self.core_test_exception),
+                             ])
         if HAS_MELIAE:
             self.app.add_routes([web.get('/memory/dump', self.get_memory_dump)])
 
@@ -364,3 +370,27 @@ class DebugEndpoint(RESTEndpoint):
     async def stop_profiler(self, _):
         file_path = self.resource_monitor.profiler.stop()
         return RESTResponse({"success": True, "profiler_file": str(file_path)})
+
+    @docs(
+        tags=['Debug'],
+        summary="Generates a test exception in the Core process.",
+        responses={
+            200: {
+                'schema': schema(CoreTestException={
+                    'success': Boolean
+                })
+            }
+        }
+    )
+    async def core_test_exception(self, _):
+        self._logger.info('Test Tribler Core exception was triggered')
+        if self.core_exception_handler:
+            try:
+                raise TriblerCoreTestException('Tribler Core Test Exception')
+            except TriblerCoreTestException as e:
+                context = dict(should_stop=True, message='Test message', exception=e)
+                self.core_exception_handler.unhandled_error_observer(None, context)
+        else:
+            self._logger.info('Exception handler is not set in DebugEndpoint')
+
+        return RESTResponse({"success": True})

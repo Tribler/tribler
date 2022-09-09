@@ -113,6 +113,9 @@ class TriblerRequestManager(QNetworkAccessManager):
             buf.setData(request.raw_data)
         buf.open(QIODevice.ReadOnly)
 
+        # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
+        self.setNetworkAccessible(QNetworkAccessManager.Accessible)
+
         request.reply = self.sendCustomRequest(qt_request, request.method.encode("utf8"), buf)
         buf.setParent(request.reply)
 
@@ -219,6 +222,7 @@ class TriblerNetworkRequest(QObject):
                 and not TriblerRequestManager.window.core_manager.shutting_down
             ):
                 # TODO: Report REST API errors to Sentry
+                logging.error(f'REST API error: {json_result}')
                 request_manager.show_error(TriblerRequestManager.get_message_from_error(json_result))
             else:
                 self.received_json.emit(json_result)
@@ -245,6 +249,7 @@ class TriblerNetworkRequest(QObject):
         """
         Cancel the request by aborting the reply handle and calling on_cancel if available.
         """
+        logging.warning(f'Request from GUI to Core was canceled: {self.url}')
         if self.reply:
             self.reply.abort()
         self.on_cancel()

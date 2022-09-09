@@ -36,5 +36,6 @@ class ShutdownEndpoint(RESTEndpoint):
         }
     )
     async def shutdown(self, request):
+        self._logger.info('Received a shutdown request from GUI')
         self.shutdown_callback()
         return RESTResponse({"shutdown": True})

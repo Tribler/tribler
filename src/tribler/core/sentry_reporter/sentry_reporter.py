@@ -280,7 +280,7 @@ class SentryReporter:
         Returns:
             the event that has been saved in `_before_send` method
         """
-        self._logger.info(f"Event from exception: {exception}")
+        self._logger.debug(f"Event from exception: {exception}")
 
         if not exception:
             return {}

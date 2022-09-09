@@ -83,6 +83,7 @@ from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.event_request_manager import EventRequestManager
+from tribler.gui.exceptions import TriblerGuiTestException
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.tribler_request_manager import (
     TriblerNetworkRequest,
@@ -237,10 +238,18 @@ class TriblerWindow(QMainWindow):
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         connect(self.debug_pane_shortcut.activated, self.clicked_debug_panel_button)
+
         self.import_torrent_shortcut = QShortcut(QKeySequence("Ctrl+o"), self)
         connect(self.import_torrent_shortcut.activated, self.on_add_torrent_browse_file)
+
         self.add_torrent_url_shortcut = QShortcut(QKeySequence("Ctrl+i"), self)
         connect(self.add_torrent_url_shortcut.activated, self.on_add_torrent_from_url)
+
+        self.tribler_gui_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+G"), self)
+        connect(self.tribler_gui_test_exception_shortcut.activated, self.on_test_tribler_gui_exception)
+
+        self.tribler_core_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+C"), self)
+        connect(self.tribler_core_test_exception_shortcut.activated, self.on_test_tribler_core_exception)
 
         connect(self.top_search_bar.clicked, self.clicked_search_bar)
         connect(self.top_search_bar.returnPressed, self.on_top_search_bar_return_pressed)
@@ -382,6 +391,15 @@ class TriblerWindow(QMainWindow):
             run_core=run_core,
             upgrade_manager=self.upgrade_manager,
         )
+
+    def on_test_tribler_gui_exception(self, *_):
+        raise TriblerGuiTestException("Tribler GUI Test Exception")
+
+    def on_test_tribler_core_exception(self, *_):
+        def dummy_callback(_):
+            pass
+
+        TriblerNetworkRequest("/debug/core_test_exception", dummy_callback, method='POST')
 
     def restore_window_geometry(self):
         screen_geometry: QRect = QApplication.desktop().availableGeometry()
@@ -528,15 +546,17 @@ class TriblerWindow(QMainWindow):
 
     def on_core_connected(self, version):
         if self.tribler_started:
-            logging.warning("Received duplicate Tribler Core started event")
+            self._logger.warning("Received duplicate Tribler Core connected event")
             return
+
+        self._logger.info("Core connected")
 
         self.tribler_started = True
         self.tribler_version = version
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
-        self.token_balance_widget.setHidden(False)
+        # self.token_balance_widget.setHidden(False)  # restore it after the token balance calculation is fixed
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -680,8 +700,8 @@ class TriblerWindow(QMainWindow):
             scheme = scheme_from_url(uri)
             if scheme == FILE_SCHEME:
                 file_path = url_to_path(uri)
-                with open(file_path) as torrent_file:
-                    post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
+                content = Path(file_path).read_bytes()
+                post_data['torrent'] = b64encode(content).decode('ascii')
             elif scheme == MAGNET_SCHEME:
                 post_data['uri'] = uri
 
@@ -879,7 +899,7 @@ class TriblerWindow(QMainWindow):
     def on_create_torrent_updates(self, update_dict):
         self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
 
-    def on_add_torrent_browse_file(self, index):
+    def on_add_torrent_browse_file(self, *_):
         self.raise_window()  # For the case when the action is triggered by tray icon
         filenames = QFileDialog.getOpenFileNames(
             self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
@@ -1127,7 +1147,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu_button_downloads.setChecked(True)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
-    def clicked_debug_panel_button(self, *args):  # pylint: disable=unused-argument
+    def clicked_debug_panel_button(self, *_):
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
@@ -1209,12 +1229,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        pid = self.core_manager.core_process.pid()
-        try:
-            os.kill(pid, 9)
-        except OSError:
-            pass
-
+        self.core_manager.kill_core_process_and_remove_the_lock_file()
         self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):

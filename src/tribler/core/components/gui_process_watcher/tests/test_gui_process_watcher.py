@@ -8,6 +8,18 @@ from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiP
     GUI_PID_ENV_KEY
 
 
+@pytest.fixture(name='watcher')
+async def watcher_fixture():
+    gui_process = Mock()
+    gui_process.is_running.return_value = True
+    gui_process.status.return_value = psutil.STATUS_RUNNING
+    shutdown_callback = Mock()
+    watcher = GuiProcessWatcher(gui_process, shutdown_callback)
+    watcher.start()
+    yield watcher
+    await watcher.stop()
+
+
 def test_get_gui_pid(caplog):
     with patch.dict(os.environ, {GUI_PID_ENV_KEY: ''}):
         assert GuiProcessWatcher.get_gui_pid() is None
@@ -40,43 +52,34 @@ def test_get_gui_process():
                 GuiProcessWatcher.get_gui_process()
 
 
-def test_check_gui_process(caplog):
-    gui_process = Mock()
-    gui_process.is_running.return_value = True
-    gui_process.status.return_value = psutil.STATUS_RUNNING
-
-    # GUI process is working
-    shutdown_callback = Mock()
-    watcher = GuiProcessWatcher(gui_process, shutdown_callback)
+async def test_check_gui_process_working(caplog, watcher):
     caplog.clear()
     watcher.check_gui_process()
     assert caplog.records[-1].message == 'GUI process checked, it is still working'
-    assert not shutdown_callback.called
+    assert not watcher.shutdown_callback.called
     assert not watcher.shutdown_callback_called
 
-    # GUI process is zombie
-    gui_process.status.return_value = psutil.STATUS_ZOMBIE
-    watcher = GuiProcessWatcher(gui_process, shutdown_callback)
+async def test_check_gui_process_zombie(caplog, watcher):
+    watcher.gui_process.status.return_value = psutil.STATUS_ZOMBIE
     caplog.clear()
     watcher.check_gui_process()
     assert caplog.records[-1].message == 'GUI process is not working, initiate Core shutdown'
-    assert shutdown_callback.called
+    assert watcher.shutdown_callback.called
     assert watcher.shutdown_callback_called
 
-    # The process is not running
-    gui_process.is_running.return_value = False
-    gui_process.status.reset_mock()
-    watcher = GuiProcessWatcher(gui_process, shutdown_callback)
+async def test_check_gui_process_not_running(caplog, watcher):
+    watcher.gui_process.is_running.return_value = False
     caplog.clear()
     watcher.check_gui_process()
-    assert not gui_process.status.called
+    assert not watcher.gui_process.status.called
     assert caplog.records[-1].message == 'GUI process is not working, initiate Core shutdown'
-    assert shutdown_callback.called
+    assert watcher.shutdown_callback.called
+    assert watcher.shutdown_callback_called
 
     # Calling check_gui_process after shutdown_callback was already called
-    shutdown_callback.reset_mock()
+    watcher.shutdown_callback.reset_mock()
     caplog.clear()
     watcher.check_gui_process()
     assert caplog.records[-1].message == 'The shutdown callback was already called; skip checking the GUI process'
     assert watcher.shutdown_callback_called
-    assert not shutdown_callback.called
+    assert not watcher.shutdown_callback.called

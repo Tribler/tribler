@@ -8,7 +8,7 @@ import traceback
 import types
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Dict
 from urllib.parse import quote_plus
 from uuid import uuid4
 
@@ -21,6 +21,7 @@ from PyQt5.QtCore import (
     pyqtSignal,
 )
 from PyQt5.QtGui import QPixmap, QRegion
+from PyQt5.QtNetwork import QNetworkReply
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
@@ -490,3 +491,13 @@ def show_message_box(text: str = '', title: str = 'Error', icon: QMessageBox.Ico
     message_box.setWindowTitle(title)
     message_box.setText(text)
     message_box.exec_()
+
+
+def make_network_errors_dict() -> Dict[int, str]:
+    network_errors = {}
+    for name in dir(QNetworkReply):
+        if name.endswith('Error'):
+            value = getattr(QNetworkReply, name)
+            if isinstance(value, int):
+                network_errors[value] = name
+    return network_errors

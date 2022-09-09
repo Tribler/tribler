@@ -71,13 +71,9 @@ def test_decode_raw_core_output(core_manager):
 
 
 def test_format_error_message():
-    actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1, last_core_output='last\noutput')
+    actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1)
     expected = '''The Tribler core has unexpectedly finished with exit code 2 and status: 1.
 
-Error message: No such file or directory
-
-Last core output:
-> last
-> output'''
+Error message: No such file or directory'''
 
     assert actual == expected
