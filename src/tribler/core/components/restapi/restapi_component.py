@@ -120,11 +120,11 @@ class RESTComponent(Component):
                        metadata_store_component.mds)
         self.maybe_add('/tags', TagsEndpoint, db=tag_component.tags_db, community=tag_component.community)
 
-        ipv8_root_endpoint = IPV8RootEndpoint()
-        for _, endpoint in ipv8_root_endpoint.endpoints.items():
-            if not isinstance(ipv8_component, NoneComponent):
+        if not isinstance(ipv8_component, NoneComponent):
+            ipv8_root_endpoint = IPV8RootEndpoint()
+            for _, endpoint in ipv8_root_endpoint.endpoints.items():
                 endpoint.initialize(ipv8_component.ipv8)
-        self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
+            self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
 
         # Note: AIOHTTP endpoints cannot be added after the app has been started!
         rest_manager = RESTManager(config=config.api, root_endpoint=self.root_endpoint, state_dir=config.state_dir)
