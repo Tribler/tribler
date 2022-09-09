@@ -51,8 +51,7 @@ def components_gen(config: TriblerConfig):
     """
     yield ReporterComponent()
     yield GuiProcessWatcherComponent()
-    if config.api.http_enabled or config.api.https_enabled:
-        yield RESTComponent()
+    yield RESTComponent()
     if config.chant.enabled or config.torrent_checking.enabled:
         yield MetadataStoreComponent()
     if config.ipv8.enabled:
