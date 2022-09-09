@@ -42,7 +42,6 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QTreeWidget,
 )
-
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
@@ -84,8 +83,8 @@ from tribler.gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
-from tribler.gui.exceptions import TriblerGuiTestException
 from tribler.gui.event_request_manager import EventRequestManager
+from tribler.gui.exceptions import TriblerGuiTestException
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.tribler_request_manager import (
     TriblerNetworkRequest,
@@ -681,8 +680,8 @@ class TriblerWindow(QMainWindow):
             scheme = scheme_from_url(uri)
             if scheme == FILE_SCHEME:
                 file_path = url_to_path(uri)
-                with open(file_path) as torrent_file:
-                    post_data['torrent'] = b64encode(torrent_file.read()).decode('utf8')
+                content = Path(file_path).read_bytes()
+                post_data['torrent'] = b64encode(content).decode('ascii')
             elif scheme == MAGNET_SCHEME:
                 post_data['uri'] = uri
 
