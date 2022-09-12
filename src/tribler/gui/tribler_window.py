@@ -536,7 +536,7 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
-        self.token_balance_widget.setHidden(False)
+        # self.token_balance_widget.setHidden(False)  # restore it after the token balance calculation is fixed
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
