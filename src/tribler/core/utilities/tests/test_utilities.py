@@ -20,7 +20,7 @@ from tribler.core.utilities.utilities import (
     parse_query,
     random_infohash,
     show_system_popup,
-    to_fts_query, get_normally_distributed_number, get_normally_distributed_positive_integers,
+    to_fts_query, get_normally_distributed_number_with_zero_mean, get_normally_distributed_positive_integers,
 )
 
 # pylint: disable=import-outside-toplevel, import-error
@@ -265,7 +265,7 @@ def test_get_normally_distributed_number():
     To test if the random number is from normal distribution, we do Shapiro test and check that
     p-value is higher than 0.05.
     """
-    random_numbers = [get_normally_distributed_number() for _ in range(100)]
+    random_numbers = [get_normally_distributed_number_with_zero_mean() for _ in range(100)]
     shapiro_test = shapiro(random_numbers)
     assert shapiro_test.pvalue > 0.05
 
@@ -284,4 +284,4 @@ def test_get_normally_distributed_positive_integers():
     assert is_positive_and_unique
 
     with pytest.raises(ValueError):
-        _ = get_normally_distributed_positive_integers(size=11, limit=10)
+        _ = get_normally_distributed_positive_integers(size=11, upper_limit=10)

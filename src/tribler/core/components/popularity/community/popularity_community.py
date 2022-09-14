@@ -46,7 +46,8 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         # Init version community message handlers
         self.init_version_community()
 
-    def introduction_request_callback(self, peer, _dist, _payload):
+    def introduction_request_callback(self, peer, dist, payload):
+        super().introduction_request_callback(peer, dist, payload)
         # Send request to peer to send popular torrents
         self.ez_send(peer, PopularTorrentsRequest())
 
@@ -120,7 +121,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         @param limit: Max number of indices that can be returned.
         @return: List of non-repeated positive indices.
         """
-        return get_normally_distributed_positive_integers(size=size, limit=limit)
+        return get_normally_distributed_positive_integers(size=size, upper_limit=limit)
 
     def get_random_torrents(self):
         checked_and_alive = list(self.get_alive_checked_torrents())
