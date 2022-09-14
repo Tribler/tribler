@@ -319,13 +319,23 @@ def test_check_local_torrents(torrent_checker):
     for index in range(0, num_torrents):
         infohash = random_infohash()
         torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
-        torrent.health.seeders = max_seeder - index
-        torrent.health.last_check = int(time_stale) - index
+        torrent.health.seeders = max_seeder - index     # Note: decreasing trend
+        torrent.health.last_check = int(time_stale) - index  # Note: decreasing trend
         stale_infohashes.append(infohash)
 
-    # Now check that two stale torrents selected for check
+    # Now check that all torrents selected for check are stale torrents.
     selected_torrents = torrent_checker.check_local_torrents()
-    assert 1 <= len(selected_torrents) <= 2
+    assert len(selected_torrents) <= torrent_checker_module.TORRENT_SELECTION_POOL_SIZE
+
+    # In the above setup, both seeder (popularity) count and last_check are decreasing so,
+    # 1. Popular torrents are in the front, and
+    # 2. Older torrents are towards the back
+    # Therefore the selection range becomes:
+    selection_range = stale_infohashes[0: torrent_checker_module.TORRENT_SELECTION_POOL_SIZE] \
+        + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
+
+    for infohash in selected_torrents:
+        assert infohash in selection_range
 
 
 @db_session
