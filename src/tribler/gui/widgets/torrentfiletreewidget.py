@@ -68,23 +68,20 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
     def children(self):
         return (self.child(index) for index in range(0, self.childCount()))
 
-    def subtree(self, filter_by=lambda x: True, max_depth=MAX_ALLOWED_RECURSION_DEPTH):
-        if not filter_by(self) or max_depth <= 0:
+    def subtree(self, filter_by=lambda x: True):
+        if not filter_by(self):
             return []
         result = [self]
         for child in self.children:
             if filter_by(child):
-                result.extend(child.subtree(max_depth=max_depth - 1))
+                result.extend(child.subtree())
         return result
 
-    def fill_directory_sizes(self, max_depth=MAX_ALLOWED_RECURSION_DEPTH) -> int:
-        if max_depth <= 0:
-            return 0
-
+    def fill_directory_sizes(self) -> int:
         if self.file_size is None:
             self.file_size = 0
             for child in self.children:
-                self.file_size += child.fill_directory_sizes(max_depth=max_depth - 1)
+                self.file_size += child.fill_directory_sizes()
         self.setText(SIZE_COL, format_size(float(self.file_size)))
         return self.file_size
 
@@ -187,6 +184,12 @@ class TorrentFileTreeWidget(QTreeWidget):
                     continue
 
                 is_file = i == len(path) - 1
+
+                if i >= MAX_ALLOWED_RECURSION_DEPTH:
+                    is_file = True
+                    obj_name = "/".join(path[i:])
+                    full_path = "/".join(path)
+
                 item = items[full_path] = DownloadFileTreeWidgetItem(
                     items[parent_path],
                     file_index=file_index if is_file else None,
@@ -207,9 +210,10 @@ class TorrentFileTreeWidget(QTreeWidget):
                     item.file_size = int(file['length'])
                     self.total_files_size += item.file_size
                     item.setText(SIZE_COL, format_size(float(file['length'])))
-                else:
-                    # Make folder checkboxes automatically affect subtree items
-                    item.setFlags(item.flags() | Qt.ItemIsAutoTristate)
+                    break
+
+                # Make folder checkboxes automatically affect subtree items
+                item.setFlags(item.flags() | Qt.ItemIsAutoTristate)
 
         for ind in range(self.topLevelItemCount()):
             self.topLevelItem(ind).fill_directory_sizes()
