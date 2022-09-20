@@ -51,7 +51,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.network_errors = make_network_errors_dict()
 
         self.connect_timer.setSingleShot(True)
-        connect(self.connect_timer.timeout, self.connect)
+        connect(self.connect_timer.timeout, self.reconnect)
 
         self.notifier = notifier = Notifier()
         notifier.add_observer(notifications.events_start, self.on_events_start)
@@ -166,6 +166,15 @@ class EventRequestManager(QNetworkAccessManager):
         self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def connect(self, reschedule_on_err=True):
+        if reschedule_on_err:
+            self._logger.info(f"Set event request manager timeout to {CORE_CONNECTION_TIMEOUT} seconds")
+            self.start_time = time.time()
+        self._connect(reschedule_on_err)
+
+    def reconnect(self, reschedule_on_err=True):
+        self._connect(reschedule_on_err)
+
+    def _connect(self, reschedule_on_err):
         self._logger.info(f"Connecting to events endpoint ({'with' if reschedule_on_err else 'without'} retrying)")
         if self.reply is not None:
             self.reply.deleteLater()
