@@ -30,6 +30,8 @@ from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import froze_it, is_infohash, parse_magnetlink
 
+ERROR_INVALID_MAGNET_LINK = "Invalid magnet link: %s"
+
 
 async def _fetch_uri(uri):
     async with ClientSession() as session:
@@ -395,11 +397,11 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 tdef = TorrentDef.load_from_memory(data)
             elif uri.startswith("magnet:"):
                 _, xt, _ = parse_magnetlink(uri)
-                if (
-                        xt
-                        and is_infohash(codecs.encode(xt, 'hex'))
-                        and (self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt))
-                ):
+
+                if not xt or not is_infohash(codecs.encode(xt, 'hex')):
+                    return RESTResponse({"error": ERROR_INVALID_MAGNET_LINK.format(uri)}, status=HTTP_BAD_REQUEST)
+
+                if self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt):
                     return RESTResponse({"added": 1})
 
                 meta_info = await self.download_manager.get_metainfo(xt, timeout=30, url=uri)

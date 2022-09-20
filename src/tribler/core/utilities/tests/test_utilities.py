@@ -44,6 +44,24 @@ def test_parse_magnetlink_uppercase():
     assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
 
 
+def test_parse_invalid_magnetlink_short():
+    """
+    Test if a magnet link with invalid and short infohash (v1) can be parsed
+    """
+    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDA')
+
+    assert hashed is None
+
+
+def test_parse_invalid_magnetlink_long():
+    """
+    Test if a magnet link with invalid and long infohash (v1) can be parsed
+    """
+    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
+
+    assert hashed is None
+
+
 def test_valid_url():
     """ Test if the URL is valid """
     test_url = "http://anno nce.torrentsmd.com:8080/announce"
