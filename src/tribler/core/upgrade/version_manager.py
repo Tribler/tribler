@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os.path
 import shutil
 import time
@@ -64,6 +65,9 @@ Versions prior to 7.5 are not supported.
 
 class VersionError(Exception):
     pass
+
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-instance-attributes
@@ -131,6 +135,8 @@ class TriblerVersion:
         if self.deleted:
             return None
 
+        logger.info(f"Delete state directory for version {self.version_str}")
+
         self.deleted = True
         for filename in STATE_FILES_TO_COPY:
             try:
@@ -150,6 +156,9 @@ class TriblerVersion:
         return None
 
     def copy_state_from(self, other: TriblerVersion, overwrite=False):
+
+        logger.info(f"Copy state directory from version {other.version_str} to version {self.version_str}")
+
         if self.directory.exists():
             if not overwrite:
                 raise VersionError(f'Directory for version {self.version_str} already exists')
@@ -173,6 +182,8 @@ class TriblerVersion:
             raise VersionError('Cannot rename root directory')
         timestamp_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         dirname = prefix + '%d.%d' % self.major_minor + '_' + timestamp_str
+
+        logger.info(f"Rename state directory for version {self.version_str} to {dirname}")
         return self.directory.rename(self.root_state_dir / dirname)
 
 
@@ -215,13 +226,15 @@ class VersionHistory:
 
         if not last_run_version:
             # No previous versions found
-            pass
+            logger.info(f"No previous version found, current Tribler version is {code_version.version_str}")
         elif last_run_version.version_str == code_version.version_str:
             # Previously we started the same version, nothing to upgrade
             code_version = last_run_version
+            logger.info(f"The previously started version is the same as the current one: {code_version.version_str}")
         elif last_run_version.major_minor == code_version.major_minor:
             # Previously we started version from the same directory and can continue use this directory
-            pass
+            logger.info(f"The previous version {last_run_version.version_str} "
+                        f"used the same state directory as the current version {code_version.version_str}")
         else:
             # Previously we started version from the different directory
             for v in versions_by_time:
@@ -231,14 +244,26 @@ class VersionHistory:
 
             if code_version.can_be_copied_from:
                 if not code_version.directory.exists():
+                    logger.info(f"The state directory for the current version {code_version.version_str} "
+                                f"does not exists and can be copied from {code_version.can_be_copied_from.version_str}")
                     code_version.should_be_copied = True
 
                 elif code_version.major_minor in versions:
                     # We already used version with this major.minor number, but not the last time.
                     # We need to upgrade from the latest version if possible (see description at the top of the file).
                     # Probably we should ask user, should we copy data again from the previous version or not
+                    logger.info(f"The state directory for the current version {code_version.version_str} "
+                                f"exists but is not the last used version "
+                                f"and can be copied from {code_version.can_be_copied_from.version_str}")
                     code_version.should_be_copied = True
                     code_version.should_recreate_directory = True
+                else:
+                    logger.info(f"The state directory for the current version {code_version.version_str} "
+                                f"is present, but the version does not listed in version history. Will not copy state "
+                                f"from a previous version {code_version.can_be_copied_from.version_str}")
+
+            else:
+                logger.info("Cannot find the previous suitable version to copy state directory")
 
         self.versions_by_number = sorted(versions.values(), key=attrgetter('major_minor'))
         self.versions_by_time = versions_by_time
@@ -271,6 +296,7 @@ class VersionHistory:
         """Returns True if state was saved"""
         should_save = self.code_version != self.last_run_version
         if should_save:
+            logger.info("Save version history")
             self.save()
         return should_save
 
@@ -333,5 +359,6 @@ class VersionHistory:
 
 def remove_state_dirs(root_state_dir: str, state_dirs: List[str]):
     for state_dir in state_dirs:
+        logger.info(f"Remove state directory {state_dir}")
         state_dir = os.path.join(root_state_dir, state_dir)
         shutil.rmtree(state_dir, ignore_errors=True)
