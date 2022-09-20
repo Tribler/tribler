@@ -94,6 +94,7 @@ class TriblerVersion:
         self.last_launched_at = last_launched_at
         self.root_state_dir = root_state_dir
         self.directory = self.get_directory()
+        self.tmp_copy_directory = self.get_tmp_copy_directory()
         self.prev_version_by_time = None
         self.prev_version_by_number = None
         self.can_be_copied_from = None
@@ -106,6 +107,9 @@ class TriblerVersion:
 
     def get_directory(self):
         return self.root_state_dir / ('%d.%d' % self.major_minor)
+
+    def get_tmp_copy_directory(self):
+        return self.root_state_dir / ('%d.%d_tmp_copy' % self.major_minor)
 
     def state_exists(self):
         # For ancient versions that use root directory for state storage
@@ -164,18 +168,26 @@ class TriblerVersion:
                 raise VersionError(f'Directory for version {self.version_str} already exists')
             self.delete_state()
 
-        self.directory.mkdir()
+        if self.tmp_copy_directory.exists():
+            logger.info("Remove the previous unfinished temporary copy of the state directory")
+            shutil.rmtree(self.tmp_copy_directory)
+
+        self.tmp_copy_directory.mkdir()
+
         for dirname in STATE_DIRS_TO_COPY:
             src = other.directory / dirname
             if src.exists():
-                dst = self.directory / dirname
+                dst = self.tmp_copy_directory / dirname
                 shutil.copytree(src, dst)
 
         for filename in STATE_FILES_TO_COPY:
             src = other.directory / filename
             if src.exists():
-                dst = self.directory / filename
+                dst = self.tmp_copy_directory / filename
                 shutil.copy(src, dst)
+
+        self.tmp_copy_directory.rename(self.directory)
+        logger.info(f"State directory is copied from version {other.version_str} to version {self.version_str}")
 
     def rename_directory(self, prefix='unused_v'):
         if self.directory == self.root_state_dir:
