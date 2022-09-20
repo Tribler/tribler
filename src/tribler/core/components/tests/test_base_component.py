@@ -2,6 +2,7 @@ import pytest
 
 from tribler.core.components.component import Component, MissedDependency, NoneComponent
 from tribler.core.components.session import Session
+from tribler.core.config.tribler_config import TriblerConfig
 
 
 class ComponentTestException(Exception):
@@ -141,3 +142,60 @@ async def test_maybe_component(loop, tribler_config):  # pylint: disable=unused-
         assert isinstance(component_b, NoneComponent)
         assert isinstance(component_b.any_attribute, NoneComponent)
         assert isinstance(component_b.any_attribute.any_nested_attribute, NoneComponent)
+
+
+async def test_get_instance_strict_match(tribler_config: TriblerConfig):
+    class A(Component):
+        pass
+
+    class B(Component):
+        pass
+
+    class AncestorOfB(B):
+        pass
+
+    session = Session(tribler_config, [A(), B(), AncestorOfB()])
+    assert isinstance(session.get_instance(B), B)
+
+
+async def test_get_instance_subclass_match(tribler_config: TriblerConfig):
+    class A(Component):
+        pass
+
+    class B(Component):
+        pass
+
+    class AncestorOfB(B):
+        pass
+
+    session = Session(tribler_config, [A(), AncestorOfB()])
+    assert isinstance(session.get_instance(B), AncestorOfB)
+
+
+async def test_get_instance_no_match(tribler_config: TriblerConfig):
+    class A(Component):
+        pass
+
+    class B(Component):
+        pass
+
+    session = Session(tribler_config, [A()])
+    assert not session.get_instance(B)
+
+
+async def test_get_instance_two_subclasses_match(tribler_config: TriblerConfig):
+    class A(Component):
+        pass
+
+    class B(Component):
+        pass
+
+    class FirstAncestorOfB(B):
+        pass
+
+    class SecondAncestorOfB(B):
+        pass
+
+    session = Session(tribler_config, [A(), FirstAncestorOfB(), SecondAncestorOfB()])
+    with pytest.raises(KeyError):
+        session.get_instance(B)

@@ -51,7 +51,20 @@ class Session:
         await self.shutdown()
 
     def get_instance(self, comp_cls: Type[T]) -> Optional[T]:
-        return self.components.get(comp_cls)
+        # try to find a direct match
+        if direct_match := self.components.get(comp_cls):
+            return direct_match
+
+        # try to find a subclass match
+        candidates = {c for c in self.components if issubclass(c, comp_cls)}
+
+        if not candidates:
+            return None
+        elif len(candidates) >= 2:
+            raise KeyError(f'Found more that two subclasses for the class {comp_cls}')
+
+        candidate = candidates.pop()
+        return self.components[candidate]
 
     def register(self, comp_cls: Type[Component], component: Component):
         if comp_cls in self.components:
