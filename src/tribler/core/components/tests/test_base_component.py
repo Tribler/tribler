@@ -21,16 +21,16 @@ async def test_session_start_shutdown(tribler_config):
         async def shutdown(self):
             self.shutdown_was_executed = True
 
-    class ComponentA(TestComponent):
+    class TestComponentA(TestComponent):
         pass
 
-    class ComponentB(TestComponent):
+    class TestComponentB(TestComponent):
         pass
 
-    session = Session(tribler_config, [ComponentA(), ComponentB()])
+    session = Session(tribler_config, [TestComponentA(), TestComponentB()])
     async with session:
-        a = session.get_instance(ComponentA)
-        b = session.get_instance(ComponentB)
+        a = session.get_instance(TestComponentA)
+        b = session.get_instance(TestComponentB)
 
         for component in a, b:
             assert component.run_was_executed
@@ -45,18 +45,28 @@ async def test_session_start_shutdown(tribler_config):
         assert component.stopped
 
 
+class ComponentA(Component):
+    pass
+
+
+class RequireA(Component):
+    async def run(self):
+        await self.require_component(ComponentA)
+
+
+class ComponentB(Component):
+    pass
+
+
+class DerivedB(ComponentB):
+    pass
+
+
 async def test_required_dependency(tribler_config):
-    class ComponentA(Component):
-        pass
-
-    class ComponentB(Component):
-        async def run(self):
-            await self.require_component(ComponentA)
-
-    session = Session(tribler_config, [ComponentA(), ComponentB()])
+    session = Session(tribler_config, [ComponentA(), RequireA()])
     async with session:
         a = session.get_instance(ComponentA)
-        b = session.get_instance(ComponentB)
+        b = session.get_instance(RequireA)
 
         assert a in b.dependencies and not b.reverse_dependencies
         assert not a.dependencies and b in a.reverse_dependencies
@@ -68,49 +78,29 @@ async def test_required_dependency(tribler_config):
 
 
 async def test_required_dependency_missed(tribler_config):
-    class ComponentA(Component):
-        pass
-
-    class ComponentB(Component):
-        async def run(self):
-            await self.require_component(ComponentA)
-
-    session = Session(tribler_config, [ComponentB()])
-    with pytest.raises(MissedDependency, match='^Missed dependency: ComponentB requires ComponentA to be active$'):
+    session = Session(tribler_config, [RequireA()])
+    with pytest.raises(MissedDependency, match='^Missed dependency: RequireA requires ComponentA to be active$'):
         await session.start_components()
 
 
 async def test_required_dependency_missed_failfast(tribler_config):
-    class ComponentA(Component):
-        pass
-
-    class ComponentB(Component):
-        async def run(self):
-            await self.require_component(ComponentA)
-
-    session = Session(tribler_config, [ComponentB()], failfast=False)
+    session = Session(tribler_config, [RequireA()], failfast=False)
     async with session:
         await session.start_components()
-        b = session.get_instance(ComponentB)
+        b = session.get_instance(RequireA)
         assert b
         assert b.started_event.is_set()
         assert b.failed
 
 
 async def test_component_shutdown_failure(tribler_config):
-    class ComponentA(Component):
-        pass
-
-    class ComponentB(Component):
-        async def run(self):
-            await self.require_component(ComponentA)
-
+    class RequireAWithException(RequireA):
         async def shutdown(self):
             raise ComponentTestException
 
-    session = Session(tribler_config, [ComponentA(), ComponentB()])
+    session = Session(tribler_config, [ComponentA(), RequireAWithException()])
     a = session.get_instance(ComponentA)
-    b = session.get_instance(ComponentB)
+    b = session.get_instance(RequireAWithException)
 
     await session.start_components()
 
@@ -127,12 +117,6 @@ async def test_component_shutdown_failure(tribler_config):
 
 
 async def test_maybe_component(loop, tribler_config):  # pylint: disable=unused-argument
-    class ComponentA(Component):
-        pass
-
-    class ComponentB(Component):
-        pass
-
     session = Session(tribler_config, [ComponentA()])
     async with session:
         component_a = await session.get_instance(ComponentA).maybe_component(ComponentA)
@@ -144,58 +128,25 @@ async def test_maybe_component(loop, tribler_config):  # pylint: disable=unused-
         assert isinstance(component_b.any_attribute.any_nested_attribute, NoneComponent)
 
 
-async def test_get_instance_strict_match(tribler_config: TriblerConfig):
-    class A(Component):
+def test_get_instance_direct_match(tribler_config: TriblerConfig):
+    session = Session(tribler_config, [ComponentA(), ComponentB(), DerivedB()])
+    assert isinstance(session.get_instance(ComponentB), ComponentB)
+
+
+def test_get_instance_subclass_match(tribler_config: TriblerConfig):
+    session = Session(tribler_config, [ComponentA(), DerivedB()])
+    assert isinstance(session.get_instance(ComponentB), DerivedB)
+
+
+def test_get_instance_no_match(tribler_config: TriblerConfig):
+    session = Session(tribler_config, [ComponentA()])
+    assert not session.get_instance(ComponentB)
+
+
+def test_get_instance_two_subclasses_match(tribler_config: TriblerConfig):
+    class SecondDerivedB(ComponentB):
         pass
 
-    class B(Component):
-        pass
-
-    class AncestorOfB(B):
-        pass
-
-    session = Session(tribler_config, [A(), B(), AncestorOfB()])
-    assert isinstance(session.get_instance(B), B)
-
-
-async def test_get_instance_subclass_match(tribler_config: TriblerConfig):
-    class A(Component):
-        pass
-
-    class B(Component):
-        pass
-
-    class AncestorOfB(B):
-        pass
-
-    session = Session(tribler_config, [A(), AncestorOfB()])
-    assert isinstance(session.get_instance(B), AncestorOfB)
-
-
-async def test_get_instance_no_match(tribler_config: TriblerConfig):
-    class A(Component):
-        pass
-
-    class B(Component):
-        pass
-
-    session = Session(tribler_config, [A()])
-    assert not session.get_instance(B)
-
-
-async def test_get_instance_two_subclasses_match(tribler_config: TriblerConfig):
-    class A(Component):
-        pass
-
-    class B(Component):
-        pass
-
-    class FirstAncestorOfB(B):
-        pass
-
-    class SecondAncestorOfB(B):
-        pass
-
-    session = Session(tribler_config, [A(), FirstAncestorOfB(), SecondAncestorOfB()])
+    session = Session(tribler_config, [ComponentA(), DerivedB(), SecondDerivedB()])
     with pytest.raises(KeyError):
-        session.get_instance(B)
+        session.get_instance(ComponentB)

@@ -60,7 +60,7 @@ class Session:
 
         if not candidates:
             return None
-        elif len(candidates) >= 2:
+        if len(candidates) >= 2:
             raise KeyError(f'Found more that two subclasses for the class {comp_cls}')
 
         candidate = candidates.pop()
