@@ -8,7 +8,8 @@ from typing import Callable, Dict
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
+    CONTENT
 from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
 
@@ -54,7 +55,7 @@ def define_columns():
         Column.NAME:       d('name',       tr("Name"),       width=EXPANDING),
         Column.SIZE:       d('size',       tr("Size"),       width=90, display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
         Column.HEALTH:     d('health',     tr("Health"),     width=120, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
-        Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else 'N/A',),
+        Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else "",),
         Column.VOTES:      d('votes',      tr("Popularity"), width=120, display_filter=format_votes, tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None,),
         Column.STATUS:     d('status',     "",               sortable=False),
         Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
@@ -350,6 +351,7 @@ class ChannelContentModel(RemoteTableModel):
 
         # Stores metadata of the 'edit tags' button in each cell.
         self.edit_tags_rects: Dict[QModelIndex, QRectF] = {}
+        self.download_popular_content_rects: Dict[QModelIndex, QRectF] = {}
 
         # Current channel attributes. This is intentionally NOT copied, so local changes
         # can propagate to the origin, e.g. parent channel.
@@ -414,8 +416,10 @@ class ChannelContentModel(RemoteTableModel):
             column_type == Column.SIZE
             and "torrents" not in self.columns
             and "torrents" in item
-            and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE)
+            and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, CONTENT)
         ):
+            if item["type"] == CONTENT:
+                return ""
             return item["torrents"]
 
         # 'subscribed' column gets special treatment in case of ToolTipRole, because
@@ -449,6 +453,7 @@ class ChannelContentModel(RemoteTableModel):
     def reset(self):
         self.item_uid_map.clear()
         self.edit_tags_rects.clear()
+        self.download_popular_content_rects.clear()
         super().reset()
 
     def update_node_info(self, update_dict):

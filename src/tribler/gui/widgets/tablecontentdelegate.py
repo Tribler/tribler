@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewIte
 from psutil import LINUX
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT,\
+    CONTENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler.gui.defs import (
@@ -33,7 +34,7 @@ from tribler.gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler.gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr
+from tribler.gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr, get_color
 from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -45,6 +46,7 @@ TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DEFAULT_ROW_HEIGHT = 30
+CONTENT_ROW_HEIGHT = 110
 MAX_TAGS_TO_SHOW = 10
 
 
@@ -138,6 +140,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.font_metrics = None
 
         self.hovering_over_tag_edit_button = False
+        self.hovering_over_download_popular_torrent_button = False
 
         # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
@@ -168,6 +171,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         Estimate the height of the row. This is mostly dependent on the tags attached to each item.
         """
         data_item = index.model().data_items[index.row()]
+
+        if data_item["type"] == CONTENT:
+            return QSize(0, CONTENT_ROW_HEIGHT)
 
         tags_disabled = self.get_bool_gui_setting("disable_tags")
         if data_item["type"] != REGULAR_TORRENT or tags_disabled:
@@ -221,11 +227,28 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             self.redraw_required.emit(index, False)
         self.hovering_over_tag_edit_button = new_hovering_state
 
+        # Check if we are hovering over the download popular torrents button
+        new_hovering_state = False
+        if (
+                self.hover_index != self.no_index
+                and self.hover_index.column() == index.model().column_position[Column.NAME]
+        ):
+            if index in index.model().download_popular_content_rects:
+                rect = index.model().download_popular_content_rects[index]
+                if rect.contains(pos):
+                    QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
+                    new_hovering_state = True
+
+        if new_hovering_state != self.hovering_over_download_popular_torrent_button:
+            self.redraw_required.emit(index, False)
+        self.hovering_over_download_popular_torrent_button = new_hovering_state
+
         for controls in self.controls:
             controls.on_mouse_moved(pos, index)
 
     def on_mouse_left(self) -> None:
         self.hovering_over_tag_edit_button = False
+        self.hovering_over_download_popular_torrent_button = False
 
     @staticmethod
     def split_rect_into_squares(r, buttons):
@@ -350,12 +373,64 @@ class TagsMixin:
     ) -> None:
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
+        title_text_height = (CONTENT_ROW_HEIGHT - 20 - 2) if data_item["type"] == CONTENT else 28
+        title_text_x = (title_text_pos.x() + 56) if data_item["type"] == CONTENT else (title_text_pos.x() + 6)
         painter.setPen(Qt.white)
+
+        title_text = data_item["name"] if data_item["type"] != CONTENT else ("%s  -  %d items" % (data_item["name"], data_item["torrents"]))
+
+        if data_item["type"] == CONTENT:
+            # Increase the font size
+            font = painter.font()
+            font.setPixelSize(15)
+            painter.setFont(font)
+
         painter.drawText(
-            QRectF(title_text_pos.x() + 6, title_text_pos.y(), option.rect.width() - 6, 28),
+            QRectF(title_text_x, title_text_pos.y(), option.rect.width() - 6, title_text_height),
             Qt.AlignVCenter,
-            data_item["name"],
+            title_text,
         )
+
+        if data_item["type"] == CONTENT:
+            # Restore the font size
+            font = painter.font()
+            font.setPixelSize(13)
+            painter.setFont(font)
+
+        # Draw the thumbnail + preview item if it's a content item
+        if data_item["type"] == CONTENT:
+            painter.setPen(QColor(get_color(data_item["name"])))
+            path = QPainterPath()
+            rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 10, 40, CONTENT_ROW_HEIGHT - 50)
+            path.addRect(rect)
+            painter.fillPath(path, QColor(get_color(data_item["name"])))
+            painter.drawPath(path)
+
+            # Draw the text in the thumbnail
+            font = painter.font()
+            font.setPixelSize(22)
+            painter.setFont(font)
+            painter.setPen(QColor("#ffffff"))
+            painter.drawText(
+                QRectF(rect.x(), rect.y(), rect.width(), rect.height()),
+                Qt.AlignCenter,
+                data_item["name"][0].capitalize(),
+            )
+            font = painter.font()
+            font.setPixelSize(13)
+            painter.setFont(font)
+
+            download_popular_torrent_button_hovered = self.hovering_over_download_popular_torrent_button and self.hover_index == index
+            painter.setPen(QColor(QColor(TRIBLER_ORANGE) if download_popular_torrent_button_hovered else "#aaa"))
+            popular_torrent_text_rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 74, option.rect.width() - 6, 26)
+            painter.drawText(
+                popular_torrent_text_rect,
+                Qt.AlignVCenter,
+                "Most popular: %s (S%d L%d)" % (data_item["popular"]["name"],
+                                                data_item["popular"]["num_seeders"],
+                                                data_item["popular"]["num_leechers"]),
+            )
+            index.model().download_popular_content_rects[index] = popular_torrent_text_rect
 
         cur_tag_x = option.rect.x() + 6
         cur_tag_y = option.rect.y() + TAG_TOP_MARGIN
@@ -447,7 +522,7 @@ class CategoryLabelMixin:
         else:
             # Precautions to safely draw wrong category descriptions
             category = ContentCategories.get(data_item['category'])
-            category_txt = category.emoji if category else '?'
+            category_txt = category.emoji if category else ''
 
         CategoryLabel(category_txt).paint(painter, option, index, draw_border=False)
         return True

@@ -89,7 +89,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
                 hide_xxx=self.results_page.hide_xxx,
                 text_filter=to_fts_query(query.fts_text),
                 tags=list(query.tags),
-                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
+                type_filter=[REGULAR_TORRENT],
             )
         )
         self.setCurrentWidget(self.results_page)

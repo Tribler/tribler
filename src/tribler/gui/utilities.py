@@ -1,3 +1,4 @@
+import hashlib
 import inspect
 import logging
 import math
@@ -501,3 +502,18 @@ def make_network_errors_dict() -> Dict[int, str]:
             if isinstance(value, int):
                 network_errors[value] = name
     return network_errors
+
+
+def get_color(name):
+    """
+    This method deterministically determines a color of a given name. This is done by taking the MD5 hash of the text.
+    """
+    md5_hash = hashlib.md5()
+    md5_hash.update(name.encode('utf-8'))
+    md5_str_hash = md5_hash.hexdigest()
+
+    red = int(md5_str_hash[0:10], 16) % 128 + 100
+    green = int(md5_str_hash[10:20], 16) % 128 + 100
+    blue = int(md5_str_hash[20:30], 16) % 128 + 100
+
+    return '#%02x%02x%02x' % (red, green, blue)

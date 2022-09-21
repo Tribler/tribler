@@ -1,3 +1,6 @@
+from binascii import unhexlify
+from typing import Dict, Tuple, List
+
 from aiohttp import web
 
 from aiohttp_apispec import docs, querystring_schema
@@ -8,11 +11,15 @@ from marshmallow.fields import Integer, String
 
 from pony.orm import db_session
 
+from tribler.core.components.metadata_store.db.serialization import CONTENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler.core.utilities.utilities import froze_it
+from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
+from tribler.core.utilities.unicode import hexlify
+from tribler.core.utilities.utilities import froze_it, random_infohash
 
 
 @froze_it
@@ -20,6 +27,38 @@ class SearchEndpoint(MetadataEndpointBase):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Read content
+        self.content: Dict[str, Tuple] = {}
+        self.torrent_to_content: Dict[str, str] = {}
+
+        with open("/Users/martijndevos/Documents/tribler/content.csv") as content_file:
+            parsed_header = False
+            for line in content_file.readlines():
+                if not parsed_header:
+                    parsed_header = True
+                    continue
+
+                parts = line.strip().split(",")
+                content_id = parts[0]
+                content_title = parts[1]
+                content_year = parts[2]
+                self.content[content_id] = (content_title, content_year)
+
+        with open("/Users/martijndevos/Documents/tribler/content_relations.csv") as content_file:
+            parsed_header = False
+            for line in content_file.readlines():
+                if not parsed_header:
+                    parsed_header = True
+                    continue
+
+                parts = line.strip().split(",")
+                content_id = parts[0]
+                torrent_ih = parts[1]
+                self.torrent_to_content[torrent_ih] = content_id
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
@@ -83,7 +122,46 @@ class SearchEndpoint(MetadataEndpointBase):
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
-        self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
+        #self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
+
+        count_for_content: Dict[str, int] = {}
+        most_popular_torrent_for_content: Dict[str, Dict] = {}
+        for search_result in search_results:
+            if search_result["infohash"] in self.torrent_to_content:
+                content_id = self.torrent_to_content[search_result["infohash"]]
+                if content_id not in count_for_content:
+                    count_for_content[content_id] = 0
+                if content_id not in most_popular_torrent_for_content:
+                    most_popular_torrent_for_content[content_id] = search_result
+                else:
+                    if search_result["num_seeders"] > most_popular_torrent_for_content[content_id]["num_seeders"]:
+                        most_popular_torrent_for_content[content_id] = search_result
+                count_for_content[content_id] += 1
+
+        # Remove search results that are tied to content
+        print("Before: %d" % len(search_results))
+        search_results = [search_result for search_result in search_results if search_result["infohash"] not in self.torrent_to_content]
+        print("After: %d" % len(search_results))
+        print(search_results)
+
+        # Add the content
+        content_list: List[Dict] = []
+        for content_id, content_info in self.content.items():
+            if content_id in count_for_content:
+                content = {
+                    "type": CONTENT,
+                    "infohash": content_id,
+                    "category": "",
+                    "name": "%s (%s)" % (content_info[0], content_info[1]),
+                    "torrents": count_for_content[content_id],
+                    "popular": most_popular_torrent_for_content[content_id]
+                }
+                content_list.insert(0, content)
+
+        # Sort based on the number of subitems
+        content_list.sort(key=lambda x: x["torrents"], reverse=True)
+
+        search_results = content_list + search_results
 
         response_dict = {
             "results": search_results,
