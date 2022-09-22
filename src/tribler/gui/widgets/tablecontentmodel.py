@@ -601,30 +601,35 @@ class SearchResultsModel(ChannelContentModel):
     def format_title(self):
         q = self.original_query
         q = q if len(q) < 50 else q[:50] + '...'
-        title = f'Search results for {q}'
-        if self.remote_results:
-            title += f' (click to add {len(self.remote_results)} remote results)'
-        return title
+        return f'Search results for {q}'
 
     def perform_initial_query(self):
         return self.perform_query(first=1, last=200)
+
+    def on_query_results(self, response, remote=False, on_top=False):
+        super().on_query_results(response, remote=remote, on_top=on_top)
+        self.add_remote_results([])  # to trigger adding postponed results
+        self.show_remote_results()
 
     @property
     def all_local_entries_loaded(self):
         return self.loaded
 
-    def on_remote_results(self, results):
-        self.remote_results_received = True
+    def add_remote_results(self, results):
         if not self.all_local_entries_loaded:
             self.postponed_remote_results.extend(results)
-            return
+            return []
 
         results = self.postponed_remote_results + results
         self.postponed_remote_results = []
+        new_items = []
         for item in results:
             uid = get_item_uid(item)
             if uid not in self.item_uid_map and uid not in self.remote_results:
+                self.remote_results_received = True
+                new_items.append(item)
                 self.remote_results[uid] = item
+        return new_items
 
     def show_remote_results(self):
         if not self.all_local_entries_loaded:

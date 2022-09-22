@@ -60,6 +60,9 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.hide_xxx = None
         self.search_request = None
 
+        connect(self.results_page_content.model_query_completed, self.on_local_query_completed)
+        connect(self.search_progress_bar.ready_to_update_results, self.on_ready_to_update_results)
+
     def initialize(self, hide_xxx=False):
         self.hide_xxx = hide_xxx
         self.results_page_content.initialize_content_page(hide_xxx=hide_xxx)
@@ -90,33 +93,38 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.last_search_query = query.original_query
         self.last_search_time = time.time()
 
-        self.results_page_content.initialize_root_model(
-            SearchResultsModel(
-                endpoint_url="search",
-                hide_xxx=self.results_page_content.hide_xxx,
-                original_query=query.original_query,
-                text_filter=to_fts_query(query.fts_text),
-                tags=list(query.tags),
-                type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
-            )
+        model = SearchResultsModel(
+            endpoint_url="search",
+            hide_xxx=self.results_page_content.hide_xxx,
+            original_query=query.original_query,
+            text_filter=to_fts_query(query.fts_text),
+            tags=list(query.tags),
+            type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
         )
-        self.setCurrentWidget(self.results_page_content)
+        self.results_page_content.initialize_root_model(model)
+        self.setCurrentWidget(self.results_page)
         self.results_page_content.format_search_title()
+        self.search_progress_bar.start()
 
         # After transitioning to the page with search results, we refresh the viewport since some rows might have been
         # rendered already with an incorrect row height.
         self.results_page_content.run_brain_dead_refresh()
 
         def register_request(response):
-            self.search_request = SearchRequest(response["request_uuid"], query, set(response["peers"]))
+            peers = set(response["peers"])
+            self.search_request = SearchRequest(response["request_uuid"], query, peers)
+            self.search_progress_bar.set_remote_total(len(peers))
 
         params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags)}
         TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
 
         return True
 
+    def on_local_query_completed(self):
+        self.search_progress_bar.on_local_results()
+
     def reset(self):
-        if self.currentWidget() == self.results_page_content:
+        if self.currentWidget() == self.results_page:
             self.results_page_content.go_back_to_level(0)
 
     def update_loading_page(self, remote_results):
@@ -125,8 +133,12 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
 
         peer = remote_results["peer"]
         results = remote_results.get("results", [])
+
         self.search_request.peers_complete.add(peer)
         self.search_request.remote_results.append(results)
 
-        self.results_page_content.model.on_remote_results(results)
-        self.results_page_content.format_search_title()
+        new_items = self.results_page_content.model.add_remote_results(results)
+        self.search_progress_bar.on_remote_results(len(new_items), len(self.search_request.peers_complete))
+
+    def on_ready_to_update_results(self):
+        self.results_page_content.root_model.show_remote_results()
