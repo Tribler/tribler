@@ -1,4 +1,5 @@
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+from ipv8.messaging.payload_dataclass import dataclass
 from ipv8.messaging.serialization import default_serializer
 
 
@@ -42,3 +43,8 @@ class TorrentsHealthPayload(VariablePayload):
     def create(cls, random_torrents_checked, popular_torrents_checked):
         return cls(len(random_torrents_checked), len(popular_torrents_checked),
                    random_torrents_checked, popular_torrents_checked)
+
+
+@dataclass(msg_id=2)
+class PopularTorrentsRequest:
+    pass

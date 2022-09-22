@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from aiohttp import ClientSession
 
 import pytest
+from scipy.stats import shapiro
 
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.utilities.patch_import import patch_import
@@ -19,7 +20,7 @@ from tribler.core.utilities.utilities import (
     parse_query,
     random_infohash,
     show_system_popup,
-    to_fts_query,
+    to_fts_query, get_normally_distributed_number_with_zero_mean, get_normally_distributed_positive_integers,
 )
 
 # pylint: disable=import-outside-toplevel, import-error
@@ -257,3 +258,30 @@ def test_load_logger(tmpdir):
     logger_count = len(logging.root.manager.loggerDict)
     load_logger_config('test', tmpdir)
     assert len(logging.root.manager.loggerDict) >= logger_count
+
+
+def test_get_normally_distributed_number():
+    """
+    To test if the random number is from normal distribution, we do Shapiro test and check that
+    p-value is higher than 0.05.
+    """
+    random_numbers = [get_normally_distributed_number_with_zero_mean() for _ in range(100)]
+    shapiro_test = shapiro(random_numbers)
+    assert shapiro_test.pvalue > 0.05
+
+
+def test_get_normally_distributed_positive_integers():
+    """
+    Test if the random number returned are all positive integers
+    """
+    random_integer_numbers = get_normally_distributed_positive_integers()
+
+    # check if the numbers are unique
+    assert len(set(random_integer_numbers)) == len(random_integer_numbers)
+
+    # check if all numbers are integers and positive
+    is_positive_and_unique = all(number >= 0 and isinstance(number, int) for number in random_integer_numbers)
+    assert is_positive_and_unique
+
+    with pytest.raises(ValueError):
+        _ = get_normally_distributed_positive_integers(size=11, upper_limit=10)

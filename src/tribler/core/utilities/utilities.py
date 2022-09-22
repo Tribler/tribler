@@ -273,3 +273,38 @@ def show_system_popup(title, text):
         # non-obvious types of exceptions:
         # (SubprocessError, ImportError, win32api.error, FileNotFoundError)
         print(f'Error while showing a message box: {exception}')  # noqa: T001
+
+
+def get_normally_distributed_number_with_zero_mean(upper_limit=100) -> float:
+    """
+    Returns a random floating point number based on normal distribution with mean set as zero.
+    This favors the lower value numbers to be selected more than the higher value numbers.
+    The returned number is below the upper_limit value provided.
+    """
+    mean = 0
+    if upper_limit <= 1:
+        return mean
+
+    while True:
+        result = random.normalvariate(mean, upper_limit / 3)
+        if abs(result) < upper_limit:
+            return result
+
+
+def get_normally_distributed_positive_integer(upper_limit=100) -> int:
+    return abs(int(get_normally_distributed_number_with_zero_mean(upper_limit=upper_limit)))
+
+
+def get_normally_distributed_positive_integers(size=1, upper_limit=100) -> list:
+    """
+    Returns a list of non-repeated integer numbers based on normal distribution with mean value zero.
+    """
+    if size > upper_limit:
+        raise ValueError("Cannot return more numbers than the upper limit")
+
+    numbers = []
+    while len(numbers) < size:
+        number = get_normally_distributed_positive_integer(upper_limit=upper_limit)
+        if number not in numbers:
+            numbers.append(number)
+    return numbers
