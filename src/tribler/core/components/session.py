@@ -7,7 +7,8 @@ from asyncio import Event, create_task, gather, get_event_loop
 from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar
 
-from tribler.core.components.component import Component, ComponentError, ComponentStartupException
+from tribler.core.components.component import Component, ComponentError, ComponentStartupException, \
+    MultipleComponentsFound
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
@@ -51,7 +52,20 @@ class Session:
         await self.shutdown()
 
     def get_instance(self, comp_cls: Type[T]) -> Optional[T]:
-        return self.components.get(comp_cls)
+        # try to find a direct match
+        if direct_match := self.components.get(comp_cls):
+            return direct_match
+
+        # try to find a subclass match
+        candidates = {c for c in self.components if issubclass(c, comp_cls)}
+
+        if not candidates:
+            return None
+        if len(candidates) >= 2:
+            raise MultipleComponentsFound(comp_cls, candidates)
+
+        candidate = candidates.pop()
+        return self.components[candidate]
 
     def register(self, comp_cls: Type[Component], component: Component):
         if comp_cls in self.components:
