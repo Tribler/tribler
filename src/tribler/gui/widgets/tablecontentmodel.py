@@ -3,7 +3,7 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
 
@@ -351,7 +351,7 @@ class ChannelContentModel(RemoteTableModel):
 
         # Stores metadata of the 'edit tags' button in each cell.
         self.edit_tags_rects: Dict[QModelIndex, QRectF] = {}
-        self.download_popular_content_rects: Dict[QModelIndex, QRectF] = {}
+        self.download_popular_content_rects: Dict[QModelIndex, List[QRectF]] = {}
 
         # Current channel attributes. This is intentionally NOT copied, so local changes
         # can propagate to the origin, e.g. parent channel.

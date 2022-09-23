@@ -6,7 +6,8 @@ from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
+    CONTENT
 
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
 from tribler.gui.dialogs.addtagsdialog import AddTagsDialog
@@ -51,6 +52,7 @@ class TriblerContentTableView(QTableView):
 
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
+    content_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
     edited_tags = pyqtSignal(dict)
 
@@ -127,10 +129,10 @@ class TriblerContentTableView(QTableView):
 
             # Check if we are clicking the 'popular content' button
             if index in index.model().download_popular_content_rects:
-                rect = index.model().download_popular_content_rects[index]
-                if rect.contains(event.pos()) and event.button() != Qt.RightButton:
-                    should_select_row = False
-                    self.on_download_popular_torrent_clicked(index)
+                for torrent_index, rect in enumerate(index.model().download_popular_content_rects[index]):
+                    if rect.contains(event.pos()) and event.button() != Qt.RightButton:
+                        should_select_row = False
+                        self.on_download_popular_torrent_clicked(index, torrent_index)
 
         if should_select_row:
             super().mousePressEvent(event)
@@ -199,9 +201,9 @@ class TriblerContentTableView(QTableView):
         self.add_tags_dialog.show()
         connect(self.add_tags_dialog.save_button_clicked, self.save_edited_tags)
 
-    def on_download_popular_torrent_clicked(self, index: QModelIndex) -> None:
+    def on_download_popular_torrent_clicked(self, index: QModelIndex, torrent_index: int) -> None:
         data_item = index.model().data_items[index.row()]
-        self.start_download_from_dataitem(data_item)
+        self.start_download_from_dataitem(data_item["torrents_in_snippet"][torrent_index])
 
     def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection
@@ -219,8 +221,9 @@ class TriblerContentTableView(QTableView):
         # Safely determine if the thing is a channel. A little bit hackish
         if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
             self.channel_clicked.emit(data_item)
-
-        if data_item.get('type') == REGULAR_TORRENT:
+        elif data_item.get("type") == CONTENT:
+            self.content_clicked.emit(data_item)
+        elif data_item.get('type') == REGULAR_TORRENT:
             if not doubleclick:
                 self.torrent_clicked.emit(data_item)
             else:

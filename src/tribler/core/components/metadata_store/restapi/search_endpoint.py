@@ -16,10 +16,11 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler.core.components.tag.db.tag_db import TagDatabase
-from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
-from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import froze_it, random_infohash
+from tribler.core.utilities.utilities import froze_it
+
+
+SNIPPETS_TO_SHOW = 1          # The number of snippets we return from the search results
+MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
 
 
 @froze_it
@@ -122,46 +123,58 @@ class SearchEndpoint(MetadataEndpointBase):
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
-        #self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
+        self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
 
-        count_for_content: Dict[str, int] = {}
-        most_popular_torrent_for_content: Dict[str, Dict] = {}
-        for search_result in search_results:
-            if search_result["infohash"] in self.torrent_to_content:
-                content_id = self.torrent_to_content[search_result["infohash"]]
-                if content_id not in count_for_content:
-                    count_for_content[content_id] = 0
-                if content_id not in most_popular_torrent_for_content:
-                    most_popular_torrent_for_content[content_id] = search_result
-                else:
-                    if search_result["num_seeders"] > most_popular_torrent_for_content[content_id]["num_seeders"]:
-                        most_popular_torrent_for_content[content_id] = search_result
-                count_for_content[content_id] += 1
+        # Build snippets
+        # TODO we probably need to do another database query to get ALL possible content that should go in the snippet
+        if sanitized["first"] == 1:  # Only show a snippet on top
+            content_to_torrents: Dict[str, list] = {}
+            most_popular_torrents_for_content: Dict[str, List] = {}
+            for search_result in search_results:
+                if search_result["infohash"] in self.torrent_to_content:
+                    content_id = self.torrent_to_content[search_result["infohash"]]
+                    if content_id not in content_to_torrents:
+                        content_to_torrents[content_id] = []
+                    content_to_torrents[content_id].append(search_result)
 
-        # Remove search results that are tied to content
-        print("Before: %d" % len(search_results))
-        search_results = [search_result for search_result in search_results if search_result["infohash"] not in self.torrent_to_content]
-        print("After: %d" % len(search_results))
-        print(search_results)
+                    if content_id not in most_popular_torrents_for_content:
+                        most_popular_torrents_for_content[content_id] = []
+                    most_popular_torrents_for_content[content_id].append(search_result)
 
-        # Add the content
-        content_list: List[Dict] = []
-        for content_id, content_info in self.content.items():
-            if content_id in count_for_content:
-                content = {
+            # Sort by popularity
+            for torrents_list in most_popular_torrents_for_content.values():
+                torrents_list.sort(key=lambda x: x["num_seeders"], reverse=True)
+
+            # Determine the most popular content item - this is the one we show
+            sorted_content_info = list(content_to_torrents.items())
+            sorted_content_info.sort(key=lambda x: len(x[1]), reverse=True)
+            snippets = []
+            torrents_in_snippets = []
+
+            for content_info in sorted_content_info:
+                content_id = content_info[0]
+                content = self.content[content_id]
+                torrents_in_snippet = most_popular_torrents_for_content[content_id][:MAX_TORRENTS_IN_SNIPPETS]
+
+                snippet = {
                     "type": CONTENT,
                     "infohash": content_id,
                     "category": "",
-                    "name": "%s (%s)" % (content_info[0], content_info[1]),
-                    "torrents": count_for_content[content_id],
-                    "popular": most_popular_torrent_for_content[content_id]
+                    "name": "%s (%s)" % (content[0], content[1]),
+                    "torrents": len(content_info[1]),
+                    "torrents_in_snippet": torrents_in_snippet
                 }
-                content_list.insert(0, content)
+                torrents_in_snippets += torrents_in_snippet
+                snippets.append(snippet)
 
-        # Sort based on the number of subitems
-        content_list.sort(key=lambda x: x["torrents"], reverse=True)
+            snippets = snippets[:SNIPPETS_TO_SHOW]
 
-        search_results = content_list + search_results
+            # Remove search results that are displayed in a snippet
+            for snippet in snippets:
+                torrents_in_snippets += content_to_torrents[snippet["infohash"]]
+
+            search_results = [search_result for search_result in search_results if (search_result["infohash"] not in torrents_in_snippets)]
+            search_results = snippets + search_results
 
         response_dict = {
             "results": search_results,

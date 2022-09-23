@@ -46,7 +46,8 @@ TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DEFAULT_ROW_HEIGHT = 30
-CONTENT_ROW_HEIGHT = 110
+CONTENT_ROW_HEIGHT = 72
+TORRENT_IN_SNIPPET_HEIGHT = 44
 MAX_TAGS_TO_SHOW = 10
 
 
@@ -140,7 +141,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.font_metrics = None
 
         self.hovering_over_tag_edit_button = False
-        self.hovering_over_download_popular_torrent_button = False
+        self.hovering_over_download_popular_torrent_button: int = -1
 
         # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
@@ -173,7 +174,9 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         data_item = index.model().data_items[index.row()]
 
         if data_item["type"] == CONTENT:
-            return QSize(0, CONTENT_ROW_HEIGHT)
+            torrents_in_snippet = len(data_item["torrents_in_snippet"])
+            height = CONTENT_ROW_HEIGHT + TORRENT_IN_SNIPPET_HEIGHT * torrents_in_snippet
+            return QSize(0, height)
 
         tags_disabled = self.get_bool_gui_setting("disable_tags")
         if data_item["type"] != REGULAR_TORRENT or tags_disabled:
@@ -228,16 +231,16 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.hovering_over_tag_edit_button = new_hovering_state
 
         # Check if we are hovering over the download popular torrents button
-        new_hovering_state = False
+        new_hovering_state = -1
         if (
                 self.hover_index != self.no_index
                 and self.hover_index.column() == index.model().column_position[Column.NAME]
         ):
             if index in index.model().download_popular_content_rects:
-                rect = index.model().download_popular_content_rects[index]
-                if rect.contains(pos):
-                    QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
-                    new_hovering_state = True
+                for ind, rect in enumerate(index.model().download_popular_content_rects[index]):
+                    if rect.contains(pos):
+                        QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
+                        new_hovering_state = ind
 
         if new_hovering_state != self.hovering_over_download_popular_torrent_button:
             self.redraw_required.emit(index, False)
@@ -248,7 +251,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
 
     def on_mouse_left(self) -> None:
         self.hovering_over_tag_edit_button = False
-        self.hovering_over_download_popular_torrent_button = False
+        self.hovering_over_download_popular_torrent_button = -1
 
     @staticmethod
     def split_rect_into_squares(r, buttons):
@@ -373,11 +376,10 @@ class TagsMixin:
     ) -> None:
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
-        title_text_height = (CONTENT_ROW_HEIGHT - 20 - 2) if data_item["type"] == CONTENT else 28
+        title_text_height = 60 if data_item["type"] == CONTENT else 28
+        title_text_y = (title_text_pos.y() + 10) if data_item["type"] == CONTENT else title_text_pos.y()
         title_text_x = (title_text_pos.x() + 56) if data_item["type"] == CONTENT else (title_text_pos.x() + 6)
         painter.setPen(Qt.white)
-
-        title_text = data_item["name"] if data_item["type"] != CONTENT else ("%s  -  %d items" % (data_item["name"], data_item["torrents"]))
 
         if data_item["type"] == CONTENT:
             # Increase the font size
@@ -386,9 +388,9 @@ class TagsMixin:
             painter.setFont(font)
 
         painter.drawText(
-            QRectF(title_text_x, title_text_pos.y(), option.rect.width() - 6, title_text_height),
+            QRectF(title_text_x, title_text_y, option.rect.width() - 6, title_text_height),
             Qt.AlignVCenter,
-            title_text,
+            data_item["name"],
         )
 
         if data_item["type"] == CONTENT:
@@ -401,7 +403,7 @@ class TagsMixin:
         if data_item["type"] == CONTENT:
             painter.setPen(QColor(get_color(data_item["name"])))
             path = QPainterPath()
-            rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 10, 40, CONTENT_ROW_HEIGHT - 50)
+            rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 10, 40, 60)
             path.addRect(rect)
             painter.fillPath(path, QColor(get_color(data_item["name"])))
             painter.drawPath(path)
@@ -420,17 +422,30 @@ class TagsMixin:
             font.setPixelSize(13)
             painter.setFont(font)
 
-            download_popular_torrent_button_hovered = self.hovering_over_download_popular_torrent_button and self.hover_index == index
-            painter.setPen(QColor(QColor(TRIBLER_ORANGE) if download_popular_torrent_button_hovered else "#aaa"))
-            popular_torrent_text_rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 74, option.rect.width() - 6, 26)
-            painter.drawText(
-                popular_torrent_text_rect,
-                Qt.AlignVCenter,
-                "Most popular: %s (S%d L%d)" % (data_item["popular"]["name"],
-                                                data_item["popular"]["num_seeders"],
-                                                data_item["popular"]["num_leechers"]),
-            )
-            index.model().download_popular_content_rects[index] = popular_torrent_text_rect
+            snippets_y = option.rect.topLeft().y() + 60
+
+            font = painter.font()
+            font.setPixelSize(15)
+            painter.setFont(font)
+
+            index.model().download_popular_content_rects[index] = []
+            for torrent_ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
+                is_hovering = self.hovering_over_download_popular_torrent_button == torrent_ind and self.hover_index == index
+                painter.setPen(QColor(QColor(TRIBLER_ORANGE) if is_hovering else "#ccc"))
+
+                torrent_in_snippet_rect = QRectF(title_text_x, snippets_y, option.rect.width() - 6, TORRENT_IN_SNIPPET_HEIGHT)
+                painter.drawText(
+                    torrent_in_snippet_rect,
+                    Qt.AlignVCenter,
+                    torrent_in_snippet["name"],
+                )
+
+                index.model().download_popular_content_rects[index].append(torrent_in_snippet_rect)
+                snippets_y += TORRENT_IN_SNIPPET_HEIGHT
+
+        font = painter.font()
+        font.setPixelSize(13)
+        painter.setFont(font)
 
         cur_tag_x = option.rect.x() + 6
         cur_tag_y = option.rect.y() + TAG_TOP_MARGIN
@@ -572,7 +587,7 @@ class HealthLabelMixin:
         self.paint_empty_background(painter, option)
 
         # This dumb check is required because some endpoints do not return entry type
-        if 'type' not in data_item or data_item['type'] == REGULAR_TORRENT:
+        if 'type' not in data_item or data_item['type'] in [REGULAR_TORRENT]:
             self.health_status_widget.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True
@@ -825,25 +840,33 @@ class HealthStatusDisplay(QObject):
     def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
 
-        if 'health' not in data_item or data_item['health'] == "updated":
-            data_item['health'] = get_health(
-                data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
-            )
-        health = data_item['health']
-
         # ----------------
         # |b---b|        |
         # |b|i|b| 0S 0L  |
         # |b---b|        |
         # ----------------
 
-        r = rect
+        if data_item["type"] == REGULAR_TORRENT:
+            if 'health' not in data_item or data_item['health'] == "updated":
+                data_item['health'] = get_health(
+                    data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
+                )
+            health = data_item['health']
 
+            panel_y = rect.y() + rect.height() / 2 - 5
+            self.paint_elements(painter, rect, panel_y, health, data_item, hover)
+        elif data_item["type"] == CONTENT:
+            for ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
+                panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT / 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
+                health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'], torrent_in_snippet['last_tracker_check'])
+                self.paint_elements(painter, rect, panel_y, health, torrent_in_snippet, hover, draw_health_text=False)
+
+    def paint_elements(self, painter, rect, panel_y, health, data_item, hover=False, draw_health_text=True):
         painter.save()
 
         # Indicator ellipse rectangle
-        y = int(r.top() + (r.height() - self.indicator_side) // 2)
-        x = r.left() + self.indicator_border
+        y = panel_y  # int(r.top() + (r.height() - self.indicator_side) // 2)
+        x = rect.left() + self.indicator_border
         w = self.indicator_side
         h = self.indicator_side
         indicator_rect = QRect(x, y, w, h)
@@ -854,22 +877,23 @@ class HealthStatusDisplay(QObject):
         painter.drawEllipse(indicator_rect)
 
         x = indicator_rect.left() + indicator_rect.width() + 2 * self.indicator_border
-        y = r.top()
-        w = r.width() - indicator_rect.width() - 2 * self.indicator_border
-        h = r.height()
+        y = panel_y
+        w = rect.width() - indicator_rect.width() - 2 * self.indicator_border
+        h = 10
         text_box = QRect(x, y, w, h)
 
         # Paint status text, if necessary
-        if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
-            txt = health
-        else:
-            seeders = int(data_item['num_seeders'])
-            leechers = int(data_item['num_leechers'])
+        if draw_health_text:
+            if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
+                txt = health
+            else:
+                seeders = int(data_item['num_seeders'])
+                leechers = int(data_item['num_leechers'])
 
-            txt = 'S' + str(seeders) + ' L' + str(leechers)
+                txt = 'S' + str(seeders) + ' L' + str(leechers)
 
-        color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
-        draw_text(painter, text_box, txt, color=color)
+            color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
+            draw_text(painter, text_box, txt, color=color)
         painter.restore()
 
 
