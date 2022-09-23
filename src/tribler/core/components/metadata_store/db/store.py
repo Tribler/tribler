@@ -49,7 +49,7 @@ from tribler.core.components.metadata_store.remote_query_community.payload_check
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import get_or_create
+from tribler.core.utilities.pony_utils import get_max, get_or_create
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
 
@@ -774,7 +774,7 @@ class MetadataStore:
 
     @db_session
     def get_max_rowid(self) -> int:
-        return select(max(obj.rowid) for obj in self.ChannelNode).get() or 0
+        return get_max(self.ChannelNode)
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
 
