@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.component import Component, MissedDependency, NoneComponent
+from tribler.core.components.component import Component, MissedDependency, MultipleComponentsFound, NoneComponent
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 
@@ -148,5 +148,5 @@ def test_get_instance_two_subclasses_match(tribler_config: TriblerConfig):
         pass
 
     session = Session(tribler_config, [ComponentA(), DerivedB(), SecondDerivedB()])
-    with pytest.raises(KeyError):
+    with pytest.raises(MultipleComponentsFound):
         session.get_instance(ComponentB)
