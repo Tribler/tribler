@@ -1,6 +1,6 @@
 from typing import Type
 
-from pony.orm.core import Entity
+from pony.orm.core import Entity, select
 
 
 # pylint: disable=bad-staticmethod-argument
@@ -19,3 +19,13 @@ def get_or_create(cls: Type[Entity], create_kwargs=None, **kwargs) -> Entity:
             kwargs.update(create_kwargs)
         obj = cls(**kwargs)
     return obj
+
+
+def get_max(cls: Type[Entity], column_name='rowid') -> int:
+    """Get max row ID of an db.Entity.
+    Args:
+        cls: Entity's class, eg: `self.instance.Peer`
+        column_name: Name of the column to aggregate
+    Returns: Max row ID or 0.
+    """
+    return select(max(getattr(obj, column_name)) for obj in cls).get() or 0

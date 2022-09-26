@@ -1,9 +1,10 @@
 import datetime
 import logging
-from typing import Callable, List, Optional, Set
+from typing import Callable, Iterable, List, Optional, Set
 
 from pony import orm
 from pony.orm import exists, select
+from pony.orm.core import Entity
 from pony.utils import between
 
 from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
@@ -226,7 +227,7 @@ class TagDatabase:
         op = self.instance.TorrentTagOp.get(torrent_tag=torrent_tag, peer=peer)
         return op.clock if op else CLOCK_START_VALUE
 
-    def get_tags_operations_for_gossip(self, time_delta, count: int = 10) -> List:
+    def get_tags_operations_for_gossip(self, time_delta, count: int = 10) -> Iterable[Entity]:
         """ Get random operations from the DB that older than time_delta.
 
         Args:
@@ -234,9 +235,25 @@ class TagDatabase:
             count: a limit for a resulting query
         """
         updated_at = datetime.datetime.utcnow() - datetime.timedelta(**time_delta)
-        return list(self.instance.TorrentTagOp
-                    .select(lambda tto: tto.updated_at <= updated_at and not tto.auto_generated)
-                    .random(count))
+        return self._get_random_tag_operations_by_condition(
+            condition=lambda tto: tto.updated_at <= updated_at and not tto.auto_generated,
+            count=count
+        )
 
     def shutdown(self) -> None:
         self.instance.disconnect()
+
+    def _get_random_tag_operations_by_condition(self, condition: Callable[[Entity], bool], count: int = 5,
+                                                attempts: int = 100) -> Set[Entity]:
+        operations = set()
+        for _ in range(attempts):
+            if len(operations) == count:
+                return operations
+
+            random_operations_list = self.instance.TorrentTagOp.select_random(1)
+            if random_operations_list:
+                operation = random_operations_list[0]
+                if condition(operation):
+                    operations.add(operation)
+
+        return operations
