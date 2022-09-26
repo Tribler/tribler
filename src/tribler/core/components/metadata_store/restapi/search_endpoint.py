@@ -11,7 +11,7 @@ from marshmallow.fields import Integer, String
 
 from pony.orm import db_session
 
-from tribler.core.components.metadata_store.db.serialization import CONTENT
+from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
@@ -157,7 +157,7 @@ class SearchEndpoint(MetadataEndpointBase):
                 torrents_in_snippet = most_popular_torrents_for_content[content_id][:MAX_TORRENTS_IN_SNIPPETS]
 
                 snippet = {
-                    "type": CONTENT,
+                    "type": SNIPPET,
                     "infohash": content_id,
                     "category": "",
                     "name": "%s (%s)" % (content[0], content[1]),

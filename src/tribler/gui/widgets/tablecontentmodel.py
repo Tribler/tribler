@@ -9,7 +9,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, py
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    CONTENT
+    SNIPPET
 from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
 
@@ -416,9 +416,9 @@ class ChannelContentModel(RemoteTableModel):
             column_type == Column.SIZE
             and "torrents" not in self.columns
             and "torrents" in item
-            and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, CONTENT)
+            and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, SNIPPET)
         ):
-            if item["type"] == CONTENT:
+            if item["type"] == SNIPPET:
                 return ""
             return item["torrents"]
 

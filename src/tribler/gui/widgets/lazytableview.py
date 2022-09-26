@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    CONTENT
+    SNIPPET
 
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
 from tribler.gui.dialogs.addtagsdialog import AddTagsDialog
@@ -221,7 +221,7 @@ class TriblerContentTableView(QTableView):
         # Safely determine if the thing is a channel. A little bit hackish
         if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
             self.channel_clicked.emit(data_item)
-        elif data_item.get("type") == CONTENT:
+        elif data_item.get("type") == SNIPPET:
             self.content_clicked.emit(data_item)
         elif data_item.get('type') == REGULAR_TORRENT:
             if not doubleclick:

@@ -9,7 +9,7 @@ from psutil import LINUX
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT,\
-    CONTENT
+    SNIPPET
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 
 from tribler.gui.defs import (
@@ -47,7 +47,7 @@ TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DEFAULT_ROW_HEIGHT = 30
 CONTENT_ROW_HEIGHT = 72
-TORRENT_IN_SNIPPET_HEIGHT = 44
+TORRENT_IN_SNIPPET_HEIGHT = 28
 MAX_TAGS_TO_SHOW = 10
 
 
@@ -173,7 +173,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         """
         data_item = index.model().data_items[index.row()]
 
-        if data_item["type"] == CONTENT:
+        if data_item["type"] == SNIPPET:
             torrents_in_snippet = len(data_item["torrents_in_snippet"])
             height = CONTENT_ROW_HEIGHT + TORRENT_IN_SNIPPET_HEIGHT * torrents_in_snippet
             return QSize(0, height)
@@ -376,15 +376,15 @@ class TagsMixin:
     ) -> None:
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
-        title_text_height = 60 if data_item["type"] == CONTENT else 28
-        title_text_y = (title_text_pos.y() + 10) if data_item["type"] == CONTENT else title_text_pos.y()
-        title_text_x = (title_text_pos.x() + 56) if data_item["type"] == CONTENT else (title_text_pos.x() + 6)
+        title_text_height = 60 if data_item["type"] == SNIPPET else 28
+        title_text_y = (title_text_pos.y() + 10) if data_item["type"] == SNIPPET else title_text_pos.y()
+        title_text_x = (title_text_pos.x() + 56) if data_item["type"] == SNIPPET else (title_text_pos.x() + 6)
         painter.setPen(Qt.white)
 
-        if data_item["type"] == CONTENT:
+        if data_item["type"] == SNIPPET:
             # Increase the font size
             font = painter.font()
-            font.setPixelSize(15)
+            font.setPixelSize(17)
             painter.setFont(font)
 
         painter.drawText(
@@ -393,14 +393,14 @@ class TagsMixin:
             data_item["name"],
         )
 
-        if data_item["type"] == CONTENT:
+        if data_item["type"] == SNIPPET:
             # Restore the font size
             font = painter.font()
             font.setPixelSize(13)
             painter.setFont(font)
 
         # Draw the thumbnail + preview item if it's a content item
-        if data_item["type"] == CONTENT:
+        if data_item["type"] == SNIPPET:
             painter.setPen(QColor(get_color(data_item["name"])))
             path = QPainterPath()
             rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 10, 40, 60)
@@ -855,7 +855,7 @@ class HealthStatusDisplay(QObject):
 
             panel_y = rect.y() + rect.height() / 2 - 5
             self.paint_elements(painter, rect, panel_y, health, data_item, hover)
-        elif data_item["type"] == CONTENT:
+        elif data_item["type"] == SNIPPET:
             for ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
                 panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT / 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
                 health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'], torrent_in_snippet['last_tracker_check'])
