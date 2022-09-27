@@ -7,7 +7,7 @@ from pony.orm import exists, select
 from pony.orm.core import Entity
 from pony.utils import between
 
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum, TagRelationEnum
 from tribler.core.utilities.pony_utils import get_or_create
 from tribler.core.utilities.unicode import hexlify
 
@@ -43,8 +43,11 @@ class TagDatabase:
 
         class TorrentTag(db.Entity):
             id = orm.PrimaryKey(int, auto=True)
+
             torrent = orm.Required(lambda: Torrent)
+            relation = orm.Required(int, default=1, index=True)  # default is the 'HAS_TAG' relation
             tag = orm.Required(lambda: Tag)
+
             operations = orm.Set(lambda: TorrentTagOp)
 
             added_count = orm.Required(int, default=0)
@@ -52,7 +55,7 @@ class TagDatabase:
 
             local_operation = orm.Optional(int)  # in case user don't (or do) want to see it locally
 
-            orm.composite_key(torrent, tag)
+            orm.composite_key(torrent, relation, tag)
 
             @property
             def score(self):
@@ -103,6 +106,8 @@ class TagDatabase:
             signature: the signature of the operation
             is_local_peer: local operations processes differently than remote operations. They affects
                 `TorrentTag.local_operation` field which is used in `self.get_tags()` function.
+            is_auto_generated: the indicator of whether this tag was generated automatically or not
+            counter_increment: the counter or "numbers" of adding operations
 
         Returns: True if the operation has been added/updated, False otherwise.
         """
@@ -110,7 +115,7 @@ class TagDatabase:
         peer = get_or_create(self.instance.Peer, public_key=operation.creator_public_key)
         tag = get_or_create(self.instance.Tag, name=operation.tag)
         torrent = get_or_create(self.instance.Torrent, infohash=operation.infohash)
-        torrent_tag = get_or_create(self.instance.TorrentTag, tag=tag, torrent=torrent)
+        torrent_tag = get_or_create(self.instance.TorrentTag, tag=tag, torrent=torrent, relation=operation.relation)
         op = self.instance.TorrentTagOp.get_for_update(torrent_tag=torrent_tag, peer=peer)
 
         if not op:  # then insert
@@ -135,10 +140,11 @@ class TagDatabase:
                updated_at=datetime.datetime.utcnow(), auto_generated=is_auto_generated)
         return True
 
-    def add_auto_generated_tag(self, infohash: bytes, tag: str):
+    def add_auto_generated_tag(self, infohash: bytes, tag: str, relation: TagRelationEnum = TagRelationEnum.HAS_TAG):
         operation = TagOperation(
             infohash=infohash,
             operation=TagOperationEnum.ADD,
+            relation=relation,
             clock=CLOCK_START_VALUE,
             creator_public_key=PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS,
             tag=tag
@@ -153,7 +159,8 @@ class TagDatabase:
         return torrent_tag.local_operation == TagOperationEnum.ADD.value or \
                not torrent_tag.local_operation and torrent_tag.score >= SHOW_THRESHOLD
 
-    def _get_tags(self, infohash: bytes, condition: Callable[[], bool]) -> List[str]:
+    def _get_tags(self, infohash: bytes, condition: Callable[[], bool],
+                  relation: TagRelationEnum = TagRelationEnum.HAS_TAG) -> List[str]:
         """
         Get tags that satisfy a given condition.
 
@@ -163,21 +170,25 @@ class TagDatabase:
         if not torrent:
             return []
 
-        query = torrent.tags.select(condition)
+        query = (
+            torrent.tags
+            .select(condition)
+            .filter(lambda tt: tt.relation == relation.value)
+        )
         query = query.order_by(lambda tt: orm.desc(tt.score))
         query = orm.select(tt.tag.name for tt in query)
         return list(query)
 
-    def get_tags(self, infohash: bytes) -> List[str]:
+    def get_tags(self, infohash: bytes, relation: TagRelationEnum = TagRelationEnum.HAS_TAG) -> List[str]:
         """ Get all tags for this particular torrent.
 
         Returns: A list of tags
         """
-        self.logger.debug(f'Get tags. Infohash: {hexlify(infohash)}')
+        self.logger.debug(f'Get tags. Infohash: {hexlify(infohash)}, relation: {relation}')
 
-        return self._get_tags(infohash, self._show_condition)
+        return self._get_tags(infohash, self._show_condition, relation=relation)
 
-    def get_suggestions(self, infohash: bytes) -> List[str]:
+    def get_suggestions(self, infohash: bytes, relation: TagRelationEnum = TagRelationEnum.HAS_TAG) -> List[str]:
         """
         Get all suggestions for a particular torrent.
 
@@ -189,7 +200,7 @@ class TagDatabase:
             return not torrent_tag.local_operation and \
                    between(torrent_tag.score, HIDE_THRESHOLD + 1, SHOW_THRESHOLD - 1)
 
-        return self._get_tags(infohash, show_suggestions_condition)
+        return self._get_tags(infohash, show_suggestions_condition, relation=relation)
 
     def get_infohashes(self, tags: Set[str]) -> List[bytes]:
         """Get list of infohashes that belongs to the tag.
@@ -220,7 +231,7 @@ class TagDatabase:
         if not torrent or not tag or not peer:
             return 0
 
-        torrent_tag = self.instance.TorrentTag.get(tag=tag, torrent=torrent)
+        torrent_tag = self.instance.TorrentTag.get(tag=tag, torrent=torrent, relation=operation.relation)
         if not torrent_tag:
             return 0
 

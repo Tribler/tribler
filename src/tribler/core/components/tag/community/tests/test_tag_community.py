@@ -2,15 +2,13 @@ import datetime
 from unittest.mock import MagicMock, Mock
 
 from cryptography.exceptions import InvalidSignature
-
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
-
 from pony.orm import db_session
 
 from tribler.core.components.tag.community.tag_community import TagCommunity
-from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagRelationEnum
 from tribler.core.components.tag.community.tag_requests import PeerValidationError
 from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
 
@@ -31,8 +29,8 @@ class TestTagCommunity(TestBase):
 
     def create_operation(self, tag=''):
         community = self.overlay(0)
-        operation = TagOperation(infohash=b'1' * 20, operation=TagOperationEnum.ADD, clock=0,
-                                 creator_public_key=community.tags_key.pub().key_to_bin(), tag=tag)
+        operation = TagOperation(infohash=b'1' * 20, operation=TagOperationEnum.ADD, relation=TagRelationEnum.HAS_TAG,
+                                 clock=0, creator_public_key=community.tags_key.pub().key_to_bin(), tag=tag)
         operation.clock = community.db.get_clock(operation) + 1
         return operation
 

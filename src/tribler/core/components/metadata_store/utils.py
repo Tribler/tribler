@@ -8,7 +8,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagRelationEnum
 from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
 from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler.core.tests.tools.common import PNG_FILE
@@ -58,7 +58,7 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
                 suggested_tags.append(tag)
 
     def _add_operation(_tag, _op, _key):
-        operation = TagOperation(infohash=infohash, tag=_tag, operation=_op, clock=0,
+        operation = TagOperation(infohash=infohash, tag=_tag, operation=_op, relation=TagRelationEnum.HAS_TAG, clock=0,
                                  creator_public_key=_key.pub().key_to_bin())
         operation.clock = tags_db.get_clock(operation) + 1
         tags_db.add_tag_operation(operation, b"")

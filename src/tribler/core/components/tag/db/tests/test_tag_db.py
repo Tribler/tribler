@@ -1,84 +1,18 @@
 import datetime
-from dataclasses import dataclass
-from itertools import count
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from ipv8.test.base import TestBase
 from pony import orm
 from pony.orm import commit, db_session
 
-# pylint: disable=protected-access
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.db.tag_db import PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, SHOW_THRESHOLD, TagDatabase
+from tribler.core.components.tag.db.tests.test_tag_db_base import Tag, TestTagDBBase
 from tribler.core.utilities.pony_utils import get_or_create
 
 
-@dataclass
-class Tag:
-    name: str
-    count: int = 1
-    auto_generated: bool = False
-
-
-class TestTagDB(TestBase):
-    def setUp(self):
-        super().setUp()
-        self.db = TagDatabase()
-
-    async def tearDown(self):
-        if self._outcome.errors:
-            self.dump_db()
-
-        await super().tearDown()
-
-    @db_session
-    def dump_db(self):
-        print('\nPeer:')
-        self.db.instance.Peer.select().show()
-        print('\nTorrent:')
-        self.db.instance.Torrent.select().show()
-        print('\nTag')
-        self.db.instance.Tag.select().show()
-        print('\nTorrentTag')
-        self.db.instance.TorrentTag.select().show()
-        print('\nTorrentTagOp')
-        self.db.instance.TorrentTagOp.select().show()
-
-    def create_torrent_tag(self, tag='tag', infohash=b'infohash'):
-        tag = get_or_create(self.db.instance.Tag, name=tag)
-        torrent = get_or_create(self.db.instance.Torrent, infohash=infohash)
-        torrent_tag = get_or_create(self.db.instance.TorrentTag, tag=tag, torrent=torrent)
-
-        return torrent_tag
-
-    @staticmethod
-    def create_operation(infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD, clock=0):
-        return TagOperation(infohash=infohash, tag=tag, operation=operation, clock=clock, creator_public_key=peer)
-
-    @staticmethod
-    def add_operation(tag_db: TagDatabase, infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD,
-                      is_local_peer=False, clock=None, is_auto_generated=False, counter_increment: int = 1):
-        operation = TestTagDB.create_operation(infohash, tag, peer, operation, clock)
-        operation.clock = clock or tag_db.get_clock(operation) + 1
-        result = tag_db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer,
-                                          is_auto_generated=is_auto_generated, counter_increment=counter_increment)
-        commit()
-        return result
-
-    @staticmethod
-    def add_operation_set(tag_db: TagDatabase, dictionary):
-        index = count(0)
-
-        def generate_n_peer_names(n):
-            for _ in range(n):
-                yield f'peer{next(index)}'.encode('utf8')
-
-        for infohash, tags in dictionary.items():
-            for tag in tags:
-                for peer in generate_n_peer_names(tag.count):
-                    TestTagDB.add_operation(tag_db, infohash, tag.name, peer, is_auto_generated=tag.auto_generated)
-
+# pylint: disable=protected-access
+class TestTagDB(TestTagDBBase):
     @patch.object(orm.Database, 'generate_mapping')
     def test_constructor_create_tables_true(self, mocked_generate_mapping: Mock):
         TagDatabase(':memory:')
@@ -177,21 +111,31 @@ class TestTagDB(TestBase):
         self.add_operation(self.db, b'infohash', 'tag', b'peer1')
         self.add_operation(self.db, b'infohash', 'tag', b'peer2')
         self.add_operation(self.db, b'infohash', 'tag', b'peer3')
+        self.add_operation(self.db, b'infohash', 'tag', b'peer1', relation=TagRelationEnum.HAS_CONTENT_ITEM)
 
-        assert self.db.instance.TorrentTag.get().added_count == 3
-        assert self.db.instance.TorrentTag.get().removed_count == 0
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).added_count == 3
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_CONTENT_ITEM).added_count == 1
+
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).removed_count == 0
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_CONTENT_ITEM).removed_count == 0
 
         self.add_operation(self.db, b'infohash', 'tag', b'peer2', operation=TagOperationEnum.REMOVE)
-        assert self.db.instance.TorrentTag.get().added_count == 2
-        assert self.db.instance.TorrentTag.get().removed_count == 1
+        self.add_operation(self.db, b'infohash', 'tag', b'peer2', operation=TagOperationEnum.REMOVE,
+                           relation=TagRelationEnum.HAS_CONTENT_ITEM)
+
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).added_count == 2
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).removed_count == 1
+
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_CONTENT_ITEM).added_count == 1
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_CONTENT_ITEM).removed_count == 1
 
         self.add_operation(self.db, b'infohash', 'tag', b'peer1', operation=TagOperationEnum.REMOVE)
-        assert self.db.instance.TorrentTag.get().added_count == 1
-        assert self.db.instance.TorrentTag.get().removed_count == 2
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).added_count == 1
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).removed_count == 2
 
         self.add_operation(self.db, b'infohash', 'tag', b'peer1')
-        assert self.db.instance.TorrentTag.get().added_count == 2
-        assert self.db.instance.TorrentTag.get().removed_count == 1
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).added_count == 2
+        assert self.db.instance.TorrentTag.get(relation=TagRelationEnum.HAS_TAG).removed_count == 1
 
     @db_session
     async def test_add_auto_generated_tag(self):
@@ -247,12 +191,14 @@ class TestTagDB(TestBase):
                     Tag(name='tag1', count=SHOW_THRESHOLD - 1),
                     Tag(name='tag2', count=SHOW_THRESHOLD),
                     Tag(name='tag3', count=SHOW_THRESHOLD + 1),
+                    Tag(name='ContentItem', count=SHOW_THRESHOLD + 1, relation=TagRelationEnum.HAS_CONTENT_ITEM),
                 ]
             }
         )
 
         assert not self.db.get_tags(b'missed infohash')
         assert self.db.get_tags(b'infohash1') == ['tag3', 'tag2']
+        assert self.db.get_tags(b'infohash1', relation=TagRelationEnum.HAS_CONTENT_ITEM) == ['ContentItem']
 
     @db_session
     async def test_get_tags_removed(self):
@@ -280,7 +226,10 @@ class TestTagDB(TestBase):
 
         # test local add
         self.add_operation(self.db, b'infohash1', 'tag1', b'peer3', operation=TagOperationEnum.ADD, is_local_peer=True)
+        self.add_operation(self.db, b'infohash1', 'content_item', b'peer3', operation=TagOperationEnum.ADD,
+                           relation=TagRelationEnum.HAS_CONTENT_ITEM, is_local_peer=True)
         assert self.db.get_tags(b'infohash1') == ['tag1']
+        assert self.db.get_tags(b'infohash1', relation=TagRelationEnum.HAS_CONTENT_ITEM) == ['content_item']
 
     @db_session
     async def test_hide_local_tags(self):
@@ -301,6 +250,7 @@ class TestTagDB(TestBase):
         # Suggestions are tags that have not gathered enough support for display yet.
         self.add_operation(self.db, tag='tag1', peer=b'1')
         self.add_operation(self.db, tag='tag1', peer=b'2')
+        self.add_operation(self.db, tag='tag1', peer=b'2', relation=TagRelationEnum.HAS_CONTENT_ITEM)
         assert self.db.get_suggestions(b'infohash') == []  # This tag now has enough support
 
         self.add_operation(self.db, tag='tag1', peer=b'3', operation=TagOperationEnum.REMOVE)  # score:1
@@ -318,6 +268,7 @@ class TestTagDB(TestBase):
 
         self.add_operation(self.db, infohash=operation.infohash, tag=operation.tag, peer=operation.creator_public_key,
                            clock=1)
+
         assert self.db.get_clock(operation) == 1
 
     @db_session

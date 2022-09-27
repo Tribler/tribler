@@ -102,6 +102,7 @@ class TagCommunity(TriblerCommunity):
                     operation = TagOperation(
                         infohash=tag_operation.torrent_tag.torrent.infohash,
                         operation=tag_operation.operation,
+                        relation=tag_operation.torrent_tag.relation,
                         clock=tag_operation.clock,
                         creator_public_key=tag_operation.peer.public_key,
                         tag=tag_operation.torrent_tag.tag.name,

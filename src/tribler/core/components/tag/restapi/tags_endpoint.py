@@ -3,19 +3,15 @@ from binascii import unhexlify
 from typing import Optional, Set, Tuple
 
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Boolean, List, String
-
 from pony.orm import db_session
 
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.components.tag.community.tag_community import TagCommunity
-from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagRelationEnum
 from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 from tribler.core.utilities.utilities import froze_it
@@ -98,8 +94,8 @@ class TagsEndpoint(RESTEndpoint):
         public_key = self.community.tags_key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
             type_of_operation = TagOperationEnum.ADD if tag in added_tags else TagOperationEnum.REMOVE
-            operation = TagOperation(infohash=infohash, operation=type_of_operation, clock=0,
-                                     creator_public_key=public_key, tag=tag)
+            operation = TagOperation(infohash=infohash, operation=type_of_operation, relation=TagRelationEnum.HAS_TAG,
+                                     clock=0, creator_public_key=public_key, tag=tag)
             operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)
             self.db.add_tag_operation(operation, signature, is_local_peer=True)

@@ -1,20 +1,17 @@
 from unittest.mock import Mock
 
+import pytest
 from aiohttp.web_app import Application
-
 from freezegun import freeze_time
-
 from ipv8.keyvault.crypto import default_eccrypto
-
 from pony.orm import db_session
 
-import pytest
-
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler.core.conftest import TEST_PERSONAL_KEY
 from tribler.core.utilities.unicode import hexlify
+
 
 # pylint: disable=redefined-outer-name
 
@@ -113,8 +110,8 @@ async def test_get_suggestions(rest_api, tags_db):
     with db_session:
         def _add_operation(op=TagOperationEnum.ADD):
             random_key = default_eccrypto.generate_key('low')
-            operation = TagOperation(infohash=infohash, tag="test", operation=op, clock=0,
-                                     creator_public_key=random_key.pub().key_to_bin())
+            operation = TagOperation(infohash=infohash, tag="test", operation=op, relation=TagRelationEnum.HAS_TAG,
+                                     clock=0, creator_public_key=random_key.pub().key_to_bin())
             tags_db.add_tag_operation(operation, b"")
 
         _add_operation(op=TagOperationEnum.ADD)
