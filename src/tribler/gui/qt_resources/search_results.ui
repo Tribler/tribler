@@ -110,7 +110,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="ChannelContentsWidget" name="results_page"/>
+  <widget class="ChannelContentsWidget" name="results_page_content"/>
  </widget>
  <customwidgets>
   <customwidget>

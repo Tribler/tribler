@@ -388,13 +388,12 @@ def test_search(window):
     screenshot(window, name="search_loading_page")
     tst_channels_widget(
         window,
-        window.search_results_page.results_page,
+        window.search_results_page.results_page_content,
         "search_results",
         sort_column=2,
         test_filter=False,
         test_subscribe=False,
     )
-
 
 @pytest.mark.guitest
 def test_add_download_url(window):
