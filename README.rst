@@ -80,12 +80,12 @@ To run the built docker image:
 
 .. code-block:: bash
 
-    docker run -p 52194:52194 --net="host" triblercore/triblercore:latest
+    docker run -p 20100:20100 --net="host" triblercore/triblercore:latest
 
 Note that by default, the REST API is bound to localhost inside the container so to
 access the APIs, network needs to be set to host (--net="host").
 
-The REST APIs are now accessible at: http://localhost:52194/docs
+The REST APIs are now accessible at: http://localhost:20100/docs
 
 
 **Docker Compose**

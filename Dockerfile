@@ -22,8 +22,8 @@ COPY ./ tribler
 WORKDIR tribler
 
 # Set the REST API port and expose it
-ENV CORE_API_PORT=52194
-EXPOSE 52194
+ENV CORE_API_PORT=20100
+EXPOSE 20100
 
 # Only run the core process with --core switch
 CMD ["./src/tribler.sh", "--core"]

@@ -9,5 +9,5 @@ services:
     volumes:
       - ~/.Tribler:/home/user/.Tribler
     environment:
-      CORE_API_PORT: 52194
+      CORE_API_PORT: 20100
 

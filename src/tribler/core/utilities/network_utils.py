@@ -9,7 +9,11 @@ class FreePortNotFoundError(Exception):
 
 class NetworkUtils:
     MAX_PORT = 65535
-    FIRST_PORT_IN_DYNAMIC_RANGE = 49152
+    MAX_EPHEMERAL_PORT = MAX_PORT
+    MIN_EPHEMERAL_PORT = 49152
+
+    MAX_PORT_FOR_TRIBLER = 32768
+    MIN_PORT_FOR_TRIBLER = 1024
 
     def __init__(self, socket_class_set=None, remember_checked_ports_enabled=False):
         """
@@ -38,7 +42,7 @@ class NetworkUtils:
     def not_in_use(self, port):
         return port not in self.ports_in_use
 
-    def get_first_free_port(self, start=FIRST_PORT_IN_DYNAMIC_RANGE, stop=MAX_PORT):
+    def get_first_free_port(self, start=MIN_EPHEMERAL_PORT, stop=MAX_PORT):
         self.logger.info(f'Looking for first free port in range [{start}..{stop}]')
 
         for port in range(start, stop):
@@ -50,7 +54,7 @@ class NetworkUtils:
 
         raise FreePortNotFoundError(f'Free port not found in range [{start}..{stop}]')
 
-    def get_random_free_port(self, start=FIRST_PORT_IN_DYNAMIC_RANGE, stop=MAX_PORT, attempts=100):
+    def get_random_free_port(self, start=MIN_EPHEMERAL_PORT, stop=MAX_EPHEMERAL_PORT, attempts=100):
         start = max(0, start)
         stop = min(NetworkUtils.MAX_PORT, stop)
 

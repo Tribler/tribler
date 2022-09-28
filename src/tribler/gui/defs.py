@@ -8,7 +8,7 @@ from PyQt5.QtGui import QColor
 
 DEFAULT_API_PROTOCOL = "http"
 DEFAULT_API_HOST = "localhost"
-DEFAULT_API_PORT = 52194
+DEFAULT_API_PORT = 20100
 
 
 # Define stacked widget page indices

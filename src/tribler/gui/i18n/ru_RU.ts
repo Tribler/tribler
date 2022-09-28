@@ -1657,8 +1657,8 @@ per download</source>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1826"/>
-        <source>Port (defaults to 52194)</source>
-        <translation>Порт (по умолчанию 52194)</translation>
+        <source>Port (defaults to 20100)</source>
+        <translation>Порт (по умолчанию 20100)</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1864"/>
