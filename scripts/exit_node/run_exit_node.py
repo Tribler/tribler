@@ -213,7 +213,7 @@ def main():
                         action=IPAction)
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str,
                         help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
-    parser.add_argument('--restapi', '-p', default=52194, type=int,
+    parser.add_argument('--restapi', '-p', default=20100, type=int,
                         help='Use an alternate port for the REST API', action=PortAction, metavar='{0..65535}')
     parser.add_argument('--cert-file', '-e', help='Path to combined certificate/key file. If not given HTTP is used.')
     parser.add_argument('--api-key', '-k', help='API key to use. If not given API key protection is disabled.')

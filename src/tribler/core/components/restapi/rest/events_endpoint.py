@@ -148,7 +148,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
                 .. sourcecode:: none
 
-                    curl -X GET http://localhost:52194/events
+                    curl -X GET http://localhost:20100/events
         """
 
         # Setting content-type to text/event-stream to ensure browsers will handle the content properly
