@@ -2,12 +2,19 @@
 simplify work with several data structures.
 """
 import re
+from dataclasses import dataclass
 from typing import Optional
 
 from faker import Faker
 
 LONG_TEXT_DELIMITER = '--LONG TEXT--'
 CONTEXT_DELIMITER = '--CONTEXT--'
+
+# Find an exception in the string like: "OverflowError: bind(): port must be 0-65535"
+_re_search_exception = re.compile(r'^(\S+)\s*:\s*(.+)')
+
+# Remove the substring like "Sentry is attempting to send 1 pending error messages"
+_re_remove_sentry = re.compile(r'Sentry is attempting.*')
 
 
 def parse_os_environ(array):
@@ -65,6 +72,26 @@ def parse_stacktrace(stacktrace, delimiters=None):
 
     for part in re.split('|'.join(delimiters), stacktrace):
         yield [line for line in re.split(r'\\n|\n', part) if line]
+
+
+@dataclass
+class LastCoreException:
+    type: str
+    message: str
+
+
+def parse_last_core_output(text: str) -> Optional[LastCoreException]:
+    """ This function tries to find an Exception type and the Exception message in the raw core output
+    """
+
+    def _clean_up(s: str):
+        return _re_remove_sentry.sub('', s).strip()
+
+    for line in reversed(text.split('\n')):
+        if m := _re_search_exception.match(line):
+            return LastCoreException(type=_clean_up(m.group(1)),
+                                     message=_clean_up(m.group(2)))
+    return None
 
 
 def get_first_item(items, default=None):

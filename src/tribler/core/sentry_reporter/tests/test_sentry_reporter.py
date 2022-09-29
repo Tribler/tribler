@@ -3,12 +3,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from tribler.core.sentry_reporter.sentry_reporter import (
-    EXCEPTION,
     OS_ENVIRON,
     PLATFORM_DETAILS,
     SentryReporter,
     SentryStrategy,
-    VALUES,
     this_sentry_strategy,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
@@ -349,9 +347,69 @@ def test_sentry_strategy(sentry_reporter):
     assert sentry_reporter.global_strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
 
 
-def test_retrieve_error_message_from_stacktrace(sentry_reporter):
-    post_data = {"stack": '--LONG TEXT--Type: Text'}
-    event = sentry_reporter.send_event({EXCEPTION: {VALUES: []}}, post_data, None, None, True)
+def test_send_last_core_output(sentry_reporter):
+    # Test that the `send_event` function:
+    #   1. leaves only the last exception from the given Sentry error
+    #   2. removes stacktrace from the last exception from the given Sentry error
+    #   3. adds an exception extracted from the "last core output" to the Sentry event
+    event = {
+        'exception': {
+            'values': [
+                {
+                    'module': 'tribler.gui.utilities',
+                    'type': 'CreationTraceback',
+                    'value': '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
+                    'mechanism': None
+                },
+                {
+                    'module': 'tribler.gui.exceptions',
+                    'type': 'CoreCrashedError',
+                    'value': 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
+                    'mechanism': None,
+                    'stacktrace': {
+                        'frames': []
+                    }
+                }
+            ]
+        }
+    }
+    last_core_output = '''
+File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.8/lib/python3.8/asyncio/base_events.py", line 1461, in create_server
+    sock.bind(sa)
+OverflowError: bind(): port must be 0-65535.Sentry is attempting to send 1 pending error messages
+Waiting up to 2 seconds
+Press Ctrl-C to quit
+    '''
+    actual = sentry_reporter.send_event(event=event, last_core_output=last_core_output)
+    expected = {
+        'exception': {
+            'values': [
+                {
+                    'module': 'tribler.gui.exceptions',
+                    'type': 'CoreCrashedError',
+                    'value': 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
+                    'mechanism': None
+                },
+                {
+                    'type': 'OverflowError',
+                    'value': 'bind(): port must be 0-65535.'
+                }
+            ]
+        },
+        'contexts': {
+            'browser': {'name': 'Tribler', 'version': None},
+            'reporter': {
+                'last_core_output': last_core_output.split('\n'),
+                '_stacktrace': [],
+                '_stacktrace_context': [],
+                '_stacktrace_extra': [],
+                'comments': None,
+                OS_ENVIRON: {},
+                'sysinfo': {},
+                'events': {},
+            },
+        },
+        'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
+    }
 
-    assert event[EXCEPTION][VALUES][0]['type'] == 'Type'
-    assert event[EXCEPTION][VALUES][0]['value'] == ' Text'
+    assert actual == expected

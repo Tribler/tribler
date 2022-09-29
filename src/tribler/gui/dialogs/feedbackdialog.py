@@ -32,7 +32,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         start_time,
         stop_application_on_close=True,
         additional_tags=None,
-        retrieve_error_message_from_stacktrace=False,
     ):
         QDialog.__init__(self, parent)
         self.core_manager: CoreManager = parent.core_manager
@@ -46,7 +45,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.sentry_reporter = sentry_reporter
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
-        self.retrieve_error_message_from_stacktrace = retrieve_error_message_from_stacktrace
 
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -169,11 +167,11 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         }
 
         self.sentry_reporter.send_event(
-            self.reported_error.event,
-            post_data,
-            sys_info_dict,
-            self.additional_tags,
-            self.retrieve_error_message_from_stacktrace,
+            event=self.reported_error.event,
+            post_data=post_data,
+            sys_info=sys_info_dict,
+            additional_tags=self.additional_tags,
+            last_core_output=self.reported_error.last_core_output
         )
         self.on_report_sent()
 

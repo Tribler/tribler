@@ -10,4 +10,5 @@ class ReportedError:
 
     long_text: str = ''
     context: str = ''
+    last_core_output: str = ''
     should_stop: Optional[bool] = None
