@@ -99,7 +99,8 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             original_query=query.original_query,
             text_filter=to_fts_query(query.fts_text),
             tags=list(query.tags),
-            type_filter=[REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE],
+            type_filter=[REGULAR_TORRENT],
+            exclude_deleted=True,
         )
         self.results_page_content.initialize_root_model(model)
         self.setCurrentWidget(self.results_page)
@@ -115,7 +116,8 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.search_request = SearchRequest(response["request_uuid"], query, peers)
             self.search_progress_bar.set_remote_total(len(peers))
 
-        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags)}
+        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags),
+                  'metadata_type': REGULAR_TORRENT, 'exclude_deleted': True}
         TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
 
         return True
