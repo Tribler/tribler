@@ -1,6 +1,7 @@
 import pytest
 
-from tribler.core.utilities.search_utils import filter_keywords, split_into_keywords, torrent_rank
+from tribler.core.utilities.search_utils import filter_keywords, item_rank, split_into_keywords, torrent_rank, \
+    title_rank
 
 
 DAY = 60 * 60 * 24
@@ -89,3 +90,14 @@ def test_torrent_rank():
     assert torrent_rank("Internet's Own Boy", "Internet's Own Boy") == pytest.approx(0.81)
     assert torrent_rank("Internet's Own Boy", "Internet's very Own Boy") == pytest.approx(0.75099337)
     assert torrent_rank("Internet's Own Boy", "Internet's very special Boy person") == pytest.approx(0.4353166986)
+
+
+def test_title_rank():
+    # tests for better covarage of corner cases
+    assert title_rank("", "title") == pytest.approx(1.0)
+    assert title_rank("query", "") == pytest.approx(0.0)
+
+
+def test_item_rank():
+    item = dict(name="abc", num_seeders=10, num_leechers=20)
+    assert item_rank("abc", item) == pytest.approx(0.81978445)
