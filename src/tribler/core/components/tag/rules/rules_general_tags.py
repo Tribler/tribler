@@ -7,20 +7,22 @@ square_brackets_re = re.compile(r'\[([^\[\]]+)]')
 parentheses_re = re.compile(r'\(([^()]+)\)')
 extension_re = re.compile(r'\.(\w{3,4})$')
 delimiter_re = re.compile(r'([^\s.,/|]+)')
-tags_in_square_brackets = [
-    square_brackets_re,  # extract content from square brackets
-    delimiter_re  # divide content by "," or "." or " " or "/"
-]
-tags_in_parentheses = [
-    parentheses_re,  # extract content from brackets
-    delimiter_re  # divide content by "," or "." or " " or "/"
-]
-tags_in_extension = [
-    extension_re  # extract an extension
-]
+
 
 general_rules: RulesList = [
-    Rule(patterns=tags_in_square_brackets),
-    Rule(patterns=tags_in_parentheses),
-    Rule(patterns=tags_in_extension),
+    Rule(
+        patterns=[
+            square_brackets_re,  # extract content from square brackets
+            delimiter_re  # divide content by "," or "." or " " or "/"
+        ]),
+    Rule(
+        patterns=[
+            parentheses_re,  # extract content from brackets
+            delimiter_re  # divide content by "," or "." or " " or "/"
+        ]),
+    Rule(
+        patterns=[
+            extension_re  # extract an extension
+        ]
+    ),
 ]

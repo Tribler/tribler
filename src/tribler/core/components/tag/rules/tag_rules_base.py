@@ -27,6 +27,8 @@ def extract_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
     expression will be applied to each tokens that were extracted on the
     previous step.
     This process will be repeated until regex expression ends.
+
+    For the each string result the action will be applied.
     """
     rules = rules or []
 

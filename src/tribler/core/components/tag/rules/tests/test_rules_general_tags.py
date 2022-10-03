@@ -2,9 +2,9 @@ import pytest
 
 from tribler.core.components.tag.rules.rules_general_tags import delimiter_re, extension_re, general_rules, \
     parentheses_re, \
-    square_brackets_re, tags_in_parentheses, tags_in_square_brackets
+    square_brackets_re
 from tribler.core.components.tag.rules.tag_rules_base import (
-    Rule, extract_tags,
+    extract_tags,
 )
 
 DELIMITERS = [
@@ -57,23 +57,17 @@ def test_extension(text, words):
 
 def test_tags_in_square_brackets():
     # test that tags_in_square_brackets rule works correctly with extract_tags function
-    text = 'text [tag1, tag2] text1 [tag3|tag4] text2, (tag5, tag6)'
+    text = 'text [tag1, tag2] text1 [tag3|tag4] text2'
     expected_tags = {'tag1', 'tag2', 'tag3', 'tag4'}
-    rules = [
-        Rule(patterns=tags_in_square_brackets)
-    ]
-    actual_tags = set(extract_tags(text, rules=rules))
+    actual_tags = set(extract_tags(text, rules=general_rules))
     assert actual_tags == expected_tags
 
 
 def test_tags_in_parentheses():
     # test that tags_in_parentheses rule works correctly with extract_tags function
-    text = 'text (tag1, tag2) text1 (tag3|tag4) text2, [tag5, tag6]'
+    text = 'text (tag1, tag2) text1 (tag3|tag4) text2'
     expected_tags = {'tag1', 'tag2', 'tag3', 'tag4'}
-    rules = [
-        Rule(patterns=tags_in_parentheses)
-    ]
-    actual_tags = set(extract_tags(text, rules=rules))
+    actual_tags = set(extract_tags(text, rules=general_rules))
     assert actual_tags == expected_tags
 
 
