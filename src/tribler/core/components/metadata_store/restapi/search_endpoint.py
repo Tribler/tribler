@@ -1,5 +1,4 @@
-import os
-from binascii import hexlify, unhexlify
+from binascii import unhexlify
 from typing import Dict, List
 
 from aiohttp import web
@@ -120,7 +119,6 @@ class SearchEndpoint(MetadataEndpointBase):
             sorted_content_info = list(content_to_torrents.items())
             sorted_content_info.sort(key=lambda x: len(x[1]), reverse=True)
             snippets = []
-            torrents_in_snippets = []
 
             for content_info in sorted_content_info:
                 content_id = content_info[0]
@@ -134,16 +132,19 @@ class SearchEndpoint(MetadataEndpointBase):
                     "torrents": len(content_info[1]),
                     "torrents_in_snippet": torrents_in_snippet
                 }
-                torrents_in_snippets += torrents_in_snippet
                 snippets.append(snippet)
 
             snippets = snippets[:SNIPPETS_TO_SHOW]
 
+            torrents_in_snippets = set()
+
             # Remove search results that are displayed in a snippet
             for snippet in snippets:
-                torrents_in_snippets += content_to_torrents[snippet["infohash"]]
+                snippet_id = snippet["infohash"]
+                infohases = {sr["infohash"] for sr in content_to_torrents[snippet_id]}
+                torrents_in_snippets |= infohases
 
-            search_results = [search_result for search_result in search_results if (search_result["infohash"] not in torrents_in_snippets)]
+            search_results = [sr for sr in search_results if (sr["infohash"] not in torrents_in_snippets)]
             search_results = snippets + search_results
 
         response_dict = {
