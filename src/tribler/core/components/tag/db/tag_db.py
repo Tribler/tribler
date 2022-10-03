@@ -208,6 +208,10 @@ class TagDatabase:
         In the case that the tags set contains more than one tag,
         only torrents that contain all `tags` will be returned.
         """
+        # FIXME: Ask @kozlovsky how to do it in a proper way
+        tags_entities = select(tag for tag in self.instance.Tag if tag.name in tags).fetch()
+        if not tags_entities:
+            return []
 
         query_results = select(
             torrent.infohash for torrent in self.instance.Torrent

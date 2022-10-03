@@ -341,7 +341,11 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        assert self.db.get_infohashes({'missed tag'}) == [b'infohash1', b'infohash2', b'infohash3']
+        # no results
+        assert not self.db.get_infohashes({'missed tag'})
+        assert not self.db.get_infohashes({'tag1'}, relation=TagRelationEnum.HAS_CONTENT_ITEM)
+
+        # results
         assert self.db.get_infohashes({'tag1'}) == [b'infohash1', b'infohash2']
         assert self.db.get_infohashes({'tag2'}) == [b'infohash1', b'infohash3']
         assert self.db.get_infohashes({'tag1', 'tag2'}) == [b'infohash1']
