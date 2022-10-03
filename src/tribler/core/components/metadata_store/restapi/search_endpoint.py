@@ -1,14 +1,11 @@
-from binascii import unhexlify
-from typing import Dict, Tuple, List
+import os
+from binascii import hexlify, unhexlify
+from typing import Dict, List
 
 from aiohttp import web
-
 from aiohttp_apispec import docs, querystring_schema
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Integer, String
-
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
@@ -16,8 +13,8 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
+from tribler.core.components.tag.community.tag_payload import TagRelationEnum
 from tribler.core.utilities.utilities import froze_it
-
 
 SNIPPETS_TO_SHOW = 1          # The number of snippets we return from the search results
 MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
@@ -31,35 +28,6 @@ class SearchEndpoint(MetadataEndpointBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        # Read content
-        self.content: Dict[str, Tuple] = {}
-        self.torrent_to_content: Dict[str, str] = {}
-
-        with open("/Users/martijndevos/Documents/tribler/content.csv") as content_file:
-            parsed_header = False
-            for line in content_file.readlines():
-                if not parsed_header:
-                    parsed_header = True
-                    continue
-
-                parts = line.strip().split(",")
-                content_id = parts[0]
-                content_title = parts[1]
-                content_year = parts[2]
-                self.content[content_id] = (content_title, content_year)
-
-        with open("/Users/martijndevos/Documents/tribler/content_relations.csv") as content_file:
-            parsed_header = False
-            for line in content_file.readlines():
-                if not parsed_header:
-                    parsed_header = True
-                    continue
-
-                parts = line.strip().split(",")
-                content_id = parts[0]
-                torrent_ih = parts[1]
-                self.torrent_to_content[torrent_ih] = content_id
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
@@ -131,8 +99,11 @@ class SearchEndpoint(MetadataEndpointBase):
             content_to_torrents: Dict[str, list] = {}
             most_popular_torrents_for_content: Dict[str, List] = {}
             for search_result in search_results:
-                if search_result["infohash"] in self.torrent_to_content:
-                    content_id = self.torrent_to_content[search_result["infohash"]]
+                with db_session:
+                    content_items = self.tags_db.get_tags(unhexlify(search_result["infohash"]),
+                                                          relation=TagRelationEnum.HAS_CONTENT_ITEM)
+                if content_items:
+                    content_id = content_items[0]
                     if content_id not in content_to_torrents:
                         content_to_torrents[content_id] = []
                     content_to_torrents[content_id].append(search_result)
@@ -153,14 +124,13 @@ class SearchEndpoint(MetadataEndpointBase):
 
             for content_info in sorted_content_info:
                 content_id = content_info[0]
-                content = self.content[content_id]
                 torrents_in_snippet = most_popular_torrents_for_content[content_id][:MAX_TORRENTS_IN_SNIPPETS]
 
                 snippet = {
                     "type": SNIPPET,
                     "infohash": content_id,
                     "category": "",
-                    "name": "%s (%s)" % (content[0], content[1]),
+                    "name": content_id,
                     "torrents": len(content_info[1]),
                     "torrents_in_snippet": torrents_in_snippet
                 }

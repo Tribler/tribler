@@ -251,7 +251,6 @@ class TagDatabase:
             time_delta: a dictionary for `datetime.timedelta`
             count: a limit for a resulting query
         """
-        return []
         updated_at = datetime.datetime.utcnow() - datetime.timedelta(**time_delta)
         return self._get_random_tag_operations_by_condition(
             condition=lambda tto: tto.updated_at <= updated_at and not tto.auto_generated,

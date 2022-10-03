@@ -22,7 +22,7 @@ LAST_PROCESSED_TORRENT_ID = 'last_processed_torrent_id'
 
 class TagRulesProcessor(TaskManager):
     # this value must be incremented in the case of new rules set has been applied
-    version: int = 1
+    version: int = 2
 
     def __init__(self, notifier: Notifier, db: TagDatabase, mds: MetadataStore,
                  batch_size: int = DEFAULT_BATCH_SIZE, interval: float = DEFAULT_INTERVAL):
