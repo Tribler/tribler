@@ -1,57 +1,55 @@
 import pytest
 
-from tribler.core.components.tag.community.tag_payload import TagOperationEnum
-from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_tag
+from tribler.core.components.tag.community.tag_payload import TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_relation, \
+    validate_tag
+
+VALID_TAGS = [
+    'tag',
+    'Tag',
+    'Тэг',
+    'Tag with space',
+]
+
+INVALID_TAGS = [
+    '',
+    'ta',  # less than 3
+    't' * 51,  # more than 50
+]
 
 
+@pytest.mark.parametrize('tag', VALID_TAGS)
+async def test_valid_tags(tag):
+    validate_tag(tag)  # no exception
+    assert is_valid_tag(tag)
 
-async def test_correct_tag_size():
-    validate_tag('123')
-    validate_tag('1' * 50)
 
-
-async def test_empty_tag():
+@pytest.mark.parametrize('tag', INVALID_TAGS)
+async def test_invalid(tag):
+    assert not is_valid_tag(tag)
     with pytest.raises(ValueError):
-        validate_tag('')
-
-
-async def test_tag_less_than_3():
-    with pytest.raises(ValueError):
-        validate_tag('12')
-
-
-async def test_tag_more_than_50():
-    with pytest.raises(ValueError):
-        validate_tag('1' * 51)
+        validate_tag(tag)
 
 
 async def test_correct_operation():
-    validate_operation(TagOperationEnum.ADD)
-    validate_operation(1)
+    for operation in TagOperationEnum:
+        validate_operation(operation)  # no exception
+        validate_operation(operation.value)  # no exception
 
 
 async def test_incorrect_operation():
+    max_operation = max(TagOperationEnum)
     with pytest.raises(ValueError):
-        validate_operation(100)
+        validate_operation(max_operation.value + 1)
 
 
-async def test_contains_upper_case():
+async def test_correct_relation():
+    for relation in TagRelationEnum:
+        validate_relation(relation)  # no exception
+        validate_relation(relation.value)  # no exception
+
+
+async def test_incorrect_relation():
+    max_relation = max(TagRelationEnum)
     with pytest.raises(ValueError):
-        validate_tag('Tag')
-
-
-async def test_contains_upper_case_not_latin():
-    with pytest.raises(ValueError):
-        validate_tag('Тэг')
-
-
-async def test_contain_any_space():
-    with pytest.raises(ValueError):
-        validate_tag('tag with space')
-
-
-async def test_is_valid_tag():
-    # test that is_valid_tag works similar to validate_tag but it returns `bool`
-    # instead of raise the ValueError exception
-    assert is_valid_tag('valid-tag')
-    assert not is_valid_tag('invalid tag')
+        validate_operation(max_relation.value + 1)

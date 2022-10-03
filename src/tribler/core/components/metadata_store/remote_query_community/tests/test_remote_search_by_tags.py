@@ -63,7 +63,7 @@ class TestRemoteSearchByTags(TestBase):
     @patch.object(TagDatabase, 'get_infohashes')
     async def test_search_for_tags_only_valid_tags(self, mocked_get_infohashes: Mock):
         # test that function `search_for_tags` uses only valid tags
-        self.rqc.search_for_tags(tags=['invalid tag', 'valid_tag'])
+        self.rqc.search_for_tags(tags=['in', 'valid_tag'])
         mocked_get_infohashes.assert_called_with({'valid_tag'})
 
     @patch.object(MetadataStore, 'get_entries_threaded', new_callable=AsyncMock)

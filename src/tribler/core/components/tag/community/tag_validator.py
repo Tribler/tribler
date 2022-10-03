@@ -1,17 +1,15 @@
-from tribler.core.components.tag.community.tag_payload import TagOperationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 
 def validate_tag(tag: str):
+    """Validate the tag. Raises ValueError, in the case the tag is not valid."""
     if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
         raise ValueError('Tag length should be in range [3..50]')
-    if any(ch.isupper() for ch in tag):
-        raise ValueError('Tag should not contain upper-case letters')
-    if ' ' in tag:
-        raise ValueError('Tag should not contain any spaces')
 
 
 def is_valid_tag(tag: str) -> bool:
+    """Validate the tag. Returns False, in the case the tag is not valid."""
     try:
         validate_tag(tag)
     except ValueError:
@@ -20,4 +18,10 @@ def is_valid_tag(tag: str) -> bool:
 
 
 def validate_operation(operation: int):
+    """Validate the incoming operation. Raises ValueError, in the case the operation is not valid."""
     TagOperationEnum(operation)
+
+
+def validate_relation(relation: int):
+    """Validate the incoming relation. Raises ValueError, in the case the relation is not valid."""
+    TagRelationEnum(relation)
