@@ -17,8 +17,8 @@ from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
     extract_dict,
     get_first_item,
-    get_value,
-    parse_os_environ,
+    get_last_item, get_value,
+    parse_last_core_output, parse_os_environ,
     parse_stacktrace,
 )
 
@@ -147,7 +147,7 @@ class SentryReporter:
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
     def send_event(self, event: Dict = None, post_data: Dict = None, sys_info: Dict = None,
-                   additional_tags: List[str] = None, retrieve_error_message_from_stacktrace=False):
+                   additional_tags: List[str] = None, last_core_output: Optional[str] = None):
         """Send the event to the Sentry server
 
         This method
@@ -167,6 +167,7 @@ class SentryReporter:
                 previous stages of executing.
             sys_info: dictionary made by the feedbackdialog.py
             additional_tags: tags that will be added to the event
+            last_core_output: string that represents last core output
 
         Returns:
             Event that was sent to Sentry server
@@ -218,19 +219,23 @@ class SentryReporter:
         reporter['events'] = extract_dict(sys_info, r'^(event|request)')
         reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
 
-        # try to retrieve an error from the stacktrace
-        if retrieve_error_message_from_stacktrace and stacktrace_extra:
-            exception_value = stacktrace_extra[-1].split(':', maxsplit=1)
-            exception_values = event.get(EXCEPTION, {}).get(VALUES, [])
-            if len(exception_value) == 2:
-                exception_values.append({
-                    'type': exception_value[0],
-                    'value': exception_value[1]
-                })
+        # try to retrieve an error from the last_core_output
+        if last_core_output:
+            # split for better representation in the web view
+            reporter['last_core_output'] = last_core_output.split('\n')
+            if last_core_exception := parse_last_core_output(last_core_output):
+                exceptions = event.get(EXCEPTION, {})
+                gui_exception = get_last_item(exceptions.get(VALUES, []), {})
 
+                # create a core exception extracted from the last core output
+                core_exception = {'type': last_core_exception.type, 'value': last_core_exception.message}
+
+                # remove the stacktrace field as it doesn't give any useful information for the further investigation
+                delete_item(gui_exception, 'stacktrace')
+
+                exceptions[VALUES] = [gui_exception, core_exception]
         with this_sentry_strategy(self, SentryStrategy.SEND_ALLOWED):
             sentry_sdk.capture_event(event)
-
         return event
 
     def get_confirmation(self, exception):

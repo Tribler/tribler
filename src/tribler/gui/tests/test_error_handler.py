@@ -9,9 +9,7 @@ from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 
 
-
 # pylint: disable=redefined-outer-name, protected-access, function-redefined, unused-argument
-# fmt: off
 
 @pytest.fixture
 def error_handler():
@@ -31,7 +29,9 @@ async def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, erro
     error_handler._tribler_stopped = True
     error_handler.gui_error(AssertionError, AssertionError("error text"), None)
     mocked_feedback_dialog.assert_not_called()
-    assert caplog.record_tuples == [('ErrorHandler', logging.ERROR, 'AssertionError: error text\n')]
+
+    assert caplog.record_tuples == [('ErrorHandler', logging.ERROR, 'AssertionError: error text\n'),
+                                    ('ErrorHandler', logging.INFO, 'Tribler has been stopped')]
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
@@ -41,10 +41,13 @@ async def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_han
     error_handler.gui_error(AssertionError, AssertionError('error_text'), None)
     mocked_feedback_dialog.assert_not_called()
     assert not error_handler._handled_exceptions
-    assert caplog.record_tuples == [
+
+    record_tuples = [
         ('ErrorHandler', logging.ERROR, 'AssertionError: error_text\n'),
         ('ErrorHandler', logging.INFO, 'GUI error was suppressed and not sent to Sentry: AssertionError: error_text')
     ]
+
+    assert caplog.record_tuples == record_tuples
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
@@ -55,7 +58,12 @@ async def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: Magic
     error_handler.gui_error(AssertionError, AssertionError("error text"), None)
     mocked_feedback_dialog.assert_not_called()
     assert len(error_handler._handled_exceptions) == 1
-    assert caplog.record_tuples == [('ErrorHandler', logging.ERROR, 'AssertionError: error text\n')]
+
+    record_tuples = [
+        ('ErrorHandler', logging.ERROR, 'AssertionError: error text\n'),
+        ('ErrorHandler', logging.INFO, 'This exception has been handled already')
+    ]
+    assert caplog.record_tuples == record_tuples
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')

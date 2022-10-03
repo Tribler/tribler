@@ -32,6 +32,7 @@ class ErrorHandler:
         self._logger.error(text)
 
         if self._tribler_stopped:
+            self._logger.info('Tribler has been stopped')
             return
 
         if gui_sentry_reporter.global_strategy == SentryStrategy.SEND_SUPPRESSED:
@@ -39,19 +40,26 @@ class ErrorHandler:
             return
 
         if exc_type in self._handled_exceptions:
+            self._logger.info('This exception has been handled already')
             return
-        self._handled_exceptions.add(exc_type)
 
-        is_core_exception = issubclass(exc_type, CoreError)
-        if is_core_exception:
-            text = f'{text}\n\nLast Core output:\n{self.tribler_window.core_manager.get_last_core_output()}'
-            self._stop_tribler(text)
+        self._handled_exceptions.add(exc_type)
 
         reported_error = ReportedError(
             type=type(exc_type).__name__,
             text=text,
             event=gui_sentry_reporter.event_from_exception(exc),
         )
+
+        is_core_exception = issubclass(exc_type, CoreError)
+        if is_core_exception:
+            self._logger.info('It is a subclass of CoreError exception')
+
+            reported_error.last_core_output = self.tribler_window.core_manager.get_last_core_output(quoted=False)
+            quoted_output = self.tribler_window.core_manager.get_last_core_output()
+            self._logger.info(f'Last Core output:\n{quoted_output}')
+
+            self._stop_tribler(reported_error.text)
 
         if self.app_manager.quitting_app:
             return
@@ -64,7 +72,6 @@ class ErrorHandler:
             start_time=self.tribler_window.start_time,
             stop_application_on_close=self._tribler_stopped,
             additional_tags={'source': 'gui'},
-            retrieve_error_message_from_stacktrace=is_core_exception
         ).show()
 
     def core_error(self, reported_error: ReportedError):
