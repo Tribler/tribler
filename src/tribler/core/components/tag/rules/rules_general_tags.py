@@ -1,6 +1,6 @@
 import re
 
-from tribler.core.components.tag.rules.tag_rules_base import RulesList
+from tribler.core.components.tag.rules.tag_rules_base import Rule, RulesList
 
 # Each regex expression should contain just a single capturing group:
 square_brackets_re = re.compile(r'\[([^\[\]]+)]')
@@ -20,7 +20,7 @@ tags_in_extension = [
 ]
 
 general_rules: RulesList = [
-    tags_in_square_brackets,
-    tags_in_parentheses,
-    tags_in_extension
+    Rule(patterns=tags_in_square_brackets),
+    Rule(patterns=tags_in_parentheses),
+    Rule(patterns=tags_in_extension),
 ]

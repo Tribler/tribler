@@ -1,12 +1,19 @@
+from dataclasses import dataclass, field
 from typing import AnyStr, Callable, Iterable, Optional, Pattern, Sequence
 
 from tribler.core.components.tag.community.tag_validator import is_valid_tag
 
-RulesList = Sequence[Sequence[Pattern[AnyStr]]]
-ActionsList = Sequence[Callable[[str], str]]
+
+@dataclass
+class Rule:
+    patterns: Sequence[Pattern[AnyStr]] = field(default_factory=lambda: [])
+    actions: Sequence[Callable[[str], str]] = field(default_factory=lambda: [])
 
 
-def extract_tags(text: str, rules: Optional[RulesList] = None, actions: Optional[ActionsList] = None) -> Iterable[str]:
+RulesList = Sequence[Rule]
+
+
+def extract_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
     """ Extract tags by using the giving rules.
 
     Rules are represented by an array of an array of regexes.
@@ -22,18 +29,17 @@ def extract_tags(text: str, rules: Optional[RulesList] = None, actions: Optional
     This process will be repeated until regex expression ends.
     """
     rules = rules or []
-    actions = actions or []
 
     for rule in rules:
         text_set = {text}
-        for regex in rule:
+        for regex in rule.patterns:
             next_text_set = set()
             for token in text_set:
                 for match in regex.finditer(token):
                     next_text_set |= set(match.groups())
             text_set = next_text_set
 
-        for action in actions:
+        for action in rule.actions:
             text_set = map(action, text_set)
 
         yield from text_set

@@ -94,10 +94,9 @@ class TagRulesProcessor(TaskManager):
             self.save_tags(infohash, tags, relation=TagRelationEnum.HAS_TAG)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            # self.save_tags(infohash, content_items, relation=TagRelationEnum.HAS_CONTENT_ITEM)
-            ...
+            self.save_tags(infohash, content_items, relation=TagRelationEnum.HAS_CONTENT_ITEM)
 
-        return len(tags)
+        return len(tags) + len(content_items)
 
     @db_session
     def save_tags(self, infohash: bytes, tags: Set[str], relation: TagRelationEnum = TagRelationEnum.HAS_TAG):
