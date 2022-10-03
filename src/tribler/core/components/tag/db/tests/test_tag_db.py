@@ -310,7 +310,10 @@ class TestTagDB(TestTagDBBase):
                 ],
                 b'infohash2': [
                     Tag(name='tag1', count=SHOW_THRESHOLD - 1)
-                ]
+                ],
+                b'infohash3': [
+                    Tag(name='tag1', count=SHOW_THRESHOLD, relation=TagRelationEnum.HAS_CONTENT_ITEM),
+                ],
             }
         )
 
@@ -325,10 +328,12 @@ class TestTagDB(TestTagDBBase):
             {
                 b'infohash1': [
                     Tag(name='tag1', count=SHOW_THRESHOLD),
-                    Tag(name='tag2', count=SHOW_THRESHOLD)
+                    Tag(name='tag2', count=SHOW_THRESHOLD),
+                    Tag(name='ContentItem', count=SHOW_THRESHOLD, relation=TagRelationEnum.HAS_CONTENT_ITEM)
                 ],
                 b'infohash2': [
-                    Tag(name='tag1', count=SHOW_THRESHOLD)
+                    Tag(name='tag1', count=SHOW_THRESHOLD),
+                    Tag(name='ContentItem', count=SHOW_THRESHOLD, relation=TagRelationEnum.HAS_CONTENT_ITEM)
                 ],
                 b'infohash3': [
                     Tag(name='tag2', count=SHOW_THRESHOLD)
@@ -336,9 +341,12 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
+        assert self.db.get_infohashes({'missed tag'}) == [b'infohash1', b'infohash2', b'infohash3']
         assert self.db.get_infohashes({'tag1'}) == [b'infohash1', b'infohash2']
         assert self.db.get_infohashes({'tag2'}) == [b'infohash1', b'infohash3']
         assert self.db.get_infohashes({'tag1', 'tag2'}) == [b'infohash1']
+        assert self.db.get_infohashes({'ContentItem'}, relation=TagRelationEnum.HAS_CONTENT_ITEM) == [b'infohash1',
+                                                                                                      b'infohash2']
 
     @db_session
     async def test_show_condition(self):

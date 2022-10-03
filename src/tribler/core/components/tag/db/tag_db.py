@@ -202,12 +202,13 @@ class TagDatabase:
 
         return self._get_tags(infohash, show_suggestions_condition, relation=relation)
 
-    def get_infohashes(self, tags: Set[str]) -> List[bytes]:
+    def get_infohashes(self, tags: Set[str], relation: TagRelationEnum = TagRelationEnum.HAS_TAG) -> List[bytes]:
         """Get list of infohashes that belongs to the tag.
         Only tags with condition `_show_condition` will be returned.
         In the case that the tags set contains more than one tag,
         only torrents that contain all `tags` will be returned.
         """
+
         query_results = select(
             torrent.infohash for torrent in self.instance.Torrent
             if not exists(
@@ -217,6 +218,7 @@ class TagDatabase:
                     if torrent_tag.torrent == torrent
                     and torrent_tag.tag == tag
                     and self._show_condition(torrent_tag)
+                    and torrent_tag.relation == relation.value
                 )
             )
         ).fetch()
