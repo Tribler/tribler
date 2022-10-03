@@ -2,14 +2,16 @@ import logging
 from typing import Optional, Set
 
 from ipv8.taskmanager import TaskManager
-
 from pony.orm import db_session
 
 from tribler.core import notifications
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.tag.community.tag_payload import TagRelationEnum
 from tribler.core.components.tag.db.tag_db import TagDatabase
-from tribler.core.components.tag.rules.tag_rules import extract_only_valid_tags
+from tribler.core.components.tag.rules.rules_content_items import content_items_rules
+from tribler.core.components.tag.rules.rules_general_tags import general_rules
+from tribler.core.components.tag.rules.tag_rules_base import extract_only_valid_tags
 from tribler.core.utilities.notifier import Notifier
 
 DEFAULT_INTERVAL = 10
@@ -87,16 +89,21 @@ class TagRulesProcessor(TaskManager):
     def process_torrent_title(self, infohash: Optional[bytes] = None, title: Optional[str] = None) -> int:
         if not infohash or not title:
             return 0
-        tags = set(extract_only_valid_tags(title))
-        if tags:
-            self.save_tags(infohash, tags)
+
+        if tags := set(extract_only_valid_tags(title, rules=general_rules)):
+            self.save_tags(infohash, tags, relation=TagRelationEnum.HAS_TAG)
+
+        if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
+            # self.save_tags(infohash, content_items, relation=TagRelationEnum.HAS_CONTENT_ITEM)
+            ...
+
         return len(tags)
 
     @db_session
-    def save_tags(self, infohash: bytes, tags: Set[str]):
-        self.logger.debug(f'Save: {len(tags)} tags')
+    def save_tags(self, infohash: bytes, tags: Set[str], relation: TagRelationEnum = TagRelationEnum.HAS_TAG):
+        self.logger.debug(f'Save: {len(tags)} tags [{relation}]')
         for tag in tags:
-            self.db.add_auto_generated_tag(infohash=infohash, tag=tag)
+            self.db.add_auto_generated_tag(infohash=infohash, tag=tag, relation=relation)
 
     def get_last_processed_torrent_id(self) -> int:
         return int(self.mds.get_value(LAST_PROCESSED_TORRENT_ID, default='0'))

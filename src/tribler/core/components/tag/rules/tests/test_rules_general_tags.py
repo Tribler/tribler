@@ -1,14 +1,10 @@
 import pytest
 
-from tribler.core.components.tag.rules.tag_rules import (
-    delimiter_re,
-    extension_re,
-    extract_only_valid_tags,
+from tribler.core.components.tag.rules.rules_general_tags import delimiter_re, extension_re, general_rules, \
+    parentheses_re, \
+    square_brackets_re, tags_in_parentheses, tags_in_square_brackets
+from tribler.core.components.tag.rules.tag_rules_base import (
     extract_tags,
-    parentheses_re,
-    square_brackets_re,
-    tags_in_parentheses,
-    tags_in_square_brackets,
 )
 
 DELIMITERS = [
@@ -77,15 +73,10 @@ def test_tags_in_parentheses():
     assert actual_tags == expected_tags
 
 
-def test_default_rules():
+def test_general_rules():
     # test that default_rules works correctly with extract_tags function
     text = 'text (tag1, tag2) text1 (tag3|tag4) text2, [tag5, tag6].ext'
     expected_tags = {'tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'ext'}
 
-    actual_tags = set(extract_tags(text))
+    actual_tags = set(extract_tags(text, rules=general_rules))
     assert actual_tags == expected_tags
-
-
-def test_extract_only_valid_tags():
-    # test that extract_only_valid_tags extracts only valid tags
-    assert set(extract_only_valid_tags('[valid-tag, in va li d]')) == {'valid-tag'}

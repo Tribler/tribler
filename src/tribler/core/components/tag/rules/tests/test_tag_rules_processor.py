@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tribler.core import notifications
+from tribler.core.components.tag.community.tag_payload import TagRelationEnum
 from tribler.core.components.tag.rules.tag_rules_processor import LAST_PROCESSED_TORRENT_ID, TagRulesProcessor
 
 TEST_BATCH_SIZE = 100
@@ -41,13 +42,13 @@ def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: 
 
     # test that process_torrent_title does find tags in the title
     assert tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
-    mocked_save_tags.assert_called_with(b'infohash', {'tag'})
+    mocked_save_tags.assert_called_with(b'infohash', {'tag'}, relation=TagRelationEnum.HAS_TAG)
 
 
 def test_save_tags(tag_rules_processor: TagRulesProcessor):
     # test that tag_rules_processor calls TagDatabase with correct args
-    expected_calls = [{'infohash': b'infohash', 'tag': 'tag1'},
-                      {'infohash': b'infohash', 'tag': 'tag2'}]
+    expected_calls = [{'infohash': b'infohash', 'tag': 'tag1', 'relation': TagRelationEnum.HAS_TAG},
+                      {'infohash': b'infohash', 'tag': 'tag2', 'relation': TagRelationEnum.HAS_TAG}]
 
     tag_rules_processor.save_tags(infohash=b'infohash', tags={'tag1', 'tag2'})
     actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated_tag.mock_calls]
