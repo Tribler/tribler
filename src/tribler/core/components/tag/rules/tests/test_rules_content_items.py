@@ -6,7 +6,10 @@ from tribler.core.components.tag.rules.tag_rules_base import extract_tags
 UBUNTU_VERSION = [
     ('ubuntu-22.04', 'Ubuntu 22.04'),
     ('Ant text with ubuntu_22.04 within', 'Ubuntu 22.04'),
-    ('Ubuntu 9.10', 'Ubuntu 9.10'),
+    ('Ubuntu  9.10', 'Ubuntu 9.10'),
+    ('Ubuntu9.10', 'Ubuntu 9.10'),
+    ('debian-6.0.4', 'Debian 6.0.4'),
+    ('Linux mint-20.3', 'Linux Mint 20.3'),
 ]
 
 
