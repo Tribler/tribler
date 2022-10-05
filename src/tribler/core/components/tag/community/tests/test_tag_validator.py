@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.tag.community.tag_payload import TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.db.tag_db import TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_relation, \
     validate_tag
 

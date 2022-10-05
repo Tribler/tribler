@@ -1,19 +1,8 @@
 from dataclasses import dataclass
-from enum import IntEnum
 
 from ipv8.messaging.payload_dataclass import overwrite_dataclass, type_from_format
 
 dataclass = overwrite_dataclass(dataclass)
-
-
-class TagOperationEnum(IntEnum):
-    ADD = 1
-    REMOVE = 2
-
-
-class TagRelationEnum(IntEnum):
-    HAS_TAG = 1
-    HAS_CONTENT_ITEM = 2
 
 
 @dataclass

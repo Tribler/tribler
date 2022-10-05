@@ -8,8 +8,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagRelationEnum
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler.core.tests.tools.common import PNG_FILE
 from tribler.core.utilities.utilities import random_infohash

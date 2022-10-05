@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tribler.core import notifications
-from tribler.core.components.tag.community.tag_payload import TagRelationEnum
+from tribler.core.components.tag.db.tag_db import TagRelationEnum
 from tribler.core.components.tag.rules.tag_rules_processor import LAST_PROCESSED_TORRENT_ID, TagRulesProcessor
 
 TEST_BATCH_SIZE = 100

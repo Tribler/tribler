@@ -1,5 +1,6 @@
 import datetime
 import logging
+from enum import IntEnum
 from typing import Callable, Iterable, List, Optional, Set
 
 from pony import orm
@@ -7,7 +8,7 @@ from pony.orm import exists, select
 from pony.orm.core import Entity
 from pony.utils import between
 
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperation
 from tribler.core.utilities.pony_utils import get_or_create
 from tribler.core.utilities.unicode import hexlify
 
@@ -17,6 +18,16 @@ PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS = b'auto_generated'
 
 SHOW_THRESHOLD = 1
 HIDE_THRESHOLD = -2
+
+
+class TagOperationEnum(IntEnum):
+    ADD = 1
+    REMOVE = 2
+
+
+class TagRelationEnum(IntEnum):
+    HAS_TAG = 1
+    HAS_CONTENT_ITEM = 2
 
 
 class TagDatabase:

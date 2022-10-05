@@ -1,4 +1,4 @@
-from tribler.core.components.tag.community.tag_payload import TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.db.tag_db import TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 

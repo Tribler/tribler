@@ -4,8 +4,8 @@ from itertools import count
 from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
 
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagOperationEnum, TagRelationEnum
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
 from tribler.core.utilities.pony_utils import get_or_create
 
 

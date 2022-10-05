@@ -8,9 +8,9 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
 from tribler.core.components.tag.community.tag_community import TagCommunity
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagRelationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperation
 from tribler.core.components.tag.community.tag_requests import PeerValidationError
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
+from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
 
 REQUEST_INTERVAL_FOR_RANDOM_TAGS = 0.1  # in seconds
 

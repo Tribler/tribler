@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 from pony import orm
 from pony.orm import commit, db_session
 
-from tribler.core.components.tag.community.tag_payload import TagOperationEnum, TagRelationEnum
-from tribler.core.components.tag.db.tag_db import PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, SHOW_THRESHOLD, TagDatabase
+from tribler.core.components.tag.db.tag_db import PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, SHOW_THRESHOLD, TagDatabase, \
+    TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.db.tests.test_tag_db_base import Tag, TestTagDBBase
 from tribler.core.utilities.pony_utils import get_or_create
 

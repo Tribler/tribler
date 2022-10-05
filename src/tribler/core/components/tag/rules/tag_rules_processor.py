@@ -7,8 +7,7 @@ from pony.orm import db_session
 from tribler.core import notifications
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.community.tag_payload import TagRelationEnum
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.db.tag_db import TagDatabase, TagRelationEnum
 from tribler.core.components.tag.rules.rules_content_items import content_items_rules
 from tribler.core.components.tag.rules.rules_general_tags import general_rules
 from tribler.core.components.tag.rules.tag_rules_base import extract_only_valid_tags

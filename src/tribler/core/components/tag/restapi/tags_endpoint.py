@@ -11,8 +11,8 @@ from pony.orm import db_session
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.components.tag.community.tag_community import TagCommunity
-from tribler.core.components.tag.community.tag_payload import TagOperation, TagRelationEnum
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
+from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 from tribler.core.utilities.utilities import froze_it
 

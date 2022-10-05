@@ -12,7 +12,7 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler.core.components.tag.community.tag_payload import TagRelationEnum
+from tribler.core.components.tag.db.tag_db import TagRelationEnum
 from tribler.core.utilities.utilities import froze_it
 
 SNIPPETS_TO_SHOW = 1          # The number of snippets we return from the search results
