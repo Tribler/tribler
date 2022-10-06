@@ -1,4 +1,4 @@
-from tribler.core.components.tag.db.tag_db import TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.db.tag_db import Operation, Predicate
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 
@@ -19,9 +19,9 @@ def is_valid_tag(tag: str) -> bool:
 
 def validate_operation(operation: int):
     """Validate the incoming operation. Raises ValueError, in the case the operation is not valid."""
-    TagOperationEnum(operation)
+    Operation(operation)
 
 
 def validate_relation(relation: int):
     """Validate the incoming relation. Raises ValueError, in the case the relation is not valid."""
-    TagRelationEnum(relation)
+    Predicate(relation)

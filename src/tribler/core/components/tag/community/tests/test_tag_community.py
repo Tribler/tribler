@@ -8,9 +8,9 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
 from tribler.core.components.tag.community.tag_community import TagCommunity
-from tribler.core.components.tag.community.tag_payload import TagOperation
+from tribler.core.components.tag.community.tag_payload import StatementOperation
 from tribler.core.components.tag.community.tag_requests import PeerValidationError
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.db.tag_db import Operation, Predicate, TagDatabase
 
 REQUEST_INTERVAL_FOR_RANDOM_TAGS = 0.1  # in seconds
 
@@ -29,8 +29,9 @@ class TestTagCommunity(TestBase):
 
     def create_operation(self, tag=''):
         community = self.overlay(0)
-        operation = TagOperation(infohash=b'1' * 20, operation=TagOperationEnum.ADD, relation=TagRelationEnum.HAS_TAG,
-                                 clock=0, creator_public_key=community.tags_key.pub().key_to_bin(), tag=tag)
+        operation = StatementOperation(subject='1' * 20, predicate=Predicate.HAS_TAG, object=tag,
+                                       operation=Operation.ADD, clock=0,
+                                       creator_public_key=community.tags_key.pub().key_to_bin())
         operation.clock = community.db.get_clock(operation) + 1
         return operation
 
@@ -47,11 +48,11 @@ class TestTagCommunity(TestBase):
             if i >= 5:
                 signature = b'1' * 64
 
-            community.db.add_tag_operation(message, signature)
+            community.db.add_operation(message, signature)
 
         # put them into the past
-        for tag_op in community.db.instance.TorrentTagOp.select():
-            tag_op.set(updated_at=datetime.datetime.utcnow() - datetime.timedelta(minutes=2))
+        for op in community.db.instance.StatementOp.select():
+            op.set(updated_at=datetime.datetime.utcnow() - datetime.timedelta(minutes=2))
 
     async def test_gossip(self):
         # Test default gossip.
@@ -60,8 +61,8 @@ class TestTagCommunity(TestBase):
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_TAGS * 2)
         with db_session:
-            assert self.overlay(0).db.instance.TorrentTagOp.select().count() == 10
-            assert self.overlay(1).db.instance.TorrentTagOp.select().count() == 5
+            assert self.overlay(0).db.instance.StatementOp.select().count() == 10
+            assert self.overlay(1).db.instance.StatementOp.select().count() == 5
 
     async def test_gossip_no_fresh_tags(self):
         # Test that no fresh tags be propagated
@@ -70,14 +71,14 @@ class TestTagCommunity(TestBase):
 
         # put the first operation into the current moment (make it fresh)
         with db_session:
-            tag_operation = self.overlay(0).db.instance.TorrentTagOp.select().first()
+            tag_operation = self.overlay(0).db.instance.StatementOp.select().first()
             tag_operation.updated_at = datetime.datetime.utcnow()
 
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_TAGS * 2)
         with db_session:
-            assert self.overlay(0).db.instance.TorrentTagOp.select().count() == 10
-            assert self.overlay(1).db.instance.TorrentTagOp.select().count() == 4  # 5 invalid signature + 1 fresh tag
+            assert self.overlay(0).db.instance.StatementOp.select().count() == 10
+            assert self.overlay(1).db.instance.StatementOp.select().count() == 4  # 5 invalid signature + 1 fresh tag
 
     async def test_on_message_eat_exceptions(self):
         # Tests that except blocks in on_message function works as expected
@@ -97,11 +98,11 @@ class TestTagCommunity(TestBase):
         # ValueError should be eaten silently
         await self.fill_db()
         # let's "break" the function that will be called on on_request()
-        self.overlay(0).db.get_tags_operations_for_gossip = Mock(return_value=[MagicMock()])
+        self.overlay(0).db.get_operations_for_gossip = Mock(return_value=[MagicMock()])
         # occurred exception should be ate by community silently
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_TAGS * 2)
-        self.overlay(0).db.get_tags_operations_for_gossip.assert_called()
+        self.overlay(0).db.get_operations_for_gossip.assert_called()
 
     async def test_no_peers(self):
         # Test that no error occurs in the community, in case there is no peers

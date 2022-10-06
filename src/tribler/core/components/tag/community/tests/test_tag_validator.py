@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.tag.db.tag_db import TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.db.tag_db import Operation, Predicate
 from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_relation, \
     validate_tag
 
@@ -32,24 +32,24 @@ async def test_invalid(tag):
 
 
 async def test_correct_operation():
-    for operation in TagOperationEnum:
+    for operation in Operation:
         validate_operation(operation)  # no exception
         validate_operation(operation.value)  # no exception
 
 
 async def test_incorrect_operation():
-    max_operation = max(TagOperationEnum)
+    max_operation = max(Operation)
     with pytest.raises(ValueError):
         validate_operation(max_operation.value + 1)
 
 
 async def test_correct_relation():
-    for relation in TagRelationEnum:
+    for relation in Predicate:
         validate_relation(relation)  # no exception
         validate_relation(relation.value)  # no exception
 
 
 async def test_incorrect_relation():
-    max_relation = max(TagRelationEnum)
+    max_relation = max(Predicate)
     with pytest.raises(ValueError):
         validate_operation(max_relation.value + 1)

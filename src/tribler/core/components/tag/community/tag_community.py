@@ -2,20 +2,18 @@ import random
 from binascii import unhexlify
 
 from cryptography.exceptions import InvalidSignature
-
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.types import Key
-
 from pony.orm import db_session
 
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.tag.community.tag_payload import (
-    RawTagOperationMessage,
-    RequestTagOperationMessage,
-    TagOperation,
-    TagOperationMessage,
-    TagOperationSignature,
+    RawStatementOperationMessage,
+    RequestStatementOperationMessage,
+    StatementOperation,
+    StatementOperationMessage,
+    StatementOperationSignature,
 )
 from tribler.core.components.tag.community.tag_requests import PeerValidationError, TagRequests
 from tribler.core.components.tag.community.tag_validator import validate_operation, validate_tag
@@ -43,8 +41,8 @@ class TagCommunity(TriblerCommunity):
         self.tags_key = tags_key
         self.requests = TagRequests()
 
-        self.add_message_handler(RawTagOperationMessage, self.on_message)
-        self.add_message_handler(RequestTagOperationMessage, self.on_request)
+        self.add_message_handler(RawStatementOperationMessage, self.on_message)
+        self.add_message_handler(RequestStatementOperationMessage, self.on_request)
 
         self.register_task("request_tags", self.request_tags, interval=request_interval)
         self.register_task("clear_requests", self.requests.clear_requests, interval=CLEAR_ALL_REQUESTS_INTERVAL)
@@ -57,12 +55,12 @@ class TagCommunity(TriblerCommunity):
         peer = random.choice(self.get_peers())
         self.requests.register_peer(peer, REQUESTED_TAGS_COUNT)
         self.logger.info(f'-> request {REQUESTED_TAGS_COUNT} tags from peer {peer.mid.hex()}')
-        self.ez_send(peer, RequestTagOperationMessage(count=REQUESTED_TAGS_COUNT))
+        self.ez_send(peer, RequestStatementOperationMessage(count=REQUESTED_TAGS_COUNT))
 
-    @lazy_wrapper(RawTagOperationMessage)
-    def on_message(self, peer, raw: RawTagOperationMessage):
-        operation, _ = self.serializer.unpack_serializable(TagOperation, raw.operation)
-        signature, _ = self.serializer.unpack_serializable(TagOperationSignature, raw.signature)
+    @lazy_wrapper(RawStatementOperationMessage)
+    def on_message(self, peer, raw: RawStatementOperationMessage):
+        operation, _ = self.serializer.unpack_serializable(StatementOperation, raw.operation)
+        signature, _ = self.serializer.unpack_serializable(StatementOperationSignature, raw.signature)
         self.logger.debug(f'<- message received: {operation}')
         try:
             remote_key = self.crypto.key_from_public_bin(operation.creator_public_key)
@@ -73,9 +71,10 @@ class TagCommunity(TriblerCommunity):
             self.validate_operation(operation)
 
             with db_session():
-                is_added = self.db.add_tag_operation(operation, signature.signature)
+                is_added = self.db.add_operation(operation, signature.signature)
                 if is_added:
-                    self.logger.info(f'+ tag added ({operation.tag!r}, {operation.infohash.hex()})')
+                    s = f'+ tag added ({operation.object!r} "{operation.predicate}" {operation.subject!r})'
+                    self.logger.info(s)
 
         except PeerValidationError as e:  # peer has exhausted his response count
             self.logger.warning(e)
@@ -84,32 +83,32 @@ class TagCommunity(TriblerCommunity):
         except InvalidSignature as e:  # signature verification error
             self.logger.warning(e)
 
-    @lazy_wrapper(RequestTagOperationMessage)
+    @lazy_wrapper(RequestStatementOperationMessage)
     def on_request(self, peer, operation):
         tags_count = min(max(1, operation.count), REQUESTED_TAGS_COUNT)
         self.logger.info(f'<- peer {peer.mid.hex()} requested {tags_count} tags')
 
         with db_session:
-            random_tag_operations = self.db.get_tags_operations_for_gossip(
+            random_tag_operations = self.db.get_operations_for_gossip(
                 count=tags_count,
                 time_delta=TIME_DELTA_FOR_TAGS_THAT_READY_TO_GOSSIP
             )
 
             self.logger.debug(f'Response {len(random_tag_operations)} tags')
             sent_tags = []
-            for tag_operation in random_tag_operations:
+            for op in random_tag_operations:
                 try:
-                    operation = TagOperation(
-                        infohash=tag_operation.torrent_tag.torrent.infohash,
-                        operation=tag_operation.operation,
-                        relation=tag_operation.torrent_tag.relation,
-                        clock=tag_operation.clock,
-                        creator_public_key=tag_operation.peer.public_key,
-                        tag=tag_operation.torrent_tag.tag.name,
+                    operation = StatementOperation(
+                        subject=op.statement.subject.name,
+                        predicate=op.statement.predicate,
+                        object=op.statement.object.name,
+                        operation=op.operation,
+                        clock=op.clock,
+                        creator_public_key=op.peer.public_key,
                     )
                     self.validate_operation(operation)
-                    signature = TagOperationSignature(signature=tag_operation.signature)
-                    self.ez_send(peer, TagOperationMessage(operation=operation, signature=signature))
+                    signature = StatementOperationSignature(signature=op.signature)
+                    self.ez_send(peer, StatementOperationMessage(operation=operation, signature=signature))
                     sent_tags.append(operation)
                 except ValueError as e:  # validation error
                     self.logger.warning(e)
@@ -119,14 +118,14 @@ class TagCommunity(TriblerCommunity):
                 self.logger.debug(f'-> sent tags ({sent_tags_info}) to peer: {peer.mid.hex()}')
 
     @staticmethod
-    def validate_operation(operation: TagOperation):
-        validate_tag(operation.tag)
+    def validate_operation(operation: StatementOperation):
+        validate_tag(operation.subject)
         validate_operation(operation.operation)
 
-    def verify_signature(self, packed_message: bytes, key: Key, signature: bytes, operation: TagOperation):
+    def verify_signature(self, packed_message: bytes, key: Key, signature: bytes, operation: StatementOperation):
         if not self.crypto.is_valid_signature(key, packed_message, signature):
             raise InvalidSignature(f'Invalid signature for {operation}')
 
-    def sign(self, operation: TagOperation) -> bytes:
+    def sign(self, operation: StatementOperation) -> bytes:
         packed = self.serializer.pack_serializable(operation)
         return self.crypto.create_signature(self.tags_key, packed)
