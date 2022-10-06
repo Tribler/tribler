@@ -4,18 +4,18 @@ from itertools import count
 from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
 
-from tribler.core.components.tag.community.tag_payload import TagOperation
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.community.tag_payload import StatementOperation
+from tribler.core.components.tag.db.tag_db import TagDatabase, Operation, Predicate
 from tribler.core.utilities.pony_utils import get_or_create
 
 
 # pylint: disable=protected-access
 
 @dataclass
-class Tag:
+class Resource:
     name: str
     count: int = 1
-    relation: int = TagRelationEnum.HAS_TAG
+    predicate: int = Predicate.HAS_TAG
     auto_generated: bool = False
 
 
@@ -34,38 +34,36 @@ class TestTagDBBase(TestBase):
     def dump_db(self):
         print('\nPeer:')
         self.db.instance.Peer.select().show()
-        print('\nTorrent:')
-        self.db.instance.Torrent.select().show()
-        print('\nTag')
-        self.db.instance.Tag.select().show()
-        print('\nTorrentTag')
-        self.db.instance.TorrentTag.select().show()
-        print('\nTorrentTagOp')
-        self.db.instance.TorrentTagOp.select().show()
+        print('\nResource:')
+        self.db.instance.Resource.select().show()
+        print('\nStatement')
+        self.db.instance.Statement.select().show()
+        print('\nStatementOp')
+        self.db.instance.StatementOp.select().show()
 
-    def create_torrent_tag(self, tag='tag', infohash=b'infohash', relation: TagRelationEnum = TagRelationEnum.HAS_TAG):
-        tag = get_or_create(self.db.instance.Tag, name=tag)
-        torrent = get_or_create(self.db.instance.Torrent, infohash=infohash)
-        torrent_tag = get_or_create(self.db.instance.TorrentTag, tag=tag, torrent=torrent, relation=relation)
+    def create_statement(self, subject='subject', predicate: Predicate = Predicate.HAS_TAG,
+                         object='object'):
+        subj = get_or_create(self.db.instance.Resource, name=subject)
+        obj = get_or_create(self.db.instance.Resource, name=object)
+        statement = get_or_create(self.db.instance.Statement, subject=subj, predicate=predicate, object=obj)
 
-        return torrent_tag
-
-    @staticmethod
-    def create_operation(infohash=b'infohash', tag='tag', peer=b'', operation=TagOperationEnum.ADD,
-                         relation=TagRelationEnum.HAS_TAG, clock=0):
-        return TagOperation(infohash=infohash, tag=tag, operation=operation, relation=relation, clock=clock,
-                            creator_public_key=peer)
+        return statement
 
     @staticmethod
-    def add_operation(tag_db: TagDatabase, infohash=b'infohash', tag='tag', peer=b'',
-                      operation: TagOperationEnum = None, relation: TagRelationEnum = None,
-                      is_local_peer=False, clock=None, is_auto_generated=False, counter_increment: int = 1):
-        operation = operation or TagOperationEnum.ADD
-        relation = relation or TagRelationEnum.HAS_TAG
-        operation = TestTagDBBase.create_operation(infohash, tag, peer, operation, relation, clock)
+    def create_operation(subject='subject', object='object', peer=b'', operation=Operation.ADD,
+                         predicate=Predicate.HAS_TAG, clock=0):
+        return StatementOperation(subject=subject, predicate=predicate, object=object, operation=operation, clock=clock,
+                                  creator_public_key=peer)
+
+    @staticmethod
+    def add_operation(tag_db: TagDatabase, subject: str, predicate: Predicate, object: str,
+                      peer=b'', operation: Operation = None, is_local_peer=False, clock=None,
+                      is_auto_generated=False, counter_increment: int = 1):
+        operation = operation or Operation.ADD
+        operation = TestTagDBBase.create_operation(subject, object, peer, operation, predicate, clock)
         operation.clock = clock or tag_db.get_clock(operation) + 1
-        result = tag_db.add_tag_operation(operation, signature=b'', is_local_peer=is_local_peer,
-                                          is_auto_generated=is_auto_generated, counter_increment=counter_increment)
+        result = tag_db.add_operation(operation, signature=b'', is_local_peer=is_local_peer,
+                                      is_auto_generated=is_auto_generated, counter_increment=counter_increment)
         commit()
         return result
 
@@ -77,8 +75,8 @@ class TestTagDBBase(TestBase):
             for _ in range(n):
                 yield f'peer{next(index)}'.encode('utf8')
 
-        for infohash, tags in dictionary.items():
-            for tag in tags:
-                for peer in generate_n_peer_names(tag.count):
-                    TestTagDBBase.add_operation(tag_db, infohash, tag.name, peer, relation=tag.relation,
-                                                is_auto_generated=tag.auto_generated)
+        for subject, objects in dictionary.items():
+            for obj in objects:
+                for peer in generate_n_peer_names(obj.count):
+                    TestTagDBBase.add_operation(tag_db, subject, obj.predicate, obj.name, peer,
+                                                is_auto_generated=obj.auto_generated)
