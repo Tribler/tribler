@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tribler.core import notifications
-from tribler.core.components.tag.db.tag_db import TagRelationEnum
+from tribler.core.components.tag.db.tag_db import Predicate
 from tribler.core.components.tag.rules.tag_rules_processor import LAST_PROCESSED_TORRENT_ID, TagRulesProcessor
 
 TEST_BATCH_SIZE = 100
@@ -30,7 +30,7 @@ def test_constructor(tag_rules_processor: TagRulesProcessor):
                          synchronous=True)
 
 
-@patch.object(TagRulesProcessor, 'save_tags')
+@patch.object(TagRulesProcessor, 'save_statements')
 def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: TagRulesProcessor):
     # test on None
     assert not tag_rules_processor.process_torrent_title(infohash=None, title='title')
@@ -42,16 +42,15 @@ def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: 
 
     # test that process_torrent_title does find tags in the title
     assert tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
-    mocked_save_tags.assert_called_with(b'infohash', {'tag'}, relation=TagRelationEnum.HAS_TAG)
+    mocked_save_tags.assert_called_with({'infohash'}, {'tag'}, relation=Predicate.HAS_TAG)
 
 
 def test_save_tags(tag_rules_processor: TagRulesProcessor):
     # test that tag_rules_processor calls TagDatabase with correct args
-    expected_calls = [{'infohash': b'infohash', 'tag': 'tag1', 'relation': TagRelationEnum.HAS_TAG},
-                      {'infohash': b'infohash', 'tag': 'tag2', 'relation': TagRelationEnum.HAS_TAG}]
-
-    tag_rules_processor.save_tags(infohash=b'infohash', tags={'tag1', 'tag2'})
-    actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated_tag.mock_calls]
+    expected_calls = [{'obj': 'tag2', 'predicate': Predicate.HAS_TAG, 'subject': 'infohash'},
+                      {'obj': 'tag1', 'predicate': Predicate.HAS_TAG, 'subject': 'infohash'}]
+    tag_rules_processor.save_statements(subjects={'infohash'}, predicate=Predicate.HAS_TAG, objects={'tag1', 'tag2'})
+    actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated.mock_calls]
 
     # compare two lists of dict
     assert [c for c in actual_calls if c not in expected_calls] == []

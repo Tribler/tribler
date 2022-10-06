@@ -28,9 +28,9 @@ class TagsEndpoint(RESTEndpoint):
         self.community: TagCommunity = community
 
     @staticmethod
-    def validate_infohash(infohash: str) -> Tuple[bool, Optional[RESTResponse]]:
+    def validate_infohash(infohash: bytes) -> Tuple[bool, Optional[RESTResponse]]:
         try:
-            if len(infohash) != 20:
+            if len(infohash) != 40:
                 return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
         except binascii.Error:
             return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)

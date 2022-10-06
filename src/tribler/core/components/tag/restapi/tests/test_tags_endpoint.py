@@ -60,7 +60,7 @@ async def test_modify_tags(rest_api, tags_db):
     Test modifying tags
     """
     post_data = {"tags": ["abc", "def"]}
-    infohash = 'a' * 20
+    infohash = 'a' * 40
     with freeze_time("2015-01-01") as frozen_time:
         await do_request(rest_api, f'tags/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
@@ -102,8 +102,9 @@ async def test_get_suggestions(rest_api, tags_db):
     """
     Test whether we can successfully fetch suggestions from content
     """
-    infohash = 'a' * 20
-    response = await do_request(rest_api, f'tags/{infohash}/suggestions')
+    infohash = b'a' * 20
+    infohash_str = hexlify(infohash)
+    response = await do_request(rest_api, f'tags/{infohash_str}/suggestions')
     assert "suggestions" in response
     assert not response["suggestions"]
 
@@ -111,12 +112,12 @@ async def test_get_suggestions(rest_api, tags_db):
     with db_session:
         def _add_operation(op=Operation.ADD):
             random_key = default_eccrypto.generate_key('low')
-            operation = StatementOperation(subject=infohash, predicate=Predicate.HAS_TAG, object="test", operation=op,
+            operation = StatementOperation(subject=infohash_str, predicate=Predicate.HAS_TAG, object="test", operation=op,
                                            clock=0, creator_public_key=random_key.pub().key_to_bin())
             tags_db.add_operation(operation, b"")
 
         _add_operation(op=Operation.ADD)
         _add_operation(op=Operation.REMOVE)
 
-    response = await do_request(rest_api, f'tags/{infohash}/suggestions')
+    response = await do_request(rest_api, f'tags/{infohash_str}/suggestions')
     assert response["suggestions"] == ["test"]

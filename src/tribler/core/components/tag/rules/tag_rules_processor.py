@@ -7,7 +7,7 @@ from pony.orm import db_session
 from tribler.core import notifications
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagRelationEnum
+from tribler.core.components.tag.db.tag_db import Predicate, TagDatabase
 from tribler.core.components.tag.rules.rules_content_items import content_items_rules
 from tribler.core.components.tag.rules.rules_general_tags import general_rules
 from tribler.core.components.tag.rules.tag_rules_base import extract_only_valid_tags
@@ -88,20 +88,21 @@ class TagRulesProcessor(TaskManager):
     def process_torrent_title(self, infohash: Optional[bytes] = None, title: Optional[str] = None) -> int:
         if not infohash or not title:
             return 0
-
+        infohash_str = infohash.decode("utf-8")
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
-            self.save_tags(infohash, tags, relation=TagRelationEnum.HAS_TAG)
+            self.save_statements({infohash_str}, tags, relation=Predicate.HAS_TAG)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_tags(infohash, content_items, relation=TagRelationEnum.HAS_CONTENT_ITEM)
+            self.save_statements(content_items, {infohash_str}, relation=Predicate.HAS_TORRENT)
 
         return len(tags) + len(content_items)
 
     @db_session
-    def save_tags(self, infohash: bytes, tags: Set[str], relation: TagRelationEnum = TagRelationEnum.HAS_TAG):
-        self.logger.debug(f'Save: {len(tags)} tags [{relation}]')
-        for tag in tags:
-            self.db.add_auto_generated_tag(infohash=infohash, tag=tag, relation=relation)
+    def save_statements(self, subjects: Set[str], predicate: Predicate, objects: Set[str]):
+        self.logger.debug(f'Save: {len(objects)} objects and {len(subjects)} subjects with predicate={predicate}')
+        for subject in subjects:
+            for obj in objects:
+                self.db.add_auto_generated(subject=subject, predicate=predicate, obj=obj)
 
     def get_last_processed_torrent_id(self) -> int:
         return int(self.mds.get_value(LAST_PROCESSED_TORRENT_ID, default='0'))
