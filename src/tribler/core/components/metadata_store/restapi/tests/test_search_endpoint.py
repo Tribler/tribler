@@ -1,3 +1,4 @@
+import os
 from typing import Set
 from unittest.mock import patch
 
@@ -10,6 +11,7 @@ import pytest
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash, to_fts_query
 
 
@@ -69,12 +71,12 @@ async def test_search(rest_api):
 
 
 async def test_search_by_tags(rest_api):
-    def mocked_get_infohashes(tags: Set[str]):
+    def mocked_get_subjects_intersection(tags: Set[str], **_):
         if tags.pop() == 'missed_tag':
             return None
-        return {b'infohash'}
+        return {hexlify(os.urandom(20))}
 
-    with patch.object(TagDatabase, 'get_infohashes', wraps=mocked_get_infohashes):
+    with patch.object(TagDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
         parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=real_tag', expected_code=200)
         assert len(parsed["results"]) == 0
 

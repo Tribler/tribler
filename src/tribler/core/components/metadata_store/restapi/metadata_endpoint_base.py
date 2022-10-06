@@ -7,7 +7,7 @@ from tribler.core.components.metadata_store.category_filter.family_filter import
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.tag.db.tag_db import Predicate, TagDatabase
 from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
@@ -90,7 +90,7 @@ class MetadataEndpointBase(RESTEndpoint):
             return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                tags = self.tags_db.get_tags(unhexlify(torrent["infohash"]))
+                tags = self.tags_db.get_objects(torrent["infohash"], predicate=Predicate.HAS_TAG)
                 if hide_xxx:
                     tags = [tag.lower() for tag in tags if not default_xxx_filter.isXXX(tag, isFilename=False)]
                 torrent["tags"] = tags

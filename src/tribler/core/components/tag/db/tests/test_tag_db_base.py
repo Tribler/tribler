@@ -5,7 +5,7 @@ from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
 
 from tribler.core.components.tag.community.tag_payload import StatementOperation
-from tribler.core.components.tag.db.tag_db import TagDatabase, Operation, Predicate
+from tribler.core.components.tag.db.tag_db import Operation, Predicate, SHOW_THRESHOLD, TagDatabase
 from tribler.core.utilities.pony_utils import get_or_create
 
 
@@ -14,7 +14,7 @@ from tribler.core.utilities.pony_utils import get_or_create
 @dataclass
 class Resource:
     name: str
-    count: int = 1
+    count: int = SHOW_THRESHOLD
     predicate: int = Predicate.HAS_TAG
     auto_generated: bool = False
 

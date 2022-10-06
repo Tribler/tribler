@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 from pony import orm
 from pony.orm import commit, db_session
 
-from tribler.core.components.tag.db.tag_db import PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, Predicate, SHOW_THRESHOLD, \
-    TagDatabase, Operation
+from tribler.core.components.tag.db.tag_db import Operation, PUBLIC_KEY_FOR_AUTO_GENERATED_TAGS, Predicate, \
+    SHOW_THRESHOLD, TagDatabase
 from tribler.core.components.tag.db.tests.test_tag_db_base import Resource, TestTagDBBase
 from tribler.core.utilities.pony_utils import get_or_create
 
@@ -156,16 +156,16 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(name='tag1', count=2, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag2', count=2, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag3', count=1, predicate=Predicate.HAS_TAG),
+                    Resource(name='tag1', count=2),
+                    Resource(name='tag2', count=2),
+                    Resource(name='tag3', count=1),
                 ],
                 'infohash2': [
-                    Resource(name='tag1', count=1, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag2', count=1, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag4', count=1, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag5', count=1, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag6', count=1, predicate=Predicate.HAS_TAG),
+                    Resource(name='tag1', count=1),
+                    Resource(name='tag2', count=1),
+                    Resource(name='tag4', count=1),
+                    Resource(name='tag5', count=1),
+                    Resource(name='tag6', count=1),
                 ]
             }
         )
@@ -189,10 +189,10 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(name='tag1', count=SHOW_THRESHOLD - 1, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag2', count=SHOW_THRESHOLD, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag3', count=SHOW_THRESHOLD + 1, predicate=Predicate.HAS_TAG),
-                    Resource(name='Contributor', count=SHOW_THRESHOLD + 1, predicate=Predicate.HAS_CONTRIBUTOR),
+                    Resource(name='tag1', count=SHOW_THRESHOLD - 1, ),
+                    Resource(name='tag2', count=SHOW_THRESHOLD),
+                    Resource(name='tag3', count=SHOW_THRESHOLD + 1),
+                    Resource(predicate=Predicate.HAS_CONTRIBUTOR, name='Contributor', count=SHOW_THRESHOLD + 1),
                 ]
             }
         )
@@ -207,8 +207,8 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(name='tag1', count=SHOW_THRESHOLD, predicate=Predicate.HAS_TAG),
-                    Resource(name='tag2', count=SHOW_THRESHOLD, predicate=Predicate.HAS_TAG)
+                    Resource(name='tag1'),
+                    Resource(name='tag2')
                 ]
             }
         )
@@ -307,60 +307,60 @@ class TestTagDB(TestTagDBBase):
         # assert that only one torrent returned (the old and the not auto generated one)
         assert len(self.db.get_operations_for_gossip(time_delta)) == 1
 
-    # @db_session
-    # async def test_get_subjects_threshold(self):
-    #     # test that `get_subjects` function returns only infohashes with tags
-    #     # above the threshold
-    #     self.add_operation_set(
-    #         self.db,
-    #         {
-    #             'infohash1': [
-    #                 Resource(name='tag1', count=SHOW_THRESHOLD, predicate=Predicate.HAS_TAG),
-    #             ],
-    #             'infohash2': [
-    #                 Resource(name='tag1', count=SHOW_THRESHOLD - 1, predicate=Predicate.HAS_TAG)
-    #             ],
-    #             'infohash3': [
-    #                 Resource(name='tag1', count=SHOW_THRESHOLD, predicate=Predicate.HAS_CONTRIBUTOR),
-    #             ],
-    #         }
-    #     )
-    #
-    #     assert self.db.get_subjects({'tag1'}) == [b'infohash1']
-    #
-    # @db_session
-    # async def test_get_infohashes(self):
-    #     # test that `get_infohashes` function returns an intersection of result
-    #     # in case of more than one tag passed to the function
-    #     self.add_operation_set(
-    #         self.db,
-    #         {
-    #             b'infohash1': [
-    #                 Tag(name='tag1', count=SHOW_THRESHOLD),
-    #                 Tag(name='tag2', count=SHOW_THRESHOLD),
-    #                 Tag(name='ContentItem', count=SHOW_THRESHOLD, relation=TagPredicateEnum.HAS_CONTENT_ITEM)
-    #             ],
-    #             b'infohash2': [
-    #                 Tag(name='tag1', count=SHOW_THRESHOLD),
-    #                 Tag(name='ContentItem', count=SHOW_THRESHOLD, relation=TagPredicateEnum.HAS_CONTENT_ITEM)
-    #             ],
-    #             b'infohash3': [
-    #                 Tag(name='tag2', count=SHOW_THRESHOLD)
-    #             ]
-    #         }
-    #     )
-    #
-    #     # no results
-    #     assert not self.db.get_subjects({'missed tag'})
-    #     assert not self.db.get_subjects({'tag1'}, relation=TagPredicateEnum.HAS_CONTENT_ITEM)
-    #
-    #     # results
-    #     assert self.db.get_subjects({'tag1'}) == [b'infohash1', b'infohash2']
-    #     assert self.db.get_subjects({'tag2'}) == [b'infohash1', b'infohash3']
-    #     assert self.db.get_subjects({'tag1', 'tag2'}) == [b'infohash1']
-    #     assert self.db.get_subjects({'ContentItem'}, relation=TagPredicateEnum.HAS_CONTENT_ITEM) == [b'infohash1',
-    #                                                                                                   b'infohash2']
-    #
+    @db_session
+    async def test_get_subjects_intersection_threshold(self):
+        # test that `get_subjects_intersection` function returns only infohashes with tags
+        # above the threshold
+        self.add_operation_set(
+            self.db,
+            {
+                'infohash1': [
+                    Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD),
+                ],
+                'infohash2': [
+                    Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD - 1)
+                ],
+                'infohash3': [
+                    Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD),
+                ],
+            }
+        )
+
+        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.HAS_TAG) == {'infohash1', 'infohash3'}
+
+    @db_session
+    async def test_get_subjects_intersection(self):
+        # test that `get_infohashes` function returns an intersection of result
+        # in case of more than one tag passed to the function
+        self.add_operation_set(
+            self.db,
+            {
+                'infohash1': [
+                    Resource(name='tag1'),
+                    Resource(name='tag2'),
+                    Resource(predicate=Predicate.HAS_CONTRIBUTOR, name='Contributor')
+                ],
+                'infohash2': [
+                    Resource(name='tag1'),
+                    Resource(predicate=Predicate.HAS_CONTRIBUTOR, name='Contributor')
+                ],
+                'infohash3': [
+                    Resource(name='tag2')
+                ]
+            }
+        )
+
+        # no results
+        assert not self.db.get_subjects_intersection({'missed tag'}, predicate=Predicate.HAS_TAG)
+        assert not self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.HAS_CONTRIBUTOR)
+
+        # results
+        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.HAS_TAG) == {'infohash1', 'infohash2'}
+        assert self.db.get_subjects_intersection({'tag2'}, predicate=Predicate.HAS_TAG) == {'infohash1', 'infohash3'}
+        assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=Predicate.HAS_TAG) == {'infohash1'}
+        assert self.db.get_subjects_intersection({'Contributor'}, predicate=Predicate.HAS_CONTRIBUTOR) == {'infohash1',
+                                                                                                           'infohash2'}
+
     @db_session
     async def test_show_condition(self):
         assert TagDatabase._show_condition(SimpleNamespace(local_operation=Operation.ADD))
@@ -376,7 +376,7 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(name='tag1', count=3, predicate=Predicate.HAS_TAG),  # add 3 StatementOp
+                    Resource(name='tag1', count=3),  # add 3 StatementOp
                 ],
             }
         )
@@ -398,7 +398,7 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(name='tag1', count=10, predicate=Predicate.HAS_TAG),  # add 10 StatementOp
+                    Resource(name='tag1', count=10),  # add 10 StatementOp
                 ],
             }
         )
@@ -421,9 +421,9 @@ class TestTagDB(TestTagDBBase):
             {
                 'infohash1': [
                     # add 10 autogenerated tags
-                    Resource(name='tag1', count=10, auto_generated=True, predicate=Predicate.HAS_TAG),
+                    Resource(name='tag1', count=10, auto_generated=True),
                     # add 10 normal tags
-                    Resource(name='tag2', count=10, auto_generated=False, predicate=Predicate.HAS_TAG),
+                    Resource(name='tag2', count=10, auto_generated=False),
                 ],
             }
         )
@@ -449,7 +449,7 @@ class TestTagDB(TestTagDBBase):
             {
                 'infohash1': [
                     # add 10 autogenerated tags
-                    Resource(name='tag1', count=10, auto_generated=True, predicate=Predicate.HAS_TAG),
+                    Resource(name='tag1', count=10, auto_generated=True),
                 ],
             }
         )
@@ -463,3 +463,23 @@ class TestTagDB(TestTagDBBase):
 
         # check that only normal tags have been returned
         assert len(random_operations) == 0
+
+    @db_session
+    def test_get_subjects(self):
+        self.add_operation_set(
+            self.db,
+            {
+                'ubuntu': [
+                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash1', auto_generated=True),
+                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash2', auto_generated=True),
+                ],
+                'debian': [
+                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash2', auto_generated=True),
+                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash3', auto_generated=True),
+                ],
+            }
+        )
+
+        assert self.db.get_subjects('infohash1', predicate=Predicate.HAS_TORRENT) == ['ubuntu']
+        assert self.db.get_subjects('infohash2', predicate=Predicate.HAS_TORRENT) == ['ubuntu', 'debian']
+        assert self.db.get_subjects('infohash3', predicate=Predicate.HAS_TORRENT) == ['debian']

@@ -1,4 +1,3 @@
-from binascii import unhexlify
 from typing import Dict, List
 
 from aiohttp import web
@@ -12,7 +11,7 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler.core.components.tag.db.tag_db import TagRelationEnum
+from tribler.core.components.tag.db.tag_db import Predicate
 from tribler.core.utilities.utilities import froze_it
 
 SNIPPETS_TO_SHOW = 1          # The number of snippets we return from the search results
@@ -82,8 +81,9 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.tags_db.get_infohashes(set(tags))
-                    sanitized['infohash_set'] = infohash_set
+                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=Predicate.HAS_TAG)
+                    if infohash_set:
+                        sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
             search_results, total, max_rowid = await mds.run_threaded(search_db)
         except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
@@ -99,8 +99,8 @@ class SearchEndpoint(MetadataEndpointBase):
             most_popular_torrents_for_content: Dict[str, List] = {}
             for search_result in search_results:
                 with db_session:
-                    content_items = self.tags_db.get_tags(unhexlify(search_result["infohash"]),
-                                                          relation=TagRelationEnum.HAS_CONTENT_ITEM)
+                    content_items = self.tags_db.get_subjects(search_result["infohash"],
+                                                              predicate=Predicate.HAS_TORRENT)
                 if content_items:
                     content_id = content_items[0]
                     if content_id not in content_to_torrents:

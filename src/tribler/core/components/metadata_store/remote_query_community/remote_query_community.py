@@ -20,6 +20,7 @@ from tribler.core.components.metadata_store.remote_query_community.payload_check
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.components.tag.community.tag_validator import is_valid_tag
+from tribler.core.components.tag.db.tag_db import Predicate
 from tribler.core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -196,16 +197,17 @@ class RemoteQueryCommunity(TriblerCommunity):
         tags = sanitized_parameters.pop('tags', None)
 
         infohash_set = await self.mds.run_threaded(self.search_for_tags, tags)
-        sanitized_parameters['infohash_set'] = infohash_set  # it could be None, it is expected
+        if infohash_set:
+            sanitized_parameters['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
         return await self.mds.get_entries_threaded(**sanitized_parameters)
 
     @db_session
-    def search_for_tags(self, tags: Optional[List[str]]) -> Optional[Set[bytes]]:
+    def search_for_tags(self, tags: Optional[List[str]]) -> Optional[Set[str]]:
         if not tags or not self.tags_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_tag(tag)}
-        return self.tags_db.get_infohashes(valid_tags)
+        return self.tags_db.get_subjects_intersection(valid_tags, predicate=Predicate.HAS_TAG)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 

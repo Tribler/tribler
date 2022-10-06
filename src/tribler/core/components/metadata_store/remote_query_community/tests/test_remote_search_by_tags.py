@@ -1,9 +1,9 @@
+import os
 from json import dumps
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
-
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
@@ -13,9 +13,10 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler.core.components.tag.db.tag_db import SHOW_THRESHOLD, TagDatabase
-from tribler.core.components.tag.db.tests.test_tag_db import Tag, TestTagDB
+from tribler.core.components.tag.db.tag_db import Predicate, SHOW_THRESHOLD, TagDatabase
+from tribler.core.components.tag.db.tests.test_tag_db import Resource, TestTagDB
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.unicode import hexlify
 
 
 class TestRemoteSearchByTags(TestBase):
@@ -82,16 +83,20 @@ class TestRemoteSearchByTags(TestBase):
         # This is full test that checked whether search by tags works or not
         #
         # Test assumes that two databases were filled by the following data (TagsDatabase and MDS):
+        infohash1 = os.urandom(20)
+        infohash2 = os.urandom(20)
+        infohash3 = os.urandom(20)
+
         @db_session
         def fill_tags_database():
             TestTagDB.add_operation_set(
                 self.rqc.tags_db,
                 {
-                    b'infohash1': [
-                        Tag(name='tag1', count=SHOW_THRESHOLD),
+                    hexlify(infohash1): [
+                        Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD),
                     ],
-                    b'infohash2': [
-                        Tag(name='tag1', count=SHOW_THRESHOLD - 1),
+                    hexlify(infohash2): [
+                        Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD - 1),
                     ]
                 })
 
@@ -102,9 +107,9 @@ class TestRemoteSearchByTags(TestBase):
                     torrent = {"infohash": infohash, "title": 'title', "tags": "", "size": 1, "status": NEW}
                     self.rqc.mds.TorrentMetadata.from_dict(torrent)
 
-                _add(b'infohash1')
-                _add(b'infohash2')
-                _add(b'infohash3')
+                _add(infohash1)
+                _add(infohash2)
+                _add(infohash3)
 
         fill_tags_database()
         fill_mds()
@@ -118,4 +123,4 @@ class TestRemoteSearchByTags(TestBase):
 
         # Expected results: only one infohash (b'infohash1') should be returned.
         result_infohash_list = [r['infohash'] for r in query_results]
-        assert result_infohash_list == [b'infohash1']
+        assert result_infohash_list == [infohash1]

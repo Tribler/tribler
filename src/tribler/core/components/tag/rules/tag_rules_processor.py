@@ -12,6 +12,7 @@ from tribler.core.components.tag.rules.rules_content_items import content_items_
 from tribler.core.components.tag.rules.rules_general_tags import general_rules
 from tribler.core.components.tag.rules.tag_rules_base import extract_only_valid_tags
 from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.unicode import hexlify
 
 DEFAULT_INTERVAL = 10
 DEFAULT_BATCH_SIZE = 1000
@@ -88,12 +89,12 @@ class TagRulesProcessor(TaskManager):
     def process_torrent_title(self, infohash: Optional[bytes] = None, title: Optional[str] = None) -> int:
         if not infohash or not title:
             return 0
-        infohash_str = infohash.decode("utf-8")
+        infohash_str = hexlify(infohash)
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
-            self.save_statements({infohash_str}, tags, relation=Predicate.HAS_TAG)
+            self.save_statements(subjects={infohash_str}, predicate=Predicate.HAS_TAG, objects=tags)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(content_items, {infohash_str}, relation=Predicate.HAS_TORRENT)
+            self.save_statements(subjects=content_items, predicate=Predicate.HAS_TORRENT, objects={infohash_str})
 
         return len(tags) + len(content_items)
 

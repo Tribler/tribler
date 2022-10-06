@@ -43,6 +43,7 @@ class Predicate(IntEnum):
     HAS_TAG = 101
     HAS_TORRENT = 102
 
+
 class TagDatabase:
     def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
         self.instance = orm.Database()
@@ -180,7 +181,8 @@ class TagDatabase:
         return statement.local_operation == Operation.ADD.value or \
                not statement.local_operation and statement.score >= SHOW_THRESHOLD
 
-    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: Predicate) -> List[str]:
+    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: Predicate,
+                       is_normal_direction: bool = True) -> List[str]:
         """ Get resources that satisfy a given condition.
         """
         resource_entity = self.instance.Resource.get(name=resource)
@@ -188,12 +190,12 @@ class TagDatabase:
             return []
 
         query = (
-            resource_entity.subject_statements
+            (resource_entity.subject_statements if is_normal_direction else resource_entity.object_statements)
             .select(condition)
             .filter(lambda statement: statement.predicate == predicate.value)
         )
         query = query.order_by(lambda statement: orm.desc(statement.score))
-        query = orm.select(statement.object.name for statement in query)
+        query = orm.select(s.object.name if is_normal_direction else s.subject.name for s in query)
         return list(query)
 
     def get_objects(self, subject: str, predicate: Predicate) -> List[str]:
@@ -202,6 +204,13 @@ class TagDatabase:
         self.logger.debug(f'Get resources for {subject} with {predicate}')
 
         return self._get_resources(subject, self._show_condition, predicate)
+
+    def get_subjects(self, obj: str, predicate: Predicate) -> List[str]:
+        """ Get list of subjects that could be linked back to the objects.
+        """
+        self.logger.debug(f'Get linked back resources for {obj} with {predicate}')
+
+        return self._get_resources(obj, self._show_condition, predicate, is_normal_direction=False)
 
     def get_suggestions(self, subject: str, predicate: Predicate) -> List[str]:
         """Get all suggestions for a particular subject.
@@ -214,32 +223,10 @@ class TagDatabase:
 
         return self._get_resources(subject, show_suggestions_condition, predicate)
 
-    def get_subjects(self, objects: Set[str], predicate: Predicate) -> List[bytes]:
-        return []
-    #     """Get list of subjects that could be linked back to the objects.
-    #     Only resources with condition `_show_condition` will be returned.
-    #     In the case that the object set contains more than one tag,
-    #     only subjects that contain all `objects` will be returned.
-    #     """
-    #     # FIXME: Ask @kozlovsky how to do it in a proper way
-    #     objects_entities = select(r for r in self.instance.Resource if r.name in objects).fetch()
-    #     if not objects_entities:
-    #         return []
-    #
-    #     query_results = select(
-    #         torrent.infohash for torrent in self.instance.Torrent
-    #         if not exists(
-    #             tag for tag in self.instance.Tag
-    #             if tag.name in tags and not exists(
-    #                 torrent_tag for torrent_tag in self.instance.TorrentTag
-    #                 if torrent_tag.subject == torrent
-    #                 and torrent_tag.object == tag
-    #                 and self._show_condition(torrent_tag)
-    #                 and torrent_tag.predicate == relation.value
-    #             )
-    #         )
-    #     ).fetch()
-    #     return query_results
+    def get_subjects_intersection(self, objects: Set[str], predicate: Predicate) -> Set[str]:
+        # FIXME: Ask @kozlovsky how to do it in a proper way
+        sets = [set(self.get_subjects(o, predicate)) for o in objects]
+        return set.intersection(*sets)
 
     def get_clock(self, operation: StatementOperation) -> int:
         """ Get the clock (int) of operation.
