@@ -2,11 +2,9 @@ import os
 import shutil
 from pathlib import Path
 
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-
-from pony.orm import db_session, select
-
 import pytest
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+from pony.orm import db_session, select
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
@@ -16,6 +14,7 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
 from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
+
 
 # pylint: disable=redefined-outer-name, protected-access
 
@@ -187,9 +186,13 @@ def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channe
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
 
     with db_session:
+        def _exists(db, table, column):
+            return upgrader.column_exists_in_table(db, table, column)
+
         # The end result is the same as in the previous test
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
-        assert upgrader.column_exists_in_table(tags.instance, 'TorrentTagOp', 'auto_generated')
+        assert _exists(mds._db, 'ChannelNode', 'tag_processor_version')
+        assert _exists(tags.instance, 'TorrentTagOp', 'auto_generated') or _exists(tags.instance, 'StatementOp',
+                                                                                   'auto_generated')
         assert mds.get_value('db_version') == '14'
 
 
