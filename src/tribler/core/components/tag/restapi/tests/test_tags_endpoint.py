@@ -7,8 +7,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.tag.community.tag_payload import TagOperation
-from tribler.core.components.tag.db.tag_db import TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.community.tag_payload import StatementOperation
+from tribler.core.components.tag.db.tag_db import Operation, Predicate
 from tribler.core.components.tag.restapi.tags_endpoint import TagsEndpoint
 from tribler.core.conftest import TEST_PERSONAL_KEY
 from tribler.core.utilities.unicode import hexlify
@@ -60,31 +60,31 @@ async def test_modify_tags(rest_api, tags_db):
     Test modifying tags
     """
     post_data = {"tags": ["abc", "def"]}
-    infohash = b'a' * 20
+    infohash = 'a' * 20
     with freeze_time("2015-01-01") as frozen_time:
-        await do_request(rest_api, f'tags/{hexlify(infohash)}', request_type="PATCH", expected_code=200,
+        await do_request(rest_api, f'tags/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = tags_db.get_tags(infohash)
+            tags = tags_db.get_objects(infohash, predicate=Predicate.HAS_TAG)
         assert len(tags) == 2
 
         # Now remove a tag
         frozen_time.move_to("2016-01-01")
         post_data = {"tags": ["abc"]}
-        await do_request(rest_api, f'tags/{hexlify(infohash)}', request_type="PATCH", expected_code=200,
+        await do_request(rest_api, f'tags/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = tags_db.get_tags(infohash)
+            tags = tags_db.get_objects(infohash, predicate=Predicate.HAS_TAG)
         assert tags == ["abc"]
 
 
 async def test_modify_tags_no_community(tags_db, tags_endpoint):
     tags_endpoint.community = None
-    infohash = b'a' * 20
+    infohash = 'a' * 20
     tags_endpoint.modify_tags(infohash, {"abc", "def"})
 
     with db_session:
-        tags = tags_db.get_tags(infohash)
+        tags = tags_db.get_objects(infohash, predicate=Predicate.HAS_TAG)
 
     assert len(tags) == 0
 
@@ -102,21 +102,21 @@ async def test_get_suggestions(rest_api, tags_db):
     """
     Test whether we can successfully fetch suggestions from content
     """
-    infohash = b'a' * 20
-    response = await do_request(rest_api, f'tags/{hexlify(infohash)}/suggestions')
+    infohash = 'a' * 20
+    response = await do_request(rest_api, f'tags/{infohash}/suggestions')
     assert "suggestions" in response
     assert not response["suggestions"]
 
     # Add a suggestion to the database
     with db_session:
-        def _add_operation(op=TagOperationEnum.ADD):
+        def _add_operation(op=Operation.ADD):
             random_key = default_eccrypto.generate_key('low')
-            operation = TagOperation(infohash=infohash, tag="test", operation=op, relation=TagRelationEnum.HAS_TAG,
-                                     clock=0, creator_public_key=random_key.pub().key_to_bin())
-            tags_db.add_tag_operation(operation, b"")
+            operation = StatementOperation(subject=infohash, predicate=Predicate.HAS_TAG, object="test", operation=op,
+                                           clock=0, creator_public_key=random_key.pub().key_to_bin())
+            tags_db.add_operation(operation, b"")
 
-        _add_operation(op=TagOperationEnum.ADD)
-        _add_operation(op=TagOperationEnum.REMOVE)
+        _add_operation(op=Operation.ADD)
+        _add_operation(op=Operation.REMOVE)
 
-    response = await do_request(rest_api, f'tags/{hexlify(infohash)}/suggestions')
+    response = await do_request(rest_api, f'tags/{infohash}/suggestions')
     assert response["suggestions"] == ["test"]

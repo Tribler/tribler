@@ -1,5 +1,4 @@
 import binascii
-from binascii import unhexlify
 from typing import Optional, Set, Tuple
 
 from aiohttp import web
@@ -11,8 +10,8 @@ from pony.orm import db_session
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.components.tag.community.tag_community import TagCommunity
-from tribler.core.components.tag.community.tag_payload import TagOperation
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum, TagRelationEnum
+from tribler.core.components.tag.community.tag_payload import StatementOperation
+from tribler.core.components.tag.db.tag_db import Operation, Predicate, TagDatabase
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 from tribler.core.utilities.utilities import froze_it
 
@@ -31,7 +30,6 @@ class TagsEndpoint(RESTEndpoint):
     @staticmethod
     def validate_infohash(infohash: str) -> Tuple[bool, Optional[RESTResponse]]:
         try:
-            infohash = unhexlify(infohash)
             if len(infohash) != 20:
                 return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
         except binascii.Error:
@@ -66,19 +64,18 @@ class TagsEndpoint(RESTEndpoint):
         if not ih_valid:
             return error_response
 
-        tags = {tag.lower() for tag in params["tags"]}
-
         # Validate whether the size of the tag is within the allowed range
+        tags = set(params["tags"])
         for tag in tags:
             if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
                 return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
 
-        self.modify_tags(unhexlify(infohash), tags)
+        self.modify_tags(infohash, tags)
 
         return RESTResponse({"success": True})
 
     @db_session
-    def modify_tags(self, infohash: bytes, new_tags: Set[str]):
+    def modify_tags(self, infohash: str, new_tags: Set[str]):
         """
         Modify the tags of a particular content item.
         """
@@ -86,19 +83,19 @@ class TagsEndpoint(RESTEndpoint):
             return
 
         # First, get the current tags and compute the diff between the old and new tags
-        old_tags = set(self.db.get_tags(infohash))
+        old_tags = set(self.db.get_objects(infohash, predicate=Predicate.HAS_TAG))
         added_tags = new_tags - old_tags
         removed_tags = old_tags - new_tags
 
         # Create individual tag operations for the added/removed tags
         public_key = self.community.tags_key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
-            type_of_operation = TagOperationEnum.ADD if tag in added_tags else TagOperationEnum.REMOVE
-            operation = TagOperation(infohash=infohash, operation=type_of_operation, relation=TagRelationEnum.HAS_TAG,
-                                     clock=0, creator_public_key=public_key, tag=tag)
+            type_of_operation = Operation.ADD if tag in added_tags else Operation.REMOVE
+            operation = StatementOperation(subject=infohash, predicate=Predicate.HAS_TAG, object=tag,
+                                           operation=type_of_operation, clock=0, creator_public_key=public_key)
             operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)
-            self.db.add_tag_operation(operation, signature, is_local_peer=True)
+            self.db.add_operation(operation, signature, is_local_peer=True)
 
     @docs(
         tags=["General"],
@@ -122,5 +119,5 @@ class TagsEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            suggestions = self.db.get_suggestions(unhexlify(infohash))
+            suggestions = self.db.get_suggestions(infohash, predicate=Predicate.HAS_TAG)
             return RESTResponse({"suggestions": suggestions})
