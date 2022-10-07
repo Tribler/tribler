@@ -79,19 +79,19 @@ class TestTagDB(TestTagDBBase):
             assert self.db.instance.StatementOp.select().count() == 1
 
         # add the first operation
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1')
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
         assert_all_tables_have_the_only_one_entity()
 
         # add the same operation
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1')
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
         assert_all_tables_have_the_only_one_entity()
 
         # add an operation from the past
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1', clock=0)
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1', clock=0)
         assert_all_tables_have_the_only_one_entity()
 
         # add a duplicate operation but from the future
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1', clock=1000)
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1', clock=1000)
         assert_all_tables_have_the_only_one_entity()
 
         assert self.db.instance.StatementOp.get().operation == Operation.ADD
@@ -99,7 +99,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Statement.get().removed_count == 0
 
         # add a unique operation from the future
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1',
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1',
                            operation=Operation.REMOVE, clock=1001)
         assert_all_tables_have_the_only_one_entity()
         assert self.db.instance.StatementOp.get().operation == Operation.REMOVE
@@ -108,41 +108,41 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     async def test_remote_add_multiple_tag_operations(self):
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1')
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer2')
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer3')
-        self.add_operation(self.db, 'title', Predicate.HAS_TORRENT, 'infohash', b'peer1')
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer2')
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer3')
+        self.add_operation(self.db, 'title', Predicate.TORRENT, 'infohash', b'peer1')
 
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).added_count == 3
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TORRENT).added_count == 1
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).removed_count == 0
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TORRENT).removed_count == 0
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 3
+        assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).added_count == 1
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 0
+        assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).removed_count == 0
 
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer2',
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer2',
                            operation=Operation.REMOVE)
-        self.add_operation(self.db, 'title', Predicate.HAS_TORRENT, 'infohash', b'peer2',
+        self.add_operation(self.db, 'title', Predicate.TORRENT, 'infohash', b'peer2',
                            operation=Operation.REMOVE)
 
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).added_count == 2
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).removed_count == 1
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 2
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 1
 
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TORRENT).added_count == 1
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TORRENT).removed_count == 1
+        assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).added_count == 1
+        assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).removed_count == 1
 
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1',
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1',
                            operation=Operation.REMOVE)
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).added_count == 1
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).removed_count == 2
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 1
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 2
 
-        self.add_operation(self.db, 'infohash', Predicate.HAS_TAG, 'tag', b'peer1')
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).added_count == 2
-        assert self.db.instance.Statement.get(predicate=Predicate.HAS_TAG).removed_count == 1
+        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 2
+        assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 1
 
     @db_session
     async def test_add_auto_generated_tag(self):
         self.db.add_auto_generated(
             subject='infohash',
-            predicate=Predicate.HAS_TAG,
+            predicate=Predicate.TAG,
             obj='tag'
         )
 
@@ -179,7 +179,7 @@ class TestTagDB(TestTagDBBase):
 
         infohash1 = self.db.instance.Resource.get(name='infohash1')
         tag1 = self.db.instance.Resource.get(name='tag1')
-        statement = self.db.instance.Statement.get(subject=infohash1, predicate=Predicate.HAS_TAG, object=tag1)
+        statement = self.db.instance.Statement.get(subject=infohash1, predicate=Predicate.TAG, object=tag1)
         assert statement.added_count == 2
         assert statement.removed_count == 0
 
@@ -192,14 +192,14 @@ class TestTagDB(TestTagDBBase):
                     Resource(name='tag1', count=SHOW_THRESHOLD - 1, ),
                     Resource(name='tag2', count=SHOW_THRESHOLD),
                     Resource(name='tag3', count=SHOW_THRESHOLD + 1),
-                    Resource(predicate=Predicate.HAS_CONTRIBUTOR, name='Contributor', count=SHOW_THRESHOLD + 1),
+                    Resource(predicate=Predicate.CONTRIBUTOR, name='Contributor', count=SHOW_THRESHOLD + 1),
                 ]
             }
         )
 
-        assert not self.db.get_objects('missed infohash', predicate=Predicate.HAS_TAG)
-        assert self.db.get_objects('infohash1', predicate=Predicate.HAS_TAG) == ['tag3', 'tag2']
-        assert self.db.get_objects('infohash1', predicate=Predicate.HAS_CONTRIBUTOR) == ['Contributor']
+        assert not self.db.get_objects('missed infohash', predicate=Predicate.TAG)
+        assert self.db.get_objects('infohash1', predicate=Predicate.TAG) == ['tag3', 'tag2']
+        assert self.db.get_objects('infohash1', predicate=Predicate.CONTRIBUTOR) == ['Contributor']
 
     @db_session
     async def test_get_objects_removed(self):
@@ -213,62 +213,62 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        self.add_operation(self.db, subject='infohash1', predicate=Predicate.HAS_TAG, obj='tag2', peer=b'4',
+        self.add_operation(self.db, subject='infohash1', predicate=Predicate.TAG, obj='tag2', peer=b'4',
                            operation=Operation.REMOVE)
 
-        assert self.db.get_objects('infohash1', predicate=Predicate.HAS_TAG) == ['tag1']
+        assert self.db.get_objects('infohash1', predicate=Predicate.TAG) == ['tag1']
 
     @db_session
     async def test_show_local_resources(self):
         # Test that locally added tags have a priority to show.
         # That means no matter of other peers opinions, locally added tag should be visible.
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_TAG, 'tag1', b'peer1', operation=Operation.REMOVE)
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_TAG, 'tag1', b'peer2', operation=Operation.REMOVE)
-        assert not self.db.get_objects('infohash1', Predicate.HAS_TAG)
+        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer1', operation=Operation.REMOVE)
+        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer2', operation=Operation.REMOVE)
+        assert not self.db.get_objects('infohash1', Predicate.TAG)
 
         # test local add
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_TAG, 'tag1', b'peer3', operation=Operation.ADD,
+        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer3', operation=Operation.ADD,
                            is_local_peer=True)
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_CONTRIBUTOR, 'contributor', b'peer3',
+        self.add_operation(self.db, 'infohash1', Predicate.CONTRIBUTOR, 'contributor', b'peer3',
                            operation=Operation.ADD, is_local_peer=True)
-        assert self.db.get_objects('infohash1', predicate=Predicate.HAS_TAG) == ['tag1']
-        assert self.db.get_objects('infohash1', predicate=Predicate.HAS_CONTRIBUTOR) == ['contributor']
+        assert self.db.get_objects('infohash1', predicate=Predicate.TAG) == ['tag1']
+        assert self.db.get_objects('infohash1', predicate=Predicate.CONTRIBUTOR) == ['contributor']
 
     @db_session
     async def test_hide_local_tags(self):
         # Test that locally removed tags should not be visible to local user.
         # No matter of other peers opinions, locally removed tag should be not visible.
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_TAG, 'tag1', b'peer1')
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_TAG, 'tag1', b'peer2')
-        assert self.db.get_objects('infohash1', Predicate.HAS_TAG) == ['tag1']
+        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer1')
+        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer2')
+        assert self.db.get_objects('infohash1', Predicate.TAG) == ['tag1']
 
         # test local remove
-        self.add_operation(self.db, 'infohash1', Predicate.HAS_TAG, 'tag1', b'peer3', operation=Operation.REMOVE,
+        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer3', operation=Operation.REMOVE,
                            is_local_peer=True)
-        assert self.db.get_objects('infohash1', Predicate.HAS_TAG) == []
+        assert self.db.get_objects('infohash1', Predicate.TAG) == []
 
     @db_session
     async def test_suggestions(self):
         # Test whether the database returns the right suggestions.
         # Suggestions are tags that have not gathered enough support for display yet.
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'1')
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'2')
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_CONTRIBUTOR, obj='contributor',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.TAG, obj='tag1', peer=b'1')
+        self.add_operation(self.db, subject='subject', predicate=Predicate.TAG, obj='tag1', peer=b'2')
+        self.add_operation(self.db, subject='subject', predicate=Predicate.CONTRIBUTOR, obj='contributor',
                            peer=b'2')
 
-        assert self.db.get_suggestions('subject', predicate=Predicate.HAS_TAG) == []  # This tag now has enough support
+        assert self.db.get_suggestions('subject', predicate=Predicate.TAG) == []  # This tag now has enough support
 
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'3',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.TAG, obj='tag1', peer=b'3',
                            operation=Operation.REMOVE)  # score:1
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'4',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.TAG, obj='tag1', peer=b'4',
                            operation=Operation.REMOVE)  # score:0
-        assert self.db.get_suggestions('subject', predicate=Predicate.HAS_TAG) == ["tag1"]
+        assert self.db.get_suggestions('subject', predicate=Predicate.TAG) == ["tag1"]
 
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'5',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.TAG, obj='tag1', peer=b'5',
                            operation=Operation.REMOVE)  # score:-1
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'6',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.TAG, obj='tag1', peer=b'6',
                            operation=Operation.REMOVE)  # score:-2
-        assert not self.db.get_suggestions('infohash', predicate=Predicate.HAS_TAG)  # below the threshold
+        assert not self.db.get_suggestions('infohash', predicate=Predicate.TAG)  # below the threshold
 
     @db_session
     async def test_get_clock_of_operation(self):
@@ -315,18 +315,18 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD),
+                    Resource(predicate=Predicate.TAG, name='tag1', count=SHOW_THRESHOLD),
                 ],
                 'infohash2': [
-                    Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD - 1)
+                    Resource(predicate=Predicate.TAG, name='tag1', count=SHOW_THRESHOLD - 1)
                 ],
                 'infohash3': [
-                    Resource(predicate=Predicate.HAS_TAG, name='tag1', count=SHOW_THRESHOLD),
+                    Resource(predicate=Predicate.TAG, name='tag1', count=SHOW_THRESHOLD),
                 ],
             }
         )
 
-        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.HAS_TAG) == {'infohash1', 'infohash3'}
+        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.TAG) == {'infohash1', 'infohash3'}
 
     @db_session
     async def test_get_subjects_intersection(self):
@@ -338,11 +338,11 @@ class TestTagDB(TestTagDBBase):
                 'infohash1': [
                     Resource(name='tag1'),
                     Resource(name='tag2'),
-                    Resource(predicate=Predicate.HAS_CONTRIBUTOR, name='Contributor')
+                    Resource(predicate=Predicate.CONTRIBUTOR, name='Contributor')
                 ],
                 'infohash2': [
                     Resource(name='tag1'),
-                    Resource(predicate=Predicate.HAS_CONTRIBUTOR, name='Contributor')
+                    Resource(predicate=Predicate.CONTRIBUTOR, name='Contributor')
                 ],
                 'infohash3': [
                     Resource(name='tag2')
@@ -351,14 +351,14 @@ class TestTagDB(TestTagDBBase):
         )
 
         # no results
-        assert not self.db.get_subjects_intersection({'missed tag'}, predicate=Predicate.HAS_TAG)
-        assert not self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.HAS_CONTRIBUTOR)
+        assert not self.db.get_subjects_intersection({'missed tag'}, predicate=Predicate.TAG)
+        assert not self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.CONTRIBUTOR)
 
         # results
-        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.HAS_TAG) == {'infohash1', 'infohash2'}
-        assert self.db.get_subjects_intersection({'tag2'}, predicate=Predicate.HAS_TAG) == {'infohash1', 'infohash3'}
-        assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=Predicate.HAS_TAG) == {'infohash1'}
-        assert self.db.get_subjects_intersection({'Contributor'}, predicate=Predicate.HAS_CONTRIBUTOR) == {'infohash1',
+        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.TAG) == {'infohash1', 'infohash2'}
+        assert self.db.get_subjects_intersection({'tag2'}, predicate=Predicate.TAG) == {'infohash1', 'infohash3'}
+        assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=Predicate.TAG) == {'infohash1'}
+        assert self.db.get_subjects_intersection({'Contributor'}, predicate=Predicate.CONTRIBUTOR) == {'infohash1',
                                                                                                            'infohash2'}
 
     @db_session
@@ -470,16 +470,16 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'ubuntu': [
-                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash1', auto_generated=True),
-                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash2', auto_generated=True),
+                    Resource(predicate=Predicate.TORRENT, name='infohash1', auto_generated=True),
+                    Resource(predicate=Predicate.TORRENT, name='infohash2', auto_generated=True),
                 ],
                 'debian': [
-                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash2', auto_generated=True),
-                    Resource(predicate=Predicate.HAS_TORRENT, name='infohash3', auto_generated=True),
+                    Resource(predicate=Predicate.TORRENT, name='infohash2', auto_generated=True),
+                    Resource(predicate=Predicate.TORRENT, name='infohash3', auto_generated=True),
                 ],
             }
         )
 
-        assert self.db.get_subjects('infohash1', predicate=Predicate.HAS_TORRENT) == ['ubuntu']
-        assert self.db.get_subjects('infohash2', predicate=Predicate.HAS_TORRENT) == ['ubuntu', 'debian']
-        assert self.db.get_subjects('infohash3', predicate=Predicate.HAS_TORRENT) == ['debian']
+        assert self.db.get_subjects('infohash1', predicate=Predicate.TORRENT) == ['ubuntu']
+        assert self.db.get_subjects('infohash2', predicate=Predicate.TORRENT) == ['ubuntu', 'debian']
+        assert self.db.get_subjects('infohash3', predicate=Predicate.TORRENT) == ['debian']

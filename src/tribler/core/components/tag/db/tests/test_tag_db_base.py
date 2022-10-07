@@ -15,7 +15,7 @@ from tribler.core.utilities.pony_utils import get_or_create
 class Resource:
     name: str
     count: int = SHOW_THRESHOLD
-    predicate: int = Predicate.HAS_TAG
+    predicate: int = Predicate.TAG
     auto_generated: bool = False
 
 
@@ -41,7 +41,7 @@ class TestTagDBBase(TestBase):
         print('\nStatementOp')
         self.db.instance.StatementOp.select().show()
 
-    def create_statement(self, subject='subject', predicate: Predicate = Predicate.HAS_TAG,
+    def create_statement(self, subject='subject', predicate: Predicate = Predicate.TAG,
                          obj='object'):
         subj = get_or_create(self.db.instance.Resource, name=subject)
         obj = get_or_create(self.db.instance.Resource, name=obj)
@@ -51,7 +51,7 @@ class TestTagDBBase(TestBase):
 
     @staticmethod
     def create_operation(subject='subject', obj='object', peer=b'', operation=Operation.ADD,
-                         predicate=Predicate.HAS_TAG, clock=0):
+                         predicate=Predicate.TAG, clock=0):
         return StatementOperation(subject=subject, predicate=predicate, object=obj, operation=operation, clock=clock,
                                   creator_public_key=peer)
 

@@ -91,10 +91,10 @@ class TagRulesProcessor(TaskManager):
             return 0
         infohash_str = hexlify(infohash)
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
-            self.save_statements(subjects={infohash_str}, predicate=Predicate.HAS_TAG, objects=tags)
+            self.save_statements(subjects={infohash_str}, predicate=Predicate.TAG, objects=tags)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(subjects=content_items, predicate=Predicate.HAS_TORRENT, objects={infohash_str})
+            self.save_statements(subjects=content_items, predicate=Predicate.TORRENT, objects={infohash_str})
 
         return len(tags) + len(content_items)
 

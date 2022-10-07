@@ -29,7 +29,7 @@ class TestTagCommunity(TestBase):
 
     def create_operation(self, subject='1' * 20, obj=''):
         community = self.overlay(0)
-        operation = StatementOperation(subject=subject, predicate=Predicate.HAS_TAG, object=obj,
+        operation = StatementOperation(subject=subject, predicate=Predicate.TAG, object=obj,
                                        operation=Operation.ADD, clock=0,
                                        creator_public_key=community.tags_key.pub().key_to_bin())
         operation.clock = community.db.get_clock(operation) + 1

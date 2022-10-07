@@ -83,7 +83,7 @@ class TagsEndpoint(RESTEndpoint):
             return
 
         # First, get the current tags and compute the diff between the old and new tags
-        old_tags = set(self.db.get_objects(infohash, predicate=Predicate.HAS_TAG))
+        old_tags = set(self.db.get_objects(infohash, predicate=Predicate.TAG))
         added_tags = new_tags - old_tags
         removed_tags = old_tags - new_tags
 
@@ -91,7 +91,7 @@ class TagsEndpoint(RESTEndpoint):
         public_key = self.community.tags_key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
             type_of_operation = Operation.ADD if tag in added_tags else Operation.REMOVE
-            operation = StatementOperation(subject=infohash, predicate=Predicate.HAS_TAG, object=tag,
+            operation = StatementOperation(subject=infohash, predicate=Predicate.TAG, object=tag,
                                            operation=type_of_operation, clock=0, creator_public_key=public_key)
             operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)
@@ -119,5 +119,5 @@ class TagsEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            suggestions = self.db.get_suggestions(infohash, predicate=Predicate.HAS_TAG)
+            suggestions = self.db.get_suggestions(infohash, predicate=Predicate.TAG)
             return RESTResponse({"suggestions": suggestions})

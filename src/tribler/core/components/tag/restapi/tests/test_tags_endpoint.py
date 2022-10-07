@@ -65,7 +65,7 @@ async def test_modify_tags(rest_api, tags_db):
         await do_request(rest_api, f'tags/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = tags_db.get_objects(infohash, predicate=Predicate.HAS_TAG)
+            tags = tags_db.get_objects(infohash, predicate=Predicate.TAG)
         assert len(tags) == 2
 
         # Now remove a tag
@@ -74,7 +74,7 @@ async def test_modify_tags(rest_api, tags_db):
         await do_request(rest_api, f'tags/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = tags_db.get_objects(infohash, predicate=Predicate.HAS_TAG)
+            tags = tags_db.get_objects(infohash, predicate=Predicate.TAG)
         assert tags == ["abc"]
 
 
@@ -84,7 +84,7 @@ async def test_modify_tags_no_community(tags_db, tags_endpoint):
     tags_endpoint.modify_tags(infohash, {"abc", "def"})
 
     with db_session:
-        tags = tags_db.get_objects(infohash, predicate=Predicate.HAS_TAG)
+        tags = tags_db.get_objects(infohash, predicate=Predicate.TAG)
 
     assert len(tags) == 0
 
@@ -112,7 +112,7 @@ async def test_get_suggestions(rest_api, tags_db):
     with db_session:
         def _add_operation(op=Operation.ADD):
             random_key = default_eccrypto.generate_key('low')
-            operation = StatementOperation(subject=infohash_str, predicate=Predicate.HAS_TAG, object="test",
+            operation = StatementOperation(subject=infohash_str, predicate=Predicate.TAG, object="test",
                                            operation=op, clock=0, creator_public_key=random_key.pub().key_to_bin())
             tags_db.add_operation(operation, b"")
 

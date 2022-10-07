@@ -24,24 +24,24 @@ class Operation(IntEnum):
 
 
 class Predicate(IntEnum):
-    HAS_CONTRIBUTOR = 1
-    HAS_COVERAGE = 2
-    HAS_CREATOR = 3
-    HAS_DATE = 4
-    HAS_DESCRIPTION = 5
-    HAS_FORMAT = 6
-    HAS_IDENTIFIER = 7
-    HAS_LANGUAGE = 8
-    HAS_PUBLISHER = 9
-    HAS_RELATION = 10
-    HAS_RIGHTS = 11
-    HAS_SOURCE = 12
-    HAS_SUBJECT = 13
-    HAS_TITLE = 14
-    HAS_TYPE = 15
+    CONTRIBUTOR = 1
+    COVERAGE = 2
+    CREATOR = 3
+    DATE = 4
+    DESCRIPTION = 5
+    FORMAT = 6
+    IDENTIFIER = 7
+    LANGUAGE = 8
+    PUBLISHER = 9
+    RELATION = 10
+    RIGHTS = 11
+    SOURCE = 12
+    SUBJECT = 13
+    TITLE = 14
+    TYPE = 15
 
-    HAS_TAG = 101
-    HAS_TORRENT = 102
+    TAG = 101
+    TORRENT = 102
 
 
 class TagDatabase:

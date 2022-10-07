@@ -90,7 +90,7 @@ class MetadataEndpointBase(RESTEndpoint):
             return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                tags = self.tags_db.get_objects(torrent["infohash"], predicate=Predicate.HAS_TAG)
+                tags = self.tags_db.get_objects(torrent["infohash"], predicate=Predicate.TAG)
                 if hide_xxx:
                     tags = [tag.lower() for tag in tags if not default_xxx_filter.isXXX(tag, isFilename=False)]
                 torrent["tags"] = tags

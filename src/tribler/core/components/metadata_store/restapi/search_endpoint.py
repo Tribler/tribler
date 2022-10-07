@@ -23,10 +23,6 @@ class SearchEndpoint(MetadataEndpointBase):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def setup_routes(self):
         self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
 
@@ -81,7 +77,7 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=Predicate.HAS_TAG)
+                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=Predicate.TAG)
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
@@ -100,7 +96,7 @@ class SearchEndpoint(MetadataEndpointBase):
             for search_result in search_results:
                 with db_session:
                     content_items = self.tags_db.get_subjects(search_result["infohash"],
-                                                              predicate=Predicate.HAS_TORRENT)
+                                                              predicate=Predicate.TORRENT)
                 if content_items:
                     content_id = content_items[0]
                     if content_id not in content_to_torrents:

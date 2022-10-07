@@ -207,7 +207,7 @@ class RemoteQueryCommunity(TriblerCommunity):
         if not tags or not self.tags_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_tag(tag)}
-        return self.tags_db.get_subjects_intersection(valid_tags, predicate=Predicate.HAS_TAG)
+        return self.tags_db.get_subjects_intersection(valid_tags, predicate=Predicate.TAG)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 
