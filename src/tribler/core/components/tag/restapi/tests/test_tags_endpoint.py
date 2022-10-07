@@ -112,8 +112,8 @@ async def test_get_suggestions(rest_api, tags_db):
     with db_session:
         def _add_operation(op=Operation.ADD):
             random_key = default_eccrypto.generate_key('low')
-            operation = StatementOperation(subject=infohash_str, predicate=Predicate.HAS_TAG, object="test", operation=op,
-                                           clock=0, creator_public_key=random_key.pub().key_to_bin())
+            operation = StatementOperation(subject=infohash_str, predicate=Predicate.HAS_TAG, object="test",
+                                           operation=op, clock=0, creator_public_key=random_key.pub().key_to_bin())
             tags_db.add_operation(operation, b"")
 
         _add_operation(op=Operation.ADD)

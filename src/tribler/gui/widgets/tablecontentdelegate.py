@@ -4,14 +4,12 @@ from typing import Dict
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
-
 from psutil import LINUX
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT,\
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
-
 from tribler.gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
@@ -34,7 +32,7 @@ from tribler.gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler.gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr, get_color
+from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr
 from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -52,7 +50,8 @@ MAX_TAGS_TO_SHOW = 10
 
 
 def draw_text(
-    painter, rect, text, color=TRIBLER_NEUTRAL, font=None, text_flags=Qt.AlignLeft | Qt.AlignVCenter | Qt.TextSingleLine
+        painter, rect, text, color=TRIBLER_NEUTRAL, font=None,
+        text_flags=Qt.AlignLeft | Qt.AlignVCenter | Qt.TextSingleLine
 ):
     painter.save()
     text_box = painter.boundingRect(rect, text_flags, text)
@@ -97,7 +96,7 @@ def draw_progress_bar(painter, rect, progress=0.0):
     p.setPen(TRIBLER_PALETTE.light().color())
     font = p.font()
     p.setFont(font)
-    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
+    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress * 100))}%")
 
     painter.restore()
 
@@ -110,9 +109,9 @@ class CheckClickedMixin:
             return False
         attribute_name = model.columns[column_position].dict_key
         if (
-            event.type() == QEvent.MouseButtonRelease
-            and column_position == index.column()
-            and data_item.get(attribute_name, '') != ''
+                event.type() == QEvent.MouseButtonRelease
+                and column_position == index.column()
+                and data_item.get(attribute_name, '') != ''
         ):
             self.clicked.emit(index)
             return True
@@ -217,8 +216,8 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         # Check if we hover over the 'edit tags' button
         new_hovering_state = False
         if (
-            self.hover_index != self.no_index
-            and self.hover_index.column() == index.model().column_position[Column.NAME]
+                self.hover_index != self.no_index
+                and self.hover_index.column() == index.model().column_position[Column.NAME]
         ):
             if index in index.model().edit_tags_rects:
                 rect = index.model().edit_tags_rects[index]
@@ -372,7 +371,7 @@ class TagsMixin:
     edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
 
     def draw_title_and_tags(
-        self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
+            self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
     ) -> None:
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
@@ -433,7 +432,8 @@ class TagsMixin:
                 is_hovering = self.hovering_over_download_popular_torrent_button == torrent_ind and self.hover_index == index
                 painter.setPen(QColor(QColor(TRIBLER_ORANGE) if is_hovering else "#ccc"))
 
-                torrent_in_snippet_rect = QRectF(title_text_x, snippets_y, option.rect.width() - 6, TORRENT_IN_SNIPPET_HEIGHT)
+                torrent_in_snippet_rect = QRectF(title_text_x, snippets_y, option.rect.width() - 6,
+                                                 TORRENT_IN_SNIPPET_HEIGHT)
                 painter.drawText(
                     torrent_in_snippet_rect,
                     Qt.AlignVCenter,
@@ -575,7 +575,7 @@ class DownloadControlsMixin:
             active_buttons = [b for b in self.ondemand_container if b.should_draw(index)]
             if active_buttons:
                 for rect, button in TriblerButtonsDelegate.split_rect_into_squares(
-                    button_box_extended_rect, active_buttons
+                        button_box_extended_rect, active_buttons
                 ):
                     button.paint(painter, rect, index)
         return True
@@ -688,7 +688,6 @@ class CategoryLabel(QObject):
 
 
 class SubscribeToggleControl(QObject, CheckClickedMixin):
-
     clicked = pyqtSignal(QModelIndex)
 
     def __init__(self, column_name, parent=None):
@@ -858,7 +857,8 @@ class HealthStatusDisplay(QObject):
         elif data_item["type"] == SNIPPET:
             for ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
                 panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT / 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
-                health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'], torrent_in_snippet['last_tracker_check'])
+                health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'],
+                                    torrent_in_snippet['last_tracker_check'])
                 self.paint_elements(painter, rect, panel_y, health, torrent_in_snippet, hover, draw_health_text=False)
 
     def paint_elements(self, painter, rect, panel_y, health, data_item, hover=False, draw_health_text=True):
@@ -898,7 +898,6 @@ class HealthStatusDisplay(QObject):
 
 
 class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
-
     clicked = pyqtSignal(QModelIndex)
 
     def __init__(self, column_name, parent=None):

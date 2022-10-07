@@ -213,7 +213,7 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        self.add_operation(self.db, subject='infohash1', predicate=Predicate.HAS_TAG, object='tag2', peer=b'4',
+        self.add_operation(self.db, subject='infohash1', predicate=Predicate.HAS_TAG, obj='tag2', peer=b'4',
                            operation=Operation.REMOVE)
 
         assert self.db.get_objects('infohash1', predicate=Predicate.HAS_TAG) == ['tag1']
@@ -251,22 +251,22 @@ class TestTagDB(TestTagDBBase):
     async def test_suggestions(self):
         # Test whether the database returns the right suggestions.
         # Suggestions are tags that have not gathered enough support for display yet.
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, object='tag1', peer=b'1')
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, object='tag1', peer=b'2')
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_CONTRIBUTOR, object='contributor',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'1')
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'2')
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_CONTRIBUTOR, obj='contributor',
                            peer=b'2')
 
         assert self.db.get_suggestions('subject', predicate=Predicate.HAS_TAG) == []  # This tag now has enough support
 
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, object='tag1', peer=b'3',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'3',
                            operation=Operation.REMOVE)  # score:1
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, object='tag1', peer=b'4',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'4',
                            operation=Operation.REMOVE)  # score:0
         assert self.db.get_suggestions('subject', predicate=Predicate.HAS_TAG) == ["tag1"]
 
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, object='tag1', peer=b'5',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'5',
                            operation=Operation.REMOVE)  # score:-1
-        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, object='tag1', peer=b'6',
+        self.add_operation(self.db, subject='subject', predicate=Predicate.HAS_TAG, obj='tag1', peer=b'6',
                            operation=Operation.REMOVE)  # score:-2
         assert not self.db.get_suggestions('infohash', predicate=Predicate.HAS_TAG)  # below the threshold
 
@@ -275,7 +275,7 @@ class TestTagDB(TestTagDBBase):
         operation = self.create_operation()
         assert self.db.get_clock(operation) == 0
 
-        self.add_operation(self.db, subject=operation.subject, predicate=operation.predicate, object=operation.object,
+        self.add_operation(self.db, subject=operation.subject, predicate=operation.predicate, obj=operation.object,
                            peer=operation.creator_public_key, clock=1)
 
         assert self.db.get_clock(operation) == 1
