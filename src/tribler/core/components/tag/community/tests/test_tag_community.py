@@ -27,9 +27,9 @@ class TestTagCommunity(TestBase):
         return MockIPv8("curve25519", TagCommunity, db=TagDatabase(), tags_key=LibNaCLSK(),
                         request_interval=REQUEST_INTERVAL_FOR_RANDOM_TAGS)
 
-    def create_operation(self, tag=''):
+    def create_operation(self, subject='1' * 20, obj=''):
         community = self.overlay(0)
-        operation = StatementOperation(subject='1' * 20, predicate=Predicate.HAS_TAG, object=tag,
+        operation = StatementOperation(subject=subject, predicate=Predicate.HAS_TAG, object=obj,
                                        operation=Operation.ADD, clock=0,
                                        creator_public_key=community.tags_key.pub().key_to_bin())
         operation.clock = community.db.get_clock(operation) + 1
@@ -37,18 +37,23 @@ class TestTagCommunity(TestBase):
 
     @db_session
     async def fill_db(self):
-        # create 10 tag operations:
+        # create 10 operations:
         # first 5 of them are correct
         # next 5 of them are incorrect
+        # a single operation should be cyrillic
         community = self.overlay(0)
         for i in range(10):
-            message = self.create_operation(f'{i}' * 3)
+            message = self.create_operation(obj=f'{i}' * 3)
             signature = community.sign(message)
             # 5 of them are signed incorrectly
             if i >= 5:
                 signature = b'1' * 64
 
             community.db.add_operation(message, signature)
+
+        # a single entity should be cyrillic
+        cyrillic_message = self.create_operation(subject='Контент', obj='Тэг')
+        community.db.add_operation(cyrillic_message, community.sign(cyrillic_message))
 
         # put them into the past
         for op in community.db.instance.StatementOp.select():
@@ -61,8 +66,8 @@ class TestTagCommunity(TestBase):
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_TAGS * 2)
         with db_session:
-            assert self.overlay(0).db.instance.StatementOp.select().count() == 10
-            assert self.overlay(1).db.instance.StatementOp.select().count() == 5
+            assert self.overlay(0).db.instance.StatementOp.select().count() == 11
+            assert self.overlay(1).db.instance.StatementOp.select().count() == 6
 
     async def test_gossip_no_fresh_tags(self):
         # Test that no fresh tags be propagated
@@ -77,8 +82,8 @@ class TestTagCommunity(TestBase):
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_TAGS * 2)
         with db_session:
-            assert self.overlay(0).db.instance.StatementOp.select().count() == 10
-            assert self.overlay(1).db.instance.StatementOp.select().count() == 4  # 5 invalid signature + 1 fresh tag
+            assert self.overlay(0).db.instance.StatementOp.select().count() == 11
+            assert self.overlay(1).db.instance.StatementOp.select().count() == 5
 
     async def test_on_message_eat_exceptions(self):
         # Tests that except blocks in on_message function works as expected

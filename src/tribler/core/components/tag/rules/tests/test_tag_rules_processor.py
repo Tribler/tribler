@@ -42,7 +42,7 @@ def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: 
 
     # test that process_torrent_title does find tags in the title
     assert tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
-    mocked_save_tags.assert_called_with({'infohash'}, {'tag'}, relation=Predicate.HAS_TAG)
+    mocked_save_tags.assert_called_with(subjects={'696e666f68617368'}, objects={'tag'}, predicate=Predicate.HAS_TAG)
 
 
 def test_save_tags(tag_rules_processor: TagRulesProcessor):
