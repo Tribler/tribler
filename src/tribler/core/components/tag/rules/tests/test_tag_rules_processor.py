@@ -42,14 +42,18 @@ def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: 
 
     # test that process_torrent_title does find tags in the title
     assert tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
-    mocked_save_tags.assert_called_with(subjects={'696e666f68617368'}, objects={'tag'}, predicate=Predicate.TAG)
+    mocked_save_tags.assert_called_with(subject_type=Predicate.TORRENT, subjects={'696e666f68617368'}, objects={'tag'},
+                                        predicate=Predicate.TAG)
 
 
 def test_save_tags(tag_rules_processor: TagRulesProcessor):
     # test that tag_rules_processor calls TagDatabase with correct args
-    expected_calls = [{'obj': 'tag2', 'predicate': Predicate.TAG, 'subject': 'infohash'},
-                      {'obj': 'tag1', 'predicate': Predicate.TAG, 'subject': 'infohash'}]
-    tag_rules_processor.save_statements(subjects={'infohash'}, predicate=Predicate.TAG, objects={'tag1', 'tag2'})
+    expected_calls = [
+        {'obj': 'tag2', 'predicate': Predicate.TAG, 'subject': 'infohash', 'subject_type': Predicate.TORRENT},
+        {'obj': 'tag1', 'predicate': Predicate.TAG, 'subject': 'infohash', 'subject_type': Predicate.TORRENT}
+    ]
+    tag_rules_processor.save_statements(subject_type=Predicate.TORRENT, subjects={'infohash'}, predicate=Predicate.TAG,
+                                        objects={'tag1', 'tag2'})
     actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated.mock_calls]
 
     # compare two lists of dict

@@ -91,19 +91,21 @@ class TagRulesProcessor(TaskManager):
             return 0
         infohash_str = hexlify(infohash)
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
-            self.save_statements(subjects={infohash_str}, predicate=Predicate.TAG, objects=tags)
+            self.save_statements(subject_type=Predicate.TORRENT, subjects={infohash_str}, predicate=Predicate.TAG,
+                                 objects=tags)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(subjects=content_items, predicate=Predicate.TORRENT, objects={infohash_str})
+            self.save_statements(subject_type=Predicate.TITLE, subjects=content_items, predicate=Predicate.TORRENT,
+                                 objects={infohash_str})
 
         return len(tags) + len(content_items)
 
     @db_session
-    def save_statements(self, subjects: Set[str], predicate: Predicate, objects: Set[str]):
+    def save_statements(self, subject_type: Predicate, subjects: Set[str], predicate: Predicate, objects: Set[str]):
         self.logger.debug(f'Save: {len(objects)} objects and {len(subjects)} subjects with predicate={predicate}')
         for subject in subjects:
             for obj in objects:
-                self.db.add_auto_generated(subject=subject, predicate=predicate, obj=obj)
+                self.db.add_auto_generated(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
 
     def get_last_processed_torrent_id(self) -> int:
         return int(self.mds.get_value(LAST_PROCESSED_TORRENT_ID, default='0'))

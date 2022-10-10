@@ -99,6 +99,7 @@ class TagCommunity(TriblerCommunity):
             for op in random_tag_operations:
                 try:
                     operation = StatementOperation(
+                        subject_type=op.statement.subject.type,
                         subject=op.statement.subject.name,
                         predicate=op.statement.predicate,
                         object=op.statement.object.name,

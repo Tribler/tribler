@@ -79,19 +79,19 @@ class TestTagDB(TestTagDBBase):
             assert self.db.instance.StatementOp.select().count() == 1
 
         # add the first operation
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1')
         assert_all_tables_have_the_only_one_entity()
 
         # add the same operation
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1')
         assert_all_tables_have_the_only_one_entity()
 
         # add an operation from the past
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1', clock=0)
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1', clock=0)
         assert_all_tables_have_the_only_one_entity()
 
         # add a duplicate operation but from the future
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1', clock=1000)
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1', clock=1000)
         assert_all_tables_have_the_only_one_entity()
 
         assert self.db.instance.StatementOp.get().operation == Operation.ADD
@@ -99,7 +99,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Statement.get().removed_count == 0
 
         # add a unique operation from the future
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1',
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1',
                            operation=Operation.REMOVE, clock=1001)
         assert_all_tables_have_the_only_one_entity()
         assert self.db.instance.StatementOp.get().operation == Operation.REMOVE
@@ -108,19 +108,19 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     async def test_remote_add_multiple_tag_operations(self):
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer2')
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer3')
-        self.add_operation(self.db, 'title', Predicate.TORRENT, 'infohash', b'peer1')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer2')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer3')
+        self.add_operation(self.db, Predicate.TITLE, 'title', Predicate.TORRENT, 'infohash', b'peer1')
 
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 3
         assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).added_count == 1
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 0
         assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).removed_count == 0
 
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer2',
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer2',
                            operation=Operation.REMOVE)
-        self.add_operation(self.db, 'title', Predicate.TORRENT, 'infohash', b'peer2',
+        self.add_operation(self.db, Predicate.TITLE, 'title', Predicate.TORRENT, 'infohash', b'peer2',
                            operation=Operation.REMOVE)
 
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 2
@@ -129,18 +129,19 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).added_count == 1
         assert self.db.instance.Statement.get(predicate=Predicate.TORRENT).removed_count == 1
 
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1',
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1',
                            operation=Operation.REMOVE)
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 1
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 2
 
-        self.add_operation(self.db, 'infohash', Predicate.TAG, 'tag', b'peer1')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash', Predicate.TAG, 'tag', b'peer1')
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).added_count == 2
         assert self.db.instance.Statement.get(predicate=Predicate.TAG).removed_count == 1
 
     @db_session
     async def test_add_auto_generated_tag(self):
         self.db.add_auto_generated(
+            subject_type=Predicate.TORRENT,
             subject='infohash',
             predicate=Predicate.TAG,
             obj='tag'
@@ -256,14 +257,17 @@ class TestTagDB(TestTagDBBase):
     async def test_show_local_resources(self):
         # Test that locally added tags have a priority to show.
         # That means no matter of other peers opinions, locally added tag should be visible.
-        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer1', operation=Operation.REMOVE)
-        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer2', operation=Operation.REMOVE)
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.TAG, 'tag1', b'peer1',
+                           operation=Operation.REMOVE)
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.TAG, 'tag1', b'peer2',
+                           operation=Operation.REMOVE)
         assert not self.db.get_objects('infohash1', Predicate.TAG)
 
         # test local add
-        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer3', operation=Operation.ADD,
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.TAG, 'tag1', b'peer3',
+                           operation=Operation.ADD,
                            is_local_peer=True)
-        self.add_operation(self.db, 'infohash1', Predicate.CONTRIBUTOR, 'contributor', b'peer3',
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.CONTRIBUTOR, 'contributor', b'peer3',
                            operation=Operation.ADD, is_local_peer=True)
         assert self.db.get_objects('infohash1', predicate=Predicate.TAG) == ['tag1']
         assert self.db.get_objects('infohash1', predicate=Predicate.CONTRIBUTOR) == ['contributor']
@@ -272,12 +276,13 @@ class TestTagDB(TestTagDBBase):
     async def test_hide_local_tags(self):
         # Test that locally removed tags should not be visible to local user.
         # No matter of other peers opinions, locally removed tag should be not visible.
-        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer1')
-        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer2')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.TAG, 'tag1', b'peer1')
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.TAG, 'tag1', b'peer2')
         assert self.db.get_objects('infohash1', Predicate.TAG) == ['tag1']
 
         # test local remove
-        self.add_operation(self.db, 'infohash1', Predicate.TAG, 'tag1', b'peer3', operation=Operation.REMOVE,
+        self.add_operation(self.db, Predicate.TORRENT, 'infohash1', Predicate.TAG, 'tag1', b'peer3',
+                           operation=Operation.REMOVE,
                            is_local_peer=True)
         assert self.db.get_objects('infohash1', Predicate.TAG) == []
 

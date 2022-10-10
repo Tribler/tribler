@@ -9,12 +9,13 @@ dataclass = overwrite_dataclass(dataclass)
 class StatementOperation:
     """Do not change the format of the StatementOperation, because this will result in an invalid signature.
     """
-    operation: int
-    clock: int  # this is the lamport-like clock that unique for each triple {public_key, infohash, tag}
-    creator_public_key: type_from_format('74s')
-    predicate: int
+    subject_type: int
     subject: str
+    predicate: int
     object: str
+    operation: int
+    clock: int  # this is the lamport-like clock that unique for each quadruple {public_key, subject, predicate, object}
+    creator_public_key: type_from_format('74s')
 
     def __str__(self):
         return f'({self.subject} {self.predicate} {self.object}), o:{self.operation}, c:{self.clock}))'

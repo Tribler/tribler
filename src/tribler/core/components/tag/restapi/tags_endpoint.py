@@ -91,8 +91,9 @@ class TagsEndpoint(RESTEndpoint):
         public_key = self.community.tags_key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
             type_of_operation = Operation.ADD if tag in added_tags else Operation.REMOVE
-            operation = StatementOperation(subject=infohash, predicate=Predicate.TAG, object=tag,
-                                           operation=type_of_operation, clock=0, creator_public_key=public_key)
+            operation = StatementOperation(subject_type=Predicate.TORRENT, subject=infohash, predicate=Predicate.TAG,
+                                           object=tag, operation=type_of_operation, clock=0,
+                                           creator_public_key=public_key)
             operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)
             self.db.add_operation(operation, signature, is_local_peer=True)

@@ -41,26 +41,26 @@ class TestTagDBBase(TestBase):
         print('\nStatementOp')
         self.db.instance.StatementOp.select().show()
 
-    def create_statement(self, subject='subject', predicate: Predicate = Predicate.TAG,
-                         obj='object'):
-        subj = get_or_create(self.db.instance.Resource, name=subject)
-        obj = get_or_create(self.db.instance.Resource, name=obj)
+    def create_statement(self, subject='subject', subject_type: Predicate = Predicate.TORRENT,
+                         predicate: Predicate = Predicate.TAG, obj='object'):
+        subj = get_or_create(self.db.instance.Resource, name=subject, type=subject_type)
+        obj = get_or_create(self.db.instance.Resource, name=obj, type=predicate)
         statement = get_or_create(self.db.instance.Statement, subject=subj, predicate=predicate, object=obj)
 
         return statement
 
     @staticmethod
-    def create_operation(subject='subject', obj='object', peer=b'', operation=Operation.ADD,
-                         predicate=Predicate.TAG, clock=0):
-        return StatementOperation(subject=subject, predicate=predicate, object=obj, operation=operation, clock=clock,
-                                  creator_public_key=peer)
+    def create_operation(subject_type: Predicate = Predicate.TORRENT, subject='subject', obj='object', peer=b'',
+                         operation=Operation.ADD, predicate=Predicate.TAG, clock=0):
+        return StatementOperation(subject=subject, subject_type=subject_type, predicate=predicate, object=obj,
+                                  operation=operation, clock=clock, creator_public_key=peer)
 
     @staticmethod
-    def add_operation(tag_db: TagDatabase, subject: str, predicate: Predicate, obj: str,
-                      peer=b'', operation: Operation = None, is_local_peer=False, clock=None,
-                      is_auto_generated=False, counter_increment: int = 1):
+    def add_operation(tag_db: TagDatabase, subject_type: Predicate = Predicate.TORRENT, subject: str = 'infohash',
+                      predicate: Predicate = Predicate.TAG, obj: str = 'tag', peer=b'', operation: Operation = None,
+                      is_local_peer=False, clock=None, is_auto_generated=False, counter_increment: int = 1):
         operation = operation or Operation.ADD
-        operation = TestTagDBBase.create_operation(subject, obj, peer, operation, predicate, clock)
+        operation = TestTagDBBase.create_operation(subject_type, subject, obj, peer, operation, predicate, clock)
         operation.clock = clock or tag_db.get_clock(operation) + 1
         result = tag_db.add_operation(operation, signature=b'', is_local_peer=is_local_peer,
                                       is_auto_generated=is_auto_generated, counter_increment=counter_increment)
@@ -78,5 +78,6 @@ class TestTagDBBase(TestBase):
         for subject, objects in dictionary.items():
             for obj in objects:
                 for peer in generate_n_peer_names(obj.count):
-                    TestTagDBBase.add_operation(tag_db, subject, obj.predicate, obj.name, peer,
+                    # assume that for test purposes all subject by default could be `Predicate.TORRENT`
+                    TestTagDBBase.add_operation(tag_db, Predicate.TORRENT, subject, obj.predicate, obj.name, peer,
                                                 is_auto_generated=obj.auto_generated)

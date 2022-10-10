@@ -58,8 +58,8 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
                 suggested_tags.append(tag)
 
     def _add_operation(_tag, _op, _key):
-        operation = StatementOperation(subject=infohash, predicate=Predicate.TAG, object=_tag, operation=_op,
-                                       clock=0, creator_public_key=_key.pub().key_to_bin())
+        operation = StatementOperation(subject_type=Predicate.TORRENT, subject=infohash, predicate=Predicate.TAG,
+                                       object=_tag, operation=_op, clock=0, creator_public_key=_key.pub().key_to_bin())
         operation.clock = tags_db.get_clock(operation) + 1
         tags_db.add_operation(operation, b"")
 

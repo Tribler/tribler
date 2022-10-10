@@ -65,7 +65,7 @@ class TestRemoteSearchByTags(TestBase):
     async def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
-        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=Predicate.TAG)
+        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=Predicate.TAG, case_sensitive=False)
 
     @patch.object(MetadataStore, 'get_entries_threaded', new_callable=AsyncMock)
     async def test_process_rpc_query_no_tags(self, mocked_get_entries_threaded: AsyncMock):

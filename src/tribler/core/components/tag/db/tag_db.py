@@ -101,10 +101,13 @@ class TagDatabase:
 
         class Resource(db.Entity):
             id = orm.PrimaryKey(int, auto=True)
-            name = orm.Required(str, unique=True)
+            name = orm.Required(str)
+            type = orm.Required(int)
 
             subject_statements = orm.Set(lambda: Statement, reverse="subject")
             object_statements = orm.Set(lambda: Statement, reverse="object")
+
+            orm.composite_key(name, type)
 
         class StatementOp(db.Entity):
             id = orm.PrimaryKey(int, auto=True)
@@ -135,8 +138,8 @@ class TagDatabase:
         """
         self.logger.debug(f'Add operation. {operation.subject} "{operation.predicate}" {operation.object}')
         peer = get_or_create(self.instance.Peer, public_key=operation.creator_public_key)
-        subject = get_or_create(self.instance.Resource, name=operation.subject)
-        obj = get_or_create(self.instance.Resource, name=operation.object)
+        subject = get_or_create(self.instance.Resource, name=operation.subject, type=operation.subject_type)
+        obj = get_or_create(self.instance.Resource, name=operation.object, type=operation.predicate)
         statement = get_or_create(self.instance.Statement, subject=subject, predicate=operation.predicate, object=obj)
         op = self.instance.StatementOp.get_for_update(statement=statement, peer=peer)
 
@@ -162,8 +165,9 @@ class TagDatabase:
                updated_at=datetime.datetime.utcnow(), auto_generated=is_auto_generated)
         return True
 
-    def add_auto_generated(self, subject: str, predicate: Predicate, obj: str):
+    def add_auto_generated(self, subject_type: Predicate, subject: str, predicate: Predicate, obj: str):
         operation = StatementOperation(
+            subject_type=subject_type,
             subject=subject,
             predicate=predicate,
             object=obj,
@@ -240,8 +244,8 @@ class TagDatabase:
         """ Get the clock (int) of operation.
         """
         peer = self.instance.Peer.get(public_key=operation.creator_public_key)
-        subject = self.instance.Resource.get(name=operation.subject)
-        obj = self.instance.Resource.get(name=operation.object)
+        subject = self.instance.Resource.get(name=operation.subject, type=operation.subject_type)
+        obj = self.instance.Resource.get(name=operation.object, type=operation.predicate)
         if not subject or not obj or not peer:
             return CLOCK_START_VALUE
 
