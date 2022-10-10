@@ -181,38 +181,44 @@ class TagDatabase:
         return statement.local_operation == Operation.ADD.value or \
                not statement.local_operation and statement.score >= SHOW_THRESHOLD
 
-    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: Predicate,
-                       is_normal_direction: bool = True) -> List[str]:
+    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: Predicate, case_sensitive: bool,
+                       is_normal_direction: bool) -> List[str]:
         """ Get resources that satisfy a given condition.
         """
-        resource_entity = self.instance.Resource.get(name=resource)
-        if not resource_entity:
+        if case_sensitive:
+            resources = list(self.instance.Resource.select(lambda r: r.name == resource))
+        else:
+            resources = list(self.instance.Resource.select(lambda r: r.name.lower() == resource.lower()))
+
+        if not resources:
             return []
+        result = []
+        for resource_entity in resources:
+            query = (
+                (resource_entity.subject_statements if is_normal_direction else resource_entity.object_statements)
+                .select(condition)
+                .filter(lambda statement: statement.predicate == predicate.value)
+            )
+            query = query.order_by(lambda statement: orm.desc(statement.score))
+            query = orm.select(s.object.name if is_normal_direction else s.subject.name for s in query)
+            result.extend(query)
+        return result
 
-        query = (
-            (resource_entity.subject_statements if is_normal_direction else resource_entity.object_statements)
-            .select(condition)
-            .filter(lambda statement: statement.predicate == predicate.value)
-        )
-        query = query.order_by(lambda statement: orm.desc(statement.score))
-        query = orm.select(s.object.name if is_normal_direction else s.subject.name for s in query)
-        return list(query)
-
-    def get_objects(self, subject: str, predicate: Predicate) -> List[str]:
+    def get_objects(self, subject: str, predicate: Predicate, case_sensitive: bool = True) -> List[str]:
         """ Get resources that satisfies given subject and predicate.
         """
         self.logger.debug(f'Get resources for {subject} with {predicate}')
 
-        return self._get_resources(subject, self._show_condition, predicate)
+        return self._get_resources(subject, self._show_condition, predicate, case_sensitive, is_normal_direction=True)
 
-    def get_subjects(self, obj: str, predicate: Predicate) -> List[str]:
+    def get_subjects(self, obj: str, predicate: Predicate, case_sensitive: bool = True) -> List[str]:
         """ Get list of subjects that could be linked back to the objects.
         """
         self.logger.debug(f'Get linked back resources for {obj} with {predicate}')
 
-        return self._get_resources(obj, self._show_condition, predicate, is_normal_direction=False)
+        return self._get_resources(obj, self._show_condition, predicate, case_sensitive, is_normal_direction=False)
 
-    def get_suggestions(self, subject: str, predicate: Predicate) -> List[str]:
+    def get_suggestions(self, subject: str, predicate: Predicate, case_sensitive: bool = True) -> List[str]:
         """Get all suggestions for a particular subject.
         """
         self.logger.debug(f"Getting suggestions for {subject} with {predicate}")
@@ -221,11 +227,13 @@ class TagDatabase:
             return not statement.local_operation and \
                    between(statement.score, HIDE_THRESHOLD + 1, SHOW_THRESHOLD - 1)
 
-        return self._get_resources(subject, show_suggestions_condition, predicate)
+        return self._get_resources(subject, show_suggestions_condition, predicate, case_sensitive,
+                                   is_normal_direction=True)
 
-    def get_subjects_intersection(self, objects: Set[str], predicate: Predicate) -> Set[str]:
+    def get_subjects_intersection(self, objects: Set[str], predicate: Predicate,
+                                  case_sensitive: bool = True) -> Set[str]:
         # FIXME: Ask @kozlovsky how to do it in a proper way
-        sets = [set(self.get_subjects(o, predicate)) for o in objects]
+        sets = [set(self.get_subjects(o, predicate, case_sensitive)) for o in objects]
         return set.intersection(*sets)
 
     def get_clock(self, operation: StatementOperation) -> int:

@@ -219,6 +219,40 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_objects('infohash1', predicate=Predicate.TAG) == ['tag1']
 
     @db_session
+    async def test_get_objects_case_insensitive(self):
+        # Test that for case sensitive queries the result is the exact match.
+        # Test that for case insensitive queries the result is the case insensitive match.
+
+        self.add_operation_set(
+            self.db,
+            {
+                'ubuntu': [
+                    Resource(predicate=Predicate.TORRENT, name='torrent'),
+                ],
+                'Ubuntu': [
+                    Resource(predicate=Predicate.TORRENT, name='Torrent'),
+                ],
+                'UBUNTU': [
+                    Resource(predicate=Predicate.TORRENT, name='TORRENT'),
+                ]
+            }
+        )
+
+        all_torrents = ['torrent', 'Torrent', 'TORRENT']
+        assert self.db.get_objects('ubuntu', predicate=Predicate.TORRENT, case_sensitive=False) == all_torrents
+        assert self.db.get_objects('Ubuntu', predicate=Predicate.TORRENT, case_sensitive=False) == all_torrents
+
+        assert self.db.get_objects('ubuntu', predicate=Predicate.TORRENT, case_sensitive=True) == ['torrent']
+        assert self.db.get_objects('Ubuntu', predicate=Predicate.TORRENT, case_sensitive=True) == ['Torrent']
+
+        all_ubuntu = ['ubuntu', 'Ubuntu', 'UBUNTU']
+        assert self.db.get_subjects('torrent', predicate=Predicate.TORRENT, case_sensitive=False) == all_ubuntu
+        assert self.db.get_subjects('Torrent', predicate=Predicate.TORRENT, case_sensitive=False) == all_ubuntu
+
+        assert self.db.get_subjects('torrent', predicate=Predicate.TORRENT, case_sensitive=True) == ['ubuntu']
+        assert self.db.get_subjects('Torrent', predicate=Predicate.TORRENT, case_sensitive=True) == ['Ubuntu']
+
+    @db_session
     async def test_show_local_resources(self):
         # Test that locally added tags have a priority to show.
         # That means no matter of other peers opinions, locally added tag should be visible.
@@ -346,7 +380,11 @@ class TestTagDB(TestTagDBBase):
                 ],
                 'infohash3': [
                     Resource(name='tag2')
-                ]
+                ],
+                'infohash4': [
+                    Resource(name='TAG1'),
+                    Resource(name='TAG2'),
+                ],
             }
         )
 
@@ -359,7 +397,13 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_subjects_intersection({'tag2'}, predicate=Predicate.TAG) == {'infohash1', 'infohash3'}
         assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=Predicate.TAG) == {'infohash1'}
         assert self.db.get_subjects_intersection({'Contributor'}, predicate=Predicate.CONTRIBUTOR) == {'infohash1',
-                                                                                                           'infohash2'}
+                                                                                                       'infohash2'}
+
+        # case insensitive
+        assert self.db.get_subjects_intersection({'tag1'}, predicate=Predicate.TAG, case_sensitive=False) == {
+            'infohash1', 'infohash2', 'infohash4'}
+        assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=Predicate.TAG, case_sensitive=False) == {
+            'infohash1', 'infohash4'}
 
     @db_session
     async def test_show_condition(self):

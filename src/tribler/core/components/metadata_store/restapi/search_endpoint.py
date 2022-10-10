@@ -77,7 +77,8 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=Predicate.TAG)
+                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=Predicate.TAG,
+                                                                          case_sensitive=False)
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
