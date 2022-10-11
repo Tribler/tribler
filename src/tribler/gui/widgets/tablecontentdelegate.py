@@ -139,7 +139,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.column_drawing_actions = []
         self.font_metrics = None
 
-        self.hovering_over_tag_edit_button = False
+        self.hovering_over_tag_edit_button: bool = False
         self.hovering_over_download_popular_torrent_button: int = -1
 
         # TODO: restore this behavior, so there is really some tolerance zone!

@@ -52,7 +52,6 @@ class TriblerContentTableView(QTableView):
 
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
-    content_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
     edited_tags = pyqtSignal(dict)
 
@@ -119,6 +118,10 @@ class TriblerContentTableView(QTableView):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         should_select_row = True
         index = self.indexAt(event.pos())
+        data_item = index.model().data_items[index.row()]
+        if data_item["type"] == SNIPPET:
+            should_select_row = False
+
         if index != self.delegate.no_index:
             # Check if we are clicking the 'edit tags' button
             if index in index.model().edit_tags_rects:
@@ -221,8 +224,6 @@ class TriblerContentTableView(QTableView):
         # Safely determine if the thing is a channel. A little bit hackish
         if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
             self.channel_clicked.emit(data_item)
-        elif data_item.get("type") == SNIPPET:
-            self.content_clicked.emit(data_item)
         elif data_item.get('type') == REGULAR_TORRENT:
             if not doubleclick:
                 self.torrent_clicked.emit(data_item)
