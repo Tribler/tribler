@@ -5,7 +5,7 @@ from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
 
 from tribler.core.components.tag.community.tag_payload import StatementOperation
-from tribler.core.components.tag.db.tag_db import Operation, Predicate, SHOW_THRESHOLD, TagDatabase
+from tribler.core.components.tag.db.tag_db import Operation, ResourceType, SHOW_THRESHOLD, TagDatabase
 from tribler.core.utilities.pony_utils import get_or_create
 
 
@@ -15,7 +15,7 @@ from tribler.core.utilities.pony_utils import get_or_create
 class Resource:
     name: str
     count: int = SHOW_THRESHOLD
-    predicate: int = Predicate.TAG
+    predicate: int = ResourceType.TAG
     auto_generated: bool = False
 
 
@@ -41,8 +41,8 @@ class TestTagDBBase(TestBase):
         print('\nStatementOp')
         self.db.instance.StatementOp.select().show()
 
-    def create_statement(self, subject='subject', subject_type: Predicate = Predicate.TORRENT,
-                         predicate: Predicate = Predicate.TAG, obj='object'):
+    def create_statement(self, subject='subject', subject_type: ResourceType = ResourceType.TORRENT,
+                         predicate: ResourceType = ResourceType.TAG, obj='object'):
         subj = get_or_create(self.db.instance.Resource, name=subject, type=subject_type)
         obj = get_or_create(self.db.instance.Resource, name=obj, type=predicate)
         statement = get_or_create(self.db.instance.Statement, subject=subj, predicate=predicate, object=obj)
@@ -50,14 +50,14 @@ class TestTagDBBase(TestBase):
         return statement
 
     @staticmethod
-    def create_operation(subject_type: Predicate = Predicate.TORRENT, subject='subject', obj='object', peer=b'',
-                         operation=Operation.ADD, predicate=Predicate.TAG, clock=0):
+    def create_operation(subject_type: ResourceType = ResourceType.TORRENT, subject='subject', obj='object', peer=b'',
+                         operation=Operation.ADD, predicate=ResourceType.TAG, clock=0):
         return StatementOperation(subject=subject, subject_type=subject_type, predicate=predicate, object=obj,
                                   operation=operation, clock=clock, creator_public_key=peer)
 
     @staticmethod
-    def add_operation(tag_db: TagDatabase, subject_type: Predicate = Predicate.TORRENT, subject: str = 'infohash',
-                      predicate: Predicate = Predicate.TAG, obj: str = 'tag', peer=b'', operation: Operation = None,
+    def add_operation(tag_db: TagDatabase, subject_type: ResourceType = ResourceType.TORRENT, subject: str = 'infohash',
+                      predicate: ResourceType = ResourceType.TAG, obj: str = 'tag', peer=b'', operation: Operation = None,
                       is_local_peer=False, clock=None, is_auto_generated=False, counter_increment: int = 1):
         operation = operation or Operation.ADD
         operation = TestTagDBBase.create_operation(subject_type, subject, obj, peer, operation, predicate, clock)
@@ -79,5 +79,5 @@ class TestTagDBBase(TestBase):
             for obj in objects:
                 for peer in generate_n_peer_names(obj.count):
                     # assume that for test purposes all subject by default could be `Predicate.TORRENT`
-                    TestTagDBBase.add_operation(tag_db, Predicate.TORRENT, subject, obj.predicate, obj.name, peer,
+                    TestTagDBBase.add_operation(tag_db, ResourceType.TORRENT, subject, obj.predicate, obj.name, peer,
                                                 is_auto_generated=obj.auto_generated)

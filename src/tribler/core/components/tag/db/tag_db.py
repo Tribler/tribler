@@ -23,7 +23,7 @@ class Operation(IntEnum):
     REMOVE = 2
 
 
-class Predicate(IntEnum):
+class ResourceType(IntEnum):
     CONTRIBUTOR = 1
     COVERAGE = 2
     CREATOR = 3
@@ -165,7 +165,7 @@ class TagDatabase:
                updated_at=datetime.datetime.utcnow(), auto_generated=is_auto_generated)
         return True
 
-    def add_auto_generated(self, subject_type: Predicate, subject: str, predicate: Predicate, obj: str):
+    def add_auto_generated(self, subject_type: ResourceType, subject: str, predicate: ResourceType, obj: str):
         operation = StatementOperation(
             subject_type=subject_type,
             subject=subject,
@@ -185,7 +185,7 @@ class TagDatabase:
         return statement.local_operation == Operation.ADD.value or \
                not statement.local_operation and statement.score >= SHOW_THRESHOLD
 
-    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: Predicate, case_sensitive: bool,
+    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: ResourceType, case_sensitive: bool,
                        is_normal_direction: bool) -> List[str]:
         """ Get resources that satisfy a given condition.
         """
@@ -208,21 +208,21 @@ class TagDatabase:
             result.extend(query)
         return result
 
-    def get_objects(self, subject: str, predicate: Predicate, case_sensitive: bool = True) -> List[str]:
+    def get_objects(self, subject: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
         """ Get resources that satisfies given subject and predicate.
         """
         self.logger.debug(f'Get resources for {subject} with {predicate}')
 
         return self._get_resources(subject, self._show_condition, predicate, case_sensitive, is_normal_direction=True)
 
-    def get_subjects(self, obj: str, predicate: Predicate, case_sensitive: bool = True) -> List[str]:
+    def get_subjects(self, obj: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
         """ Get list of subjects that could be linked back to the objects.
         """
         self.logger.debug(f'Get linked back resources for {obj} with {predicate}')
 
         return self._get_resources(obj, self._show_condition, predicate, case_sensitive, is_normal_direction=False)
 
-    def get_suggestions(self, subject: str, predicate: Predicate, case_sensitive: bool = True) -> List[str]:
+    def get_suggestions(self, subject: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
         """Get all suggestions for a particular subject.
         """
         self.logger.debug(f"Getting suggestions for {subject} with {predicate}")
@@ -234,7 +234,7 @@ class TagDatabase:
         return self._get_resources(subject, show_suggestions_condition, predicate, case_sensitive,
                                    is_normal_direction=True)
 
-    def get_subjects_intersection(self, objects: Set[str], predicate: Predicate,
+    def get_subjects_intersection(self, objects: Set[str], predicate: ResourceType,
                                   case_sensitive: bool = True) -> Set[str]:
         # FIXME: Ask @kozlovsky how to do it in a proper way
         sets = [set(self.get_subjects(o, predicate, case_sensitive)) for o in objects]

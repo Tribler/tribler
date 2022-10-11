@@ -1,6 +1,6 @@
 import pytest
 
-from tribler.core.components.tag.db.tag_db import Operation, Predicate
+from tribler.core.components.tag.db.tag_db import Operation, ResourceType
 from tribler.core.components.tag.community.tag_validator import is_valid_tag, validate_operation, validate_relation, \
     validate_tag
 
@@ -44,12 +44,12 @@ async def test_incorrect_operation():
 
 
 async def test_correct_relation():
-    for relation in Predicate:
+    for relation in ResourceType:
         validate_relation(relation)  # no exception
         validate_relation(relation.value)  # no exception
 
 
 async def test_incorrect_relation():
-    max_relation = max(Predicate)
+    max_relation = max(ResourceType)
     with pytest.raises(ValueError):
         validate_operation(max_relation.value + 1)

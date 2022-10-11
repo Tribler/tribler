@@ -7,7 +7,7 @@ from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.tag.community.tag_payload import StatementOperation
-from tribler.core.components.tag.db.tag_db import Operation, Predicate, TagDatabase
+from tribler.core.components.tag.db.tag_db import Operation, ResourceType, TagDatabase
 from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler.core.tests.tools.common import PNG_FILE
 from tribler.core.utilities.unicode import hexlify
@@ -58,7 +58,7 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
                 suggested_tags.append(tag)
 
     def _add_operation(_tag, _op, _key):
-        operation = StatementOperation(subject_type=Predicate.TORRENT, subject=infohash, predicate=Predicate.TAG,
+        operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash, predicate=ResourceType.TAG,
                                        object=_tag, operation=_op, clock=0, creator_public_key=_key.pub().key_to_bin())
         operation.clock = tags_db.get_clock(operation) + 1
         tags_db.add_operation(operation, b"")

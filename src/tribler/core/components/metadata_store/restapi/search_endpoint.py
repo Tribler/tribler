@@ -11,10 +11,10 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
-from tribler.core.components.tag.db.tag_db import Predicate
+from tribler.core.components.tag.db.tag_db import ResourceType
 from tribler.core.utilities.utilities import froze_it
 
-SNIPPETS_TO_SHOW = 1          # The number of snippets we return from the search results
+SNIPPETS_TO_SHOW = 10          # The number of snippets we return from the search results
 MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
 
 
@@ -77,7 +77,7 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=Predicate.TAG,
+                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=ResourceType.TAG,
                                                                           case_sensitive=False)
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
@@ -97,7 +97,7 @@ class SearchEndpoint(MetadataEndpointBase):
             for search_result in search_results:
                 with db_session:
                     content_items = self.tags_db.get_subjects(search_result["infohash"],
-                                                              predicate=Predicate.TORRENT)
+                                                              predicate=ResourceType.TORRENT)
                 if content_items:
                     content_id = content_items[0]
                     if content_id not in content_to_torrents:

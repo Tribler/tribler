@@ -1,4 +1,4 @@
-from tribler.core.components.tag.db.tag_db import Operation, Predicate
+from tribler.core.components.tag.db.tag_db import Operation, ResourceType
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 
 
@@ -24,4 +24,4 @@ def validate_operation(operation: int):
 
 def validate_relation(relation: int):
     """Validate the incoming relation. Raises ValueError, in the case the relation is not valid."""
-    Predicate(relation)
+    ResourceType(relation)

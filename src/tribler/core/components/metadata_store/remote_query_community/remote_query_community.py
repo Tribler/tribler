@@ -20,7 +20,7 @@ from tribler.core.components.metadata_store.remote_query_community.payload_check
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.components.tag.community.tag_validator import is_valid_tag
-from tribler.core.components.tag.db.tag_db import Predicate
+from tribler.core.components.tag.db.tag_db import ResourceType
 from tribler.core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -207,7 +207,7 @@ class RemoteQueryCommunity(TriblerCommunity):
         if not tags or not self.tags_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_tag(tag)}
-        return self.tags_db.get_subjects_intersection(valid_tags, predicate=Predicate.TAG, case_sensitive=False)
+        return self.tags_db.get_subjects_intersection(valid_tags, predicate=ResourceType.TAG, case_sensitive=False)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 

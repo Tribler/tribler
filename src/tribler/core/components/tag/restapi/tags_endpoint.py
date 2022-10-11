@@ -11,7 +11,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST,
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.components.tag.community.tag_community import TagCommunity
 from tribler.core.components.tag.community.tag_payload import StatementOperation
-from tribler.core.components.tag.db.tag_db import Operation, Predicate, TagDatabase
+from tribler.core.components.tag.db.tag_db import Operation, ResourceType, TagDatabase
 from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
 from tribler.core.utilities.utilities import froze_it
 
@@ -83,7 +83,7 @@ class TagsEndpoint(RESTEndpoint):
             return
 
         # First, get the current tags and compute the diff between the old and new tags
-        old_tags = set(self.db.get_objects(infohash, predicate=Predicate.TAG))
+        old_tags = set(self.db.get_objects(infohash, predicate=ResourceType.TAG))
         added_tags = new_tags - old_tags
         removed_tags = old_tags - new_tags
 
@@ -91,7 +91,7 @@ class TagsEndpoint(RESTEndpoint):
         public_key = self.community.tags_key.pub().key_to_bin()
         for tag in added_tags.union(removed_tags):
             type_of_operation = Operation.ADD if tag in added_tags else Operation.REMOVE
-            operation = StatementOperation(subject_type=Predicate.TORRENT, subject=infohash, predicate=Predicate.TAG,
+            operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash, predicate=ResourceType.TAG,
                                            object=tag, operation=type_of_operation, clock=0,
                                            creator_public_key=public_key)
             operation.clock = self.db.get_clock(operation) + 1
@@ -120,5 +120,5 @@ class TagsEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            suggestions = self.db.get_suggestions(infohash, predicate=Predicate.TAG)
+            suggestions = self.db.get_suggestions(infohash, predicate=ResourceType.TAG)
             return RESTResponse({"suggestions": suggestions})

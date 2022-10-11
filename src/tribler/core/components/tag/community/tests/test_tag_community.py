@@ -10,7 +10,7 @@ from pony.orm import db_session
 from tribler.core.components.tag.community.tag_community import TagCommunity
 from tribler.core.components.tag.community.tag_payload import StatementOperation
 from tribler.core.components.tag.community.tag_requests import PeerValidationError
-from tribler.core.components.tag.db.tag_db import Operation, Predicate, TagDatabase
+from tribler.core.components.tag.db.tag_db import Operation, ResourceType, TagDatabase
 
 REQUEST_INTERVAL_FOR_RANDOM_TAGS = 0.1  # in seconds
 
@@ -29,7 +29,7 @@ class TestTagCommunity(TestBase):
 
     def create_operation(self, subject='1' * 20, obj=''):
         community = self.overlay(0)
-        operation = StatementOperation(subject_type=Predicate.TORRENT, subject=subject, predicate=Predicate.TAG,
+        operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=subject, predicate=ResourceType.TAG,
                                        object=obj, operation=Operation.ADD, clock=0,
                                        creator_public_key=community.tags_key.pub().key_to_bin())
         operation.clock = community.db.get_clock(operation) + 1

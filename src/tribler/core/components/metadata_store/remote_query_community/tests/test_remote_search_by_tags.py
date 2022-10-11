@@ -13,7 +13,7 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler.core.components.tag.db.tag_db import Predicate, SHOW_THRESHOLD, TagDatabase
+from tribler.core.components.tag.db.tag_db import ResourceType, SHOW_THRESHOLD, TagDatabase
 from tribler.core.components.tag.db.tests.test_tag_db import Resource, TestTagDB
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import hexlify
@@ -65,7 +65,7 @@ class TestRemoteSearchByTags(TestBase):
     async def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
-        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=Predicate.TAG, case_sensitive=False)
+        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=ResourceType.TAG, case_sensitive=False)
 
     @patch.object(MetadataStore, 'get_entries_threaded', new_callable=AsyncMock)
     async def test_process_rpc_query_no_tags(self, mocked_get_entries_threaded: AsyncMock):
@@ -93,10 +93,10 @@ class TestRemoteSearchByTags(TestBase):
                 self.rqc.tags_db,
                 {
                     hexlify(infohash1): [
-                        Resource(predicate=Predicate.TAG, name='tag1', count=SHOW_THRESHOLD),
+                        Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD),
                     ],
                     hexlify(infohash2): [
-                        Resource(predicate=Predicate.TAG, name='tag1', count=SHOW_THRESHOLD - 1),
+                        Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD - 1),
                     ]
                 })
 

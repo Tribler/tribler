@@ -7,7 +7,7 @@ from pony.orm import db_session
 from tribler.core import notifications
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.db.tag_db import Predicate, TagDatabase
+from tribler.core.components.tag.db.tag_db import ResourceType, TagDatabase
 from tribler.core.components.tag.rules.rules_content_items import content_items_rules
 from tribler.core.components.tag.rules.rules_general_tags import general_rules
 from tribler.core.components.tag.rules.tag_rules_base import extract_only_valid_tags
@@ -91,17 +91,17 @@ class TagRulesProcessor(TaskManager):
             return 0
         infohash_str = hexlify(infohash)
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
-            self.save_statements(subject_type=Predicate.TORRENT, subjects={infohash_str}, predicate=Predicate.TAG,
+            self.save_statements(subject_type=ResourceType.TORRENT, subjects={infohash_str}, predicate=ResourceType.TAG,
                                  objects=tags)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(subject_type=Predicate.TITLE, subjects=content_items, predicate=Predicate.TORRENT,
+            self.save_statements(subject_type=ResourceType.TITLE, subjects=content_items, predicate=ResourceType.TORRENT,
                                  objects={infohash_str})
 
         return len(tags) + len(content_items)
 
     @db_session
-    def save_statements(self, subject_type: Predicate, subjects: Set[str], predicate: Predicate, objects: Set[str]):
+    def save_statements(self, subject_type: ResourceType, subjects: Set[str], predicate: ResourceType, objects: Set[str]):
         self.logger.debug(f'Save: {len(objects)} objects and {len(subjects)} subjects with predicate={predicate}')
         for subject in subjects:
             for obj in objects:
