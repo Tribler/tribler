@@ -5,11 +5,10 @@ from tribler.core.components.tag.rules.tag_rules_base import Rule, RulesList
 
 space = r'[-\._\s]'
 two_digit_version = r'(\d{1,2}(?:\.\d{1,2})?)'
-three_digit_version = r'(\d{1,2}\.\d{1,2}(?:\.\d{1,2})?)'
 
 
 def pattern(linux_distribution: str) -> Pattern:
-    return re.compile(f'{linux_distribution}{space}*{three_digit_version}', flags=re.IGNORECASE)
+    return re.compile(f'{linux_distribution}{space}*{two_digit_version}', flags=re.IGNORECASE)
 
 
 content_items_rules: RulesList = [
