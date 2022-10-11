@@ -91,6 +91,24 @@ def title_rank(query: str, title: str) -> float:
     return calculate_rank(query, title)
 
 
+# These coefficients are found empirically. Their exact values are not very important for a relative ranking of results
+
+# The first word in a query is considered as a more important than the next one and so on,
+# 5 means the 5th word in a query is twice as less important as the first one
+POSITION_COEFF = 5
+
+# Some big value for a penalty if a query word is totally missed from a torrent title
+MISSED_WORD_PENALTY = 10
+
+# If a torrent title contains some words at the very end that are not mentioned in a query, we add a very slight
+# penalty for them. The *bigger* the REMAINDER_COEFF is, the *smaller* penalty we add for this excess words
+REMAINDER_COEFF = 10
+
+# The exact value of this coefficient is not important. It is used to convert total_error value to a rank value.
+# The total_error value is some positive number. We want to have the resulted rank in range [0, 1].
+RANK_NORMALIZATION_COEFF = 10
+
+
 def calculate_rank(query: List[str], title: List[str]) -> float:
     """
     Calculate the similarity of the title to the query as a float value in range [0, 1].
@@ -105,7 +123,7 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
     total_error = 0
     for i, term in enumerate(query):
         # The first word is more important than the second word, and so on
-        term_weight = 5 / (5 + i)
+        term_weight = POSITION_COEFF / (POSITION_COEFF + i)
 
         found, skipped = find_term(term, title)
         if found:
@@ -113,15 +131,15 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
             total_error += skipped * term_weight
         else:
             # if the query word is not found in the title, add a big penalty for it
-            total_error += 10 * term_weight
+            total_error += MISSED_WORD_PENALTY * term_weight
 
     # a small penalty for excess words in the title that was not mentioned in the search phrase
-    remainder_weight = 1 / (10 + len(query))
+    remainder_weight = 1 / (REMAINDER_COEFF + len(query))
     remained_words_error = len(title) * remainder_weight
     total_error += remained_words_error
 
     # a search rank should be between 1 and 0
-    return 10 / (10 + total_error)
+    return RANK_NORMALIZATION_COEFF / (RANK_NORMALIZATION_COEFF + total_error)
 
 
 def find_term(term: str, title: Deque[str]) -> Tuple[bool, int]:
