@@ -9,12 +9,12 @@ dataclass = overwrite_dataclass(dataclass)
 class StatementOperation:
     """Do not change the format of the StatementOperation, because this will result in an invalid signature.
     """
-    subject_type: int
+    subject_type: int  # ResourceType enum
     subject: str
-    predicate: int
+    predicate: int  # ResourceType enum
     object: str
-    operation: int
-    clock: int  # this is the lamport-like clock that unique for each quadruple {public_key, subject, predicate, object}
+    operation: int  # Operation enum
+    clock: int  # This is the lamport-like clock that unique for each quadruple {public_key, subject, predicate, object}
     creator_public_key: type_from_format('74s')
 
     def __str__(self):
