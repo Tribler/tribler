@@ -176,7 +176,7 @@ async def test_single_snippet_in_search(rest_api, metadata_store, tags_db):
     def mocked_get_subjects(*_, **__) -> List[str]:
         return ["Abc"]
 
-    with patch.object(TagDatabase, 'get_subjects', wraps=mocked_get_subjects):
+    with patch.object(TagDatabase, 'get_objects', wraps=mocked_get_subjects):
         s1 = to_fts_query("abc")
         results = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
 
@@ -206,7 +206,7 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, tags_db):
             return ["Content item 2"]
         return []
 
-    with patch.object(TagDatabase, 'get_subjects', wraps=mocked_get_subjects):
+    with patch.object(TagDatabase, 'get_objects', wraps=mocked_get_subjects):
         s1 = to_fts_query("abc")
         parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
         results = parsed["results"]

@@ -45,8 +45,8 @@ class SearchEndpoint(MetadataEndpointBase):
         content_to_torrents: Dict[str, list] = defaultdict(list)
         for search_result in search_results:
             with db_session:
-                content_items: List[str] = self.tags_db.get_subjects(search_result["infohash"],
-                                                                     predicate=ResourceType.TORRENT)
+                content_items: List[str] = self.tags_db.get_objects(search_result["infohash"],
+                                                                    predicate=ResourceType.TITLE)
             if content_items:
                 for content_id in content_items:
                     content_to_torrents[content_id].append(search_result)

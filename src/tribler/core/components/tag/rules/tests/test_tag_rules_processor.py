@@ -42,7 +42,7 @@ def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: 
 
     # test that process_torrent_title does find tags in the title
     assert tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
-    mocked_save_tags.assert_called_with(subject_type=ResourceType.TORRENT, subjects={'696e666f68617368'}, objects={'tag'},
+    mocked_save_tags.assert_called_with(subject_type=ResourceType.TORRENT, subject='696e666f68617368', objects={'tag'},
                                         predicate=ResourceType.TAG)
 
 
@@ -52,7 +52,7 @@ def test_save_tags(tag_rules_processor: TagRulesProcessor):
         {'obj': 'tag2', 'predicate': ResourceType.TAG, 'subject': 'infohash', 'subject_type': ResourceType.TORRENT},
         {'obj': 'tag1', 'predicate': ResourceType.TAG, 'subject': 'infohash', 'subject_type': ResourceType.TORRENT}
     ]
-    tag_rules_processor.save_statements(subject_type=ResourceType.TORRENT, subjects={'infohash'}, predicate=ResourceType.TAG,
+    tag_rules_processor.save_statements(subject_type=ResourceType.TORRENT, subject='infohash', predicate=ResourceType.TAG,
                                         objects={'tag1', 'tag2'})
     actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated.mock_calls]
 

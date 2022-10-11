@@ -91,21 +91,20 @@ class TagRulesProcessor(TaskManager):
             return 0
         infohash_str = hexlify(infohash)
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
-            self.save_statements(subject_type=ResourceType.TORRENT, subjects={infohash_str}, predicate=ResourceType.TAG,
+            self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TAG,
                                  objects=tags)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(subject_type=ResourceType.TITLE, subjects=content_items, predicate=ResourceType.TORRENT,
-                                 objects={infohash_str})
+            self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TITLE,
+                                 objects=content_items)
 
         return len(tags) + len(content_items)
 
     @db_session
-    def save_statements(self, subject_type: ResourceType, subjects: Set[str], predicate: ResourceType, objects: Set[str]):
-        self.logger.debug(f'Save: {len(objects)} objects and {len(subjects)} subjects with predicate={predicate}')
-        for subject in subjects:
-            for obj in objects:
-                self.db.add_auto_generated(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
+    def save_statements(self, subject_type: ResourceType, subject: str, predicate: ResourceType, objects: Set[str]):
+        self.logger.debug(f'Save: {len(objects)} objects for "{subject}" with predicate={predicate}')
+        for obj in objects:
+            self.db.add_auto_generated(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
 
     def get_last_processed_torrent_id(self) -> int:
         return int(self.mds.get_value(LAST_PROCESSED_TORRENT_ID, default='0'))
