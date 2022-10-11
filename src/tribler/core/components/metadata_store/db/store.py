@@ -736,6 +736,42 @@ class MetadataStore:
 
         if sort_by is None:
             if txt_filter:
+                # pylint: disable=W0105
+                """
+                The following call of `sort_by` produces an ORDER BY expression that looks like this:
+
+                ORDER BY
+                    case when "g"."metadata_type" = $CHANNEL_TORRENT then 1
+                         when "g"."metadata_type" = $COLLECTION_NODE then 2
+                         else 3 end,
+
+                    search_rank(
+                        $QUERY_STRING,
+                        g.title,
+                        torrentstate.seeders + 0.1 * torrentstate.leechers,
+                        $CURRENT_TIME - strftime('%s', g.torrent_date)
+                    ) DESC,
+
+                    "torrentstate"."last_check" DESC,
+
+                So, the channel torrents and channel folders are always on top if they are not filtered out.
+                Then regular torrents are selected in order of their relevance according to a search_rank() result.
+                If two torrents have the same search rank, they are ordered by the last time they were checked.
+
+                The search_rank() function is called directly from the SQLite query, but is implemented in Python,
+                it is actually the torrent_rank() function from core/utilities/search_utils.py, wrapped with
+                keep_exception() to return possible exception from SQLite to Python.
+
+                The search_rank() function receives the following arguments:
+                  - the current query string (like "Big Buck Bunny");
+                  - the title of the current torrent;
+                  - the number of seeders;
+                  - the number of seconds since the torrent's creation time.
+
+                There is no separate argument for the number of leechers, so it is just added to the number of seeders,
+                leechers are considered ten times less important than seeders.
+                """
+
                 pony_query = pony_query.sort_by(
                     f"""
                     (1 if g.metadata_type == {CHANNEL_TORRENT} else 2 if g.metadata_type == {COLLECTION_NODE} else 3),
