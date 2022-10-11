@@ -7,6 +7,6 @@ sphinx_rtd_theme==1.0.0
 sphinxcontrib-httpdomain==1.8.0
 sphinxcontrib-openapi==0.7.0
 configobj==5.0.6
-mistune==0.8.4  # sphinxcontrib-openapi==0.7.0 cannot work with the latest mistune version (2.0.0)
+mistune==2.0.3  # sphinxcontrib-openapi==0.7.0 cannot work with the latest mistune version (2.0.0)
 MarkupSafe==2.0.1  # used by jinja2; 2.1.0 version removes soft_unicode and breaks jinja2-2.11.3
 pyipv8==2.8.0
