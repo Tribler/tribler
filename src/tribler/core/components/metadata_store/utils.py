@@ -6,9 +6,9 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.community.tag_payload import StatementOperation
-from tribler.core.components.tag.db.tag_db import Operation, ResourceType, TagDatabase
-from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
+from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
+from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType, KnowledgeDatabase
+from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.tests.tools.common import PNG_FILE
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
@@ -45,7 +45,7 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
         tags_count = random.randint(2, 6)
         tags = []
         while len(tags) < tags_count:
-            tag = get_random_word(min_length=MIN_TAG_LENGTH)
+            tag = get_random_word(min_length=MIN_RESOURCE_LENGTH)
             if tag not in tags:
                 tags.append(tag)
 
@@ -53,7 +53,7 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
         suggested_tags_count = random.randint(1, 3)
         suggested_tags = []
         while len(suggested_tags) < suggested_tags_count:
-            tag = get_random_word(min_length=MIN_TAG_LENGTH)
+            tag = get_random_word(min_length=MIN_RESOURCE_LENGTH)
             if tag not in suggested_tags:
                 suggested_tags.append(tag)
 
@@ -97,7 +97,7 @@ def generate_collection(metadata_store, tags_db, parent):
 
 
 @db_session
-def generate_channel(metadata_store: MetadataStore, tags_db: TagDatabase, title=None, subscribed=False):
+def generate_channel(metadata_store: MetadataStore, tags_db: KnowledgeDatabase, title=None, subscribed=False):
     # Remember and restore the original key
     orig_key = metadata_store.ChannelNode._my_key
 

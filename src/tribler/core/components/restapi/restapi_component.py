@@ -10,6 +10,8 @@ from tribler.core.components.gigachannel.gigachannel_component import GigaChanne
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
+from tribler.core.components.knowledge.restapi.tags_endpoint import TagsEndpoint
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
@@ -33,8 +35,6 @@ from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpo
 from tribler.core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 from tribler.core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
-from tribler.core.components.tag.restapi.tags_endpoint import TagsEndpoint
-from tribler.core.components.tag.tag_component import TagComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.utilities.unicode import hexlify
@@ -79,7 +79,7 @@ class RESTComponent(Component):
         resource_monitor_component = await self.maybe_component(ResourceMonitorComponent)
         bandwidth_accounting_component = await self.maybe_component(BandwidthAccountingComponent)
         gigachannel_component = await self.maybe_component(GigaChannelComponent)
-        tag_component = await self.maybe_component(TagComponent)
+        knowledge_component = await self.maybe_component(KnowledgeComponent)
         tunnel_component = await self.maybe_component(TunnelsComponent)
         torrent_checker_component = await self.maybe_component(TorrentCheckerComponent)
         gigachannel_manager_component = await self.maybe_component(GigachannelManagerComponent)
@@ -110,17 +110,22 @@ class RESTComponent(Component):
         self.maybe_add('/libtorrent', LibTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add('/torrentinfo', TorrentInfoEndpoint, libtorrent_component.download_manager)
         self.maybe_add('/metadata', MetadataEndpoint, torrent_checker, metadata_store_component.mds,
-                       tags_db=tag_component.tags_db, tag_rules_processor=tag_component.rules_processor)
+                       tags_db=knowledge_component.knowledge_db,
+                       tag_rules_processor=knowledge_component.rules_processor)
         self.maybe_add('/channels', ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
-                       gigachannel_component.community, metadata_store_component.mds, tags_db=tag_component.tags_db,
-                       tag_rules_processor=tag_component.rules_processor)
+                       gigachannel_component.community, metadata_store_component.mds,
+                       tags_db=knowledge_component.knowledge_db,
+                       tag_rules_processor=knowledge_component.rules_processor)
         self.maybe_add('/collections', ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
-                       gigachannel_component.community, metadata_store_component.mds, tags_db=tag_component.tags_db,
-                       tag_rules_processor=tag_component.rules_processor)
-        self.maybe_add('/search', SearchEndpoint, metadata_store_component.mds, tags_db=tag_component.tags_db)
+                       gigachannel_component.community, metadata_store_component.mds,
+                       tags_db=knowledge_component.knowledge_db,
+                       tag_rules_processor=knowledge_component.rules_processor)
+        self.maybe_add('/search', SearchEndpoint, metadata_store_component.mds,
+                       tags_db=knowledge_component.knowledge_db)
         self.maybe_add('/remote_query', RemoteQueryEndpoint, gigachannel_component.community,
                        metadata_store_component.mds)
-        self.maybe_add('/tags', TagsEndpoint, db=tag_component.tags_db, community=tag_component.community)
+        self.maybe_add('/tags', TagsEndpoint, db=knowledge_component.knowledge_db,
+                       community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):
             ipv8_root_endpoint = IPV8RootEndpoint()

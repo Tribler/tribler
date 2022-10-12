@@ -13,8 +13,8 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler.core.components.tag.db.tag_db import ResourceType, SHOW_THRESHOLD, TagDatabase
-from tribler.core.components.tag.db.tests.test_tag_db import Resource, TestTagDB
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType, SHOW_THRESHOLD, KnowledgeDatabase
+from tribler.core.components.knowledge.db.tests.test_knowledge_db import Resource, TestTagDB
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import hexlify
 
@@ -27,14 +27,14 @@ class TestRemoteSearchByTags(TestBase):
     def setUp(self):
         super().setUp()
         self.metadata_store = None
-        self.tags_db = None
+        self.knowledge_db = None
         self.initialize(BasicRemoteQueryCommunity, 1)
 
     async def tearDown(self):
         if self.metadata_store:
             self.metadata_store.shutdown()
-        if self.tags_db:
-            self.tags_db.shutdown()
+        if self.knowledge_db:
+            self.knowledge_db.shutdown()
 
         await super().tearDown()
 
@@ -45,10 +45,10 @@ class TestRemoteSearchByTags(TestBase):
             default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
-        self.tags_db = TagDatabase(str(Path(self.temporary_directory()) / "tags.db"))
+        self.knowledge_db = KnowledgeDatabase(str(Path(self.temporary_directory()) / "tags.db"))
 
         kwargs['metadata_store'] = self.metadata_store
-        kwargs['tags_db'] = self.tags_db
+        kwargs['knowledge_db'] = self.knowledge_db
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
         return super().create_node(*args, **kwargs)
 
@@ -56,12 +56,12 @@ class TestRemoteSearchByTags(TestBase):
     def rqc(self) -> RemoteQueryCommunity:
         return self.overlay(0)
 
-    @patch.object(RemoteQueryCommunity, 'tags_db', new=PropertyMock(return_value=None), create=True)
+    @patch.object(RemoteQueryCommunity, 'knowledge_db', new=PropertyMock(return_value=None), create=True)
     async def test_search_for_tags_no_db(self):
         # test that in case of missed `tags_db`, function `search_for_tags` returns None
         assert self.rqc.search_for_tags(tags=['tag']) is None
 
-    @patch.object(TagDatabase, 'get_subjects_intersection')
+    @patch.object(KnowledgeDatabase, 'get_subjects_intersection')
     async def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
@@ -90,7 +90,7 @@ class TestRemoteSearchByTags(TestBase):
         @db_session
         def fill_tags_database():
             TestTagDB.add_operation_set(
-                self.rqc.tags_db,
+                self.rqc.knowledge_db,
                 {
                     hexlify(infohash1): [
                         Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD),

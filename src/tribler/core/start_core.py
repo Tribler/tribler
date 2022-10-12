@@ -29,7 +29,7 @@ from tribler.core.components.resource_monitor.resource_monitor_component import 
 from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.components.tag.tag_component import TagComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.components.version_check.version_check_component import VersionCheckComponent
@@ -59,7 +59,7 @@ def components_gen(config: TriblerConfig):
         yield Ipv8Component()
 
     yield KeyComponent()
-    yield TagComponent()
+    yield KnowledgeComponent()
 
     if config.libtorrent.enabled:
         yield LibtorrentComponent()

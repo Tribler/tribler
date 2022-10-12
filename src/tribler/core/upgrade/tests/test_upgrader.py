@@ -9,7 +9,7 @@ from pony.orm import db_session, select
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
 from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
@@ -164,7 +164,7 @@ def test_upgrade_pony13to14(upgrader: TriblerUpgrader, state_dir, channels_dir, 
 
     upgrader.upgrade_pony_db_13to14()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
-    tags = TagDatabase(str(tags_path), create_tables=False, check_tables=False)
+    tags = KnowledgeDatabase(str(tags_path), create_tables=False, check_tables=False)
 
     with db_session:
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
@@ -182,7 +182,7 @@ def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channe
 
     # TagsComponent specifies create_tables=True option when it creates TagDatabase.
     # That means that the empty tags' database will be automatically created if it was not already present
-    tags = TagDatabase(str(tags_path), create_tables=True, check_tables=False)
+    tags = KnowledgeDatabase(str(tags_path), create_tables=True, check_tables=False)
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
 
     with db_session:

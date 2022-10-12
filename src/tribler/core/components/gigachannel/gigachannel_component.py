@@ -9,7 +9,7 @@ from tribler.core.components.gigachannel.community.sync_strategy import RemovePe
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.reporter.reporter_component import ReporterComponent
-from tribler.core.components.tag.tag_component import TagComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 
 
 class GigaChannelComponent(Component):
@@ -25,7 +25,7 @@ class GigaChannelComponent(Component):
 
         self._ipv8_component = await self.require_component(Ipv8Component)
         metadata_store_component = await self.require_component(MetadataStoreComponent)
-        tag_component = await self.get_component(TagComponent)
+        knowledge_component = await self.get_component(KnowledgeComponent)
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
         community = giga_channel_cls(
@@ -37,7 +37,7 @@ class GigaChannelComponent(Component):
             rqc_settings=config.remote_query_community,
             metadata_store=metadata_store_component.mds,
             max_peers=50,
-            tags_db=tag_component.tags_db if tag_component else None
+            knowledge_db=knowledge_component.knowledge_db if knowledge_component else None
         )
         self.community = community
         self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)

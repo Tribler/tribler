@@ -4,7 +4,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
-from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
@@ -47,11 +47,11 @@ class AddTagsDialog(DialogContainer):
         # Sanity check the entered tags
         entered_tags = self.dialog_widget.edit_tags_input.get_entered_tags()
         for tag in entered_tags:
-            if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
+            if len(tag) < MIN_RESOURCE_LENGTH or len(tag) > MAX_RESOURCE_LENGTH:
                 self.dialog_widget.error_text_label.setText(
                     tr(
                         "Each tag should be at least %d characters and can be at most %d characters."
-                        % (MIN_TAG_LENGTH, MAX_TAG_LENGTH)
+                        % (MIN_RESOURCE_LENGTH, MAX_RESOURCE_LENGTH)
                     )
                 )
                 self.dialog_widget.error_text_label.setHidden(False)

@@ -19,8 +19,8 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
-from tribler.core.components.tag.community.tag_validator import is_valid_tag
-from tribler.core.components.tag.db.tag_db import ResourceType
+from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -133,13 +133,13 @@ class RemoteQueryCommunity(TriblerCommunity):
     def __init__(self, my_peer, endpoint, network,
                  rqc_settings: RemoteQueryCommunitySettings = None,
                  metadata_store=None,
-                 tags_db=None,
+                 knowledge_db=None,
                  **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
         self.rqc_settings = rqc_settings
         self.mds: MetadataStore = metadata_store
-        self.tags_db = tags_db
+        self.knowledge_db = knowledge_db
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.
         # Also, this keeps track of hosts we responded to. There is a possibility that
@@ -204,10 +204,10 @@ class RemoteQueryCommunity(TriblerCommunity):
 
     @db_session
     def search_for_tags(self, tags: Optional[List[str]]) -> Optional[Set[str]]:
-        if not tags or not self.tags_db:
+        if not tags or not self.knowledge_db:
             return None
-        valid_tags = {tag for tag in tags if is_valid_tag(tag)}
-        return self.tags_db.get_subjects_intersection(valid_tags, predicate=ResourceType.TAG, case_sensitive=False)
+        valid_tags = {tag for tag in tags if is_valid_resource(tag)}
+        return self.knowledge_db.get_subjects_intersection(valid_tags, predicate=ResourceType.TAG, case_sensitive=False)
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 

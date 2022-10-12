@@ -1,7 +1,5 @@
-from ipv8.REST.schema import schema
-
 from marshmallow import Schema
-from marshmallow.fields import Boolean, Integer, String
+from marshmallow.fields import String
 
 
 class HandledErrorSchema(Schema):

@@ -1,7 +1,5 @@
-
-from aiohttp.web_app import Application
-
 import pytest
+from aiohttp.web_app import Application
 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -76,6 +74,7 @@ async def test_set_settings_no_key(rest_api):
     """
     Testing whether an error is returned when we try to set a non-existing key
     """
+
     def verify_response(response_dict):
         assert 'error' in response_dict
 

@@ -17,7 +17,7 @@ from tribler.core.components.metadata_store.db.store import (
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.upgrade.config_converter import convert_config_to_tribler76
 from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
 from tribler.core.utilities.configparser import CallbackConfigParser
@@ -106,7 +106,7 @@ class TriblerUpgrader:
 
         mds = MetadataStore(mds_path, self.channels_dir, self.trustchain_keypair, disable_sync=True,
                             check_tables=False, db_version=13) if mds_path.exists() else None
-        tag_db = TagDatabase(str(tagdb_path), create_tables=False, check_tables=False) if tagdb_path.exists() else None
+        tag_db = KnowledgeDatabase(str(tagdb_path), create_tables=False, check_tables=False) if tagdb_path.exists() else None
 
         self.do_upgrade_pony_db_13to14(mds, tag_db)
 
@@ -227,7 +227,7 @@ class TriblerUpgrader:
 
             db_version.value = str(to_version)
 
-    def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[TagDatabase]):
+    def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[KnowledgeDatabase]):
         def add_column(db, table_name, column_name, column_type):
             if not self.column_exists_in_table(db, table_name, column_name):
                 db.execute(f'ALTER TABLE "{table_name}" ADD "{column_name}" {column_type} DEFAULT 0')

@@ -1,9 +1,6 @@
 from aiohttp import web
-
 from aiohttp_apispec import docs, json_schema
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Boolean
 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager

@@ -2,9 +2,8 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from aiohttp.web_app import Application
-
 import pytest
+from aiohttp.web_app import Application
 
 from tribler.core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
@@ -165,7 +164,8 @@ async def test_debug_pane_core_logs_in_root_dir(rest_api, tmp_path, endpoint):
     create_dummy_logs(root_state_dir, process=process, num_logs=num_logs)
     with patch('tribler.core.components.restapi.rest.debug_endpoint.get_root_state_directory',
                new=lambda: root_state_dir):
-        json_response = await do_request(rest_api, f'debug/log?process={process}&max_lines={num_logs}', expected_code=200)
+        json_response = await do_request(rest_api, f'debug/log?process={process}&max_lines={num_logs}',
+                                         expected_code=200)
     logs = json_response['content'].strip().split("\n")
 
     # Check number of logs returned is correct

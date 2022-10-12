@@ -38,7 +38,7 @@ PNG_DATA = unhexlify(
 
 
 @pytest.fixture
-def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, tags_db):  # pylint: disable=unused-argument
+def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):  # pylint: disable=unused-argument
     mock_gigachannel_manager = Mock()
     mock_gigachannel_community = Mock()
 
@@ -49,7 +49,7 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, tags_db):  # pyli
 
     mock_gigachannel_community.remote_select_channel_contents = return_exc
     ep_args = [mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community, metadata_store]
-    ep_kwargs = {'tags_db': tags_db}
+    ep_kwargs = {'tags_db': knowledge_db}
     collections_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
     channels_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
 
@@ -716,7 +716,7 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
         assert len(item["tags"]) >= 2
 
 
-async def test_get_my_channel_tags_xxx(metadata_store, tags_db, mock_dlmgr_get_download, my_channel,
+async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_get_download, my_channel,
                                        rest_api):  # pylint: disable=redefined-outer-name
     """
     Test whether XXX tags are correctly filtered
@@ -729,7 +729,7 @@ async def test_get_my_channel_tags_xxx(metadata_store, tags_db, mock_dlmgr_get_d
 
         # Add a few tags to our new torrent
         tags = ["totally safe", "wrongterm", "wRonGtErM", "a wrongterm b"]
-        tag_torrent(infohash, tags_db, tags=tags)
+        tag_torrent(infohash, knowledge_db, tags=tags)
 
         json_dict = await do_request(
             rest_api,

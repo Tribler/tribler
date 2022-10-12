@@ -7,13 +7,13 @@ from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.components.tag.tag_component import TagComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 
 # pylint: disable=protected-access
 
 
 async def test_gigachannel_manager_component(tribler_config):
-    components = [Ipv8Component(), TagComponent(), SocksServersComponent(), KeyComponent(), MetadataStoreComponent(),
+    components = [Ipv8Component(), KnowledgeComponent(), SocksServersComponent(), KeyComponent(), MetadataStoreComponent(),
                   LibtorrentComponent(), GigachannelManagerComponent()]
     async with Session(tribler_config, components) as session:
         comp = session.get_instance(GigachannelManagerComponent)

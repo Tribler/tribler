@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTr
 
 import tribler.gui
 from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
+from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import path_to_url
@@ -680,7 +680,7 @@ def test_tags_dialog(window):
     # Try saving a tag with too few characters
     QTest.keyClick(tags_input, Qt.Key_End)
     QTest.keyClick(tags_input, Qt.Key_Space)
-    for _ in range(MIN_TAG_LENGTH - 1):
+    for _ in range(MIN_RESOURCE_LENGTH - 1):
         QTest.keyClick(tags_input, "a")
     QTest.keyClick(tags_input, Qt.Key_Return)
     screenshot(window, name="edit_tags_dialog_error")

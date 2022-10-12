@@ -5,13 +5,10 @@ from dataclasses import asdict
 from typing import List, Optional
 
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager, task
-
 from marshmallow.fields import Dict, String
 
 from tribler.core import notifications

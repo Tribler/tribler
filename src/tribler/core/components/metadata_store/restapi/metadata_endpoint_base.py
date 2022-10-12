@@ -7,8 +7,8 @@ from tribler.core.components.metadata_store.category_filter.family_filter import
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
-from tribler.core.components.tag.db.tag_db import ResourceType, TagDatabase
-from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType, KnowledgeDatabase
+from tribler.core.components.knowledge.rules.tag_rules_processor import KnowledgeRulesProcessor
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
@@ -38,12 +38,12 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
-    def __init__(self, metadata_store: MetadataStore, *args, tags_db: TagDatabase = None,
-                 tag_rules_processor: TagRulesProcessor = None, **kwargs):
+    def __init__(self, metadata_store: MetadataStore, *args, tags_db: KnowledgeDatabase = None,
+                 tag_rules_processor: KnowledgeRulesProcessor = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = metadata_store
-        self.tags_db: Optional[TagDatabase] = tags_db
-        self.tag_rules_processor: Optional[TagRulesProcessor] = tag_rules_processor
+        self.tags_db: Optional[KnowledgeDatabase] = tags_db
+        self.tag_rules_processor: Optional[KnowledgeRulesProcessor] = tag_rules_processor
 
     @classmethod
     def sanitize_parameters(cls, parameters):

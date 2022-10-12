@@ -2,7 +2,7 @@ from tribler.core import notifications
 from tribler.core.components.component import Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.rules.tag_rules_processor import TagRulesProcessor
+from tribler.core.components.knowledge.rules.tag_rules_processor import KnowledgeRulesProcessor
 from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
@@ -41,7 +41,7 @@ class MetadataStoreComponent(Component):
             key_component.primary_key,
             notifier=self.session.notifier,
             disable_sync=config.gui_test_mode,
-            tag_processor_version=TagRulesProcessor.version
+            tag_processor_version=KnowledgeRulesProcessor.version
         )
         self.mds = metadata_store
         self.session.notifier.add_observer(notifications.torrent_metadata_added,

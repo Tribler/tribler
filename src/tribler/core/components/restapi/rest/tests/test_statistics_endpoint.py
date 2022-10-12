@@ -1,10 +1,8 @@
 from unittest.mock import Mock
 
-from aiohttp.web_app import Application
-
-from ipv8.test.mocking.ipv8 import MockIPv8
-
 import pytest
+from aiohttp.web_app import Application
+from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community \
     import BandwidthAccountingCommunity
