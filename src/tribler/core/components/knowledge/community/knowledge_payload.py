@@ -22,7 +22,7 @@ class StatementOperation:
 
 
 RAW_DATA = type_from_format('varlenH')
-STATEMENT_OPERATION_MESSAGE_ID = 3  # The id `1` was used for the old version of tag message
+STATEMENT_OPERATION_MESSAGE_ID = 2
 
 
 @dataclass
@@ -45,6 +45,6 @@ class StatementOperationMessage:
     signature: StatementOperationSignature
 
 
-@dataclass(msg_id=2)
+@dataclass(msg_id=1)
 class RequestStatementOperationMessage:
     count: int
