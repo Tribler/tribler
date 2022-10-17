@@ -45,8 +45,8 @@ class SearchEndpoint(MetadataEndpointBase):
         content_to_torrents: Dict[str, list] = defaultdict(list)
         for search_result in search_results:
             with db_session:
-                content_items: List[str] = self.tags_db.get_objects(search_result["infohash"],
-                                                                    predicate=ResourceType.TITLE)
+                content_items: List[str] = self.knowledge_db.get_objects(search_result["infohash"],
+                                                                         predicate=ResourceType.TITLE)
             if content_items:
                 for content_id in content_items:
                     content_to_torrents[content_id].append(search_result)
@@ -131,8 +131,8 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.tags_db.get_subjects_intersection(set(tags), predicate=ResourceType.TAG,
-                                                                          case_sensitive=False)
+                    infohash_set = self.knowledge_db.get_subjects_intersection(set(tags), predicate=ResourceType.TAG,
+                                                                               case_sensitive=False)
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
@@ -141,7 +141,7 @@ class SearchEndpoint(MetadataEndpointBase):
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
-        self.add_tags_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
+        self.add_statements_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
 
         if sanitized["first"] == 1:  # Only show a snippet on top
             search_results = self.build_snippets(search_results)

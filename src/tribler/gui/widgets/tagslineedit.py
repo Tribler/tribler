@@ -361,7 +361,7 @@ class TagsLineEdit(QLineEdit):
 
             # Draw the tags after the cursor.
             self.draw_tags(p, self.editing_index + 1, len(self.tags))
-        else:
+        elif len(self.tags) > 1 or self.tags[0].text:
             self.draw_tags(p, 0, len(self.tags))
 
         p.end()
