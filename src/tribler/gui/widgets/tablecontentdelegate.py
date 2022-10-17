@@ -6,6 +6,7 @@ from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainte
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
 from psutil import LINUX
 
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
@@ -32,7 +33,8 @@ from tribler.gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr
+from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr, \
+    get_objects_with_predicate
 from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -185,7 +187,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         cur_tag_x = 6
         cur_tag_y = TAG_TOP_MARGIN
 
-        for tag_text in data_item.get("tags", ())[:MAX_TAGS_TO_SHOW]:
+        for tag_text in get_objects_with_predicate(data_item, ResourceType.TAG)[:MAX_TAGS_TO_SHOW]:
             text_width = self.font_metrics.horizontalAdvance(tag_text)
             tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
 
@@ -458,7 +460,7 @@ class TagsMixin:
         edit_tags_button_hovered = self.hovering_over_tag_edit_button and self.hover_index == index
 
         # If there are no tags (yet), ask the user to add some tags
-        if len(data_item.get("tags", ())) == 0:
+        if len(get_objects_with_predicate(data_item, ResourceType.TAG)) == 0:
             no_tags_text = tr("Be the first to suggest tags!")
             painter.setPen(QColor(TRIBLER_ORANGE) if edit_tags_button_hovered else QColor("#aaa"))
             text_width = painter.fontMetrics().horizontalAdvance(no_tags_text)
@@ -467,7 +469,7 @@ class TagsMixin:
             painter.drawText(edit_tags_rect, no_tags_text)
             return
 
-        for tag_text in data_item.get("tags", ())[:MAX_TAGS_TO_SHOW]:
+        for tag_text in get_objects_with_predicate(data_item, ResourceType.TAG)[:MAX_TAGS_TO_SHOW]:
             text_width = painter.fontMetrics().horizontalAdvance(tag_text)
             tag_box_width = text_width + 2 * TAG_TEXT_HORIZONTAL_PADDING
 

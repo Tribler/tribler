@@ -9,7 +9,7 @@ import traceback
 import types
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 from urllib.parse import quote_plus
 from uuid import uuid4
 
@@ -26,6 +26,7 @@ from PyQt5.QtNetwork import QNetworkReply
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 # fmt: off
@@ -517,3 +518,10 @@ def get_color(name):
     blue = int(md5_str_hash[20:30], 16) % 128 + 100
 
     return f'#{red:02x}{green:02x}{blue:02x}'
+
+
+def get_objects_with_predicate(data_item: Dict, predicate: ResourceType) -> List[str]:
+    """
+    Extract the objects that have a particular predicate from a particular data item.
+    """
+    return [stmt["object"] for stmt in data_item.get("statements", ()) if stmt["predicate"] == predicate]

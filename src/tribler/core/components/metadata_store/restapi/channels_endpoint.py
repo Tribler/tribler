@@ -196,7 +196,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                     contents_list.append(entry.to_simple_dict())
                 total = self.mds.get_total_count(**sanitized) if include_total else None
         self.add_download_progress_to_metadata_list(contents_list)
-        self.add_tags_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
+        self.add_statements_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],
@@ -504,7 +504,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 contents_list.append(entry.to_simple_dict())
 
         self.add_download_progress_to_metadata_list(contents_list)
-        self.add_tags_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
+        self.add_statements_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
         response_dict = {
             "results": contents_list,
             "first": sanitized['first'],

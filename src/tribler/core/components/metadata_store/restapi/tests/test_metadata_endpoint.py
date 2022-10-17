@@ -252,7 +252,7 @@ def test_extract_tags():
     # see: https://github.com/Tribler/tribler/issues/6986
     mds_endpoint = MetadataEndpointBase(
         MagicMock(),
-        tags_db=MagicMock(),
+        knowledge_db=MagicMock(),
         tag_rules_processor=MagicMock(
             version=1
         )

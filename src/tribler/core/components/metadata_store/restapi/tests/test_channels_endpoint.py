@@ -49,7 +49,7 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):  #
 
     mock_gigachannel_community.remote_select_channel_contents = return_exc
     ep_args = [mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community, metadata_store]
-    ep_kwargs = {'tags_db': knowledge_db}
+    ep_kwargs = {'knowledge_db': knowledge_db}
     collections_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
     channels_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
 
@@ -713,7 +713,7 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
 
     assert len(json_dict['results']) == 9
     for item in json_dict['results']:
-        assert len(item["tags"]) >= 2
+        assert len(item["statements"]) >= 2
 
 
 async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_get_download, my_channel,
@@ -739,4 +739,4 @@ async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_
         )
 
     assert len(json_dict['results']) == 1
-    assert len(json_dict['results'][0]["tags"]) == 1
+    assert len(json_dict['results'][0]["statements"]) == 1
