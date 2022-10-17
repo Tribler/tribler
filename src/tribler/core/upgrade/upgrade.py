@@ -6,7 +6,6 @@ from types import SimpleNamespace
 from typing import Optional
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-
 from pony.orm import db_session, delete
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
@@ -17,12 +16,14 @@ from tribler.core.components.metadata_store.db.store import (
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.upgrade.config_converter import convert_config_to_tribler76
 from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
+from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
+
 
 # pylint: disable=protected-access
 
@@ -68,13 +69,13 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 
 class TriblerUpgrader:
 
-    def __init__(self, state_dir: Path, channels_dir: Path, trustchain_keypair: LibNaCLSK,
-                 interrupt_upgrade_event=None,
-                 update_status_callback=None):
+    def __init__(self, state_dir: Path, channels_dir: Path, primary_key: LibNaCLSK, secondary_key: Optional[LibNaCLSK],
+                 interrupt_upgrade_event=None, update_status_callback=None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.channels_dir = channels_dir
-        self.trustchain_keypair = trustchain_keypair
+        self.primary_key = primary_key
+        self.secondary_key = secondary_key
         self._update_status_callback = update_status_callback
 
         self.interrupt_upgrade_event = interrupt_upgrade_event or (lambda: False)
@@ -99,21 +100,24 @@ class TriblerUpgrader:
         self.upgrade_pony_db_11to12()
         self.upgrade_pony_db_12to13()
         self.upgrade_pony_db_13to14()
+        self.upgrade_tags_to_knowledge()
+
+    def upgrade_tags_to_knowledge(self):
+        migration = MigrationTagsToKnowledge(self.state_dir, self.secondary_key)
+        migration.run()
 
     def upgrade_pony_db_13to14(self):
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         tagdb_path = self.state_dir / STATEDIR_DB_DIR / 'tags.db'
 
-        mds = MetadataStore(mds_path, self.channels_dir, self.trustchain_keypair, disable_sync=True,
+        mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
                             check_tables=False, db_version=13) if mds_path.exists() else None
-        tag_db = KnowledgeDatabase(str(tagdb_path), create_tables=False, check_tables=False) if tagdb_path.exists() else None
+        tag_db = TagDatabase(str(tagdb_path), create_tables=False,
+                                   check_tables=False) if tagdb_path.exists() else None
 
         self.do_upgrade_pony_db_13to14(mds, tag_db)
-
         if mds:
             mds.shutdown()
-        if tag_db:
-            tag_db.shutdown()
 
     def upgrade_pony_db_12to13(self):
         """
@@ -123,7 +127,7 @@ class TriblerUpgrader:
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if database_path.exists():
-            mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
+            mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                                 disable_sync=True, check_tables=False, db_version=12)
             self.do_upgrade_pony_db_12to13(mds)
             mds.shutdown()
@@ -138,7 +142,7 @@ class TriblerUpgrader:
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
+        mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=11)
         self.do_upgrade_pony_db_11to12(mds)
         mds.shutdown()
@@ -153,7 +157,7 @@ class TriblerUpgrader:
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
-        mds = MetadataStore(database_path, self.channels_dir, self.trustchain_keypair,
+        mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
@@ -170,7 +174,7 @@ class TriblerUpgrader:
         if not database_path.exists() or get_db_version(database_path) >= 9:
             return  # No need to update if the database does not exist or is already updated
         self._logger.info('bw8->9')
-        db = BandwidthDatabase(database_path, self.trustchain_keypair.key.pk)
+        db = BandwidthDatabase(database_path, self.primary_key.key.pk)
 
         # Wipe all transactions and bandwidth history
         with db_session:
@@ -227,7 +231,7 @@ class TriblerUpgrader:
 
             db_version.value = str(to_version)
 
-    def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[KnowledgeDatabase]):
+    def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[TagDatabase]):
         def add_column(db, table_name, column_name, column_type):
             if not self.column_exists_in_table(db, table_name, column_name):
                 db.execute(f'ALTER TABLE "{table_name}" ADD "{column_name}" {column_type} DEFAULT 0')
@@ -315,7 +319,7 @@ class TriblerUpgrader:
         tmp_database_path.unlink(missing_ok=True)
 
         # Create the new database
-        mds = MetadataStore(tmp_database_path, None, self.trustchain_keypair,
+        mds = MetadataStore(tmp_database_path, None, self.primary_key,
                             disable_sync=True, db_version=10)
         with db_session(ddl=True):
             mds.drop_indexes()

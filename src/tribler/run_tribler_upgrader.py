@@ -33,8 +33,9 @@ def upgrade_state_dir(root_state_dir: Path,
     primary_private_key_path = config.state_dir / KeyComponent.get_private_key_filename(config)
     primary_public_key_path = config.state_dir / config.trustchain.ec_keypair_pubfilename
     primary_key = KeyComponent.load_or_create(primary_private_key_path, primary_public_key_path)
+    secondary_key = KeyComponent.load_or_create(config.state_dir / config.trustchain.secondary_key_filename)
 
-    upgrader = TriblerUpgrader(state_dir, channels_dir, primary_key,
+    upgrader = TriblerUpgrader(state_dir, channels_dir, primary_key, secondary_key,
                                update_status_callback=update_status_callback,
                                interrupt_upgrade_event=interrupt_upgrade_event)
     upgrader.run()
