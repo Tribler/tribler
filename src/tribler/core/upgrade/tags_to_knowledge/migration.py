@@ -1,10 +1,10 @@
 import logging
+from typing import Iterable, List
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.messaging.serialization import Serializer
-from pony import orm
-from pony.orm import db_session
+from pony.orm import db_session, select
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
@@ -30,7 +30,7 @@ class MigrationTagsToKnowledge:
         self.logger.info(f'Knowledge DB path: {self.knowledge_db_path}')
 
     def run(self) -> bool:
-        self.logger.info('Starting upgrade for tags DB')
+        self.logger.info('Starting upgrade procedure for tags DB')
 
         if not self.tag_db_path.exists():
             self.logger.info(f"Tags DB doesn't exist. Stop procedure.")
@@ -43,36 +43,11 @@ class MigrationTagsToKnowledge:
             tag_db = TagDatabase(str(self.tag_db_path))
             knowledge_db = KnowledgeDatabase(str(self.knowledge_db_path))
             self.logger.info(f"Migrating the tags.db into the knowledge.db")
-            public_key = self.key.pub().key_to_bin()
-            operations = []
-            with db_session:
-                tags = tag_db.instance.TorrentTagOp.select(lambda tto: tto.peer.public_key == public_key)
-                for i, tag in enumerate(tags):
-                    operation = StatementOperation(
-                        subject_type=ResourceType.TORRENT,
-                        subject=hexlify(tag.torrent_tag.torrent.infohash),
-                        predicate=ResourceType.TAG,
-                        object=tag.torrent_tag.tag.name,
-                        operation=tag.operation,
-                        clock=0,
-                        creator_public_key=public_key
-                    )
-                    operations.append(operation)
-                    if i % 10 == 0:
-                        self.logger.info(f'Read: {i}')
 
-            with db_session:
-                for i, operation in enumerate(operations):
-                    operation.clock = knowledge_db.get_clock(operation)
-                    signature = self._sign(operation)
-                    knowledge_db.add_operation(
-                        operation=operation,
-                        signature=signature,
-                        is_local_peer=True,
-                        is_auto_generated=False
-                    )
-                    if i % 10 == 0:
-                        self.logger.info(f'Write: {i}')
+            public_key = self.key.pub().key_to_bin()
+            operations = list(self._read(tag_db, public_key))
+
+            self._write(knowledge_db, operations)
 
             self.logger.info(f"Removing Tags DB")
             self.tag_db_path.unlink(missing_ok=True)
@@ -84,12 +59,41 @@ class MigrationTagsToKnowledge:
                 knowledge_db.shutdown()
         return True
 
-    def _create_tag_instance(self) -> orm.Database:
-        self.logger.info(f"Connecting to Tags DB")
+    def _read(self, tag_db: TagDatabase, public_key: bytes) -> Iterable[StatementOperation]:
+        with db_session():
+            tags = select(tt for tt in tag_db.instance.TorrentTag if tt.local_operation)
+            i = 0
+            for i, tag in enumerate(tags):
+                operation = StatementOperation(
+                    subject_type=ResourceType.TORRENT,
+                    subject=hexlify(tag.torrent.infohash),
+                    predicate=ResourceType.TAG,
+                    object=tag.tag.name,
+                    operation=tag.local_operation,
+                    clock=0,
+                    creator_public_key=public_key
+                )
+                yield operation
+                if i % 10 == 0:
+                    self.logger.info(f'Read: {i}')
+            self.logger.info(f'Read: {i}')
 
-        instance = orm.Database()
-        instance.bind('sqlite', str(self.tag_db_path))
-        return instance
+    def _write(self, knowledge_db: KnowledgeDatabase, operations: List[StatementOperation]):
+        with db_session:
+            i = 0
+            for i, operation in enumerate(operations):
+                operation.clock = knowledge_db.get_clock(operation)
+                signature = self._sign(operation)
+                operation.clock = knowledge_db.get_clock(operation)
+                knowledge_db.add_operation(
+                    operation=operation,
+                    signature=signature,
+                    is_local_peer=True,
+                    is_auto_generated=False
+                )
+                if i % 10 == 0:
+                    self.logger.info(f'Write: {i}')
+            self.logger.info(f'Finished: {i}')
 
     def _sign(self, operation) -> bytes:
         packed = self.serializer.pack_serializable(operation)

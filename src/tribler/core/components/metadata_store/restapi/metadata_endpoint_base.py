@@ -1,17 +1,17 @@
-from binascii import unhexlify
 from typing import Optional
 
 from pony.orm import db_session
 
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
+from tribler.core.components.knowledge.rules.tag_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType, KnowledgeDatabase
-from tribler.core.components.knowledge.rules.tag_rules_processor import KnowledgeRulesProcessor
-
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
+from tribler.core.utilities.unicode import hexlify
+
 json2pony_columns = {
     'category': "tags",
     'name': "title",
@@ -81,7 +81,7 @@ class MetadataEndpointBase(RESTEndpoint):
         if is_auto_generated_tags_not_created:
             generated = self.tag_rules_processor.process_torrent_title(infohash=entry.infohash, title=entry.title)
             entry.tag_processor_version = self.tag_rules_processor.version
-            self._logger.info(f'Generated {generated} tags for {entry.infohash}')
+            self._logger.info(f'Generated {generated} tags for {hexlify(entry.infohash)}')
 
     @db_session
     def add_tags_to_metadata_list(self, contents_list, hide_xxx=False):

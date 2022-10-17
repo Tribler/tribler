@@ -21,6 +21,7 @@ VERSION_HISTORY_FILENAME = "version_history.json"
 # Copy other important files: keys and config
 STATE_FILES_TO_COPY = (
     'ec_multichain.pem',
+    'secondary_key.pem',
     'ecpub_multichain.pem',
     'ec_trustchain_testnet.pem',
     'ecpub_trustchain_testnet.pem',

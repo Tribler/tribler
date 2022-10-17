@@ -72,13 +72,13 @@ def test_migration(migration: MigrationTagsToKnowledge):
         # add 3 local operations
         local_pub_key = key.pub().key_to_bin()
         tag_db.add_tag_operation(b'1' * 20, 'tag1', b'', add, clock(), local_pub_key, is_local_peer=True)
-        tag_db.add_tag_operation(b'2' * 20, 'tag2', b'', add, clock(), local_pub_key, is_local_peer=False)
+        tag_db.add_tag_operation(b'2' * 20, 'tag2', b'', add, clock(), local_pub_key, is_local_peer=True)
         tag_db.add_tag_operation(b'3' * 20, 'tag3', b'', remove, clock(), local_pub_key, is_local_peer=True)
 
         # add 3 remote operations
-        tag_db.add_tag_operation(b'4' * 20, 'tag4', b'', add, clock(), b'peer1', is_local_peer=True)
+        tag_db.add_tag_operation(b'4' * 20, 'tag4', b'', add, clock(), b'peer1', is_local_peer=False)
         tag_db.add_tag_operation(b'5' * 20, 'tag5', b'', add, clock(), b'peer2', is_local_peer=False)
-        tag_db.add_tag_operation(b'6' * 20, 'tag6', b'', remove, clock(), b'peer3', is_local_peer=True)
+        tag_db.add_tag_operation(b'6' * 20, 'tag6', b'', remove, clock(), b'peer3', is_local_peer=False)
 
         assert len(tag_db.instance.Peer.select()) == 4
         assert len(tag_db.instance.Tag.select()) == 6
