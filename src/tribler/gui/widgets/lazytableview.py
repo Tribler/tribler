@@ -1,10 +1,11 @@
 import json
-from typing import List
+from typing import List, Dict
 
 from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
@@ -53,7 +54,7 @@ class TriblerContentTableView(QTableView):
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
-    edited_tags = pyqtSignal(dict)
+    edited_metadata = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
@@ -202,7 +203,7 @@ class TriblerContentTableView(QTableView):
             self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item.get("tags", ()))
         self.add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
         self.add_tags_dialog.show()
-        connect(self.add_tags_dialog.save_button_clicked, self.save_edited_tags)
+        connect(self.add_tags_dialog.save_button_clicked, self.save_edited_metadata)
 
     def on_download_popular_torrent_clicked(self, index: QModelIndex, torrent_index: int) -> None:
         data_item = index.model().data_items[index.row()]
@@ -270,22 +271,22 @@ class TriblerContentTableView(QTableView):
     def start_download_from_dataitem(self, data_item):
         self.window().start_download_from_uri(data_item2uri(data_item))
 
-    def on_tags_edited(self, index, tags):
+    def on_metadata_edited(self, index, statements: List[Dict]):
         if self.add_tags_dialog:
             self.add_tags_dialog.close_dialog()
             self.add_tags_dialog = None
 
         data_item = self.model().data_items[index.row()]
-        data_item["tags"] = tags
+        data_item["tags"] = [stmt["object"] for stmt in statements if stmt["predicate"] == ResourceType.TAG]
         self.redraw(index, True)
 
-        self.edited_tags.emit(data_item)
+        self.edited_metadata.emit(data_item)
 
-    def save_edited_tags(self, index: QModelIndex, tags: List[str]):
+    def save_edited_metadata(self, index: QModelIndex, statements: List[Dict]):
         data_item = self.model().data_items[index.row()]
         TriblerNetworkRequest(
-            f"tags/{data_item['infohash']}",
-            lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
-            raw_data=json.dumps({"tags": tags}),
+            f"knowledge/{data_item['infohash']}",
+            lambda _, ind=index, stmts=statements: self.on_metadata_edited(ind, statements),
+            raw_data=json.dumps({"statements": statements}),
             method='PATCH',
         )

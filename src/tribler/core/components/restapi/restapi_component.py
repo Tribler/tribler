@@ -11,7 +11,7 @@ from tribler.core.components.gigachannel_manager.gigachannel_manager_component i
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
-from tribler.core.components.knowledge.restapi.tags_endpoint import TagsEndpoint
+from tribler.core.components.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
@@ -124,7 +124,7 @@ class RESTComponent(Component):
                        tags_db=knowledge_component.knowledge_db)
         self.maybe_add('/remote_query', RemoteQueryEndpoint, gigachannel_component.community,
                        metadata_store_component.mds)
-        self.maybe_add('/tags', TagsEndpoint, db=knowledge_component.knowledge_db,
+        self.maybe_add('/knowledge', KnowledgeEndpoint, db=knowledge_component.knowledge_db,
                        community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):
