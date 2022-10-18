@@ -6,7 +6,7 @@ from pony import orm
 from pony.orm import commit, db_session
 
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, \
-    PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD
+    PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
 from tribler.core.components.knowledge.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
 from tribler.core.utilities.pony_utils import get_or_create
 
@@ -560,3 +560,31 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_subjects('infohash1', predicate=ResourceType.TORRENT) == ['ubuntu']
         assert self.db.get_subjects('infohash2', predicate=ResourceType.TORRENT) == ['ubuntu', 'debian']
         assert self.db.get_subjects('infohash3', predicate=ResourceType.TORRENT) == ['debian']
+
+    @db_session
+    def test_get_statements(self):
+        self.add_operation_set(
+            self.db,
+            {
+                'infohash1': [
+                    Resource(predicate=ResourceType.TITLE, name='ubuntu', auto_generated=True),
+                    Resource(predicate=ResourceType.TYPE, name='linux', auto_generated=True),
+                ],
+                'infohash2': [
+                    Resource(predicate=ResourceType.TITLE, name='debian', auto_generated=True),
+                    Resource(predicate=ResourceType.TYPE, name='linux', auto_generated=True),
+                ],
+                'INFOHASH1': [
+                    Resource(predicate=ResourceType.TYPE, name='case_insensitive', auto_generated=True),
+                ]
+            }
+        )
+
+        expected = [
+            SimpleStatement(subject='infohash1', predicate=ResourceType.TITLE, object='ubuntu'),
+            SimpleStatement(subject='infohash1', predicate=ResourceType.TYPE, object='linux')
+        ]
+        assert self.db.get_statements(subject='infohash1') == expected
+
+        expected.append(SimpleStatement(subject='INFOHASH1', predicate=ResourceType.TYPE, object='case_insensitive'))
+        assert self.db.get_statements(subject='infohash1', case_sensitive=False) == expected

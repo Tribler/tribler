@@ -1,5 +1,6 @@
 import datetime
 import logging
+from dataclasses import dataclass
 from enum import IntEnum
 from typing import Callable, Iterable, List, Optional, Set
 
@@ -49,6 +50,13 @@ class ResourceType(IntEnum):
     # this is a section for extra types
     TAG = 101
     TORRENT = 102
+
+
+@dataclass
+class SimpleStatement:
+    object: str
+    predicate: ResourceType
+    subject: str
 
 
 class KnowledgeDatabase:
@@ -267,6 +275,28 @@ class KnowledgeDatabase:
         self.logger.debug(f'Get linked back resources for {obj} with {predicate}')
 
         return self._get_resources(obj, self._show_condition, predicate, case_sensitive, is_normal_direction=False)
+
+    def get_statements(self, subject: str, case_sensitive: bool = True) -> List[SimpleStatement]:
+        if case_sensitive:
+            resources = list(self.instance.Resource.select(lambda r: r.name == subject))
+        else:
+            resources = list(self.instance.Resource.select(lambda r: r.name.lower() == subject.lower()))
+
+        if not resources:
+            return []
+
+        statements = []
+        for resource_entity in resources:
+            query = resource_entity.subject_statements.select(self._show_condition)
+            for s in query.order_by(lambda statement: orm.desc(statement.score)):
+                statement = SimpleStatement(
+                    subject=s.subject.name,
+                    predicate=s.predicate,
+                    object=s.object.name
+                )
+
+                statements.append(statement)
+        return statements
 
     def get_suggestions(self, subject: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
         """ Get all suggestions for a particular subject.
