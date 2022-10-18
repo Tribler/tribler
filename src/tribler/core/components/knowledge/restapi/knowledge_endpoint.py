@@ -41,7 +41,7 @@ class KnowledgeEndpoint(RESTEndpoint):
         self.app.add_routes(
             [
                 web.patch('/{infohash}', self.update_knowledge_entries),
-                web.get('/{infohash}/suggestions', self.get_suggestions),
+                web.get('/{infohash}/tag_suggestions', self.get_tag_suggestions),
             ]
         )
 
@@ -120,7 +120,7 @@ class KnowledgeEndpoint(RESTEndpoint):
         },
         description="This endpoint updates a particular torrent with the provided tags."
     )
-    async def get_suggestions(self, request):
+    async def get_tag_suggestions(self, request):
         """
         Get suggestions for a particular tag.
         """

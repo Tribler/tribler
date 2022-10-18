@@ -40,7 +40,7 @@ class AddTagsDialog(DialogContainer):
         self.dialog_widget.suggestions_container.hide()
 
         # Fetch suggestions
-        TriblerNetworkRequest(f"knowledge/{infohash}/suggestions", self.on_received_suggestions)
+        TriblerNetworkRequest(f"knowledge/{infohash}/tag_suggestions", self.on_received_tag_suggestions)
 
         self.update_window()
 
@@ -67,7 +67,7 @@ class AddTagsDialog(DialogContainer):
 
         self.save_button_clicked.emit(self.index, statements)
 
-    def on_received_suggestions(self, data: Dict) -> None:
+    def on_received_tag_suggestions(self, data: Dict) -> None:
         self.suggestions_loaded.emit()
         if data["suggestions"]:
             self.dialog_widget.suggestions_container.show()

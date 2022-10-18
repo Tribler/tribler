@@ -98,8 +98,8 @@ async def test_get_suggestions_invalid_infohash(rest_api):
     """
     Test whether an error is returned if we fetch suggestions from content with an invalid infohash
     """
-    await do_request(rest_api, 'knowledge/3f3/suggestions', expected_code=400)
-    await do_request(rest_api, 'knowledge/3f3f/suggestions', expected_code=400)
+    await do_request(rest_api, 'knowledge/3f3/tag_suggestions', expected_code=400)
+    await do_request(rest_api, 'knowledge/3f3f/tag_suggestions', expected_code=400)
 
 
 async def test_get_suggestions(rest_api, knowledge_db):
@@ -108,7 +108,7 @@ async def test_get_suggestions(rest_api, knowledge_db):
     """
     infohash = b'a' * 20
     infohash_str = hexlify(infohash)
-    response = await do_request(rest_api, f'knowledge/{infohash_str}/suggestions')
+    response = await do_request(rest_api, f'knowledge/{infohash_str}/tag_suggestions')
     assert "suggestions" in response
     assert not response["suggestions"]
 
@@ -124,5 +124,5 @@ async def test_get_suggestions(rest_api, knowledge_db):
         _add_operation(op=Operation.ADD)
         _add_operation(op=Operation.REMOVE)
 
-    response = await do_request(rest_api, f'knowledge/{infohash_str}/suggestions')
+    response = await do_request(rest_api, f'knowledge/{infohash_str}/tag_suggestions')
     assert response["suggestions"] == ["test"]
