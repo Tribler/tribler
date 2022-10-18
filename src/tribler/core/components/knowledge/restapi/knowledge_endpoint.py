@@ -17,9 +17,9 @@ from tribler.core.utilities.utilities import froze_it
 
 
 @froze_it
-class TagsEndpoint(RESTEndpoint):
+class KnowledgeEndpoint(RESTEndpoint):
     """
-    Top-level endpoint for tags.
+    Top-level endpoint for knowledge management.
     """
 
     def __init__(self, db: KnowledgeDatabase, community: KnowledgeCommunity):
@@ -40,14 +40,14 @@ class TagsEndpoint(RESTEndpoint):
     def setup_routes(self):
         self.app.add_routes(
             [
-                web.patch('/{infohash}', self.update_tags_entries),
+                web.patch('/{infohash}', self.update_knowledge_entries),
                 web.get('/{infohash}/suggestions', self.get_suggestions),
             ]
         )
 
     @docs(
         tags=["General"],
-        summary="Update a particular torrent with tags.",
+        summary="Update the metadata associated with a particular torrent.",
         responses={
             200: {
                 "schema": schema(UpdateTagsResponse={'success': Boolean()})
@@ -55,12 +55,12 @@ class TagsEndpoint(RESTEndpoint):
             HTTP_BAD_REQUEST: {
                 "schema": HandledErrorSchema, 'example': {"error": "Invalid tag length"}},
         },
-        description="This endpoint updates a particular torrent with the provided tags."
+        description="This endpoint updates a particular torrent with the provided metadata."
     )
-    async def update_tags_entries(self, request):
+    async def update_knowledge_entries(self, request):
         params = await request.json()
         infohash = request.match_info["infohash"]
-        ih_valid, error_response = TagsEndpoint.validate_infohash(infohash)
+        ih_valid, error_response = KnowledgeEndpoint.validate_infohash(infohash)
         if not ih_valid:
             return error_response
 
@@ -116,7 +116,7 @@ class TagsEndpoint(RESTEndpoint):
         Get suggestions for a particular tag.
         """
         infohash = request.match_info["infohash"]
-        ih_valid, error_response = TagsEndpoint.validate_infohash(infohash)
+        ih_valid, error_response = KnowledgeEndpoint.validate_infohash(infohash)
         if not ih_valid:
             return error_response
 

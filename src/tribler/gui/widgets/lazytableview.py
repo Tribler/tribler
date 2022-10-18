@@ -284,7 +284,7 @@ class TriblerContentTableView(QTableView):
     def save_edited_tags(self, index: QModelIndex, tags: List[str]):
         data_item = self.model().data_items[index.row()]
         TriblerNetworkRequest(
-            f"tags/{data_item['infohash']}",
+            f"knowledge/{data_item['infohash']}",
             lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
             raw_data=json.dumps({"tags": tags}),
             method='PATCH',
