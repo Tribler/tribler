@@ -1,9 +1,10 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
@@ -44,6 +45,8 @@ class AddTagsDialog(DialogContainer):
         self.update_window()
 
     def on_save_tags_button_clicked(self, _) -> None:
+        statements: List[Dict] = []
+
         # Sanity check the entered tags
         entered_tags = self.dialog_widget.edit_tags_input.get_entered_tags()
         for tag in entered_tags:
@@ -57,7 +60,12 @@ class AddTagsDialog(DialogContainer):
                 self.dialog_widget.error_text_label.setHidden(False)
                 return
 
-        self.save_button_clicked.emit(self.index, entered_tags)
+            statements.append({
+                "predicate": ResourceType.TAG,
+                "object": tag,
+            })
+
+        self.save_button_clicked.emit(self.index, statements)
 
     def on_received_suggestions(self, data: Dict) -> None:
         self.suggestions_loaded.emit()

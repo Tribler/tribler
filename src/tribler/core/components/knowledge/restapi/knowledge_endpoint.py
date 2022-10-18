@@ -1,5 +1,5 @@
 import binascii
-from typing import Optional, Set, Tuple
+from typing import Optional, Set, Tuple, Dict
 
 from aiohttp import web
 from aiohttp_apispec import docs
@@ -64,36 +64,45 @@ class KnowledgeEndpoint(RESTEndpoint):
         if not ih_valid:
             return error_response
 
-        # Validate whether the size of the tag is within the allowed range
-        tags = set(params["tags"])
-        for tag in tags:
-            if len(tag) < MIN_RESOURCE_LENGTH or len(tag) > MAX_RESOURCE_LENGTH:
+        # Validate whether the size of the tag is within the allowed range and filter out duplicate tags.
+        tags = set()
+        statements = []
+        for statement in params["statements"]:
+            obj = statement["object"]
+            if statement["predicate"] == ResourceType.TAG and \
+                    (len(obj) < MIN_RESOURCE_LENGTH or len(obj) > MAX_RESOURCE_LENGTH):
                 return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
 
-        self.modify_tags(infohash, tags)
+            if obj not in tags:
+                tags.add(obj)
+                statements.append(statement)
+
+        self.modify_statements(infohash, statements)
 
         return RESTResponse({"success": True})
 
     @db_session
-    def modify_tags(self, infohash: str, new_tags: Set[str]):
+    def modify_statements(self, infohash: str, statements):
         """
-        Modify the tags of a particular content item.
+        Modify the statements of a particular content item.
         """
         if not self.community:
             return
 
-        # First, get the current tags and compute the diff between the old and new tags
-        old_tags = set(self.db.get_objects(infohash, predicate=ResourceType.TAG))
-        added_tags = new_tags - old_tags
-        removed_tags = old_tags - new_tags
+        # First, get the current statements and compute the diff between the old and new statements
+        old_statements = set([(stmt.predicate, stmt.object) for stmt in self.db.get_statements(infohash)])
+        new_statements = set([(stmt["predicate"], stmt["object"]) for stmt in statements])
+        added_statements = new_statements - old_statements
+        removed_statements = old_statements - new_statements
 
-        # Create individual tag operations for the added/removed tags
+        # Create individual statement operations for the added/removed statements
         public_key = self.community.key.pub().key_to_bin()
-        for tag in added_tags.union(removed_tags):
-            type_of_operation = Operation.ADD if tag in added_tags else Operation.REMOVE
+        for stmt in added_statements.union(removed_statements):
+            predicate, obj = stmt
+            type_of_operation = Operation.ADD if stmt in added_statements else Operation.REMOVE
             operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash,
-                                           predicate=ResourceType.TAG,
-                                           object=tag, operation=type_of_operation, clock=0,
+                                           predicate=predicate,
+                                           object=obj, operation=type_of_operation, clock=0,
                                            creator_public_key=public_key)
             operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)

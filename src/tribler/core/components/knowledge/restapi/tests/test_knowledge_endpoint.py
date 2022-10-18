@@ -1,3 +1,4 @@
+from typing import Dict
 from unittest.mock import Mock
 
 import pytest
@@ -32,11 +33,15 @@ def rest_api(loop, aiohttp_client, knowledge_endpoint):
     return loop.run_until_complete(aiohttp_client(app))
 
 
+def tag_to_statement(tag: str) -> Dict:
+    return {"predicate": ResourceType.TAG, "object": tag}
+
+
 async def test_add_tag_invalid_infohash(rest_api):
     """
     Test whether an error is returned if we try to add a tag to content with an invalid infohash
     """
-    post_data = {"tags": ["abc", "def"]}
+    post_data = {"knowledge": [tag_to_statement("abc"), tag_to_statement("def")]}
     await do_request(rest_api, 'knowledge/3f3', request_type="PATCH", expected_code=400, post_data=post_data)
     await do_request(rest_api, 'knowledge/3f3f', request_type="PATCH", expected_code=400, post_data=post_data)
 
@@ -45,12 +50,12 @@ async def test_add_invalid_tag(rest_api):
     """
     Test whether an error is returned if we try to add a tag that is too short or long.
     """
-    post_data = {"tags": ["a"]}
+    post_data = {"statements": [tag_to_statement("a")]}
     infohash = b'a' * 20
     await do_request(rest_api, f'knowledge/{hexlify(infohash)}', request_type="PATCH", expected_code=400,
                      post_data=post_data)
 
-    post_data = {"tags": ["a" * 60]}
+    post_data = {"statements": [tag_to_statement("a" * 60)]}
     await do_request(rest_api, f'knowledge/{hexlify(infohash)}', request_type="PATCH", expected_code=400,
                      post_data=post_data)
 
@@ -59,7 +64,7 @@ async def test_modify_tags(rest_api, knowledge_db):
     """
     Test modifying tags
     """
-    post_data = {"tags": ["abc", "def"]}
+    post_data = {"statements": [tag_to_statement("abc"), tag_to_statement("def")]}
     infohash = 'a' * 40
     with freeze_time("2015-01-01") as frozen_time:
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
@@ -70,7 +75,7 @@ async def test_modify_tags(rest_api, knowledge_db):
 
         # Now remove a tag
         frozen_time.move_to("2016-01-01")
-        post_data = {"tags": ["abc"]}
+        post_data = {"statements": [tag_to_statement("abc")]}
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
@@ -81,7 +86,7 @@ async def test_modify_tags(rest_api, knowledge_db):
 async def test_modify_tags_no_community(knowledge_db, knowledge_endpoint):
     knowledge_endpoint.community = None
     infohash = 'a' * 20
-    knowledge_endpoint.modify_tags(infohash, {"abc", "def"})
+    knowledge_endpoint.modify_statements(infohash, [tag_to_statement("abc"), tag_to_statement("def")])
 
     with db_session:
         tags = knowledge_db.get_objects(infohash, predicate=ResourceType.TAG)
@@ -93,9 +98,8 @@ async def test_get_suggestions_invalid_infohash(rest_api):
     """
     Test whether an error is returned if we fetch suggestions from content with an invalid infohash
     """
-    post_data = {"tags": ["abc", "def"]}
-    await do_request(rest_api, 'knowledge/3f3/suggestions', expected_code=400, post_data=post_data)
-    await do_request(rest_api, 'knowledge/3f3f/suggestions', expected_code=400, post_data=post_data)
+    await do_request(rest_api, 'knowledge/3f3/suggestions', expected_code=400)
+    await do_request(rest_api, 'knowledge/3f3f/suggestions', expected_code=400)
 
 
 async def test_get_suggestions(rest_api, knowledge_db):
