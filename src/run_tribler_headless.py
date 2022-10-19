@@ -69,7 +69,7 @@ class TriblerService:
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
         statedir = Path(options.statedir or Path(get_appstate_dir(), '.Tribler'))
-        config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
+        config = TriblerConfig.load(state_dir=statedir)
 
         # Check if we are already running a Tribler instance
         root_state_dir = get_root_state_directory()

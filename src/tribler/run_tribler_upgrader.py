@@ -27,7 +27,7 @@ def upgrade_state_dir(root_state_dir: Path,
         logger.info('State dir does not exist. Exit upgrade procedure.')
         return
 
-    config = TriblerConfig.load(file=state_dir / CONFIG_FILE_NAME, state_dir=state_dir, reset_config_on_error=True)
+    config = TriblerConfig.load(state_dir=state_dir, reset_config_on_error=True)
     channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
 
     primary_private_key_path = config.state_dir / KeyComponent.get_private_key_filename(config)

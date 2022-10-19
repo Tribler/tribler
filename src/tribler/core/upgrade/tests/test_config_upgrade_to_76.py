@@ -14,7 +14,7 @@ def test_convert_tribler_conf_76(tmpdir):
     shutil.copy2(CONFIG_PATH / 'triblerd75.conf', tmpdir / 'triblerd.conf')
     convert_config_to_tribler76(tmpdir)
 
-    config = TriblerConfig.load(file=tmpdir / 'triblerd.conf', state_dir=tmpdir)
+    config = TriblerConfig.load(state_dir=tmpdir)
     assert config.api.key == '7671750ba34423c97dc3c6763041e4cb'
     assert config.api.http_port == 8085
     assert config.api.http_enabled

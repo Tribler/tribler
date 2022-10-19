@@ -12,23 +12,12 @@ from operator import attrgetter
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import tribler.core.version
+from tribler.core.components.libtorrent.download_manager.download_manager import LTSTATE_FILENAME
+from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
-import tribler.core.version
-
 VERSION_HISTORY_FILENAME = "version_history.json"
-
-# Copy other important files: keys and config
-STATE_FILES_TO_COPY = (
-    'ec_multichain.pem',
-    'secondary_key.pem',
-    'ecpub_multichain.pem',
-    'ec_trustchain_testnet.pem',
-    'ecpub_trustchain_testnet.pem',
-    'triblerd.conf',
-    'lt.state',
-)
-
 STATE_DIRS_TO_COPY = (STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR)
 
 """
@@ -89,6 +78,7 @@ class TriblerVersion:
     def __init__(self, root_state_dir: Path, version_str: str, last_launched_at: Optional[float] = None):
         if last_launched_at is None:
             last_launched_at = time.time()
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.version_str = version_str
         self.version_tuple = tuple(LooseVersion(version_str).version)
         self.major_minor = self.version_tuple[:2]
@@ -102,9 +92,24 @@ class TriblerVersion:
         self.should_be_copied = False
         self.should_recreate_directory = False
         self.deleted = False
+        self.files_to_copy = self.fill_files_to_copy()
 
     def __repr__(self):
         return f'<{self.__class__.__name__}{{{self.version_str}}}>'
+
+    def fill_files_to_copy(self) -> List[str]:
+        config = TriblerConfig(state_dir=self.root_state_dir)
+        files_to_copy = [
+            config.trustchain.ec_keypair_filename,
+            config.trustchain.ec_keypair_pubfilename,
+            config.trustchain.secondary_key_filename,
+            config.trustchain.testnet_keypair_filename,
+            config.file.name,
+            LTSTATE_FILENAME
+        ]
+
+        self.logger.info(f'Files to copy: {files_to_copy}')
+        return files_to_copy
 
     def get_directory(self):
         return self.root_state_dir / ('%d.%d' % self.major_minor)
@@ -122,7 +127,7 @@ class TriblerVersion:
     def calc_state_size(self):
         # Should work even for pre-7.4 versions, counting only files and folder related to that version
         result = 0
-        for filename in STATE_FILES_TO_COPY:
+        for filename in self.files_to_copy:
             path = self.directory / filename
             if path.exists():
                 result += path.stat().st_size
@@ -143,7 +148,7 @@ class TriblerVersion:
         logger.info(f"Delete state directory for version {self.version_str}")
 
         self.deleted = True
-        for filename in STATE_FILES_TO_COPY:
+        for filename in self.files_to_copy:
             try:
                 (self.directory / filename).unlink()
             except FileNotFoundError:
@@ -181,7 +186,7 @@ class TriblerVersion:
                 dst = self.tmp_copy_directory / dirname
                 shutil.copytree(src, dst)
 
-        for filename in STATE_FILES_TO_COPY:
+        for filename in self.files_to_copy:
             src = other.directory / filename
             if src.exists():
                 dst = self.tmp_copy_directory / filename
