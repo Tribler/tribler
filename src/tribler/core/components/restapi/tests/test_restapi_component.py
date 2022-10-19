@@ -7,6 +7,7 @@ from tribler.core.components.component import NoneComponent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.reporter.reported_error import ReportedError
@@ -15,13 +16,12 @@ from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.components.tag.tag_component import TagComponent
 
 
 # pylint: disable=protected-access, not-callable, redefined-outer-name
 async def test_rest_component(tribler_config):
     components = [KeyComponent(), RESTComponent(), Ipv8Component(), LibtorrentComponent(), ResourceMonitorComponent(),
-                  BandwidthAccountingComponent(), GigaChannelComponent(), TagComponent(), SocksServersComponent(),
+                  BandwidthAccountingComponent(), GigaChannelComponent(), KnowledgeComponent(), SocksServersComponent(),
                   MetadataStoreComponent()]
     async with Session(tribler_config, components) as session:
         # Test REST component starts normally

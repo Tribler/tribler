@@ -3,9 +3,8 @@ from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from aiohttp import ClientSession
-
 import pytest
+from aiohttp import ClientSession
 
 from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError

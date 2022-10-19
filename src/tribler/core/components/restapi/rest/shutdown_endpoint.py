@@ -1,10 +1,6 @@
-
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Boolean
 
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse

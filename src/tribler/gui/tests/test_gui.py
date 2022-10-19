@@ -10,8 +10,9 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import tribler.gui
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import path_to_url
@@ -680,7 +681,7 @@ def test_tags_dialog(window):
     # Try saving a tag with too few characters
     QTest.keyClick(tags_input, Qt.Key_End)
     QTest.keyClick(tags_input, Qt.Key_Space)
-    for _ in range(MIN_TAG_LENGTH - 1):
+    for _ in range(MIN_RESOURCE_LENGTH - 1):
         QTest.keyClick(tags_input, "a")
     QTest.keyClick(tags_input, Qt.Key_Return)
     screenshot(window, name="edit_tags_dialog_error")
@@ -733,7 +734,7 @@ def test_tags_dialog(window):
     screenshot(window, name="edit_tags_dialog_long_tag_removed")
 
     QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
-    wait_for_signal(widget.content_table.edited_tags)
+    wait_for_signal(widget.content_table.edited_metadata)
     QTest.qWait(200)  # It can take a bit of time to hide the dialog
 
 
@@ -747,10 +748,13 @@ def test_no_tags(window):
     wait_for_list_populated(widget.content_table)
 
     idx = widget.content_table.model().index(0, 0)
-    widget.content_table.save_edited_tags(idx, [])  # Remove all tags
-    wait_for_signal(widget.content_table.edited_tags)
+    widget.content_table.save_edited_metadata(idx, [])  # Remove all tags
+    wait_for_signal(widget.content_table.edited_metadata)
     screenshot(window, name="content_item_no_tags")
 
     # Put some tags back (so further tests do not fail)
-    widget.content_table.save_edited_tags(idx, ["abc", "def"])
-    wait_for_signal(widget.content_table.edited_tags)
+    statements = []
+    for tag in ["abc", "def"]:
+        statements.append({"predicate": ResourceType.TAG, "object": tag})
+    widget.content_table.save_edited_metadata(idx, statements)
+    wait_for_signal(widget.content_table.edited_metadata)

@@ -1,10 +1,7 @@
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
 from ipv8.types import IPv8
-
 from marshmallow.fields import Integer, String
 
 from tribler.core.components.metadata_store.db.store import MetadataStore

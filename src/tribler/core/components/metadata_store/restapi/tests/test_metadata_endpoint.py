@@ -1,5 +1,5 @@
 import json
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from aiohttp.web_app import Application
@@ -246,6 +246,7 @@ async def test_check_torrent_query(rest_api, udp_tracker, metadata_store):
     await do_request(rest_api, f"metadata/torrents/{infohash}/health?timeout=wrong_value&refresh=1", expected_code=400)
 
 
+@patch('tribler.core.components.metadata_store.restapi.metadata_endpoint_base.hexlify', new=Mock())
 def test_extract_tags():
     # Test that in the case of empty `tag_processor_version` no NPE raise
     # see: https://github.com/Tribler/tribler/issues/6986

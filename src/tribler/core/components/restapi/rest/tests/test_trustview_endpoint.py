@@ -2,11 +2,9 @@ import random
 import secrets
 from binascii import unhexlify
 
-from aiohttp.web_app import Application
-
-from ipv8.keyvault.crypto import default_eccrypto
-
 import pytest
+from aiohttp.web_app import Application
+from ipv8.keyvault.crypto import default_eccrypto
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE

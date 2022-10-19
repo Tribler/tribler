@@ -2,20 +2,19 @@ import os
 import shutil
 from pathlib import Path
 
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-
-from pony.orm import db_session, select
-
 import pytest
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+from pony.orm import db_session, select
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
-from tribler.core.components.tag.db.tag_db import TagDatabase
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
+from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
+
 
 # pylint: disable=redefined-outer-name, protected-access
 
@@ -39,7 +38,7 @@ def trustchain_keypair():
 
 @pytest.fixture
 def upgrader(state_dir, channels_dir, trustchain_keypair):
-    return TriblerUpgrader(state_dir, channels_dir, trustchain_keypair)
+    return TriblerUpgrader(state_dir, channels_dir, trustchain_keypair, secondary_key=trustchain_keypair)
 
 
 @pytest.fixture
@@ -165,11 +164,9 @@ def test_upgrade_pony13to14(upgrader: TriblerUpgrader, state_dir, channels_dir, 
 
     upgrader.upgrade_pony_db_13to14()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
-    tags = TagDatabase(str(tags_path), create_tables=False, check_tables=False)
 
     with db_session:
         assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
-        assert upgrader.column_exists_in_table(tags.instance, 'TorrentTagOp', 'auto_generated')
         assert mds.get_value('db_version') == '14'
 
 
@@ -187,9 +184,13 @@ def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channe
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
 
     with db_session:
+        def _exists(db, table, column):
+            return upgrader.column_exists_in_table(db, table, column)
+
         # The end result is the same as in the previous test
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
-        assert upgrader.column_exists_in_table(tags.instance, 'TorrentTagOp', 'auto_generated')
+        assert _exists(mds._db, 'ChannelNode', 'tag_processor_version')
+        assert _exists(tags.instance, 'TorrentTagOp', 'auto_generated')
+
         assert mds.get_value('db_version') == '14'
 
 

@@ -171,7 +171,7 @@ def bdecode_compat(packet_buffer: bytes) -> Optional[Dict]:
         return None
 
 
-def random_infohash(random_gen=None):
+def random_infohash(random_gen=None) -> bytes:
     r = random_gen or random
     return r.getrandbits(20 * 8).to_bytes(20, byteorder='big')
 

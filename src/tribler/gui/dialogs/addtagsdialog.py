@@ -1,10 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
-from tribler.core.components.tag.tag_constants import MAX_TAG_LENGTH, MIN_TAG_LENGTH
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
@@ -39,27 +40,34 @@ class AddTagsDialog(DialogContainer):
         self.dialog_widget.suggestions_container.hide()
 
         # Fetch suggestions
-        TriblerNetworkRequest(f"tags/{infohash}/suggestions", self.on_received_suggestions)
+        TriblerNetworkRequest(f"knowledge/{infohash}/tag_suggestions", self.on_received_tag_suggestions)
 
         self.update_window()
 
     def on_save_tags_button_clicked(self, _) -> None:
+        statements: List[Dict] = []
+
         # Sanity check the entered tags
         entered_tags = self.dialog_widget.edit_tags_input.get_entered_tags()
         for tag in entered_tags:
-            if len(tag) < MIN_TAG_LENGTH or len(tag) > MAX_TAG_LENGTH:
+            if len(tag) < MIN_RESOURCE_LENGTH or len(tag) > MAX_RESOURCE_LENGTH:
                 self.dialog_widget.error_text_label.setText(
                     tr(
                         "Each tag should be at least %d characters and can be at most %d characters."
-                        % (MIN_TAG_LENGTH, MAX_TAG_LENGTH)
+                        % (MIN_RESOURCE_LENGTH, MAX_RESOURCE_LENGTH)
                     )
                 )
                 self.dialog_widget.error_text_label.setHidden(False)
                 return
 
-        self.save_button_clicked.emit(self.index, entered_tags)
+            statements.append({
+                "predicate": ResourceType.TAG,
+                "object": tag,
+            })
 
-    def on_received_suggestions(self, data: Dict) -> None:
+        self.save_button_clicked.emit(self.index, statements)
+
+    def on_received_tag_suggestions(self, data: Dict) -> None:
         self.suggestions_loaded.emit()
         if data["suggestions"]:
             self.dialog_widget.suggestions_container.show()

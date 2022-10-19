@@ -1,11 +1,13 @@
+import os
 from json import dumps
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
-
 from pony.orm import db_session
 
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.knowledge.db.tests.test_knowledge_db import Resource, TestTagDB
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
@@ -13,9 +15,8 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler.core.components.tag.db.tag_db import SHOW_THRESHOLD, TagDatabase
-from tribler.core.components.tag.db.tests.test_tag_db import Tag, TestTagDB
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.unicode import hexlify
 
 
 class TestRemoteSearchByTags(TestBase):
@@ -26,14 +27,14 @@ class TestRemoteSearchByTags(TestBase):
     def setUp(self):
         super().setUp()
         self.metadata_store = None
-        self.tags_db = None
+        self.knowledge_db = None
         self.initialize(BasicRemoteQueryCommunity, 1)
 
     async def tearDown(self):
         if self.metadata_store:
             self.metadata_store.shutdown()
-        if self.tags_db:
-            self.tags_db.shutdown()
+        if self.knowledge_db:
+            self.knowledge_db.shutdown()
 
         await super().tearDown()
 
@@ -44,10 +45,10 @@ class TestRemoteSearchByTags(TestBase):
             default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
-        self.tags_db = TagDatabase(str(Path(self.temporary_directory()) / "tags.db"))
+        self.knowledge_db = KnowledgeDatabase(str(Path(self.temporary_directory()) / "tags.db"))
 
         kwargs['metadata_store'] = self.metadata_store
-        kwargs['tags_db'] = self.tags_db
+        kwargs['knowledge_db'] = self.knowledge_db
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
         return super().create_node(*args, **kwargs)
 
@@ -55,16 +56,17 @@ class TestRemoteSearchByTags(TestBase):
     def rqc(self) -> RemoteQueryCommunity:
         return self.overlay(0)
 
-    @patch.object(RemoteQueryCommunity, 'tags_db', new=PropertyMock(return_value=None), create=True)
+    @patch.object(RemoteQueryCommunity, 'knowledge_db', new=PropertyMock(return_value=None), create=True)
     async def test_search_for_tags_no_db(self):
         # test that in case of missed `tags_db`, function `search_for_tags` returns None
         assert self.rqc.search_for_tags(tags=['tag']) is None
 
-    @patch.object(TagDatabase, 'get_infohashes')
-    async def test_search_for_tags_only_valid_tags(self, mocked_get_infohashes: Mock):
+    @patch.object(KnowledgeDatabase, 'get_subjects_intersection')
+    async def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
-        self.rqc.search_for_tags(tags=['invalid tag', 'valid_tag'])
-        mocked_get_infohashes.assert_called_with({'valid_tag'})
+        self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
+        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=ResourceType.TAG,
+                                                            case_sensitive=False)
 
     @patch.object(MetadataStore, 'get_entries_threaded', new_callable=AsyncMock)
     async def test_process_rpc_query_no_tags(self, mocked_get_entries_threaded: AsyncMock):
@@ -82,16 +84,20 @@ class TestRemoteSearchByTags(TestBase):
         # This is full test that checked whether search by tags works or not
         #
         # Test assumes that two databases were filled by the following data (TagsDatabase and MDS):
+        infohash1 = os.urandom(20)
+        infohash2 = os.urandom(20)
+        infohash3 = os.urandom(20)
+
         @db_session
         def fill_tags_database():
             TestTagDB.add_operation_set(
-                self.rqc.tags_db,
+                self.rqc.knowledge_db,
                 {
-                    b'infohash1': [
-                        Tag(name='tag1', count=SHOW_THRESHOLD),
+                    hexlify(infohash1): [
+                        Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD),
                     ],
-                    b'infohash2': [
-                        Tag(name='tag1', count=SHOW_THRESHOLD - 1),
+                    hexlify(infohash2): [
+                        Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD - 1),
                     ]
                 })
 
@@ -102,9 +108,9 @@ class TestRemoteSearchByTags(TestBase):
                     torrent = {"infohash": infohash, "title": 'title', "tags": "", "size": 1, "status": NEW}
                     self.rqc.mds.TorrentMetadata.from_dict(torrent)
 
-                _add(b'infohash1')
-                _add(b'infohash2')
-                _add(b'infohash3')
+                _add(infohash1)
+                _add(infohash2)
+                _add(infohash3)
 
         fill_tags_database()
         fill_mds()
@@ -118,4 +124,4 @@ class TestRemoteSearchByTags(TestBase):
 
         # Expected results: only one infohash (b'infohash1') should be returned.
         result_infohash_list = [r['infohash'] for r in query_results]
-        assert result_infohash_list == [b'infohash1']
+        assert result_infohash_list == [infohash1]

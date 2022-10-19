@@ -4,13 +4,12 @@ from typing import Dict
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
-
 from psutil import LINUX
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
+    SNIPPET
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
-
 from tribler.gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
@@ -33,7 +32,7 @@ from tribler.gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler.gui.utilities import format_votes, get_gui_setting, get_health, get_image_path, tr
+from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr
 from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -45,11 +44,14 @@ TRIBLER_PALETTE = QPalette()
 TRIBLER_PALETTE.setColor(QPalette.Highlight, TRIBLER_ORANGE)
 
 DEFAULT_ROW_HEIGHT = 30
+CONTENT_ROW_HEIGHT = 72
+TORRENT_IN_SNIPPET_HEIGHT = 28
 MAX_TAGS_TO_SHOW = 10
 
 
 def draw_text(
-    painter, rect, text, color=TRIBLER_NEUTRAL, font=None, text_flags=Qt.AlignLeft | Qt.AlignVCenter | Qt.TextSingleLine
+        painter, rect, text, color=TRIBLER_NEUTRAL, font=None,
+        text_flags=Qt.AlignLeft | Qt.AlignVCenter | Qt.TextSingleLine
 ):
     painter.save()
     text_box = painter.boundingRect(rect, text_flags, text)
@@ -94,7 +96,7 @@ def draw_progress_bar(painter, rect, progress=0.0):
     p.setPen(TRIBLER_PALETTE.light().color())
     font = p.font()
     p.setFont(font)
-    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress*100))}%")
+    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress * 100))}%")
 
     painter.restore()
 
@@ -107,9 +109,9 @@ class CheckClickedMixin:
             return False
         attribute_name = model.columns[column_position].dict_key
         if (
-            event.type() == QEvent.MouseButtonRelease
-            and column_position == index.column()
-            and data_item.get(attribute_name, '') != ''
+                event.type() == QEvent.MouseButtonRelease
+                and column_position == index.column()
+                and data_item.get(attribute_name, '') != ''
         ):
             self.clicked.emit(index)
             return True
@@ -137,7 +139,8 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.column_drawing_actions = []
         self.font_metrics = None
 
-        self.hovering_over_tag_edit_button = False
+        self.hovering_over_tag_edit_button: bool = False
+        self.hovering_over_download_popular_torrent_button: int = -1
 
         # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
@@ -168,6 +171,11 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         Estimate the height of the row. This is mostly dependent on the tags attached to each item.
         """
         data_item = index.model().data_items[index.row()]
+
+        if data_item["type"] == SNIPPET:
+            torrents_in_snippet = len(data_item["torrents_in_snippet"])
+            height = CONTENT_ROW_HEIGHT + TORRENT_IN_SNIPPET_HEIGHT * torrents_in_snippet
+            return QSize(0, height)
 
         tags_disabled = self.get_bool_gui_setting("disable_tags")
         if data_item["type"] != REGULAR_TORRENT or tags_disabled:
@@ -208,8 +216,8 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         # Check if we hover over the 'edit tags' button
         new_hovering_state = False
         if (
-            self.hover_index != self.no_index
-            and self.hover_index.column() == index.model().column_position[Column.NAME]
+                self.hover_index != self.no_index
+                and self.hover_index.column() == index.model().column_position[Column.NAME]
         ):
             if index in index.model().edit_tags_rects:
                 rect = index.model().edit_tags_rects[index]
@@ -221,11 +229,28 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             self.redraw_required.emit(index, False)
         self.hovering_over_tag_edit_button = new_hovering_state
 
+        # Check if we are hovering over the download popular torrents button
+        new_hovering_state = -1
+        if (
+                self.hover_index != self.no_index
+                and self.hover_index.column() == index.model().column_position[Column.NAME]
+        ):
+            if index in index.model().download_popular_content_rects:
+                for ind, rect in enumerate(index.model().download_popular_content_rects[index]):
+                    if rect.contains(pos):
+                        QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
+                        new_hovering_state = ind
+
+        if new_hovering_state != self.hovering_over_download_popular_torrent_button:
+            self.redraw_required.emit(index, False)
+        self.hovering_over_download_popular_torrent_button = new_hovering_state
+
         for controls in self.controls:
             controls.on_mouse_moved(pos, index)
 
     def on_mouse_left(self) -> None:
         self.hovering_over_tag_edit_button = False
+        self.hovering_over_download_popular_torrent_button = -1
 
     @staticmethod
     def split_rect_into_squares(r, buttons):
@@ -346,16 +371,82 @@ class TagsMixin:
     edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
 
     def draw_title_and_tags(
-        self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
+            self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
     ) -> None:
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
+        title_text_height = 60 if data_item["type"] == SNIPPET else 28
+        title_text_y = (title_text_pos.y() + 10) if data_item["type"] == SNIPPET else title_text_pos.y()
+        title_text_x = (title_text_pos.x() + 56) if data_item["type"] == SNIPPET else (title_text_pos.x() + 6)
         painter.setPen(Qt.white)
+
+        if data_item["type"] == SNIPPET:
+            # Increase the font size
+            font = painter.font()
+            font.setPixelSize(17)
+            painter.setFont(font)
+
         painter.drawText(
-            QRectF(title_text_pos.x() + 6, title_text_pos.y(), option.rect.width() - 6, 28),
+            QRectF(title_text_x, title_text_y, option.rect.width() - 6, title_text_height),
             Qt.AlignVCenter,
             data_item["name"],
         )
+
+        if data_item["type"] == SNIPPET:
+            # Restore the font size
+            font = painter.font()
+            font.setPixelSize(13)
+            painter.setFont(font)
+
+        # Draw the thumbnail + preview item if it's a content item
+        if data_item["type"] == SNIPPET:
+            painter.setPen(QColor(get_color(data_item["name"])))
+            path = QPainterPath()
+            rect = QRectF(option.rect.x(), option.rect.topLeft().y() + 10, 40, 60)
+            path.addRect(rect)
+            painter.fillPath(path, QColor(get_color(data_item["name"])))
+            painter.drawPath(path)
+
+            # Draw the text in the thumbnail
+            font = painter.font()
+            font.setPixelSize(22)
+            painter.setFont(font)
+            painter.setPen(QColor("#ffffff"))
+            painter.drawText(
+                QRectF(rect.x(), rect.y(), rect.width(), rect.height()),
+                Qt.AlignCenter,
+                data_item["name"][0].capitalize(),
+            )
+            font = painter.font()
+            font.setPixelSize(13)
+            painter.setFont(font)
+
+            snippets_y = option.rect.topLeft().y() + 60
+
+            font = painter.font()
+            font.setPixelSize(15)
+            painter.setFont(font)
+
+            index.model().download_popular_content_rects[index] = []
+            for torrent_ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
+                is_hovering = self.hovering_over_download_popular_torrent_button == torrent_ind and \
+                              self.hover_index == index
+                painter.setPen(QColor(QColor(TRIBLER_ORANGE) if is_hovering else "#ccc"))
+
+                torrent_in_snippet_rect = QRectF(title_text_x, snippets_y, option.rect.width() - 6,
+                                                 TORRENT_IN_SNIPPET_HEIGHT)
+                painter.drawText(
+                    torrent_in_snippet_rect,
+                    Qt.AlignVCenter,
+                    torrent_in_snippet["name"],
+                )
+
+                index.model().download_popular_content_rects[index].append(torrent_in_snippet_rect)
+                snippets_y += TORRENT_IN_SNIPPET_HEIGHT
+
+        font = painter.font()
+        font.setPixelSize(13)
+        painter.setFont(font)
 
         cur_tag_x = option.rect.x() + 6
         cur_tag_y = option.rect.y() + TAG_TOP_MARGIN
@@ -447,7 +538,7 @@ class CategoryLabelMixin:
         else:
             # Precautions to safely draw wrong category descriptions
             category = ContentCategories.get(data_item['category'])
-            category_txt = category.emoji if category else '?'
+            category_txt = category.emoji if category else ''
 
         CategoryLabel(category_txt).paint(painter, option, index, draw_border=False)
         return True
@@ -485,7 +576,7 @@ class DownloadControlsMixin:
             active_buttons = [b for b in self.ondemand_container if b.should_draw(index)]
             if active_buttons:
                 for rect, button in TriblerButtonsDelegate.split_rect_into_squares(
-                    button_box_extended_rect, active_buttons
+                        button_box_extended_rect, active_buttons
                 ):
                     button.paint(painter, rect, index)
         return True
@@ -497,7 +588,7 @@ class HealthLabelMixin:
         self.paint_empty_background(painter, option)
 
         # This dumb check is required because some endpoints do not return entry type
-        if 'type' not in data_item or data_item['type'] == REGULAR_TORRENT:
+        if 'type' not in data_item or data_item['type'] in [REGULAR_TORRENT]:
             self.health_status_widget.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True
@@ -598,7 +689,6 @@ class CategoryLabel(QObject):
 
 
 class SubscribeToggleControl(QObject, CheckClickedMixin):
-
     clicked = pyqtSignal(QModelIndex)
 
     def __init__(self, column_name, parent=None):
@@ -750,25 +840,34 @@ class HealthStatusDisplay(QObject):
     def paint(self, painter, rect, index, hover=False):
         data_item = index.model().data_items[index.row()]
 
-        if 'health' not in data_item or data_item['health'] == "updated":
-            data_item['health'] = get_health(
-                data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
-            )
-        health = data_item['health']
-
         # ----------------
         # |b---b|        |
         # |b|i|b| 0S 0L  |
         # |b---b|        |
         # ----------------
 
-        r = rect
+        if data_item["type"] == REGULAR_TORRENT:
+            if 'health' not in data_item or data_item['health'] == "updated":
+                data_item['health'] = get_health(
+                    data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
+                )
+            health = data_item['health']
 
+            panel_y = rect.y() + rect.height() / 2 - 5
+            self.paint_elements(painter, rect, panel_y, health, data_item, hover)
+        elif data_item["type"] == SNIPPET:
+            for ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
+                panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT / 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
+                health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'],
+                                    torrent_in_snippet['last_tracker_check'])
+                self.paint_elements(painter, rect, panel_y, health, torrent_in_snippet, hover, draw_health_text=False)
+
+    def paint_elements(self, painter, rect, panel_y, health, data_item, hover=False, draw_health_text=True):
         painter.save()
 
         # Indicator ellipse rectangle
-        y = int(r.top() + (r.height() - self.indicator_side) // 2)
-        x = r.left() + self.indicator_border
+        y = panel_y  # int(r.top() + (r.height() - self.indicator_side) // 2)
+        x = rect.left() + self.indicator_border
         w = self.indicator_side
         h = self.indicator_side
         indicator_rect = QRect(x, y, w, h)
@@ -779,27 +878,27 @@ class HealthStatusDisplay(QObject):
         painter.drawEllipse(indicator_rect)
 
         x = indicator_rect.left() + indicator_rect.width() + 2 * self.indicator_border
-        y = r.top()
-        w = r.width() - indicator_rect.width() - 2 * self.indicator_border
-        h = r.height()
+        y = panel_y
+        w = rect.width() - indicator_rect.width() - 2 * self.indicator_border
+        h = 10
         text_box = QRect(x, y, w, h)
 
         # Paint status text, if necessary
-        if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
-            txt = health
-        else:
-            seeders = int(data_item['num_seeders'])
-            leechers = int(data_item['num_leechers'])
+        if draw_health_text:
+            if health in (HEALTH_CHECKING, HEALTH_UNCHECKED, HEALTH_ERROR):
+                txt = health
+            else:
+                seeders = int(data_item['num_seeders'])
+                leechers = int(data_item['num_leechers'])
 
-            txt = 'S' + str(seeders) + ' L' + str(leechers)
+                txt = 'S' + str(seeders) + ' L' + str(leechers)
 
-        color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
-        draw_text(painter, text_box, txt, color=color)
+            color = TRIBLER_PALETTE.light().color() if hover else TRIBLER_NEUTRAL
+            draw_text(painter, text_box, txt, color=color)
         painter.restore()
 
 
 class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
-
     clicked = pyqtSignal(QModelIndex)
 
     def __init__(self, column_name, parent=None):

@@ -4,16 +4,12 @@ import os
 import sys
 from io import StringIO
 
+import psutil
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.community import TunnelCommunity
-
 from marshmallow.fields import Boolean, Float, Integer, String
-
-import psutil
 
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.components.resource_monitor.implementation.base import ResourceMonitor
@@ -244,12 +240,12 @@ class DebugEndpoint(RESTEndpoint):
             'required': False
         },
             {
-            'in': 'query',
-            'name': 'max_lines',
-            'description': 'Maximum number of lines to return from the log file',
-            'type': 'integer',
-            'required': False
-        }],
+                'in': 'query',
+                'name': 'max_lines',
+                'description': 'Maximum number of lines to return from the log file',
+                'type': 'integer',
+                'required': False
+            }],
         responses={
             200: {
                 'schema': schema(LogFileResponse={

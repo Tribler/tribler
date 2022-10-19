@@ -53,7 +53,7 @@ def add_fake_torrents_channels(metadata_store):
 
 
 @pytest.fixture
-def my_channel(metadata_store, tags_db):
+def my_channel(metadata_store, knowledge_db):
     """
     Generate a channel with some torrents. Also add a few (random) tags to these torrents.
     """
@@ -64,11 +64,11 @@ def my_channel(metadata_store, tags_db):
             _ = metadata_store.TorrentMetadata(
                 origin_id=chan.id_, title='torrent%d' % ind, status=NEW, infohash=infohash
             )
-            tag_torrent(infohash, tags_db)
+            tag_torrent(infohash, knowledge_db)
         for ind in range(5, 9):
             infohash = random_infohash()
             _ = metadata_store.TorrentMetadata(origin_id=chan.id_, title='torrent%d' % ind, infohash=infohash)
-            tag_torrent(infohash, tags_db)
+            tag_torrent(infohash, knowledge_db)
 
         chan2 = metadata_store.ChannelMetadata.create_channel('test2', 'test2')
         for ind in range(5):
@@ -76,11 +76,11 @@ def my_channel(metadata_store, tags_db):
             _ = metadata_store.TorrentMetadata(
                 origin_id=chan2.id_, title='torrentB%d' % ind, status=NEW, infohash=infohash
             )
-            tag_torrent(infohash, tags_db)
+            tag_torrent(infohash, knowledge_db)
         for ind in range(5, 9):
             infohash = random_infohash()
             _ = metadata_store.TorrentMetadata(
                 origin_id=chan2.id_, title='torrentB%d' % ind, infohash=random_infohash()
             )
-            tag_torrent(infohash, tags_db)
+            tag_torrent(infohash, knowledge_db)
         return chan

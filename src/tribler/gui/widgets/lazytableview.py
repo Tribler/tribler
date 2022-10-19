@@ -1,12 +1,14 @@
 import json
-from typing import List
+from typing import List, Dict
 
 from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
+    SNIPPET
 
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
 from tribler.gui.dialogs.addtagsdialog import AddTagsDialog
@@ -52,7 +54,7 @@ class TriblerContentTableView(QTableView):
     channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
-    edited_tags = pyqtSignal(dict)
+    edited_metadata = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         QTableView.__init__(self, parent)
@@ -117,6 +119,10 @@ class TriblerContentTableView(QTableView):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         should_select_row = True
         index = self.indexAt(event.pos())
+        data_item = index.model().data_items[index.row()]
+        if data_item["type"] == SNIPPET:
+            should_select_row = False
+
         if index != self.delegate.no_index:
             # Check if we are clicking the 'edit tags' button
             if index in index.model().edit_tags_rects:
@@ -124,6 +130,13 @@ class TriblerContentTableView(QTableView):
                 if rect.contains(event.pos()) and event.button() != Qt.RightButton:
                     should_select_row = False
                     self.on_edit_tags_clicked(index)
+
+            # Check if we are clicking the 'popular content' button
+            if index in index.model().download_popular_content_rects:
+                for torrent_index, rect in enumerate(index.model().download_popular_content_rects[index]):
+                    if rect.contains(event.pos()) and event.button() != Qt.RightButton:
+                        should_select_row = False
+                        self.on_download_popular_torrent_clicked(index, torrent_index)
 
         if should_select_row:
             super().mousePressEvent(event)
@@ -190,7 +203,11 @@ class TriblerContentTableView(QTableView):
             self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item.get("tags", ()))
         self.add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
         self.add_tags_dialog.show()
-        connect(self.add_tags_dialog.save_button_clicked, self.save_edited_tags)
+        connect(self.add_tags_dialog.save_button_clicked, self.save_edited_metadata)
+
+    def on_download_popular_torrent_clicked(self, index: QModelIndex, torrent_index: int) -> None:
+        data_item = index.model().data_items[index.row()]
+        self.start_download_from_dataitem(data_item["torrents_in_snippet"][torrent_index])
 
     def on_table_item_clicked(self, item, doubleclick=False):
         # We don't want to trigger the click-based events on, say, Ctrl-click based selection
@@ -208,8 +225,7 @@ class TriblerContentTableView(QTableView):
         # Safely determine if the thing is a channel. A little bit hackish
         if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
             self.channel_clicked.emit(data_item)
-
-        if data_item.get('type') == REGULAR_TORRENT:
+        elif data_item.get('type') == REGULAR_TORRENT:
             if not doubleclick:
                 self.torrent_clicked.emit(data_item)
             else:
@@ -255,22 +271,22 @@ class TriblerContentTableView(QTableView):
     def start_download_from_dataitem(self, data_item):
         self.window().start_download_from_uri(data_item2uri(data_item))
 
-    def on_tags_edited(self, index, tags):
+    def on_metadata_edited(self, index, statements: List[Dict]):
         if self.add_tags_dialog:
             self.add_tags_dialog.close_dialog()
             self.add_tags_dialog = None
 
         data_item = self.model().data_items[index.row()]
-        data_item["tags"] = tags
+        data_item["tags"] = [stmt["object"] for stmt in statements if stmt["predicate"] == ResourceType.TAG]
         self.redraw(index, True)
 
-        self.edited_tags.emit(data_item)
+        self.edited_metadata.emit(data_item)
 
-    def save_edited_tags(self, index: QModelIndex, tags: List[str]):
+    def save_edited_metadata(self, index: QModelIndex, statements: List[Dict]):
         data_item = self.model().data_items[index.row()]
         TriblerNetworkRequest(
-            f"tags/{data_item['infohash']}",
-            lambda _, ind=index, tgs=tags: self.on_tags_edited(ind, tgs),
-            raw_data=json.dumps({"tags": tags}),
+            f"knowledge/{data_item['infohash']}",
+            lambda _, ind=index, stmts=statements: self.on_metadata_edited(ind, statements),
+            raw_data=json.dumps({"statements": statements}),
             method='PATCH',
         )

@@ -2,16 +2,15 @@ import random
 import time
 
 from faker import Faker
-
 from ipv8.keyvault.crypto import default_eccrypto
-
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.community.tag_payload import TagOperation
-from tribler.core.components.tag.db.tag_db import TagDatabase, TagOperationEnum
-from tribler.core.components.tag.tag_constants import MIN_TAG_LENGTH
+from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
+from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType, KnowledgeDatabase
+from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.tests.tools.common import PNG_FILE
+from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
 
 # Some random keys used for generating tags.
@@ -41,11 +40,12 @@ def get_random_word(min_length=0):
 
 
 def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
+    infohash = hexlify(infohash)
     if tags is None:
         tags_count = random.randint(2, 6)
         tags = []
         while len(tags) < tags_count:
-            tag = get_random_word(min_length=MIN_TAG_LENGTH)
+            tag = get_random_word(min_length=MIN_RESOURCE_LENGTH)
             if tag not in tags:
                 tags.append(tag)
 
@@ -53,25 +53,25 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
         suggested_tags_count = random.randint(1, 3)
         suggested_tags = []
         while len(suggested_tags) < suggested_tags_count:
-            tag = get_random_word(min_length=MIN_TAG_LENGTH)
+            tag = get_random_word(min_length=MIN_RESOURCE_LENGTH)
             if tag not in suggested_tags:
                 suggested_tags.append(tag)
 
     def _add_operation(_tag, _op, _key):
-        operation = TagOperation(infohash=infohash, tag=_tag, operation=_op, clock=0,
-                                 creator_public_key=_key.pub().key_to_bin())
+        operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash, predicate=ResourceType.TAG,
+                                       object=_tag, operation=_op, clock=0, creator_public_key=_key.pub().key_to_bin())
         operation.clock = tags_db.get_clock(operation) + 1
-        tags_db.add_tag_operation(operation, b"")
+        tags_db.add_operation(operation, b"")
 
     # Give each torrent some tags
     for tag in tags:
         for key in [random_key_1, random_key_2]:  # Each tag should be proposed by two unique users
-            _add_operation(tag, TagOperationEnum.ADD, key)
+            _add_operation(tag, Operation.ADD, key)
 
     # Make sure we have some suggestions
     for tag in suggested_tags:
-        _add_operation(tag, TagOperationEnum.ADD, random_key_3)
-        _add_operation(tag, TagOperationEnum.REMOVE, random_key_2)
+        _add_operation(tag, Operation.ADD, random_key_3)
+        _add_operation(tag, Operation.REMOVE, random_key_2)
 
 
 @db_session
@@ -97,7 +97,7 @@ def generate_collection(metadata_store, tags_db, parent):
 
 
 @db_session
-def generate_channel(metadata_store: MetadataStore, tags_db: TagDatabase, title=None, subscribed=False):
+def generate_channel(metadata_store: MetadataStore, tags_db: KnowledgeDatabase, title=None, subscribed=False):
     # Remember and restore the original key
     orig_key = metadata_store.ChannelNode._my_key
 

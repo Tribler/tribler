@@ -1,8 +1,7 @@
 from unittest.mock import Mock
 
-from aiohttp.web_app import Application
-
 import pytest
+from aiohttp.web_app import Application
 
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware

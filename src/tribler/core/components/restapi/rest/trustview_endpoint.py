@@ -1,11 +1,8 @@
 from functools import cached_property
 
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Float, Integer, List, String
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase

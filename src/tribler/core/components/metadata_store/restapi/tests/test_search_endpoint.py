@@ -1,4 +1,6 @@
-from typing import Set
+import os
+from binascii import unhexlify
+from typing import Set, List
 from unittest.mock import patch
 
 from aiohttp.web_app import Application
@@ -7,9 +9,11 @@ from pony.orm import db_session
 
 import pytest
 
+from tribler.core.components.metadata_store.db.serialization import SNIPPET, REGULAR_TORRENT
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
+from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash, to_fts_query
 
 
@@ -29,8 +33,8 @@ def needle_in_haystack_mds(metadata_store):
 
 
 @pytest.fixture
-def rest_api(loop, needle_in_haystack_mds, aiohttp_client, tags_db):
-    channels_endpoint = SearchEndpoint(needle_in_haystack_mds, tags_db=tags_db)
+def rest_api(loop, needle_in_haystack_mds, aiohttp_client, knowledge_db):
+    channels_endpoint = SearchEndpoint(needle_in_haystack_mds, tags_db=knowledge_db)
     app = Application()
     app.add_subapp('/search', channels_endpoint.app)
     return loop.run_until_complete(aiohttp_client(app))
@@ -69,12 +73,12 @@ async def test_search(rest_api):
 
 
 async def test_search_by_tags(rest_api):
-    def mocked_get_infohashes(tags: Set[str]):
+    def mocked_get_subjects_intersection(tags: Set[str], **_):
         if tags.pop() == 'missed_tag':
             return None
-        return {b'infohash'}
+        return {hexlify(os.urandom(20))}
 
-    with patch.object(TagDatabase, 'get_infohashes', wraps=mocked_get_infohashes):
+    with patch.object(KnowledgeDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
         parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=real_tag', expected_code=200)
         assert len(parsed["results"]) == 0
 
@@ -159,3 +163,66 @@ async def test_search_with_space(rest_api, metadata_store):
     parsed = await do_request(rest_api, f'search?txt_filter={s2}', expected_code=200)
     results = {item["name"] for item in parsed["results"]}
     assert results == {'abc.def', 'abc def', 'abc defxyz'}  # but not 'abcxyz def'
+
+
+async def test_single_snippet_in_search(rest_api, metadata_store, knowledge_db):
+    """
+    Test building a simple snippet of a single item.
+    """
+    with db_session:
+        content_ih = random_infohash()
+        metadata_store.TorrentMetadata(title='abc', infohash=content_ih)
+
+    def mocked_get_subjects(*_, **__) -> List[str]:
+        return ["Abc"]
+
+    with patch.object(KnowledgeDatabase, 'get_objects', wraps=mocked_get_subjects):
+        s1 = to_fts_query("abc")
+        results = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
+
+        assert len(results["results"]) == 1
+        snippet = results["results"][0]
+        assert snippet["type"] == SNIPPET
+        assert snippet["torrents"] == 1
+        assert len(snippet["torrents_in_snippet"]) == 1
+        assert snippet["torrents_in_snippet"][0]["infohash"] == hexlify(content_ih)
+
+
+async def test_multiple_snippets_in_search(rest_api, metadata_store, knowledge_db):
+    """
+    Test two snippets with two torrents in each snippet.
+    """
+    with db_session:
+        infohashes = [random_infohash() for _ in range(5)]
+        for ind, infohash in enumerate(infohashes):
+            torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=ind)
+            metadata_store.TorrentMetadata(title=f'abc {ind}', infohash=infohash, health=torrent_state)
+
+    def mocked_get_subjects(obj, *_, **__) -> List[str]:
+        obj = unhexlify(obj)
+        if obj in {infohashes[0], infohashes[1]}:
+            return ["Content item 1"]
+        if obj in {infohashes[2], infohashes[3]}:
+            return ["Content item 2"]
+        return []
+
+    with patch.object(KnowledgeDatabase, 'get_objects', wraps=mocked_get_subjects):
+        s1 = to_fts_query("abc")
+        parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
+        results = parsed["results"]
+
+        assert len(results) == 3
+        for snippet in results[:2]:
+            assert snippet["type"] == SNIPPET
+            assert snippet["torrents"] == 2
+
+        # Test that the right torrents have been assigned to the appropriate content items, and that they are in the
+        # right sorted order.
+        assert results[0]["torrents_in_snippet"][0]["infohash"] == hexlify(infohashes[3])
+        assert results[0]["torrents_in_snippet"][1]["infohash"] == hexlify(infohashes[2])
+        assert results[1]["torrents_in_snippet"][0]["infohash"] == hexlify(infohashes[1])
+        assert results[1]["torrents_in_snippet"][1]["infohash"] == hexlify(infohashes[0])
+
+        # There is one item that has not been assigned to the snippet.
+        assert results[2]["type"] == REGULAR_TORRENT
+        assert results[2]["infohash"] == hexlify(infohashes[4])

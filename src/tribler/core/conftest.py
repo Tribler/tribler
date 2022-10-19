@@ -18,7 +18,7 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.tag.db.tag_db import TagDatabase
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
@@ -195,8 +195,8 @@ def metadata_store(tmp_path):
 
 
 @pytest.fixture
-def tags_db():
-    db = TagDatabase()
+def knowledge_db():
+    db = KnowledgeDatabase()
     yield db
     db.shutdown()
 
