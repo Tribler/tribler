@@ -30,6 +30,8 @@ from tribler.core.settings import GeneralSettings
 
 logger = logging.getLogger('Tribler Config')
 
+DEFAULT_CONFIG_NAME = 'triblerd.conf'
+
 
 class TriblerConfig(BaseSettings):
     """ Tribler config class that contains common logic for manipulating with a config."""
@@ -74,25 +76,27 @@ class TriblerConfig(BaseSettings):
             **kwargs: Arguments that will be passed to the `BaseSettings` constructor.
         """
         super().__init__(*args, **kwargs)
-        logger.info(f'Init. State dir: {state_dir}. File: {file}')
+        if not file and state_dir:
+            file = state_dir / DEFAULT_CONFIG_NAME  # assign default file name
 
         self.set_state_dir(state_dir)
         self.set_file(file)
 
         self._error = error
+        logger.info(f'Init. State dir: {state_dir}. File: {file}')
 
     @staticmethod
-    def load(file: Path, state_dir: Path, reset_config_on_error: bool = False) -> TriblerConfig:
+    def load(state_dir: Path, file: Path = None, reset_config_on_error: bool = False) -> TriblerConfig:
         """ Load a config from a file
 
         Args:
-            file: A path to the config file.
             state_dir: A Tribler's state dir.
-            reset_config_on_error: Ф flag that shows whether it is necessary to
+            file: A path to the config file.
+            reset_config_on_error: a flag that shows whether it is necessary to
                 create a new config in case of an error.
-
         Returns: `TriblerConfig` instance.
         """
+        file = file or state_dir / DEFAULT_CONFIG_NAME
         logger.info(f'Load: {file}. State dir: {state_dir}. Reset config on error: {reset_config_on_error}')
         error = None
         config = None

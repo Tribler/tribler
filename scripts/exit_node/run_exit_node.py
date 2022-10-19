@@ -51,7 +51,7 @@ def make_config(options) -> TriblerConfig:
             raise ValueError('ipv8_port option is not set, and HELPER_BASE/HELPER_INDEX env vars are not defined')
 
     statedir = Path(os.path.join(get_root_state_directory(), "tunnel-%d") % ipv8_port)
-    config = TriblerConfig.load(file=statedir / 'triblerd.conf', state_dir=statedir)
+    config = TriblerConfig.load(state_dir=statedir)
     config.tunnel_community.random_slots = options.random_slots
     config.tunnel_community.competing_slots = options.competing_slots
     config.torrent_checking.enabled = False

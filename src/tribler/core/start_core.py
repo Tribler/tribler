@@ -131,10 +131,7 @@ def run_tribler_core_session(api_port: str, api_key: str, state_dir: Path, gui_t
                 f'API key: "{api_key}". State dir: "{state_dir}". '
                 f'Core test mode: "{gui_test_mode}"')
 
-    config = TriblerConfig.load(
-        file=state_dir / CONFIG_FILE_NAME,
-        state_dir=state_dir,
-        reset_config_on_error=True)
+    config = TriblerConfig.load(state_dir=state_dir, reset_config_on_error=True)
     config.gui_test_mode = gui_test_mode
 
     if SentryReporter.is_in_test_mode():

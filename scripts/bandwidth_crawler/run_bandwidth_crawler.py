@@ -40,7 +40,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     state_dir = Path(args.statedir).absolute()
-    config = TriblerConfig.load(file=state_dir / 'triblerd.conf', state_dir=state_dir)
+    config = TriblerConfig.load(state_dir=state_dir)
 
     config.tunnel_community.enabled = False
     config.libtorrent.enabled = False

@@ -3,20 +3,20 @@ import shutil
 import pytest
 from configobj import ParseError
 
-from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.config.tribler_config import DEFAULT_CONFIG_NAME, TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path
 
 CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 
-async def test_create(tmpdir):
+def test_create(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     assert config
     assert config.state_dir == Path(tmpdir)
 
 
-async def test_base_getters_and_setters(tmpdir):
+def test_base_getters_and_setters(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     assert config.state_dir == Path(tmpdir)
 
@@ -24,7 +24,21 @@ async def test_base_getters_and_setters(tmpdir):
     assert config.state_dir == Path('.')
 
 
-async def test_load_write(tmpdir):
+def test_load_default_path(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+    assert config.file.parent == tmpdir
+    assert config.file.name == DEFAULT_CONFIG_NAME
+
+    config = TriblerConfig.load(tmpdir)
+    assert config.file.parent == tmpdir
+    assert config.file.name == DEFAULT_CONFIG_NAME
+
+
+def test_load_missed_file(tmpdir):
+    assert TriblerConfig.load(tmpdir / 'any')
+
+
+def test_load_write(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     filename = 'test_read_write.ini'
 
@@ -33,7 +47,7 @@ async def test_load_write(tmpdir):
     config.libtorrent.port = None
     config.libtorrent.proxy_type = 2
 
-    assert not config.file
+    assert not config.file.exists()
     config.write(tmpdir / filename)
     assert config.file == tmpdir / filename
 
@@ -45,13 +59,13 @@ async def test_load_write(tmpdir):
     assert config.file == tmpdir / filename
 
 
-async def test_load_write_nonascii(tmpdir):
+def test_load_write_nonascii(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     filename = 'test_read_write.ini'
 
     config.download_defaults.saveas = 'ыюя'
 
-    assert not config.file
+    assert not config.file.exists()
     config.write(tmpdir / filename)
     assert config.file == tmpdir / filename
 
@@ -61,7 +75,7 @@ async def test_load_write_nonascii(tmpdir):
     assert config.file == tmpdir / filename
 
 
-async def test_copy(tmpdir):
+def test_copy(tmpdir):
     config = TriblerConfig(state_dir=tmpdir, file=tmpdir / '1.txt')
     config.api.http_port = 42
 
@@ -71,7 +85,7 @@ async def test_copy(tmpdir):
     assert cloned.file == tmpdir / '1.txt'
 
 
-async def test_get_path_relative(tmpdir):
+def test_get_path_relative(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     config.general.log_dir = None
     assert not config.general.log_dir
@@ -83,7 +97,7 @@ async def test_get_path_relative(tmpdir):
     assert config.general.get_path_as_absolute('log_dir', tmpdir) == Path(tmpdir) / '1'
 
 
-async def test_get_path_absolute(tmpdir):
+def test_get_path_absolute(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     config.general.log_dir = str(Path(tmpdir).parent)
     state_dir = Path(tmpdir)
@@ -97,7 +111,7 @@ def test_get_path_absolute_none(tmpdir):
     assert config.general.get_path_as_absolute(property_name='log_dir', state_dir=state_dir) is None
 
 
-async def test_invalid_config_recovers(tmpdir):
+def test_invalid_config_recovers(tmpdir):
     default_config_file = tmpdir / 'triblerd.conf'
     shutil.copy2(CONFIG_PATH / 'corrupt-triblerd.conf', default_config_file)
 

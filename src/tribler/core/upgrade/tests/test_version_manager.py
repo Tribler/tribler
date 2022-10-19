@@ -37,7 +37,7 @@ def test_read_write_version_history(tmpdir):
     history = VersionHistory(root_path, code_version_id='100.100.100')
 
     assert history.root_state_dir == root_path
-    assert history.file_path == root_path / "version_history.json"
+    assert history.file_path == root_path / VERSION_HISTORY_FILENAME
     assert history.file_data == {"last_version": None, "history": {}}
 
     # If there is no version history file, no information about last version is available
@@ -223,7 +223,7 @@ def test_copy_state_directory(tmpdir):
     # Make sure only the neccessary stuff is copied, and junk is omitted
     backup_list = {STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR,
                    'ec_multichain.pem', 'ecpub_multichain.pem', 'ec_trustchain_testnet.pem',
-                   'ecpub_trustchain_testnet.pem', 'triblerd.conf'}
+                   'triblerd.conf'}
     tgt_list = set(os.listdir(tgt_dir))
     assert backup_list & tgt_list == backup_list
 
@@ -380,7 +380,7 @@ def test_coverage(tmpdir):
     with pytest.raises(VersionError, match="Invalid history file structure"):
         VersionHistory(root_state_dir)
 
-    (root_state_dir / "version_history.json").write_text(
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(
         '{"last_version": "7.7", "history": {"1": "7.3.1a", "2": "7.7", "3": "7.5.1a", "4": "7.6.1b", "5": "7.8.1"}}')
 
     (root_state_dir / "sqlite").mkdir()
