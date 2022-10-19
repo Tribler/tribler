@@ -30,7 +30,7 @@ TIME_DELTA_READY_TO_GOSSIP = {'minutes': 1}
 class KnowledgeCommunity(TriblerCommunity):
     """ Community for disseminating tags across the network.
 
-    Only tags are older than 1 minute will be gossiped.
+    Only tags that are older than 1 minute will be gossiped.
     """
 
     community_id = unhexlify('d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0')

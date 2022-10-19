@@ -429,7 +429,8 @@ class TagsMixin:
 
             index.model().download_popular_content_rects[index] = []
             for torrent_ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
-                is_hovering = self.hovering_over_download_popular_torrent_button == torrent_ind and self.hover_index == index
+                is_hovering = self.hovering_over_download_popular_torrent_button == torrent_ind and \
+                              self.hover_index == index
                 painter.setPen(QColor(QColor(TRIBLER_ORANGE) if is_hovering else "#ccc"))
 
                 torrent_in_snippet_rect = QRectF(title_text_x, snippets_y, option.rect.width() - 6,

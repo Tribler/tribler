@@ -190,7 +190,7 @@ def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channe
         # The end result is the same as in the previous test
         assert _exists(mds._db, 'ChannelNode', 'tag_processor_version')
         assert _exists(tags.instance, 'TorrentTagOp', 'auto_generated')
-        
+
         assert mds.get_value('db_version') == '14'
 
 

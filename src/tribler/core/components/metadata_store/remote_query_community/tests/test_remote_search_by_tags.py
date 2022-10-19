@@ -6,6 +6,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
 
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.knowledge.db.tests.test_knowledge_db import Resource, TestTagDB
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
@@ -13,8 +15,6 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
 )
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType, SHOW_THRESHOLD, KnowledgeDatabase
-from tribler.core.components.knowledge.db.tests.test_knowledge_db import Resource, TestTagDB
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import hexlify
 
@@ -65,7 +65,8 @@ class TestRemoteSearchByTags(TestBase):
     async def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
-        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=ResourceType.TAG, case_sensitive=False)
+        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=ResourceType.TAG,
+                                                            case_sensitive=False)
 
     @patch.object(MetadataStore, 'get_entries_threaded', new_callable=AsyncMock)
     async def test_process_rpc_query_no_tags(self, mocked_get_entries_threaded: AsyncMock):

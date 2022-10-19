@@ -33,7 +33,9 @@ def test_remove_tags_db(migration: MigrationTagsToKnowledge):
     # Test that the migration removes the `tags.db` after successful migration procedure.
 
     # create DB file
-    TagDatabase(str(migration.tag_db_path))
+    tags_db = TagDatabase(str(migration.tag_db_path))
+    tags_db.shutdown()
+
     assert migration.tag_db_path.exists()
 
     # run migration
@@ -41,11 +43,13 @@ def test_remove_tags_db(migration: MigrationTagsToKnowledge):
     assert not migration.tag_db_path.exists()
 
 
-def test_remove_tags_db(migration: MigrationTagsToKnowledge):
+def test_remove_tags_db_with_exception(migration: MigrationTagsToKnowledge):
     # Test that the migration doesn't remove the `tags.db` after unsuccessful migration procedure.
 
     # create DB file
-    TagDatabase(str(migration.tag_db_path))
+    tags_db = TagDatabase(str(migration.tag_db_path))
+    tags_db.shutdown()
+
     assert migration.tag_db_path.exists()
 
     # run migration
@@ -85,13 +89,14 @@ def test_migration(migration: MigrationTagsToKnowledge):
         assert len(tag_db.instance.Torrent.select()) == 6
 
     def verify_signature(o: StatementOperation, signature: bytes):
-        packed = migration.serializer.pack_serializable(operation)
+        packed = migration.serializer.pack_serializable(o)
         if not migration.crypto.is_valid_signature(migration.key, packed, signature):
-            raise InvalidSignature(f'Invalid signature for {operation}')
+            raise InvalidSignature(f'Invalid signature for {o}')
 
     ###############################
     tag_db = TagDatabase(str(migration.tag_db_path))
     fill_db(migration.key)
+    tag_db.shutdown()
 
     assert migration.run()
 

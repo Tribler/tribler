@@ -196,13 +196,13 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, knowledge_d
         infohashes = [random_infohash() for _ in range(5)]
         for ind, infohash in enumerate(infohashes):
             torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=ind)
-            metadata_store.TorrentMetadata(title='abc %d' % ind, infohash=infohash, health=torrent_state)
+            metadata_store.TorrentMetadata(title=f'abc {ind}', infohash=infohash, health=torrent_state)
 
     def mocked_get_subjects(obj, *_, **__) -> List[str]:
         obj = unhexlify(obj)
-        if obj == infohashes[0] or obj == infohashes[1]:
+        if obj in {infohashes[0], infohashes[1]}:
             return ["Content item 1"]
-        elif obj == infohashes[2] or obj == infohashes[3]:
+        if obj in {infohashes[2], infohashes[3]}:
             return ["Content item 2"]
         return []
 

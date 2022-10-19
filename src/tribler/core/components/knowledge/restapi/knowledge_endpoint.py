@@ -1,5 +1,5 @@
 import binascii
-from typing import Optional, Set, Tuple, Dict
+from typing import Optional, Tuple
 
 from aiohttp import web
 from aiohttp_apispec import docs
@@ -90,8 +90,8 @@ class KnowledgeEndpoint(RESTEndpoint):
             return
 
         # First, get the current statements and compute the diff between the old and new statements
-        old_statements = set([(stmt.predicate, stmt.object) for stmt in self.db.get_statements(infohash)])
-        new_statements = set([(stmt["predicate"], stmt["object"]) for stmt in statements])
+        old_statements = {(stmt.predicate, stmt.object) for stmt in self.db.get_statements(infohash)}
+        new_statements = {(stmt["predicate"], stmt["object"]) for stmt in statements}
         added_statements = new_statements - old_statements
         removed_statements = old_statements - new_statements
 
@@ -122,7 +122,7 @@ class KnowledgeEndpoint(RESTEndpoint):
     )
     async def get_tag_suggestions(self, request):
         """
-        Get suggestions for a particular tag.
+        Get suggested tags for a particular torrent
         """
         infohash = request.match_info["infohash"]
         ih_valid, error_response = KnowledgeEndpoint.validate_infohash(infohash)

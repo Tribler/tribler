@@ -516,4 +516,4 @@ def get_color(name):
     green = int(md5_str_hash[10:20], 16) % 128 + 100
     blue = int(md5_str_hash[20:30], 16) % 128 + 100
 
-    return '#%02x%02x%02x' % (red, green, blue)
+    return f'#{red:02x}{green:02x}{blue:02x}'

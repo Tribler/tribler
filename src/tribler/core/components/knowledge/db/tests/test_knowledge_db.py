@@ -365,7 +365,9 @@ class TestTagDB(TestTagDBBase):
 
         # put back in the past two tag: 'tag1' and 'tag3'
         for obj in ['tag1', 'tag3']:
-            query = lambda so: so.statement.object.name == obj  # pylint: disable=cell-var-from-loop
+            def query(so):
+                return so.statement.object.name == obj
+
             operations = self.db.instance.StatementOp.select(query)
             for operation in operations:
                 operation.updated_at = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)

@@ -118,6 +118,9 @@ class TriblerUpgrader:
         self.do_upgrade_pony_db_13to14(mds, tag_db)
         if mds:
             mds.shutdown()
+        if tag_db:
+            tag_db.shutdown()
+
 
     def upgrade_pony_db_12to13(self):
         """

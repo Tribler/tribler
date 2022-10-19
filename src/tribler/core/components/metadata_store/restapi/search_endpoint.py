@@ -15,7 +15,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST,
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.utilities.utilities import froze_it
 
-SNIPPETS_TO_SHOW = 10          # The number of snippets we return from the search results
+SNIPPETS_TO_SHOW = 3          # The number of snippets we return from the search results
 MAX_TORRENTS_IN_SNIPPETS = 4   # The maximum number of torrents in each snippet
 
 
