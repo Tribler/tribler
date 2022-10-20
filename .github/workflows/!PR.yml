@@ -14,28 +14,22 @@ jobs:
       python-version: 3.8
 
   guitest:
-    needs: [ pytest ]
     uses: ./.github/workflows/guitest.yml
     with:
       python-version: 3.8
 
   coverage:
-    needs: [ guitest ]
     uses: ./.github/workflows/coverage.yml
     with:
       python-version: 3.8
 
   documentation:
-    needs: [ guitest ]
-
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/documentation.yml
     with:
       python-version: 3.8
 
   ubuntu:
-    needs: [ guitest ]
-
     if: github.event.pull_request.draft == false
     uses: ./.github/workflows/build_ubuntu.yml
     with:
