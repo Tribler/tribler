@@ -17,7 +17,7 @@ inputs:
     required: false
 
   invalidate-cache:
-    default: 'false'
+    default: 'true' # temporary set to true. see: https://github.com/Tribler/tribler/issues/7091
     description: 'Force create a virtualenv'
     required: false
 

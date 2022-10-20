@@ -24,7 +24,6 @@ REQUESTED_OPERATIONS_COUNT = 10
 
 REQUEST_INTERVAL = 5  # 5 sec
 CLEAR_ALL_REQUESTS_INTERVAL = 10 * 60  # 10 minutes
-TIME_DELTA_READY_TO_GOSSIP = {'minutes': 1}
 
 
 class KnowledgeCommunity(TriblerCommunity):
@@ -90,10 +89,7 @@ class KnowledgeCommunity(TriblerCommunity):
         self.logger.info(f'<- peer {peer.mid.hex()} requested {operations_count} operations')
 
         with db_session:
-            random_operations = self.db.get_operations_for_gossip(
-                count=operations_count,
-                time_delta=TIME_DELTA_READY_TO_GOSSIP
-            )
+            random_operations = self.db.get_operations_for_gossip(count=operations_count)
 
             self.logger.debug(f'Response {len(random_operations)} operations')
             sent_operations = []

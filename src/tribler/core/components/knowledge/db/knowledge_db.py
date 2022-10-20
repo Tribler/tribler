@@ -352,16 +352,14 @@ class KnowledgeDatabase:
         op = self.instance.StatementOp.get(statement=statement, peer=peer)
         return op.clock if op else CLOCK_START_VALUE
 
-    def get_operations_for_gossip(self, time_delta, count: int = 10) -> Iterable[Entity]:
+    def get_operations_for_gossip(self, count: int = 10) -> Set[Entity]:
         """ Get random operations from the DB that older than time_delta.
 
         Args:
-            time_delta: a dictionary for `datetime.timedelta`
             count: a limit for a resulting query
         """
-        updated_at = datetime.datetime.utcnow() - datetime.timedelta(**time_delta)
         return self._get_random_operations_by_condition(
-            condition=lambda so: so.updated_at <= updated_at and not so.auto_generated,
+            condition=lambda so: not so.auto_generated,
             count=count
         )
 
