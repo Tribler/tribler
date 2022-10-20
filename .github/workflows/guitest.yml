@@ -32,3 +32,10 @@ jobs:
       - name: Run GUI tests
         run: |
           xvfb-run  pytest ./src/tribler/gui --guitests -v --randomly-seed=1
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: screenshots
+          path: ./src/tribler/gui/screenshots/
+          retention-days: 1
