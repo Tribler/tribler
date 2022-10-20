@@ -188,7 +188,7 @@ class RemoteTableModel(QAbstractTableModel):
             if item_uid not in self.item_uid_map:
 
                 prev_item = name_mapping.get(item['name'])
-                if self.group_by_name and prev_item is not None and not on_top:
+                if self.group_by_name and prev_item is not None and not on_top and prev_item['type'] == REGULAR_TORRENT:
                     group = prev_item.setdefault('group', {})
                     if item_uid not in group:
                         group[item_uid] = item
@@ -208,8 +208,18 @@ class RemoteTableModel(QAbstractTableModel):
             return
 
         if remote and self.sort_by_rank:
-            new_data_items = self.data_items + unique_new_items
-            new_data_items.sort(key = lambda item: item['rank'], reverse=True)
+            torrents = [item for item in self.data_items if item['type'] == REGULAR_TORRENT]
+            non_torrents = [item for item in self.data_items if item['type'] != REGULAR_TORRENT]
+
+            new_torrents = [item for item in unique_new_items if item['type'] == REGULAR_TORRENT]
+            new_non_torrents = [item for item in unique_new_items if item['type'] != REGULAR_TORRENT]
+
+            torrents += new_torrents
+            non_torrents += new_non_torrents
+
+            torrents.sort(key = lambda item: item['rank'], reverse=True)
+            new_data_items = non_torrents + torrents
+
             new_item_uid_map = {}
             for item in new_data_items:
                 item_uid = get_item_uid(item)
