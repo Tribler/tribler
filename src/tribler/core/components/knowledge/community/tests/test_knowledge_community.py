@@ -1,7 +1,6 @@
 import datetime
 from unittest.mock import MagicMock, Mock
 
-from cryptography.exceptions import InvalidSignature
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
@@ -9,7 +8,6 @@ from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.community.operations_requests import PeerValidationError
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
 
 REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS = 0.1  # in seconds
@@ -68,35 +66,6 @@ class TestKnowledgeCommunity(TestBase):
         with db_session:
             assert self.overlay(0).db.instance.StatementOp.select().count() == 11
             assert self.overlay(1).db.instance.StatementOp.select().count() == 6
-
-    async def test_gossip_no_fresh_operations(self):
-        # Test that no fresh operations be propagated
-        # add one fresh operation into dataset and assert that it is not be propagated.
-        await self.fill_db()
-
-        # put the first operation into the current moment (make it fresh)
-        with db_session:
-            operation = self.overlay(0).db.instance.StatementOp.select().first()
-            operation.updated_at = datetime.datetime.utcnow()
-
-        await self.introduce_nodes()
-        await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS * 2)
-        with db_session:
-            assert self.overlay(0).db.instance.StatementOp.select().count() == 11
-            assert self.overlay(1).db.instance.StatementOp.select().count() == 5
-
-    async def test_on_message_eat_exceptions(self):
-        # Tests that except blocks in on_message function works as expected
-        # some exceptions should be eaten silently
-        exception_to_be_tested = {PeerValidationError, ValueError, InvalidSignature}
-        await self.fill_db()
-        for exception_class in exception_to_be_tested:
-            # let's "break" the function that will be called on on_message()
-            self.overlay(1).verify_signature = Mock(side_effect=exception_class(''))
-            # occurred exception should be ate by community silently
-            await self.introduce_nodes()
-            await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS * 2)
-            self.overlay(1).verify_signature.assert_called()
 
     async def test_on_request_eat_exceptions(self):
         # Tests that except blocks in on_request function works as expected

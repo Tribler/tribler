@@ -1,4 +1,3 @@
-import datetime
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -348,32 +347,22 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     async def test_get_tags_operations_for_gossip(self):
-        time_delta = {'minutes': 1}
         self.add_operation_set(
             self.db,
             {
                 'infohash1': [
                     Resource(name='tag1', count=1),
                     Resource(name='tag2', count=1),
-                    Resource(name='tag3', count=2, auto_generated=True)
+                    Resource(name='tag3', count=1),
+                    Resource(name='tag4', count=2, auto_generated=True),
+                    Resource(name='tag5', count=2, auto_generated=True)
                 ]
             }
         )
 
-        # assert that immediately added torrents are not returned
-        assert not self.db.get_operations_for_gossip(time_delta)
-
-        # put back in the past two tag: 'tag1' and 'tag3'
-        for obj in ['tag1', 'tag3']:
-            def query(so):
-                return so.statement.object.name == obj
-
-            operations = self.db.instance.StatementOp.select(query)
-            for operation in operations:
-                operation.updated_at = datetime.datetime.utcnow() - datetime.timedelta(minutes=2)
-
-        # assert that only one torrent returned (the old and the not auto generated one)
-        assert len(self.db.get_operations_for_gossip(time_delta)) == 1
+        operations = self.db.get_operations_for_gossip(count=2)
+        assert len(operations) == 2
+        assert all(not o.auto_generated for o in operations)
 
     @db_session
     async def test_get_subjects_intersection_threshold(self):
