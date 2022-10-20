@@ -203,8 +203,10 @@ class Service(TinyTriblerService):
 
     async def on_tribler_started(self):
         await super().on_tribler_started()
-        await self.create_channel(GigaChannelComponent.instance().community,
-                                  GigachannelManagerComponent.instance().gigachannel_manager)
+        gigachannel_component = self.session.get_instance(GigaChannelComponent)
+        gigachannel_manager_component = self.session.get_instance(GigachannelManagerComponent)
+        await self.create_channel(gigachannel_component.community,
+                                  gigachannel_manager_component.gigachannel_manager)
 
 
 def run_tribler(arguments):

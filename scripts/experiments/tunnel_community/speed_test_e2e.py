@@ -25,7 +25,8 @@ class Service(SpeedTestExitService):
     async def on_tribler_started(self):
         info_hash = unhexlify('e24d8e65a329a59b41a532ebd4eb4a3db7cb291b')
 
-        self.tunnel_community = TunnelsComponent.instance().community
+        tunnels_component = self.session.get_instance(TunnelsComponent)
+        self.tunnel_community = tunnels_component.community
         self.tunnel_community.join_swarm(info_hash, EXPERIMENT_NUM_HOPS, seeding=False, callback=self.on_circuit_ready)
 
     @task

@@ -46,7 +46,8 @@ class Service(TinyTriblerService, TaskManager):
 
     async def on_tribler_started(self):
         info_hash = unhexlify('e24d8e65a329a59b41a532ebd4eb4a3db7cb291b')
-        community = TunnelsComponent.instance().community
+        component = self.session.get_instance(TunnelsComponent)
+        community = component.community
         community.join_swarm(info_hash, 1, seeding=False)
         self.swarm = community.swarms[info_hash]
         print(f'Joining hidden swarm {hexlify(info_hash)}')  # noqa: T001

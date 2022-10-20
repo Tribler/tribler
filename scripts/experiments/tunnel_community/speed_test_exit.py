@@ -59,7 +59,8 @@ class Service(TinyTriblerService, TaskManager):
     async def on_tribler_started(self):
         index = 0
         while index < EXPERIMENT_NUM_CIRCUITS:
-            community = TunnelsComponent.instance().community
+            component = self.session.get_instance(TunnelsComponent)
+            community = component.community
             circuit = community.create_circuit(EXPERIMENT_NUM_HOPS)
             if circuit and (await circuit.ready):
                 index += 1
@@ -75,7 +76,8 @@ class Service(TinyTriblerService, TaskManager):
         request_size = 0 if direction == ORIGINATOR else 1024
         response_size = 1024 if direction == ORIGINATOR else 0
         num_requests = size * 1024
-        task = asyncio.create_task(run_speed_test(TunnelsComponent.instance().community, circuit, request_size,
+        component = self.session.get_instance(TunnelsComponent)
+        task = asyncio.create_task(run_speed_test(component.community, circuit, request_size,
                                                   response_size, num_requests, window=50))
         results = []
         prev_transferred = ts = 0
