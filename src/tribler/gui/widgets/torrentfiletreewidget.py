@@ -82,7 +82,12 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
             self.file_size = 0
             for child in self.children:
                 self.file_size += child.fill_directory_sizes()
-        self.setText(SIZE_COL, format_size(float(self.file_size)))
+
+        # On Windows, with display scaling bigger than 100%, the width of the Size column may be too narrow to display
+        # the full text of the cell. Adding unbreakable spaces makes the column wider, so it can display all the info
+        non_breaking_spaces = '\u00A0\u00A0'
+
+        self.setText(SIZE_COL, format_size(float(self.file_size)) + non_breaking_spaces)
         return self.file_size
 
     def subtree_progress_update(self, updates, force_update=False, draw_progress_bars=False):
