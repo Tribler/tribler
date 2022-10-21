@@ -35,7 +35,7 @@ from tribler.gui.defs import (
 )
 from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr, \
     get_objects_with_predicate
-from tribler.gui.widgets.tablecontentmodel import Column
+from tribler.gui.widgets.tablecontentmodel import Column, RemoteTableModel
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
 PROGRESS_BAR_BACKGROUND = QColor("#444444")
@@ -268,18 +268,20 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             yield QRect(x, y, w, h), button
 
     def paint(self, painter, option, index):
-        # Draw 'hover' state highlight for every cell of a row
-        if index.row() == self.hover_index.row():
+        model: RemoteTableModel = index.model()
+        data_item = model.data_items[index.row()]
+        if index.row() == self.hover_index.row() or model.should_highlight_item(data_item):
+            # Draw 'hover' state highlight for every cell of a row
             option.state |= QStyle.State_MouseOver
-        if not self.paint_exact(painter, option, index):
+        if not self.paint_exact(painter, option, index, data_item):
             # Draw the rest of the columns
             super().paint(painter, option, index)
 
-    def paint_exact(self, painter, option, index):
-        data_item = index.model().data_items[index.row()]
+    def paint_exact(self, painter, option, index, data_item):
         for column, drawing_action in self.column_drawing_actions:
             if column in index.model().column_position and index.column() == index.model().column_position[column]:
                 return drawing_action(painter, option, index, data_item)
+        return False
 
     def editorEvent(self, event, model, option, index):
         for control in self.controls:

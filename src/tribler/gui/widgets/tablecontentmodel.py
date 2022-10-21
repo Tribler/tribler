@@ -106,11 +106,14 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_desc = True
         self.saved_header_state = None
         self.saved_scroll_state = None
+        self.highlight_remote_results = True
         self.qt_object_destroyed = False
 
         self.group_by_name = False
         self.sort_by_rank = False
         self.text_filter = ''
+
+        self.highlight_remote_results = True
 
         connect(self.destroyed, self.on_destroy)
         # Every remote query must be attributed to its specific model to avoid updating wrong models
@@ -147,6 +150,9 @@ class RemoteTableModel(QAbstractTableModel):
         self.item_uid_map = {}
         self.endResetModel()
         self.perform_query()
+
+    def should_highlight_item(self, data_item):
+        return self.highlight_remote_results and data_item.get('remote')
 
     def sort(self, column_index, order):
         if not self.columns[column_index].sortable:
