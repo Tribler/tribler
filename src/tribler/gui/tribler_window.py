@@ -207,6 +207,7 @@ class TriblerWindow(QMainWindow):
         self.create_dialog = None
         self.chosen_dir = None
         self.new_version_dialog = None
+        self.new_version_dialog_postponed = False
         self.start_download_dialog_active = False
         self.selected_torrent_files = []
         self.start_time = time.time()
@@ -732,6 +733,8 @@ class TriblerWindow(QMainWindow):
     def on_new_version_available(self, version):
         if version == str(self.gui_settings.value('last_reported_version')):
             return
+        if self.new_version_dialog_postponed:
+            return
 
         # To prevent multiple dialogs on top of each other,
         # close any existing dialog first.
@@ -752,6 +755,8 @@ class TriblerWindow(QMainWindow):
     def on_new_version_dialog_done(self, version, action):
         if action == 0:  # ignore
             self.gui_settings.setValue("last_reported_version", version)
+        elif action == 1: # postpone
+            self.new_version_dialog_postponed = True
         elif action == 2:  # ok
             import webbrowser
 
