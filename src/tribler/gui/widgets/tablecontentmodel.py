@@ -1,11 +1,13 @@
 import json
 import logging
+import time
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Dict, List
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, pyqtSignal
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
@@ -19,6 +21,8 @@ from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
+HIGHLIGHTING_PERIOD_SECONDS = 1.0
+HIGHLIGHTING_TIMER_INTERVAL_MILLISECONDS = 100
 
 
 class Column(Enum):
@@ -106,14 +110,15 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_desc = True
         self.saved_header_state = None
         self.saved_scroll_state = None
-        self.highlight_remote_results = True
         self.qt_object_destroyed = False
 
         self.group_by_name = False
         self.sort_by_rank = False
         self.text_filter = ''
 
-        self.highlight_remote_results = True
+        self.highlight_remote_results = False
+        self.highlighted_items = deque()
+        self.highlight_timer = self.startTimer(HIGHLIGHTING_TIMER_INTERVAL_MILLISECONDS)
 
         connect(self.destroyed, self.on_destroy)
         # Every remote query must be attributed to its specific model to avoid updating wrong models
@@ -152,7 +157,23 @@ class RemoteTableModel(QAbstractTableModel):
         self.perform_query()
 
     def should_highlight_item(self, data_item):
-        return self.highlight_remote_results and data_item.get('remote')
+        return (self.highlight_remote_results and data_item.get('remote')
+                and data_item['item_added_at'] > time.time() - HIGHLIGHTING_PERIOD_SECONDS)
+
+    def timerEvent(self, event: QTimerEvent) -> None:
+        if self.highlight_remote_results and event.timerId() == self.highlight_timer:
+            self.stop_highlighting_old_items()
+
+    def stop_highlighting_old_items(self):
+        now = time.time()
+        then = now - HIGHLIGHTING_PERIOD_SECONDS
+        last_column_offset = len(self.columns_dict) - 1
+        while self.highlighted_items and self.highlighted_items[0]['item_added_at'] < then:
+            item = self.highlighted_items.popleft()
+            uid = get_item_uid(item)
+            row = self.item_uid_map.get(uid)
+            if row is not None:
+                self.dataChanged.emit(self.index(row, 0), self.index(row, last_column_offset))
 
     def sort(self, column_index, order):
         if not self.columns[column_index].sortable:
@@ -183,9 +204,13 @@ class RemoteTableModel(QAbstractTableModel):
         insert_index = 0 if on_top else len(self.data_items)
         unique_new_items = []
         name_mapping = {item['name']: item for item in self.data_items} if self.group_by_name else {}
+        now = time.time()
         for item in new_items:
             if remote:
                 item['remote'] = True
+                item['item_added_at'] = now
+                if self.highlight_remote_results:
+                    self.highlighted_items.append(item)
             if self.sort_by_rank:
                 if 'rank' not in item:
                     item['rank'] = item_rank(self.text_filter, item)
@@ -601,6 +626,7 @@ class SearchResultsModel(ChannelContentModel):
         super().__init__(channel_info={"name": title}, **kwargs)
         self.remote_results_received = False
         self.postponed_remote_results = []
+        self.highlight_remote_results = True
         self.group_by_name = True
         self.sort_by_rank = True
 
@@ -644,7 +670,8 @@ class SearchResultsModel(ChannelContentModel):
         remote_items = list(self.remote_results.values())
         self.remote_results.clear()
         self.remote_results_received = False
-        self.add_items(remote_items, remote=True)
+        if remote_items:
+            self.add_items(remote_items, remote=True)
 
 
 class PopularTorrentsModel(ChannelContentModel):
