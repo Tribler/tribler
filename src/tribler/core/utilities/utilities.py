@@ -109,10 +109,13 @@ def parse_magnetlink(url):
             elif key == "xt" and value.startswith("urn:btih:"):
                 # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
                 encoded_infohash = value[9:]
-                if len(encoded_infohash) == 32:
-                    xt = b32decode(encoded_infohash.upper())
-                elif len(encoded_infohash) == 40:
-                    xt = binascii.unhexlify(encoded_infohash)
+                try:
+                    if len(encoded_infohash) == 32:
+                        xt = b32decode(encoded_infohash.upper())
+                    elif len(encoded_infohash) == 40:
+                        xt = binascii.unhexlify(encoded_infohash)
+                except binascii.Error as codec_error:
+                    logger.warning("Invalid infohash: %s; Error: %s", encoded_infohash, codec_error)
 
             elif key == "tr":
                 trs.append(value)

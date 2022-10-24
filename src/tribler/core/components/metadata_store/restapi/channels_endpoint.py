@@ -398,7 +398,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
             elif uri.startswith("magnet:"):
                 _, xt, _ = parse_magnetlink(uri)
 
-                if not xt or not is_infohash(codecs.encode(xt, 'hex')):
+                if not xt:
                     return RESTResponse({"error": ERROR_INVALID_MAGNET_LINK.format(uri)}, status=HTTP_BAD_REQUEST)
 
                 if self.mds.torrent_exists_in_personal_channel(xt) or channel.copy_torrent_from_infohash(xt):
