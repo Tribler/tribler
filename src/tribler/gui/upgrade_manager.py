@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import logging
-from typing import List
+import webbrowser
+from typing import List, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
+from tribler.gui.defs import BUTTON_TYPE_NORMAL
+from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
 from tribler.gui.utilities import connect, format_size, tr
 from tribler.run_tribler_upgrader import upgrade_state_dir
+
+if TYPE_CHECKING:
+    from tribler.gui.tribler_window import TriblerWindow
 
 
 class StateDirUpgradeWorker(QObject):
@@ -55,11 +63,44 @@ class UpgradeManager(QObject):
     def __init__(self, version_history: VersionHistory):
         QObject.__init__(self, None)
 
-        self.version_history = version_history
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.version_history = version_history
+        self.new_version_dialog_postponed: bool = False
+        self.dialog: Optional[ConfirmationDialog] = None
 
         self._upgrade_worker = None
         self._upgrade_thread = None
+
+    def on_new_version_available(self, tribler_window: TriblerWindow, new_version: str):
+        last_reported_version = str(tribler_window.gui_settings.value('last_reported_version'))
+        if new_version == last_reported_version:
+            return
+
+        if self.new_version_dialog_postponed or self.dialog:
+            return
+
+        self.dialog = ConfirmationDialog(
+            tribler_window,
+            tr("New version available"),
+            tr("Version %s of Tribler is available. Do you want to visit the website to download the newest version?")
+            % new_version,
+            [(tr("IGNORE"), BUTTON_TYPE_NORMAL), (tr("LATER"), BUTTON_TYPE_NORMAL), (tr("OK"), BUTTON_TYPE_NORMAL)],
+        )
+
+        def on_button_clicked(click_result: int):
+            self.dialog.close_dialog()
+            self.dialog = None
+
+            if click_result == 0:  # ignore
+                tribler_window.gui_settings.setValue("last_reported_version", new_version)
+            elif click_result == 1:  # later
+                self.new_version_dialog_postponed = True
+            elif click_result == 2:  # ok
+                webbrowser.open("https://tribler.org")
+
+        connect(self.dialog.button_clicked, on_button_clicked)
+        self.dialog.show()
 
     def _show_question_box(self, title, body, additional_text, default_button=None):
         message_box = QMessageBox()

@@ -206,7 +206,6 @@ class TriblerWindow(QMainWindow):
         self.dialog = None
         self.create_dialog = None
         self.chosen_dir = None
-        self.new_version_dialog = None
         self.new_version_dialog_postponed = False
         self.start_download_dialog_active = False
         self.selected_torrent_files = []
@@ -731,39 +730,7 @@ class TriblerWindow(QMainWindow):
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
 
     def on_new_version_available(self, version):
-        if version == str(self.gui_settings.value('last_reported_version')):
-            return
-        if self.new_version_dialog_postponed:
-            return
-
-        # To prevent multiple dialogs on top of each other,
-        # close any existing dialog first.
-        if self.new_version_dialog:
-            self.new_version_dialog.close_dialog()
-            self.new_version_dialog = None
-
-        self.new_version_dialog = ConfirmationDialog(
-            self,
-            tr("New version available"),
-            tr("Version %s of Tribler is available.Do you want to visit the " "website to download the newest version?")
-            % version,
-            [(tr("IGNORE"), BUTTON_TYPE_NORMAL), (tr("LATER"), BUTTON_TYPE_NORMAL), (tr("OK"), BUTTON_TYPE_NORMAL)],
-        )
-        connect(self.new_version_dialog.button_clicked, lambda action: self.on_new_version_dialog_done(version, action))
-        self.new_version_dialog.show()
-
-    def on_new_version_dialog_done(self, version, action):
-        if action == 0:  # ignore
-            self.gui_settings.setValue("last_reported_version", version)
-        elif action == 1: # postpone
-            self.new_version_dialog_postponed = True
-        elif action == 2:  # ok
-            import webbrowser
-
-            webbrowser.open("https://tribler.org")
-        if self.new_version_dialog:
-            self.new_version_dialog.close_dialog()
-            self.new_version_dialog = None
+        self.upgrade_manager.on_new_version_available(tribler_window=self, new_version=version)
 
     def on_search_text_change(self, text):
         # We do not want to bother the database on petty 1-character queries

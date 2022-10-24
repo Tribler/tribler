@@ -632,7 +632,7 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
     </message>
     <message>
         <location filename="../tribler_window.py" line="649"/>
-        <source>Version %s of Tribler is available.Do you want to visit the website to download the newest version?</source>
+        <source>Version %s of Tribler is available. Do you want to visit the website to download the newest version?</source>
         <translation>Доступна новая версия Tribler: %s. Перейти к веб-сайту разработчиков чтобы загрузить её?</translation>
     </message>
     <message>
