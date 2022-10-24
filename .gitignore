@@ -90,3 +90,5 @@ tribler/gui/screenshots
 venv/
 
 _build/
+
+.Tribler/

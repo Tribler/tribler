@@ -111,7 +111,8 @@ class TunnelHelperService(TaskManager):
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        tunnel_community = TunnelsComponent.instance().community
+        component = self.session.get_instance(TunnelsComponent)
+        tunnel_community = component.community
         self.register_task("bootstrap", tunnel_community.bootstrap, interval=30)
 
         # Remove all logging handlers
@@ -120,8 +121,8 @@ class TunnelHelperService(TaskManager):
         for handler in handlers:
             root_logger.removeHandler(handler)
         logging.getLogger().setLevel(logging.ERROR)
-
-        ipv8 = Ipv8Component.instance().ipv8
+        component = self.session.get_instance(Ipv8Component)
+        ipv8 = component.ipv8
         new_strategies = []
         with ipv8.overlay_lock:
             for strategy, target_peers in ipv8.strategies:
@@ -153,8 +154,8 @@ class TunnelHelperService(TaskManager):
 
         with session:
             if options.log_rejects:
-                tunnels_component = TunnelsComponent.instance()
-                tunnels_community = tunnels_component.community
+                component = self.session.get_instance(TunnelsComponent)
+                tunnels_community = component.community
                 # We set this after Tribler has started since the tunnel_community won't be available otherwise
                 tunnels_community.reject_callback = self.on_circuit_reject
 
