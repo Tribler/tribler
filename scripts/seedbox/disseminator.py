@@ -27,22 +27,20 @@ import libtorrent
 import sentry_sdk
 from pony.orm import db_session
 
+from tribler.core.components import libtorrent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
-from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
+from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
-
-# fmt: off
-# flake8: noqa
-
+from tribler.core.utilities.utilities import make_async_loop_fragile
 
 _description_file_name = 'description.md'
 _thumbnail_file_name = 'thumbnail.png'
@@ -59,8 +57,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Disseminate data by using the Tribler network')
 
     parser.add_argument('-s', '--source', type=str, help='path to data folder', default='.')
-    parser.add_argument('-t', '--tribler_dir', type=str, help='path to data folder', default='$HOME/seedbox/.Tribler')
+    parser.add_argument('-d', '--tribler_dir', type=str, help='path to data folder', default='./.Tribler')
     parser.add_argument('-v', '--verbosity', help='increase output verbosity', action='store_true')
+    parser.add_argument('-f', '--fragile', help='Fail at the first error', action='store_true')
+    parser.add_argument('-t', '--testnet', help='Testnet run', action='store_true')
 
     return parser.parse_args()
 
@@ -163,24 +163,27 @@ class ChannelHelper:
 
 
 class Service(TinyTriblerService):
-    def __init__(self, source_dir, working_dir):
-        super().__init__(TriblerConfig(state_dir=working_dir),
+    def __init__(self, source_dir, working_dir, testnet: bool):
+        config = TriblerConfig(state_dir=working_dir)
+        config.general.testnet = testnet
+        super().__init__(config,
                          working_dir=working_dir,
-                         components=[RESTComponent(), KeyComponent(), SocksServersComponent(),
-                                     LibtorrentComponent(), Ipv8Component(), MetadataStoreComponent(),
-                                     GigachannelManagerComponent(), GigaChannelComponent()])
+                         components=[
+                             KnowledgeComponent(), MetadataStoreComponent(), KeyComponent(), Ipv8Component(),
+                             SocksServersComponent(), LibtorrentComponent(), GigachannelManagerComponent(),
+                             GigaChannelComponent()])
         self.source_dir = Path(source_dir)
 
     def get_torrents_from_source(self):
         return [(file, file.relative_to(self.source_dir)) for file in self.source_dir.rglob('*.torrent')]
 
     def get_thumbnail(self):
-        file = self.source_dir / _thumbnail_file_name
-        return file.read_bytes() if file.exists() else None
+        f = self.source_dir / _thumbnail_file_name
+        return f.read_bytes() if f.exists() else None
 
     def get_description(self):
-        file = self.source_dir / _description_file_name
-        return file.read_text() if file.exists() else None
+        f = self.source_dir / _description_file_name
+        return f.read_text() if f.exists() else None
 
     async def create_channel(self, community, manager):
         channel_helper = ChannelHelper(community, manager)
@@ -210,12 +213,17 @@ class Service(TinyTriblerService):
 
 
 def run_tribler(arguments):
+    working_dir = Path(arguments.tribler_dir).absolute()
     service = Service(
         source_dir=Path(arguments.source),
-        working_dir=Path(arguments.tribler_dir),
+        working_dir=working_dir,
+        testnet=arguments.testnet
     )
 
     loop = asyncio.get_event_loop()
+    if arguments.fragile:
+        make_async_loop_fragile(loop)
+
     loop.create_task(service.start_tribler())
     try:
         loop.run_forever()

@@ -6,6 +6,7 @@ Author(s): Jie Yang
 import binascii
 import itertools
 import logging
+import os
 import platform
 import random
 import re
@@ -308,3 +309,16 @@ def get_normally_distributed_positive_integers(size=1, upper_limit=100) -> list:
         if number not in numbers:
             numbers.append(number)
     return numbers
+
+
+def make_async_loop_fragile(loop):
+    """Makes asyncio loop fragile. Should be used only for test purposes."""
+
+    def fragile_exception_handler(_, context):
+        try:
+            raise context.get('exception')
+        except BaseException:  # pylint: disable=broad-except
+            logger.exception('Exception in the fragile except handler.', exc_info=True)
+        os._exit(1)  # pylint: disable=protected-access
+
+    loop.set_exception_handler(fragile_exception_handler)
