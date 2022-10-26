@@ -18,6 +18,11 @@ jobs:
     with:
       python-version: 3.8
 
+  scripttest:
+    uses: ./.github/workflows/scripttest.yml
+    with:
+      python-version: 3.8
+
   guitest:
     uses: ./.github/workflows/guitest.yml
     with:
