@@ -115,7 +115,7 @@ T = TypeVar('T', bound='Component')
 
 def create_state_directory_structure(state_dir: Path):
     """Create directory structure of the state directory."""
-    state_dir.mkdir(exist_ok=True)
+    state_dir.mkdir(exist_ok=True, parents=True)
     (state_dir / STATEDIR_DB_DIR).mkdir(exist_ok=True)
     (state_dir / STATEDIR_CHANNELS_DIR).mkdir(exist_ok=True)
 

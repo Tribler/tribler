@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import os
 from pathlib import Path
@@ -12,6 +13,7 @@ from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
+from tribler.core.utilities.utilities import make_async_loop_fragile
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 25))
 EXPERIMENT_NUM_CIRCUITS = int(os.environ.get('EXPERIMENT_NUM_CIRCUITS', 10))
@@ -90,9 +92,12 @@ class Service(TinyTriblerService, TaskManager):
         return results
 
 
-def run_experiment():
+def run_experiment(arguments):
     service = Service(working_dir=Path('.Tribler').absolute(), config_path=Path('./tribler.conf'))
     loop = asyncio.get_event_loop()
+    if arguments.fragile:
+        make_async_loop_fragile(loop)
+
     loop.create_task(service.start_tribler())
     try:
         loop.run_forever()
@@ -102,4 +107,8 @@ def run_experiment():
 
 
 if __name__ == "__main__":
-    run_experiment()
+    parser = argparse.ArgumentParser(description='Run speed e2e experiment')
+    parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
+    args = parser.parse_args()
+
+    run_experiment(args)

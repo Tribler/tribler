@@ -26,6 +26,7 @@ from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import make_async_loop_fragile
 
 logger = logging.getLogger(__name__)
 
@@ -145,26 +146,21 @@ class TunnelHelperService(TaskManager):
         config = make_config(options)
         components = list(components_gen())
         session = self.session = Session(config, components)
-        session.set_as_default()
 
         self.log_circuits = options.log_circuits
         session.notifier.add_observer(notifications.circuit_removed, self.circuit_removed)
-
         await session.start_components()
-
-        with session:
-            if options.log_rejects:
-                component = self.session.get_instance(TunnelsComponent)
-                tunnels_community = component.community
-                # We set this after Tribler has started since the tunnel_community won't be available otherwise
-                tunnels_community.reject_callback = self.on_circuit_reject
+        if options.log_rejects:
+            component = self.session.get_instance(TunnelsComponent)
+            tunnels_community = component.community
+            # We set this after Tribler has started since the tunnel_community won't be available otherwise
+            tunnels_community.reject_callback = self.on_circuit_reject
 
         self.tribler_started()
 
     async def stop(self):
         if not self._stopping:
             self._stopping = True
-            self.session.shutdown_event.set()
             await self.shutdown_task_manager()
             await self.session.shutdown()
             get_event_loop().stop()
@@ -228,11 +224,14 @@ def main():
     parser.add_argument('--log-rejects', action='store_const', default=False, const=True, help='Log rejects')
     parser.add_argument('--log-circuits', action='store_const', default=False, const=True,
                         help='Log information about circuits')
+    parser.add_argument('--fragile', '-f', help='Fail at the first error',  action='store_true')
 
     args = parser.parse_args(sys.argv[1:])
     service = TunnelHelperService()
-
     loop = get_event_loop()
+    if args.fragile:
+        make_async_loop_fragile(loop)
+
     coro = service.start(args)
     ensure_future(coro)
 

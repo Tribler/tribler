@@ -16,11 +16,6 @@ inputs:
     description: 'Requirements-files to use for building the cache key'
     required: false
 
-  invalidate-cache:
-    default: 'false'
-    description: 'Force create a virtualenv'
-    required: false
-
 outputs:
   virtualenv-directory:
     description: 'The path to the restored or created virtualenv'
@@ -34,21 +29,14 @@ runs:
         python-version: ${{inputs.python-version}}
 
     - name: Restore virtual env
-      uses: drew2a/restore-virtualenv@v1.2.1
+      uses: syphar/restore-virtualenv@v1
       id: cache-virtualenv
       with:
         requirement_files: ${{inputs.requirements-key}}
-        custom_cache_key_element: ${{github.ref_name}}
-
-    - name: Invalidate cache
-      if: inputs.invalidate-cache == 'true'
-      shell: bash
-      run: |
-        rm -rf ${{steps.cache-virtualenv.outputs.virtualenv-directory}}
-        python -m venv ${{steps.cache-virtualenv.outputs.virtualenv-directory}}
+        custom_cache_key_element: ${{github.ref_name}}:${{inputs.requirements}}
 
     - name: Install pip dependencies
-      if: steps.cache-virtualenv.outputs.cache-hit != 'true' || inputs.invalidate-cache == 'true'
+      if: steps.cache-virtualenv.outputs.cache-hit != 'true'
       shell: bash
       run: |
         python -m pip install --upgrade pip

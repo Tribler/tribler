@@ -1,0 +1,23 @@
+name: timeout
+description: Start COMMAND, and kill it if still running after DURATION
+inputs:
+  command:
+    default: 'echo command is not specified'
+    description: 'A command to run under given timeout'
+    required: true
+
+  duration:
+    default: '10s'
+    description: 'A duration for command to run'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Scripts
+      shell: bash
+      run: |
+        timeout --foreground -s SIGKILL ${{inputs.duration}} ${{inputs.command}} || code=$?; if [[ $code -ne 124 && $code -ne 0 ]]; then exit $code; fi
+#      codes:
+#         * 124 (timeout)
+#         * 0 (success)

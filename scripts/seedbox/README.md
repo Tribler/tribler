@@ -9,17 +9,17 @@ The seedbox consists of two parts:
 
 ## Prerequisites
 
-1. Clone the tribler repo include sub modules:
+1. Clone the tribler repo:
     ```shell
     git clone https://github.com/Tribler/tribler.git
     ```
-1. Install requirements:
+1. Install Tribler requirements:
     ```bash
     python3 -m pip install -r requirements.txt 
     ```
-1. Add necessary folders to `PYTHONPATH` (below the bash example)
+1. Add Tribler `src` folder to `PYTHONPATH` (below the bash example)
    ```shell
-    export PYTHONPATH=${PYTHONPATH}:../../../src
+    export PYTHONPATH=${PYTHONPATH}:./src
    ```
    
 ## Torrent seeding

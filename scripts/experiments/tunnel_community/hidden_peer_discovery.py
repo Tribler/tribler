@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import os
 import time
@@ -12,6 +13,7 @@ from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
+from tribler.core.utilities.utilities import make_async_loop_fragile
 
 EXPERIMENT_RUN_TIME = int(os.environ.get('EXPERIMENT_RUN_TIME', 3600 * 3))
 
@@ -62,9 +64,11 @@ class Service(TinyTriblerService, TaskManager):
                              int(self.swarm.last_dht_response - self.start) if self.swarm.last_dht_response else 0))
 
 
-def run_experiment():
+def run_experiment(arguments):
     service = Service(working_dir=Path('/tmp/tribler').absolute(), config_path=Path('./tribler.conf'))
     loop = asyncio.get_event_loop()
+    if arguments.fragile:
+        make_async_loop_fragile(loop)
     loop.create_task(service.start_tribler())
     try:
         loop.run_forever()
@@ -74,4 +78,8 @@ def run_experiment():
 
 
 if __name__ == "__main__":
-    run_experiment()
+    parser = argparse.ArgumentParser(description='Run hidden peer discovery experiment')
+    parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
+    args = parser.parse_args()
+
+    run_experiment(args)

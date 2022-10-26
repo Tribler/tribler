@@ -25,7 +25,6 @@ from collections import defaultdict
 from pathlib import Path
 
 import libtorrent
-
 import sentry_sdk
 
 # fmt: off
@@ -66,6 +65,7 @@ def parse_args():
 
     parser.add_argument('-s', '--source', type=str, help='path to data folder', default='.')
     parser.add_argument('-v', '--verbosity', help='increase output verbosity', action='store_true')
+    parser.add_argument('-t', '--testnet', help='Testnet run', action='store_true')
 
     return parser.parse_args()
 
@@ -207,4 +207,5 @@ if __name__ == "__main__":
     setup_logger(_arguments.verbosity)
     _folders = get_folders_with_files(_arguments.source)
     _torrents = list(create_torrents(_folders, _arguments.source))
-    seed(_torrents)
+    if not _arguments.testnet:
+        seed(_torrents)
