@@ -853,11 +853,11 @@ class HealthStatusDisplay(QObject):
                 )
             health = data_item['health']
 
-            panel_y = rect.y() + rect.height() / 2 - 5
+            panel_y = rect.y() + rect.height() // 2 - 5
             self.paint_elements(painter, rect, panel_y, health, data_item, hover)
         elif data_item["type"] == SNIPPET:
             for ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
-                panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT / 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
+                panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT // 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
                 health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'],
                                     torrent_in_snippet['last_tracker_check'])
                 self.paint_elements(painter, rect, panel_y, health, torrent_in_snippet, hover, draw_health_text=False)
