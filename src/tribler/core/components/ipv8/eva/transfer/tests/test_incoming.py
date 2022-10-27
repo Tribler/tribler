@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from tribler.core.components.ipv8.eva.protocol import EVAProtocol
+from tribler.core.components.ipv8.eva.protocol import EVAProtocol, blank
 from tribler.core.components.ipv8.eva.settings import EVASettings, Termination
 from tribler.core.components.ipv8.eva.transfer.incoming import IncomingTransfer
 from tribler.core.components.ipv8.eva.transfer.window import TransferWindow
@@ -31,8 +31,8 @@ async def incoming_transfer():
         nonce=0,
         protocol_task_group=eva.task_group,
         send_message=Mock(),
-        on_complete=AsyncMock(),
-        on_error=AsyncMock(),
+        on_complete=blank,
+        on_error=blank,
         peer=peer,
         settings=settings
     )
@@ -82,6 +82,7 @@ async def test_on_data_window_is_last_and_finished(incoming_transfer: IncomingTr
     incoming_transfer.last_window = True
 
     incoming_transfer.on_data(3, b'data')
+    await incoming_transfer.protocol_task_group.wait()
 
     assert incoming_transfer.window.add.called_with(3, b'data')
     assert incoming_transfer.update.called

@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferException
+from tribler.core.components.ipv8.eva.protocol import blank
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
 from tribler.core.utilities.async_group import AsyncGroup
 
 
 # pylint: disable=redefined-outer-name, protected-access
-
 
 @pytest.fixture
 async def transfer():
@@ -27,8 +27,8 @@ async def transfer():
         peer=peer,
         protocol_task_group=protocol_task_group,
         send_message=Mock(),
-        on_complete=AsyncMock(),
-        on_error=AsyncMock(),
+        on_complete=blank,
+        on_error=blank,
         settings=EVASettings(block_size=2),
     )
     transfer.request = Mock()
@@ -116,8 +116,10 @@ async def test_finish_cancelled(transfer: Transfer):
 
 async def test_finish_with_result(transfer: Transfer):
     result = Mock()
+    transfer.on_complete = AsyncMock()
 
     transfer.finish(result=result)
+    await transfer.protocol_task_group.wait()
 
     assert transfer.finished
     assert transfer.future.result() == result
@@ -126,8 +128,10 @@ async def test_finish_with_result(transfer: Transfer):
 
 async def test_finish_with_exception(transfer: Transfer):
     exception = TransferException(message='message', transfer=Mock())
+    transfer.on_complete = AsyncMock()
 
     transfer.finish(exception=exception)
+    await transfer.protocol_task_group.wait()
 
     assert transfer.finished
     assert transfer.future.exception() == exception

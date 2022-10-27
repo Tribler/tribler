@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from tribler.core.components.ipv8.eva.payload import Data
-from tribler.core.components.ipv8.eva.protocol import EVAProtocol
+from tribler.core.components.ipv8.eva.protocol import EVAProtocol, blank
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
@@ -25,8 +25,8 @@ async def outgoing_transfer():
         nonce=0,
         protocol_task_group=eva.task_group,
         send_message=Mock(),
-        on_complete=AsyncMock(),
-        on_error=AsyncMock(),
+        on_complete=blank,
+        on_error=blank,
         peer=peer,
         settings=settings
     )
@@ -66,6 +66,8 @@ async def test_on_acknowledgement(outgoing_transfer: OutgoingTransfer):
 async def test_on_final_acknowledgement(outgoing_transfer: OutgoingTransfer):
     outgoing_transfer.finish = AsyncMock()
     data_list = list(outgoing_transfer.on_acknowledgement(ack_number=10, window_size=16))
+    await outgoing_transfer.protocol_task_group.wait()
+
     expected_result = TransferResult(peer=outgoing_transfer.peer, info=outgoing_transfer.info,
                                      data=outgoing_transfer.data, nonce=outgoing_transfer.nonce)
     assert not data_list
