@@ -25,10 +25,10 @@ jobs:
           requirements: requirements-test.txt
 
       - name: Run Pytest with Coverage
-        timeout-minutes: 15
+        timeout-minutes: 5
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core --looptime
-          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --looptime
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core --looptime --exitfirst --disable-warnings
+          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --looptime --exitfirst --disable-warnings
           coverage combine
           coverage xml
 
