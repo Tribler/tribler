@@ -8,7 +8,7 @@ from copy import deepcopy
 from itertools import permutations
 from types import SimpleNamespace
 from typing import Type
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from ipv8.community import Community
@@ -600,7 +600,7 @@ async def test_on_write_request_with_transfers_limit(eva: EVAProtocol):
     # Test that in case of exceeded incoming transfers limit, TransferLimitException
     # will be returned
     eva.settings.max_simultaneous_transfers = 1
-    eva._finish_with_error = AsyncMock()
+    eva._finish_with_error = Mock()
 
     await eva.on_write_request_packet(Mock(), WriteRequest(10, 0, b''))
     eva._finish_with_error.assert_not_called()
@@ -614,7 +614,7 @@ async def test_on_error_correct_nonce(eva: EVAProtocol):
     # In this test we call `eva.on_error` and ensure that the corresponding transfer
     # is terminated
     peer = Mock()
-    transfer = AsyncMock(nonce=1)
+    transfer = Mock(nonce=1)
     eva.outgoing[peer] = transfer
 
     await eva.on_error_packet(peer, Error(incoming=True, nonce=1, message=b'error', code=0))
@@ -626,7 +626,7 @@ async def test_on_error_wrong_nonce(eva: EVAProtocol):
     # In this test we call `eva.on_error` with incorrect nonce and ensure that
     # the corresponding transfer is not terminated
     peer = Mock()
-    transfer = AsyncMock(nonce=1)
+    transfer = Mock(nonce=1)
     eva.outgoing[peer] = transfer
 
     await eva.on_error_packet(peer, Error(incoming=True, nonce=2, message=b'error', code=0))
@@ -636,9 +636,9 @@ async def test_on_error_wrong_nonce(eva: EVAProtocol):
 
 async def test_shutdown(eva: EVAProtocol):
     # Test that for all transfers will be called terminate in the case of a 'shutdown'
-    transfer1 = AsyncMock()
-    transfer2 = AsyncMock()
-    transfer3 = AsyncMock()
+    transfer1 = Mock()
+    transfer2 = Mock()
+    transfer3 = Mock()
 
     eva.incoming['peer1'] = transfer1
     eva.incoming['peer2'] = transfer2

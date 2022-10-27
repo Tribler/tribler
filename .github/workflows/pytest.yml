@@ -36,10 +36,10 @@ jobs:
         uses: ./.github/actions/windows_dependencies
 
       - name: Run Pytest
-        timeout-minutes: 10
+        timeout-minutes: 5
         run: |
-          pytest ./src/tribler/core ${{matrix.pytest-arguments}}
+          pytest ./src/tribler/core --exitfirst --disable-warnings ${{matrix.pytest-arguments}} 
 
       - name: Run Tunnels Tests
         run: |
-          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests ${{matrix.pytest-arguments}}
+          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --exitfirst --disable-warnings ${{matrix.pytest-arguments}}
