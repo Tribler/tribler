@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0
           ref: ${{github.event.pull_request.head.sha}}
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
 
