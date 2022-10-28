@@ -41,3 +41,10 @@ jobs:
       upload: false
       os: ubuntu-20.04
       python-version: 3.8
+
+  guitest_nix:
+    if: github.event.pull_request.draft == false
+    uses: ./.github/workflows/guitest.yml
+    with:
+      python-version: 3.8
+      matrix: '{"os":["macos-latest","ubuntu-latest"]}'

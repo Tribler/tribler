@@ -8,13 +8,17 @@ on:
         type: string
         required: false
 
+      matrix:
+        default: '{"os":["windows-latest"]}'
+        type: string
+        required: false
+
 jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        python-version: [ '3.8' ]
-        os: [ ubuntu-latest ]
+      matrix: ${{fromJson(inputs.matrix)}}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -24,18 +28,27 @@ jobs:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
 
-      - name: Install xvfb dependencies
+      - name: Install dependencies (Win)
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/windows_dependencies
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
-          sudo apt install xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 xdotool pyqt5-dev-tools
-        # For more information see: https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
+          sudo apt install pyqt5-dev-tools
+
+      - name: Setup headless display
+        if: runner.os == 'Linux'
+        uses: pyvista/setup-headless-display-action@v1
 
       - name: Run GUI tests
+        timeout-minutes: 5
         run: |
-          xvfb-run  pytest ./src/tribler/gui --guitests -v --randomly-seed=1
+          pytest ./src/tribler/gui --guitests -v --randomly-seed=1 --timeout=300
 
       - uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: screenshots
+          name: ${{runner.os}}_screenshots
           path: ./src/tribler/gui/screenshots/
           retention-days: 1
