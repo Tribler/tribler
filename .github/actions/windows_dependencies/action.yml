@@ -23,7 +23,7 @@ runs:
 
     - name: Check Libsodium existence
       id: check_libsodium
-      uses: andstor/file-existence-action@v1
+      uses: andstor/file-existence-action@v2
       with:
         files: "cached-bin/libsodium-${{inputs.libsodium-version}}/libsodium.dll"
 
