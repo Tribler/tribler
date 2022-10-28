@@ -2,13 +2,11 @@ import time
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
+import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
-
 from pony.orm import db_session
-
-import pytest
 
 from tribler.core.components.gigachannel.community.gigachannel_community import (
     ChannelsPeersMapping,
@@ -17,6 +15,7 @@ from tribler.core.components.gigachannel.community.gigachannel_community import 
 )
 from tribler.core.components.gigachannel.community.settings import ChantSettings
 from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import EvaSelectRequest
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.utilities.notifier import Notifier
@@ -348,13 +347,12 @@ class TestGigaChannelUnits(TestBase):
         kwargs["origin_id"] = 333
         assert [] == await client.remote_select_channel_contents(**kwargs)
 
+    @patch.object(EvaSelectRequest, 'timeout_delay', new=PropertyMock(return_value=0.1))
     async def test_remote_select_channel_timeout(self):
         client, server, kwargs = self.client_server_request_setup()
         server.send_db_results = Mock()
-        with patch(f'{BASE_PATH}.EvaSelectRequest.timeout_delay', new_callable=PropertyMock) as zz:
-            zz.return_value = 2.0
-            with pytest.raises(RequestTimeoutException):
-                await client.remote_select_channel_contents(**kwargs)
+        with pytest.raises(RequestTimeoutException):
+            await client.remote_select_channel_contents(**kwargs)
 
     async def test_remote_select_channel_no_peers(self):
         client, _, kwargs = self.client_server_request_setup()
@@ -362,6 +360,7 @@ class TestGigaChannelUnits(TestBase):
         with pytest.raises(NoChannelSourcesException):
             await client.remote_select_channel_contents(**kwargs)
 
+    @patch.object(EvaSelectRequest, 'timeout_delay', new=PropertyMock(return_value=10))
     async def test_remote_select_channel_contents_happy_eyeballs(self):
         """
         Test trying to connect to the first server, then timing out and falling back to the second one
