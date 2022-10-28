@@ -4,8 +4,8 @@ from unittest.mock import Mock, patch
 import psutil
 import pytest
 
-from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessNotRunning, GuiProcessWatcher, \
-    GUI_PID_ENV_KEY
+from tribler.core.components.gui_process_watcher.gui_process_watcher import GUI_PID_ENV_KEY, GuiProcessNotRunning, \
+    GuiProcessWatcher
 
 
 @pytest.fixture(name='watcher')
@@ -52,34 +52,28 @@ def test_get_gui_process():
                 GuiProcessWatcher.get_gui_process()
 
 
-async def test_check_gui_process_working(caplog, watcher):
-    caplog.clear()
+async def test_check_gui_process_working(watcher):
     watcher.check_gui_process()
-    assert caplog.records[-1].message == 'GUI process checked, it is still working'
     assert not watcher.shutdown_callback.called
     assert not watcher.shutdown_callback_called
 
-async def test_check_gui_process_zombie(caplog, watcher):
+
+async def test_check_gui_process_zombie(watcher):
     watcher.gui_process.status.return_value = psutil.STATUS_ZOMBIE
-    caplog.clear()
     watcher.check_gui_process()
-    assert caplog.records[-1].message == 'GUI process is not working, initiate Core shutdown'
     assert watcher.shutdown_callback.called
     assert watcher.shutdown_callback_called
 
-async def test_check_gui_process_not_running(caplog, watcher):
+
+async def test_check_gui_process_not_running(watcher):
     watcher.gui_process.is_running.return_value = False
-    caplog.clear()
     watcher.check_gui_process()
     assert not watcher.gui_process.status.called
-    assert caplog.records[-1].message == 'GUI process is not working, initiate Core shutdown'
     assert watcher.shutdown_callback.called
     assert watcher.shutdown_callback_called
 
     # Calling check_gui_process after shutdown_callback was already called
     watcher.shutdown_callback.reset_mock()
-    caplog.clear()
     watcher.check_gui_process()
-    assert caplog.records[-1].message == 'The shutdown callback was already called; skip checking the GUI process'
     assert watcher.shutdown_callback_called
     assert not watcher.shutdown_callback.called
