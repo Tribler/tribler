@@ -1,0 +1,32 @@
+name: GUI test for macOS
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+jobs:
+  run:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{inputs.python-version}}
+          requirements: requirements-test.txt
+
+      - name: Run GUI tests
+        run: |
+          pytest ./src/tribler/gui --guitests -v --randomly-seed=1
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{runner.os}}_screenshots
+          path: ./src/tribler/gui/screenshots/
+          retention-days: 1
