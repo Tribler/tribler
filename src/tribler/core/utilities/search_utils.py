@@ -34,49 +34,87 @@ def filter_keywords(keywords):
     return [kw for kw in keywords if len(kw) > 0 and kw not in DIALOG_STOPWORDS]
 
 
-def item_rank(query: str, item: dict):
+def item_rank(query: str, item: dict) -> float:
+    """
+    Calculates the torrent rank for item received from remote query. Returns the torrent rank value in range [0, 1].
+
+    :param query: a user-defined query string
+    :param item: a dict with torrent info.
+                 Should include key `name`, can include `num_seeders`, `num_leechers`, `updated`
+    :return: the torrent rank value in range [0, 1]
+    """
+
     title = item['name']
     seeders = item.get('num_seeders', 0)
     leechers = item.get('num_leechers', 0)
     freshness = time.time() - item.get('updated', 0)
-    return torrent_rank(query, title, seeders + leechers * 0.1, freshness)
+    return torrent_rank(query, title, seeders, leechers, freshness)
 
 
-def torrent_rank(query: str, title: str, seeders: int = 0, freshness: Optional[float] = 0) -> float:
+def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0, freshness: Optional[float] = 0) -> float:
     """
     Calculates search rank for a torrent.
+
+    :param query: a user-defined query string
+    :param title: a torrent name
+    :param seeders: the number of seeders
+    :param leechers: the number of leechers
+    :param freshness: the number of seconds since the torrent creation.
+                      Zero or negative value means the torrent creation date is unknown.
+    :return: the torrent rank value in range [0, 1]
+
     Takes into account:
       - similarity of the title to the query string;
       - the reported number of seeders;
       - how long ago the torrent file was created.
     """
-    freshness = max(0, freshness or 0)
     tr = title_rank(query or '', title or '')
-    sr = (seeders_rank(seeders or 0) + 9) / 10  # range [0.9, 1]
+    sr = (seeders_rank(seeders or 0, leechers or 0) + 9) / 10  # range [0.9, 1]
     fr = (freshness_rank(freshness) + 9) / 10  # range [0.9, 1]
     result = tr * sr * fr
+
     # uncomment the next line to debug the function inside an SQL query:
     # print(f'*** {result} : {seeders}/{freshness} ({freshness / SECONDS_IN_DAY} days)/{title} | {query}')
+
     return result
 
 
-def seeders_rank(seeders: float) -> float:
-    """
-    Calculates rank based on the number of seeders. The result is normalized to the range [0, 1]
-    """
-    return seeders / (100 + seeders)  # inf seeders -> 1; 100 seeders -> 0.5; 10 seeders -> approx 0.1
+LEECHERS_COEFF = 0.1  # leechers are considered ten times less important than seeders.
 
 
-def freshness_rank(freshness: Optional[float] = 0):
+def seeders_rank(seeders: int, leechers: int = 0) -> float:
     """
-    Calculates rank based on the torrent freshness. The result is normalized to the range [0, 1]
+    Calculates rank based on the number of torrent's seeders and leechers. The result is normalized to the range [0, 1]
+
+    :param seeders: the number of seeders for the torrent
+    :param leechers: the number of leechers for the torrent
+    :return: the torrent rank based on seeders and leechers, normalized to the range [0, 1]
     """
+    sl = seeders + leechers * LEECHERS_COEFF
+    return sl / (100 + sl)  # inf seeders -> 1; 100 seeders -> 0.5; 10 seeders -> approx 0.1
+
+
+def freshness_rank(freshness: Optional[float] = 0) -> float:
+    """
+    Calculates a rank value based on the torrent freshness. The result is normalized to the range [0, 1]
+
+    :param freshness: number of seconds since the torrent creation.
+                      Zero or negative values means the actual torrent creation date is unknown.
+    :return: the torrent rank based on freshness. The result is normalized to the range [0, 1]
+
+    Example results:
+    0 seconds since torrent creation -> the actual torrent creation date is unknown, freshness rank 0
+    1 second since torrent creation -> freshness rank 0.999
+    1 day since torrent creation -> freshness rank 0.967
+    30 days since torrent creation -> freshness rank 0.5
+    1 year since torrent creation -> freshness rank 0.0759
+    """
+    freshness = max(0, freshness or 0)
     if not freshness:
         return 0
 
     days = (freshness or 0) / SECONDS_IN_DAY
-
-    return 1 / (1 + days / 30)  # 2x drop per 30 days
+    return 1 / (1 + days / 30)
 
 
 word_re = re.compile(r'\w+', re.UNICODE)
@@ -84,7 +122,11 @@ word_re = re.compile(r'\w+', re.UNICODE)
 
 def title_rank(query: str, title: str) -> float:
     """
-    Calculate the similarity of the title string to a query string, with or without stemming.
+    Calculate the similarity of the title string to a query string as a float value in range [0, 1]
+
+    :param query: a user-defined query string
+    :param title: a torrent name
+    :return: the similarity of the title string to a query string as a float value in range [0, 1]
     """
     query = word_re.findall(query.lower())
     title = word_re.findall(title.lower())
@@ -111,7 +153,11 @@ RANK_NORMALIZATION_COEFF = 10
 
 def calculate_rank(query: List[str], title: List[str]) -> float:
     """
-    Calculate the similarity of the title to the query as a float value in range [0, 1].
+    Calculates the similarity of the title to the query as a float value in range [0, 1].
+
+    :param query: list of query words
+    :param title: list of title words
+    :return: the similarity of the title to the query as a float value in range [0, 1]
     """
     if not query:
         return 1.0
@@ -148,8 +194,11 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
 
 def find_word(word: str, title: Deque[str]) -> Tuple[bool, int]:
     """
-    Finds the query word in the title.
-    Returns whether it was found or not and the number of skipped words in the title.
+    Finds the query word in the title. Returns whether it was found or not and the number of skipped words in the title.
+
+    :param word: a word from the query
+    :param title: a list of words in the title
+    :return: a two-elements tuple, whether the word was found in the title and the number of skipped words
 
     This is a helper function to efficiently answer a question of how close a query string and a title string are,
     taking into account the ordering of words in both strings.

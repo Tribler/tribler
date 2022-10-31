@@ -185,7 +185,7 @@ class MetadataStore:
                 cursor.execute("PRAGMA synchronous = 0")
 
             sqlite_rank = keep_exception(torrent_rank)
-            connection.create_function('search_rank', 4, sqlite_rank)
+            connection.create_function('search_rank', 5, sqlite_rank)
 
             # pylint: enable=unused-variable
 
@@ -748,7 +748,8 @@ class MetadataStore:
                     search_rank(
                         $QUERY_STRING,
                         g.title,
-                        torrentstate.seeders + 0.1 * torrentstate.leechers,
+                        torrentstate.seeders,
+                        torrentstate.leechers,
                         $CURRENT_TIME - strftime('%s', g.torrent_date)
                     ) DESC,
 
@@ -766,17 +767,15 @@ class MetadataStore:
                   - the current query string (like "Big Buck Bunny");
                   - the title of the current torrent;
                   - the number of seeders;
+                  - the number of leechers;
                   - the number of seconds since the torrent's creation time.
-
-                There is no separate argument for the number of leechers, so it is just added to the number of seeders,
-                leechers are considered ten times less important than seeders.
                 """
 
                 pony_query = pony_query.sort_by(
                     f"""
                     (1 if g.metadata_type == {CHANNEL_TORRENT} else 2 if g.metadata_type == {COLLECTION_NODE} else 3),
                     raw_sql('''search_rank(
-                        $txt_filter, g.title, torrentstate.seeders + 0.1 * torrentstate.leechers,
+                        $txt_filter, g.title, torrentstate.seeders, torrentstate.leechers,
                         $int(time()) - strftime('%s', g.torrent_date)
                     ) DESC'''),
                     desc(g.health.last_check)  # just to trigger the TorrentState table inclusion into the left join
