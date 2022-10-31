@@ -28,7 +28,7 @@ on:
 
       python-version:
         description: Python version
-        default: '3.8'
+        default: 3.8
         type: string
         required: true
 
@@ -40,7 +40,6 @@ on:
 
 jobs:
   build:
-    environment: build
     runs-on: ${{ github.event.inputs.os || inputs.os }}
 
     steps:
