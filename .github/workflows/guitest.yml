@@ -17,6 +17,7 @@ jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix: ${{fromJson(inputs.matrix)}}
 
     steps:
