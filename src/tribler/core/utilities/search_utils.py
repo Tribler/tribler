@@ -121,21 +121,21 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
 
     title = deque(title)
     total_error = 0
-    for i, term in enumerate(query):
+    for i, word in enumerate(query):
         # The first word is more important than the second word, and so on
-        term_weight = POSITION_COEFF / (POSITION_COEFF + i)
+        word_weight = POSITION_COEFF / (POSITION_COEFF + i)
 
-        # Read the description of the `find_term` function to understand what is going on. Basically, we are trying
+        # Read the description of the `find_word` function to understand what is going on. Basically, we are trying
         # to find each query word in the title words, calculate the penalty if the query word is not found or if there
         # are some title words before it, and then rotate the skipped title words to the end of the title. This way,
         # the least penalty got a title that has query words in the proper order at the beginning of the title.
-        found, skipped = find_term(term, title)
+        found, skipped = find_word(word, title)
         if found:
             # if the query word is found in the title, add penalty for skipped words in title before it
-            total_error += skipped * term_weight
+            total_error += skipped * word_weight
         else:
             # if the query word is not found in the title, add a big penalty for it
-            total_error += MISSED_WORD_PENALTY * term_weight
+            total_error += MISSED_WORD_PENALTY * word_weight
 
     # a small penalty for excess words in the title that was not mentioned in the search phrase
     remainder_weight = 1 / (REMAINDER_COEFF + len(query))
@@ -146,7 +146,7 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
     return RANK_NORMALIZATION_COEFF / (RANK_NORMALIZATION_COEFF + total_error)
 
 
-def find_term(term: str, title: Deque[str]) -> Tuple[bool, int]:
+def find_word(word: str, title: Deque[str]) -> Tuple[bool, int]:
     """
     Finds the query word in the title.
     Returns whether it was found or not and the number of skipped words in the title.
@@ -154,22 +154,19 @@ def find_term(term: str, title: Deque[str]) -> Tuple[bool, int]:
     This is a helper function to efficiently answer a question of how close a query string and a title string are,
     taking into account the ordering of words in both strings.
 
-    The `term` parameter is a word from a search string. It is called `term` and not `word` because it can also be
-    a stemmed version of the word if the comparison algorithm implemented in the top-level `torrent_rank` function
-    works with stemmed words. The ability to work with stemmed words was added to `torrent_rank` and then removed,
-    as it currently does not give significant benefits, but it can be added again in the future.
+    The `word` parameter is a word from a search string.
 
     The `title` parameter is a deque of words from the torrent title. It also can be a deque of stemmed words
     if the `torrent_rank` function supports stemming.
 
-    The `find_term` function returns the boolean value of whether the term was found in the title deque or not and
-    the number of the skipped leading terms in the `title` deque. Also, it modifies the `title` deque in place by
-    removing the first entrance of the found term and rotating all leading non-matching terms to the end of the deque.
+    The `find_word` function returns the boolean value of whether the word was found in the title deque or not and
+    the number of the skipped leading words in the `title` deque. Also, it modifies the `title` deque in place by
+    removing the first entrance of the found word and rotating all leading non-matching words to the end of the deque.
 
-    An example: find_term('A', deque(['X', 'Y', 'A', 'B', 'C'])) returns `(True, 2)`, where True means that
-    the term 'A' was found in the `title` deque, and 2 is the number of skipped terms ('X', 'Y'). Also, it modifies
-    the `title` deque, so it starts looking like deque(['B', 'C', 'X', 'Y']). The found term 'A' was removed, and
-    the leading non-matching terms ('X', 'Y') was moved to the end of the deque.
+    An example: find_word('A', deque(['X', 'Y', 'A', 'B', 'C'])) returns `(True, 2)`, where True means that
+    the word 'A' was found in the `title` deque, and 2 is the number of skipped words ('X', 'Y'). Also, it modifies
+    the `title` deque, so it starts looking like deque(['B', 'C', 'X', 'Y']). The found word 'A' was removed, and
+    the leading non-matching words ('X', 'Y') was moved to the end of the deque.
 
     Now some examples of how the function can be used. To use the function, you can call it one time for each word
     from the query and see:
@@ -178,45 +175,45 @@ def find_term(term: str, title: Deque[str]) -> Tuple[bool, int]:
     - and how many title words are not mentioned in the query.
 
     Example 1, query "A B C", title "A B C":
-    find_term("A", deque(["A", "B", "C"])) -> (found=True, skipped=0, rest=deque(["B", "C"]))
-    find_term("B", deque(["B", "C"])) -> (found=True, skipped=0, rest=deque(["C"]))
-    find_term("C", deque(["C"])) -> (found=True, skipped=0, rest=deque([]))
+    find_word("A", deque(["A", "B", "C"])) -> (found=True, skipped=0, rest=deque(["B", "C"]))
+    find_word("B", deque(["B", "C"])) -> (found=True, skipped=0, rest=deque(["C"]))
+    find_word("C", deque(["C"])) -> (found=True, skipped=0, rest=deque([]))
     Conclusion: exact match.
 
     Example 2, query "A B C", title "A B C D":
-    find_term("A", deque(["A", "B", "C", "D"])) -> (found=True, skipped=0, rest=deque(["B", "C", "D"]))
-    find_term("B", deque(["B", "C", "D"])) -> (found=True, skipped=0, rest=deque(["C", "D"]))
-    find_term("C", deque(["C", "D"])) -> (found=True, skipped=0, rest=deque(["D"]))
+    find_word("A", deque(["A", "B", "C", "D"])) -> (found=True, skipped=0, rest=deque(["B", "C", "D"]))
+    find_word("B", deque(["B", "C", "D"])) -> (found=True, skipped=0, rest=deque(["C", "D"]))
+    find_word("C", deque(["C", "D"])) -> (found=True, skipped=0, rest=deque(["D"]))
     Conclusion: minor penalty for one excess word in the title that is not in the query.
 
     Example 3, query "A B C", title "X Y A B C":
-    find_term("A", deque(["X", "Y", "A", "B", "C"])) -> (found=True, skipped=2, rest=deque(["B", "C", "X", "Y"]))
-    find_term("B", deque(["B", "C", "X", "Y"])) -> (found=True, skipped=0, rest=deque(["C", "X", "Y"]))
-    find_term("C", deque(["C", "X", "Y"])) -> (found=True, skipped=0, rest=deque(["X", "Y"]))
+    find_word("A", deque(["X", "Y", "A", "B", "C"])) -> (found=True, skipped=2, rest=deque(["B", "C", "X", "Y"]))
+    find_word("B", deque(["B", "C", "X", "Y"])) -> (found=True, skipped=0, rest=deque(["C", "X", "Y"]))
+    find_word("C", deque(["C", "X", "Y"])) -> (found=True, skipped=0, rest=deque(["X", "Y"]))
     Conclusion: major penalty for skipping two words at the beginning of the title plus a minor penalty for two
     excess words in the title that are not in the query.
 
     Example 4, query "A B C", title "A B X Y C":
-    find_term("A", deque(["A", "B", "X", "Y", "C"])) -> (found=True, skipped=0, rest=deque(["B", "X", "Y", "C"]))
-    find_term("B", deque(["B", "X", "Y", "C"])) -> (found=True, skipped=0, rest=deque(["X", "Y", "C"]))
-    find_term("C", deque(["X", "Y", "C"])) -> (found=True, skipped=2, rest=deque(["X", "Y"]))
+    find_word("A", deque(["A", "B", "X", "Y", "C"])) -> (found=True, skipped=0, rest=deque(["B", "X", "Y", "C"]))
+    find_word("B", deque(["B", "X", "Y", "C"])) -> (found=True, skipped=0, rest=deque(["X", "Y", "C"]))
+    find_word("C", deque(["X", "Y", "C"])) -> (found=True, skipped=2, rest=deque(["X", "Y"]))
     Conclusion: average penalty for skipping two words in the middle of the title plus a minor penalty for two
     excess words in the title that are not in the query.
 
     Example 5, query "A B C", title "A C B":
-    find_term("A", deque(["A", "C", "B"])) -> (found=True, skipped=0, rest=deque(["C", "B"]))
-    find_term("B", deque(["C", "B"])) -> (found=True, skipped=1, rest=deque(["C"]))
-    find_term("C", deque(["C"])) -> (found=True, skipped=0, rest=deque(["C"]))
+    find_word("A", deque(["A", "C", "B"])) -> (found=True, skipped=0, rest=deque(["C", "B"]))
+    find_word("B", deque(["C", "B"])) -> (found=True, skipped=1, rest=deque(["C"]))
+    find_word("C", deque(["C"])) -> (found=True, skipped=0, rest=deque(["C"]))
     Conclusion: average penalty for skipping one word in the middle of the title.
 
     Example 6, query "A B C", title "A C X":
-    find_term("A", deque(["A", "C", "X"])) -> (found=True, skipped=0, rest=deque(["C", "X"]))
-    find_term("B", deque(["C", "X"])) -> (found=False, skipped=0, rest=deque(["C", "X"]))
-    find_term("C", deque(["C", "X"])) -> (found=True, skipped=0, rest=deque(["X"]))
+    find_word("A", deque(["A", "C", "X"])) -> (found=True, skipped=0, rest=deque(["C", "X"]))
+    find_word("B", deque(["C", "X"])) -> (found=False, skipped=0, rest=deque(["C", "X"]))
+    find_word("C", deque(["C", "X"])) -> (found=True, skipped=0, rest=deque(["X"]))
     Conclusion: huge penalty for missing one query word plus a minor penalty for one excess title word.
     """
     try:
-        skipped = title.index(term)
+        skipped = title.index(word)
     except ValueError:
         return False, 0
 
