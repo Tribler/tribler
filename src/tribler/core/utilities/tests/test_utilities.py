@@ -1,5 +1,6 @@
+import binascii
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 from aiohttp import ClientSession
 
@@ -42,6 +43,24 @@ def test_parse_magnetlink_uppercase():
     _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
     assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
+
+
+def test_parse_invalid_magnetlink_short():
+    """
+    Test if a magnet link with invalid and short infohash (v1) can be parsed
+    """
+    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDA')
+
+    assert hashed is None
+
+
+def test_parse_invalid_magnetlink_long():
+    """
+    Test if a magnet link with invalid and long infohash (v1) can be parsed
+    """
+    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
+
+    assert hashed is None
 
 
 def test_valid_url():
@@ -241,6 +260,22 @@ def test_add_url_param_some_present():
     result = add_url_params(url, new_params)
     assert "data=values" in result
     assert "answers=false" in result
+
+
+@patch('tribler.core.utilities.utilities.b32decode', new=Mock(side_effect=binascii.Error))
+def test_parse_magnetlink_binascii_error_32(caplog):
+    # Test that binascii.Error exceptions are logged for 32 symbol hash
+    infohash_32 = 'A' * 32
+    parse_magnetlink(f'magnet:?xt=urn:btih:{infohash_32}')
+    assert f'Invalid infohash: {infohash_32}' in caplog.text
+
+
+@patch('binascii.unhexlify', new=Mock(side_effect=binascii.Error))
+def test_parse_magnetlink_binascii_error_40(caplog):
+    # Test that binascii.Error exceptions are logged for 40 symbol hash
+    infohash_40 = 'B' * 40
+    parse_magnetlink(f'magnet:?xt=urn:btih:{infohash_40}')
+    assert f'Invalid infohash: {infohash_40}' in caplog.text
 
 
 def test_add_url_param_clean():

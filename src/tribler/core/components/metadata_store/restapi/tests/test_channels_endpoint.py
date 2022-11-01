@@ -18,7 +18,7 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
+from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint, ERROR_INVALID_MAGNET_LINK
 from tribler.core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
@@ -589,7 +589,7 @@ async def test_add_torrent_from_magnet(my_channel, mock_dlmgr, rest_api, metadat
     mock_dlmgr.get_metainfo = fake_get_metainfo
     metadata_store.torrent_exists_in_personal_channel = Mock()
 
-    post_params = {'uri': 'magnet:?xt=urn:btih:111111111111111111111111111111111111111111'}
+    post_params = {'uri': 'magnet:?xt=urn:btih:1111111111111111111111111111111111111111'}
     await do_request(
         rest_api,
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
@@ -609,14 +609,16 @@ async def test_add_torrent_from_magnet_error(my_channel, mock_dlmgr, rest_api):
 
     mock_dlmgr.get_metainfo = fake_get_metainfo
 
-    post_params = {'uri': 'magnet:?fake'}
-    await do_request(
+    invalid_magnet_link = 'magnet:?fake'
+    post_params = {'uri': invalid_magnet_link}
+    response = await do_request(
         rest_api,
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
         request_type='PUT',
         post_data=post_params,
-        expected_code=500,
+        expected_code=400,
     )
+    assert response['error'] == ERROR_INVALID_MAGNET_LINK.format(invalid_magnet_link)
 
 
 async def test_get_torrents(my_channel, mock_dlmgr_get_download, rest_api, metadata_store):
