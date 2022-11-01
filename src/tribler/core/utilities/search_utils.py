@@ -59,8 +59,9 @@ def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0, fr
     :param title: a torrent name
     :param seeders: the number of seeders
     :param leechers: the number of leechers
-    :param freshness: the number of seconds since the torrent creation.
-                      Zero or negative value means the torrent creation date is unknown.
+    :param freshness: the number of seconds since the torrent creation. Zero or negative value means the torrent
+                      creation date is unknown. It is more convenient to use comparing to a timestamp, as it avoids
+                      using the `time()` function call and simplifies testing.
     :return: the torrent rank value in range [0, 1]
 
     Takes into account:
