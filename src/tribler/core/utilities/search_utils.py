@@ -79,19 +79,32 @@ def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0, fr
     return result
 
 
-LEECHERS_COEFF = 0.1  # leechers are considered ten times less important than seeders.
+LEECHERS_COEFF = 0.1  # How much leechers are less important compared to seeders (ten times less important)
+SEEDERS_HALF_RANK = 100  # The number of seeders at which the seeders rank is 0.5
 
 
 def seeders_rank(seeders: int, leechers: int = 0) -> float:
     """
-    Calculates rank based on the number of torrent's seeders and leechers. The result is normalized to the range [0, 1]
+    Calculates rank based on the number of torrent's seeders and leechers
 
-    :param seeders: the number of seeders for the torrent
-    :param leechers: the number of leechers for the torrent
+    :param seeders: the number of seeders for the torrent. It is a positive value, usually in the range [0, 1000]
+    :param leechers: the number of leechers for the torrent. It is a positive value, usually in the range [0, 1000]
     :return: the torrent rank based on seeders and leechers, normalized to the range [0, 1]
     """
-    sl = seeders + leechers * LEECHERS_COEFF
-    return sl / (100 + sl)  # infinity seeders -> rank 1.0; 100 seeders -> rank 0.5; 10 seeders -> approximately 0.1
+
+    # The leechers are treated as less capable seeders
+    sl = seeders + leechers * LEECHERS_COEFF  # Seeders and leechers combined
+
+    # The function result has desired properties:
+    #   *  zero rank for zero seeders;
+    #   *  0.5 rating for SEEDERS_HALF_RANK seeders;
+    #   *  1.0 rating for an infinite number of seeders;
+    #   *  soft curve.
+    # It is possible to use different curves with the similar shape, for example:
+    #   *  2 * arctan(x / SEEDERS_HALF_RANK) / PI,
+    #   *  1 - exp(x * ln(0.5) / SEEDERS_HALF_RANK)
+    # but it does not actually matter in practice
+    return sl / (100 + sl)
 
 
 def freshness_rank(freshness: Optional[float] = 0) -> float:
