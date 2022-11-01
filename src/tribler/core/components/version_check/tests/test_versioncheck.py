@@ -1,186 +1,142 @@
-import json
+import asyncio
+import platform
 from asyncio import sleep
-from unittest.mock import MagicMock
-
-from aiohttp import web
+from dataclasses import dataclass
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from aiohttp import web
 
 from tribler.core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler.core.components.version_check import versioncheck_manager
-from tribler.core.components.version_check.versioncheck_manager import VersionCheckManager, get_user_agent_string
+from tribler.core.components.version_check.versioncheck_manager import VersionCheckManager
 from tribler.core.version import version_id
 
-# pylint: disable=unused-argument
+# pylint: disable=redefined-outer-name, protected-access
 
 # Assuming this is always a newer version id
-NEW_VERSION_ID = 'v1337.0'
+new_version = '{"name": "v1337.0"}'
+first_version = '{"name": "v1.0"}'
 
 
-def make_platform_mock():
-    platform_mock = MagicMock()
-    platform_mock.machine = lambda: 'Something64'
-    platform_mock.system = lambda: 'OsName'
-    platform_mock.release = lambda: '123'
-    platform_mock.version = lambda: '123.56.67'  # currently not used
-    platform_mock.python_version = lambda: '3.10.1'
-    platform_mock.architecture = lambda: ('64bit', 'FooBar')  # currently only first item is used
-    return platform_mock
+@pytest.fixture()
+async def version_check_manager(free_port: int):
+    check_manager = VersionCheckManager(notifier=MagicMock(), urls=[f"http://localhost:{free_port}"])
+    yield check_manager
+    await check_manager.stop()
 
 
-TEST_USER_AGENT = f'Tribler/{version_id} (machine=Something64; os=OsName 123; python=3.10.1; executable=64bit)'
-
-
-@pytest.fixture(name='version_check_manager')
-async def fixture_version_check_manager(free_port):
-    prev_platform = versioncheck_manager.platform
-    prev_urls = versioncheck_manager.VERSION_CHECK_URLS
-    versioncheck_manager.platform = make_platform_mock()
-    versioncheck_manager.VERSION_CHECK_URLS = [f"http://localhost:{free_port}"]
-    version_check_manager = VersionCheckManager(notifier=MagicMock())
-    try:
-        yield version_check_manager
-    finally:
-        try:
-            await version_check_manager.stop()
-        finally:
-            versioncheck_manager.VERSION_CHECK_URLS = prev_urls
-            versioncheck_manager.platform = prev_platform
-
-
-response = None
-response_code = 200
-response_lag = 0  # in seconds
-
-last_request_user_agent = None
-
-
-async def handle_version_request(request):
-    global response, response_code, response_lag, last_request_user_agent  # pylint: disable=global-statement
-    if response_lag > 0:
-        await sleep(response_lag)
-    user_agent = request.headers.get('User-Agent')
-    last_request_user_agent = user_agent
-    return RESTResponse(response, status=response_code)
-
-
-@pytest.fixture(name='version_server')
-async def fixture_version_server(free_port):
-    global response_code  # pylint: disable=global-statement
+@dataclass
+class ResponseSettings:
+    response = new_version
     response_code = 200
+    response_lag = 0  # in seconds
+
+
+@pytest.fixture()
+async def version_server(free_port: int, version_check_manager: VersionCheckManager):
+    async def handle_version_request(_):
+        settings = ResponseSettings()
+        if settings.response_lag > 0:
+            await sleep(settings.response_lag)
+        return RESTResponse(settings.response, status=settings.response_code)
+
     app = web.Application()
     app.add_routes([web.get('/{tail:.*}', handle_version_request)])
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     site = web.TCPSite(runner, 'localhost', free_port)
     await site.start()
-    yield free_port
+    yield version_check_manager
     await site.stop()
 
 
-async def test_start(version_check_manager, version_server):
+async def test_start(version_check_manager: VersionCheckManager):
     """
     Test whether the periodic version lookup works as expected
     """
-    global response  # pylint: disable=global-statement
-    response = json.dumps({'name': 'v1.0'})
-
     version_check_manager.start()
     # We only start the version check if GIT is not in the version ID.
     assert not version_check_manager.is_pending_task_active("tribler version check")
 
-    import tribler.core.components.version_check.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
-    old_id = vcm.version_id
-    vcm.version_id = "7.0.0"
+    old_id = versioncheck_manager.version_id
+    versioncheck_manager.version_id = "7.0.0"
     version_check_manager.start()
     await sleep(0.1)  # Wait a bit for the check to complete
     assert version_check_manager.is_pending_task_active("tribler version check")
-    vcm.version_id = old_id
+    versioncheck_manager.version_id = old_id
 
 
-async def test_user_agent(version_check_manager, version_server):
-    global response, last_request_user_agent  # pylint: disable=global-statement
-    response = json.dumps({'name': 'v1.0'})
-    last_request_user_agent = None
-    await version_check_manager.check_new_version()
-    assert last_request_user_agent == TEST_USER_AGENT
+@patch('platform.machine', Mock(return_value='machine'))
+@patch('platform.system', Mock(return_value='os'))
+@patch('platform.release', Mock(return_value='1'))
+@patch('platform.python_version', Mock(return_value='3.0.0'))
+@patch('platform.architecture', Mock(return_value=('64bit', 'FooBar')))
+async def test_user_agent(version_server: VersionCheckManager):
+    result = await version_server._check_urls()
+
+    actual = result.request_info.headers['User-Agent']
+    expected = f'Tribler/{version_id} (machine=machine; os=os 1; python=3.0.0; executable=64bit)'
+
+    assert actual == expected
 
 
-async def test_old_version(version_check_manager, version_server):
-    global response  # pylint: disable=global-statement
-    response = json.dumps({'name': 'v1.0'})
-    has_new_version = await version_check_manager.check_new_version()
-    assert not has_new_version
+@patch.object(ResponseSettings, 'response', first_version)
+async def test_old_version(version_server: VersionCheckManager):
+    result = await version_server._check_urls()
+    assert not result
 
 
-async def test_new_version(version_check_manager, version_server):
-    global response  # pylint: disable=global-statement
-    response = json.dumps({'name': NEW_VERSION_ID})
-    has_new_version = await version_check_manager.check_new_version()
-    assert has_new_version
+async def test_new_version(version_server: VersionCheckManager):
+    result = await version_server._check_urls()
+    assert result
 
 
-async def test_bad_request(version_check_manager, version_server):
-    global response, response_code  # pylint: disable=global-statement
-    response = json.dumps({'name': 'v1.0'})
-    response_code = 500
-    has_new_version = await version_check_manager.check_new_version()
-    assert not has_new_version
+@patch.object(ResponseSettings, 'response_code', 500)
+async def test_bad_request(version_server: VersionCheckManager):
+    result = await version_server._check_urls()
+    assert not result
 
 
-async def test_connection_error(version_check_manager):
-    global response  # pylint: disable=global-statement
-    response = json.dumps({'name': 'v1.0'})
-    versioncheck_manager.VERSION_CHECK_URLS = ["http://this.will.not.exist"]
-    has_new_version = await version_check_manager.check_new_version()
-    assert not has_new_version
+async def test_connection_error(version_check_manager: VersionCheckManager):
+    version_check_manager.urls = ["http://this.will.not.exist"]
+    result = await version_check_manager._check_urls()
+    assert not result
 
 
-async def test_version_check_api_timeout(free_port, version_check_manager, version_server):
-    global response, response_lag  # pylint: disable=global-statement
-    response = json.dumps({'name': NEW_VERSION_ID})
-    response_lag = 2  # Ensures that it takes 2 seconds to send a response
+@patch.object(ResponseSettings, 'response_lag', 1)  # Ensures that it takes 1 seconds to send a response
+async def test_version_check_api_timeout(version_server: VersionCheckManager):
+    version_server.timeout = 0.5
 
-    import tribler.core.components.version_check.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
-    old_timeout = vcm.VERSION_CHECK_TIMEOUT
-    vcm.VERSION_CHECK_TIMEOUT = 1  # version checker will wait for 1 second to get response
-
-    version_check_url = f"http://localhost:{free_port}"
     # Since the time to respond is higher than the time version checker waits for response,
-    # it should cancel the request and return False
-    has_new_version = await version_check_manager.check_new_version_api(version_check_url)
-    assert not has_new_version
-
-    vcm.VERSION_CHECK_TIMEOUT = old_timeout
+    # it should raise the `asyncio.TimeoutError`
+    with pytest.raises(asyncio.TimeoutError):
+        await version_server._raw_request_new_version(version_server.urls[0])
 
 
-async def test_fallback_on_multiple_urls(free_port, version_check_manager, version_server):
+async def test_fallback_on_multiple_urls(version_server: VersionCheckManager):
     """
     Scenario: Two release API URLs. First one is a non-existing URL so is expected to fail.
     The second one is of a local webserver (http://localhost:{port}) which is configured to
     return a new version available response. Here we test if the version checking still works
     if the first URL fails.
     """
-    global response  # pylint: disable=global-statement
-    response = json.dumps({'name': NEW_VERSION_ID})
+    urls = version_server.urls
 
-    import tribler.core.components.version_check.versioncheck_manager as vcm  # pylint: disable=reimported, import-outside-toplevel
-    vcm_old_urls = vcm.VERSION_CHECK_URLS
-    vcm.VERSION_CHECK_URLS = ["http://this.will.not.exist", f"http://localhost:{free_port}"]
+    # no results
+    version_server.urls = ["http://this.will.not.exist"]
+    assert not await version_server._check_urls()
 
-    has_new_version = await version_check_manager.check_new_version()
-    assert has_new_version
-
-    vcm.VERSION_CHECK_URLS = vcm_old_urls
+    # results
+    version_server.urls.extend(urls)
+    assert await version_server._check_urls()
 
 
+@patch('platform.machine', Mock(return_value='AMD64'))
+@patch('platform.system', Mock(return_value='Windows'))
+@patch('platform.release', Mock(return_value='10'))
+@patch('platform.python_version', Mock(return_value='3.9.1'))
+@patch('platform.architecture', Mock(return_value=('64bit', 'WindowsPE')))
 def test_useragent_string():
-    platform = MagicMock()
-    platform.machine = lambda: 'AMD64'
-    platform.system = lambda: 'Windows'
-    platform.release = lambda: '10'
-    platform.version = lambda: '10.0.19041'
-    platform.python_version = lambda: '3.9.1'
-    platform.architecture = lambda: ('64bit', 'WindowsPE')
-    s = get_user_agent_string('1.2.3', platform)
+    s = VersionCheckManager._get_user_agent_string('1.2.3', platform)
     assert s == 'Tribler/1.2.3 (machine=AMD64; os=Windows 10; python=3.9.1; executable=64bit)'
