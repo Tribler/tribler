@@ -14,7 +14,7 @@ jobs:
     uses: ./.github/workflows/pytest.yml
     with:
       python-version: 3.8
-      matrix: '{"os": ["ubuntu-latest"]}'
+      matrix: '{"os": ["windows-latest"]}'
 
   guitest:
     uses: ./.github/workflows/guitest.yml
@@ -33,30 +33,46 @@ jobs:
       python-version: 3.8
 
   # PR is Ready only
-  pytest_ready:
-    if: github.event.pull_request.draft == false
+  pytest_nix:
+    if: ${{!github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
     with:
       python-version: 3.8
-      matrix: '{"os": ["windows-latest", "macos-latest"]}'
+      matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
 
-  guitest_ready:
-    if: github.event.pull_request.draft == false
+  guitest_nix:
+    if: ${{!github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
     with:
       python-version: 3.8
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
 
-  ubuntu_ready:
-    if: github.event.pull_request.draft == false
+  ubuntu:
+    if: ${{!github.event.pull_request.draft}}
     uses: ./.github/workflows/build_ubuntu.yml
     with:
       upload: false
       os: ubuntu-20.04
       python-version: 3.8
 
-  documentation_ready:
-    if: github.event.pull_request.draft == false
+  windows:
+    if: ${{!github.event.pull_request.draft}}
+    uses: ./.github/workflows/build_windows.yml
+    with:
+      upload: false
+      os: windows-latest
+      python-version: 3.8
+
+  mac:
+    if: ${{!github.event.pull_request.draft}}
+    uses: ./.github/workflows/build_mac.yml
+    with:
+      upload: false
+      os: macos-10.15
+      python-version: 3.8
+
+  documentation:
+    if: ${{!github.event.pull_request.draft}}
     uses: ./.github/workflows/documentation.yml
     with:
       python-version: 3.8

@@ -28,7 +28,7 @@ on:
 
       python-version:
         description: Python version
-        default: '3.8'
+        default: 3.8
         type: string
         required: true
 
