@@ -125,8 +125,14 @@ def freshness_rank(freshness: Optional[float] = 0) -> float:
     """
     freshness = max(0, freshness or 0)
     if not freshness:
-        return 0
+        return 0  # for freshness <= 0 the rank value is 0 because of an incorrect freshness value
 
+    # The function declines from 1.0 to 0.0 on range (0..Infinity], with the following properties:
+    #   *  for just created torrents the rank value is close to 1.0
+    #   *  for 30-days old torrents the rank value is 0.5
+    #   *  for very old torrens the rank value is going to zero
+    # It was possible to use another formulas with the same properties (for example, exponent-based),
+    # the exact curve shape is not really important.
     days = (freshness or 0) / SECONDS_IN_DAY
     return 1 / (1 + days / 30)
 
