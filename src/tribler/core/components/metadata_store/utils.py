@@ -57,13 +57,13 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
             if tag not in suggested_tags:
                 suggested_tags.append(tag)
 
-    def _add_operation(_tag, _op, _key):
-        operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash, predicate=ResourceType.TAG,
-                                       object=_tag, operation=_op, clock=0, creator_public_key=_key.pub().key_to_bin())
+    def _add_operation(_obj, _op, _key, _predicate=ResourceType.TAG):
+        operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash, predicate=_predicate,
+                                       object=_obj, operation=_op, clock=0, creator_public_key=_key.pub().key_to_bin())
         operation.clock = tags_db.get_clock(operation) + 1
         tags_db.add_operation(operation, b"")
 
-    # Give each torrent some tags
+    # Give the torrent some tags
     for tag in tags:
         for key in [random_key_1, random_key_2]:  # Each tag should be proposed by two unique users
             _add_operation(tag, Operation.ADD, key)
@@ -72,6 +72,17 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
     for tag in suggested_tags:
         _add_operation(tag, Operation.ADD, random_key_3)
         _add_operation(tag, Operation.REMOVE, random_key_2)
+
+    # Give the torrent some simple attributes
+    random_title = generate_title(2)
+    random_year = f"{random.randint(1990, 2040)}"
+    random_description = generate_title(5)
+    random_lang = random.choice(["english", "russian", "dutch", "klingon", "valyerian"])
+    for key in [random_key_1, random_key_2]:  # Each statement should be proposed by two unique users
+        _add_operation(random_title, Operation.ADD, key, _predicate=ResourceType.TITLE)
+        _add_operation(random_year, Operation.ADD, key, _predicate=ResourceType.DATE)
+        _add_operation(random_description, Operation.ADD, key, _predicate=ResourceType.DESCRIPTION)
+        _add_operation(random_lang, Operation.ADD, key, _predicate=ResourceType.LANGUAGE)
 
 
 @db_session

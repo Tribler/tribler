@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from typing import Optional
 
 from pony.orm import db_session
@@ -38,11 +39,11 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
-    def __init__(self, metadata_store: MetadataStore, *args, tags_db: KnowledgeDatabase = None,
+    def __init__(self, metadata_store: MetadataStore, *args, knowledge_db: KnowledgeDatabase = None,
                  tag_rules_processor: KnowledgeRulesProcessor = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = metadata_store
-        self.tags_db: Optional[KnowledgeDatabase] = tags_db
+        self.knowledge_db: Optional[KnowledgeDatabase] = knowledge_db
         self.tag_rules_processor: Optional[KnowledgeRulesProcessor] = tag_rules_processor
 
     @classmethod
@@ -84,13 +85,15 @@ class MetadataEndpointBase(RESTEndpoint):
             self._logger.info(f'Generated {generated} tags for {hexlify(entry.infohash)}')
 
     @db_session
-    def add_tags_to_metadata_list(self, contents_list, hide_xxx=False):
-        if self.tags_db is None:
-            self._logger.error(f'Cannot add tags to metadata list: tags_db is not set in {self.__class__.__name__}')
+    def add_statements_to_metadata_list(self, contents_list, hide_xxx=False):
+        if self.knowledge_db is None:
+            self._logger.error(f'Cannot add statements to metadata list: '
+                               f'knowledge_db is not set in {self.__class__.__name__}')
             return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                tags = self.tags_db.get_objects(torrent["infohash"], predicate=ResourceType.TAG)
+                statements = [asdict(stmt) for stmt in self.knowledge_db.get_statements(torrent["infohash"])]
                 if hide_xxx:
-                    tags = [tag.lower() for tag in tags if not default_xxx_filter.isXXX(tag, isFilename=False)]
-                torrent["tags"] = tags
+                    statements = [stmt for stmt in statements if not default_xxx_filter.isXXX(stmt["object"],
+                                                                                              isFilename=False)]
+                torrent["statements"] = statements

@@ -5,13 +5,12 @@ from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
 
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
-from tribler.gui.dialogs.addtagsdialog import AddTagsDialog
+from tribler.gui.dialogs.editmetadatadialog import EditMetadataDialog
 from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, data_item2uri, get_image_path, index2uri
 from tribler.gui.widgets.tablecontentdelegate import TriblerContentDelegate
@@ -196,12 +195,7 @@ class TriblerContentTableView(QTableView):
             self.window().on_channel_subscribe(item)
 
     def on_edit_tags_clicked(self, index: QModelIndex) -> None:
-        data_item = index.model().data_items[index.row()]
-        self.add_tags_dialog = AddTagsDialog(self.window(), data_item["infohash"])
-        self.add_tags_dialog.index = index
-        if data_item.get("tags", ()):
-            self.add_tags_dialog.dialog_widget.edit_tags_input.set_tags(data_item.get("tags", ()))
-        self.add_tags_dialog.dialog_widget.content_name_label.setText(data_item["name"])
+        self.add_tags_dialog = EditMetadataDialog(self.window(), index)
         self.add_tags_dialog.show()
         connect(self.add_tags_dialog.save_button_clicked, self.save_edited_metadata)
 
@@ -277,7 +271,7 @@ class TriblerContentTableView(QTableView):
             self.add_tags_dialog = None
 
         data_item = self.model().data_items[index.row()]
-        data_item["tags"] = [stmt["object"] for stmt in statements if stmt["predicate"] == ResourceType.TAG]
+        data_item["statements"] = statements
         self.redraw(index, True)
 
         self.edited_metadata.emit(data_item)
