@@ -91,7 +91,7 @@ def seeders_rank(seeders: int, leechers: int = 0) -> float:
     :return: the torrent rank based on seeders and leechers, normalized to the range [0, 1]
     """
     sl = seeders + leechers * LEECHERS_COEFF
-    return sl / (100 + sl)  # inf seeders -> 1; 100 seeders -> 0.5; 10 seeders -> approx 0.1
+    return sl / (100 + sl)  # infinity seeders -> rank 1.0; 100 seeders -> rank 0.5; 10 seeders -> approximately 0.1
 
 
 def freshness_rank(freshness: Optional[float] = 0) -> float:
