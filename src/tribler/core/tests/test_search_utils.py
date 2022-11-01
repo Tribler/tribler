@@ -2,8 +2,8 @@ from collections import deque
 
 import pytest
 
-from tribler.core.utilities.search_utils import filter_keywords, find_word, item_rank, split_into_keywords,\
-    torrent_rank, title_rank
+from tribler.core.utilities.search_utils import filter_keywords, find_word, freshness_rank, item_rank, seeders_rank, \
+    split_into_keywords, torrent_rank, title_rank
 
 
 DAY = 60 * 60 * 24
@@ -23,6 +23,34 @@ def test_filter_keywords():
     result = filter_keywords(["to", "be", "or", "not", "to", "be"])
     assert isinstance(result, list)
     assert len(result) == 4
+
+
+def test_title_rank_range():
+    assert title_rank('Big Buck Bunny', 'Big Buck Bunny') == 1
+
+    long_query = ' '.join(['foo'] * 1000)
+    long_title = ' '.join(['bar'] * 1000)
+    assert title_rank(long_query, long_title) == pytest.approx(0.03554968)
+
+
+def test_freshness_rank_range():
+    assert freshness_rank(-1) == 0
+    assert freshness_rank(0) == 0
+    assert freshness_rank(0.001) == pytest.approx(1.0)
+    assert freshness_rank(1000000000) == pytest.approx(0.0025852989)
+
+
+def test_seeders_rank_range():
+    assert seeders_rank(0) == 0
+    assert seeders_rank(1000000) == pytest.approx(0.9999)
+
+
+def test_torrent_rank_range():
+    assert torrent_rank('Big Buck Bunny', 'Big Buck Bunny', seeders=1000000, freshness=0.01) == pytest.approx(0.99999)
+
+    long_query = ' '.join(['foo'] * 1000)
+    long_title = ' '.join(['bar'] * 1000)
+    assert torrent_rank(long_query, long_title, freshness=1000000 * 365 * DAY) == pytest.approx(+0.02879524)
 
 
 def test_torrent_rank():
