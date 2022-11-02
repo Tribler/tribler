@@ -93,6 +93,11 @@ def test_get_files_completion(mock_download, mock_tdef):
     handle.file_progress = lambda **_: [0]
     assert download_state.get_files_completion() == [('test.txt', 1.0)]
 
+    # Test a file with empty file progress
+    mock_tdef.get_files_with_length = lambda: [("test.txt", 0)]
+    handle.file_progress = lambda **_: []
+    assert download_state.get_files_completion() == []
+
 
 def test_get_availability(mock_download):
     """
