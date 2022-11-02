@@ -2,8 +2,8 @@ from collections import deque
 
 import pytest
 
-from tribler.core.utilities.search_utils import filter_keywords, find_word, freshness_rank, item_rank, seeders_rank, \
-    split_into_keywords, torrent_rank, title_rank
+from tribler.core.utilities.search_utils import filter_keywords, find_word_and_rotate_title, freshness_rank, item_rank,\
+    seeders_rank, split_into_keywords, torrent_rank, title_rank
 
 
 DAY = 60 * 60 * 24
@@ -153,51 +153,51 @@ def test_item_rank():
 
 
 def test_find_word():
-    # To use the find_word function, you can call it one time for each word from the query and see:
+    # To use the find_word_and_rotate_title function, you can call it one time for each word from the query and see:
     # - how many query words are missed in the title;
     # - how many excess or out-of-place title words are found before each query word;
     # - and how many title words are not mentioned in the query.
 
     # Example 1, query "A B C", title "A B C"
     title = deque(["A", "B", "C"])
-    assert find_word("A", title) == (True, 0) and title == deque(["B", "C"])
-    assert find_word("B", title) == (True, 0) and title == deque(["C"])
-    assert find_word("C", title) == (True, 0) and title == deque([])
+    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["B", "C"])
+    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["C"])
+    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque([])
     # Conclusion: exact match.
 
     # Example 2, query "A B C", title "A B C D"
     title = deque(["A", "B", "C", "D"])
-    assert find_word("A", title) == (True, 0) and title == deque(["B", "C", "D"])
-    assert find_word("B", title) == (True, 0) and title == deque(["C", "D"])
-    assert find_word("C", title) == (True, 0) and title == deque(["D"])
+    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["B", "C", "D"])
+    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["C", "D"])
+    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque(["D"])
     # Conclusion: minor penalty for one excess word in the title that is not in the query.
 
     # Example 3, query "A B C", title "X Y A B C"
     title = deque(["X", "Y", "A", "B", "C"])
-    assert find_word("A", title) == (True, 2) and title == deque(["B", "C", "X", "Y"])
-    assert find_word("B", title) == (True, 0) and title == deque(["C", "X", "Y"])
-    assert find_word("C", title) == (True, 0) and title == deque(["X", "Y"])
+    assert find_word_and_rotate_title("A", title) == (True, 2) and title == deque(["B", "C", "X", "Y"])
+    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["C", "X", "Y"])
+    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque(["X", "Y"])
     # Conclusion: major penalty for skipping two words at the beginning of the title plus a minor penalty for two
     # excess words in the title that are not in the query.
 
     # Example 4, query "A B C", title "A B X Y C"
     title = deque(["A", "B", "X", "Y", "C"])
-    assert find_word("A", title) == (True, 0) and title == deque(["B", "X", "Y", "C"])
-    assert find_word("B", title) == (True, 0) and title == deque(["X", "Y", "C"])
-    assert find_word("C", title) == (True, 2) and title == deque(["X", "Y"])
+    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["B", "X", "Y", "C"])
+    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["X", "Y", "C"])
+    assert find_word_and_rotate_title("C", title) == (True, 2) and title == deque(["X", "Y"])
     # Conclusion: average penalty for skipping two words in the middle of the title plus a minor penalty for two
     # excess words in the title that are not in the query.
 
     # Example 5, query "A B C", title "A C B"
     title = deque(["A", "C", "B"])
-    assert find_word("A", title) == (True, 0) and title == deque(["C", "B"])
-    assert find_word("B", title) == (True, 1) and title == deque(["C"])
-    assert find_word("C", title) == (True, 0) and title == deque([])
+    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["C", "B"])
+    assert find_word_and_rotate_title("B", title) == (True, 1) and title == deque(["C"])
+    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque([])
     # Conclusion: average penalty for skipping one word in the middle of the title.
 
     # Example 6, query "A B C", title "A C X"
     title = deque(["A", "C", "X"])
-    assert find_word("A", title) == (True, 0) and title == deque(["C", "X"])
-    assert find_word("B", title) == (False, 0) and title == deque(["C", "X"])
-    assert find_word("C", title) == (True, 0) and title == deque(["X"])
+    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["C", "X"])
+    assert find_word_and_rotate_title("B", title) == (False, 0) and title == deque(["C", "X"])
+    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque(["X"])
     # Conclusion: huge penalty for missing one query word plus a minor penalty for one excess title word.

@@ -191,11 +191,12 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
         # The first word is more important than the second word, and so on
         word_weight = POSITION_COEFF / (POSITION_COEFF + i)
 
-        # Read the description of the `find_word` function to understand what is going on. Basically, we are trying
-        # to find each query word in the title words, calculate the penalty if the query word is not found or if there
-        # are some title words before it, and then rotate the skipped title words to the end of the title. This way,
-        # the least penalty got a title that has query words in the proper order at the beginning of the title.
-        found, skipped = find_word(word, title)
+        # Read the description of the `find_word_and_rotate_title` function to understand what is going on.
+        # Basically, we are trying to find each query word in the title words, calculate the penalty if the query word
+        # is not found or if there are some title words before it, and then rotate the skipped title words to the end
+        # of the title. This way, the least penalty got a title that has query words in the proper order at the
+        # beginning of the title.
+        found, skipped = find_word_and_rotate_title(word, title)
         if found:
             # if the query word is found in the title, add penalty for skipped words in title before it
             total_error += skipped * word_weight
@@ -212,7 +213,7 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
     return RANK_NORMALIZATION_COEFF / (RANK_NORMALIZATION_COEFF + total_error)
 
 
-def find_word(word: str, title: Deque[str]) -> Tuple[bool, int]:
+def find_word_and_rotate_title(word: str, title: Deque[str]) -> Tuple[bool, int]:
     """
     Finds the query word in the title. Returns whether it was found or not and the number of skipped words in the title.
 
@@ -225,10 +226,10 @@ def find_word(word: str, title: Deque[str]) -> Tuple[bool, int]:
 
     For efficiency reasons, the function modifies the `title` deque in place by removing the first entrance
     of the found word and rotating all leading non-matching words to the end of the deque. It allows to efficiently
-    perform multiple calls of the `find_word` function for subsequent words from the same query string.
+    perform multiple calls of the `find_word_and_rotate_title` function for subsequent words from the same query string.
 
-    An example: find_word('A', deque(['X', 'Y', 'A', 'B', 'C'])) returns `(True, 2)`, where True means that
-    the word 'A' was found in the `title` deque, and 2 is the number of skipped words ('X', 'Y'). Also, it modifies
+    An example: find_word_and_rotate_title('A', deque(['X', 'Y', 'A', 'B', 'C'])) returns `(True, 2)`, where True means
+    that the word 'A' was found in the `title` deque, and 2 is the number of skipped words ('X', 'Y'). Also, it modifies
     the `title` deque, so it starts looking like deque(['B', 'C', 'X', 'Y']). The found word 'A' was removed, and
     the leading non-matching words ('X', 'Y') were moved to the end of the deque.
     """
