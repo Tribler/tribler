@@ -44,7 +44,7 @@ async def test_combine_bloom_filters(dht_health_manager):
     assert dht_health_manager.combine_bloomfilters(bf1, bf2) == bf2
 
 
-async def test_get_size_from_bloom_filter(dht_health_manager):
+def test_get_size_from_bloom_filter(dht_health_manager):
     """
     Test whether we can successfully estimate the size from a bloom filter
     """
@@ -64,7 +64,7 @@ async def test_get_size_from_bloom_filter(dht_health_manager):
     assert dht_health_manager.get_size_from_bloomfilter(bf) == 6000
 
 
-async def test_receive_bloomfilters(dht_health_manager):
+def test_receive_bloomfilters(dht_health_manager):
     """
     Test whether the right operations happen when receiving a bloom filter
     """

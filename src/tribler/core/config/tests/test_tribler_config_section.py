@@ -10,7 +10,7 @@ class TriblerTestConfigSection(TriblerConfigSection):
     path: Optional[str]
 
 
-async def test_put_path_relative(tmpdir):
+def test_put_path_relative(tmpdir):
     section = TriblerTestConfigSection()
 
     section.put_path_as_relative(property_name='path', value=Path(tmpdir), state_dir=tmpdir)
@@ -20,7 +20,7 @@ async def test_put_path_relative(tmpdir):
     assert section.path == '1'
 
 
-async def test_put_path_absolute(tmpdir):
+def test_put_path_absolute(tmpdir):
     section = TriblerTestConfigSection()
 
     section.put_path_as_relative(property_name='path')
@@ -33,6 +33,6 @@ async def test_put_path_absolute(tmpdir):
     assert section.path == str(Path('/Tribler'))
 
 
-async def test_null_replacement():
+def test_null_replacement():
     section = TriblerTestConfigSection(path='None')
     assert section.path is None

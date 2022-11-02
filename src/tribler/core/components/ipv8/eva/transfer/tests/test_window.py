@@ -10,12 +10,12 @@ async def window() -> TransferWindow:
     return TransferWindow(start=0, size=10)
 
 
-async def test_constructor(window: TransferWindow):
+def test_constructor(window: TransferWindow):
     assert len(window.blocks) == 10
     assert all(not block for block in window.blocks)
 
 
-async def test_add(window: TransferWindow):
+def test_add(window: TransferWindow):
     window.add(0, b'first')
     window.add(0, b'first')
     window.add(9, b'last')
@@ -25,7 +25,7 @@ async def test_add(window: TransferWindow):
     assert not window.is_finished()
 
 
-async def test_finished(window: TransferWindow):
+def test_finished(window: TransferWindow):
     for i in range(10):
         window.add(i, b'block')
 
@@ -33,7 +33,7 @@ async def test_finished(window: TransferWindow):
     assert window.is_finished()
 
 
-async def test_consecutive_blocks(window: TransferWindow):
+def test_consecutive_blocks(window: TransferWindow):
     window.add(0, b'first')
     window.add(1, b'second')
     window.add(3, b'fourth')

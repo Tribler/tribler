@@ -10,12 +10,12 @@ def operations_requests():
     return OperationsRequests()
 
 
-async def test_add_peer(operations_requests):
+def test_add_peer(operations_requests):
     operations_requests.register_peer('peer', number_of_responses=10)
     assert operations_requests.requests['peer'] == 10
 
 
-async def test_clear_requests(operations_requests):
+def test_clear_requests(operations_requests):
     operations_requests.register_peer('peer', number_of_responses=10)
     assert len(operations_requests.requests) == 1
 
@@ -23,17 +23,17 @@ async def test_clear_requests(operations_requests):
     assert len(operations_requests.requests) == 0
 
 
-async def test_valid_peer(operations_requests):
+def test_valid_peer(operations_requests):
     operations_requests.register_peer('peer', number_of_responses=10)
     operations_requests.validate_peer('peer')
 
 
-async def test_missed_peer(operations_requests):
+def test_missed_peer(operations_requests):
     with pytest.raises(ValueError):
         operations_requests.validate_peer('peer')
 
 
-async def test_invalid_peer(operations_requests):
+def test_invalid_peer(operations_requests):
     operations_requests.register_peer('peer', number_of_responses=1)
     operations_requests.validate_peer('peer')
 

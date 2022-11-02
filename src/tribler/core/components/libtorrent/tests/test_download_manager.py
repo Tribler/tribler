@@ -255,7 +255,7 @@ async def test_start_download_existing_handle(fake_dlmgr):
     await download.shutdown()
 
 
-async def test_start_download_existing_download(fake_dlmgr):
+def test_start_download_existing_download(fake_dlmgr):
     """
     Testing the addition of a torrent to the libtorrent manager, if there is a pre-existing download.
     """
@@ -335,7 +335,7 @@ def test_payout_on_disconnect(fake_dlmgr):
     fake_dlmgr.payout_manager.do_payout.is_called_with(b'a' * 20)
 
 
-async def test_post_session_stats(fake_dlmgr):
+def test_post_session_stats(fake_dlmgr):
     """
     Test whether post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
     """

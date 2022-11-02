@@ -23,7 +23,7 @@ class TestTagDB(TestTagDBBase):
         mocked_generate_mapping.assert_called_with(create_tables=False)
 
     @db_session
-    async def test_get_or_create(self):
+    def test_get_or_create(self):
         # Test that function get_or_create() works as expected:
         # it gets an entity if the entity is exist and create the entity otherwise
         assert self.db.instance.Peer.select().count() == 0
@@ -40,7 +40,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Peer.select().count() == 1
 
     @db_session
-    async def test_update_counter_add(self):
+    def test_update_counter_add(self):
         statement = self.create_statement()
 
         # let's update ADD counter
@@ -50,7 +50,7 @@ class TestTagDB(TestTagDBBase):
         assert not statement.local_operation
 
     @db_session
-    async def test_update_counter_remove(self):
+    def test_update_counter_remove(self):
         statement = self.create_statement()
 
         # let's update REMOVE counter
@@ -60,7 +60,7 @@ class TestTagDB(TestTagDBBase):
         assert not statement.local_operation
 
     @db_session
-    async def test_update_counter_local(self):
+    def test_update_counter_local(self):
         statement = self.create_statement()
 
         # let's update local operation
@@ -70,7 +70,7 @@ class TestTagDB(TestTagDBBase):
         assert statement.local_operation == Operation.REMOVE
 
     @db_session
-    async def test_remote_add_tag_operation(self):
+    def test_remote_add_tag_operation(self):
         def assert_all_tables_have_the_only_one_entity():
             assert self.db.instance.Peer.select().count() == 1
             assert self.db.instance.Resource.select().count() == 2
@@ -106,7 +106,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Statement.get().removed_count == 1
 
     @db_session
-    async def test_resource_type(self):
+    def test_resource_type(self):
         # Test that resources with different type are stored in separated db entities.
         def resources():
             """get all resources from self.db.instance.Resource and convert them to the tuples:
@@ -132,7 +132,7 @@ class TestTagDB(TestTagDBBase):
                                (ResourceType.TAG, 'infohash')]
 
     @db_session
-    async def test_remote_add_multiple_tag_operations(self):
+    def test_remote_add_multiple_tag_operations(self):
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1')
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer2')
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer3')
@@ -164,7 +164,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Statement.get(predicate=ResourceType.TAG).removed_count == 1
 
     @db_session
-    async def test_add_auto_generated_tag(self):
+    def test_add_auto_generated_tag(self):
         self.db.add_auto_generated(
             subject_type=ResourceType.TORRENT,
             subject='infohash',
@@ -177,7 +177,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Peer.get().public_key == PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS
 
     @db_session
-    async def test_multiple_tags(self):
+    def test_multiple_tags(self):
         self.add_operation_set(
             self.db,
             {
@@ -210,7 +210,7 @@ class TestTagDB(TestTagDBBase):
         assert statement.removed_count == 0
 
     @db_session
-    async def test_get_objects_added(self):
+    def test_get_objects_added(self):
         self.add_operation_set(
             self.db,
             {
@@ -228,7 +228,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_objects('infohash1', predicate=ResourceType.CONTRIBUTOR) == ['Contributor']
 
     @db_session
-    async def test_get_objects_removed(self):
+    def test_get_objects_removed(self):
         self.add_operation_set(
             self.db,
             {
@@ -245,7 +245,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_objects('infohash1', predicate=ResourceType.TAG) == ['tag1']
 
     @db_session
-    async def test_get_objects_case_insensitive(self):
+    def test_get_objects_case_insensitive(self):
         # Test that for case sensitive queries the result is the exact match.
         # Test that for case insensitive queries the result is the case insensitive match.
 
@@ -279,7 +279,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_subjects('Torrent', predicate=ResourceType.TORRENT, case_sensitive=True) == ['Ubuntu']
 
     @db_session
-    async def test_show_local_resources(self):
+    def test_show_local_resources(self):
         # Test that locally added tags have a priority to show.
         # That means no matter of other peers opinions, locally added tag should be visible.
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer1',
@@ -299,7 +299,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_objects('infohash1', predicate=ResourceType.CONTRIBUTOR) == ['contributor']
 
     @db_session
-    async def test_hide_local_tags(self):
+    def test_hide_local_tags(self):
         # Test that locally removed tags should not be visible to local user.
         # No matter of other peers opinions, locally removed tag should be not visible.
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer1')
@@ -313,7 +313,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_objects('infohash1', ResourceType.TAG) == []
 
     @db_session
-    async def test_suggestions(self):
+    def test_suggestions(self):
         # Test whether the database returns the right suggestions.
         # Suggestions are tags that have not gathered enough support for display yet.
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'1')
@@ -336,7 +336,7 @@ class TestTagDB(TestTagDBBase):
         assert not self.db.get_suggestions('infohash', predicate=ResourceType.TAG)  # below the threshold
 
     @db_session
-    async def test_get_clock_of_operation(self):
+    def test_get_clock_of_operation(self):
         operation = self.create_operation()
         assert self.db.get_clock(operation) == 0
 
@@ -346,7 +346,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_clock(operation) == 1
 
     @db_session
-    async def test_get_tags_operations_for_gossip(self):
+    def test_get_tags_operations_for_gossip(self):
         self.add_operation_set(
             self.db,
             {
@@ -365,7 +365,7 @@ class TestTagDB(TestTagDBBase):
         assert all(not o.auto_generated for o in operations)
 
     @db_session
-    async def test_get_subjects_intersection_threshold(self):
+    def test_get_subjects_intersection_threshold(self):
         # test that `get_subjects_intersection` function returns only infohashes with tags
         # above the threshold
         self.add_operation_set(
@@ -386,7 +386,7 @@ class TestTagDB(TestTagDBBase):
         assert self.db.get_subjects_intersection({'tag1'}, predicate=ResourceType.TAG) == {'infohash1', 'infohash3'}
 
     @db_session
-    async def test_get_subjects_intersection(self):
+    def test_get_subjects_intersection(self):
         # test that `get_infohashes` function returns an intersection of result
         # in case of more than one tag passed to the function
         self.add_operation_set(
@@ -430,13 +430,13 @@ class TestTagDB(TestTagDBBase):
                    'infohash1', 'infohash4'}
 
     @db_session
-    async def test_show_condition(self):
+    def test_show_condition(self):
         assert KnowledgeDatabase._show_condition(SimpleNamespace(local_operation=Operation.ADD))
         assert KnowledgeDatabase._show_condition(SimpleNamespace(local_operation=None, score=SHOW_THRESHOLD))
         assert not KnowledgeDatabase._show_condition(SimpleNamespace(local_operation=None, score=0))
 
     @db_session
-    async def test_get_random_operations_by_condition_less_than_count(self):
+    def test_get_random_operations_by_condition_less_than_count(self):
         # Check that `_get_random_tag_operations_by_condition` returns values even in the case that requested amount
         # of operations is unavailable
 
@@ -459,7 +459,7 @@ class TestTagDB(TestTagDBBase):
         assert len(random_operations) == 3
 
     @db_session
-    async def test_get_random_operations_by_condition_greater_than_count(self):
+    def test_get_random_operations_by_condition_greater_than_count(self):
         # Check that `_get_random_tag_operations_by_condition` returns requested amount of entities
         # even if there are more entities in DB than this requested amount.
         self.add_operation_set(
@@ -481,7 +481,7 @@ class TestTagDB(TestTagDBBase):
         assert len(random_operations) == 5
 
     @db_session
-    async def test_get_random_tag_operations_by_condition(self):
+    def test_get_random_tag_operations_by_condition(self):
         # Check that `_get_random_tag_operations_by_condition` uses a passed condition.
 
         self.add_operation_set(
@@ -508,7 +508,7 @@ class TestTagDB(TestTagDBBase):
         assert all(not o.auto_generated for o in random_operations)
 
     @db_session
-    async def test_get_random_tag_operations_by_condition_no_results(self):
+    def test_get_random_tag_operations_by_condition_no_results(self):
         # test the case when the database is not empty but no operations satisfy
         # the condition. The result should be empty.
 

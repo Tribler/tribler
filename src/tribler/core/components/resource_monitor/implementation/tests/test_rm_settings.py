@@ -3,7 +3,7 @@ import pytest
 from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
 
 
-async def test_cpu_priority():
+def test_cpu_priority():
     assert ResourceMonitorSettings(cpu_priority=3)
 
     with pytest.raises(ValueError):

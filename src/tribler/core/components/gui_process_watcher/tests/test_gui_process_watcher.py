@@ -52,20 +52,20 @@ def test_get_gui_process():
                 GuiProcessWatcher.get_gui_process()
 
 
-async def test_check_gui_process_working(watcher):
+def test_check_gui_process_working(watcher):
     watcher.check_gui_process()
     assert not watcher.shutdown_callback.called
     assert not watcher.shutdown_callback_called
 
 
-async def test_check_gui_process_zombie(watcher):
+def test_check_gui_process_zombie(watcher):
     watcher.gui_process.status.return_value = psutil.STATUS_ZOMBIE
     watcher.check_gui_process()
     assert watcher.shutdown_callback.called
     assert watcher.shutdown_callback_called
 
 
-async def test_check_gui_process_not_running(watcher):
+def test_check_gui_process_not_running(watcher):
     watcher.gui_process.is_running.return_value = False
     watcher.check_gui_process()
     assert not watcher.gui_process.status.called

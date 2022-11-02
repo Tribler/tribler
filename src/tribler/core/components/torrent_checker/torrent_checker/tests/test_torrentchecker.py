@@ -90,7 +90,7 @@ async def test_health_check_cached(torrent_checker):
     assert result['db']['leechers'] == 10
 
 
-async def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused-argument
+def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused-argument
     """
     Test if the torrents_checked set is properly initialized based on the last_check
     and self_checked values from the database.

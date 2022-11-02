@@ -39,7 +39,7 @@ async def transfer():
 
 
 @pytest.mark.looptime(start=42)
-async def test_update(transfer: Transfer):
+def test_update(transfer: Transfer):
     # In this test we ensure that `transfer.update` method sets `time.time` value
     # to `transfer.updated` property.
     transfer.update()
