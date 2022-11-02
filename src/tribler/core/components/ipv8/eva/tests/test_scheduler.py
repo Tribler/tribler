@@ -31,7 +31,7 @@ class MockTransfer(MagicMock):
         self.container[self.peer] = self
 
 
-async def test_can_be_send_immediately(scheduler: Scheduler):
+def test_can_be_send_immediately(scheduler: Scheduler):
     scheduler.eva.incoming = {}
     scheduler.eva.outgoing = {}
     assert scheduler.can_be_send_immediately(MockTransfer(peer='peer', container=scheduler.eva.incoming))
@@ -54,7 +54,7 @@ async def test_can_be_send_immediately(scheduler: Scheduler):
     assert not scheduler.can_be_send_immediately(MockTransfer(peer='peer', container=scheduler.eva.outgoing))
 
 
-async def test_is_simultaneously_served_transfers_limit_not_exceeded(scheduler: Scheduler):
+def test_is_simultaneously_served_transfers_limit_not_exceeded(scheduler: Scheduler):
     # In this test we will try to exceed `max_simultaneous_transfers` limit.
     scheduler.eva.settings.max_simultaneous_transfers = 2
 
@@ -83,7 +83,7 @@ async def test_is_simultaneously_served_transfers_limit_not_exceeded(scheduler: 
     assert scheduler._is_simultaneously_served_transfers_limit_exceeded()
 
 
-async def test_is_simultaneously_served_transfers_limit_exceeded(scheduler: Scheduler):
+def test_is_simultaneously_served_transfers_limit_exceeded(scheduler: Scheduler):
     # In this test we will try to exceed `max_simultaneous_transfers` limit.
     scheduler.eva.settings.max_simultaneous_transfers = 2
 
@@ -100,7 +100,7 @@ async def test_is_simultaneously_served_transfers_limit_exceeded(scheduler: Sche
     assert scheduler._is_simultaneously_served_transfers_limit_exceeded()
 
 
-async def test_schedule(scheduler: Scheduler):
+def test_schedule(scheduler: Scheduler):
     scheduler.can_be_send_immediately = Mock(return_value=False)
 
     scheduler.schedule(transfer=MockTransfer())
@@ -109,7 +109,7 @@ async def test_schedule(scheduler: Scheduler):
     assert len(scheduler.scheduled) == 1
 
 
-async def test_start_transfer(scheduler: Scheduler):
+def test_start_transfer(scheduler: Scheduler):
     scheduler.can_be_send_immediately = Mock(return_value=True)
     transfer = MockTransfer()
     transfer.start = Mock(wraps=transfer.start)
@@ -143,7 +143,7 @@ def _transform_to_str(eva, transfers: Iterable[Transfer]) -> Iterable[str]:
         yield f'{transfer.peer}_{container}'
 
 
-async def test_transfers_that_can_be_send(scheduler: Scheduler):
+def test_transfers_that_can_be_send(scheduler: Scheduler):
     _fill_test_data(scheduler)
 
     # Regarding the test data, all scheduled transfer should be ready to send
@@ -154,7 +154,7 @@ async def test_transfers_that_can_be_send(scheduler: Scheduler):
     assert str_representation == ['peer1_out', 'peer2_in', 'peer3_in', 'peer3_out']
 
 
-async def test_send_scheduled(scheduler: Scheduler):
+def test_send_scheduled(scheduler: Scheduler):
     _fill_test_data(scheduler)
 
     # Regarding the test data, all scheduled transfer should be ready to send

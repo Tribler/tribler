@@ -5,12 +5,10 @@ import pytest
 from tribler.core.utilities.patch_import import patch_import
 
 
-
 # pylint: disable=import-outside-toplevel, import-error, unused-import
-# fmt: off
 
 @patch_import(['library_that_does_not_exist'])
-async def test_mock_import_mocked_lib():
+def test_mock_import_mocked_lib():
     import library_that_does_not_exist
     assert library_that_does_not_exist
 
@@ -22,13 +20,13 @@ async def test_mock_import_mocked_lib():
 
 
 @patch_import('library_as_a_string')
-async def test_library_as_a_string():
+def test_library_as_a_string():
     import library_as_a_string
     assert library_as_a_string
 
 
 @patch_import([])
-async def test_mock_import_import_real_lib():
+def test_mock_import_import_real_lib():
     with pytest.raises(ImportError):
         import library_that_does_not_exist
         # `library_that_does_not_exist.inner_function()` call is unnecessary for the test itself, but it prevents
@@ -37,19 +35,19 @@ async def test_mock_import_import_real_lib():
 
 
 @patch_import(['time'])
-async def test_mock_import_not_strict():
+def test_mock_import_not_strict():
     import time
     assert not isinstance(time, MagicMock)
 
 
 @patch_import(['time'], strict=True)
-async def test_mock_import_strict():
+def test_mock_import_strict():
     import time
     assert isinstance(time, MagicMock)
 
 
 @patch_import(['time'], always_raise_exception_on_import=True)
-async def test_mock_import_always_raise_exception_on_import():
+def test_mock_import_always_raise_exception_on_import():
     with pytest.raises(ImportError):
         import time
         # `time.gmtime(0)` call is unnecessary for the test itself, but it prevents removing "unused"

@@ -19,37 +19,37 @@ INVALID_TAGS = [
 
 
 @pytest.mark.parametrize('tag', VALID_TAGS)
-async def test_valid_tags(tag):
+def test_valid_tags(tag):
     validate_resource(tag)  # no exception
     assert is_valid_resource(tag)
 
 
 @pytest.mark.parametrize('tag', INVALID_TAGS)
-async def test_invalid(tag):
+def test_invalid(tag):
     assert not is_valid_resource(tag)
     with pytest.raises(ValueError):
         validate_resource(tag)
 
 
-async def test_correct_operation():
+def test_correct_operation():
     for operation in Operation:
         validate_operation(operation)  # no exception
         validate_operation(operation.value)  # no exception
 
 
-async def test_incorrect_operation():
+def test_incorrect_operation():
     max_operation = max(Operation)
     with pytest.raises(ValueError):
         validate_operation(max_operation.value + 1)
 
 
-async def test_correct_relation():
+def test_correct_relation():
     for relation in ResourceType:
         validate_resource_type(relation)  # no exception
         validate_resource_type(relation.value)  # no exception
 
 
-async def test_incorrect_relation():
+def test_incorrect_relation():
     max_relation = max(ResourceType)
     with pytest.raises(ValueError):
         validate_operation(max_relation.value + 1)

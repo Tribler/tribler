@@ -10,7 +10,7 @@ from tribler.core.utilities.patch_import import patch_import
 
 @patch('sys.exit')
 @patch('tribler.core.check_os.show_system_popup')
-async def test_error_and_exit(mocked_show_system_popup, mocked_sys_exit):
+def test_error_and_exit(mocked_show_system_popup, mocked_sys_exit):
     error_and_exit('title', 'text')
     mocked_show_system_popup.assert_called_once_with('title', 'text')
     mocked_sys_exit.assert_called_once_with(1)
@@ -18,7 +18,7 @@ async def test_error_and_exit(mocked_show_system_popup, mocked_sys_exit):
 
 @patch_import(['faulthandler'], strict=True, enable=MagicMock())
 @patch('tribler.core.check_os.open', new=MagicMock())
-async def test_enable_fault_handler():
+def test_enable_fault_handler():
     import faulthandler
     enable_fault_handler(log_dir=MagicMock())
     faulthandler.enable.assert_called_once()
@@ -27,14 +27,14 @@ async def test_enable_fault_handler():
 @patch_import(['faulthandler'], strict=True, always_raise_exception_on_import=True)
 @patch.object(Logger, 'error')
 @patch('tribler.core.check_os.open', new=MagicMock())
-async def test_enable_fault_handler_import_error(mocked_log_error: MagicMock):
+def test_enable_fault_handler_import_error(mocked_log_error: MagicMock):
     enable_fault_handler(log_dir=MagicMock())
     mocked_log_error.assert_called_once()
 
 
 @patch_import(['faulthandler'], strict=True, enable=MagicMock())
 @patch('tribler.core.check_os.open', new=MagicMock())
-async def test_enable_fault_handler_log_dir_not_exists():
+def test_enable_fault_handler_log_dir_not_exists():
     log_dir = MagicMock(exists=MagicMock(return_value=False),
                         mkdir=MagicMock())
 

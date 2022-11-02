@@ -57,12 +57,12 @@ class TestRemoteSearchByTags(TestBase):
         return self.overlay(0)
 
     @patch.object(RemoteQueryCommunity, 'knowledge_db', new=PropertyMock(return_value=None), create=True)
-    async def test_search_for_tags_no_db(self):
+    def test_search_for_tags_no_db(self):
         # test that in case of missed `knowledge_db`, function `search_for_tags` returns None
         assert self.rqc.search_for_tags(tags=['tag']) is None
 
     @patch.object(KnowledgeDatabase, 'get_subjects_intersection')
-    async def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
+    def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
         mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=ResourceType.TAG,

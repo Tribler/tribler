@@ -24,7 +24,7 @@ def reported_error():
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-async def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler, caplog):
+def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler, caplog):
     # test that while tribler_stopped is True FeedbackDialog is not called
     error_handler._tribler_stopped = True
     error_handler.gui_error(AssertionError, AssertionError("error text"), None)
@@ -37,7 +37,7 @@ async def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, erro
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(SentryReporter, 'global_strategy', create=True,
               new=PropertyMock(return_value=SentryStrategy.SEND_SUPPRESSED))
-async def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler, caplog):
+def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler, caplog):
     error_handler.gui_error(AssertionError, AssertionError('error_text'), None)
     mocked_feedback_dialog.assert_not_called()
     assert not error_handler._handled_exceptions
@@ -51,8 +51,8 @@ async def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_han
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-async def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
-                                                   caplog):
+def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
+                                             caplog):
     # test that if exception type in _handled_exceptions then FeedbackDialog is not called
     error_handler._handled_exceptions = {AssertionError}
     error_handler.gui_error(AssertionError, AssertionError("error text"), None)
@@ -68,8 +68,8 @@ async def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: Magic
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(ErrorHandler, '_stop_tribler')
-async def test_gui_core_connect_timeout_error(mocked_stop_tribler, mocked_feedback_dialog: MagicMock,
-                                              error_handler: ErrorHandler):
+def test_gui_core_connect_timeout_error(mocked_stop_tribler, mocked_feedback_dialog: MagicMock,
+                                        error_handler: ErrorHandler):
     # test that in case of CoreConnectTimeoutError Tribler should stop it's work
     error_handler.gui_error(CoreConnectTimeoutError, None, None)
 
@@ -79,8 +79,8 @@ async def test_gui_core_connect_timeout_error(mocked_stop_tribler, mocked_feedba
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(ErrorHandler, '_stop_tribler')
-async def test_gui_core_crashed_error(mocked_stop_tribler: MagicMock, mocked_feedback_dialog: MagicMock,
-                                      error_handler: ErrorHandler):
+def test_gui_core_crashed_error(mocked_stop_tribler: MagicMock, mocked_feedback_dialog: MagicMock,
+                                error_handler: ErrorHandler):
     # test that in case of CoreRuntimeError Tribler should stop it's work
     error_handler.gui_error(CoreCrashedError, None, None)
 
@@ -90,8 +90,8 @@ async def test_gui_core_crashed_error(mocked_stop_tribler: MagicMock, mocked_fee
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(ErrorHandler, '_stop_tribler')
-async def test_gui_is_not_core_exception(mocked_stop_tribler: MagicMock, mocked_feedback_dialog: MagicMock,
-                                         error_handler: ErrorHandler):
+def test_gui_is_not_core_exception(mocked_stop_tribler: MagicMock, mocked_feedback_dialog: MagicMock,
+                                   error_handler: ErrorHandler):
     # test that gui_error creates FeedbackDialog without stopping the Tribler's work
     error_handler.gui_error(Exception, None, None)
 
@@ -100,8 +100,8 @@ async def test_gui_is_not_core_exception(mocked_stop_tribler: MagicMock, mocked_
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-async def test_core_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
-                                                    reported_error: ReportedError):
+def test_core_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
+                                              reported_error: ReportedError):
     # test that if exception type in _handled_exceptions then FeedbackDialog is not called
     error_handler._handled_exceptions = {reported_error.type}
     error_handler.core_error(reported_error)
@@ -110,8 +110,8 @@ async def test_core_info_type_in_handled_exceptions(mocked_feedback_dialog: Magi
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-async def test_core_should_stop(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
-                                reported_error: ReportedError):
+def test_core_should_stop(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
+                          reported_error: ReportedError):
     # test that in case of "should_stop=True", Tribler should stop it's work
     error_handler._stop_tribler = MagicMock()
     reported_error.should_stop = True
@@ -120,8 +120,8 @@ async def test_core_should_stop(mocked_feedback_dialog: MagicMock, error_handler
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-async def test_core_error(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
-                          reported_error: ReportedError):
+def test_core_error(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
+                    reported_error: ReportedError):
     # test that core_error creates FeedbackDialog
     error_handler.core_error(reported_error)
     mocked_feedback_dialog.assert_called_once()

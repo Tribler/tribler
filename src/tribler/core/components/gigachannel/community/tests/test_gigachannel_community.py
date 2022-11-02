@@ -265,7 +265,7 @@ class TestGigaChannelUnits(TestBase):
         assert len(mapping._peers_channels) == 0
         assert len(mapping._channels_dict) == 0
 
-    async def test_get_known_subscribed_peers_for_node(self):
+    def test_get_known_subscribed_peers_for_node(self):
         key = default_eccrypto.generate_key("curve25519")
         with db_session:
             channel = self.overlay(0).mds.ChannelMetadata(origin_id=0, infohash=random_infohash(), sign_with=key)
