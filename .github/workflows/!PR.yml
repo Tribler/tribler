@@ -80,6 +80,7 @@ jobs:
 
   # PR is Ready only
   pytest_nix:
+    needs: changes
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
     with:
@@ -87,6 +88,7 @@ jobs:
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
 
   guitest_nix:
+    needs: changes
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
     with:
@@ -94,6 +96,7 @@ jobs:
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
 
   ubuntu:
+    needs: changes
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_ubuntu.yml
     with:
@@ -102,6 +105,7 @@ jobs:
       python-version: 3.8
 
   windows:
+    needs: changes
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_windows.yml
     with:
@@ -110,6 +114,7 @@ jobs:
       python-version: 3.8
 
   mac:
+    needs: changes
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_mac.yml
     with:
@@ -118,6 +123,7 @@ jobs:
       python-version: 3.8
 
   documentation:
+    needs: changes
     if: ${{needs.changes.outputs.doc == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/documentation.yml
     with:
