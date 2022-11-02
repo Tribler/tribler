@@ -1,0 +1,58 @@
+name: profile
+description: Run pytest with profiling
+inputs:
+  arguments:
+    default: './src'
+    description: 'Arguments for pytest'
+    required: true
+
+  artifact_name:
+    default: 'prof.svg'
+    description: 'A name for the artifact'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install profiling dependencies (linux)
+      if: ${{runner.os == 'Linux'}}
+      shell: bash
+      run: |
+        sudo apt-get -y install graphviz
+
+    - name: Install profiling dependencies (macOS)
+      if: ${{runner.os == 'macOS'}}
+      shell: bash
+      run: |
+        brew install graphviz
+
+    - name: Install profiling dependencies (Windows)
+      if: ${{runner.os == 'Windows'}}
+      shell: bash
+      run: |
+        choco install graphviz
+
+    - name: Run Pytest with --profile-svg
+      shell: bash
+      run: |
+        pytest ${{inputs.arguments}} --profile-svg
+
+    - name: Check combined.prof existence
+      id: check_combined_prof
+      uses: andstor/file-existence-action@v2
+      with:
+        files: prof/combined.prof
+
+    - name: Run svg generation for Windows
+      shell: bash
+      if: ${{always() && runner.os == 'Windows' && steps.check_combined_prof.outputs.files_exists == 'true'}}
+      run: |
+        gprof2dot -f pstats prof/combined.prof > prof/tmp
+        dot -Tsvg -o prof/combined.svg prof/tmp
+
+    - uses: actions/upload-artifact@v3
+      if: ${{always()}}
+      with:
+        name: ${{runner.os}}_${{inputs.artifact_name}}
+        path: ./prof/combined.svg
+        retention-days: 1

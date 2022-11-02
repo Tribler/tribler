@@ -9,8 +9,13 @@ on:
         required: false
 
       matrix:
-        default: '{"os":["ubuntu-latest"]}'
+        default: '{"os":["windows-latest", "macos-latest", "ubuntu-latest"]}'
         type: string
+        required: false
+
+      enable_profiling:
+        default: true
+        type: boolean
         required: false
 
 jobs:
@@ -19,6 +24,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{fromJson(inputs.matrix)}}
+
+    defaults:
+      run:
+        shell: bash
+
+    timeout-minutes: 10
+
+    env:
+      PYTEST_CORE_ARGUMENTS: ./src/tribler/core
+      PYTEST_TUNNELS_ARGUMENTS: ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
+
+      PYTEST_COMMON_ARGUMENTS: --exitfirst --disable-warnings
 
     steps:
       - uses: actions/checkout@v3
@@ -29,22 +46,35 @@ jobs:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
 
-      - name: Install windows dependencies
+      - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         uses: ./.github/actions/windows_dependencies
 
-      - name: Run Pytest (nix)
+      - name: Add --looptime
         if: runner.os != 'Windows'
-        timeout-minutes: 5
         run: |
-          pytest ./src/tribler/core --exitfirst --disable-warnings --looptime
+          echo "PYTEST_COMMON_ARGUMENTS=$PYTEST_COMMON_ARGUMENTS --looptime" >> $GITHUB_ENV
 
-      - name: Run Pytest (win)
-        if: runner.os == 'Windows'
-        timeout-minutes: 5
+      - name: Run Pytest
+        if: ${{!inputs.enable_profiling}}
         run: |
-          pytest ./src/tribler/core --exitfirst --disable-warnings
-          
+          pytest ${PYTEST_CORE_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+
+      - name: Run Pytest (Profiler)
+        if: ${{inputs.enable_profiling}}
+        uses: ./.github/actions/profile
+        with:
+          artifact_name: pytest_prof.svg
+          arguments: ${PYTEST_CORE_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+
       - name: Run Tunnels Tests
+        if: ${{!inputs.enable_profiling}}
         run: |
-          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --exitfirst --disable-warnings
+          pytest ${PYTEST_TUNNELS_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+
+      - name: Run Tunnel Tests (Profiler)
+        if: ${{inputs.enable_profiling}}
+        uses: ./.github/actions/profile
+        with:
+          artifact_name: tunneltest_prof.svg
+          arguments: ${PYTEST_TUNNELS_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
