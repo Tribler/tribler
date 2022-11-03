@@ -72,9 +72,7 @@ class TestRemoteSearchByTags(TestBase):
     async def test_process_rpc_query_no_tags(self, mocked_get_entries_threaded: AsyncMock):
         # test that in case of missed tags, the remote search works like normal remote search
         parameters = {'first': 0, 'infohash_set': None, 'last': 100}
-        json = dumps(parameters).encode('utf-8')
-
-        await self.rqc.process_rpc_query(json)
+        await self.rqc.process_rpc_query(parameters)
 
         expected_parameters = {'infohash_set': None}
         expected_parameters.update(parameters)
@@ -117,10 +115,8 @@ class TestRemoteSearchByTags(TestBase):
 
         # Then we try to query search for three tags: 'tag1', 'tag2', 'tag3'
         parameters = {'first': 0, 'infohash_set': None, 'last': 100, 'tags': ['tag1']}
-        json = dumps(parameters).encode('utf-8')
-
         with db_session:
-            query_results = [r.to_dict() for r in await self.rqc.process_rpc_query(json)]
+            query_results = [r.to_dict() for r in await self.rqc.process_rpc_query(parameters)]
 
         # Expected results: only one infohash (b'infohash1') should be returned.
         result_infohash_list = [r['infohash'] for r in query_results]
