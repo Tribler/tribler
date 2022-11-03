@@ -426,7 +426,7 @@ def test_add_download_url(window):
     wait_for_signal(window.downloads_page.received_downloads)
 
 
-# @pytest.mark.guitest
+@pytest.mark.guitest
 def test_add_deeptorrent(window):
     # Test that the `deeptorrent.torrent` file doesn't cause the RecursionError
     #
