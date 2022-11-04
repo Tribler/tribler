@@ -1,31 +1,28 @@
-import asyncio
+import os
 import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
 from aiohttp import web
-
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 
-import pytest
-
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
 from tribler.core.utilities.unicode import hexlify
-
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
 # some coroutine properly, we can see a traceback with the name of the test which created the coroutine.
@@ -232,12 +229,6 @@ def test_tdef(state_dir):
     torrentfn = state_dir / "gen.torrent"
     tdef.save(torrentfn)
     return tdef
-
-
-@pytest.fixture
-def event_loop():
-    # We use a SelectorEventLoop on all platforms so our test suite should use a similar event loop.
-    return asyncio.SelectorEventLoop()
 
 
 @pytest.fixture
