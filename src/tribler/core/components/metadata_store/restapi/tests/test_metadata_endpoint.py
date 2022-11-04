@@ -48,7 +48,8 @@ def rest_api(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: 
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/metadata', endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrents_channels, rest_api):

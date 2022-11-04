@@ -53,7 +53,8 @@ def endpoint(download_manager):
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/torrentinfo', endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 async def test_get_torrentinfo_escaped_characters(tmp_path, rest_api):

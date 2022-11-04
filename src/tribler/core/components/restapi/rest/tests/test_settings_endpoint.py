@@ -24,7 +24,8 @@ def endpoint(tribler_config):
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/settings', endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 def verify_settings(settings_dict):

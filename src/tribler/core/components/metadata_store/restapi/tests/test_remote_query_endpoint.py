@@ -34,7 +34,8 @@ def endpoint(mock_gigachannel_community, metadata_store):  # pylint: disable=W06
 def rest_api(loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/remote_query', endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 async def test_create_remote_search_request(rest_api, endpoint, mock_gigachannel_community):  # pylint: disable=W0621

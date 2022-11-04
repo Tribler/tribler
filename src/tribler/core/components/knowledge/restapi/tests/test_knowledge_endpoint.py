@@ -30,7 +30,8 @@ def knowledge_endpoint(knowledge_db):
 def rest_api(loop, aiohttp_client, knowledge_endpoint):
     app = Application()
     app.add_subapp('/knowledge', knowledge_endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 def tag_to_statement(tag: str) -> Dict:
