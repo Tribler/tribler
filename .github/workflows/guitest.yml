@@ -14,7 +14,7 @@ on:
         required: false
 
       enable-profiling:
-        default: true
+        default: false
         type: boolean
         required: false
 
@@ -25,10 +25,14 @@ jobs:
       fail-fast: false
       matrix: ${{fromJson(inputs.matrix)}}
 
+    defaults:
+      run:
+        shell: bash
+
     timeout-minutes: 10
 
     env:
-      PYTEST_ARGUMENTS: ./src/tribler/gui --guitests -v --randomly-seed=1 --exitfirst --disable-warnings
+      PYTEST_ARGUMENTS: ./src/tribler/gui --guitests --randomly-seed=1 --exitfirst --disable-warnings
 
     steps:
       - uses: actions/checkout@v3
@@ -48,7 +52,7 @@ jobs:
         run: |
           sudo apt install pyqt5-dev-tools
 
-      - name: Setup headless display
+      - name: Setup headless display (Linux)
         if: runner.os == 'Linux'
         uses: pyvista/setup-headless-display-action@v1
 
