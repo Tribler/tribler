@@ -41,7 +41,8 @@ def rest_api(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: 
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/debug', endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 async def test_get_slots(rest_api, mock_tunnel_community):

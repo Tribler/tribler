@@ -57,7 +57,8 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):  #
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/channels', channels_endpoint.app)
     app.add_subapp('/collections', collections_endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 async def test_get_channels(rest_api, add_fake_torrents_channels, add_subscribed_and_not_downloaded_channel, mock_dlmgr,

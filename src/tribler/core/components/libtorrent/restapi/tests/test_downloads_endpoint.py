@@ -28,7 +28,8 @@ def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disab
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/downloads', endpoint.app)
-    return loop.run_until_complete(aiohttp_client(app))
+    yield loop.run_until_complete(aiohttp_client(app))
+    app.shutdown()
 
 
 def get_hex_infohash(tdef):

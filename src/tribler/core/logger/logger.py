@@ -7,7 +7,6 @@ import yaml
 
 LOG_CONFIG_FILENAME = 'logger.yaml'
 
-
 logger = logging.getLogger(__name__)
 
 
