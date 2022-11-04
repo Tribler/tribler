@@ -60,43 +60,17 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.hide_xxx = None
         self.search_request = None
 
+        connect(self.results_page_content.model_query_completed, self.on_local_query_completed)
+        connect(self.search_progress_bar.ready_to_update_results, self.on_ready_to_update_results)
+
     def initialize(self, hide_xxx=False):
         self.hide_xxx = hide_xxx
-        self.results_page.initialize_content_page(hide_xxx=hide_xxx)
-        self.results_page.channel_torrents_filter_input.setHidden(True)
-        connect(self.timeout_progress_bar.timeout, self.show_results)
-        connect(self.show_results_button.clicked, self.show_results)
+        self.results_page_content.initialize_content_page(hide_xxx=hide_xxx)
+        self.results_page_content.channel_torrents_filter_input.setHidden(True)
 
     @property
     def has_results(self):
         return self.last_search_query is not None
-
-    def show_results(self, *_):
-        if self.search_request is None:
-            # Fixes a race condition where the user clicks the show_results button before the search request
-            # has been registered by the Core
-            return
-        self.timeout_progress_bar.stop()
-        query = self.search_request.query
-        self.results_page.initialize_root_model(
-            SearchResultsModel(
-                channel_info={
-                    "name": (tr("Search results for %s") % query.original_query)
-                    if len(query.original_query) < 50
-                    else f"{query.original_query[:50]}..."
-                },
-                endpoint_url="search",
-                hide_xxx=self.results_page.hide_xxx,
-                text_filter=to_fts_query(query.fts_text),
-                tags=list(query.tags),
-                type_filter=[REGULAR_TORRENT],
-            )
-        )
-        self.setCurrentWidget(self.results_page)
-
-        # After transitioning to the page with search results, we refresh the viewport since some rows might have been
-        # rendered already with an incorrect row height.
-        self.results_page.run_brain_dead_refresh()
 
     def check_can_show(self, query):
         if (
@@ -119,32 +93,54 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.last_search_query = query.original_query
         self.last_search_time = time.time()
 
-        # Trigger remote search
-        def register_request(response):
-            self._logger.info(f'Request registered: {response}')
-            self.search_request = SearchRequest(response["request_uuid"], query, set(response["peers"]))
-            self.state_label.setText(format_search_loading_label(self.search_request))
-            self.timeout_progress_bar.start()
-            self.setCurrentWidget(self.loading_page)
+        model = SearchResultsModel(
+            endpoint_url="search",
+            hide_xxx=self.results_page_content.hide_xxx,
+            original_query=query.original_query,
+            text_filter=to_fts_query(query.fts_text),
+            tags=list(query.tags),
+            type_filter=[REGULAR_TORRENT],
+            exclude_deleted=True,
+        )
+        self.results_page_content.initialize_root_model(model)
+        self.setCurrentWidget(self.results_page)
+        self.results_page_content.format_search_title()
+        self.search_progress_bar.start()
 
-        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags)}
+        # After transitioning to the page with search results, we refresh the viewport since some rows might have been
+        # rendered already with an incorrect row height.
+        self.results_page_content.run_brain_dead_refresh()
+
+        def register_request(response):
+            peers = set(response["peers"])
+            self.search_request = SearchRequest(response["request_uuid"], query, peers)
+            self.search_progress_bar.set_remote_total(len(peers))
+
+        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags),
+                  'metadata_type': REGULAR_TORRENT, 'exclude_deleted': True}
         TriblerNetworkRequest('remote_query', register_request, method="PUT", url_params=params)
+
         return True
+
+    def on_local_query_completed(self):
+        self.search_progress_bar.on_local_results()
 
     def reset(self):
         if self.currentWidget() == self.results_page:
-            self.results_page.go_back_to_level(0)
+            self.results_page_content.go_back_to_level(0)
 
     def update_loading_page(self, remote_results):
-        if (
-            not self.search_request
-            or remote_results.get("uuid") != self.search_request.uuid
-            or self.currentWidget() == self.results_page
-        ):
+        if not self.search_request or self.search_request.uuid != remote_results.get("uuid"):
             return
+
         peer = remote_results["peer"]
+        results = remote_results.get("results", [])
+
         self.search_request.peers_complete.add(peer)
-        self.search_request.remote_results.append(remote_results.get("results", []))
-        self.state_label.setText(format_search_loading_label(self.search_request))
-        if self.search_request.complete:
-            self.show_results()
+        self.search_request.remote_results.append(results)
+
+        new_items = self.results_page_content.model.add_remote_results(results)
+        self.search_progress_bar.on_remote_results(len(new_items), len(self.search_request.peers_complete))
+
+    def on_ready_to_update_results(self):
+        self.results_page_content.root_model.show_remote_results()

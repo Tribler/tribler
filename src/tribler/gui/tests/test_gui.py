@@ -384,18 +384,16 @@ def test_search_suggestions(window):
 def test_search(window):
     window.top_search_bar.setText("a")  # This is likely to trigger some search results
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
-    wait_for_variable(window, "search_results_page.search_request")
+    QTest.qWait(100)
     screenshot(window, name="search_loading_page")
-    QTest.mouseClick(window.search_results_page.show_results_button, Qt.LeftButton)
     tst_channels_widget(
         window,
-        window.search_results_page.results_page,
+        window.search_results_page.results_page_content,
         "search_results",
         sort_column=2,
         test_filter=False,
         test_subscribe=False,
     )
-
 
 @pytest.mark.guitest
 def test_add_download_url(window):

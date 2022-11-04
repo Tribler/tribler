@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 from PyQt5 import uic
-from PyQt5.QtCore import QDir, QTimer, Qt
+from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 
@@ -39,6 +39,9 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
+
+    model_query_completed = pyqtSignal()
+
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
 
@@ -109,6 +112,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     @property
     def model(self):
         return self.channels_stack[-1] if self.channels_stack else None
+
+    @property
+    def root_model(self):
+        return self.channels_stack[0] if self.channels_stack else None
 
     def on_channel_committed(self, response):
         if not response or not response.get("success", False):
@@ -260,6 +267,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.model.channel_info["dirty"] = dirty
         self.update_labels()
 
+    def on_model_query_completed(self):
+        self.model_query_completed.emit()
+
     def initialize_root_model_from_channel_info(self, channel_info):
         if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
             self.default_channel_model = self.personal_channel_model
@@ -293,10 +303,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def disconnect_current_model(self):
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
         disconnect(self.model.info_changed, self.on_model_info_changed)
+        disconnect(self.model.query_complete, self.on_model_query_completed)
+
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def connect_current_model(self):
         connect(self.model.info_changed, self.on_model_info_changed)
+        connect(self.model.query_complete, self.on_model_query_completed)
         connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
     @property
@@ -317,6 +330,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         else:
             # Reset the view if the user clicks on the last part of the breadcrumb
             self.reset_view()
+
+    def format_search_title(self):
+        text = self.model.format_title()
+        self.channel_name_label.setText(text)
 
     def _set_filter_controls_from_model(self):
         # This should typically be called under freeze_controls context manager

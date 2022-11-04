@@ -35,7 +35,7 @@ from tribler.gui.defs import (
 )
 from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr, \
     get_objects_with_predicate
-from tribler.gui.widgets.tablecontentmodel import Column
+from tribler.gui.widgets.tablecontentmodel import Column, RemoteTableModel
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
 PROGRESS_BAR_BACKGROUND = QColor("#444444")
@@ -268,18 +268,20 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
             yield QRect(x, y, w, h), button
 
     def paint(self, painter, option, index):
-        # Draw 'hover' state highlight for every cell of a row
-        if index.row() == self.hover_index.row():
+        model: RemoteTableModel = index.model()
+        data_item = model.data_items[index.row()]
+        if index.row() == self.hover_index.row() or model.should_highlight_item(data_item):
+            # Draw 'hover' state highlight for every cell of a row
             option.state |= QStyle.State_MouseOver
-        if not self.paint_exact(painter, option, index):
+        if not self.paint_exact(painter, option, index, data_item):
             # Draw the rest of the columns
             super().paint(painter, option, index)
 
-    def paint_exact(self, painter, option, index):
-        data_item = index.model().data_items[index.row()]
+    def paint_exact(self, painter, option, index, data_item):
         for column, drawing_action in self.column_drawing_actions:
             if column in index.model().column_position and index.column() == index.model().column_position[column]:
                 return drawing_action(painter, option, index, data_item)
+        return False
 
     def editorEvent(self, event, model, option, index):
         for control in self.controls:
@@ -372,9 +374,22 @@ class TagsMixin:
     edit_tags_icon = QIcon(get_image_path("edit_white.png"))
     edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
 
-    def draw_title_and_tags(
-            self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex, data_item: Dict
-    ) -> None:
+    def draw_title_and_tags(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex,
+                            data_item: Dict) -> None:
+        debug = False  # change to True to see the search rank of items and to highlight remote items
+        item_name = data_item["name"]
+
+        group = data_item.get("group")
+        if group:
+            has_remote_items = any(group_item.get('remote') for group_item in group.values())
+            item_name += f"    (+ {len(group)} similar{' *' if debug and has_remote_items else ''})"
+
+        if debug:
+            rank = data_item.get("rank")
+            if rank is not None:
+                item_name += f'    rank: {rank:.6}'
+            if data_item.get('remote'):
+                item_name = '*  ' + item_name
         painter.setRenderHint(QPainter.Antialiasing, True)
         title_text_pos = option.rect.topLeft()
         title_text_height = 60 if data_item["type"] == SNIPPET else 28
@@ -391,7 +406,7 @@ class TagsMixin:
         painter.drawText(
             QRectF(title_text_x, title_text_y, option.rect.width() - 6, title_text_height),
             Qt.AlignVCenter,
-            data_item["name"],
+            item_name,
         )
 
         if data_item["type"] == SNIPPET:

@@ -1,3 +1,4 @@
+import time
 from collections import defaultdict
 from typing import Dict, List
 
@@ -119,13 +120,27 @@ class SearchEndpoint(MetadataEndpointBase):
 
         def search_db():
             with db_session:
+                t1 = time.time()
                 pony_query = mds.get_entries(**sanitized)
+                t2 = time.time()
                 search_results = [r.to_simple_dict() for r in pony_query]
+                t3 = time.time()
                 if include_total:
                     total = mds.get_total_count(**sanitized)
+                    t4 = time.time()
                     max_rowid = mds.get_max_rowid()
+                    t5 = time.time()
+                    self._logger.info(f'Search performance for {sanitized}:\n'
+                                      f'Main query executed in {t2 - t1:.6} seconds;\n'
+                                      f'Result constructed in {t3 - t2:.6} seconds;\n'
+                                      f'Total rows count calculated in {t4 - t3:.6} seconds;\n'
+                                      f'Max rowid determined in {t5 - t4:.6} seconds.')
                 else:
                     total = max_rowid = None
+                    self._logger.info(f'Search performance for {sanitized}:\n'
+                                      f'Main query executed in {t2 - t1:.6} seconds;\n'
+                                      f'Result constructed in {t3 - t2:.6} seconds.')
+
             return search_results, total, max_rowid
 
         try:

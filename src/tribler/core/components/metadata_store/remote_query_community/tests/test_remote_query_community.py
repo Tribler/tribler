@@ -1,11 +1,10 @@
 import random
 import string
+import time
 from asyncio import sleep
 from binascii import unhexlify
-from json import dumps
 from operator import attrgetter
 from os import urandom
-from time import time
 from unittest.mock import Mock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -112,7 +111,7 @@ class TestRemoteQueryCommunity(TestBase):
                     channel=channel,
                     seeders=2 * i,
                     leechers=i,
-                    last_check=int(time()) + i,
+                    last_check=int(time.time()) + i,
                 )
 
         kwargs_dict = {"txt_filter": "ubuntu*", "metadata_type": [REGULAR_TORRENT]}
@@ -345,7 +344,7 @@ class TestRemoteQueryCommunity(TestBase):
             channel = self.channel_metadata(0).create_channel("a channel", "")
             add_random_torrent(self.torrent_metadata(0), name="a torrent", channel=channel)
 
-        results = await self.overlay(0).process_rpc_query(dumps({}))
+        results = await self.overlay(0).process_rpc_query({})
         self.assertEqual(2, len(results))
 
         channel_md, torrent_md = results if isinstance(results[0], self.channel_metadata(0)) else results[::-1]
@@ -359,7 +358,7 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             self.channel_metadata(0).create_channel("a channel", "")
 
-        results = await self.overlay(0).process_rpc_query(dumps({}))
+        results = await self.overlay(0).process_rpc_query({})
         self.assertEqual(1, len(results))
 
         (channel_md,) = results
@@ -369,22 +368,22 @@ class TestRemoteQueryCommunity(TestBase):
         """
         Check if a correct query with no match in our database returns no result.
         """
-        results = await self.overlay(0).process_rpc_query(dumps({}))
+        results = await self.overlay(0).process_rpc_query({})
         self.assertEqual(0, len(results))
 
-    async def test_process_rpc_query_match_empty_json(self):
+    def test_parse_parameters_match_empty_json(self):
         """
         Check if processing an empty request causes a ValueError (JSONDecodeError) to be raised.
         """
         with self.assertRaises(ValueError):
-            await self.overlay(0).process_rpc_query(b'')
+            self.overlay(0).parse_parameters(b'')
 
-    async def test_process_rpc_query_match_illegal_json(self):
+    def test_parse_parameters_match_illegal_json(self):
         """
         Check if processing a request with illegal JSON causes a UnicodeDecodeError to be raised.
         """
         with self.assertRaises(UnicodeDecodeError):
-            await self.overlay(0).process_rpc_query(b'{"akey":\x80}')
+            self.overlay(0).parse_parameters(b'{"akey":\x80}')
 
     async def test_process_rpc_query_match_invalid_json(self):
         """
@@ -394,21 +393,24 @@ class TestRemoteQueryCommunity(TestBase):
             self.channel_metadata(0).create_channel("a channel", "")
         query = b'{"id_":' + b'\x31' * 200 + b'}'
         with self.assertRaises(ValueError):
-            await self.overlay(0).process_rpc_query(query)
+            parameters = self.overlay(0).parse_parameters(query)
+            await self.overlay(0).process_rpc_query(parameters)
 
     async def test_process_rpc_query_match_invalid_key(self):
         """
         Check if processing a request with invalid flags causes a UnicodeDecodeError to be raised.
         """
         with self.assertRaises(TypeError):
-            await self.overlay(0).process_rpc_query(b'{"bla":":("}')
+            parameters = self.overlay(0).parse_parameters(b'{"bla":":("}')
+            await self.overlay(0).process_rpc_query(parameters)
 
     async def test_process_rpc_query_no_column(self):
         """
         Check if processing a request with no database columns causes an OperationalError.
         """
         with self.assertRaises(OperationalError):
-            await self.overlay(0).process_rpc_query(b'{"txt_filter":{"key":"bla"}}')
+            parameters = self.overlay(0).parse_parameters(b'{"txt_filter":{"key":"bla"}}')
+            await self.overlay(0).process_rpc_query(parameters)
 
     async def test_remote_query_big_response(self):
 
@@ -574,3 +576,45 @@ class TestRemoteQueryCommunity(TestBase):
         await self.deliver_messages(timeout=0.5)
 
         self.nodes[1].overlay.eva.send_binary.assert_called_once()
+
+    async def test_multiple_parallel_request(self):
+        peer_a = self.nodes[0].my_peer
+        a = self.nodes[0].overlay
+        b = self.nodes[1].overlay
+
+        # Peer A has two torrents "foo" and "bar"
+        with db_session:
+            add_random_torrent(a.mds.TorrentMetadata, name="foo")
+            add_random_torrent(a.mds.TorrentMetadata, name="bar")
+
+        # Peer B sends two parallel full-text search queries, only one of them should be processed
+        callback1 = Mock()
+        kwargs1 = {"txt_filter": "foo", "metadata_type": [REGULAR_TORRENT]}
+        b.send_remote_select(peer_a, **kwargs1, processing_callback=callback1)
+
+        callback2 = Mock()
+        kwargs2 = {"txt_filter": "bar", "metadata_type": [REGULAR_TORRENT]}
+        b.send_remote_select(peer_a, **kwargs2, processing_callback=callback2)
+
+        original_get_entries = MetadataStore.get_entries
+        # Add a delay to ensure that the first query is still being processed when the second one arrives
+        # (the mds.get_entries() method is a synchronous one and is called from a worker thread)
+
+        def slow_get_entries(self, *args, **kwargs):
+            time.sleep(0.1)
+            return original_get_entries(self, *args, **kwargs)
+
+        with patch.object(a, 'logger') as logger, patch.object(MetadataStore, 'get_entries', slow_get_entries):
+            await self.deliver_messages(timeout=0.5)
+
+        torrents1 = list(b.mds.get_entries(**kwargs1))
+        torrents2 = list(b.mds.get_entries(**kwargs2))
+
+        # Both remote queries should return results to the peer B...
+        assert callback1.called and callback2.called
+        # ...but one of them should return an empty list, as the database query was not actually executed
+        assert bool(torrents1) != bool(torrents2)
+
+        # Check that on peer A there is exactly one warning about an ignored remote query
+        warnings = [call.args[0] for call in logger.warning.call_args_list]
+        assert len([msg for msg in warnings if msg.startswith('Ignore remote query')]) == 1

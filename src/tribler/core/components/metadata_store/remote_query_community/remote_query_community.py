@@ -1,8 +1,10 @@
 import json
 import struct
+import time
 from asyncio import Future
 from binascii import unhexlify
-from typing import List, Optional, Set
+from itertools import count
+from typing import Any, Dict, List, Optional, Set
 
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
@@ -26,7 +28,7 @@ from tribler.core.utilities.unicode import hexlify
 BINARY_FIELDS = ("infohash", "channel_pk")
 
 
-def sanitize_query(query_dict, cap=100):
+def sanitize_query(query_dict: Dict[str, Any], cap=100) -> Dict[str, Any]:
     sanitized_dict = dict(query_dict)
 
     # We impose a cap on max numbers of returned entries to prevent DDOS-like attacks
@@ -151,6 +153,8 @@ class RemoteQueryCommunity(TriblerCommunity):
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
         self.eva = EVAProtocol(self, self.on_receive, self.on_send_complete, self.on_error)
+        self.remote_queries_in_progress = 0
+        self.next_remote_query_num = count().__next__  # generator of sequential numbers, for logging & debug purposes
 
     async def on_receive(self, result: TransferResult):
         self.logger.debug(f"EVA data received: peer {hexlify(result.peer.mid)}, info {result.info}")
@@ -183,16 +187,32 @@ class RemoteQueryCommunity(TriblerCommunity):
             self.ez_send(peer, RemoteSelectPayload(*args))
         return request
 
-    async def process_rpc_query(self, json_bytes: bytes):
+    def should_limit_rate_for_query(self, sanitized_parameters: Dict[str, Any]) -> bool:
+        return 'txt_filter' in sanitized_parameters
+
+    async def process_rpc_query_rate_limited(self, sanitized_parameters: Dict[str, Any]) -> List:
+        query_num = self.next_remote_query_num()
+        if self.remote_queries_in_progress and self.should_limit_rate_for_query(sanitized_parameters):
+            self.logger.warning(f'Ignore remote query {query_num} as another one is already processing. '
+                                f'The ignored query: {sanitized_parameters}')
+            return []
+
+        self.logger.info(f'Process remote query {query_num}: {sanitized_parameters}')
+        self.remote_queries_in_progress += 1
+        t = time.time()
+        try:
+            return await self.process_rpc_query(sanitized_parameters)
+        finally:
+            self.remote_queries_in_progress -= 1
+            self.logger.info(f'Remote query {query_num} processed in {time.time()-t} seconds: {sanitized_parameters}')
+
+    async def process_rpc_query(self, sanitized_parameters: Dict[str, Any]) -> List:
         """
         Retrieve the result of a database query from a third party, encoded as raw JSON bytes (through `dumps`).
         :raises TypeError: if the JSON contains invalid keys.
         :raises ValueError: if no JSON could be decoded.
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
-        parameters = json.loads(json_bytes)
-        sanitized_parameters = sanitize_query(parameters, self.rqc_settings.max_response_size)
-
         # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
         tags = sanitized_parameters.pop('tags', None)
 
@@ -237,9 +257,14 @@ class RemoteQueryCommunity(TriblerCommunity):
     async def on_remote_select(self, peer, request_payload):
         await self._on_remote_select_basic(peer, request_payload)
 
+    def parse_parameters(self, json_bytes: bytes) -> Dict[str, Any]:
+        parameters = json.loads(json_bytes)
+        return sanitize_query(parameters, self.rqc_settings.max_response_size)
+
     async def _on_remote_select_basic(self, peer, request_payload, force_eva_response=False):
         try:
-            db_results = await self.process_rpc_query(request_payload.json)
+            sanitized_parameters = self.parse_parameters(request_payload.json)
+            db_results = await self.process_rpc_query_rate_limited(sanitized_parameters)
 
             # When we send our response to a host, we open a window of opportunity
             # for it to push back updates

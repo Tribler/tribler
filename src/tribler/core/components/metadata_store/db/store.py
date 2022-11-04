@@ -10,6 +10,7 @@ from lz4.frame import LZ4FrameDecompressor
 
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
+from pony.orm.dbproviders.sqlite import keep_exception
 
 from tribler.core import notifications
 from tribler.core.components.metadata_store.db.orm_bindings import (
@@ -50,8 +51,10 @@ from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.pony_utils import get_max, get_or_create
+from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
+
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 14
@@ -167,7 +170,7 @@ class MetadataStore:
         # with the static analysis.
         # pylint: disable=unused-variable
         @self._db.on_connect(provider='sqlite')
-        def sqlite_disable_sync(_, connection):
+        def on_connect(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")
             cursor.execute("PRAGMA synchronous = NORMAL")
@@ -180,6 +183,10 @@ class MetadataStore:
                 # losing power during a write will corrupt the database.
                 cursor.execute("PRAGMA journal_mode = 0")
                 cursor.execute("PRAGMA synchronous = 0")
+
+            sqlite_rank = keep_exception(torrent_rank)
+            connection.create_function('search_rank', 5, sqlite_rank)
+
             # pylint: enable=unused-variable
 
         self.MiscData = misc.define_binding(self._db)
@@ -591,7 +598,7 @@ class MetadataStore:
         )
 
     # pylint: disable=unused-argument
-    def search_keyword(self, query, lim=100):
+    def search_keyword(self, query):
         # Requires FTS5 table "FtsIndex" to be generated and populated.
         # FTS table is maintained automatically by SQL triggers.
         # BM25 ranking is embedded in FTS5.
@@ -600,10 +607,11 @@ class MetadataStore:
         if not query or query == "*":
             return []
 
-        fts_ids = raw_sql(
-            """SELECT rowid FROM ChannelNode WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query
-            ORDER BY bm25(FtsIndex) LIMIT $lim) GROUP BY coalesce(infohash, rowid)"""
-        )
+        fts_ids = raw_sql("""
+            SELECT rowid FROM ChannelNode
+            WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query)
+            GROUP BY coalesce(infohash, rowid)
+        """)
         return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
 
     @db_session
@@ -639,7 +647,7 @@ class MetadataStore:
 
         if cls is None:
             cls = self.ChannelNode
-        pony_query = self.search_keyword(txt_filter, lim=1000) if txt_filter else left_join(g for g in cls)
+        pony_query = self.search_keyword(txt_filter) if txt_filter else left_join(g for g in cls)
         infohash_set = infohash_set or ({infohash} if infohash else None)
         if popular:
             if metadata_type != REGULAR_TORRENT:
@@ -728,10 +736,49 @@ class MetadataStore:
 
         if sort_by is None:
             if txt_filter:
+                # pylint: disable=W0105
+                """
+                The following call of `sort_by` produces an ORDER BY expression that looks like this:
+
+                ORDER BY
+                    case when "g"."metadata_type" = $CHANNEL_TORRENT then 1
+                         when "g"."metadata_type" = $COLLECTION_NODE then 2
+                         else 3 end,
+
+                    search_rank(
+                        $QUERY_STRING,
+                        g.title,
+                        torrentstate.seeders,
+                        torrentstate.leechers,
+                        $CURRENT_TIME - strftime('%s', g.torrent_date)
+                    ) DESC,
+
+                    "torrentstate"."last_check" DESC,
+
+                So, the channel torrents and channel folders are always on top if they are not filtered out.
+                Then regular torrents are selected in order of their relevance according to a search_rank() result.
+                If two torrents have the same search rank, they are ordered by the last time they were checked.
+
+                The search_rank() function is called directly from the SQLite query, but is implemented in Python,
+                it is actually the torrent_rank() function from core/utilities/search_utils.py, wrapped with
+                keep_exception() to return possible exception from SQLite to Python.
+
+                The search_rank() function receives the following arguments:
+                  - the current query string (like "Big Buck Bunny");
+                  - the title of the current torrent;
+                  - the number of seeders;
+                  - the number of leechers;
+                  - the number of seconds since the torrent's creation time.
+                """
+
                 pony_query = pony_query.sort_by(
                     f"""
                     (1 if g.metadata_type == {CHANNEL_TORRENT} else 2 if g.metadata_type == {COLLECTION_NODE} else 3),
-                    desc(g.health.seeders), desc(g.health.leechers)
+                    raw_sql('''search_rank(
+                        $txt_filter, g.title, torrentstate.seeders, torrentstate.leechers,
+                        $int(time()) - strftime('%s', g.torrent_date)
+                    ) DESC'''),
+                    desc(g.health.last_check)  # just to trigger the TorrentState table inclusion into the left join
                 """
                 )
             elif popular:
