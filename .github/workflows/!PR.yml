@@ -113,15 +113,6 @@ jobs:
       os: windows-latest
       python-version: 3.8
 
-  mac:
-    needs: changes
-    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
-    uses: ./.github/workflows/build_mac.yml
-    with:
-      upload: false
-      os: macos-10.15
-      python-version: 3.8
-
   documentation:
     needs: changes
     if: ${{needs.changes.outputs.doc == 'true' && !github.event.pull_request.draft}}
