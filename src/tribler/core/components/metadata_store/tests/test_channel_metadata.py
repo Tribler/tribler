@@ -5,13 +5,10 @@ from itertools import combinations
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from ipv8.keyvault.crypto import default_eccrypto
-
-from lz4.frame import LZ4FrameDecompressor
-
-from pony.orm import ObjectNotFound, db_session
-
 import pytest
+from ipv8.keyvault.crypto import default_eccrypto
+from lz4.frame import LZ4FrameDecompressor
+from pony.orm import ObjectNotFound, db_session
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import (
@@ -30,6 +27,7 @@ from tribler.core.components.metadata_store.db.store import HealthItemsPayload
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import random_infohash
+
 
 # pylint: disable=protected-access
 
@@ -80,7 +78,7 @@ def mds_with_some_torrents_fixture(metadata_store):
     #   torrent6 aaa zzz
 
     def save():
-        metadata_store.db.flush()  # pylint: disable=W0212
+        metadata_store.db.flush()
 
     def new_channel(**kwargs):
         params = dict(subscribed=True, share=True, status=NEW, infohash=random_infohash())

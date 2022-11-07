@@ -159,7 +159,7 @@ class ChannelHelper:
     def flush(self):
         _logger.debug('Flush')
 
-        self.community.mds.db.flush()  # pylint: disable=protected-access
+        self.community.mds.db.flush()
 
 
 class Service(TinyTriblerService):
