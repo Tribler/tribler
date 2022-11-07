@@ -34,7 +34,7 @@ def get_max(cls: Type[Entity], column_name='rowid') -> int:
 
 
 async def run_threaded(db: Database, func: Callable, *args, **kwargs):
-    """ Run `func` threaded and close DB connection at the end of the execution.
+    """Run `func` threaded and close DB connection at the end of the execution.
 
     Args:
         db: the DB to be closed
@@ -43,6 +43,15 @@ async def run_threaded(db: Database, func: Callable, *args, **kwargs):
         **kwargs: kwargs for the function call
 
     Returns: a result of the func call.
+
+    You should use `run_threaded` to wrap all functions that should be executed from a separate thread and work with
+    the database. The `run_threaded` function ensures that all database connections opened in worker threads are
+    properly closed before the Tribler shutdown.
+
+    The Asyncio `run_in_executor` method executes its argument in a separate worker thread. After the db_session is
+    over, PonyORM caches the connection to the database to re-use it again later in the same thread. It was previously
+    reported that some obscure problems could be observed during the Tribler shutdown if connections in the Tribler
+    worker threads are not closed properly.
     """
 
     def wrapper():
