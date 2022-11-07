@@ -14,6 +14,7 @@ from tribler.core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.notifier import Notifier
+from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, NTFY
 from tribler.core.utilities.unicode import hexlify
 
@@ -283,7 +284,7 @@ class GigaChannelManager(TaskManager):
             mds.process_channel_dir(channel_dirname, channel.public_key, channel.id_, external_thread=True)
 
         try:
-            await mds.run_threaded(_process_download)
+            await run_threaded(mds.db, _process_download)
         except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
             self._logger.error("Error when processing channel dir download: %s", e)
 

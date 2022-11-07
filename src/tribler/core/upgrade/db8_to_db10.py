@@ -185,7 +185,7 @@ class PonyToPonyMigration:
 
         # Recreate table indexes
         with db_session(ddl=True):
-            connection = mds._db.get_connection()
+            connection = mds.db.get_connection()
             try:
                 db_objects = mds.get_objects_to_create()
                 index_total = len(db_objects)
@@ -193,7 +193,7 @@ class PonyToPonyMigration:
                     index_num = i
                     t1 = now()
                     connection.set_progress_handler(index_callback_handler, 5000)
-                    obj.create(mds._db.schema.provider, connection)
+                    obj.create(mds.db.schema.provider, connection)
                     duration = now() - t1
                     self._logger.info(f"Upgrade: created {obj.name} in {duration:.2f} seconds")
             finally:
@@ -216,7 +216,7 @@ class PonyToPonyMigration:
         # Create FTS index
         with db_session(ddl=True):
             mds.create_fts_triggers()
-            connection = mds._db.get_connection()
+            connection = mds.db.get_connection()
             connection.set_progress_handler(fts_callback_handler, 5000)
             try:
                 t = now()

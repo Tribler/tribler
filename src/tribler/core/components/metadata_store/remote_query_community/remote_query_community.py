@@ -23,6 +23,7 @@ from tribler.core.components.metadata_store.remote_query_community.settings impo
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
@@ -213,12 +214,13 @@ class RemoteQueryCommunity(TriblerCommunity):
         :raises ValueError: if no JSON could be decoded.
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
-        # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
-        tags = sanitized_parameters.pop('tags', None)
+        if self.knowledge_db:
+            # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
+            tags = sanitized_parameters.pop('tags', None)
 
-        infohash_set = await self.mds.run_threaded(self.search_for_tags, tags)
-        if infohash_set:
-            sanitized_parameters['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
+            infohash_set = await run_threaded(self.knowledge_db.instance, self.search_for_tags, tags)
+            if infohash_set:
+                sanitized_parameters['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
         return await self.mds.get_entries_threaded(**sanitized_parameters)
 

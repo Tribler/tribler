@@ -80,7 +80,7 @@ def mds_with_some_torrents_fixture(metadata_store):
     #   torrent6 aaa zzz
 
     def save():
-        metadata_store._db.flush()  # pylint: disable=W0212
+        metadata_store.db.flush()  # pylint: disable=W0212
 
     def new_channel(**kwargs):
         params = dict(subscribed=True, share=True, status=NEW, infohash=random_infohash())
