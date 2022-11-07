@@ -1,13 +1,10 @@
 import logging
 import re
-import threading
-from asyncio import get_event_loop
 from datetime import datetime, timedelta
 from time import sleep, time
 from typing import Optional, Union
 
 from lz4.frame import LZ4FrameDecompressor
-
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
 from pony.orm.dbproviders.sqlite import keep_exception
@@ -54,7 +51,6 @@ from tribler.core.utilities.pony_utils import get_max, get_or_create, run_thread
 from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
-
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 14
@@ -244,15 +240,6 @@ class MetadataStore:
             if not default_vsids:
                 default_vsids = self.Vsids.create_default_vsids()
             self.ChannelMetadata.votes_scaling = default_vsids.max_val
-
-    async def run_threaded(self, func, *args, **kwargs):
-        def wrapper():
-            try:
-                return func(*args, **kwargs)
-            finally:
-                self.disconnect_thread()
-
-        return await get_event_loop().run_in_executor(None, wrapper)
 
     def set_value(self, key: str, value: str):
         key_value = get_or_create(self.MiscData, name=key)
