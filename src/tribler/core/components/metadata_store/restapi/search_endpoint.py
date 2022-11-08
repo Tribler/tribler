@@ -14,6 +14,7 @@ from tribler.core.components.metadata_store.restapi.metadata_endpoint import Met
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
 
 SNIPPETS_TO_SHOW = 3          # The number of snippets we return from the search results
@@ -151,7 +152,7 @@ class SearchEndpoint(MetadataEndpointBase):
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
-            search_results, total, max_rowid = await mds.run_threaded(search_db)
+            search_results, total, max_rowid = await run_threaded(mds.db, search_db)
         except Exception as e:  # pylint: disable=broad-except;  # pragma: no cover
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)

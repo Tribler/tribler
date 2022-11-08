@@ -1,13 +1,10 @@
 import logging
 import re
-import threading
-from asyncio import get_event_loop
 from datetime import datetime, timedelta
 from time import sleep, time
 from typing import Optional, Union
 
 from lz4.frame import LZ4FrameDecompressor
-
 from pony import orm
 from pony.orm import db_session, desc, left_join, raw_sql, select
 from pony.orm.dbproviders.sqlite import keep_exception
@@ -50,11 +47,10 @@ from tribler.core.components.metadata_store.remote_query_community.payload_check
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import get_max, get_or_create
+from tribler.core.utilities.pony_utils import get_max, get_or_create, run_threaded
 from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
-
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
 CURRENT_DB_VERSION = 14
@@ -164,12 +160,12 @@ class MetadataStore:
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
         # at definition.
-        self._db = orm.Database()
+        self.db = orm.Database()
 
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         # pylint: disable=unused-variable
-        @self._db.on_connect(provider='sqlite')
+        @self.db.on_connect(provider='sqlite')
         def on_connect(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")
@@ -189,31 +185,31 @@ class MetadataStore:
 
             # pylint: enable=unused-variable
 
-        self.MiscData = misc.define_binding(self._db)
+        self.MiscData = misc.define_binding(self.db)
 
-        self.TrackerState = tracker_state.define_binding(self._db)
-        self.TorrentState = torrent_state.define_binding(self._db)
+        self.TrackerState = tracker_state.define_binding(self.db)
+        self.TorrentState = torrent_state.define_binding(self.db)
 
-        self.ChannelNode = channel_node.define_binding(self._db, logger=self._logger, key=my_key)
+        self.ChannelNode = channel_node.define_binding(self.db, logger=self._logger, key=my_key)
 
-        self.MetadataNode = metadata_node.define_binding(self._db)
-        self.CollectionNode = collection_node.define_binding(self._db)
+        self.MetadataNode = metadata_node.define_binding(self.db)
+        self.CollectionNode = collection_node.define_binding(self.db)
         self.TorrentMetadata = torrent_metadata.define_binding(
-            self._db,
+            self.db,
             notifier=notifier,
             tag_processor_version=tag_processor_version
         )
-        self.ChannelMetadata = channel_metadata.define_binding(self._db)
+        self.ChannelMetadata = channel_metadata.define_binding(self.db)
 
-        self.JsonNode = json_node.define_binding(self._db, db_version)
-        self.ChannelDescription = channel_description.define_binding(self._db)
+        self.JsonNode = json_node.define_binding(self.db, db_version)
+        self.ChannelDescription = channel_description.define_binding(self.db)
 
-        self.BinaryNode = binary_node.define_binding(self._db, db_version)
-        self.ChannelThumbnail = channel_thumbnail.define_binding(self._db)
+        self.BinaryNode = binary_node.define_binding(self.db, db_version)
+        self.ChannelThumbnail = channel_thumbnail.define_binding(self.db)
 
-        self.ChannelVote = channel_vote.define_binding(self._db)
-        self.ChannelPeer = channel_peer.define_binding(self._db)
-        self.Vsids = vsids.define_binding(self._db)
+        self.ChannelVote = channel_vote.define_binding(self.db)
+        self.ChannelPeer = channel_peer.define_binding(self.db)
+        self.Vsids = vsids.define_binding(self.db)
 
         self.ChannelMetadata._channels_dir = channels_dir  # pylint: disable=protected-access
 
@@ -224,13 +220,13 @@ class MetadataStore:
             create_db = not db_filename.is_file()
             db_path_string = str(db_filename)
 
-        self._db.bind(provider='sqlite', filename=db_path_string, create_db=create_db, timeout=120.0)
-        self._db.generate_mapping(
+        self.db.bind(provider='sqlite', filename=db_path_string, create_db=create_db, timeout=120.0)
+        self.db.generate_mapping(
             create_tables=create_db, check_tables=check_tables
         )  # Must be run out of session scope
         if create_db:
             with db_session(ddl=True):
-                self._db.execute(sql_create_fts_table)
+                self.db.execute(sql_create_fts_table)
                 self.create_fts_triggers()
                 self.create_torrentstate_triggers()
                 self.create_partial_indexes()
@@ -245,15 +241,6 @@ class MetadataStore:
                 default_vsids = self.Vsids.create_default_vsids()
             self.ChannelMetadata.votes_scaling = default_vsids.max_val
 
-    async def run_threaded(self, func, *args, **kwargs):
-        def wrapper():
-            try:
-                return func(*args, **kwargs)
-            finally:
-                self.disconnect_thread()
-
-        return await get_event_loop().run_in_executor(None, wrapper)
-
     def set_value(self, key: str, value: str):
         key_value = get_or_create(self.MiscData, name=key)
         key_value.value = value
@@ -263,14 +250,14 @@ class MetadataStore:
         return data.value if data else default
 
     def drop_indexes(self):
-        cursor = self._db.get_connection().cursor()
+        cursor = self.db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='index' and name like 'idx_%'")
         for [index_name] in cursor.fetchall():
             cursor.execute(f"drop index {index_name}")
 
     def get_objects_to_create(self):
-        connection = self._db.get_connection()
-        schema = self._db.schema
+        connection = self.db.get_connection()
+        schema = self.db.schema
         provider = schema.provider
         created_tables = set()
         result = []
@@ -284,28 +271,28 @@ class MetadataStore:
         return 0 if self.db_path is MEMORY_DB else Path(self.db_path).size()
 
     def drop_fts_triggers(self):
-        cursor = self._db.get_connection().cursor()
+        cursor = self.db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='trigger' and name like 'fts_%'")
         for [trigger_name] in cursor.fetchall():
             cursor.execute(f"drop trigger {trigger_name}")
 
     def create_fts_triggers(self):
-        cursor = self._db.get_connection().cursor()
+        cursor = self.db.get_connection().cursor()
         cursor.execute(sql_add_fts_trigger_insert)
         cursor.execute(sql_add_fts_trigger_delete)
         cursor.execute(sql_add_fts_trigger_update)
 
     def fill_fts_index(self):
-        cursor = self._db.get_connection().cursor()
+        cursor = self.db.get_connection().cursor()
         cursor.execute("insert into FtsIndex(rowid, title) select rowid, title from ChannelNode")
 
     def create_torrentstate_triggers(self):
-        cursor = self._db.get_connection().cursor()
+        cursor = self.db.get_connection().cursor()
         cursor.execute(sql_add_torrentstate_trigger_after_insert)
         cursor.execute(sql_add_torrentstate_trigger_after_update)
 
     def create_partial_indexes(self):
-        cursor = self._db.get_connection().cursor()
+        cursor = self.db.get_connection().cursor()
         cursor.execute(sql_create_partial_index_channelnode_subscribed)
         cursor.execute(sql_create_partial_index_channelnode_metadata_type)
 
@@ -332,13 +319,7 @@ class MetadataStore:
 
     def shutdown(self):
         self._shutting_down = True
-        self._db.disconnect()
-
-    def disconnect_thread(self):
-        # Ugly workaround for closing threadpool connections
-        # Remark: maybe subclass ThreadPoolExecutor to handle this automatically?
-        if not isinstance(threading.current_thread(), threading._MainThread):  # pylint: disable=W0212
-            self._db.disconnect()
+        self.db.disconnect()
 
     @staticmethod
     def get_list_of_channel_blobs_to_process(dirname, start_timestamp):
@@ -467,7 +448,7 @@ class MetadataStore:
 
     async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
         try:
-            return await self.run_threaded(self.process_compressed_mdblob, compressed_data, **kwargs)
+            return await run_threaded(self.db, self.process_compressed_mdblob, compressed_data, **kwargs)
         except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
             self._logger.warning("DB transaction error when tried to process compressed mdblob: %s", str(e))
             return None
@@ -787,7 +768,7 @@ class MetadataStore:
         return pony_query
 
     async def get_entries_threaded(self, **kwargs):
-        return await self.run_threaded(self.get_entries, **kwargs)
+        return await run_threaded(self.db, self.get_entries, **kwargs)
 
     @db_session
     def get_entries(self, first=1, last=None, **kwargs):
@@ -838,7 +819,7 @@ class MetadataStore:
         suggestion_re = re.compile(suggestion_pattern, re.UNICODE)
 
         with db_session:
-            titles = self._db.select("""
+            titles = self.db.select("""
                 cn.title
                 FROM ChannelNode cn
                 INNER JOIN FtsIndex ON cn.rowid = FtsIndex.rowid

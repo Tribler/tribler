@@ -63,7 +63,7 @@ def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_
 
     upgrader.run()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair)
-    db = mds._db  # pylint: disable=protected-access
+    db = mds.db
 
     existing_indexes = [
         'idx_channelnode__metadata_type__partial',
@@ -136,8 +136,7 @@ def test_upgrade_pony_10to11(upgrader, channels_dir, mds_path, trustchain_keypai
     upgrader.upgrade_pony_db_10to11()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
-        # pylint: disable=protected-access
-        assert upgrader.column_exists_in_table(mds._db, 'TorrentState', 'self_checked')
+        assert upgrader.column_exists_in_table(mds.db, 'TorrentState', 'self_checked')
         assert mds.get_value("db_version") == '11'
     mds.shutdown()
 
@@ -148,10 +147,9 @@ def test_upgrade_pony11to12(upgrader, channels_dir, mds_path, trustchain_keypair
     upgrader.upgrade_pony_db_11to12()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=11)
     with db_session:
-        # pylint: disable=protected-access
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'json_text')
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'binary_data')
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'data_type')
+        assert upgrader.column_exists_in_table(mds.db, 'ChannelNode', 'json_text')
+        assert upgrader.column_exists_in_table(mds.db, 'ChannelNode', 'binary_data')
+        assert upgrader.column_exists_in_table(mds.db, 'ChannelNode', 'data_type')
         assert mds.get_value("db_version") == '12'
     mds.shutdown()
 
@@ -166,7 +164,7 @@ def test_upgrade_pony13to14(upgrader: TriblerUpgrader, state_dir, channels_dir, 
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
 
     with db_session:
-        assert upgrader.column_exists_in_table(mds._db, 'ChannelNode', 'tag_processor_version')
+        assert upgrader.column_exists_in_table(mds.db, 'ChannelNode', 'tag_processor_version')
         assert mds.get_value('db_version') == '14'
 
 
@@ -188,7 +186,7 @@ def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channe
             return upgrader.column_exists_in_table(db, table, column)
 
         # The end result is the same as in the previous test
-        assert _exists(mds._db, 'ChannelNode', 'tag_processor_version')
+        assert _exists(mds.db, 'ChannelNode', 'tag_processor_version')
         assert _exists(tags.instance, 'TorrentTagOp', 'auto_generated')
 
         assert mds.get_value('db_version') == '14'
@@ -199,7 +197,7 @@ def test_upgrade_pony12to13(upgrader, channels_dir, mds_path, trustchain_keypair
 
     upgrader.upgrade_pony_db_12to13()
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=12)
-    db = mds._db  # pylint: disable=protected-access
+    db = mds.db
 
     existing_indexes = [
         'idx_channelnode__metadata_type__partial',

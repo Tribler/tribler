@@ -205,7 +205,7 @@ class TriblerUpgrader:
         from_version = 12
         to_version = 13
 
-        db = mds._db  # pylint: disable=protected-access
+        db = mds.db  # pylint: disable=protected-access
 
         with db_session:
             db_version = mds.MiscData.get(name="db_version")
@@ -255,8 +255,8 @@ class TriblerUpgrader:
                            column_type='BOOLEAN')
                 tags.instance.commit()
 
-            add_column(db=mds._db, table_name='ChannelNode', column_name='tag_processor_version', column_type='INT')
-            mds._db.commit()
+            add_column(db=mds.db, table_name='ChannelNode', column_name='tag_processor_version', column_type='INT')
+            mds.db.commit()
             mds.set_value(key='db_version', value=version.next)
 
     def do_upgrade_pony_db_11to12(self, mds):
@@ -276,9 +276,9 @@ class TriblerUpgrader:
 
             for column_name, datatype in new_columns:
                 # pylint: disable=protected-access
-                if not self.column_exists_in_table(mds._db, table_name, column_name):
+                if not self.column_exists_in_table(mds.db, table_name, column_name):
                     sql = f'ALTER TABLE {table_name} ADD {column_name} {datatype};'
-                    mds._db.execute(sql)
+                    mds.db.execute(sql)
 
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
@@ -298,9 +298,9 @@ class TriblerUpgrader:
             column_name = "self_checked"
 
             # pylint: disable=protected-access
-            if not self.column_exists_in_table(mds._db, table_name, column_name):
+            if not self.column_exists_in_table(mds.db, table_name, column_name):
                 sql = f'ALTER TABLE {table_name} ADD {column_name} BOOLEAN default 0;'
-                mds._db.execute(sql)
+                mds.db.execute(sql)
 
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)

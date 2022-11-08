@@ -9,6 +9,7 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.popularity.community.payload import TorrentsHealthPayload, PopularTorrentsRequest
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
+from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
 
@@ -79,7 +80,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
         torrents = payload.random_torrents + payload.torrents_checked
 
-        for infohash in await self.mds.run_threaded(self.process_torrents_health, torrents):
+        for infohash in await run_threaded(self.mds.db, self.process_torrents_health, torrents):
             # Get a single result per infohash to avoid duplicates
             self.send_remote_select(peer=peer, infohash=infohash, last=1)
 

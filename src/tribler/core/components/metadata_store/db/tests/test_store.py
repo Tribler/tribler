@@ -6,11 +6,9 @@ from binascii import unhexlify
 from datetime import datetime
 from unittest.mock import patch
 
-from ipv8.keyvault.crypto import default_eccrypto
-
-from pony.orm import db_session
-
 import pytest
+from ipv8.keyvault.crypto import default_eccrypto
+from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import (
     CHANNEL_DIR_NAME_LENGTH,
@@ -29,7 +27,9 @@ from tribler.core.components.metadata_store.remote_query_community.payload_check
 from tribler.core.components.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import random_infohash
+
 
 # pylint: disable=protected-access,unused-argument
 
@@ -269,13 +269,12 @@ def test_process_forbidden_payload(metadata_store):
 def test_process_payload(metadata_store):
     sender_key = default_eccrypto.generate_key("curve25519")
     for md_class in (
-        metadata_store.ChannelMetadata,
-        metadata_store.TorrentMetadata,
-        metadata_store.CollectionNode,
-        metadata_store.ChannelDescription,
-        metadata_store.ChannelThumbnail,
+            metadata_store.ChannelMetadata,
+            metadata_store.TorrentMetadata,
+            metadata_store.CollectionNode,
+            metadata_store.ChannelDescription,
+            metadata_store.ChannelThumbnail,
     ):
-
         node, node_payload, node_deleted_payload = get_payloads(md_class, sender_key)
         node_dict = node.to_dict()
         node.delete()
@@ -333,8 +332,8 @@ def test_process_payload_with_known_channel_public_key(metadata_store):
 
     # Check accepting a payload with matching public key
     assert (
-        metadata_store.process_payload(payload, channel_public_key=key1.pub().key_to_bin()[10:])[0].obj_state
-        == ObjState.NEW_OBJECT
+            metadata_store.process_payload(payload, channel_public_key=key1.pub().key_to_bin()[10:])[0].obj_state
+            == ObjState.NEW_OBJECT
     )
     assert metadata_store.TorrentMetadata.get()
 
@@ -465,8 +464,8 @@ async def test_run_threaded(metadata_store):
             return threading.get_ident()
         raise ThreadedTestException('test exception')
 
-    result = await metadata_store.run_threaded(f1, 1, 2, c=3, d=4)
+    result = await run_threaded(metadata_store.db, f1, 1, 2, c=3, d=4)
     assert result != thread_id
 
     with pytest.raises(ThreadedTestException, match='^test exception$'):
-        await metadata_store.run_threaded(f1, 1, 2, c=5, d=6)
+        await run_threaded(metadata_store.db, f1, 1, 2, c=5, d=6)
