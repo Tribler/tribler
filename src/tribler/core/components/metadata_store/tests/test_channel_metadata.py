@@ -1,6 +1,6 @@
 import os
 from binascii import unhexlify
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import combinations
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -80,13 +80,21 @@ def mds_with_some_torrents_fixture(metadata_store):
     def save():
         metadata_store.db.flush()
 
+    def datetime_generator():
+        dt = datetime.utcnow() - timedelta(days=100)
+        for i in range(100):
+            yield dt + timedelta(days=i)
+        assert False, "too many values requested"
+
+    next_datetime = datetime_generator().__next__
+
     def new_channel(**kwargs):
-        params = dict(subscribed=True, share=True, status=NEW, infohash=random_infohash())
+        params = dict(subscribed=True, share=True, status=NEW, infohash=random_infohash(), torrent_date=next_datetime())
         params.update(kwargs)
         return metadata_store.ChannelMetadata(**params)
 
     def new_torrent(**kwargs):
-        params = dict(origin_id=channel.id_, staus=NEW, infohash=random_infohash())
+        params = dict(origin_id=channel.id_, staus=NEW, infohash=random_infohash(), torrent_date=next_datetime())
         params.update(kwargs)
         return metadata_store.TorrentMetadata(**params)
 
