@@ -32,7 +32,7 @@ class Session:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
-        self.notifier: Notifier = notifier or Notifier()
+        self.notifier: Notifier = notifier or Notifier(loop=get_event_loop())
         self.components: Dict[Type[Component], Component] = {}
         for component in components:
             self.register(component.__class__, component)
