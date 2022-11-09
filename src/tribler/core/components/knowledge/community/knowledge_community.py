@@ -98,7 +98,7 @@ class KnowledgeCommunity(TriblerCommunity):
                     operation = StatementOperation(
                         subject_type=op.statement.subject.type,
                         subject=op.statement.subject.name,
-                        predicate=op.statement.predicate,
+                        predicate=op.statement.object.type,
                         object=op.statement.object.name,
                         operation=op.operation,
                         clock=op.clock,

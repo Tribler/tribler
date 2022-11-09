@@ -45,7 +45,7 @@ class TestTagDBBase(TestBase):
                          predicate: ResourceType = ResourceType.TAG, obj='object'):
         subj = get_or_create(self.db.instance.Resource, name=subject, type=subject_type)
         obj = get_or_create(self.db.instance.Resource, name=obj, type=predicate)
-        statement = get_or_create(self.db.instance.Statement, subject=subj, predicate=predicate, object=obj)
+        statement = get_or_create(self.db.instance.Statement, subject=subj, object=obj)
 
         return statement
 

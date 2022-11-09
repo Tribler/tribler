@@ -92,7 +92,11 @@ class MetadataEndpointBase(RESTEndpoint):
             return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                statements = [asdict(stmt) for stmt in self.knowledge_db.get_statements(torrent["infohash"])]
+                raw_statements = self.knowledge_db.get_statements(
+                    subject_type=ResourceType.TORRENT,
+                    subject=torrent["infohash"]
+                )
+                statements = [asdict(stmt) for stmt in raw_statements]
                 if hide_xxx:
                     statements = [stmt for stmt in statements if not default_xxx_filter.isXXX(stmt["object"],
                                                                                               isFilename=False)]

@@ -1,5 +1,4 @@
 import os
-from json import dumps
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -65,8 +64,12 @@ class TestRemoteSearchByTags(TestBase):
     def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
-        mocked_get_subjects_intersection.assert_called_with({'valid_tag'}, predicate=ResourceType.TAG,
-                                                            case_sensitive=False)
+        mocked_get_subjects_intersection.assert_called_with(
+            subjects_type=ResourceType.TORRENT,
+            objects={'valid_tag'},
+            predicate=ResourceType.TAG,
+            case_sensitive=False
+        )
 
     @patch.object(MetadataStore, 'get_entries_threaded', new_callable=AsyncMock)
     async def test_process_rpc_query_no_tags(self, mocked_get_entries_threaded: AsyncMock):

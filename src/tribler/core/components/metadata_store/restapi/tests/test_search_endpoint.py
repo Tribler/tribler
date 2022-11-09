@@ -1,18 +1,16 @@
 import os
 from binascii import unhexlify
-from typing import Set, List
+from typing import List, Set
 from unittest.mock import patch
 
+import pytest
 from aiohttp.web_app import Application
-
 from pony.orm import db_session
 
-import pytest
-
-from tribler.core.components.metadata_store.db.serialization import SNIPPET, REGULAR_TORRENT
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash, to_fts_query
 
@@ -74,8 +72,8 @@ async def test_search(rest_api):
 
 
 async def test_search_by_tags(rest_api):
-    def mocked_get_subjects_intersection(tags: Set[str], **_):
-        if tags.pop() == 'missed_tag':
+    def mocked_get_subjects_intersection(*_, objects: Set[str], **__):
+        if objects.pop() == 'missed_tag':
             return None
         return {hexlify(os.urandom(20))}
 
@@ -199,15 +197,15 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, knowledge_d
             torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=ind)
             metadata_store.TorrentMetadata(title=f'abc {ind}', infohash=infohash, health=torrent_state)
 
-    def mocked_get_subjects(obj, *_, **__) -> List[str]:
-        obj = unhexlify(obj)
-        if obj in {infohashes[0], infohashes[1]}:
+    def mocked_get_objects(*__, subject=None, **___) -> List[str]:
+        subject = unhexlify(subject)
+        if subject in {infohashes[0], infohashes[1]}:
             return ["Content item 1"]
-        if obj in {infohashes[2], infohashes[3]}:
+        if subject in {infohashes[2], infohashes[3]}:
             return ["Content item 2"]
         return []
 
-    with patch.object(KnowledgeDatabase, 'get_objects', wraps=mocked_get_subjects):
+    with patch.object(KnowledgeDatabase, 'get_objects', wraps=mocked_get_objects):
         s1 = to_fts_query("abc")
         parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
         results = parsed["results"]
