@@ -118,21 +118,24 @@ class TriblerContentTableView(QTableView):
     def mousePressEvent(self, event: QMouseEvent) -> None:
         should_select_row = True
         index = self.indexAt(event.pos())
-        data_item = index.model().data_items[index.row()]
+        model = index.model()
+        if not model:
+            return
+        data_item = model.data_items[index.row()]
         if data_item["type"] == SNIPPET:
             should_select_row = False
 
         if index != self.delegate.no_index:
             # Check if we are clicking the 'edit tags' button
-            if index in index.model().edit_tags_rects:
-                rect = index.model().edit_tags_rects[index]
+            if index in model.edit_tags_rects:
+                rect = model.edit_tags_rects[index]
                 if rect.contains(event.pos()) and event.button() != Qt.RightButton:
                     should_select_row = False
                     self.on_edit_tags_clicked(index)
 
             # Check if we are clicking the 'popular content' button
-            if index in index.model().download_popular_content_rects:
-                for torrent_index, rect in enumerate(index.model().download_popular_content_rects[index]):
+            if index in model.download_popular_content_rects:
+                for torrent_index, rect in enumerate(model.download_popular_content_rects[index]):
                     if rect.contains(event.pos()) and event.button() != Qt.RightButton:
                         should_select_row = False
                         self.on_download_popular_torrent_clicked(index, torrent_index)
