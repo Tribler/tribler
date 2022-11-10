@@ -3,6 +3,7 @@ A wrapper around a libtorrent download.
 
 Author(s): Arno Bakker, Egbert Bouman
 """
+import asyncio
 import base64
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
@@ -21,6 +22,7 @@ from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
+from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.exceptions import SaveResumeDataError
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.osutils import fix_filebasename
@@ -237,15 +239,19 @@ class Download(TaskManager):
         self.process_alert(alert, alert_type)
 
     def process_alert(self, alert: lt.torrent_alert, alert_type: str):
-        if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
-            self._logger.debug("Got alert: %s", alert)
+        try:
+            if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
+                self._logger.debug("Got alert: %s", alert)
 
-        for handler in self.alert_handlers.get(alert_type, []):
-            handler(alert)
+            for handler in self.alert_handlers.get(alert_type, []):
+                handler(alert)
 
-        for future, future_setter, getter in self.futures.pop(alert_type, []):
-            if not future.done():
-                future_setter(getter(alert) if getter else alert)
+            for future, future_setter, getter in self.futures.pop(alert_type, []):
+                if not future.done():
+                    future_setter(getter(alert) if getter else alert)
+        except Exception as e:
+            self._logger.exception(f'Failed process alert: {e}')
+            raise NoCrashException from e
 
     def on_torrent_error_alert(self, alert: lt.torrent_error_alert):
         self._logger.error(f'On torrent error alert: {alert}')
@@ -488,7 +494,7 @@ class Download(TaskManager):
             await wait_for(self.wait_for_alert('save_resume_data_alert', None,
                                                'save_resume_data_failed_alert',
                                                lambda a: SaveResumeDataError(a.error.message())), timeout=timeout)
-        except (CancelledError, SaveResumeDataError, TimeoutError) as e:
+        except (CancelledError, SaveResumeDataError, TimeoutError, asyncio.exceptions.TimeoutError) as e:
             self._logger.error("Resume data failed to save: %s", e)
 
     def get_peerlist(self) -> List[Dict[Any, Any]]:

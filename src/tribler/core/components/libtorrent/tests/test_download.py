@@ -10,6 +10,7 @@ from libtorrent import bencode
 from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
+from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.exceptions import SaveResumeDataError
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
@@ -430,3 +431,11 @@ def test_get_tracker_status_unicode_decode_error(test_download: Download):
     test_download.get_tracker_status()
 
     assert test_download.handle.trackers.called
+
+
+def test_process_alert_no_crash_exception(test_download: Download):
+    """Test that in the case of an error in the method `process_alert`, NoCrashException raises"""
+    with pytest.raises(NoCrashException):
+        # `process_alert` raises "AttributeError: 'str' object has no attribute 'category'" first
+        # because the alert 'alert' has wrong type.
+        test_download.process_alert('alert', 'type')
