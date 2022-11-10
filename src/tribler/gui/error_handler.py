@@ -28,6 +28,8 @@ class ErrorHandler:
         self._tribler_stopped = False
 
     def gui_error(self, exc_type, exc, tb):
+        self._logger.info(f'Processing GUI error: {exc_type}')
+
         text = "".join(traceback.format_exception(exc_type, exc, tb))
         self._logger.error(text)
 
@@ -77,6 +79,8 @@ class ErrorHandler:
     def core_error(self, reported_error: ReportedError):
         if self._tribler_stopped or reported_error.type in self._handled_exceptions:
             return
+        self._logger.info(f'Processing Core error: {reported_error}')
+
         self._handled_exceptions.add(reported_error.type)
 
         error_text = f'{reported_error.text}\n{reported_error.long_text}'

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
@@ -6,9 +6,9 @@ from typing import Optional
 class ReportedError:
     type: str
     text: str
-    event: dict
+    event: dict = field(repr=False)
 
-    long_text: str = ''
-    context: str = ''
-    last_core_output: str = ''
-    should_stop: Optional[bool] = None
+    long_text: str = field(default='', repr=False)
+    context: str = field(default='', repr=False)
+    last_core_output: str = field(default='', repr=False)
+    should_stop: Optional[bool] = field(default=None)

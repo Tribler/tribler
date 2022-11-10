@@ -1,4 +1,3 @@
-import logging
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
@@ -24,46 +23,29 @@ def reported_error():
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler, caplog):
+def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler):
     # test that while tribler_stopped is True FeedbackDialog is not called
     error_handler._tribler_stopped = True
     error_handler.gui_error(AssertionError, AssertionError("error text"), None)
     mocked_feedback_dialog.assert_not_called()
 
-    assert caplog.record_tuples == [('ErrorHandler', logging.ERROR, 'AssertionError: error text\n'),
-                                    ('ErrorHandler', logging.INFO, 'Tribler has been stopped')]
-
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(SentryReporter, 'global_strategy', create=True,
               new=PropertyMock(return_value=SentryStrategy.SEND_SUPPRESSED))
-def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler, caplog):
+def test_gui_error_suppressed(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler):
     error_handler.gui_error(AssertionError, AssertionError('error_text'), None)
     mocked_feedback_dialog.assert_not_called()
     assert not error_handler._handled_exceptions
 
-    record_tuples = [
-        ('ErrorHandler', logging.ERROR, 'AssertionError: error_text\n'),
-        ('ErrorHandler', logging.INFO, 'GUI error was suppressed and not sent to Sentry: AssertionError: error_text')
-    ]
-
-    assert caplog.record_tuples == record_tuples
-
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
-def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler,
-                                             caplog):
+def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler):
     # test that if exception type in _handled_exceptions then FeedbackDialog is not called
     error_handler._handled_exceptions = {AssertionError}
     error_handler.gui_error(AssertionError, AssertionError("error text"), None)
     mocked_feedback_dialog.assert_not_called()
     assert len(error_handler._handled_exceptions) == 1
-
-    record_tuples = [
-        ('ErrorHandler', logging.ERROR, 'AssertionError: error text\n'),
-        ('ErrorHandler', logging.INFO, 'This exception has been handled already')
-    ]
-    assert caplog.record_tuples == record_tuples
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
