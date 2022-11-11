@@ -89,13 +89,19 @@ class Session:
             self._reraise_startup_exception_in_separate_task()
 
     def _reraise_startup_exception_in_separate_task(self):
+        self.logger.info('Reraise startup exception in separate task')
+
         async def exception_reraiser():
+            self.logger.info('Exception reraiser')
+
             e = self._startup_exception
             if isinstance(e, ComponentStartupException) and e.component.tribler_should_stop_on_component_error:
+                self.logger.info('Shutdown with exit code 1')
                 self.exit_code = 1
                 self.shutdown_event.set()
 
             # the exception should be intercepted by event loop exception handler
+            self.logger.info(f'Reraise startup exception: {self._startup_exception}')
             raise self._startup_exception
 
         get_event_loop().create_task(exception_reraiser())

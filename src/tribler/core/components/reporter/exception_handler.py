@@ -76,6 +76,7 @@ class CoreExceptionHandler:
         This method is called when an unhandled error in Tribler is observed.
         It broadcasts the tribler_exception event.
         """
+        self.logger.info('Processing unhandled error...')
         try:
             self.sentry_reporter.ignore_logger(self.logger.name)
 
@@ -86,18 +87,20 @@ class CoreExceptionHandler:
             # Exception
             text = str(exception)
             if isinstance(exception, ComponentStartupException):
+                self.logger.info('The exception is ComponentStartupException')
                 should_stop = exception.component.tribler_should_stop_on_component_error
                 exception = exception.__cause__
             if isinstance(exception, NoCrashException):
+                self.logger.info('The exception is NoCrashException')
                 should_stop = False
                 exception = exception.__cause__
 
             if self._is_ignored(exception):
+                self.logger.info('The exception will be ignored')
                 self.logger.warning(exception)
                 return
 
             long_text = self._get_long_text_from(exception)
-            self.logger.error(f"Unhandled exception occurred! {exception}\n{long_text}")
 
             reported_error = ReportedError(
                 type=exception.__class__.__name__,
@@ -107,9 +110,13 @@ class CoreExceptionHandler:
                 event=self.sentry_reporter.event_from_exception(exception) or {},
                 should_stop=should_stop
             )
+            self.logger.error(f"Unhandled exception occurred! {reported_error}\n{reported_error.long_text}")
+
             if self.report_callback:
+                self.logger.error('Call report callback')
                 self.report_callback(reported_error)  # pylint: disable=not-callable
             else:
+                self.logger.error('Save the error to later report')
                 if not self.unreported_error:
                     # We only remember the first unreported error,
                     # as that was probably the root cause for # the crash
@@ -117,6 +124,7 @@ class CoreExceptionHandler:
 
         except Exception as ex:
             self.sentry_reporter.capture_exception(ex)
+            self.logger.exception(f'Error occurred during the error handling: {ex}')
             raise ex
 
 
