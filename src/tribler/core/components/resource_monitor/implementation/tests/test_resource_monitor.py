@@ -1,6 +1,4 @@
 import os
-import random
-import time
 from collections import deque, namedtuple
 from unittest.mock import MagicMock
 
@@ -78,6 +76,7 @@ def test_low_disk_notification(resource_monitor):
     """
     Test low disk space notification
     """
+
     def fake_get_free_disk_space():
         disk = {"total": 318271800, "used": 312005050, "free": 6266750, "percent": 98.0}
         return namedtuple('sdiskusage', disk.keys())(*disk.values())
@@ -90,53 +89,9 @@ def test_low_disk_notification(resource_monitor):
     resource_monitor.notifier[notifications.tribler_shutdown_state].assert_called()
 
 
-def test_resource_log(resource_monitor):
-    """
-    Test resource log file is created when enabled.
-    """
-    resource_monitor.set_resource_log_enabled(True)
-    resource_monitor.check_resources()
-    assert resource_monitor.resource_log_file.exists()
-
-
-def test_write_resource_log(resource_monitor):
-    """
-    Test no data is written to file and no exception raised when resource data (cpu & memory) is empty which
-    happens at startup. When the data is available, it is saved well in the disk.
-    """
-    # 1. Try writing the log when no data is available.
-    resource_monitor.memory_data = []
-    resource_monitor.cpu_data = []
-    resource_monitor.write_resource_logs()
-
-    # If no data is available, no file is created.
-    assert not os.path.exists(resource_monitor.resource_log_file)
-
-    # 2. Try adding some random data and write resource logs
-    time_now = time.time()
-    rand_memory = random.randint(1, 100)
-    rand_cpu = random.randint(1, 100)
-    resource_monitor.memory_data = [(time_now, rand_memory)]
-    resource_monitor.cpu_data = [(time_now, rand_cpu)]
-    resource_monitor.write_resource_logs()
-
-    # The file should exist and should not be empty
-    assert os.path.exists(resource_monitor.resource_log_file)
-    assert os.stat(resource_monitor.resource_log_file).st_size > 0
-
-    # 3. Resetting the logs should remove the log file
-    resource_monitor.reset_resource_logs()
-    assert not os.path.exists(resource_monitor.resource_log_file)
-
-
 def test_enable_resource_log(resource_monitor):
     resource_monitor.set_resource_log_enabled(True)
     assert resource_monitor.is_resource_log_enabled()
-
-
-def test_reset_resource_log(resource_monitor):
-    resource_monitor.reset_resource_logs()
-    assert not resource_monitor.resource_log_file.exists()
 
 
 def test_profiler(resource_monitor):
