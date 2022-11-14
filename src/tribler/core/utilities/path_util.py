@@ -3,6 +3,10 @@ from __future__ import annotations
 import pathlib
 import sys
 import tempfile
+from itertools import islice
+from typing import Union
+
+from file_read_backwards import FileReadBackwards
 
 
 class Path(type(pathlib.Path())):
@@ -48,3 +52,11 @@ class PosixPath(Path, pathlib.PurePosixPath):
 
 class WindowsPath(Path, pathlib.PureWindowsPath):
     __slots__ = ()
+
+
+def tail(file_name: Union[str, Path], count: int = 1) -> str:
+    """Tail a file and get X lines from the end"""
+
+    with FileReadBackwards(file_name) as f:
+        lines = list(islice(f, count))
+        return '\n'.join(reversed(lines))

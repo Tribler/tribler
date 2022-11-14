@@ -1,6 +1,5 @@
 import datetime
 import logging
-import os
 import sys
 from io import StringIO
 
@@ -17,7 +16,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RES
 from tribler.core.exceptions import TriblerCoreTestException
 from tribler.core.utilities.instrumentation import WatchDog
 from tribler.core.utilities.osutils import get_root_state_directory
-from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.path_util import Path, tail
 
 HAS_MELIAE = True
 try:
@@ -48,6 +47,7 @@ class DebugEndpoint(RESTEndpoint):
                  resource_monitor: ResourceMonitor = None,
                  core_exception_handler: CoreExceptionHandler = None):
         super().__init__()
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.log_dir = log_dir
         self.tunnel_community = tunnel_community
@@ -279,46 +279,14 @@ class DebugEndpoint(RESTEndpoint):
         # If the log file exists and return last requested 'max_lines' of log
         try:
             max_lines = int(request.query['max_lines'])
-            with log_file_name.open(mode='r') as log_file:
-                response['content'] = self.tail(log_file, max_lines)
-            response['max_lines'] = max_lines
-        except ValueError:
-            with log_file_name.open(mode='r') as log_file:
-                response['content'] = self.tail(log_file, 100)  # default 100 lines
-            response['max_lines'] = 0
+        except ValueError as e:
+            self.logger.exception(e)
+            max_lines = 100
+
+        response['content'] = tail(log_file_name, max_lines)
+        response['max_lines'] = max_lines
 
         return RESTResponse(response)
-
-    def tail(self, file_handler, lines=1):
-        """Tail a file and get X lines from the end"""
-        # place holder for the lines found
-        lines_found = []
-        byte_buffer = 1024
-
-        # block counter will be multiplied by buffer
-        # to get the block size from the end
-        block_counter = -1
-
-        # loop until we find X lines
-        while len(lines_found) < lines:
-            try:
-                file_handler.seek(block_counter * byte_buffer, os.SEEK_END)
-            except OSError:  # either file is too small, or too many lines requested
-                file_handler.seek(0)
-                lines_found = file_handler.readlines()
-                break
-
-            lines_found = file_handler.readlines()
-
-            # we found enough lines, get out
-            if len(lines_found) > lines:
-                break
-
-            # decrement the block counter to get the
-            # next X bytes
-            block_counter -= 1
-
-        return ''.join(lines_found[-lines:])
 
     @docs(
         tags=['Debug'],

@@ -34,7 +34,7 @@ from tribler.core.utilities.dependencies import Scope, get_dependencies
 from tribler.core.utilities.patch_import import patch_import
 
 logging.basicConfig(level=logging.INFO)
-modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
+modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate', 'file_read_backwards'}
 
 with patch_import(modules=modules_to_mock):
     from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
