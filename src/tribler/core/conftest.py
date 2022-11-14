@@ -1,3 +1,4 @@
+import asyncio
 import os
 import os
 import sys
@@ -231,19 +232,9 @@ def test_tdef(state_dir):
     return tdef
 
 
-@pytest.fixture
-def loop(event_loop):
-    """
-    _This_ fixture masks the original "loop" fixture from pytest-asyncio,
-    effectively replacing it with the "event_loop" fixture from aiohttp.
-    It solves the following problem:
-    pytest-asyncio provides "loop" fixture for creating the event loop,
-    aiohttp provides "event_loop" fixture for creating the event loop,
-    if you use the "@pytest.mark.asyncio" decorator on a test, it will automatically run the "loop"
-    fixture, which could result in test failure if the test uses Futures created with the fixtures
-    that use the "event_loop" fixture.
-    """
-    return event_loop
+@pytest.fixture()
+def loop():
+    return asyncio.get_event_loop()
 
 
 @pytest.fixture
