@@ -1,10 +1,9 @@
-import logging
 from io import BytesIO, TextIOWrapper
 from unittest.mock import MagicMock, Mock, call, patch
 
-from tribler.core.utilities.path_util import Path
 from tribler.core.logger.logger import get_logger_config_path, setup_logging
 from tribler.core.logger.logger_streams import StreamWrapper
+from tribler.core.utilities.path_util import Path
 
 
 @patch('tribler.core.logger.logger.__file__', '/a/b/c/logger.py')
@@ -18,23 +17,15 @@ def test_get_logger_config_path():
         assert config_path == Path('/x/y/z/tribler_source/tribler/core/logger/logger.yaml')
 
 
-@patch('tribler.core.logger.logger.logger')
-@patch('sys.stdout')
-@patch('sys.stderr')
-@patch('builtins.print')
 @patch('logging.basicConfig')
-def test_setup_logging_no_config(basic_config: Mock, print_: Mock, stderr: Mock, stdout: Mock, logger: Mock):
-    config_path = MagicMock()
-    config_path.exists.return_value = False
-    config_path.__str__.return_value = '<config-path>'
+def test_setup_logging_no_config(mocked_basic_config: Mock, tmp_path: Path):
+    """Test that in the case of a missed config, the `basicConfig` function is called.
+    """
+    config_path = tmp_path / 'non_existent.conf'
+    assert not config_path.exists()
 
-    setup_logging('<app-mode>', '<log-dir>', config_path)
-
-    logger.info.assert_called_once_with(
-        "Load logger config: app_mode=<app-mode>, " "config_path=<config-path>, dir=<log-dir>"
-    )
-    print_.assert_called_once_with("Logger config not found in <config-path>. Using default configs.", file=stderr)
-    basic_config.assert_called_once_with(level=logging.INFO, stream=stdout)
+    setup_logging('', Path(''), config_path)
+    assert mocked_basic_config.called
 
 
 @patch('yaml.safe_load')
@@ -67,30 +58,17 @@ def test_setup_logging(logger: Mock, dict_config: Mock, yaml_safe_load: Mock):
     )
 
 
-@patch('tribler.core.logger.logger.logger')
-@patch('sys.stdout')
-@patch('sys.stderr')
-@patch('builtins.print')
 @patch('logging.basicConfig')
-def test_setup_logging_exception(basic_config: Mock, print_: Mock, stderr: Mock, stdout: Mock, logger: Mock):
-    error = ZeroDivisionError()
+def test_setup_logging_exception(mocked_basic_config: Mock, tmp_path: Path):
+    """Test that in the case of an exception in the `setup_logging` function,
+    the `basicConfig` function is called.
+    """
+    log_dir = tmp_path
+    config_path = tmp_path / 'config.conf'
+    config_path.write_text('wrong config content')
+    setup_logging('', log_dir, config_path)
 
-    log_dir = MagicMock()
-    log_dir.__str__.return_value = '<log-dir>'
-    log_dir.exists.return_value = True
-    log_dir.joinpath.side_effect = error
-
-    config_path = MagicMock()
-    config_path.__str__.return_value = '<config-path>'
-    config_path.exists.return_value = True
-
-    setup_logging('<app-mode>', log_dir, config_path)
-
-    logger.info.assert_called_once_with(
-        "Load logger config: app_mode=<app-mode>, " "config_path=<config-path>, dir=<log-dir>"
-    )
-    print_.assert_called_once_with('Error in loading logger config. Using default configs. ', 'ZeroDivisionError: ', file=stderr)
-    basic_config.assert_called_once_with(level=logging.INFO, stream=stdout)
+    assert mocked_basic_config.called
 
 
 def test_stream_wrapper_write_ascii():
