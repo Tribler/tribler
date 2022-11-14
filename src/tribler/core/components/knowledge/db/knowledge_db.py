@@ -225,11 +225,11 @@ class KnowledgeDatabase:
         name_condition = (lambda r: r.name == name) if case_sensitive else (lambda r: r.name.lower() == name.lower())
         type_condition = lambda r: r.type == resource_type.value
 
-        results = (
-            self.instance.Resource
-            .select(name_condition if name else (lambda _: True))
-            .filter(type_condition if resource_type else (lambda _: True))
-        )
+        results = self.instance.Resource.select()
+        if name:
+            results = results.filter(name_condition)
+        if resource_type:
+            results = results.filter(type_condition)
         return results
 
     def _get_statements(self, source_type: Optional[ResourceType], source_name: Optional[str],
