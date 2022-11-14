@@ -81,7 +81,7 @@ class KnowledgeDatabase:
             id = orm.PrimaryKey(int, auto=True)
 
             subject = orm.Required(lambda: Resource)
-            object = orm.Required(lambda: Resource)
+            object = orm.Required(lambda: Resource, index=True)
 
             operations = orm.Set(lambda: StatementOp)
 
