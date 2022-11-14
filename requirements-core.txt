@@ -24,3 +24,4 @@ yarl==1.7.2 # keep this dependency higher than 1.6.3. See: https://github.com/ai
 bitarray==2.5.1
 pyipv8==2.8.0
 libtorrent==1.2.15
+file-read-backwards==2.0.0

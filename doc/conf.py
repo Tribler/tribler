@@ -21,6 +21,9 @@ import logging
 import os
 import sys
 
+logging.basicConfig(level=logging.INFO)
+logging.info('Start to execute conf.py')
+
 # pylint: disable=wrong-import-position
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__name__), '..'))
 tribler_components = [
@@ -28,25 +31,28 @@ tribler_components = [
     os.path.join(root_dir, "doc"),
 ]
 for component in tribler_components:
+    logging.info(f'Add component: {component}')
+
     sys.path.append(str(component))
 
-from tribler.core.utilities.dependencies import Scope, get_dependencies
 from tribler.core.utilities.patch_import import patch_import
 
-logging.basicConfig(level=logging.INFO)
-modules_to_mock = set(get_dependencies(scope=Scope.core)) | {'libtorrent', 'validate'}
+# patch extra imports that can not be extracted from the `requirements-core.txt` file
+with patch_import(modules={'libtorrent', 'validate', 'file_read_backwards'}):
+    from tribler.core.utilities.dependencies import Scope, get_dependencies
 
-with patch_import(modules=modules_to_mock):
-    from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+    # patch imports that can be extracted from the `requirements-core.txt` file
+    with patch_import(modules=set(get_dependencies(scope=Scope.core))):
+        from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 
-    add_endpoint = RootEndpoint.add_endpoint
-    RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
-        if path not in ['/ipv8', '/market', '/wallets'] else None
+        add_endpoint = RootEndpoint.add_endpoint
+        RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
+            if path not in ['/ipv8', '/market', '/wallets'] else None
 
-    # Extract Swagger docs
-    from extract_swagger import extract_swagger  # noqa: I100
+        # Extract Swagger docs
+        from extract_swagger import extract_swagger  
 
-    asyncio.run(extract_swagger('restapi/swagger.yaml'))
+        asyncio.run(extract_swagger('restapi/swagger.yaml'))
 
 # -- General configuration ------------------------------------------------
 
