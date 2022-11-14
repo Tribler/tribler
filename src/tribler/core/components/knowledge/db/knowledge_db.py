@@ -5,7 +5,7 @@ from enum import IntEnum
 from typing import Callable, Iterator, List, Optional, Set
 
 from pony import orm
-from pony.orm.core import Entity, Query
+from pony.orm.core import Entity, Query, select
 from pony.utils import between
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
@@ -372,8 +372,26 @@ class KnowledgeDatabase:
 
         Returns: a list of the strings representing the subjects.
         """
-        sets = [set(self.get_subjects(subjects_type, predicate, o, case_sensitive)) for o in objects]
-        return set.intersection(*sets)
+
+        if case_sensitive:
+            def name_condition(obj, obj_name):
+                return obj.name == obj_name
+        else:
+            def name_condition(obj, obj_name):
+                return obj.name.lower() == obj_name.lower()
+
+        query = select(subject.name for subject in self.instance.Resource if subject.type == subjects_type.value)
+        for object_name in objects:
+            query = query.where(lambda subject: subject in (
+                s.subject for s in self.instance.Statement
+                if s.local_operation == Operation.ADD.value or not s.local_operation and s.score >= SHOW_THRESHOLD
+                   and s.object in (
+                       object for object in self.instance.Resource
+                       if object.type == predicate.value
+                          and name_condition(object, object_name)
+                   )
+            ))
+        return set(query)
 
     def get_clock(self, operation: StatementOperation) -> int:
         """ Get the clock (int) of operation.
