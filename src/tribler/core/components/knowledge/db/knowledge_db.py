@@ -222,14 +222,13 @@ class KnowledgeDatabase:
         Returns: a Query object for requested resources
         """
 
-        name_condition = (lambda r: r.name == name) if case_sensitive else (lambda r: r.name.lower() == name.lower())
-        type_condition = lambda r: r.type == resource_type.value
-
         results = self.instance.Resource.select()
         if name:
-            results = results.filter(name_condition)
+            results = results.filter(
+                (lambda r: r.name == name) if case_sensitive else (lambda r: r.name.lower() == name.lower())
+            )
         if resource_type:
-            results = results.filter(type_condition)
+            results = results.filter(lambda r: r.type == resource_type.value)
         return results
 
     def _get_statements(self, source_type: Optional[ResourceType], source_name: Optional[str],
@@ -372,7 +371,6 @@ class KnowledgeDatabase:
 
         Returns: a list of the strings representing the subjects.
         """
-
         if case_sensitive:
             def name_condition(obj, obj_name):
                 return obj.name == obj_name
@@ -384,12 +382,14 @@ class KnowledgeDatabase:
         for object_name in objects:
             query = query.where(lambda subject: subject in (
                 s.subject for s in self.instance.Statement
-                if s.local_operation == Operation.ADD.value or not s.local_operation and s.score >= SHOW_THRESHOLD
-                   and s.object in (
-                       object for object in self.instance.Resource
-                       if object.type == predicate.value
-                          and name_condition(object, object_name)
-                   )
+                if (s.local_operation == Operation.ADD.value
+                    or not s.local_operation
+                    and s.score >= SHOW_THRESHOLD
+                    and s.object in (
+                        obj for obj in self.instance.Resource
+                        if (obj.type == predicate.value
+                            and name_condition(obj, object_name))
+                    ))
             ))
         return set(query)
 
