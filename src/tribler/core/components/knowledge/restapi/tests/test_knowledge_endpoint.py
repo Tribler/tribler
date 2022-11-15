@@ -27,10 +27,10 @@ def knowledge_endpoint(knowledge_db):
 
 
 @pytest.fixture
-def rest_api(loop, aiohttp_client, knowledge_endpoint):
+def rest_api(event_loop, aiohttp_client, knowledge_endpoint):
     app = Application()
     app.add_subapp('/knowledge', knowledge_endpoint.app)
-    yield loop.run_until_complete(aiohttp_client(app))
+    yield event_loop.run_until_complete(aiohttp_client(app))
     app.shutdown()
 
 

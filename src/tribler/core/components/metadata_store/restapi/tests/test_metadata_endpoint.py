@@ -22,7 +22,7 @@ from tribler.core.utilities.utilities import has_bep33_support, random_infohash
 
 
 @pytest.fixture
-async def torrent_checker(loop, mock_dlmgr, metadata_store):
+async def torrent_checker(mock_dlmgr, metadata_store):
     # Initialize the torrent checker
     config = TriblerConfig()
     config.download_defaults.number_hops = 0
@@ -43,12 +43,12 @@ async def torrent_checker(loop, mock_dlmgr, metadata_store):
 
 
 @pytest.fixture
-def rest_api(loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
+def rest_api(event_loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
     endpoint = MetadataEndpoint(torrent_checker, metadata_store)
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/metadata', endpoint.app)
-    yield loop.run_until_complete(aiohttp_client(app))
+    yield event_loop.run_until_complete(aiohttp_client(app))
     app.shutdown()
 
 

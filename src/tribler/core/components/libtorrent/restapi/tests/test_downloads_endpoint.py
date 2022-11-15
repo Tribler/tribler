@@ -22,13 +22,13 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-def rest_api(loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
+def rest_api(event_loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
 
     endpoint = DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/downloads', endpoint.app)
-    yield loop.run_until_complete(aiohttp_client(app))
+    yield event_loop.run_until_complete(aiohttp_client(app))
     app.shutdown()
 
 
