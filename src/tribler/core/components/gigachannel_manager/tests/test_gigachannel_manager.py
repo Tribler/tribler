@@ -2,13 +2,11 @@ import asyncio
 from asyncio import Future
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-from ipv8.util import succeed
-
-from pony.orm import db_session
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from ipv8.util import succeed
+from pony.orm import db_session
 
 from tribler.core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
@@ -113,32 +111,40 @@ def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
     gigachannel_manager.download_manager.start_download.assert_called_once()
 
 
-async def test_check_and_regen_personal_channel_torrent(personal_channel, gigachannel_manager):
+async def test_check_and_regen_personal_channel_torrent_wait(personal_channel, gigachannel_manager):
     with db_session:
         chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
-        chan_download = MagicMock()
 
-        async def mock_wait(*_):
-            pass
+    # Test wait for status OK
+    await gigachannel_manager.check_and_regen_personal_channel_torrent(
+        channel_pk=chan_pk,
+        channel_id=chan_id,
+        channel_download=MagicMock(wait_for_status=AsyncMock()),
+        timeout=0.5
+    )
 
-        chan_download.wait_for_status = mock_wait
-        # Test wait for status OK
-        await gigachannel_manager.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
 
-        async def mock_wait_2(*_):
-            await asyncio.sleep(3)
+async def test_check_and_regen_personal_channel_torrent_sleep(personal_channel, gigachannel_manager):
+    with db_session:
+        chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
 
-        chan_download.wait_for_status = mock_wait_2
+    async def mock_wait(*_):
+        await asyncio.sleep(3)
+
+    f = MagicMock()
+
+    async def mock_regen(*_):
+        f()
+
+    with patch.object(GigaChannelManager, 'regenerate_channel_torrent', mock_regen):
         # Test timeout waiting for seeding state and then regen
-
-        f = MagicMock()
-
-        async def mock_regen(*_):
-            f()
-
-        gigachannel_manager.regenerate_channel_torrent = mock_regen
-        await gigachannel_manager.check_and_regen_personal_channel_torrent(chan_pk, chan_id, chan_download, timeout=0.5)
-        f.assert_called_once()
+        await gigachannel_manager.check_and_regen_personal_channel_torrent(
+            channel_pk=chan_pk,
+            channel_id=chan_id,
+            channel_download=MagicMock(wait_for_status=mock_wait),
+            timeout=0.5
+        )
+    f.assert_called_once()
 
 
 async def test_check_channels_updates(personal_channel, gigachannel_manager, metadata_store):
@@ -220,10 +226,10 @@ async def test_check_channels_updates(personal_channel, gigachannel_manager, met
 
         # Manually fire the channel updates checking routine
         gigachannel_manager.check_channels_updates()
-        await gigachannel_manager.process_queued_channels()
+    await gigachannel_manager.process_queued_channels()
 
-        # The queue should be empty afterwards
-        assert not gigachannel_manager.channels_processing_queue
+    # The queue should be empty afterwards
+    assert not gigachannel_manager.channels_processing_queue
 
 
 async def test_remove_cruft_channels(torrent_template, personal_channel, gigachannel_manager, metadata_store):
@@ -319,7 +325,7 @@ initiated_download = False
 
 
 async def test_reject_malformed_channel(
-    gigachannel_manager, metadata_store
+        gigachannel_manager, metadata_store
 ):  # pylint: disable=unused-argument, redefined-outer-name
     global initiated_download
     with db_session:
