@@ -34,7 +34,7 @@ class TestKnowledgeCommunity(TestBase):
         return operation
 
     @db_session
-    async def fill_db(self):
+    def fill_db(self):
         # create 10 operations:
         # first 5 of them are correct
         # next 5 of them are incorrect
@@ -59,8 +59,8 @@ class TestKnowledgeCommunity(TestBase):
 
     async def test_gossip(self):
         # Test default gossip.
-        # Only 5 correct messages should be propagated
-        await self.fill_db()
+        # Only 6 correct messages should be propagated
+        self.fill_db()
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS * 2)
         with db_session:
@@ -70,7 +70,7 @@ class TestKnowledgeCommunity(TestBase):
     async def test_on_request_eat_exceptions(self):
         # Tests that except blocks in on_request function works as expected
         # ValueError should be eaten silently
-        await self.fill_db()
+        self.fill_db()
         # let's "break" the function that will be called on on_request()
         self.overlay(0).db.get_operations_for_gossip = Mock(return_value=[MagicMock()])
         # occurred exception should be ate by community silently
@@ -81,7 +81,7 @@ class TestKnowledgeCommunity(TestBase):
     async def test_no_peers(self):
         # Test that no error occurs in the community, in case there is no peers
         self.overlay(0).get_peers = Mock(return_value=[])
-        await self.fill_db()
+        self.fill_db()
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS * 2)
         self.overlay(0).get_peers.assert_called()
