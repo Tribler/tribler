@@ -15,7 +15,8 @@ from tribler.core.components.gigachannel.community.gigachannel_community import 
 )
 from tribler.core.components.gigachannel.community.settings import ChantSettings
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.metadata_store.remote_query_community.remote_query_community import EvaSelectRequest
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import EvaSelectRequest, \
+    RemoteQueryCommunity, SelectRequest
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.utilities.notifier import Notifier
@@ -130,7 +131,8 @@ class TestGigaChannelUnits(TestBase):
         with db_session:
             assert self.nodes[2].overlay.mds.ChannelNode.select().count() == 2
             assert (
-                self.nodes[2].overlay.mds.ChannelNode.select(lambda g: g.title in (U_CHANNEL, U_TORRENT)).count() == 2
+                    self.nodes[2].overlay.mds.ChannelNode.select(
+                        lambda g: g.title in (U_CHANNEL, U_TORRENT)).count() == 2
             )
 
     def test_query_on_introduction(self):
@@ -306,28 +308,29 @@ class TestGigaChannelUnits(TestBase):
         # The peer must have queried at least one peer
         self.nodes[2].overlay.send_remote_select.assert_called()
 
-    async def test_drop_silent_peer_from_channels_map(self):
+    @patch.object(SelectRequest, 'timeout_delay', PropertyMock(return_value=0.001))
+    @patch.object(ChannelsPeersMapping, 'remove_peer')
+    async def test_drop_silent_peer(self, mocked_remove_peer: Mock):
         # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
-        kwargs_dict = {"txt_filter": "ubuntu*"}
-        with patch(f'{BASE_PATH}.SelectRequest.timeout_delay', new_callable=PropertyMock) as delay_mock:
-            # Change query timeout to a really low value
-            delay_mock.return_value = 0.3
+        self.overlay(1).rqc_settings.max_channel_query_back = 0
 
-            # Stop peer 0 from responding
-            with patch(f'{BASE_PATH}.RemoteQueryCommunity._on_remote_select_basic'):
-                self.nodes[1].overlay.channels_peers.remove_peer = Mock()
-                self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
+        self.overlay(1).send_remote_select(self.peer(0), txt_filter="ubuntu*")
+        await self.deliver_messages(timeout=0.1)
 
-                await self.deliver_messages(timeout=1)
-                # node 0 must have called remove_peer because of the timeout
-                self.nodes[1].overlay.channels_peers.remove_peer.assert_called()
+        # the `remove_peer` function must have been called because of the timeout
+        assert mocked_remove_peer.called
 
-            # Now test that even in the case of an empty response packet, remove_peer is not called on timeout
-            self.nodes[1].overlay.channels_peers.remove_peer = Mock()
-            self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict)
-            await self.deliver_messages(timeout=1)
-            self.nodes[1].overlay.channels_peers.remove_peer.assert_not_called()
+    @patch.object(ChannelsPeersMapping, 'remove_peer')
+    async def test_drop_silent_peer_empty_response_packet(self, mocked_remove_peer: Mock):
+        # We do not want the query back mechanism to interfere with this test
+        self.overlay(1).rqc_settings.max_channel_query_back = 0
+
+        # Now test that even in the case of an empty response packet, remove_peer is not called on timeout
+        self.overlay(1).send_remote_select(self.peer(0), txt_filter="ubuntu*")
+        await self.deliver_messages(timeout=0.1)
+
+        # the `remove_peer` function must not have been called because of the timeout
+        assert not mocked_remove_peer.called
 
     async def test_remote_select_channel_contents(self):
         """
