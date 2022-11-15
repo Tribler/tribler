@@ -589,9 +589,14 @@ class MetadataStore:
             return []
 
         fts_ids = raw_sql("""
-            SELECT rowid FROM ChannelNode
-            WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query)
-            GROUP BY coalesce(infohash, rowid)
+            SELECT fts.rowid
+            FROM (
+                SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY rowid DESC LIMIT 10000
+            ) fts
+            LEFT JOIN ChannelNode cn on fts.rowid = cn.rowid
+            LEFT JOIN main.TorrentState ts on cn.health = ts.rowid
+            ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC  
+            LIMIT 1000
         """)
         return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
 
