@@ -35,7 +35,7 @@ TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
 # pylint: disable=protected-access
 
-@pytest.fixture(name='window', scope="module")
+@pytest.fixture(name='window')
 def fixture_window(tmpdir_factory):
     api_key = hexlify(os.urandom(16))
     root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
