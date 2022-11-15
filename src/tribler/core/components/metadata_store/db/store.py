@@ -589,9 +589,14 @@ class MetadataStore:
             return []
 
         fts_ids = raw_sql("""
-            SELECT rowid FROM ChannelNode
-            WHERE rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query)
-            GROUP BY coalesce(infohash, rowid)
+            SELECT fts.rowid
+            FROM (
+                SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY rowid DESC LIMIT 10000
+            ) fts
+            LEFT JOIN ChannelNode cn on fts.rowid = cn.rowid
+            LEFT JOIN main.TorrentState ts on cn.health = ts.rowid
+            ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC  
+            LIMIT 1000
         """)
         return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
 
@@ -806,7 +811,7 @@ class MetadataStore:
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
 
-    def get_auto_complete_terms(self, text, max_terms, limit=10):
+    def get_auto_complete_terms(self, text, max_terms, limit=200):
         if not text:
             return []
 
@@ -822,11 +827,11 @@ class MetadataStore:
             titles = self.db.select("""
                 cn.title
                 FROM ChannelNode cn
-                INNER JOIN FtsIndex ON cn.rowid = FtsIndex.rowid
                 LEFT JOIN TorrentState ts ON cn.health = ts.rowid
-                WHERE FtsIndex MATCH $fts_query
+                WHERE cn.rowid in (
+                    SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $fts_query ORDER BY rowid DESC LIMIT $limit
+                )
                 ORDER BY coalesce(ts.seeders, 0) DESC
-                LIMIT $limit
             """)
 
         result = []
