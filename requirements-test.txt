@@ -7,6 +7,7 @@ pytest-mock==3.10.0
 pytest-randomly==3.12.0
 pytest-timeout==2.1.0
 pytest-freezegun==0.4.2
+pytest-rerunfailures==10.2
 freezegun==1.2.1
 coverage==6.3.2
 looptime==0.2

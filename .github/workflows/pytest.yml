@@ -35,7 +35,7 @@ jobs:
       PYTEST_CORE_ARGUMENTS: ./src/tribler/core
       PYTEST_TUNNELS_ARGUMENTS: ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
 
-      PYTEST_COMMON_ARGUMENTS: --exitfirst --disable-warnings
+      PYTEST_COMMON_ARGUMENTS: --disable-warnings --reruns 1
 
     steps:
       - uses: actions/checkout@v3

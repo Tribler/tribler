@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 10
 
     env:
-      PYTEST_ARGUMENTS: ./src/tribler/gui --guitests --randomly-seed=1 --exitfirst --disable-warnings
+      PYTEST_ARGUMENTS: ./src/tribler/gui --guitests --randomly-seed=1 --disable-warnings --reruns 1
 
     steps:
       - uses: actions/checkout@v3
