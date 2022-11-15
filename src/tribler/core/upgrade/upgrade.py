@@ -3,7 +3,7 @@ import os
 import shutil
 from configparser import MissingSectionHeaderError, ParsingError
 from types import SimpleNamespace
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session, delete
@@ -101,6 +101,28 @@ class TriblerUpgrader:
         self.upgrade_pony_db_12to13()
         self.upgrade_pony_db_13to14()
         self.upgrade_tags_to_knowledge()
+        self.remove_old_logs()
+
+    def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
+        self._logger.info(f'Remove old logs')
+
+        log_files = list(self.state_dir.glob('**/*.log'))
+        log_files.extend(self.state_dir.glob('**/*.log.?'))
+
+        removed_files = []
+        left_files = []
+
+        for log_file in log_files:
+            self._logger.info(f'Remove: {log_file}')
+            try:
+                log_file.unlink(missing_ok=True)
+            except OSError as e:
+                self._logger.exception(e)
+                left_files.append(log_file)
+            else:
+                removed_files.append(log_file)
+
+        return removed_files, left_files
 
     def upgrade_tags_to_knowledge(self):
         migration = MigrationTagsToKnowledge(self.state_dir, self.secondary_key)
@@ -113,14 +135,13 @@ class TriblerUpgrader:
         mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
                             check_tables=False, db_version=13) if mds_path.exists() else None
         tag_db = TagDatabase(str(tagdb_path), create_tables=False,
-                                   check_tables=False) if tagdb_path.exists() else None
+                             check_tables=False) if tagdb_path.exists() else None
 
         self.do_upgrade_pony_db_13to14(mds, tag_db)
         if mds:
             mds.shutdown()
         if tag_db:
             tag_db.shutdown()
-
 
     def upgrade_pony_db_12to13(self):
         """

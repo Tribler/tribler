@@ -1,10 +1,8 @@
-import os
 import time
 from collections import deque
 
-from ipv8.taskmanager import TaskManager
-
 import psutil
+from ipv8.taskmanager import TaskManager
 
 from tribler.core import notifications
 from tribler.core.components.resource_monitor.implementation.base import ResourceMonitor
@@ -13,7 +11,6 @@ from tribler.core.components.resource_monitor.settings import ResourceMonitorSet
 from tribler.core.utilities.notifier import Notifier
 
 FREE_DISK_THRESHOLD = 100 * (1024 * 1024)  # 100MB
-DEFAULT_RESOURCE_FILENAME = "resources.log"
 CORE_RESOURCE_HISTORY_SIZE = 1000
 
 
@@ -33,7 +30,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         self.disk_usage_data = deque(maxlen=history_size)
 
         self.state_dir = state_dir
-        self.resource_log_file = log_dir / DEFAULT_RESOURCE_FILENAME
         self.resource_log_enabled = config.enabled
 
         # Setup yappi profiler
@@ -43,6 +39,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         """
         Start the resource monitoring by scheduling a task in TaskManager.
         """
+        self._logger.info('Starting...')
         poll_interval = self.config.poll_interval
         self.register_task("check_resources", self.check_resources, interval=poll_interval)
 
@@ -56,30 +53,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         super().check_resources()
         # Additionally, record the disk and notify on low disk space available.
         self.record_disk_usage()
-        try:
-            if self.resource_log_file:
-                self.write_resource_logs()
-        except FileNotFoundError as e:
-            self._logger.warning(e)
-
-    def write_resource_logs(self):
-        if not self.memory_data or not self.cpu_data:
-            return
-
-        if not self.resource_log_file.exists():
-            resource_dir = self.resource_log_file.parent
-            if resource_dir and not resource_dir.exists():
-                os.makedirs(resource_dir)
-
-        with self.resource_log_file.open(mode="a+") as output_file:
-            latest_memory_data = self.memory_data[len(self.memory_data) - 1]
-            latest_cpu_data = self.cpu_data[len(self.cpu_data) - 1]
-            time_in_seconds = latest_memory_data[0]
-            output_file.write(f"{time_in_seconds}, {latest_memory_data[1]}, {latest_cpu_data[1]}\n")
-
-    def reset_resource_logs(self):
-        if self.resource_log_file and self.resource_log_file.exists():
-            self.resource_log_file.unlink()
 
     def set_resource_log_enabled(self, enabled):
         self.resource_log_enabled = enabled

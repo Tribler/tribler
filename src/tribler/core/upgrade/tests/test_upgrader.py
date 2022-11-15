@@ -1,6 +1,8 @@
 import os
 import shutil
 from pathlib import Path
+from typing import Set
+from unittest.mock import patch
 
 import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
@@ -260,3 +262,69 @@ def test_upgrade_bw_accounting_db_8to9(upgrader, state_dir, trustchain_keypair):
         assert not list(select(item for item in db.BandwidthHistory))
         assert int(db.MiscData.get(name="db_version").value) == 9
     db.shutdown()
+
+
+def test_remove_old_logs(upgrader: TriblerUpgrader, state_dir: Path, tmp_path):
+    """Ensure that the `remove_old_logs` function removes only logs"""
+
+    # create Tribler folder structure
+    def _create(path: str) -> Set[Path]:
+        log_file = upgrader.state_dir / path
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        log_file.write_text('content')
+
+        return {log_file}
+
+    def _count():
+        glob_result = list(upgrader.state_dir.glob('**/*'))
+        files = [f for f in glob_result if f.is_file()]
+        return len(files)
+
+    # log files
+    expected = set()
+    expected |= _create('7.12/log/resources.log')
+    expected |= _create('7.11/log/resources.log')
+    expected |= _create('crash-report.log')
+    expected |= _create('tribler-core-error.log')
+    expected |= _create('tribler-gui-info.log.1')
+
+    # no log files
+    _create('7.12/sqlite/metadata.db')
+    _create('version_history.json')
+    _create('log_config.json')
+
+    assert _count() == 8
+
+    removed, left = upgrader.remove_old_logs()
+    assert _count() == 3
+    assert set(removed) == expected
+    assert not left
+
+
+def test_remove_old_logs_with_exception(upgrader: TriblerUpgrader, state_dir: Path, tmp_path):
+    """ Ensure that in the case that one of the files raises OSError during removing procedure,
+    it is not affect remove procedure of other files.
+
+    In this test two files will be created. The normal file and the file that will raise `PermissionError` exception.
+
+    At the end, the normal file must be removed and the file with the side effect must remain.
+    """
+    normal_log_file = Path(tmp_path) / 'normal.log'
+    normal_log_file.write_text('content')
+
+    side_effect_log_file = Path(tmp_path) / 'side_effect.log'
+    side_effect_log_file.write_text('content')
+
+    def patched_unlink(self, *_, **__):
+        if self == side_effect_log_file:
+            raise PermissionError
+
+        os.remove(self)
+
+    with patch.object(Path, 'unlink', patched_unlink):
+        removed, left = upgrader.remove_old_logs()
+
+    assert removed == [normal_log_file]
+    assert left == [side_effect_log_file]
+    assert not normal_log_file.exists()
+    assert side_effect_log_file.exists()

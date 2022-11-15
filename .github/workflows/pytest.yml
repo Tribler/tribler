@@ -14,7 +14,7 @@ on:
         required: false
 
       enable_profiling:
-        default: true
+        default: false
         type: boolean
         required: false
 
