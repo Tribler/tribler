@@ -806,7 +806,7 @@ class MetadataStore:
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
 
-    def get_auto_complete_terms(self, text, max_terms, limit=10):
+    def get_auto_complete_terms(self, text, max_terms, limit=200):
         if not text:
             return []
 
@@ -822,11 +822,11 @@ class MetadataStore:
             titles = self.db.select("""
                 cn.title
                 FROM ChannelNode cn
-                INNER JOIN FtsIndex ON cn.rowid = FtsIndex.rowid
                 LEFT JOIN TorrentState ts ON cn.health = ts.rowid
-                WHERE FtsIndex MATCH $fts_query
+                WHERE cn.rowid in (
+                    SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $fts_query ORDER BY rowid DESC LIMIT $limit
+                )
                 ORDER BY coalesce(ts.seeders, 0) DESC
-                LIMIT $limit
             """)
 
         result = []
