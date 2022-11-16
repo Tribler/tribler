@@ -57,10 +57,7 @@ jobs:
         with:
           python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
 
-      - name: Save Git info
-        run: |
-          git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
-          git rev-parse HEAD > .TriblerCommit
+      - uses: ./.github/actions/save_git_info
 
       - name: Install windows dependencies
         uses: ./.github/actions/windows_dependencies

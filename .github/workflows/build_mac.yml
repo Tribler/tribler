@@ -51,11 +51,7 @@ jobs:
         with:
           python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
 
-      - name: Save Git info
-        run: |
-          git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
-          git rev-parse HEAD > .TriblerCommit
-          echo "TRIBLER_VERSION=$(head -n 1 .TriblerVersion)" >> $GITHUB_ENV
+      - uses: ./.github/actions/save_git_info
 
       - name: Prepare files
         env:
