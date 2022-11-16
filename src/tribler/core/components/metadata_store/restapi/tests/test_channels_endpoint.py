@@ -143,7 +143,8 @@ async def test_get_contents_count(add_fake_torrents_channels, mock_dlmgr, rest_a
     mock_dlmgr.get_download = lambda _: None
     with db_session:
         chan = metadata_store.ChannelMetadata.select().first()
-        json_dict = await do_request(rest_api, f'channels/{hexlify(chan.public_key)}/123?include_total=1')
+
+    json_dict = await do_request(rest_api, f'channels/{hexlify(chan.public_key)}/123?include_total=1')
     assert json_dict['total'] == 5
 
 
@@ -311,12 +312,12 @@ async def test_get_channel_contents_by_type(metadata_store, my_channel, mock_dlm
     with db_session:
         metadata_store.CollectionNode(title='some_folder', origin_id=my_channel.id_)
 
-        json_dict = await do_request(
-            rest_api,
-            'channels/%s/%d?metadata_type=%d&metadata_type=%d'
-            % (hexlify(my_channel.public_key), my_channel.id_, COLLECTION_NODE, REGULAR_TORRENT),
-            expected_code=200,
-        )
+    json_dict = await do_request(
+        rest_api,
+        'channels/%s/%d?metadata_type=%d&metadata_type=%d'
+        % (hexlify(my_channel.public_key), my_channel.id_, COLLECTION_NODE, REGULAR_TORRENT),
+        expected_code=200,
+    )
 
     assert len(json_dict['results']) == 10
     assert 'status' in json_dict['results'][0]
@@ -431,12 +432,12 @@ async def test_add_torrents_no_channel(metadata_store, my_channel, rest_api):
     with db_session:
         my_chan = metadata_store.ChannelMetadata.get_my_channels().first()
         my_chan.delete()
-        await do_request(
-            rest_api,
-            f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
-            request_type='PUT',
-            expected_code=404,
-        )
+    await do_request(
+        rest_api,
+        f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
+        request_type='PUT',
+        expected_code=404,
+    )
 
 
 async def test_add_torrents_no_dir(my_channel, rest_api):
@@ -516,17 +517,17 @@ async def test_add_torrent_duplicate(my_channel, rest_api):
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 
-        with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
-            base64_content = base64.b64encode(torrent_file.read()).decode('utf-8')
+    with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
+        base64_content = base64.b64encode(torrent_file.read()).decode('utf-8')
 
-            post_params = {'torrent': base64_content}
-            await do_request(
-                rest_api,
-                f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
-                request_type='PUT',
-                post_data=post_params,
-                expected_code=200,
-            )
+        post_params = {'torrent': base64_content}
+        await do_request(
+            rest_api,
+            f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
+            request_type='PUT',
+            post_data=post_params,
+            expected_code=200,
+        )
 
 
 async def test_add_torrent(my_channel, rest_api):
@@ -537,12 +538,12 @@ async def test_add_torrent(my_channel, rest_api):
         base64_content = base64.b64encode(torrent_file.read())
 
         post_params = {'torrent': base64_content.decode('utf-8')}
-        await do_request(
-            rest_api,
-            f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
-            request_type='PUT',
-            post_data=post_params,
-        )
+    await do_request(
+        rest_api,
+        f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
+        request_type='PUT',
+        post_data=post_params,
+    )
 
 
 async def test_add_torrent_invalid_uri(my_channel, rest_api):
@@ -696,10 +697,11 @@ async def test_get_channel_thumbnail(rest_api, metadata_store):
         )
         endpoint = f'channels/{hexlify(chan.public_key)}/{chan.id_}/thumbnail'
         url = f'/{endpoint}'
-        async with rest_api.request("GET", url, ssl=False) as response:
-            assert response.status == 200
-            assert await response.read() == PNG_DATA
-            assert response.headers["Content-Type"] == "image/png"
+
+    async with rest_api.request("GET", url, ssl=False) as response:
+        assert response.status == 200
+        assert await response.read() == PNG_DATA
+        assert response.headers["Content-Type"] == "image/png"
 
 
 async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_channel,
@@ -735,12 +737,12 @@ async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_
         tags = ["totally safe", "wrongterm", "wRonGtErM", "a wrongterm b"]
         tag_torrent(infohash, knowledge_db, tags=tags)
 
-        json_dict = await do_request(
-            rest_api,
-            'channels/%s/%d?metadata_type=%d&hide_xxx=1'
-            % (hexlify(my_channel.public_key), chan.id_, REGULAR_TORRENT),
-            expected_code=200,
-        )
+    json_dict = await do_request(
+        rest_api,
+        'channels/%s/%d?metadata_type=%d&hide_xxx=1'
+        % (hexlify(my_channel.public_key), chan.id_, REGULAR_TORRENT),
+        expected_code=200,
+    )
 
     assert len(json_dict['results']) == 1
     print(json_dict)
