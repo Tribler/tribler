@@ -112,39 +112,29 @@ def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
 
 
 async def test_check_and_regen_personal_channel_torrent_wait(personal_channel, gigachannel_manager):
-    with db_session:
-        chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
-
     # Test wait for status OK
     await gigachannel_manager.check_and_regen_personal_channel_torrent(
-        channel_pk=chan_pk,
-        channel_id=chan_id,
+        channel_pk=personal_channel.public_key,
+        channel_id=personal_channel.id_,
         channel_download=MagicMock(wait_for_status=AsyncMock()),
         timeout=0.5
     )
 
 
 async def test_check_and_regen_personal_channel_torrent_sleep(personal_channel, gigachannel_manager):
-    with db_session:
-        chan_pk, chan_id = personal_channel.public_key, personal_channel.id_
-
     async def mock_wait(*_):
         await asyncio.sleep(3)
 
-    f = MagicMock()
-
-    async def mock_regen(*_):
-        f()
-
+    mock_regen = AsyncMock()
     with patch.object(GigaChannelManager, 'regenerate_channel_torrent', mock_regen):
         # Test timeout waiting for seeding state and then regen
         await gigachannel_manager.check_and_regen_personal_channel_torrent(
-            channel_pk=chan_pk,
-            channel_id=chan_id,
+            channel_pk=personal_channel.public_key,
+            channel_id=personal_channel.id_,
             channel_download=MagicMock(wait_for_status=mock_wait),
             timeout=0.5
         )
-    f.assert_called_once()
+    mock_regen.assert_called_once()
 
 
 async def test_check_channels_updates(personal_channel, gigachannel_manager, metadata_store):
