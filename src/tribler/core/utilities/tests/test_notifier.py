@@ -241,7 +241,7 @@ def test_notify():
     assert calls == [('generic2', topic_b, 222, '{}')]
 
 
-async def test_notify_async(loop):
+async def test_notify_async(event_loop):
     def topic_a(a: int, b: str):
         pass
 
@@ -265,7 +265,7 @@ async def test_notify_async(loop):
     def generic_2(*args, **kwargs):
         calls.append((('generic2',) + args + (repr(kwargs),)))
 
-    notifier = Notifier(loop=loop)
+    notifier = Notifier(loop=event_loop)
     notifier.add_observer(topic_a, observer_a1)  # add an observer
     notifier.add_observer(topic_a, observer_a1)  # adding the same observer multiple times should affect nothing
     notifier.add_generic_observer(generic_1)     # add a generic observer
@@ -316,7 +316,7 @@ async def test_notify_async(loop):
     assert set(calls) == {('generic2', topic_b, 222, '{}')}
 
 
-async def test_notify_with_exception(loop):
+async def test_notify_with_exception(event_loop):
     # test that notify works as expected even if one of callbacks will raise an exception
 
     def topic(x: int):
@@ -346,7 +346,7 @@ async def test_notify_with_exception(loop):
     assert calls == [('observer1', 123), ('observer2', 123), ('observer3', 123)]
     calls.clear()
 
-    notifier = Notifier(loop=loop)  # Now, let's create a notifier tied to a loop
+    notifier = Notifier(loop=event_loop)  # Now, let's create a notifier tied to a loop
 
     notifier.add_observer(topic, observer1)
     notifier.add_observer(topic, observer2)
@@ -363,8 +363,8 @@ async def test_notify_with_exception(loop):
     assert set(calls) == {('observer1', 123), ('observer2', 123), ('observer3', 123)}
 
 
-def test_notify_call_soon_threadsafe_with_exception(loop):
-    notifier = Notifier(loop=loop)
+def test_notify_call_soon_threadsafe_with_exception(event_loop):
+    notifier = Notifier(loop=event_loop)
 
     notifier.logger = MagicMock()
     notifier.loop = MagicMock(call_soon_threadsafe=MagicMock(side_effect=RuntimeError))

@@ -36,12 +36,12 @@ async def core_resource_monitor(tmp_path):
 
 
 @pytest.fixture
-def rest_api(loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument
+def rest_api(event_loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument
     endpoint.tunnel_community = mock_tunnel_community
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/debug', endpoint.app)
-    yield loop.run_until_complete(aiohttp_client(app))
+    yield event_loop.run_until_complete(aiohttp_client(app))
     app.shutdown()
 
 

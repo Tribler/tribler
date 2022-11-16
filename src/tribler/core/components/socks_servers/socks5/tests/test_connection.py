@@ -37,9 +37,9 @@ class MockTransport(MockObject):
 
 
 @pytest.fixture
-def connection(loop):
+def connection(event_loop):
     connection = Socks5Connection(None)
-    connection.transport = MockTransport(loop)
+    connection.transport = MockTransport(event_loop)
     yield connection
     if connection.udp_connection:  # Close opened UDP sockets
         connection.udp_connection.close()

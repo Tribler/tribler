@@ -1,6 +1,6 @@
 import asyncio
 import os
-import os
+import platform
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -232,9 +232,16 @@ def test_tdef(state_dir):
     return tdef
 
 
-@pytest.fixture()
-def loop():
-    return asyncio.get_event_loop()
+@pytest.fixture
+def event_loop():
+    if platform.system() == 'Windows':
+        # to prevent the "Loop is closed" error
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture

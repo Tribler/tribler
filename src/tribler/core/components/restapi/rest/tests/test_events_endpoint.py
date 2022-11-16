@@ -25,8 +25,8 @@ def fixture_api_port(free_port):
 
 
 @pytest.fixture(name='notifier')
-def fixture_notifier(loop):
-    return Notifier(loop=loop)
+def fixture_notifier(event_loop):
+    return Notifier(loop=event_loop)
 
 
 @pytest.fixture(name='endpoint')

@@ -116,7 +116,7 @@ async def test_component_shutdown_failure(tribler_config):
         assert component.stopped
 
 
-async def test_maybe_component(loop, tribler_config):  # pylint: disable=unused-argument
+async def test_maybe_component(tribler_config):  # pylint: disable=unused-argument
     session = Session(tribler_config, [ComponentA()])
     async with session:
         component_a = await session.get_instance(ComponentA).maybe_component(ComponentA)

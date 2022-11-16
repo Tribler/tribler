@@ -26,7 +26,7 @@ def channel_tdef():
 
 
 @pytest.fixture
-async def channel_seeder(channel_tdef, loop, tmp_path_factory):  # pylint: disable=unused-argument, redefined-outer-name
+async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unused-argument, redefined-outer-name
     config = LibtorrentSettings()
     config.dht = False
     config.upnp = False
