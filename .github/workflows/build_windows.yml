@@ -59,7 +59,7 @@ jobs:
 
       - name: Save Git info
         run: |
-          git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
+          git describe --tags | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
           git rev-parse HEAD > .TriblerCommit
 
       - name: Install windows dependencies
