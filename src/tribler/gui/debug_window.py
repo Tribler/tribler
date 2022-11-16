@@ -8,14 +8,12 @@ from binascii import unhexlify
 from time import localtime, strftime, time
 from typing import Dict
 
+import libtorrent
+import psutil
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
 from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem
-
-import libtorrent
-
-import psutil
 
 from tribler.core.utilities.utilities import has_bep33_support
 from tribler.gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
@@ -847,8 +845,8 @@ class DebugWindow(QMainWindow):
         tab_index = self.window().log_tab_widget.currentIndex()
         tab_name = "core" if tab_index == 0 else "gui"
 
-        request_query = f"process={tab_name}&max_lines={max_log_lines}"
-        TriblerNetworkRequest(f"debug/log?{request_query}", self.display_logs)
+        params = {'process': tab_name, 'max_lines': max_log_lines}
+        TriblerNetworkRequest(f"debug/log", url_params=params, reply_callback=self.display_logs)
 
     def display_logs(self, data):
         if not data:
@@ -955,7 +953,7 @@ class DebugWindow(QMainWindow):
             channel_item.setText(0, str(c["channel_name"]))
             channel_item.setText(1, str(c["channel_pk"]))
             channel_item.setText(2, str(c["channel_id"]))
-            channel_item.setData(3, Qt.DisplayRole, len(c["peers"]))  #  Peers count
+            channel_item.setData(3, Qt.DisplayRole, len(c["peers"]))  # Peers count
             for p in c["peers"]:
                 peer_item = QTreeWidgetItem()
                 peer_item.setText(1, str(p[0]))  # Peer mid

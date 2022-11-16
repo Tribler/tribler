@@ -55,8 +55,7 @@ class WindowsPath(Path, pathlib.PureWindowsPath):
 
 
 def tail(file_name: Union[str, Path], count: int = 1) -> str:
-    """Tail a file and get X lines from the end"""
-
+    """Tail a file and get `count` lines from the end"""
     with FileReadBackwards(file_name) as f:
         lines = list(islice(f, count))
         return '\n'.join(reversed(lines))

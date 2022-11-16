@@ -5,6 +5,7 @@ from io import StringIO
 
 import psutil
 from aiohttp import web
+from aiohttp.abc import BaseRequest
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.community import TunnelCommunity
@@ -17,6 +18,8 @@ from tribler.core.exceptions import TriblerCoreTestException
 from tribler.core.utilities.instrumentation import WatchDog
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.path_util import Path, tail
+
+DEFAULT_MAX_LINES = 100
 
 HAS_MELIAE = True
 try:
@@ -255,8 +258,9 @@ class DebugEndpoint(RESTEndpoint):
             }
         }
     )
-    async def get_log(self, request):
+    async def get_log(self, request: BaseRequest):
         # First, flush all the logs to make sure it is written to file
+        self.logger.info(f'Get log: {request.query}')
         for handler in logging.getLogger().handlers:
             handler.flush()
 
@@ -279,9 +283,10 @@ class DebugEndpoint(RESTEndpoint):
         # If the log file exists and return last requested 'max_lines' of log
         try:
             max_lines = int(request.query['max_lines'])
-        except ValueError as e:
-            self.logger.exception(e)
-            max_lines = 100
+        except ValueError:
+            max_lines = DEFAULT_MAX_LINES
+            self.logger.warning(f'Wrong max_lines value. Use the default {max_lines}.')
+        max_lines = max(1, max_lines)
 
         response['content'] = tail(log_file_name, max_lines)
         response['max_lines'] = max_lines
