@@ -1,0 +1,12 @@
+name: save_git_info
+description: Save GIT info for builds
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Save Git info
+      shell: bash
+      run: |
+        git describe --tags | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
+        git rev-parse HEAD > .TriblerCommit
+        echo "TRIBLER_VERSION=$(head -n 1 .TriblerVersion)" >> $GITHUB_ENV
