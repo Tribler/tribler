@@ -15,6 +15,13 @@ jobs:
   generate_and_upload:
     name: generate and upload
     runs-on: ubuntu-latest
+
+    env:
+      PYTEST_CORE_ARGUMENTS: ./src/tribler/core
+      PYTEST_TUNNELS_ARGUMENTS: ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
+
+      PYTEST_COMMON_ARGUMENTS: --looptime --disable-warnings --reruns 1
+
     steps:
       - uses: actions/checkout@v3
 
@@ -27,8 +34,8 @@ jobs:
       - name: Run Pytest with Coverage
         timeout-minutes: 10
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core --looptime --exitfirst --disable-warnings
-          coverage run --source=./src/tribler/core -p -m pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests --looptime --exitfirst --disable-warnings
+          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_CORE_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_TUNNELS_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
           coverage combine
           coverage xml
 
