@@ -1,3 +1,4 @@
+import asyncio
 import random
 import string
 import time
@@ -7,6 +8,7 @@ from operator import attrgetter
 from os import urandom
 from unittest.mock import Mock, patch
 
+import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
@@ -225,6 +227,7 @@ class TestRemoteQueryCommunity(TestBase):
         Test if sending back information on updated version of a metadata entry works
         """
 
+    @pytest.mark.timeout(10)
     async def test_remote_select_torrents(self):
         """
         Test dropping packets that go over the response limit for a remote select.
@@ -240,15 +243,18 @@ class TestRemoteQueryCommunity(TestBase):
             torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=torrent_infohash, title='title1')
             torrent.sign()
 
+        callback_called = asyncio.Event()
         processing_results = []
 
-        def callback(request, results):  # pylint: disable=unused-argument
+        def callback(_, results):
             processing_results.extend(results)
+            callback_called.set()
 
         self.nodes[1].overlay.send_remote_select(
             peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
         )
-        await self.deliver_messages()
+
+        await callback_called.wait()
 
         assert len(processing_results) == 1
         obj = processing_results[0].md_obj
@@ -263,10 +269,13 @@ class TestRemoteQueryCommunity(TestBase):
             torrent.sign()
 
         processing_results = []
+        callback_called.clear()
+
         self.nodes[1].overlay.send_remote_select(
             peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
         )
-        await self.deliver_messages()
+
+        await callback_called.wait()
 
         assert len(processing_results) == 1
         obj = processing_results[0].md_obj
@@ -597,6 +606,7 @@ class TestRemoteQueryCommunity(TestBase):
         b.send_remote_select(peer_a, **kwargs2, processing_callback=callback2)
 
         original_get_entries = MetadataStore.get_entries
+
         # Add a delay to ensure that the first query is still being processed when the second one arrives
         # (the mds.get_entries() method is a synchronous one and is called from a worker thread)
 
