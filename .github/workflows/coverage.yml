@@ -20,7 +20,7 @@ jobs:
       PYTEST_CORE_ARGUMENTS: ./src/tribler/core
       PYTEST_TUNNELS_ARGUMENTS: ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
 
-      PYTEST_COMMON_ARGUMENTS: --looptime --disable-warnings --reruns 1
+      PYTEST_COMMON_ARGUMENTS: --looptime --disable-warnings --reruns 1 --reruns-delay 1
 
     steps:
       - uses: actions/checkout@v3
