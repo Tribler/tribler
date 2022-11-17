@@ -14,7 +14,8 @@ from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
-from tribler.gui.tribler_request_manager import ShutdownRequest
+from tribler.gui.port_checker import PortChecker
+from tribler.gui.tribler_request_manager import ShutdownRequest, request_manager
 from tribler.gui.utilities import connect
 
 
@@ -56,6 +57,8 @@ class CoreManager(QObject):
         self.last_core_stderr_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
 
         connect(self.events_manager.core_connected, self.on_core_connected)
+
+        self.port_checker = None
 
     def on_core_connected(self, _):
         if self.core_finished:
@@ -122,7 +125,17 @@ class CoreManager(QObject):
     def on_core_started(self):
         self.core_started = True
         self.core_running = True
+        self.start_port_checker()
         self.events_manager.connect(reschedule_on_err=True)  # retry until REST API is ready
+
+    def start_port_checker(self):
+        core_process_id = self.core_process.processId()
+        self.port_checker = PortChecker(core_process_id, self.api_port, self.port_checker_callback)
+        self.port_checker.start_checking()
+
+    def port_checker_callback(self, detected_port):
+        request_manager.port = detected_port
+        self.events_manager.update_port(detected_port)
 
     def on_core_stdout_read_ready(self):
         if self.app_manager.quitting_app:

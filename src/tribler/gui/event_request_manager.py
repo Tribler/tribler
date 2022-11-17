@@ -37,9 +37,10 @@ class EventRequestManager(QNetworkAccessManager):
 
     def __init__(self, api_port, api_key, error_handler):
         QNetworkAccessManager.__init__(self)
-        url = QUrl("http://localhost:%d/events" % api_port)
-        self.request = QNetworkRequest(url)
-        self.request.setRawHeader(b'X-Api-Key', api_key.encode('ascii'))
+        self.api_port = api_port
+        self.api_key = api_key
+        self.request = None
+
         self.start_time = time.time()
         self.connect_timer = QTimer()
         self.current_event_string = ""
@@ -64,6 +65,15 @@ class EventRequestManager(QNetworkAccessManager):
         notifier.add_observer(notifications.remote_query_results, self.on_remote_query_results)
         notifier.add_observer(notifications.tribler_shutdown_state, self.on_tribler_shutdown_state)
         notifier.add_observer(notifications.report_config_error, self.on_report_config_error)
+
+    def create_request(self):
+        url = QUrl(f"http://localhost:{self.api_port}/events")
+        self.request = QNetworkRequest(url)
+        self.request.setRawHeader(b'X-Api-Key', self.api_key.encode('ascii'))
+
+    def update_port(self, new_port):
+        self.api_port = new_port
+        self.create_request()
 
     def on_events_start(self, public_key: str, version: str):
         # if public key format is changed, don't forget to change it at the core side as well
@@ -178,6 +188,9 @@ class EventRequestManager(QNetworkAccessManager):
         self._logger.info(f"Connecting to events endpoint ({'with' if reschedule_on_err else 'without'} retrying)")
         if self.reply is not None:
             self.reply.deleteLater()
+
+        if self.request is None:
+            self.create_request()
 
         # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
         self.setNetworkAccessible(QNetworkAccessManager.Accessible)
