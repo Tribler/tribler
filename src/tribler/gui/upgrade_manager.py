@@ -7,12 +7,14 @@ from typing import List, Optional, TYPE_CHECKING
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
+from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.upgrade.upgrade import TriblerUpgrader
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
 from tribler.gui.defs import BUTTON_TYPE_NORMAL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
 from tribler.gui.utilities import connect, format_size, tr
-from tribler.run_tribler_upgrader import upgrade_state_dir
 
 if TYPE_CHECKING:
     from tribler.gui.tribler_window import TriblerWindow
@@ -23,12 +25,11 @@ class StateDirUpgradeWorker(QObject):
     status_update = pyqtSignal(str)
     stop_upgrade = pyqtSignal()
 
-    def __init__(self, root_state_dir):
+    def __init__(self, version_history: VersionHistory):
         super().__init__()
-        self.root_state_dir = root_state_dir
+        self.version_history = version_history
         self._upgrade_interrupted = False
         connect(self.stop_upgrade, self._stop_upgrade)
-        self._upgrade_state_dir = None
 
     def upgrade_interrupted(self):
         return self._upgrade_interrupted
@@ -41,8 +42,8 @@ class StateDirUpgradeWorker(QObject):
 
     def run(self):
         try:
-            self._upgrade_state_dir(
-                self.root_state_dir,
+            self.upgrade_state_dir(
+                self.version_history,
                 update_status_callback=self._update_status_callback,
                 interrupt_upgrade_event=self.upgrade_interrupted,
             )
@@ -50,6 +51,33 @@ class StateDirUpgradeWorker(QObject):
             self.finished.emit(exc)
         else:
             self.finished.emit(None)
+
+    @staticmethod
+    def upgrade_state_dir(version_history: VersionHistory,
+                          update_status_callback=None,
+                          interrupt_upgrade_event=None):
+        logging.info('Upgrade state dir')
+        # Before any upgrade, prepare a separate state directory for the update version so it does not
+        # affect the older version state directory. This allows for safe rollback.
+        version_history.fork_state_directory_if_necessary()
+        version_history.save_if_necessary()
+        state_dir = version_history.code_version.directory
+        if not state_dir.exists():
+            logging.info('State dir does not exist. Exit upgrade procedure.')
+            return
+
+        config = TriblerConfig.load(state_dir=state_dir, reset_config_on_error=True)
+        channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
+
+        primary_private_key_path = config.state_dir / KeyComponent.get_private_key_filename(config)
+        primary_public_key_path = config.state_dir / config.trustchain.ec_keypair_pubfilename
+        primary_key = KeyComponent.load_or_create(primary_private_key_path, primary_public_key_path)
+        secondary_key = KeyComponent.load_or_create(config.state_dir / config.trustchain.secondary_key_filename)
+
+        upgrader = TriblerUpgrader(state_dir, channels_dir, primary_key, secondary_key,
+                                   update_status_callback=update_status_callback,
+                                   interrupt_upgrade_event=interrupt_upgrade_event)
+        upgrader.run()
 
 
 class UpgradeManager(QObject):
@@ -114,6 +142,8 @@ class UpgradeManager(QObject):
         return message_box.exec_()
 
     def should_cleanup_old_versions(self) -> List[TriblerVersion]:
+        self._logger.info('Getting old versions...')
+
         if self.version_history.last_run_version == self.version_history.code_version:
             return []
 
@@ -145,6 +175,7 @@ class UpgradeManager(QObject):
         return []
 
     def start(self):
+        self._logger.info('Start upgrade process')
         versions_to_delete = self.should_cleanup_old_versions()
         if versions_to_delete:
             for version in versions_to_delete:
@@ -153,9 +184,7 @@ class UpgradeManager(QObject):
         if self.version_history.code_version.should_be_copied:
             self.upgrader_tick.emit(tr('Backing up state directory, please wait'))
 
-        self._upgrade_worker = StateDirUpgradeWorker(self.version_history.root_state_dir)
-
-        self._upgrade_worker._upgrade_state_dir = upgrade_state_dir  # pylint: disable=W0212
+        self._upgrade_worker = StateDirUpgradeWorker(self.version_history)
         self._upgrade_thread = QThread()
         self._upgrade_worker.moveToThread(self._upgrade_thread)
 

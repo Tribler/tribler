@@ -1,12 +1,14 @@
 import json
+import logging
+import os
+import shutil
+from typing import List
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
-from tribler.core.upgrade.version_manager import remove_state_dirs
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
-
 from tribler.gui.defs import (
     DARWIN,
     DEFAULT_API_PORT,
@@ -42,6 +44,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
+        self.logger = logging.getLogger(self.__class__.__name__)
+
         self.settings = None
         self.version_history = None
         self.lang_list = sorted([lang_name for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items()])
@@ -281,7 +285,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             state_dir = checkbox.text().rpartition("   ")[0]
             if not state_dir.startswith(root_version_dir):
                 return None  # safety check just for case
-            state_dir = state_dir[len(root_version_dir) :]
+            state_dir = state_dir[len(root_version_dir):]
             if state_dir.startswith('/'):
                 state_dir = state_dir[1:]
             return state_dir
@@ -294,7 +298,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
                     dirs_selected_for_deletion.append(state_dir)
 
         if self.on_confirm_remove_version_dirs(dirs_selected_for_deletion):
-            remove_state_dirs(root_version_dir, dirs_selected_for_deletion)
+            self.version_history.remove_state_dirs(dirs_selected_for_deletion)
             self.refresh_old_version_checkboxes()
 
     def on_confirm_remove_version_dirs(self, selected_versions):
@@ -307,7 +311,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
             title = tr("Confirm delete older versions?")
             message_body = tr("Are you sure to remove the selected versions? " "\nYou can not undo this action.") + (
-                "\n\n %s" % versions_info
+                    "\n\n %s" % versions_info
             )
 
             message_buttons = QMessageBox.No | QMessageBox.Yes
@@ -329,9 +333,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             "When you download a file of 200 Megabyte, you will pay roughly <b>%d</b>"
             "Megabyte of bandwidth tokens.</p></body></html>"
         ) % (
-            value,
-            400 * (value - 1) + 200,
-        )
+                        value,
+                        400 * (value - 1) + 200,
+                    )
         self.window().anonymity_costs_label.setText(html_text)
 
     def show_updated_cpu_priority(self, value):
@@ -398,9 +402,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
         if (
-            self.window().lt_proxy_server_input.text()
-            and len(self.window().lt_proxy_server_input.text()) > 0
-            and len(self.window().lt_proxy_port_input.text()) > 0
+                self.window().lt_proxy_server_input.text()
+                and len(self.window().lt_proxy_server_input.text()) > 0
+                and len(self.window().lt_proxy_port_input.text()) > 0
         ):
             try:
                 settings_data['libtorrent']['proxy_server'] = "{}:{}".format(
