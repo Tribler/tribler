@@ -31,12 +31,6 @@ jobs:
 
     timeout-minutes: 10
 
-    env:
-      PYTEST_CORE_ARGUMENTS: ./src/tribler/core
-      PYTEST_TUNNELS_ARGUMENTS: ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
-
-      PYTEST_COMMON_ARGUMENTS: --disable-warnings --reruns 1 --reruns-delay 1
-
     steps:
       - uses: actions/checkout@v3
 
@@ -50,31 +44,38 @@ jobs:
         if: runner.os == 'Windows'
         uses: ./.github/actions/windows_dependencies
 
+      - name: Export env
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: ./.github/workflows/vars/pytest.env
+          expand: true
+
       - name: Add --looptime
         if: runner.os != 'Windows'
         run: |
-          echo "PYTEST_COMMON_ARGUMENTS=$PYTEST_COMMON_ARGUMENTS --looptime" >> $GITHUB_ENV
+          echo "PYTEST_CORE_ARGUMENTS=${PYTEST_CORE_ARGUMENTS} --looptime" >> $GITHUB_ENV
+          echo "PYTEST_TUNNELS_ARGUMENTS=${PYTEST_TUNNELS_ARGUMENTS} --looptime" >> $GITHUB_ENV
 
       - name: Run Pytest
         if: ${{!inputs.enable_profiling}}
         run: |
-          pytest ${PYTEST_CORE_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+          pytest ${PYTEST_CORE_ARGUMENTS}
 
       - name: Run Pytest (Profiler)
         if: ${{inputs.enable_profiling}}
         uses: ./.github/actions/profile
         with:
           artifact_name: pytest_prof.svg
-          arguments: ${PYTEST_CORE_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+          arguments: ${PYTEST_CORE_ARGUMENTS}
 
       - name: Run Tunnels Tests
         if: ${{!inputs.enable_profiling}}
         run: |
-          pytest ${PYTEST_TUNNELS_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+          pytest ${PYTEST_TUNNELS_ARGUMENTS}
 
       - name: Run Tunnel Tests (Profiler)
         if: ${{inputs.enable_profiling}}
         uses: ./.github/actions/profile
         with:
           artifact_name: tunneltest_prof.svg
-          arguments: ${PYTEST_TUNNELS_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+          arguments: ${PYTEST_TUNNELS_ARGUMENTS}

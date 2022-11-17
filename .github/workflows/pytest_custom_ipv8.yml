@@ -1,6 +1,23 @@
 name: Run pytest with custom ipv8 version
 
 on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: '3.8'
+        type: string
+        required: true
+
+      matrix:
+        default: '{"os":["windows-latest", "macos-latest", "ubuntu-latest"]}'
+        type: string
+        required: false
+
+      ipv8-git-ref:
+        default: 'master'
+        type: string
+        required: true
+
   workflow_dispatch:
     inputs:
       python-version:
@@ -8,6 +25,11 @@ on:
         default: '3.8'
         type: string
         required: true
+
+      matrix:
+        default: '{"os":["windows-latest", "macos-latest", "ubuntu-latest"]}'
+        type: string
+        required: false
 
       ipv8-git-ref:
         description: IPv8 Git Ref
@@ -19,41 +41,51 @@ jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        os: [ macos-latest, windows-latest, ubuntu-latest ]
-        include:
-          - os: macos-latest
-            pytest-arguments: --timeout=300 --looptime
-          - os: windows-latest
-            pytest-arguments: --timeout=300
-          - os: ubuntu-latest
-            pytest-arguments: --timeout=60 --looptime
+      fail-fast: false
+      matrix: ${{fromJson(inputs.matrix)}}
+
+    defaults:
+      run:
+        shell: bash
+
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
         with:
           python-version: ${{inputs.python-version}}
-
-      - name: Install pip dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-test.txt
+          requirements: requirements-test.txt
 
       - name: Upgrade pyipv8 to the specified version
         run: |
           python -m pip install --upgrade pyipv8@git+https://github.com/Tribler/py-ipv8.git@${{inputs.ipv8-git-ref}}
           python -m pip show pyipv8
 
-      - name: Install windows dependencies
+      - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         uses: ./.github/actions/windows_dependencies
 
-      - name: Run Pytest
+      - name: Export env
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: ./.github/workflows/vars/pytest.env
+          expand: true
+
+      - name: Add --looptime
+        if: runner.os != 'Windows'
         run: |
-          pytest ./src/tribler/core ${{matrix.pytest-arguments}}
+          echo "PYTEST_CORE_ARGUMENTS=${PYTEST_CORE_ARGUMENTS} --looptime" >> $GITHUB_ENV
+          echo "PYTEST_TUNNELS_ARGUMENTS=${PYTEST_TUNNELS_ARGUMENTS} --looptime" >> $GITHUB_ENV
+
+      - name: Run Pytest
+        if: ${{!inputs.enable_profiling}}
+        run: |
+          pytest ${PYTEST_CORE_ARGUMENTS}
 
       - name: Run Tunnels Tests
+        if: ${{!inputs.enable_profiling}}
         run: |
-          pytest ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests ${{matrix.pytest-arguments}}
+          pytest ${PYTEST_TUNNELS_ARGUMENTS}

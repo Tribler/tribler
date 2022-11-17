@@ -16,12 +16,6 @@ jobs:
     name: generate and upload
     runs-on: ubuntu-latest
 
-    env:
-      PYTEST_CORE_ARGUMENTS: ./src/tribler/core
-      PYTEST_TUNNELS_ARGUMENTS: ./src/tribler/core/components/tunnel/tests/test_full_session --tunneltests
-
-      PYTEST_COMMON_ARGUMENTS: --looptime --disable-warnings --reruns 1 --reruns-delay 1
-
     steps:
       - uses: actions/checkout@v3
 
@@ -31,11 +25,23 @@ jobs:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
 
+      - name: Export env
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: ./.github/workflows/vars/pytest.env
+          expand: true
+
+      - name: Add --looptime
+        if: runner.os != 'Windows'
+        run: |
+          echo "PYTEST_CORE_ARGUMENTS=${PYTEST_CORE_ARGUMENTS} --looptime" >> $GITHUB_ENV
+          echo "PYTEST_TUNNELS_ARGUMENTS=${PYTEST_TUNNELS_ARGUMENTS} --looptime" >> $GITHUB_ENV
+
       - name: Run Pytest with Coverage
         timeout-minutes: 10
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_CORE_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
-          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_TUNNELS_ARGUMENTS} ${PYTEST_COMMON_ARGUMENTS}
+          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_CORE_ARGUMENTS}
+          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_TUNNELS_ARGUMENTS}
           coverage combine
           coverage xml
 

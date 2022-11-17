@@ -31,9 +31,6 @@ jobs:
 
     timeout-minutes: 10
 
-    env:
-      PYTEST_ARGUMENTS: ./src/tribler/gui --guitests --randomly-seed=1 --disable-warnings --reruns 1 --reruns-delay 1
-
     steps:
       - uses: actions/checkout@v3
 
@@ -56,22 +53,28 @@ jobs:
         if: runner.os == 'Linux'
         uses: pyvista/setup-headless-display-action@v1
 
+      - name: Export env
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: ./.github/workflows/vars/pytest.env
+          expand: true
+
       - name: Add --looptime
         if: runner.os != 'Windows'
         run: |
-          echo "PYTEST_ARGUMENTS=$PYTEST_ARGUMENTS --looptime" >> $GITHUB_ENV
+          echo "PYTEST_GUI_ARGUMENTS=${PYTEST_GUI_ARGUMENTS} --looptime" >> $GITHUB_ENV
 
       - name: Run GUI tests
         if: ${{!inputs.enable-profiling}}
         run: |
-          pytest ${PYTEST_ARGUMENTS}
+          pytest ${PYTEST_GUI_ARGUMENTS}
 
       - name: Run GUI tests (Profiler)
         if: ${{inputs.enable-profiling}}
         uses: ./.github/actions/profile
         with:
           artifact_name: guitests_prof.svg
-          arguments: ${PYTEST_ARGUMENTS}
+          arguments: ${PYTEST_GUI_ARGUMENTS}
 
       - uses: actions/upload-artifact@v3
         if: always()
