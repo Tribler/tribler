@@ -19,6 +19,8 @@ from tribler.core.version import version_id
 messages_to_wait_for = set()
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture(name='api_port')
 def fixture_api_port(free_port):
     return free_port
@@ -29,9 +31,12 @@ def fixture_notifier(event_loop):
     return Notifier(loop=event_loop)
 
 
-@pytest.fixture(name='endpoint')
-def fixture_endpoint(notifier):
-    return EventsEndpoint(notifier)
+@pytest.fixture
+async def endpoint(notifier):
+    events_endpoint = EventsEndpoint(notifier)
+    yield events_endpoint
+
+    await events_endpoint.shutdown()
 
 
 @pytest.fixture(name='reported_error')

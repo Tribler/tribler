@@ -150,6 +150,9 @@ class RESTComponent(Component):
     async def shutdown(self):
         await super().shutdown()
 
+        if self._events_endpoint:
+            await self._events_endpoint.shutdown()
+
         if self._core_exception_handler:
             self._core_exception_handler.report_callback = None
 

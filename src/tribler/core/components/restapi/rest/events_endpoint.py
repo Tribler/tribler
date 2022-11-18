@@ -71,6 +71,9 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     async def on_shutdown(self, _):
         await self.shutdown_task_manager()
 
+    async def shutdown(self):
+        await self.shutdown_task_manager()
+
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
