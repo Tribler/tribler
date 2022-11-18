@@ -36,6 +36,7 @@ async def transfer():
     yield transfer
 
     await protocol_task_group.cancel()
+    await protocol_task_group.wait()
 
 
 @pytest.mark.looptime(start=42)
