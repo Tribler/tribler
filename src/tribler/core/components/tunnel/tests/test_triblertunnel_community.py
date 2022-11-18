@@ -39,7 +39,7 @@ from tribler.core.utilities.utilities import MEMORY_DB
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture()
-def tunnel_community():
+async def tunnel_community():
     community = TriblerTunnelCommunity(MagicMock(),
                                        MagicMock(),
                                        MagicMock(),
@@ -51,7 +51,8 @@ def tunnel_community():
                                        dht_provider=MagicMock(),
                                        exitnode_cache=MagicMock(),
                                        settings=MagicMock())
-    return community
+    yield community
+    await community.unload()
 
 
 class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-methods

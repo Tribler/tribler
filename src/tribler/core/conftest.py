@@ -153,6 +153,9 @@ async def file_server(tmp_path, free_port):
     site = web.TCPSite(runner, 'localhost', free_port)
     await site.start()
     yield free_port
+
+    await app.shutdown()
+    await runner.shutdown()
     await site.stop()
 
 
@@ -250,6 +253,7 @@ async def test_download(mock_dlmgr, test_tdef):
     download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
     download.infohash = hexlify(test_tdef.get_infohash())
     yield download
+
     await download.shutdown()
 
 
@@ -301,4 +305,5 @@ async def download_manager(tmp_path_factory):
     download_manager.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     download_manager.initialize()
     yield download_manager
+
     await download_manager.shutdown()
