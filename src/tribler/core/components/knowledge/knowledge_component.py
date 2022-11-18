@@ -52,5 +52,7 @@ class KnowledgeComponent(Component):
         await super().shutdown()
         if self._ipv8_component and self.community:
             await self._ipv8_component.unload_community(self.community)
+        if self.rules_processor:
+            await self.rules_processor.shutdown()
         if self.knowledge_db:
             self.knowledge_db.shutdown()
