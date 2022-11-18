@@ -13,7 +13,6 @@ from tribler.core.upgrade.version_manager import (
     VERSION_HISTORY_FILENAME,
     VersionError,
     VersionHistory,
-    remove_state_dirs,
 )
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
@@ -24,7 +23,7 @@ def test_version_to_dirname():
     root_path = Path('/ROOT')
 
     def version_to_dirname(version_str):
-        return TriblerVersion(root_path, version_str).directory
+        return TriblerVersion(root_path, version_str, []).directory
 
     assert version_to_dirname("7.5.4") == Path("/ROOT/7.5")
     assert version_to_dirname("7.5.4-GIT") == Path("/ROOT/7.5")
@@ -206,16 +205,15 @@ def test_fork_state_directory(tmpdir_factory):
     assert history2.last_run_version.version_str == code_version_id
 
 
-
 def test_copy_state_directory(tmpdir):
     src_dir = DUMMY_STATE_DIR
     tgt_dir = Path(tmpdir) / "100.100"
-
     root_state_dir = Path(tmpdir)
-    v1 = TriblerVersion(root_state_dir, "7.8.9")
+    version_history = VersionHistory(root_state_dir)
+    v1 = TriblerVersion(root_state_dir, "7.8.9", [])
     v1.directory = src_dir
 
-    v2 = TriblerVersion(root_state_dir, "100.100.100")
+    v2 = TriblerVersion(root_state_dir, "100.100.100", version_history.files_to_copy)
     assert v2.directory == tgt_dir
 
     v2.copy_state_from(v1)
@@ -340,7 +338,7 @@ def test_installed_versions_and_removal(tmpdir_factory):
 def test_coverage(tmpdir):
     root_state_dir = Path(tmpdir)
 
-    v2 = TriblerVersion(root_state_dir, "7.8.1")
+    v2 = TriblerVersion(root_state_dir, "7.8.1", [])
     assert v2.directory == root_state_dir / "7.8"
     v2.directory.mkdir()
     v2.rename_directory("renamed")
@@ -356,7 +354,7 @@ def test_coverage(tmpdir):
     size = v2.calc_state_size()
     assert size > 0
 
-    v3 = TriblerVersion(root_state_dir, "7.7")
+    v3 = TriblerVersion(root_state_dir, "7.7", [])
     v3.directory.mkdir()
     v3.deleted = True
     v3.delete_state()
@@ -365,10 +363,10 @@ def test_coverage(tmpdir):
     v3.delete_state()
     assert not v3.directory.exists()
 
-    v4 = TriblerVersion(root_state_dir, "7.5.1a")
+    v4 = TriblerVersion(root_state_dir, "7.5.1a", [])
     v4.directory.mkdir()
     (v4.directory / 'triblerd.conf').write_text("abc")
-    v5 = TriblerVersion(root_state_dir, "7.6.1b")
+    v5 = TriblerVersion(root_state_dir, "7.6.1b", ['triblerd.conf'])
     v5.directory.mkdir()
     with pytest.raises(VersionError, match='Directory for version 7.6.1b already exists'):
         v5.copy_state_from(v4)
@@ -397,7 +395,7 @@ def test_coverage(tmpdir):
     for name in names:
         assert name in ('7.5', '7.6', 'channels', 'sqlite') or name.startswith("deleted_v7.8_")
 
-    remove_state_dirs(root_state_dir, names)
+    VersionHistory(root_state_dir).remove_state_dirs(names)
     assert not (root_state_dir / "7.5").exists()
     assert not (root_state_dir / "7.6").exists()
     assert not (root_state_dir / "channels").exists()

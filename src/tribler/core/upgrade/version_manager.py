@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os.path
+import os
 import shutil
 import time
 from collections import OrderedDict
@@ -57,9 +57,6 @@ class VersionError(Exception):
     pass
 
 
-logger = logging.getLogger(__name__)
-
-
 # pylint: disable=too-many-instance-attributes
 class TriblerVersion:
     version_str: str
@@ -75,7 +72,8 @@ class TriblerVersion:
     should_recreate_directory: bool
     deleted: bool
 
-    def __init__(self, root_state_dir: Path, version_str: str, last_launched_at: Optional[float] = None):
+    def __init__(self, root_state_dir: Path, version_str: str, files_to_copy: List[str],
+                 last_launched_at: Optional[float] = None):
         if last_launched_at is None:
             last_launched_at = time.time()
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -92,24 +90,10 @@ class TriblerVersion:
         self.should_be_copied = False
         self.should_recreate_directory = False
         self.deleted = False
-        self.files_to_copy = self.fill_files_to_copy()
+        self.files_to_copy = files_to_copy
 
     def __repr__(self):
         return f'<{self.__class__.__name__}{{{self.version_str}}}>'
-
-    def fill_files_to_copy(self) -> List[str]:
-        config = TriblerConfig(state_dir=self.root_state_dir)
-        files_to_copy = [
-            config.trustchain.ec_keypair_filename,
-            config.trustchain.ec_keypair_pubfilename,
-            config.trustchain.secondary_key_filename,
-            config.trustchain.testnet_keypair_filename,
-            config.file.name,
-            LTSTATE_FILENAME
-        ]
-
-        self.logger.info(f'Files to copy: {files_to_copy}')
-        return files_to_copy
 
     def get_directory(self):
         return self.root_state_dir / ('%d.%d' % self.major_minor)
@@ -145,7 +129,7 @@ class TriblerVersion:
         if self.deleted:
             return None
 
-        logger.info(f"Delete state directory for version {self.version_str}")
+        self.logger.info(f"Delete state directory for version {self.version_str}")
 
         self.deleted = True
         for filename in self.files_to_copy:
@@ -166,8 +150,7 @@ class TriblerVersion:
         return None
 
     def copy_state_from(self, other: TriblerVersion, overwrite=False):
-
-        logger.info(f"Copy state directory from version {other.version_str} to version {self.version_str}")
+        self.logger.info(f"Copy state directory from version {other.version_str} to version {self.version_str}")
 
         if self.directory.exists():
             if not overwrite:
@@ -175,7 +158,7 @@ class TriblerVersion:
             self.delete_state()
 
         if self.tmp_copy_directory.exists():
-            logger.info("Remove the previous unfinished temporary copy of the state directory")
+            self.logger.info("Remove the previous unfinished temporary copy of the state directory")
             shutil.rmtree(self.tmp_copy_directory)
 
         self.tmp_copy_directory.mkdir()
@@ -193,7 +176,7 @@ class TriblerVersion:
                 shutil.copy(src, dst)
 
         self.tmp_copy_directory.rename(self.directory)
-        logger.info(f"State directory is copied from version {other.version_str} to version {self.version_str}")
+        self.logger.info(f"State directory is copied from version {other.version_str} to version {self.version_str}")
 
     def rename_directory(self, prefix='unused_v'):
         if self.directory == self.root_state_dir:
@@ -201,7 +184,7 @@ class TriblerVersion:
         timestamp_str = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         dirname = prefix + '%d.%d' % self.major_minor + '_' + timestamp_str
 
-        logger.info(f"Rename state directory for version {self.version_str} to {dirname}")
+        self.logger.info(f"Rename state directory for version {self.version_str} to {dirname}")
         return self.directory.rename(self.root_state_dir / dirname)
 
 
@@ -224,10 +207,12 @@ class VersionHistory:
     def __init__(self, root_state_dir: Path, code_version_id: Optional[str] = None):
         if code_version_id is None:
             code_version_id = tribler.core.version.version_id
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         self.root_state_dir = root_state_dir
         self.file_path = root_state_dir / VERSION_HISTORY_FILENAME
         self.file_data = {"last_version": None, "history": {}}
+        self.files_to_copy = self.fill_files_to_copy()
         self.versions = versions = OrderedDict()
         if self.file_path.exists():
             self.load(self.file_path)
@@ -240,19 +225,20 @@ class VersionHistory:
             for i in range(len(versions_by_time) - 1):
                 versions_by_time[i].prev_version_by_time = versions_by_time[i + 1]
 
-        code_version = TriblerVersion(root_state_dir, code_version_id)
+        code_version = TriblerVersion(root_state_dir, code_version_id, self.files_to_copy)
 
         if not last_run_version:
             # No previous versions found
-            logger.info(f"No previous version found, current Tribler version is {code_version.version_str}")
+            self.logger.info(f"No previous version found, current Tribler version is {code_version.version_str}")
         elif last_run_version.version_str == code_version.version_str:
             # Previously we started the same version, nothing to upgrade
             code_version = last_run_version
-            logger.info(f"The previously started version is the same as the current one: {code_version.version_str}")
+            self.logger.info(
+                f"The previously started version is the same as the current one: {code_version.version_str}")
         elif last_run_version.major_minor == code_version.major_minor:
             # Previously we started version from the same directory and can continue use this directory
-            logger.info(f"The previous version {last_run_version.version_str} "
-                        f"used the same state directory as the current version {code_version.version_str}")
+            self.logger.info(f"The previous version {last_run_version.version_str} "
+                             f"used the same state directory as the current version {code_version.version_str}")
         else:
             # Previously we started version from the different directory
             for v in versions_by_time:
@@ -262,37 +248,52 @@ class VersionHistory:
 
             if code_version.can_be_copied_from:
                 if not code_version.directory.exists():
-                    logger.info(f"The state directory for the current version {code_version.version_str} "
-                                f"does not exists and can be copied from {code_version.can_be_copied_from.version_str}")
+                    self.logger.info(f"The state directory for the current version {code_version.version_str} "
+                                     f"does not exists and can be copied from {code_version.can_be_copied_from.version_str}")
                     code_version.should_be_copied = True
 
                 elif code_version.major_minor in versions:
                     # We already used version with this major.minor number, but not the last time.
                     # We need to upgrade from the latest version if possible (see description at the top of the file).
                     # Probably we should ask user, should we copy data again from the previous version or not
-                    logger.info(f"The state directory for the current version {code_version.version_str} "
-                                f"exists but is not the last used version "
-                                f"and can be copied from {code_version.can_be_copied_from.version_str}")
+                    self.logger.info(f"The state directory for the current version {code_version.version_str} "
+                                     f"exists but is not the last used version "
+                                     f"and can be copied from {code_version.can_be_copied_from.version_str}")
                     code_version.should_be_copied = True
                     code_version.should_recreate_directory = True
                 else:
-                    logger.info(f"The state directory for the current version {code_version.version_str} "
-                                f"is present, but the version does not listed in version history. Will not copy state "
-                                f"from a previous version {code_version.can_be_copied_from.version_str}")
+                    self.logger.info(f"The state directory for the current version {code_version.version_str} "
+                                     f"is present, but the version does not listed in version history. Will not copy state "
+                                     f"from a previous version {code_version.can_be_copied_from.version_str}")
 
             else:
-                logger.info("Cannot find the previous suitable version to copy state directory")
+                self.logger.info("Cannot find the previous suitable version to copy state directory")
 
         self.versions_by_number = sorted(versions.values(), key=attrgetter('major_minor'))
         self.versions_by_time = versions_by_time
         self.last_run_version = last_run_version
         self.code_version = code_version
 
+    def fill_files_to_copy(self) -> List[str]:
+        config = TriblerConfig(state_dir=self.root_state_dir)
+        files_to_copy = [
+            config.trustchain.ec_keypair_filename,
+            config.trustchain.ec_keypair_pubfilename,
+            config.trustchain.secondary_key_filename,
+            config.trustchain.testnet_keypair_filename,
+            config.file.name,
+            LTSTATE_FILENAME
+        ]
+
+        self.logger.info(f'Files to copy: {files_to_copy}')
+        return files_to_copy
+
     def __repr__(self):
         s = repr([v.major_minor for v in self.versions_by_time])
         return f'<{self.__class__.__name__}{s}>'
 
     def load(self, file_path: Path):
+        self.logger.info(f'Load: {file_path}')
         self.file_data = json.loads(file_path.read_text().strip())
         if "history" not in self.file_data:
             raise VersionError("Invalid history file structure")
@@ -300,11 +301,18 @@ class VersionHistory:
         # timestamps needs to be converted to float before sorting
         history_items = [(float(time_str), version_str) for time_str, version_str in self.file_data["history"].items()]
         for timestamp, version_str in sorted(history_items):
-            version = TriblerVersion(self.root_state_dir, version_str, timestamp)
+            self.logger.debug(f'Check version: {version_str}:{timestamp}')
+            version = TriblerVersion(
+                root_state_dir=self.root_state_dir,
+                version_str=version_str,
+                files_to_copy=self.files_to_copy,
+                last_launched_at=timestamp,
+            )
             # store only versions with directories:
             if version.state_exists():
                 # eventually store only the latest launched version with the same major_minor tuple
                 self.add_version(version)
+        self.logger.info(f'Loaded versions: {self.versions}')
 
     def add_version(self, version):
         self.versions[version.major_minor] = version
@@ -314,7 +322,7 @@ class VersionHistory:
         """Returns True if state was saved"""
         should_save = self.code_version != self.last_run_version
         if should_save:
-            logger.info("Save version history")
+            self.logger.info("Save version history")
             self.save()
         return should_save
 
@@ -325,11 +333,13 @@ class VersionHistory:
 
     def fork_state_directory_if_necessary(self) -> Optional[TriblerVersion]:
         """Returns version string from which the state directory was forked"""
+        self.logger.info('Fork state directory')
         code_version = self.code_version
         if code_version.should_recreate_directory:
             code_version.rename_directory()
 
         if code_version.should_be_copied:
+            self.logger.info('State directory should be copied')
             prev_version = code_version.can_be_copied_from
             if prev_version:  # should always be True here
                 code_version.copy_state_from(prev_version)
@@ -345,14 +355,22 @@ class VersionHistory:
         return installed_versions
 
     def get_disposable_versions(self, skip_versions: int = 0) -> List[TriblerVersion]:
+        self.logger.info('Getting disposable versions...')
+
         # versions are sorted in the order of usage, we want to keep the current version and two previous versions
         disposable_versions = [
             v for v in self.versions_by_time if not v.deleted and v.major_minor != self.code_version.major_minor
         ]
-        return disposable_versions[skip_versions:]
+
+        self.logger.info(f'Disposable versions: {disposable_versions}')
+
+        result = disposable_versions[skip_versions:]
+        self.logger.info(f'Disposable versions without skipped: {result}')
+
+        return result
 
     def get_disposable_state_directories(
-        self, skip_versions: int = 0, include_unused=True, include_deleted=True, include_old_dirs=True
+            self, skip_versions: int = 0, include_unused=True, include_deleted=True, include_old_dirs=True
     ) -> List[Path]:
         result = []
         for v in self.get_disposable_versions(skip_versions):
@@ -374,9 +392,8 @@ class VersionHistory:
         result.sort()
         return result
 
-
-def remove_state_dirs(root_state_dir: str, state_dirs: List[str]):
-    for state_dir in state_dirs:
-        logger.info(f"Remove state directory {state_dir}")
-        state_dir = os.path.join(root_state_dir, state_dir)
-        shutil.rmtree(state_dir, ignore_errors=True)
+    def remove_state_dirs(self, state_dirs: List[str]):
+        for state_dir in state_dirs:
+            self.logger.info(f"Remove state directory {state_dir}")
+            state_dir = os.path.join(self.root_state_dir, state_dir)
+            shutil.rmtree(state_dir, ignore_errors=True)
