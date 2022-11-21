@@ -15,6 +15,8 @@ from pony.orm.dbapiprovider import OperationalError
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
+from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -205,7 +207,7 @@ class RemoteQueryCommunity(TriblerCommunity):
             return await self.process_rpc_query(sanitized_parameters)
         finally:
             self.remote_queries_in_progress -= 1
-            self.logger.info(f'Remote query {query_num} processed in {time.time()-t} seconds: {sanitized_parameters}')
+            self.logger.info(f'Remote query {query_num} processed in {time.time() - t} seconds: {sanitized_parameters}')
 
     async def process_rpc_query(self, sanitized_parameters: Dict[str, Any]) -> List:
         """
@@ -229,7 +231,13 @@ class RemoteQueryCommunity(TriblerCommunity):
         if not tags or not self.knowledge_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_resource(tag)}
-        return self.knowledge_db.get_subjects_intersection(valid_tags, predicate=ResourceType.TAG, case_sensitive=False)
+        result = self.knowledge_db.get_subjects_intersection(
+            subjects_type=ResourceType.TORRENT,
+            objects=valid_tags,
+            predicate=ResourceType.TAG,
+            case_sensitive=False
+        )
+        return result
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 

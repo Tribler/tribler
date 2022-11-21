@@ -71,7 +71,7 @@ async def test_modify_tags(rest_api, knowledge_db):
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = knowledge_db.get_objects(infohash, predicate=ResourceType.TAG)
+            tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
         assert len(tags) == 2
 
         # Now remove a tag
@@ -80,7 +80,7 @@ async def test_modify_tags(rest_api, knowledge_db):
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = knowledge_db.get_objects(infohash, predicate=ResourceType.TAG)
+            tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
         assert tags == ["abc"]
 
 
@@ -90,7 +90,7 @@ async def test_modify_tags_no_community(knowledge_db, knowledge_endpoint):
     knowledge_endpoint.modify_statements(infohash, [tag_to_statement("abc"), tag_to_statement("def")])
 
     with db_session:
-        tags = knowledge_db.get_objects(infohash, predicate=ResourceType.TAG)
+        tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
 
     assert len(tags) == 0
 

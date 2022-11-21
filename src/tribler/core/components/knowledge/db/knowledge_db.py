@@ -2,10 +2,11 @@ import datetime
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Callable, Iterable, List, Optional, Set, Dict
+from typing import Callable, Iterator, List, Optional, Set
 
 from pony import orm
-from pony.orm.core import Entity
+from pony.orm import raw_sql
+from pony.orm.core import Entity, Query, select
 from pony.utils import between
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
@@ -54,6 +55,7 @@ class ResourceType(IntEnum):
 
 @dataclass
 class SimpleStatement:
+    subject_type: ResourceType
     object: str
     predicate: ResourceType
     subject: str
@@ -80,8 +82,7 @@ class KnowledgeDatabase:
             id = orm.PrimaryKey(int, auto=True)
 
             subject = orm.Required(lambda: Resource)
-            predicate = orm.Required(int, default=ResourceType.TAG, index=True)
-            object = orm.Required(lambda: Resource)
+            object = orm.Required(lambda: Resource, index=True)
 
             operations = orm.Set(lambda: StatementOp)
 
@@ -90,7 +91,7 @@ class KnowledgeDatabase:
 
             local_operation = orm.Optional(int)  # in case user don't (or do) want to see it locally
 
-            orm.composite_key(subject, predicate, object)
+            orm.composite_key(subject, object)
 
             @property
             def score(self):
@@ -155,7 +156,7 @@ class KnowledgeDatabase:
         peer = get_or_create(self.instance.Peer, public_key=operation.creator_public_key)
         subject = get_or_create(self.instance.Resource, name=operation.subject, type=operation.subject_type)
         obj = get_or_create(self.instance.Resource, name=operation.object, type=operation.predicate)
-        statement = get_or_create(self.instance.Statement, subject=subject, predicate=operation.predicate, object=obj)
+        statement = get_or_create(self.instance.Statement, subject=subject, object=obj)
         op = self.instance.StatementOp.get_for_update(statement=statement, peer=peer)
 
         if not op:  # then insert
@@ -206,135 +207,183 @@ class KnowledgeDatabase:
                                   counter_increment=SHOW_THRESHOLD)
 
     @staticmethod
-    def _show_condition(statement):
+    def _show_condition(s):
         """This function determines show condition for the statement"""
-        return statement.local_operation == Operation.ADD.value or \
-               not statement.local_operation and statement.score >= SHOW_THRESHOLD
+        return s.local_operation == Operation.ADD.value or not s.local_operation and s.score >= SHOW_THRESHOLD
 
-    def _get_resources(self, resource: str, condition: Callable[[], bool], predicate: ResourceType,
-                       case_sensitive: bool, is_normal_direction: bool) -> List[str]:
-        """ Get resources that satisfies a given condition.
+    def _get_resources(self, resource_type: Optional[ResourceType], name: Optional[str], case_sensitive: bool) -> Query:
+        """ Get resources
 
         Args:
-            resource: a string that represents a resource.
-            condition: a condition that will be applied for querying statements.
-            predicate: the enum that represents a predicate of querying operations.
-            case_sensitive: if True, then Resources will be selected in case sensitive manner. if False, then Resources
-                will be selected in case insensitive manner.
-            is_normal_direction: normality here refers to the direction 'Subject'->'Object'. That is why if this
-                argument is set to 'False', then it refers to the direction 'Object'->'Subject'
-
-        Returns: a list of the strings representing the resources.
+            resource_type: type of resources
+            name: name of resources
+            case_sensitive: if True, then Resources are selected in a case-sensitive manner. if False, then Resources
+                are selected in a case-insensitive manner.
+        
+        Returns: a Query object for requested resources
         """
-        if case_sensitive:
-            resources = list(self.instance.Resource.select(lambda r: r.name == resource))
-        else:
-            resources = list(self.instance.Resource.select(lambda r: r.name.lower() == resource.lower()))
 
-        if not resources:
-            return []
-
-        result = []
-        for resource_entity in resources:
-            query = (
-                (resource_entity.subject_statements if is_normal_direction else resource_entity.object_statements)
-                .select(condition)
-                .filter(lambda statement: statement.predicate == predicate.value)
+        results = self.instance.Resource.select()
+        if name:
+            results = results.filter(
+                (lambda r: r.name == name) if case_sensitive else (lambda r: r.name.lower() == name.lower())
             )
-            query = query.order_by(lambda statement: orm.desc(statement.score))
-            query = orm.select(s.object.name if is_normal_direction else s.subject.name for s in query)
-            result.extend(query)
-        return result
+        if resource_type:
+            results = results.filter(lambda r: r.type == resource_type.value)
+        return results
 
-    def get_objects(self, subject: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
-        """ Get resources that satisfies given subject and predicate.
+    def _get_statements(self, source_type: Optional[ResourceType], source_name: Optional[str],
+                        statements_getter: Callable[[Entity], Entity],
+                        target_condition: Callable[[], bool], condition: Callable[[], bool],
+                        case_sensitive: bool, ) -> Iterator[str]:
+        """ Get entities that satisfies the given condition.
+        """
+
+        for resource in self._get_resources(source_type, source_name, case_sensitive):
+            results = orm.select(_ for _ in statements_getter(resource)
+                                 .select(condition)
+                                 .filter(target_condition)
+                                 .order_by(lambda s: orm.desc(s.score)))
+
+            yield from list(results)
+
+    def get_objects(self, subject_type: Optional[ResourceType] = None, subject: Optional[str] = '',
+                    predicate: Optional[ResourceType] = None, case_sensitive: bool = True,
+                    condition: Callable[[], bool] = None) -> List[str]:
+        """ Get objects that satisfy the given subject and predicate.
+
+        To understand the order of parameters, keep in ming the following generic construction:
+        (<subject_type>, <subject>, <predicate>, <object>).
+
+        So in the case of retrieving objects this construction becomes
+        (<subject_type>, <subject>, <predicate>, ?).
 
         Args:
+            subject_type: a type of the subject.
             subject: a string that represents the subject.
             predicate: the enum that represents a predicate of querying operations.
-            case_sensitive: if True, then Resources will be selected in case sensitive manner. if False, then Resources
-                will be selected in case insensitive manner.
+            case_sensitive: if True, then Resources are selected in a case-sensitive manner. if False, then Resources
+                are selected in a case-insensitive manner.
 
         Returns: a list of the strings representing the objects.
         """
-        self.logger.debug(f'Get resources for {subject} with {predicate}')
+        self.logger.debug(f'Get subjects for {subject} with {predicate}')
 
-        return self._get_resources(subject, self._show_condition, predicate, case_sensitive, is_normal_direction=True)
+        statements = self._get_statements(
+            source_type=subject_type,
+            source_name=subject,
+            statements_getter=lambda r: r.subject_statements,
+            target_condition=(lambda s: s.object.type == predicate.value) if predicate else (lambda _: True),
+            condition=condition or self._show_condition,
+            case_sensitive=case_sensitive,
+        )
+        return [s.object.name for s in statements]
 
-    def get_subjects(self, obj: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
-        """ Get list of subjects that could be linked back to the objects.
+    def get_subjects(self, subject_type: Optional[ResourceType] = None, predicate: Optional[ResourceType] = None,
+                     obj: Optional[str] = '', case_sensitive: bool = True) -> List[str]:
+        """ Get subjects that satisfy the given object and predicate.
+        To understand the order of parameters, keep in ming the following generic construction:
+
+        (<subject_type>, <subject>, <predicate>, <object>).
+
+        So in the case of retrieving subjects this construction becomes
+        (<subject_type>, ?, <predicate>, <object>).
 
         Args:
+            subject_type: a type of the subject.
             obj: a string that represents the object.
             predicate: the enum that represents a predicate of querying operations.
-            case_sensitive: if True, then Resources will be selected in case sensitive manner. if False, then Resources
-                will be selected in case insensitive manner.
+            case_sensitive: if True, then Resources are selected in a case-sensitive manner. if False, then Resources
+                are selected in a case-insensitive manner.
 
         Returns: a list of the strings representing the subjects.
         """
         self.logger.debug(f'Get linked back resources for {obj} with {predicate}')
 
-        return self._get_resources(obj, self._show_condition, predicate, case_sensitive, is_normal_direction=False)
+        statements = self._get_statements(
+            source_type=predicate,
+            source_name=obj,
+            statements_getter=lambda r: r.object_statements,
+            target_condition=(lambda s: s.subject.type == subject_type.value) if subject_type else (lambda _: True),
+            condition=self._show_condition,
+            case_sensitive=case_sensitive,
+        )
 
-    def get_statements(self, subject: str, case_sensitive: bool = True) -> List[SimpleStatement]:
-        if case_sensitive:
-            resources = list(self.instance.Resource.select(lambda r: r.name == subject))
-        else:
-            resources = list(self.instance.Resource.select(lambda r: r.name.lower() == subject.lower()))
+        return [s.subject.name for s in statements]
 
-        if not resources:
-            return []
+    def get_statements(self, subject_type: Optional[ResourceType] = None, subject: Optional[str] = '',
+                       case_sensitive: bool = True) -> List[SimpleStatement]:
 
-        statements = []
-        for resource_entity in resources:
-            query = resource_entity.subject_statements.select(self._show_condition)
-            for s in query.order_by(lambda statement: orm.desc(statement.score)):
-                statement = SimpleStatement(
-                    subject=s.subject.name,
-                    predicate=s.predicate,
-                    object=s.object.name
-                )
+        statements = self._get_statements(
+            source_type=subject_type,
+            source_name=subject,
+            statements_getter=lambda r: r.subject_statements,
+            target_condition=lambda _: True,
+            condition=self._show_condition,
+            case_sensitive=case_sensitive,
+        )
 
-                statements.append(statement)
-        return statements
+        statements = map(lambda s: SimpleStatement(
+            subject_type=s.subject.type,
+            subject=s.subject.name,
+            predicate=s.object.type,
+            object=s.object.name
+        ), statements)
 
-    def get_suggestions(self, subject: str, predicate: ResourceType, case_sensitive: bool = True) -> List[str]:
+        return list(statements)
+
+    def get_suggestions(self, subject_type: Optional[ResourceType] = None, subject: Optional[str] = '',
+                        predicate: Optional[ResourceType] = None, case_sensitive: bool = True) -> List[str]:
         """ Get all suggestions for a particular subject.
 
         Args:
+            subject_type: a type of the subject.
             subject: a string that represents the subject.
             predicate: the enum that represents a predicate of querying operations.
-            case_sensitive: if True, then Resources will be selected in case sensitive manner. if False, then Resources
-                will be selected in case insensitive manner.
+            case_sensitive: if True, then Resources are selected in a case-sensitive manner. if False, then Resources
+                are selected in a case-insensitive manner.
 
         Returns: a list of the strings representing the objects.
         """
         self.logger.debug(f"Getting suggestions for {subject} with {predicate}")
 
-        def show_suggestions_condition(statement):
-            return not statement.local_operation and \
-                   between(statement.score, HIDE_THRESHOLD + 1, SHOW_THRESHOLD - 1)
+        suggestions = self.get_objects(
+            subject_type=subject_type,
+            subject=subject,
+            predicate=predicate,
+            case_sensitive=case_sensitive,
+            condition=lambda s: not s.local_operation and between(s.score, HIDE_THRESHOLD + 1, SHOW_THRESHOLD - 1)
+        )
+        return suggestions
 
-        return self._get_resources(subject, show_suggestions_condition, predicate, case_sensitive,
-                                   is_normal_direction=True)
-
-    def get_subjects_intersection(self, objects: Set[str], predicate: ResourceType,
+    def get_subjects_intersection(self, subjects_type: Optional[ResourceType], objects: Set[str],
+                                  predicate: Optional[ResourceType],
                                   case_sensitive: bool = True) -> Set[str]:
-        """Queries the subjects with the given objects and the predicate. Then made an intersection among them.
+        if not objects:
+            return set()
 
-        In the Tribler, this method is mostly used for searching by tags.
+        if case_sensitive:
+            name_condition = '"obj"."name" = $obj_name'
+        else:
+            name_condition = 'py_lower("obj"."name") = py_lower($obj_name)'
 
-        Args:
-            objects: a set of strings that represents the objects.
-            predicate: the enum that represents a predicate of querying operations.
-            case_sensitive: if True, then Resources will be selected in case sensitive manner. if False, then Resources
-                will be selected in case insensitive manner.
-
-        Returns: a list of the strings representing the subjects.
-        """
-        # FIXME: Ask @kozlovsky how to do it in a proper way
-        sets = [set(self.get_subjects(o, predicate, case_sensitive)) for o in objects]
-        return set.intersection(*sets)
+        query = select(r.name for r in self.instance.Resource)
+        for obj_name in objects:
+            query = query.filter(raw_sql(f"""
+    r.id IN (
+        SELECT "s"."subject"
+        FROM "Statement" "s"
+        WHERE (
+            "s"."local_operation" = $(Operation.ADD.value)
+        OR
+            ("s"."local_operation" = 0 OR "s"."local_operation" IS NULL)
+            AND ("s"."added_count" - "s"."removed_count") >= $SHOW_THRESHOLD
+        ) AND "s"."object" IN (
+            SELECT "obj"."id" FROM "Resource" "obj"
+            WHERE "obj"."type" = $(predicate.value) AND {name_condition}
+        )
+    )"""))
+        return set(query)
 
     def get_clock(self, operation: StatementOperation) -> int:
         """ Get the clock (int) of operation.
@@ -345,7 +394,7 @@ class KnowledgeDatabase:
         if not subject or not obj or not peer:
             return CLOCK_START_VALUE
 
-        statement = self.instance.Statement.get(subject=subject, object=obj, predicate=operation.predicate)
+        statement = self.instance.Statement.get(subject=subject, object=obj)
         if not statement:
             return CLOCK_START_VALUE
 

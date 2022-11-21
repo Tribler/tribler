@@ -125,7 +125,7 @@ def test_migration(migration: MigrationTagsToKnowledge):
             operation = StatementOperation(
                 subject_type=operation.statement.subject.type,
                 subject=operation.statement.subject.name,
-                predicate=operation.statement.predicate,
+                predicate=operation.statement.object.type,
                 object=operation.statement.object.name,
                 operation=operation.operation,
                 clock=operation.clock,

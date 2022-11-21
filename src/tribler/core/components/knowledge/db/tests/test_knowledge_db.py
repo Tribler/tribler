@@ -133,35 +133,27 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_remote_add_multiple_tag_operations(self):
-        self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1')
-        self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer2')
-        self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer3')
-        self.add_operation(self.db, ResourceType.TITLE, 'title', ResourceType.TORRENT, 'infohash', b'peer1')
+        def _get_statement(t: ResourceType):
+            resources = list(self.db.instance.Resource.select(type=t))
+            return list(resources[0].object_statements).pop()
 
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).added_count == 3
-        assert self.db.instance.Statement.get(predicate=ResourceType.TORRENT).added_count == 1
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).removed_count == 0
-        assert self.db.instance.Statement.get(predicate=ResourceType.TORRENT).removed_count == 0
+        self.add_operation(self.db, subject='infohash', obj='tag', peer=b'peer1')
+        self.add_operation(self.db, subject='infohash', obj='tag', peer=b'peer2')
 
-        self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer2',
-                           operation=Operation.REMOVE)
-        self.add_operation(self.db, ResourceType.TITLE, 'title', ResourceType.TORRENT, 'infohash', b'peer2',
-                           operation=Operation.REMOVE)
+        assert _get_statement(ResourceType.TAG).added_count == 2
+        assert _get_statement(ResourceType.TAG).removed_count == 0
 
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).added_count == 2
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).removed_count == 1
+        self.add_operation(self.db, subject='infohash', obj='tag', peer=b'peer1', operation=Operation.REMOVE)
+        assert _get_statement(ResourceType.TAG).added_count == 1
+        assert _get_statement(ResourceType.TAG).removed_count == 1
 
-        assert self.db.instance.Statement.get(predicate=ResourceType.TORRENT).added_count == 1
-        assert self.db.instance.Statement.get(predicate=ResourceType.TORRENT).removed_count == 1
+        self.add_operation(self.db, subject='infohash', obj='tag', peer=b'peer2', operation=Operation.REMOVE)
+        assert _get_statement(ResourceType.TAG).added_count == 0
+        assert _get_statement(ResourceType.TAG).removed_count == 2
 
-        self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1',
-                           operation=Operation.REMOVE)
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).added_count == 1
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).removed_count == 2
-
-        self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1')
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).added_count == 2
-        assert self.db.instance.Statement.get(predicate=ResourceType.TAG).removed_count == 1
+        self.add_operation(self.db, subject='infohash', obj='tag', peer=b'peer1')
+        assert _get_statement(ResourceType.TAG).added_count == 1
+        assert _get_statement(ResourceType.TAG).removed_count == 1
 
     @db_session
     def test_add_auto_generated_tag(self):
@@ -196,16 +188,13 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        def assert_entities_count():
-            assert self.db.instance.Statement.select().count() == 8
-            assert self.db.instance.Resource.select().count() == 8
-            assert self.db.instance.StatementOp.select().count() == 10
-
-        assert_entities_count()
+        assert self.db.instance.Statement.select().count() == 8
+        assert self.db.instance.Resource.select().count() == 8
+        assert self.db.instance.StatementOp.select().count() == 10
 
         infohash1 = self.db.instance.Resource.get(name='infohash1')
         tag1 = self.db.instance.Resource.get(name='tag1')
-        statement = self.db.instance.Statement.get(subject=infohash1, predicate=ResourceType.TAG, object=tag1)
+        statement = self.db.instance.Statement.get(subject=infohash1, object=tag1)
         assert statement.added_count == 2
         assert statement.removed_count == 0
 
@@ -223,9 +212,9 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        assert not self.db.get_objects('missed infohash', predicate=ResourceType.TAG)
-        assert self.db.get_objects('infohash1', predicate=ResourceType.TAG) == ['tag3', 'tag2']
-        assert self.db.get_objects('infohash1', predicate=ResourceType.CONTRIBUTOR) == ['Contributor']
+        assert not self.db.get_objects(subject='missed infohash', predicate=ResourceType.TAG)
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag3', 'tag2']
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.CONTRIBUTOR) == ['Contributor']
 
     @db_session
     def test_get_objects_removed(self):
@@ -242,41 +231,42 @@ class TestTagDB(TestTagDBBase):
         self.add_operation(self.db, subject='infohash1', predicate=ResourceType.TAG, obj='tag2', peer=b'4',
                            operation=Operation.REMOVE)
 
-        assert self.db.get_objects('infohash1', predicate=ResourceType.TAG) == ['tag1']
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
 
     @db_session
     def test_get_objects_case_insensitive(self):
         # Test that for case sensitive queries the result is the exact match.
         # Test that for case insensitive queries the result is the case insensitive match.
 
+        torrent = ResourceType.TORRENT
         self.add_operation_set(
             self.db,
             {
                 'ubuntu': [
-                    Resource(predicate=ResourceType.TORRENT, name='torrent'),
+                    Resource(predicate=torrent, name='torrent'),
                 ],
                 'Ubuntu': [
-                    Resource(predicate=ResourceType.TORRENT, name='Torrent'),
+                    Resource(predicate=torrent, name='Torrent'),
                 ],
                 'UBUNTU': [
-                    Resource(predicate=ResourceType.TORRENT, name='TORRENT'),
+                    Resource(predicate=torrent, name='TORRENT'),
                 ]
             }
         )
 
         all_torrents = ['torrent', 'Torrent', 'TORRENT']
-        assert self.db.get_objects('ubuntu', predicate=ResourceType.TORRENT, case_sensitive=False) == all_torrents
-        assert self.db.get_objects('Ubuntu', predicate=ResourceType.TORRENT, case_sensitive=False) == all_torrents
+        assert self.db.get_objects(subject='ubuntu', predicate=torrent, case_sensitive=False) == all_torrents
+        assert self.db.get_objects(subject='Ubuntu', predicate=torrent, case_sensitive=False) == all_torrents
 
-        assert self.db.get_objects('ubuntu', predicate=ResourceType.TORRENT, case_sensitive=True) == ['torrent']
-        assert self.db.get_objects('Ubuntu', predicate=ResourceType.TORRENT, case_sensitive=True) == ['Torrent']
+        assert self.db.get_objects(subject='ubuntu', predicate=torrent, case_sensitive=True) == ['torrent']
+        assert self.db.get_objects(subject='Ubuntu', predicate=torrent, case_sensitive=True) == ['Torrent']
 
         all_ubuntu = ['ubuntu', 'Ubuntu', 'UBUNTU']
-        assert self.db.get_subjects('torrent', predicate=ResourceType.TORRENT, case_sensitive=False) == all_ubuntu
-        assert self.db.get_subjects('Torrent', predicate=ResourceType.TORRENT, case_sensitive=False) == all_ubuntu
+        assert self.db.get_subjects(obj='torrent', predicate=torrent, case_sensitive=False) == all_ubuntu
+        assert self.db.get_subjects(obj='Torrent', predicate=torrent, case_sensitive=False) == all_ubuntu
 
-        assert self.db.get_subjects('torrent', predicate=ResourceType.TORRENT, case_sensitive=True) == ['ubuntu']
-        assert self.db.get_subjects('Torrent', predicate=ResourceType.TORRENT, case_sensitive=True) == ['Ubuntu']
+        assert self.db.get_subjects(obj='torrent', predicate=torrent, case_sensitive=True) == ['ubuntu']
+        assert self.db.get_subjects(obj='Torrent', predicate=torrent, case_sensitive=True) == ['Ubuntu']
 
     @db_session
     def test_show_local_resources(self):
@@ -286,7 +276,7 @@ class TestTagDB(TestTagDBBase):
                            operation=Operation.REMOVE)
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer2',
                            operation=Operation.REMOVE)
-        assert not self.db.get_objects('infohash1', ResourceType.TAG)
+        assert not self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG)
 
         # test local add
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer3',
@@ -295,8 +285,8 @@ class TestTagDB(TestTagDBBase):
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.CONTRIBUTOR, 'contributor',
                            b'peer3',
                            operation=Operation.ADD, is_local_peer=True)
-        assert self.db.get_objects('infohash1', predicate=ResourceType.TAG) == ['tag1']
-        assert self.db.get_objects('infohash1', predicate=ResourceType.CONTRIBUTOR) == ['contributor']
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.CONTRIBUTOR) == ['contributor']
 
     @db_session
     def test_hide_local_tags(self):
@@ -304,13 +294,13 @@ class TestTagDB(TestTagDBBase):
         # No matter of other peers opinions, locally removed tag should be not visible.
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer1')
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer2')
-        assert self.db.get_objects('infohash1', ResourceType.TAG) == ['tag1']
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
 
         # test local remove
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer3',
                            operation=Operation.REMOVE,
                            is_local_peer=True)
-        assert self.db.get_objects('infohash1', ResourceType.TAG) == []
+        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == []
 
     @db_session
     def test_suggestions(self):
@@ -321,19 +311,20 @@ class TestTagDB(TestTagDBBase):
         self.add_operation(self.db, subject='subject', predicate=ResourceType.CONTRIBUTOR, obj='contributor',
                            peer=b'2')
 
-        assert self.db.get_suggestions('subject', predicate=ResourceType.TAG) == []  # This tag now has enough support
+        assert self.db.get_suggestions(subject='subject',
+                                       predicate=ResourceType.TAG) == []  # This tag now has enough support
 
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'3',
                            operation=Operation.REMOVE)  # score:1
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'4',
                            operation=Operation.REMOVE)  # score:0
-        assert self.db.get_suggestions('subject', predicate=ResourceType.TAG) == ["tag1"]
+        assert self.db.get_suggestions(subject='subject', predicate=ResourceType.TAG) == ["tag1"]
 
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'5',
                            operation=Operation.REMOVE)  # score:-1
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'6',
                            operation=Operation.REMOVE)  # score:-2
-        assert not self.db.get_suggestions('infohash', predicate=ResourceType.TAG)  # below the threshold
+        assert not self.db.get_suggestions(subject='infohash', predicate=ResourceType.TAG)  # below the threshold
 
     @db_session
     def test_get_clock_of_operation(self):
@@ -383,7 +374,12 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        assert self.db.get_subjects_intersection({'tag1'}, predicate=ResourceType.TAG) == {'infohash1', 'infohash3'}
+        actual = self.db.get_subjects_intersection(
+            subjects_type=ResourceType.TORRENT,
+            objects={'tag1'},
+            predicate=ResourceType.TAG
+        )
+        assert actual == {'infohash1', 'infohash3'}
 
     @db_session
     def test_get_subjects_intersection(self):
@@ -412,22 +408,27 @@ class TestTagDB(TestTagDBBase):
         )
 
         # no results
-        assert not self.db.get_subjects_intersection({'missed tag'}, predicate=ResourceType.TAG)
-        assert not self.db.get_subjects_intersection({'tag1'}, predicate=ResourceType.CONTRIBUTOR)
+        def _results(objects, predicate=ResourceType.TAG, case_sensitive=True):
+            results = self.db.get_subjects_intersection(
+                subjects_type=ResourceType.TORRENT,
+                objects=objects,
+                predicate=predicate,
+                case_sensitive=case_sensitive
+            )
+            return results
+
+        assert not _results({'missed tag'})
+        assert not _results({'tag1'}, ResourceType.CONTRIBUTOR)
 
         # results
-        assert self.db.get_subjects_intersection({'tag1'}, predicate=ResourceType.TAG) == {'infohash1', 'infohash2'}
-        assert self.db.get_subjects_intersection({'tag2'}, predicate=ResourceType.TAG) == {'infohash1', 'infohash3'}
-        assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=ResourceType.TAG) == {'infohash1'}
-        assert self.db.get_subjects_intersection({'Contributor'}, predicate=ResourceType.CONTRIBUTOR) == {'infohash1',
-                                                                                                          'infohash2'}
+        assert _results({'tag1'}) == {'infohash1', 'infohash2'}
+        assert _results({'tag2'}) == {'infohash1', 'infohash3'}
+        assert _results({'tag1', 'tag2'}) == {'infohash1'}
+        assert _results({'Contributor'}, predicate=ResourceType.CONTRIBUTOR) == {'infohash1', 'infohash2'}
 
         # case insensitive
-        assert self.db.get_subjects_intersection({'tag1'}, predicate=ResourceType.TAG, case_sensitive=False) == {
-            'infohash1', 'infohash2', 'infohash4'}
-        assert self.db.get_subjects_intersection({'tag1', 'tag2'}, predicate=ResourceType.TAG,
-                                                 case_sensitive=False) == {
-                   'infohash1', 'infohash4'}
+        assert _results({'tag1'}, case_sensitive=False) == {'infohash1', 'infohash2', 'infohash4'}
+        assert _results({'tag1', 'tag2'}, case_sensitive=False) == {'infohash1', 'infohash4'}
 
     @db_session
     def test_show_condition(self):
@@ -537,20 +538,29 @@ class TestTagDB(TestTagDBBase):
         self.add_operation_set(
             self.db,
             {
-                'ubuntu': [
-                    Resource(predicate=ResourceType.TORRENT, name='infohash1', auto_generated=True),
-                    Resource(predicate=ResourceType.TORRENT, name='infohash2', auto_generated=True),
+                'infohash1': [
+                    Resource(predicate=ResourceType.TITLE, name='ubuntu', auto_generated=True),
+                    Resource(predicate=ResourceType.TAG, name='linux', auto_generated=True),
                 ],
-                'debian': [
-                    Resource(predicate=ResourceType.TORRENT, name='infohash2', auto_generated=True),
-                    Resource(predicate=ResourceType.TORRENT, name='infohash3', auto_generated=True),
+                'infohash2': [
+                    Resource(predicate=ResourceType.TITLE, name='ubuntu', auto_generated=True),
+                    Resource(predicate=ResourceType.TAG, name='linux', auto_generated=True),
+                ],
+                'infohash3': [
+                    Resource(predicate=ResourceType.TITLE, name='debian', auto_generated=True),
+                    Resource(predicate=ResourceType.TAG, name='linux', auto_generated=True),
                 ],
             }
         )
 
-        assert self.db.get_subjects('infohash1', predicate=ResourceType.TORRENT) == ['ubuntu']
-        assert self.db.get_subjects('infohash2', predicate=ResourceType.TORRENT) == ['ubuntu', 'debian']
-        assert self.db.get_subjects('infohash3', predicate=ResourceType.TORRENT) == ['debian']
+        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TITLE, obj='missed')
+        assert actual == []
+
+        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TITLE, obj='ubuntu')
+        assert actual == ['infohash1', 'infohash2']
+
+        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TAG, obj='linux')
+        assert actual == ['infohash1', 'infohash2', 'infohash3']
 
     @db_session
     def test_get_statements(self):
@@ -572,10 +582,54 @@ class TestTagDB(TestTagDBBase):
         )
 
         expected = [
-            SimpleStatement(subject='infohash1', predicate=ResourceType.TITLE, object='ubuntu'),
-            SimpleStatement(subject='infohash1', predicate=ResourceType.TYPE, object='linux')
+            SimpleStatement(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.TITLE,
+                            object='ubuntu'),
+            SimpleStatement(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.TYPE,
+                            object='linux')
         ]
         assert self.db.get_statements(subject='infohash1') == expected
 
-        expected.append(SimpleStatement(subject='INFOHASH1', predicate=ResourceType.TYPE, object='case_insensitive'))
+        expected.append(
+            SimpleStatement(subject_type=ResourceType.TORRENT, subject='INFOHASH1', predicate=ResourceType.TYPE,
+                            object='case_insensitive'))
         assert self.db.get_statements(subject='infohash1', case_sensitive=False) == expected
+
+    @db_session
+    def test_various_queries(self):
+        self.add_operation_set(
+            self.db,
+            {
+                'infohash1': [
+                    Resource(predicate=ResourceType.TITLE, name='ubuntu'),
+                    Resource(predicate=ResourceType.TYPE, name='linux'),
+                ],
+                'infohash2': [
+                    Resource(predicate=ResourceType.TITLE, name='debian'),
+                    Resource(predicate=ResourceType.TYPE, name='linux'),
+                ],
+                'infohash3': [
+                    Resource(predicate=ResourceType.TAG, name='linux'),
+                ]
+            }
+        )
+
+        self.add_operation(self.db, subject_type=ResourceType.TAG, subject='infohash1', predicate=ResourceType.CREATOR,
+                           obj='creator', counter_increment=SHOW_THRESHOLD)
+
+        # queries
+        def _objects(subject_type=None, subject='', predicate=None):
+            return set(self.db.get_objects(subject_type=subject_type, subject=subject, predicate=predicate))
+
+        assert _objects(subject='infohash1') == {'ubuntu', 'linux', 'creator'}
+        assert _objects(subject_type=ResourceType.TORRENT) == {'ubuntu', 'linux', 'debian'}
+        assert _objects(subject_type=ResourceType.TORRENT, subject='infohash1') == {'ubuntu', 'linux'}
+
+        actual = _objects(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.TYPE)
+        assert actual == {'linux'}
+
+        def _subjects(subject_type=None, obj='', predicate=None):
+            return set(self.db.get_subjects(subject_type=subject_type, predicate=predicate, obj=obj))
+
+        assert _subjects(obj='linux') == {'infohash1', 'infohash2', 'infohash3'}
+        assert _subjects(predicate=ResourceType.TAG, obj='linux') == {'infohash3'}
+        assert _subjects(predicate=ResourceType.TITLE) == {'infohash1', 'infohash2'}

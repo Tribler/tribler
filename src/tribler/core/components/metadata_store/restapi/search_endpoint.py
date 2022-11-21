@@ -8,6 +8,7 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 from pony.orm import db_session
 
+from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
@@ -17,8 +18,8 @@ from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
 
-SNIPPETS_TO_SHOW = 3          # The number of snippets we return from the search results
-MAX_TORRENTS_IN_SNIPPETS = 4   # The maximum number of torrents in each snippet
+SNIPPETS_TO_SHOW = 3  # The number of snippets we return from the search results
+MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
 
 
 @froze_it
@@ -26,6 +27,7 @@ class SearchEndpoint(MetadataEndpointBase):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
     """
+
     def setup_routes(self):
         self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
 
@@ -47,7 +49,8 @@ class SearchEndpoint(MetadataEndpointBase):
         content_to_torrents: Dict[str, list] = defaultdict(list)
         for search_result in search_results:
             with db_session:
-                content_items: List[str] = self.knowledge_db.get_objects(search_result["infohash"],
+                content_items: List[str] = self.knowledge_db.get_objects(subject_type=ResourceType.TORRENT,
+                                                                         subject=search_result["infohash"],
                                                                          predicate=ResourceType.TITLE)
             if content_items:
                 for content_id in content_items:
@@ -147,7 +150,9 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.knowledge_db.get_subjects_intersection(set(tags), predicate=ResourceType.TAG,
+                    infohash_set = self.knowledge_db.get_subjects_intersection(subjects_type=ResourceType.TORRENT,
+                                                                               objects=set(tags),
+                                                                               predicate=ResourceType.TAG,
                                                                                case_sensitive=False)
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}

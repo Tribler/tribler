@@ -90,7 +90,8 @@ class KnowledgeEndpoint(RESTEndpoint):
             return
 
         # First, get the current statements and compute the diff between the old and new statements
-        old_statements = {(stmt.predicate, stmt.object) for stmt in self.db.get_statements(infohash)}
+        old_statements = self.db.get_statements(subject_type=ResourceType.TORRENT, subject=infohash)
+        old_statements = {(stmt.predicate, stmt.object) for stmt in old_statements}
         new_statements = {(stmt["predicate"], stmt["object"]) for stmt in statements}
         added_statements = new_statements - old_statements
         removed_statements = old_statements - new_statements
@@ -130,5 +131,5 @@ class KnowledgeEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            suggestions = self.db.get_suggestions(infohash, predicate=ResourceType.TAG)
+            suggestions = self.db.get_suggestions(subject=infohash, predicate=ResourceType.TAG)
             return RESTResponse({"suggestions": suggestions})
