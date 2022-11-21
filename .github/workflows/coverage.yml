@@ -10,11 +10,16 @@ on:
     secrets:
       CODACY_PROJECT_TOKEN:
         required: false
+      PYTEST_SENTRY_DSN:
+        required: false
 
 jobs:
   generate_and_upload:
     name: generate and upload
     runs-on: ubuntu-latest
+
+    env:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
 
     steps:
       - uses: actions/checkout@v3

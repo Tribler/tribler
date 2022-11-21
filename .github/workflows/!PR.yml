@@ -1,7 +1,7 @@
 name: PR
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
       - synchronize
@@ -45,21 +45,35 @@ jobs:
               - 'build/**'
               - 'src/**'
               - 'requirements*'
-  
-  
+
+  gatekeeper: # check user's permissions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if user has write access
+        uses: lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f
+        with:
+          permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ----------------------------------------------------------------------------
   # PR is Draft and PR is Ready
   pytest:
-    needs: changes
+    needs: [changes, gatekeeper]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/pytest.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: 3.8
       matrix: '{"os": ["windows-latest"]}'
 
   guitest:
-    needs: changes
+    needs: [ changes, gatekeeper ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/guitest.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: 3.8
       matrix: '{"os": ["windows-latest"]}'
@@ -72,25 +86,33 @@ jobs:
       python-version: 3.8
 
   coverage:
-    needs: changes
+    needs: [ changes, gatekeeper ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/coverage.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
     with:
       python-version: 3.8
 
+  # ----------------------------------------------------------------------------
   # PR is Ready only
   pytest_nix:
-    needs: changes
+    needs: [changes, gatekeeper]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: 3.8
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
 
   guitest_nix:
-    needs: changes
+    needs: [changes, gatekeeper]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: 3.8
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'

@@ -18,6 +18,10 @@ on:
         type: boolean
         required: false
 
+    secrets:
+      PYTEST_SENTRY_DSN:
+        required: false
+
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -28,6 +32,9 @@ jobs:
     defaults:
       run:
         shell: bash
+
+    env:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
 
     timeout-minutes: 10
 
