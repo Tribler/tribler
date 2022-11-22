@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # pylint: disable=import-outside-toplevel, ungrouped-imports
 
 
+
 class RunTriblerArgsParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         kwargs['description'] = 'Run Tribler BitTorrent client'
