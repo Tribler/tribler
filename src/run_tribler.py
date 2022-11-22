@@ -76,6 +76,7 @@ def init_boot_logger():
 
 
 if __name__ == "__main__":
+
     init_boot_logger()
 
     parsed_args = RunTriblerArgsParser().parse_args()
