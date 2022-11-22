@@ -65,7 +65,7 @@ We have written guides on how to package Tribler for distribution on various sys
 
 
 Docker support
-=================
+==============
 
 Dockerfile is provided with the source code which can be used to build the docker image.
 
