@@ -8,6 +8,9 @@ pytest-randomly==3.12.0
 pytest-timeout==2.1.0
 pytest-freezegun==0.4.2
 pytest-rerunfailures==10.2
+pytest-sentry==0.1.10
+pytest-profiling==1.7.0 # for pytest profiling
+
 freezegun==1.2.1
 coverage==6.3.2
 looptime==0.2
@@ -15,5 +18,3 @@ looptime==0.2
 asynctest==0.13.0 # this library has to be installed to properly work with ipv8 TestBase.
 
 scipy==1.8.0
-
-pytest-profiling==1.7.0 # for pytest profiling
