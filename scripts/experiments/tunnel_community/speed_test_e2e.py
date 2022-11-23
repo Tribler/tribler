@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import os
 from binascii import unhexlify
 from pathlib import Path
@@ -10,7 +9,6 @@ from ipv8.taskmanager import task
 from scripts.experiments.tunnel_community.speed_test_exit import EXPERIMENT_NUM_CIRCUITS, EXPERIMENT_NUM_HOPS, \
     Service as SpeedTestExitService
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler.core.utilities.utilities import make_async_loop_fragile
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 10))
 
@@ -43,23 +41,10 @@ class Service(SpeedTestExitService):
             self._graceful_shutdown()
 
 
-def run_experiment(arguments):
-    service = Service(working_dir=Path('.Tribler').absolute(), config_path=Path('./tribler.conf'))
-    loop = asyncio.get_event_loop()
-    if arguments.fragile:
-        make_async_loop_fragile(loop)
-
-    loop.create_task(service.start_tribler())
-    try:
-        loop.run_forever()
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run speed e2e experiment')
     parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
-    args = parser.parse_args()
+    arguments = parser.parse_args()
 
-    run_experiment(args)
+    service = Service(state_dir=Path('.Tribler'))
+    service.run(fragile=arguments.fragile)
