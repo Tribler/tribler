@@ -84,8 +84,10 @@ class TriblerRequestManager(QNetworkAccessManager):
         connect(error_dialog.button_clicked, on_close)
         error_dialog.show()
 
-    def clear(self):
+    def clear(self, skip_shutdown_request=True):
         for req in list(self.requests_in_flight.values()):
+            if skip_shutdown_request and req.is_shutdown_request():
+                continue
             req.cancel_request()
 
     def evict_timed_out_requests(self):
@@ -187,6 +189,11 @@ class TriblerNetworkRequest(QObject):
 
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
         request_manager.add_request(self)
+
+    def is_shutdown_request(self):
+        return "shutdown" in self.url \
+               and self.method == "PUT" \
+               and self.priority == QNetworkRequest.HighPriority
 
     def on_finished(self, request):
         if self.reply is None:
