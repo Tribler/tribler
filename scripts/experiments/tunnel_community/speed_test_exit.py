@@ -11,9 +11,7 @@ from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
-from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
-from tribler.core.utilities.utilities import make_async_loop_fragile
 
 EXPERIMENT_NUM_MB = int(os.environ.get('EXPERIMENT_NUM_MB', 25))
 EXPERIMENT_NUM_CIRCUITS = int(os.environ.get('EXPERIMENT_NUM_CIRCUITS', 10))
@@ -21,18 +19,14 @@ EXPERIMENT_NUM_HOPS = int(os.environ.get('EXPERIMENT_NUM_HOPS', 1))
 
 
 class Service(TinyTriblerService, TaskManager):
-    def __init__(self, working_dir, config_path):
-        super().__init__(Service.create_config(working_dir, config_path), working_dir=working_dir,
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs,
                          components=[Ipv8Component(), KeyComponent(), RESTComponent(), TunnelsComponent()])
         TaskManager.__init__(self)
+        self.config.dht.enabled = True
+
         self.results = []
         self.output_file = 'speed_test_exit.txt'
-
-    @staticmethod
-    def create_config(working_dir, config_path):
-        config = TriblerConfig(state_dir=working_dir, file=config_path)
-        config.dht.enabled = True
-        return config
 
     def _graceful_shutdown(self):
         task = asyncio.create_task(self.on_tribler_shutdown())
@@ -92,23 +86,10 @@ class Service(TinyTriblerService, TaskManager):
         return results
 
 
-def run_experiment(arguments):
-    service = Service(working_dir=Path('.Tribler').absolute(), config_path=Path('./tribler.conf'))
-    loop = asyncio.get_event_loop()
-    if arguments.fragile:
-        make_async_loop_fragile(loop)
-
-    loop.create_task(service.start_tribler())
-    try:
-        loop.run_forever()
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run speed e2e experiment')
     parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
-    args = parser.parse_args()
+    arguments = parser.parse_args()
 
-    run_experiment(args)
+    service = Service(state_dir=Path('.Tribler'))
+    service.run(fragile=arguments.fragile)

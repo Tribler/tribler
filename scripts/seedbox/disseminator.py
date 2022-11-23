@@ -16,7 +16,6 @@ my channel
 """
 
 import argparse
-import asyncio
 import logging
 import os
 from json import dumps
@@ -38,9 +37,7 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.tiny_tribler_service import TinyTriblerService
-from tribler.core.utilities.utilities import make_async_loop_fragile
 
 _description_file_name = 'description.md'
 _thumbnail_file_name = 'thumbnail.png'
@@ -163,15 +160,14 @@ class ChannelHelper:
 
 
 class Service(TinyTriblerService):
-    def __init__(self, source_dir, working_dir, testnet: bool):
-        config = TriblerConfig(state_dir=working_dir)
-        config.general.testnet = testnet
-        super().__init__(config,
-                         working_dir=working_dir,
+    def __init__(self, source_dir, testnet: bool, *args, **kwargs):
+        super().__init__(*args, **kwargs,
                          components=[
                              KnowledgeComponent(), MetadataStoreComponent(), KeyComponent(), Ipv8Component(),
                              SocksServersComponent(), LibtorrentComponent(), GigachannelManagerComponent(),
-                             GigaChannelComponent()])
+                             GigaChannelComponent()
+                         ])
+        self.config.general.testnet = testnet
         self.source_dir = Path(source_dir)
 
     def get_torrents_from_source(self):
@@ -212,29 +208,16 @@ class Service(TinyTriblerService):
                                   gigachannel_manager_component.gigachannel_manager)
 
 
-def run_tribler(arguments):
-    working_dir = Path(arguments.tribler_dir).absolute()
-    service = Service(
-        source_dir=Path(arguments.source),
-        working_dir=working_dir,
-        testnet=arguments.testnet
-    )
-
-    loop = asyncio.get_event_loop()
-    if arguments.fragile:
-        make_async_loop_fragile(loop)
-
-    loop.create_task(service.start_tribler())
-    try:
-        loop.run_forever()
-    finally:
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
-
-
 if __name__ == "__main__":
     _arguments = parse_args()
     print(f"Arguments: {_arguments}")
 
     setup_logger(_arguments.verbosity)
-    run_tribler(_arguments)
+
+    service = Service(
+        source_dir=Path(_arguments.source),
+        state_dir=Path(_arguments.tribler_dir),
+        testnet=_arguments.testnet
+    )
+
+    service.run(fragile=_arguments.fragile)
