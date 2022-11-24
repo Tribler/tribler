@@ -92,6 +92,9 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     # Corrupt file
     await do_request(rest_api, url, params={'uri': _path('test_rss.xml')}, expected_code=500)
 
+    # Non-existing file
+    await do_request(rest_api, url, params={'uri': _path('non_existing.torrent')}, expected_code=500)
+
     path = "http://localhost:1234/ubuntu.torrent"
 
     async def mock_http_query(*_):
