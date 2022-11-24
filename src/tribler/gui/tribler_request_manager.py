@@ -86,7 +86,7 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def clear(self, skip_shutdown_request=True):
         for req in list(self.requests_in_flight.values()):
-            if skip_shutdown_request and req.is_shutdown_request():
+            if skip_shutdown_request and isinstance(req, ShutdownRequest):
                 continue
             req.cancel_request()
 
@@ -190,11 +190,6 @@ class TriblerNetworkRequest(QObject):
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
         request_manager.add_request(self)
 
-    def is_shutdown_request(self):
-        return "shutdown" in self.url \
-               and self.method == "PUT" \
-               and self.priority == QNetworkRequest.HighPriority
-
     def on_finished(self, request):
         if self.reply is None:
             # Fix for rare race condition where reply is overwritten by e.g. previous call to destruct
@@ -273,3 +268,8 @@ class TriblerFileDownloadRequest(TriblerNetworkRequest):
             priority=QNetworkRequest.LowPriority,
             decode_json_response=False,
         )
+
+
+class ShutdownRequest(TriblerNetworkRequest):
+    def __init__(self, *args, **kwargs):
+        super().__init__("shutdown", *args, **kwargs, method="PUT", priority=QNetworkRequest.HighPriority)

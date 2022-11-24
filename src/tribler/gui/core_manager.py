@@ -14,7 +14,7 @@ from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreCrashedError
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.tribler_request_manager import ShutdownRequest
 from tribler.gui.utilities import connect
 
 
@@ -192,8 +192,7 @@ class CoreManager(QObject):
                 else:
                     self._logger.warning("Re-sending shutdown request to Tribler Core")
 
-                TriblerNetworkRequest("shutdown", shutdown_request_processed, method="PUT",
-                                      priority=QNetworkRequest.HighPriority, on_cancel=send_shutdown_request)
+                ShutdownRequest(shutdown_request_processed, on_cancel=send_shutdown_request)
 
             send_shutdown_request(initial=True)
 
