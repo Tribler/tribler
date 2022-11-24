@@ -2,8 +2,15 @@
 # Run Tribler from source tree
 
 script_path() {
-  DIR="${1%/*}"
-  (cd "$DIR" && echo "$(pwd -P)")
+  if readlink --help 2>/dev/null | grep -q canonicalize ; then
+    # Linux can support following soft links
+    FILE="$(readlink -f "$1")"
+    echo "${FILE%/*}"
+  else
+    # MacOS
+    DIR="${1%/*}"
+    (cd "$DIR" && pwd -P)
+  fi
 }
 
 UNAME="$(uname -s)"
@@ -29,18 +36,18 @@ if [ "$UNAME" = "Linux" ]; then
         echo "Couldn't cd to $TRIBLER_DIR. Check permissions."
         exit 1
     }
-    python3 $TRIBLER_SCRIPT "$@"
-elif [ ! -z `uname -s | grep CYGWIN_NT` ]; then
-    python $TRIBLER_SCRIPT "$@"
+    python3 "$TRIBLER_SCRIPT" "$@"
+elif uname -s | grep -q CYGWIN_NT ; then
+    python "$TRIBLER_SCRIPT" "$@"
 else
     if [ "$UNAME" = "Darwin" ]; then
-        if [ ! -e $TRIBLER_SCRIPT ]; then
+        if [ ! -e "$TRIBLER_SCRIPT" ]; then
             echo "ERROR: Script must be called from source tree root"
             echo "  Try the following commands:"
-            echo "cd $(dirname $0)"
-            echo "./$(basename $0)"
+            echo "cd $(dirname "$0")"
+            echo "./$(basename "$0")"
             exit 1
         fi
-        python3 $TRIBLER_SCRIPT "$@"
+        python3 "$TRIBLER_SCRIPT" "$@"
     fi
 fi
