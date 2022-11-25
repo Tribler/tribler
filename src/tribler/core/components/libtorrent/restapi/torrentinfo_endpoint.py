@@ -93,7 +93,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             try:
                 tdef = TorrentDef.load(file)
                 metainfo = tdef.metainfo
-            except (TypeError, ValueError, RuntimeError):
+            except (FileNotFoundError, TypeError, ValueError, RuntimeError):
                 return RESTResponse({"error": f"error while decoding torrent file: {file}"},
                                     status=HTTP_INTERNAL_SERVER_ERROR)
         elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
