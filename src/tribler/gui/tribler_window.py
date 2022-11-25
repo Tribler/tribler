@@ -772,17 +772,21 @@ class TriblerWindow(QMainWindow):
         # We do this after receiving the settings so we have the default download location.
         self.process_uri_request()
 
-        # Set token balance refresh timer and load the token balance
-        self.token_refresh_timer = QTimer()
-        connect(self.token_refresh_timer.timeout, self.load_token_balance)
-        self.token_refresh_timer.start(60000)
-
-        self.load_token_balance()
+        if self.token_balance_widget.isVisible():
+            self.enable_token_balance_refresh()
 
     def on_settings_button_click(self):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
+
+    def enable_token_balance_refresh(self):
+        # Set token balance refresh timer and load the token balance
+        self.token_refresh_timer = QTimer()
+        connect(self.token_refresh_timer.timeout, self.load_token_balance)
+        self.token_refresh_timer.start(2000)
+
+        self.load_token_balance()
 
     def on_token_balance_click(self, _):
         self.raise_window()
