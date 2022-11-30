@@ -48,6 +48,9 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
     outputs:
       pytest-sentry-dsn: ${{ steps.setter.outputs.pytest-sentry-dsn }}
       codacy-project-token: ${{ steps.setter.outputs.codacy-project-token }}
