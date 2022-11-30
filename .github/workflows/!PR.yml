@@ -67,12 +67,13 @@ jobs:
 
       - name: End the job with the success status
         if: ${{ always() }}
+        run: echo finish
 
   # ----------------------------------------------------------------------------
   # PR is Draft and PR is Ready
   pytest:
     needs: [ changes, gatekeeper ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
+    #    if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/pytest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{needs.gatekeeper.outputs.pytest-sentry-dsn}}
