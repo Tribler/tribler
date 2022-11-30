@@ -1,5 +1,3 @@
-from multiprocessing import Process
-from time import sleep
 from unittest.mock import MagicMock, Mock, patch
 
 import psutil
@@ -33,16 +31,18 @@ def checker(tmp_path):
     return ProcessChecker(directory=Path(tmp_path))
 
 
-def idle():
-    sleep(1)
+class ProcessMock:
+    def __init__(self):
+        self.pid = 42
+        self.as_dict = MagicMock(return_value={'cmdline': r'some\path\tribler'})
+        self.parent = MagicMock(return_value=MagicMock(pid=32))
+        self.open_files = MagicMock()
+        self.connections = MagicMock()
 
 
 @pytest.fixture
 def process():
-    process = Process(target=idle)
-    process.start()
-    yield psutil.Process(process.pid)
-    process.kill()
+    return ProcessMock()
 
 
 def test_get_pid_lock_file(checker: ProcessChecker):
@@ -70,20 +70,18 @@ def test_missed_lock_file(checker: ProcessChecker):
     assert checker._get_pid_from_lock() is None
 
 
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': None}))
-def test_is_old_tribler_process_cmdline_none(checker: ProcessChecker, process: psutil.Process):
+def test_is_old_tribler_process_cmdline_none(checker: ProcessChecker, process: ProcessMock):
     # Test that in the case of a missed `cmdline`, False will be returned.
     assert not checker._is_old_tribler_process_running(process)
 
 
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'some\path\tribler'}))
-def test_is_old_tribler_process(checker: ProcessChecker, process: psutil.Process):
+@patch('psutil.pid_exists', Mock(return_value=True))
+def test_is_old_tribler_process(checker: ProcessChecker, process: ProcessMock):
     # Test that in the case keyword 'tribler' is somewhere in `cmdline', True will be returned.
     assert checker._is_old_tribler_process_running(process)
 
 
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'some\path'}))
-def test_is_not_old_tribler_process(checker: ProcessChecker, process: psutil.Process):
+def test_is_not_old_tribler_process(checker: ProcessChecker, process: ProcessMock):
     # Test that in the case keyword 'tribler' is not somewhere in `cmdline', False will be returned.
     assert not checker._is_old_tribler_process_running(process)
 
@@ -144,49 +142,6 @@ def test_contextmanager(tmp_path):
     assert checker.remove_lock.called
 
 
-@patch.object(ProcessChecker, '_close_process', Mock())
-@patch.object(ProcessChecker, '_restart_tribler', Mock())
-@patch.object(ProcessChecker, '_ask_to_restart', Mock())
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'tribler'}))
-def test_check(checker: ProcessChecker, process: psutil.Process):
-    # Ensure that `_restart_tribler` and `_ask_to_restart` methods have been called when
-    # tribler process with a proper PID has been checked.
-    # Here process is a fake process.
-    assert not checker.check_and_restart_if_necessary()
-    assert not checker._restart_tribler.called
-    assert not checker._ask_to_restart.called
-    assert not checker._close_process.called
-
-    checker.create_lock(process.pid)
-
-    assert checker.check_and_restart_if_necessary()
-    assert checker._ask_to_restart.called
-    assert not checker._restart_tribler.called
-    assert not checker._close_process.called
-
-
-@patch.object(ProcessChecker, '_close_process', Mock())
-@patch.object(ProcessChecker, '_restart_tribler', Mock())
-@patch.object(ProcessChecker, '_ask_to_restart', Mock())
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'tribler'}))
-@patch.object(psutil.Process, 'status', Mock(return_value=psutil.STATUS_ZOMBIE))
-def test_check_zombie(checker: ProcessChecker, process: psutil.Process):
-    # Ensure that the `_restart_tribler` method has been called when
-    # tribler process with a proper PID has been checked.
-    # Here process is a fake process.
-    assert not checker.check_and_restart_if_necessary()
-    assert not checker._restart_tribler.called
-    assert not checker._ask_to_restart.called
-    assert not checker._close_process.called
-
-    checker.create_lock(process.pid)
-
-    assert checker.check_and_restart_if_necessary()
-    assert not checker._ask_to_restart.called
-    assert checker._restart_tribler.called
-    assert checker._close_process.called
-
-
 @patch.object(psutil.Process, 'status', Mock(side_effect=psutil.Error))
 def test_check_psutil_error(checker: ProcessChecker):
     # Ensure that the `check` method don`t raise an exception in the case `psutil.Process.status()`
@@ -206,7 +161,7 @@ def test_not_is_tribler_cmd(cmd_line, checker: ProcessChecker):
 
 @patch.object(ProcessChecker, '_restart_tribler', Mock())
 @patch.object(ProcessChecker, '_close_process', Mock())
-def test_ask_to_restart_yes(checker: ProcessChecker, process: psutil.Process):
+def test_ask_to_restart_yes(checker: ProcessChecker, process: ProcessMock):
     # Ensure that when a user choose "Yes" in the message box from the `_ask_to_restart` method,
     # `_restart_tribler` is called.
     mocked_QApplication = Mock()
@@ -223,7 +178,7 @@ def test_ask_to_restart_yes(checker: ProcessChecker, process: psutil.Process):
 
 @patch.object(ProcessChecker, '_restart_tribler', Mock())
 @patch.object(ProcessChecker, '_close_process', Mock())
-def test_ask_to_restart_no(checker: ProcessChecker, process: psutil.Process):
+def test_ask_to_restart_no(checker: ProcessChecker, process: ProcessMock):
     # Ensure that when a user choose "No" in the message box from the `_ask_to_restart` method,
     # `_close_process` is called.
     mocked_QApplication = Mock()
@@ -240,7 +195,7 @@ def test_ask_to_restart_no(checker: ProcessChecker, process: psutil.Process):
 
 @patch.object(ProcessChecker, '_restart_tribler', Mock())
 @patch.object(ProcessChecker, '_close_process', Mock())
-def test_ask_to_restart_error(checker: ProcessChecker, process: psutil.Process):
+def test_ask_to_restart_error(checker: ProcessChecker, process: ProcessMock):
     # Ensure that in the case of an error in `_ask_to_restart` method,
     # `_close_process` is called.
     checker._restart_tribler = MagicMock()
@@ -252,17 +207,17 @@ def test_ask_to_restart_error(checker: ProcessChecker, process: psutil.Process):
     assert checker._close_process.called
 
 
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'tribler'}))
 @patch('os.kill')
-def test_close_process(mocked_kill: Mock, checker: ProcessChecker, process: psutil.Process):
+@patch('os.getpid', Mock())
+@patch('psutil.pid_exists', Mock(return_value=True))
+def test_close_process(mocked_kill: Mock, checker: ProcessChecker, process: ProcessMock):
     checker._close_process(process)
     assert mocked_kill.called
 
 
-@patch.object(psutil.Process, 'as_dict', Mock(return_value={'cmdline': r'tribler'}))
 @patch('os.kill', Mock(side_effect=OSError))
 @patch('os.close', Mock(side_effect=OSError))
-def test_close_process_errors(checker: ProcessChecker, process: psutil.Process):
+def test_close_process_errors(checker: ProcessChecker, process: ProcessMock):
     # Ensure that in the case `os.kill` or `os.close` raises an exception, the `_close_process`
     # will never throw it further.
     checker._close_process(process)
