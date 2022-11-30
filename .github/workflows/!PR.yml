@@ -48,6 +48,9 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
+    outputs:
+      pytest-sentry-dsn: ${{ steps.setter.outputs.pytest-sentry-dsn }}
+      codacy-project-token: ${{ steps.setter.outputs.codacy-project-token }}
     steps:
       - name: Check if user has write access
         uses: lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f
@@ -56,14 +59,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set the output
+        id: setter
+        run: |
+          echo "pytest-sentry-dsn=${secrets.PYTEST_SENTRY_DSN}" >> $GITHUB_OUTPUT
+          echo "codacy-project-token=${secrets.CODACY_PROJECT_TOKEN}" >> $GITHUB_OUTPUT
+
+      - name: End the job with the success status
+        if: ${{ always() }}
+
   # ----------------------------------------------------------------------------
   # PR is Draft and PR is Ready
   pytest:
-    needs: [changes, gatekeeper]
+    needs: [ changes, gatekeeper ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/pytest.yml
     secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      PYTEST_SENTRY_DSN: ${{needs.gatekeeper.outputs.pytest-sentry-dsn}}
     with:
       python-version: 3.8
       matrix: '{"os": ["windows-latest"]}'
@@ -73,7 +85,7 @@ jobs:
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/guitest.yml
     secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      PYTEST_SENTRY_DSN: ${{needs.gatekeeper.outputs.pytest-sentry-dsn}}
     with:
       python-version: 3.8
       matrix: '{"os": ["windows-latest"]}'
@@ -90,29 +102,29 @@ jobs:
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/coverage.yml
     secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-      CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
+      PYTEST_SENTRY_DSN: ${{needs.gatekeeper.outputs.pytest-sentry-dsn}}
+      CODACY_PROJECT_TOKEN: ${{needs.gatekeeper.outputs.codacy-project-token}}
     with:
       python-version: 3.8
 
   # ----------------------------------------------------------------------------
   # PR is Ready only
   pytest_nix:
-    needs: [changes, gatekeeper]
+    needs: [ changes, gatekeeper ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
     secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      PYTEST_SENTRY_DSN: ${{needs.gatekeeper.outputs.pytest-sentry-dsn}}
     with:
       python-version: 3.8
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
 
   guitest_nix:
-    needs: [changes, gatekeeper]
+    needs: [ changes, gatekeeper ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
     secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      PYTEST_SENTRY_DSN: ${{needs.gatekeeper.outputs.pytest-sentry-dsn}}
     with:
       python-version: 3.8
       matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
