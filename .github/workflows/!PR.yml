@@ -62,8 +62,8 @@ jobs:
       - name: Set the output
         id: setter
         run: |
-          echo "pytest-sentry-dsn=${secrets.PYTEST_SENTRY_DSN}" >> $GITHUB_OUTPUT
-          echo "codacy-project-token=${secrets.CODACY_PROJECT_TOKEN}" >> $GITHUB_OUTPUT
+          echo "pytest-sentry-dsn=${{secrets.PYTEST_SENTRY_DSN}}" >> $GITHUB_OUTPUT
+          echo "codacy-project-token=${{secrets.CODACY_PROJECT_TOKEN}}" >> $GITHUB_OUTPUT
 
       - name: End the job with the success status
         if: ${{ always() }}
