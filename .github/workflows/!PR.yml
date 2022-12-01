@@ -48,9 +48,10 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-      CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
+    secrets: inherit
+    env:
+      PYTEST_SENTRY_DSN: ${{ secrets.PYTEST_SENTRY_DSN }}
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     outputs:
       pytest-sentry-dsn: ${{ steps.setter.outputs.pytest-sentry-dsn }}
       codacy-project-token: ${{ steps.setter.outputs.codacy-project-token }}
@@ -65,8 +66,8 @@ jobs:
       - name: Set the output
         id: setter
         run: |
-          echo "pytest-sentry-dsn=${{secrets.PYTEST_SENTRY_DSN}}" >> $GITHUB_OUTPUT
-          echo "codacy-project-token=${{secrets.CODACY_PROJECT_TOKEN}}" >> $GITHUB_OUTPUT
+          echo "pytest-sentry-dsn=${PYTEST_SENTRY_DSN}" >> $GITHUB_OUTPUT
+          echo "codacy-project-token=${CODACY_PROJECT_TOKEN}" >> $GITHUB_OUTPUT
 
       - name: End the job with the success status
         if: ${{ always() }}
