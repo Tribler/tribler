@@ -73,6 +73,7 @@ def init_boot_logger():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 
+
 if __name__ == "__main__":
     init_boot_logger()
 
