@@ -48,7 +48,6 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
-    secrets: inherit
     env:
       PYTEST_SENTRY_DSN: ${{ secrets.PYTEST_SENTRY_DSN }}
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
