@@ -275,6 +275,12 @@ class StartDownloadDialog(DialogContainer):
             )
         else:
             download_dir = self.dialog_widget.destination_input.currentText()
+            self.logger.info(f'Download folder: {download_dir}')
+            if not download_dir:
+                text = tr("Please specify the path to the download directory")
+                title = tr("The path is not specified")
+                ConfirmationDialog.show_message(self.dialog_widget, title, text, "OK")
+                return 
             is_writable, error = is_dir_writable(download_dir)
             if not is_writable:
                 gui_error_message = tr(
