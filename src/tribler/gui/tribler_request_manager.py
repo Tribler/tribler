@@ -84,8 +84,10 @@ class TriblerRequestManager(QNetworkAccessManager):
         connect(error_dialog.button_clicked, on_close)
         error_dialog.show()
 
-    def clear(self):
+    def clear(self, skip_shutdown_request=True):
         for req in list(self.requests_in_flight.values()):
+            if skip_shutdown_request and isinstance(req, ShutdownRequest):
+                continue
             req.cancel_request()
 
     def evict_timed_out_requests(self):
@@ -266,3 +268,8 @@ class TriblerFileDownloadRequest(TriblerNetworkRequest):
             priority=QNetworkRequest.LowPriority,
             decode_json_response=False,
         )
+
+
+class ShutdownRequest(TriblerNetworkRequest):
+    def __init__(self, *args, **kwargs):
+        super().__init__("shutdown", *args, **kwargs, method="PUT", priority=QNetworkRequest.HighPriority)
