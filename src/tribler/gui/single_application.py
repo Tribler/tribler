@@ -54,22 +54,22 @@ class QtSingleApplication(QApplication):
             self.logger.info(f'No running instances (socket error: {error})')
             if error == QLocalSocket.ConnectionRefusedError:
                 self.logger.info('Received QLocalSocket.ConnectionRefusedError; removing server.')
-                self.close()
-                QLocalServer.removeServer(self._id)
+                self.cleanup_crashed_server()
             self._outgoing_connection = None
             self._server = QLocalServer()
             self._server.listen(self._id)
             connect(self._server.newConnection, self._on_new_connection)
 
-    def close(self):
-        self.logger.info('Closing...')
+    def cleanup_crashed_server(self):
+        self.logger.info('Cleaning up crashed server...')
         if self._incoming_connection:
             self._incoming_connection.disconnectFromServer()
         if self._outgoing_connection:
             self._outgoing_connection.disconnectFromServer()
         if self._server:
             self._server.close()
-        self.logger.info('Closed')
+        QLocalServer.removeServer(self._id)
+        self.logger.info('Crashed server was removed')
 
     def is_running(self):
         return self._is_app_already_running
