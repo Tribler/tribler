@@ -18,3 +18,5 @@ looptime==0.2
 asynctest==0.13.0 # this library has to be installed to properly work with ipv8 TestBase.
 
 scipy==1.8.0
+
+pytest-qt==4.2.0
