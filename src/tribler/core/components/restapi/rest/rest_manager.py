@@ -1,6 +1,7 @@
 import logging
 import ssl
 import traceback
+from typing import Optional
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPNotFound
@@ -73,9 +74,9 @@ class RESTManager:
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = root_endpoint
-        self.runner = None
-        self.site = None
-        self.site_https = None
+        self.runner: Optional[web.AppRunner] = None
+        self.site: Optional[web.TCPSite] = None
+        self.site_https: Optional[web.TCPSite] = None
         self.config = config
         self.state_dir = state_dir
 
@@ -152,14 +153,7 @@ class RESTManager:
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
     async def stop(self):
-        """
-        Stop the HTTP API and return a deferred that fires when the server has shut down.
-        """
         self._logger.info('Stop')
-
-        if self.site:
-            await self.site.stop()
-        if self.site_https:
-            await self.site_https.stop()
-        # Should the next line be used instead of the above lines?
-        # await self.runner.cleanup()
+        if self.runner:
+            await self.runner.shutdown()  # should be called before self.runner.cleanup()
+            await self.runner.cleanup()  # self.site.stop() is called inside this method
