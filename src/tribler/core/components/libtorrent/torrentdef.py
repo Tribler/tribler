@@ -432,11 +432,16 @@ class TorrentDef:
             return b'files' in self.metainfo[b'info']
         return False
 
-    def is_private(self):
+    def is_private(self) -> bool:
         """
         Returns whether this TorrentDef is a private torrent (and is not announced in the DHT).
         """
-        return (int(self.metainfo[b'info'].get(b'private', 0)) == 1) if self.metainfo else False
+        try:
+            private = int(self.metainfo[b'info'].get(b'private', 0)) if self.metainfo else 0
+        except (ValueError, KeyError) as e:
+            self._logger.warning(f'{e.__class__.__name__}: {e}')
+            private = 0
+        return private == 1
 
     def get_index_of_file_in_files(self, file):
         if not self.metainfo:

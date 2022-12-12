@@ -91,7 +91,24 @@ def test_add_content_piece_length(tdef):
     assert metainfo[b'info'][b'piece length'] == 2 ** 16
 
 
-def test_is_private():
+def test_is_private(tdef):
+    tdef.metainfo = {b'info': {b'private': 0}}
+    assert tdef.is_private() is False
+
+    tdef.metainfo = {b'info': {b'private': 1}}
+    assert tdef.is_private() is True
+
+    # There are torrents with the b"i1e" value of the `private` field. It looks like a double-encoded value 1:
+    # first, the integer value 1 was encoded as a binary string b"i1e" and then encoded again as a part of the
+    # "info" dictionary. In that case, we consider the attribute value invalid and treat it as a default value of 0
+    tdef.metainfo = {b'info': {b'private': b'i1e'}}
+    assert tdef.is_private() is False
+
+    tdef.metainfo = {b'info': {b'private': b'i0e'}}
+    assert tdef.is_private() is False
+
+
+def test_is_private_loaded_from_existing_torrent():
     """
     Test whether the private field from an existing torrent is correctly read
     """
