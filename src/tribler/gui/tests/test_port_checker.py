@@ -8,18 +8,18 @@ from tribler.gui.port_checker import PortChecker
 
 
 @pytest.fixture(name="base_port")
-def mock_base_port():
+def fixture_base_port():
     return 52194
 
 
 @pytest.fixture(name="mock_callback")
-def mock_callback():
+def fixture_callback():
     return Mock()
 
 
 @pytest.fixture(name="port_checker_helpers")
 @patch('psutil.Process')
-def port_checker_helpers(mock_process, base_port, mock_callback):
+def fixture_port_checker_helpers(mock_process, base_port, mock_callback):
     mock_pid = 123
     check_interval_in_ms = 10
     timeout_in_ms = 100
@@ -70,7 +70,7 @@ def test_detect_port_with_in_range_connections(base_port, port_checker_helpers):
 
 
 def test_check_port_detected(base_port, port_checker_helpers):
-    port_checker, mock_process, callback = port_checker_helpers
+    port_checker, _, callback = port_checker_helpers
 
     port_checker.check_port()
     callback.assert_not_called()
@@ -98,7 +98,7 @@ async def test_start_checking(base_port, port_checker_helpers, qapp):
     callback.assert_called_once()
 
 
-async def test_start_checking_no_port_detected(base_port, port_checker_helpers, qapp):
+async def test_start_checking_no_port_detected(port_checker_helpers, qapp):
     port_checker, mock_process, callback = port_checker_helpers
 
     port_checker.start_checking()
@@ -108,9 +108,9 @@ async def test_start_checking_no_port_detected(base_port, port_checker_helpers, 
 
 
 def mock_connection(port):
-    mock_connection = Mock()
-    mock_connection.laddr.ip = '127.0.0.1'
-    mock_connection.laddr.port = port
-    mock_connection.status = 'LISTEN'
-    mock_connection.type = socket.SocketKind.SOCK_STREAM
-    return mock_connection
+    connection = Mock()
+    connection.laddr.ip = '127.0.0.1'
+    connection.laddr.port = port
+    connection.status = 'LISTEN'
+    connection.type = socket.SocketKind.SOCK_STREAM
+    return connection
