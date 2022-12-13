@@ -136,6 +136,8 @@ class CoreManager(QObject):
     def port_checker_callback(self, detected_port):
         request_manager.port = detected_port
         self.events_manager.update_port(detected_port)
+        os.environ['TRIBLER_API_PORT_INITIAL'] = str(self.api_port)
+        os.environ['TRIBLER_API_PORT_DETECTED'] = str(detected_port)
 
     def on_core_stdout_read_ready(self):
         if self.app_manager.quitting_app:
