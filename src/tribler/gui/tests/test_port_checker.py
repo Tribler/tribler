@@ -84,6 +84,8 @@ def test_check_port_detected(base_port, port_checker_helpers):
 
 
 async def test_start_checking(base_port, port_checker_helpers, qapp):
+    # pylint: disable=unused-argument
+    # 'qapp' is required to run this test on QT context
     port_checker, mock_process, callback = port_checker_helpers
 
     mock_process.return_value.connections.return_value = [
@@ -99,7 +101,9 @@ async def test_start_checking(base_port, port_checker_helpers, qapp):
 
 
 async def test_start_checking_no_port_detected(port_checker_helpers, qapp):
-    port_checker, mock_process, callback = port_checker_helpers
+    # pylint: disable=unused-argument
+    # 'qapp' is required to run this test on QT context
+    port_checker, _, _ = port_checker_helpers
 
     port_checker.start_checking()
     QtTest.QTest.qWait(port_checker.timeout_in_ms)
