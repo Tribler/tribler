@@ -1,3 +1,4 @@
+import logging
 import socket
 from typing import Callable
 
@@ -28,6 +29,7 @@ class PortChecker(QObject):
                  check_interval_in_ms: int = 1000,
                  timeout_in_ms: int = 120000):
         QObject.__init__(self, None)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self._process = self.get_process_from_pid(pid)
         self._callback = callback
 
@@ -42,6 +44,7 @@ class PortChecker(QObject):
         self._timeout_timer = None
 
     def start_checking(self):
+        self._logger.info("Starting port checker")
         self._checker_timer = QTimer()
         self._checker_timer.setSingleShot(True)
         connect(self._checker_timer.timeout, self.check_port)
@@ -54,14 +57,17 @@ class PortChecker(QObject):
         self._timeout_timer.start(self.timeout_in_ms)
 
     def stop_checking(self):
+        self._logger.info("Stopping port checker")
         if self._checker_timer:
             self._checker_timer.stop()
         if self._timeout_timer:
             self._timeout_timer.stop()
 
     def check_port(self):
+        self._logger.info(f"Checking ports; Base Port: {self.base_port}")
         self.detect_port_from_process()
         if self.detected_port and self._callback:
+            self._logger.info(f"Detected Port: {self.detected_port}; Base Port: {self.base_port}; Calling callback.")
             self._callback(self.detected_port)
         elif self._checker_timer:
             self._checker_timer.start(self.check_interval_in_ms)
