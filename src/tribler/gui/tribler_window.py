@@ -1124,6 +1124,9 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
     def clicked_debug_panel_button(self, *_):
+        if not self.tribler_settings or not self.gui_settings:
+            self._logger.info("Tribler settings (Core and/or GUI) is not available yet.")
+            return
         if not self.debug_window:
             self.debug_window = DebugWindow(self.tribler_settings, self.gui_settings, self.tribler_version)
         self.debug_window.show()
