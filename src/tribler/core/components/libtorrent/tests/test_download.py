@@ -293,6 +293,19 @@ def test_metadata_received_invalid_info(mock_handle, test_download):
     test_download.on_metadata_received_alert(None)
 
 
+@patch('tribler.core.components.libtorrent.download_manager.download.get_info_from_handle', Mock())
+@patch('tribler.core.components.libtorrent.download_manager.download.bdecode_compat', Mock())
+def test_on_metadata_received_alert_unicode_error(test_download):
+    """ Test the the case the field 'url' is not unicode compatible. In this case no exceptions should be raised.
+
+    See: https://github.com/Tribler/tribler/issues/7223
+    """
+    tracker = {'url': Mock(encode=Mock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))}
+    test_download.handle = MagicMock(trackers=Mock(return_value=[tracker]))
+
+    test_download.on_metadata_received_alert(MagicMock())
+
+
 def test_metadata_received_invalid_torrent_with_value_error(mock_handle, test_download):
     """
     Testing whether the right operations happen when we receive metadata but the torrent info is invalid and throws

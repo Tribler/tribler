@@ -350,11 +350,18 @@ class Download(TaskManager):
             return
 
         metadata = {b'info': bdecode_compat(torrent_info.metadata()), b'leechers': 0, b'seeders': 0}
-        trackers = [tracker['url'].encode('utf-8') for tracker in self.handle.trackers()]
-        if len(trackers) > 1:
-            metadata[b"announce-list"] = [trackers]
-        elif trackers:
-            metadata[b"announce"] = trackers[0]
+        tracker_urls = []
+        for tracker in self.handle.trackers():
+            url = tracker['url']
+            try:
+                tracker_urls.append(url.encode('utf-8'))
+            except UnicodeDecodeError as e:
+                self._logger.warning(e)
+
+        if len(tracker_urls) > 1:
+            metadata[b"announce-list"] = [tracker_urls]
+        elif tracker_urls:
+            metadata[b"announce"] = tracker_urls[0]
 
         for peer in self.handle.get_peer_info():
             if peer.progress == 1:
