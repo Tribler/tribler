@@ -16,6 +16,7 @@ from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component
 from tribler.core.components.component import Component
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
+from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessWatcher
 from tribler.core.components.gui_process_watcher.gui_process_watcher_component import GuiProcessWatcherComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
@@ -39,6 +40,7 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.process_checker import single_tribler_instance
+from tribler.core.utilities.process_locker import ProcessKind, ProcessLocker, set_global_process_locker
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -119,7 +121,7 @@ async def core_session(config: TriblerConfig, components: List[Component]) -> in
     return session.exit_code
 
 
-def run_tribler_core_session(api_port: str, api_key: str, state_dir: Path, gui_test_mode: bool = False) -> int:
+def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_test_mode: bool = False) -> int:
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -137,7 +139,7 @@ def run_tribler_core_session(api_port: str, api_key: str, state_dir: Path, gui_t
     if SentryReporter.is_in_test_mode():
         default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
-    config.api.http_port = int(api_port)
+    config.api.http_port = api_port
     # If the API key is set to an empty string, it will remain disabled
     if config.api.key not in ('', api_key):
         config.api.key = api_key
@@ -177,10 +179,25 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
     logger.info('Running Core' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
     load_logger_config('tribler-core', root_state_dir)
 
+    gui_pid = GuiProcessWatcher.get_gui_pid()
+    process_locker = ProcessLocker(root_state_dir, ProcessKind.Core, gui_pid)
+    set_global_process_locker(process_locker)
+
+    if not process_locker.current_process.active:
+        msg = f'Another Core process with PID {process_locker.active_process.pid} is already running'
+        logger.warning(msg)
+        process_locker.sys_exit(1, msg)
+
+    if api_port is None:
+        msg = 'api_port is not specified for a core process'
+        logger.error(msg)
+        process_locker.sys_exit(1, msg)
+
+    process_locker.set_api_port(api_port)
+
     with single_tribler_instance(root_state_dir):
         version_history = VersionHistory(root_state_dir)
         state_dir = version_history.code_version.directory
         exit_code = run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
 
-    if exit_code:
-        sys.exit(exit_code)
+    process_locker.sys_exit(exit_code)

@@ -83,6 +83,8 @@ if __name__ == "__main__":
     logger.info(f'Root state dir: {root_state_dir}')
 
     api_port = os.environ.get('CORE_API_PORT')
+    api_port = int(api_port) if api_port else None
+
     api_key = os.environ.get('CORE_API_KEY')
 
     # Check whether we need to start the core or the user interface

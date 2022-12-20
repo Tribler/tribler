@@ -44,6 +44,7 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
+from tribler.core.utilities.process_locker import set_api_port
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
@@ -182,6 +183,7 @@ class TriblerWindow(QMainWindow):
                 "Tribler configuration conflicts with the current OS state: "
                 "REST API port %i already in use" % api_port
             )
+        set_api_port(api_port)
 
         api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
         set_api_key(self.gui_settings, api_key)

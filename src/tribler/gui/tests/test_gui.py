@@ -40,7 +40,7 @@ def fixture_window(tmpdir_factory):
     api_key = hexlify(os.urandom(16))
     root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
 
-    app = TriblerApplication("triblerapp-guitest", sys.argv)
+    app = TriblerApplication("triblerapp-guitest", sys.argv, another_process_is_active=False)
     app_manager = AppManager(app)
     # We must create a separate instance of QSettings and clear it.
     # Otherwise, previous runs of the same app will affect this run.

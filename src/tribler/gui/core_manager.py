@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment
-from PyQt5.QtNetwork import QNetworkRequest
 
 from tribler.core.utilities.process_checker import ProcessChecker
 from tribler.gui import gui_sentry_reporter

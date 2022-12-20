@@ -20,7 +20,7 @@ class QtSingleApplication(QApplication):
 
     message_received = pyqtSignal(str)
 
-    def __init__(self, win_id, *argv):
+    def __init__(self, win_id: str, another_process_is_active: bool, *argv):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f'Start Tribler application. Win id: "{win_id}". '
                          f'Sys argv: "{sys.argv}"')
@@ -35,7 +35,7 @@ class QtSingleApplication(QApplication):
         self._outgoing_connection.connectToServer(self._id)
 
         connected_to_previous_instance = self._outgoing_connection.waitForConnected()
-        self._is_app_already_running = connected_to_previous_instance
+        self._is_app_already_running = connected_to_previous_instance or another_process_is_active
 
         self._stream_to_running_app = None
         self._incoming_connection = None

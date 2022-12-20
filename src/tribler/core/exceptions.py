@@ -8,9 +8,6 @@ Author(s): Arno Bakker
 class TriblerException(Exception):
     """Super class for all Tribler-specific Exceptions the Tribler Core throws."""
 
-    def __str__(self):
-        return str(self.__class__) + ': ' + Exception.__str__(self)
-
 
 class OperationNotPossibleAtRuntimeException(TriblerException):
     """The requested operation is not possible after the Session or Download has been started."""
