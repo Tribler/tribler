@@ -35,7 +35,7 @@ async def transfer():
     container[peer] = transfer
     yield transfer
 
-    await protocol_task_group.cancel()
+    transfer.finish()
     await protocol_task_group.wait()
 
 
@@ -143,7 +143,7 @@ async def test_finish_with_exception_and_result(transfer: Transfer):
     exception = TransferException(message='message', transfer=Mock())
 
     with pytest.raises(InvalidStateError):
-        await transfer.finish(exception=exception, result=Mock())
+        transfer.finish(exception=exception, result=Mock())
 
 
 async def test_terminate_by_timeout_task(transfer: Transfer):
