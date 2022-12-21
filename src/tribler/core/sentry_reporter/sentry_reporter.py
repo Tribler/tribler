@@ -21,7 +21,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
     parse_last_core_output, parse_os_environ,
     parse_stacktrace,
 )
-from tribler.core.utilities.process_locker import get_global_process_locker
+from tribler.core.utilities.process_manager import get_global_process_manager
 
 # fmt: off
 
@@ -220,9 +220,9 @@ class SentryReporter:
         reporter['events'] = extract_dict(sys_info, r'^(event|request)')
         reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
 
-        process_locker = get_global_process_locker()
-        if process_locker:
-            reporter['last_processes'] = [p.describe() for p in process_locker.get_last_processes()]
+        process_manager = get_global_process_manager()
+        if process_manager:
+            reporter['last_processes'] = [p.describe() for p in process_manager.get_last_processes()]
 
         # try to retrieve an error from the last_core_output
         if last_core_output:

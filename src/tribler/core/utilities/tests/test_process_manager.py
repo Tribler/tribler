@@ -6,13 +6,13 @@ from unittest.mock import Mock, patch
 import psutil
 import pytest
 
-from tribler.core.utilities.process_locker import logger, ProcessInfo, ProcessKind, ProcessLocker, \
-    get_global_process_locker, set_api_port, set_error, set_global_process_locker
+from tribler.core.utilities.process_manager import logger, ProcessInfo, ProcessKind, ProcessManager, \
+    get_global_process_manager, set_api_port, set_error, set_global_process_manager
 
 
-@pytest.fixture(name='process_locker')
-def process_locker_fixture(tmp_path: Path):
-    return ProcessLocker(tmp_path, ProcessKind.Core)
+@pytest.fixture(name='process_manager')
+def process_manager_fixture(tmp_path: Path):
+    return ProcessManager(tmp_path, ProcessKind.Core)
 
 
 def test_process_info():
@@ -165,10 +165,10 @@ def test_process_info_save(logger_error: Mock):
     assert logger_error.call_args[0][0] == 'The `row_version` value for a new process row should not be set. Got: 1'
 
 
-def test_connect(process_locker):
-    process_locker.filename = ':memory:'
-    process_locker.connect()
-    connection = process_locker.connect()
+def test_connect(process_manager):
+    process_manager.filename = ':memory:'
+    process_manager.connect()
+    connection = process_manager.connect()
     cursor = connection.execute('select * from processes')
     column_names = [column[0] for column in cursor.description]
     assert column_names == ['rowid', 'row_version', 'pid', 'kind', 'active', 'canceled', 'app_version',
@@ -180,75 +180,75 @@ def test_connect(process_locker):
         connect.return_value = connection
         connection.execute.side_effect = ValueError
         with pytest.raises(ValueError):
-            process_locker.connect()
+            process_manager.connect()
         assert connection.close.called
 
 
-def test_atomic_get_active_process(process_locker: ProcessLocker):
-    assert process_locker.current_process.active == 1
-    assert process_locker.active_process is process_locker.current_process
+def test_atomic_get_active_process(process_manager: ProcessManager):
+    assert process_manager.current_process.active == 1
+    assert process_manager.active_process is process_manager.current_process
 
     fake_process = ProcessInfo.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
-    active_process = process_locker.atomic_get_active_process(ProcessKind.Core, fake_process)
+    active_process = process_manager.atomic_get_active_process(ProcessKind.Core, fake_process)
     assert active_process.active == 1
     assert fake_process.active == 0
 
-    with process_locker.transaction() as connection:
+    with process_manager.transaction() as connection:
         connection.execute('update processes set pid = pid + 100')
 
     current_process = ProcessInfo.current_process(ProcessKind.Core)
-    active_process = process_locker.atomic_get_active_process(ProcessKind.Core, current_process)
+    active_process = process_manager.atomic_get_active_process(ProcessKind.Core, current_process)
     assert current_process.active
     assert active_process is current_process
 
-    with process_locker.transaction() as connection:
+    with process_manager.transaction() as connection:
         rows = connection.execute('select rowid from processes where active = 1').fetchall()
         assert len(rows) == 1 and rows[0][0] == current_process.rowid
 
 
-def test_save(process_locker: ProcessLocker):
+def test_save(process_manager: ProcessManager):
     p = ProcessInfo.current_process(ProcessKind.Core)
     p.pid = p.pid + 100
-    process_locker.save(p)
+    process_manager.save(p)
     assert p.rowid is not None
 
 
-def test_set_api_port(process_locker: ProcessLocker):
-    process_locker.set_api_port(12345)
-    with process_locker.transaction() as connection:
+def test_set_api_port(process_manager: ProcessManager):
+    process_manager.set_api_port(12345)
+    with process_manager.transaction() as connection:
         rows = connection.execute('select rowid from processes where api_port = 12345').fetchall()
-        assert len(rows) == 1 and rows[0][0] == process_locker.current_process.rowid
+        assert len(rows) == 1 and rows[0][0] == process_manager.current_process.rowid
 
 
 @patch('sys.exit')
-def test_sys_exit(sys_exit: Mock, process_locker: ProcessLocker):
-    process_locker.sys_exit(123, 'Error text')
+def test_sys_exit(sys_exit: Mock, process_manager: ProcessManager):
+    process_manager.sys_exit(123, 'Error text')
 
-    with process_locker.transaction() as connection:
+    with process_manager.transaction() as connection:
         rows = connection.execute('select active, error_msg from processes where rowid = ?',
-                                  [process_locker.current_process.rowid]).fetchall()
+                                  [process_manager.current_process.rowid]).fetchall()
         assert len(rows) == 1 and rows[0] == (0, 'Error text')
     assert sys_exit.called and sys_exit.call_args[0][0] == 123
 
 
-def test_get_last_processes(process_locker: ProcessLocker):
-    last_processes = process_locker.get_last_processes()
-    assert len(last_processes) == 1 and last_processes[0].rowid == process_locker.current_process.rowid
+def test_get_last_processes(process_manager: ProcessManager):
+    last_processes = process_manager.get_last_processes()
+    assert len(last_processes) == 1 and last_processes[0].rowid == process_manager.current_process.rowid
 
     fake_process = ProcessInfo.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
-    process_locker.atomic_get_active_process(ProcessKind.Core, fake_process)
+    process_manager.atomic_get_active_process(ProcessKind.Core, fake_process)
 
-    last_processes = process_locker.get_last_processes()
+    last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 2
-    assert last_processes[0].rowid == process_locker.current_process.rowid
+    assert last_processes[0].rowid == process_manager.current_process.rowid
     assert last_processes[1].rowid == fake_process.rowid
 
 
 @patch.object(logger, 'warning')
-def test_global_process_locker(warning: Mock, process_locker: ProcessLocker):
-    assert get_global_process_locker() is None
+def test_global_process_manager(warning: Mock, process_manager: ProcessManager):
+    assert get_global_process_manager() is None
 
     set_api_port(12345)
     assert warning.call_args[0][0] == 'Cannot set api_port for process locker: no process locker global instance is set'
@@ -256,25 +256,25 @@ def test_global_process_locker(warning: Mock, process_locker: ProcessLocker):
     set_error('Error text')
     assert warning.call_args[0][0] == 'Cannot set error for process locker: no process locker global instance is set'
 
-    set_global_process_locker(process_locker)
-    assert get_global_process_locker() is process_locker
+    set_global_process_manager(process_manager)
+    assert get_global_process_manager() is process_manager
 
     set_api_port(12345)
     set_error('Error text')
 
-    assert process_locker.current_process.api_port == 12345
-    assert process_locker.current_process.error_msg == 'Error text'
+    assert process_manager.current_process.api_port == 12345
+    assert process_manager.current_process.error_msg == 'Error text'
 
-    set_global_process_locker(None)
-    assert get_global_process_locker() is None
+    set_global_process_manager(None)
+    assert get_global_process_manager() is None
 
 
-def test_json_fields(process_locker: ProcessLocker):
-    p = process_locker.current_process
+def test_json_fields(process_manager: ProcessManager):
+    p = process_manager.current_process
     p.set_error('Error text', {'arbitrary_key': 'arbitrary_value'})
     p.other_params = {'some_key': 'some_value'}
-    process_locker.save(p)  # should serialize `error_info` and `other_params` to JSON
-    processes = process_locker.get_last_processes()
+    process_manager.save(p)  # should serialize `error_info` and `other_params` to JSON
+    processes = process_manager.get_last_processes()
     assert len(processes) == 1
     p2 = processes[0]
     assert p is not p2  # p2 is a new instance constructed from the database row
@@ -284,15 +284,15 @@ def test_json_fields(process_locker: ProcessLocker):
 
 @patch.object(logger, 'warning')
 @patch.object(logger, 'exception')
-def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, process_locker: ProcessLocker):
-    db_content = process_locker.filename.read_bytes()
+def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, process_manager: ProcessManager):
+    db_content = process_manager.filename.read_bytes()
     assert len(db_content) > 2000
-    process_locker.filename.write_bytes(db_content[:1500])  # corrupt the database file
+    process_manager.filename.write_bytes(db_content[:1500])  # corrupt the database file
 
     # no exception, the database is silently re-created:
-    process_locker2 = ProcessLocker(process_locker.root_dir, ProcessKind.Core)
+    process_manager2 = ProcessManager(process_manager.root_dir, ProcessKind.Core)
     assert logger_exception.call_args[0][0] == 'DatabaseError: database disk image is malformed'
     assert logger_warning.call_args[0][0] == 'Retrying after the error: DatabaseError: database disk image is malformed'
 
-    processes = process_locker2.get_last_processes()
+    processes = process_manager2.get_last_processes()
     assert len(processes) == 1

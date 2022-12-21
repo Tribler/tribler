@@ -13,7 +13,7 @@ from tribler.core.check_os import (
 from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.core.utilities.process_locker import ProcessKind, ProcessLocker, set_global_process_locker
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, set_global_process_manager
 from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.utilities import show_system_popup
 from tribler.gui import gui_sentry_reporter
@@ -48,9 +48,9 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
     check_environment()
     check_free_space()
 
-    process_locker = ProcessLocker(root_state_dir, ProcessKind.GUI)
-    another_process_is_active = not process_locker.current_process.active
-    set_global_process_locker(process_locker)   # to be able to add information about exception to the process info
+    process_manager = ProcessManager(root_state_dir, ProcessKind.GUI)
+    another_process_is_active = not process_manager.current_process.active
+    set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
     try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
         app = TriblerApplication(app_name, sys.argv, another_process_is_active)
@@ -72,7 +72,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
                 elif arg.startswith('magnet'):
                     app.send_message(arg)
             logger.info('Close the current application.')
-            process_locker.sys_exit(1, 'Tribler GUI application is already running')
+            process_manager.sys_exit(1, 'Tribler GUI application is already running')
 
         logger.info('Start Tribler Window')
         window = TriblerWindow(app_manager, settings, root_state_dir, api_port=api_port, api_key=api_key)
@@ -80,17 +80,17 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         app.tribler_window = window
         app.parse_sys_args(sys.argv)
         exit_code = app.exec_()
-        process_locker.sys_exit(exit_code or None)
+        process_manager.sys_exit(exit_code or None)
 
     except ImportError as ie:
         logger.exception(ie)
         show_system_popup("Import Error", f"Import error: {ie}")
-        process_locker.sys_exit(1, exc=ie)
+        process_manager.sys_exit(1, exc=ie)
 
     except TriblerException as te:
         logger.exception(te)
         show_system_popup("Tribler Exception", f"{te.__class__.__name__}: {te}")
-        process_locker.sys_exit(1, exc=te)
+        process_manager.sys_exit(1, exc=te)
 
     except SystemExit:
         logger.info("Shutting down Tribler")

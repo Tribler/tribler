@@ -40,7 +40,7 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.process_checker import single_tribler_instance
-from tribler.core.utilities.process_locker import ProcessKind, ProcessLocker, set_global_process_locker
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, set_global_process_manager
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -180,24 +180,24 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
     load_logger_config('tribler-core', root_state_dir)
 
     gui_pid = GuiProcessWatcher.get_gui_pid()
-    process_locker = ProcessLocker(root_state_dir, ProcessKind.Core, gui_pid)
-    set_global_process_locker(process_locker)
+    process_manager = ProcessManager(root_state_dir, ProcessKind.Core, gui_pid)
+    set_global_process_manager(process_manager)
 
-    if not process_locker.current_process.active:
-        msg = f'Another Core process with PID {process_locker.active_process.pid} is already running'
+    if not process_manager.current_process.active:
+        msg = f'Another Core process with PID {process_manager.active_process.pid} is already running'
         logger.warning(msg)
-        process_locker.sys_exit(1, msg)
+        process_manager.sys_exit(1, msg)
 
     if api_port is None:
         msg = 'api_port is not specified for a core process'
         logger.error(msg)
-        process_locker.sys_exit(1, msg)
+        process_manager.sys_exit(1, msg)
 
-    process_locker.set_api_port(api_port)
+    process_manager.set_api_port(api_port)
 
     with single_tribler_instance(root_state_dir):
         version_history = VersionHistory(root_state_dir)
         state_dir = version_history.code_version.directory
         exit_code = run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
 
-    process_locker.sys_exit(exit_code)
+    process_manager.sys_exit(exit_code)

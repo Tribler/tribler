@@ -44,7 +44,7 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
-from tribler.core.utilities.process_locker import set_api_port
+from tribler.core.utilities.process_manager import set_api_port
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,

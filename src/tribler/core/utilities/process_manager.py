@@ -219,38 +219,38 @@ class ProcessInfo:
             logger.error(f"The `row_version` value for a new process row should not be set. Got: {self.row_version}")
 
 
-global_process_locker: Optional[ProcessLocker] = None
+global_process_manager: Optional[ProcessManager] = None
 
 _lock = Lock()
 
 
-def set_global_process_locker(process_locker: Optional[ProcessLocker]):
-    global global_process_locker  # pylint: disable=global-statement
+def set_global_process_manager(process_manager: Optional[ProcessManager]):
+    global global_process_manager  # pylint: disable=global-statement
     with _lock:
-        global_process_locker = process_locker
+        global_process_manager = process_manager
 
 
-def get_global_process_locker() -> Optional[ProcessLocker]:
+def get_global_process_manager() -> Optional[ProcessManager]:
     with _lock:
-        return global_process_locker
+        return global_process_manager
 
 
 def set_api_port(api_port: int):
-    process_locker = get_global_process_locker()
-    if process_locker is None:
+    process_manager = get_global_process_manager()
+    if process_manager is None:
         logger.warning('Cannot set api_port for process locker: no process locker global instance is set')
     else:
-        process_locker.set_api_port(api_port)
+        process_manager.set_api_port(api_port)
 
 
 def set_error(error_msg: Optional[str] = None, error_info: Optional[dict] = None,
               exc: Optional[Exception] = None, replace: bool = False):
-    process_locker = get_global_process_locker()
-    if process_locker is None:
+    process_manager = get_global_process_manager()
+    if process_manager is None:
         logger.warning('Cannot set error for process locker: no process locker global instance is set')
     else:
-        process_locker.current_process.set_error(error_msg, error_info, exc, replace)
-        process_locker.save(process_locker.current_process)
+        process_manager.current_process.set_error(error_msg, error_info, exc, replace)
+        process_manager.save(process_manager.current_process)
 
 
 def with_retry(func):
@@ -265,7 +265,7 @@ def with_retry(func):
     return new_func
 
 
-class ProcessLocker:
+class ProcessManager:
     filename: Path
     current_process: ProcessInfo
     active_process: ProcessInfo

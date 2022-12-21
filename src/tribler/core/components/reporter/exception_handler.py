@@ -10,7 +10,7 @@ from typing import Callable, Optional
 from tribler.core.components.component import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
-from tribler.core.utilities import process_locker
+from tribler.core.utilities import process_manager
 
 # There are some errors that we are ignoring.
 IGNORED_ERRORS_BY_CODE = {
@@ -112,7 +112,7 @@ class CoreExceptionHandler:
                 should_stop=should_stop
             )
             self.logger.error(f"Unhandled exception occurred! {reported_error}\n{reported_error.long_text}")
-            process_locker.set_error(exc=exception)
+            process_manager.set_error(exc=exception)
 
             if self.report_callback:
                 self.logger.error('Call report callback')
@@ -125,7 +125,7 @@ class CoreExceptionHandler:
                     self.unreported_error = reported_error
 
         except Exception as ex:
-            process_locker.set_error(exc=ex)
+            process_manager.set_error(exc=ex)
 
             self.sentry_reporter.capture_exception(ex)
             self.logger.exception(f'Error occurred during the error handling: {ex}')
