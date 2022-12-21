@@ -6,7 +6,7 @@ import traceback
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.utilities import process_manager
+from tribler.core.utilities import tribler_process_manager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
@@ -30,7 +30,7 @@ class ErrorHandler:
 
     def gui_error(self, exc_type, exc, tb):
         self._logger.info(f'Processing GUI error: {exc_type}')
-        process_manager.set_error(f"GUI {exc.__class__.__name__}: {exc}", exc=exc)
+        tribler_process_manager.set_error(f"GUI {exc.__class__.__name__}: {exc}", exc=exc)
 
         text = "".join(traceback.format_exception(exc_type, exc, tb))
         self._logger.error(text)
@@ -84,7 +84,7 @@ class ErrorHandler:
 
         self._handled_exceptions.add(reported_error.type)
         self._logger.info(f'Processing Core error: {reported_error}')
-        process_manager.set_error(f"Core {reported_error.type}: {reported_error.text}")
+        tribler_process_manager.set_error(f"Core {reported_error.type}: {reported_error.text}")
 
         error_text = f'{reported_error.text}\n{reported_error.long_text}'
         self._logger.error(error_text)

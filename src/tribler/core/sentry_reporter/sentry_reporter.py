@@ -21,7 +21,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
     parse_last_core_output, parse_os_environ,
     parse_stacktrace,
 )
-from tribler.core.utilities.process_manager import get_global_process_manager
+from tribler.core.utilities.tribler_process_manager import get_global_process_manager
 
 # fmt: off
 
