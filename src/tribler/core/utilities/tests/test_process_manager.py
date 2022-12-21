@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import psutil
 import pytest
 
-from tribler.core.utilities.process_manager import logger, ProcessInfo, ProcessKind, ProcessManager, \
+from tribler.core.utilities.process_manager import logger, TriblerProcess, ProcessKind, ProcessManager, \
     get_global_process_manager, set_api_port, set_error, set_global_process_manager
 
 
@@ -15,8 +15,8 @@ def process_manager_fixture(tmp_path: Path):
     return ProcessManager(tmp_path, ProcessKind.Core)
 
 
-def test_process_info():
-    p = ProcessInfo.current_process(ProcessKind.Core, 123, arbitrary_param=456)
+def test_tribler_process():
+    p = TriblerProcess.current_process(ProcessKind.Core, 123, arbitrary_param=456)
     assert p.is_current_process()
     assert p.is_running()
 
@@ -33,8 +33,8 @@ def test_process_info():
 
 @patch('psutil.Process')
 @patch('psutil.pid_exists')
-def test_process_info_is_running(pid_exists: Mock, process_class):
-    p = ProcessInfo.current_process(ProcessKind.GUI)
+def test_tribler_process_is_running(pid_exists: Mock, process_class):
+    p = TriblerProcess.current_process(ProcessKind.GUI)
     assert not pid_exists.called
 
     # if the pid does not exist, the process is not running
@@ -65,8 +65,8 @@ def test_process_info_is_running(pid_exists: Mock, process_class):
     assert p.is_running() is True
 
 
-def test_process_info_set_error():
-    p = ProcessInfo.current_process(ProcessKind.GUI)
+def test_tribler_process_set_error():
+    p = TriblerProcess.current_process(ProcessKind.GUI)
 
     # Initially there is no exception
     assert p.error_msg is None and p.error_info is None
@@ -106,14 +106,14 @@ def test_process_info_set_error():
     assert re.match(pattern, s)
 
 
-def test_process_info_mark_finished():
-    def make_process_info():
-        p = ProcessInfo.current_process(ProcessKind.Core)
+def test_tribler_process_mark_finished():
+    def make_tribler_process():
+        p = TriblerProcess.current_process(ProcessKind.Core)
         p.active = 1
         p.api_port = 10000
         return p
 
-    p = make_process_info()
+    p = make_tribler_process()
     assert p.exit_code is None
     assert p.finished_at is None
 
@@ -125,19 +125,19 @@ def test_process_info_mark_finished():
     s = p.describe()
     assert s.endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
 
-    p = make_process_info()
+    p = make_tribler_process()
     p.mark_finished()  # the error is not set and the exit code is not specified, and by default should be 0
     assert p.exit_code == 0
 
-    p = make_process_info()
+    p = make_tribler_process()
     p.error_msg = 'Error text'
     p.mark_finished()  # the error is set and the exit code is not specified, and by default should be 1
     assert p.exit_code == 1
 
 
 @patch.object(logger, 'error')
-def test_process_info_save(logger_error: Mock):
-    p = ProcessInfo.current_process(ProcessKind.Core)
+def test_tribler_process_save(logger_error: Mock):
+    p = TriblerProcess.current_process(ProcessKind.Core)
     assert p.rowid is None and p.row_version == 0
 
     cursor = Mock(lastrowid=123)
@@ -159,7 +159,7 @@ def test_process_info_save(logger_error: Mock):
     assert logger_error.called
     assert logger_error.call_args[0][0] == 'Row 123 with row version 1 was not found'
 
-    p = ProcessInfo.current_process(ProcessKind.Core)
+    p = TriblerProcess.current_process(ProcessKind.Core)
     p.row_version = 1
     p.save(connection)
     assert logger_error.call_args[0][0] == 'The `row_version` value for a new process row should not be set. Got: 1'
@@ -188,7 +188,7 @@ def test_atomic_get_active_process(process_manager: ProcessManager):
     assert process_manager.current_process.active == 1
     assert process_manager.active_process is process_manager.current_process
 
-    fake_process = ProcessInfo.current_process(ProcessKind.Core)
+    fake_process = TriblerProcess.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
     active_process = process_manager.atomic_get_active_process(ProcessKind.Core, fake_process)
     assert active_process.active == 1
@@ -197,7 +197,7 @@ def test_atomic_get_active_process(process_manager: ProcessManager):
     with process_manager.transaction() as connection:
         connection.execute('update processes set pid = pid + 100')
 
-    current_process = ProcessInfo.current_process(ProcessKind.Core)
+    current_process = TriblerProcess.current_process(ProcessKind.Core)
     active_process = process_manager.atomic_get_active_process(ProcessKind.Core, current_process)
     assert current_process.active
     assert active_process is current_process
@@ -208,7 +208,7 @@ def test_atomic_get_active_process(process_manager: ProcessManager):
 
 
 def test_save(process_manager: ProcessManager):
-    p = ProcessInfo.current_process(ProcessKind.Core)
+    p = TriblerProcess.current_process(ProcessKind.Core)
     p.pid = p.pid + 100
     process_manager.save(p)
     assert p.rowid is not None
@@ -236,7 +236,7 @@ def test_get_last_processes(process_manager: ProcessManager):
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 1 and last_processes[0].rowid == process_manager.current_process.rowid
 
-    fake_process = ProcessInfo.current_process(ProcessKind.Core)
+    fake_process = TriblerProcess.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
     process_manager.atomic_get_active_process(ProcessKind.Core, fake_process)
 

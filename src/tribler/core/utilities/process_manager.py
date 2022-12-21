@@ -62,7 +62,7 @@ def from_json(value) -> Optional[dict]:
     return json.loads(value)
 
 
-class ProcessInfo:
+class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  rowid: Optional[int] = None, creator_pid: Optional[int] = None, active: int = 0, canceled: int = 0,
                  row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
@@ -88,19 +88,19 @@ class ProcessInfo:
         self.other_params = other_params
 
     @classmethod
-    def from_row(cls, row: tuple) -> ProcessInfo:
+    def from_row(cls, row: tuple) -> TriblerProcess:
         rowid, row_version, pid, kind, active, canceled, app_version, started_at, creator_pid, api_port, \
             shutdown_request_pid, shutdown_requested_at, finished_at, exit_code, error_msg, error_info, \
             other_params = row
 
         kind = ProcessKind(kind)
 
-        return ProcessInfo(rowid=rowid, row_version=row_version, pid=pid, kind=kind, active=active, canceled=canceled,
-                           app_version=app_version, started_at=started_at, creator_pid=creator_pid,
-                           api_port=api_port, shutdown_request_pid=shutdown_request_pid,
-                           shutdown_requested_at=shutdown_requested_at, finished_at=finished_at,
-                           exit_code=exit_code, error_msg=error_msg, error_info=from_json(error_info),
-                           other_params=from_json(other_params))
+        return TriblerProcess(rowid=rowid, row_version=row_version, pid=pid, kind=kind, active=active, canceled=canceled,
+                              app_version=app_version, started_at=started_at, creator_pid=creator_pid,
+                              api_port=api_port, shutdown_request_pid=shutdown_request_pid,
+                              shutdown_requested_at=shutdown_requested_at, finished_at=finished_at,
+                              exit_code=exit_code, error_msg=error_msg, error_info=from_json(error_info),
+                              other_params=from_json(other_params))
 
     def to_dict(self) -> dict:
         d = dict(rowid=self.rowid, pid=self.pid, kind=self.kind.value, active=self.active, canceled=self.canceled,
@@ -132,7 +132,7 @@ class ProcessInfo:
         return ''.join(result)
 
     @classmethod
-    def current_process(cls, kind: ProcessKind, creator_pid: Optional[int] = None, **other_params) -> ProcessInfo:
+    def current_process(cls, kind: ProcessKind, creator_pid: Optional[int] = None, **other_params) -> TriblerProcess:
         return cls(pid=os.getpid(), kind=kind, app_version=version_id, started_at=int(time.time()),
                    creator_pid=creator_pid, row_version=0, other_params=other_params or None)
 
@@ -267,13 +267,13 @@ def with_retry(func):
 
 class ProcessManager:
     filename: Path
-    current_process: ProcessInfo
-    active_process: ProcessInfo
+    current_process: TriblerProcess
+    active_process: TriblerProcess
 
     def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None, **other_params):
         self.root_dir = root_dir
         self.filename = self._get_file_name(root_dir)
-        self.current_process = ProcessInfo.current_process(process_kind, creator_pid, **other_params)
+        self.current_process = TriblerProcess.current_process(process_kind, creator_pid, **other_params)
         self.active_process = self.atomic_get_active_process(process_kind, self.current_process)
 
     @classmethod
@@ -309,7 +309,7 @@ class ProcessManager:
 
     @with_retry
     def atomic_get_active_process(self, kind: ProcessKind,
-                                  current_process: Optional[ProcessInfo] = None) -> Optional[ProcessInfo]:
+                                  current_process: Optional[TriblerProcess] = None) -> Optional[TriblerProcess]:
         active_process = None
         with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""
@@ -317,7 +317,7 @@ class ProcessManager:
             """, [kind.value])
             row = cursor.fetchone()
             if row is not None:
-                previous_active_process = ProcessInfo.from_row(row)
+                previous_active_process = TriblerProcess.from_row(row)
                 if previous_active_process.is_running():
                     active_process = previous_active_process
                 else:
@@ -336,7 +336,7 @@ class ProcessManager:
             return active_process
 
     @with_retry
-    def save(self, process: ProcessInfo):
+    def save(self, process: TriblerProcess):
         with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             process.save(connection)
 
@@ -354,9 +354,9 @@ class ProcessManager:
         sys.exit(exit_code)
 
     @with_retry
-    def get_last_processes(self, limit=6) -> List[ProcessInfo]:
+    def get_last_processes(self, limit=6) -> List[TriblerProcess]:
         with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""SELECT * FROM processes ORDER BY rowid DESC LIMIT ?""", [limit])
-            result = [ProcessInfo.from_row(row) for row in cursor]
+            result = [TriblerProcess.from_row(row) for row in cursor]
         result.reverse()
         return result
