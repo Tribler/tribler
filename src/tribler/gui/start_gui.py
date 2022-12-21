@@ -49,11 +49,11 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
     check_free_space()
 
     process_manager = ProcessManager(root_state_dir, ProcessKind.GUI)
-    another_process_is_active = not process_manager.current_process.active
+    another_process_is_primary = not process_manager.current_process.primary
     set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
     try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
-        app = TriblerApplication(app_name, sys.argv, another_process_is_active)
+        app = TriblerApplication(app_name, sys.argv, another_process_is_primary)
         app_manager = AppManager(app)
 
         # Note (@ichorid): translator MUST BE created and assigned to a separate variable

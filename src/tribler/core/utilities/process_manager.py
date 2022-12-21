@@ -28,7 +28,7 @@ CREATE_SQL = """
         row_version INTEGER NOT NULL DEFAULT 0,
         pid INTEGER NOT NULL,
         kind TEXT NOT NULL,
-        active INT NOT NULL,
+        "primary" INT NOT NULL,
         canceled INT NOT NULL,
         app_version TEXT NOT NULL,
         started_at INT NOT NULL,
@@ -52,7 +52,7 @@ class ProcessKind(Enum):
 
 class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
-                 rowid: Optional[int] = None, creator_pid: Optional[int] = None, active: int = 0, canceled: int = 0,
+                 rowid: Optional[int] = None, creator_pid: Optional[int] = None, primary: int = 0, canceled: int = 0,
                  row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
                  exit_code: Optional[int] = None, error_msg: Optional[str] = None, error_info: Optional[dict] = None,
                  shutdown_request_pid: Optional[int] = None, shutdown_requested_at: Optional[int] = None,
@@ -61,7 +61,7 @@ class TriblerProcess:
         self.row_version = row_version
         self.pid = pid
         self.kind = kind
-        self.active = active
+        self.primary = primary
         self.canceled = canceled
         self.app_version = app_version
         self.started_at = started_at
@@ -89,13 +89,13 @@ class TriblerProcess:
 
     @classmethod
     def from_row(cls, row: tuple) -> TriblerProcess:
-        rowid, row_version, pid, kind, active, canceled, app_version, started_at, creator_pid, api_port, \
+        rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
             shutdown_request_pid, shutdown_requested_at, finished_at, exit_code, error_msg, error_info, \
             other_params = row
 
         kind = ProcessKind(kind)
 
-        return TriblerProcess(rowid=rowid, row_version=row_version, pid=pid, kind=kind, active=active, canceled=canceled,
+        return TriblerProcess(rowid=rowid, row_version=row_version, pid=pid, kind=kind, primary=primary, canceled=canceled,
                               app_version=app_version, started_at=started_at, creator_pid=creator_pid,
                               api_port=api_port, shutdown_request_pid=shutdown_request_pid,
                               shutdown_requested_at=shutdown_requested_at, finished_at=finished_at,
@@ -104,7 +104,7 @@ class TriblerProcess:
 
     def describe(self):
         kind = self.kind.value.capitalize()
-        flags = f"{'active, ' if self.active else ''}{'canceled, ' if self.canceled else ''}"
+        flags = f"{'primary, ' if self.primary else ''}{'canceled, ' if self.canceled else ''}"
         result = [f'{kind}Process({flags}pid={self.pid}']
         if self.creator_pid is not None:
             result.append(f', gui_pid={self.creator_pid}')
@@ -163,7 +163,7 @@ class TriblerProcess:
             self.error_info = self.error_info or error_info
 
     def mark_finished(self, exit_code: Optional[int] = None):
-        self.active = 0
+        self.primary = 0
         self.finished_at = int(time.time())
 
         # if exit_code is specified, it overrides the previously set exit code
@@ -181,11 +181,11 @@ class TriblerProcess:
             self.row_version = 0
             cursor.execute("""
                 INSERT INTO processes (
-                    pid, kind, active, canceled, app_version, started_at,
+                    pid, kind, "primary", canceled, app_version, started_at,
                     creator_pid, api_port, shutdown_request_pid, shutdown_requested_at,
                     finished_at, exit_code, error_msg, error_info, other_params
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [self.pid, self.kind.value, self.active, self.canceled, self.app_version, self.started_at,
+            """, [self.pid, self.kind.value, self.primary, self.canceled, self.app_version, self.started_at,
                   self.creator_pid, self.api_port, self.shutdown_request_pid, self.shutdown_requested_at,
                   self.finished_at, self.exit_code, self.error_msg, self._to_json(self.error_info),
                   self._to_json(self.other_params)])
@@ -195,11 +195,11 @@ class TriblerProcess:
             self.row_version += 1
             cursor.execute("""
                 UPDATE processes
-                SET row_version = ?, active = ?, canceled = ?, creator_pid = ?, api_port = ?,
+                SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
                     shutdown_request_pid = ?, shutdown_requested_at = ?, finished_at = ?,
                     exit_code = ?, error_msg = ?, error_info = ?, other_params = ?
                 WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
-            """, [self.row_version, self.active, self.canceled, self.creator_pid, self.api_port,
+            """, [self.row_version, self.primary, self.canceled, self.creator_pid, self.api_port,
                   self.shutdown_request_pid, self.shutdown_requested_at, self.finished_at,
                   self.exit_code, self.error_msg, self._to_json(self.error_info),
                   self._to_json(self.other_params), self.rowid, prev_version, self.pid, self.kind.value,
@@ -261,13 +261,13 @@ def with_retry(func):
 class ProcessManager:
     filename: Path
     current_process: TriblerProcess
-    active_process: TriblerProcess
+    primary_process: TriblerProcess
 
     def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None, **other_params):
         self.root_dir = root_dir
         self.filename = self._get_file_name(root_dir)
         self.current_process = TriblerProcess.current_process(process_kind, creator_pid, **other_params)
-        self.active_process = self.atomic_get_active_process(process_kind, self.current_process)
+        self.primary_process = self.atomic_get_primary_process(process_kind, self.current_process)
 
     @classmethod
     def _get_file_name(cls, root_dir: Path) -> Path:  # The method is added for easier testing
@@ -301,32 +301,32 @@ class ProcessManager:
             raise
 
     @with_retry
-    def atomic_get_active_process(self, kind: ProcessKind,
+    def atomic_get_primary_process(self, kind: ProcessKind,
                                   current_process: Optional[TriblerProcess] = None) -> Optional[TriblerProcess]:
-        active_process = None
+        primary_process = None
         with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""
-                SELECT * FROM processes WHERE kind = ? and active = 1 ORDER BY rowid DESC LIMIT 1
+                SELECT * FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
             """, [kind.value])
             row = cursor.fetchone()
             if row is not None:
-                previous_active_process = TriblerProcess.from_row(row)
-                if previous_active_process.is_running():
-                    active_process = previous_active_process
+                previous_primary_process = TriblerProcess.from_row(row)
+                if previous_primary_process.is_running():
+                    primary_process = previous_primary_process
                 else:
-                    previous_active_process.active = 0
-                    previous_active_process.save(connection)
+                    previous_primary_process.primary = 0
+                    previous_primary_process.save(connection)
 
             if current_process is not None:
-                if active_process is None:
-                    current_process.active = 1
-                    active_process = current_process
+                if primary_process is None:
+                    current_process.primary = 1
+                    primary_process = current_process
                 else:
-                    current_process.active = 0
+                    current_process.primary = 0
                     current_process.canceled = 1
                 current_process.save(connection)
 
-            return active_process
+            return primary_process
 
     @with_retry
     def save(self, process: TriblerProcess):

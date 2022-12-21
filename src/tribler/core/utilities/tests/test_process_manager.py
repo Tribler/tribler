@@ -103,7 +103,7 @@ def test_tribler_process_set_error():
 def test_tribler_process_mark_finished():
     def make_tribler_process():
         p = TriblerProcess.current_process(ProcessKind.Core)
-        p.active = 1
+        p.primary = 1
         p.api_port = 10000
         return p
 
@@ -112,7 +112,7 @@ def test_tribler_process_mark_finished():
     assert p.finished_at is None
 
     p.mark_finished(123)
-    assert p.active == 0
+    assert p.primary == 0
     assert p.exit_code == 123
     assert p.finished_at is not None
 
@@ -165,7 +165,7 @@ def test_connect(process_manager):
     connection = process_manager.connect()
     cursor = connection.execute('select * from processes')
     column_names = [column[0] for column in cursor.description]
-    assert column_names == ['rowid', 'row_version', 'pid', 'kind', 'active', 'canceled', 'app_version',
+    assert column_names == ['rowid', 'row_version', 'pid', 'kind', 'primary', 'canceled', 'app_version',
                             'started_at', 'creator_pid', 'api_port', 'shutdown_request_pid', 'shutdown_requested_at',
                             'finished_at', 'exit_code', 'error_msg', 'error_info', 'other_params']
 
@@ -178,26 +178,26 @@ def test_connect(process_manager):
         assert connection.close.called
 
 
-def test_atomic_get_active_process(process_manager: ProcessManager):
-    assert process_manager.current_process.active == 1
-    assert process_manager.active_process is process_manager.current_process
+def test_atomic_get_primary_process(process_manager: ProcessManager):
+    assert process_manager.current_process.primary == 1
+    assert process_manager.primary_process is process_manager.current_process
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
-    active_process = process_manager.atomic_get_active_process(ProcessKind.Core, fake_process)
-    assert active_process.active == 1
-    assert fake_process.active == 0
+    primary_process = process_manager.atomic_get_primary_process(ProcessKind.Core, fake_process)
+    assert primary_process.primary == 1
+    assert fake_process.primary == 0
 
     with process_manager.transaction() as connection:
         connection.execute('update processes set pid = pid + 100')
 
     current_process = TriblerProcess.current_process(ProcessKind.Core)
-    active_process = process_manager.atomic_get_active_process(ProcessKind.Core, current_process)
-    assert current_process.active
-    assert active_process is current_process
+    primary_process = process_manager.atomic_get_primary_process(ProcessKind.Core, current_process)
+    assert current_process.primary
+    assert primary_process is current_process
 
     with process_manager.transaction() as connection:
-        rows = connection.execute('select rowid from processes where active = 1').fetchall()
+        rows = connection.execute('select rowid from processes where "primary" = 1').fetchall()
         assert len(rows) == 1 and rows[0][0] == current_process.rowid
 
 
@@ -220,7 +220,7 @@ def test_sys_exit(sys_exit: Mock, process_manager: ProcessManager):
     process_manager.sys_exit(123, 'Error text')
 
     with process_manager.transaction() as connection:
-        rows = connection.execute('select active, error_msg from processes where rowid = ?',
+        rows = connection.execute('select "primary", error_msg from processes where rowid = ?',
                                   [process_manager.current_process.rowid]).fetchall()
         assert len(rows) == 1 and rows[0] == (0, 'Error text')
     assert sys_exit.called and sys_exit.call_args[0][0] == 123
@@ -232,7 +232,7 @@ def test_get_last_processes(process_manager: ProcessManager):
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
-    process_manager.atomic_get_active_process(ProcessKind.Core, fake_process)
+    process_manager.atomic_get_primary_process(ProcessKind.Core, fake_process)
 
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 2
