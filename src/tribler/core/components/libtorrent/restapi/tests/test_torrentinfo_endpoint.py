@@ -14,6 +14,7 @@ from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from tribler.core.utilities.rest_utils import path_to_url
@@ -173,3 +174,13 @@ async def test_on_got_invalid_metainfo(rest_api):
     path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
     res = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
     assert "error" in res
+
+
+async def test_torrentinfo_endpoint_client_error():
+    # Test that in the case of a wrong URI no exception raises
+    endpoint = TorrentInfoEndpoint(MagicMock())
+    request = MagicMock(query={'uri': 'http://wrong_url'})
+
+    info = await endpoint.get_torrent_info(request)
+
+    assert info.status == HTTP_INTERNAL_SERVER_ERROR
