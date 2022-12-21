@@ -179,10 +179,13 @@ async def test_task_select_tracker(torrent_checker):
     controlled_session.connect_to_tracker = lambda: succeed(None)
 
     torrent_checker._create_session_for_request = lambda *args, **kwargs: controlled_session
-    result = await torrent_checker.check_random_tracker()
-    assert not result
 
+    result = await torrent_checker.check_random_tracker()
+
+    assert not result
     assert len(controlled_session.infohash_list) == 1
+    
+    await controlled_session.cleanup()
 
 
 async def test_tracker_test_error_resolve(torrent_checker):
