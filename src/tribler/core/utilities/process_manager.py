@@ -50,18 +50,6 @@ class ProcessKind(Enum):
     Core = 'core'
 
 
-def to_json(value) -> Optional[str]:
-    if value is None:
-        return None
-    return json.dumps(value)
-
-
-def from_json(value) -> Optional[dict]:
-    if value is None:
-        return None
-    return json.loads(value)
-
-
 class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  rowid: Optional[int] = None, creator_pid: Optional[int] = None, active: int = 0, canceled: int = 0,
@@ -87,6 +75,18 @@ class TriblerProcess:
         self.shutdown_requested_at = shutdown_requested_at
         self.other_params = other_params
 
+    @staticmethod
+    def _to_json(value) -> Optional[str]:
+        if value is None:
+            return None
+        return json.dumps(value)
+
+    @staticmethod
+    def _from_json(value) -> Optional[dict]:
+        if value is None:
+            return None
+        return json.loads(value)
+
     @classmethod
     def from_row(cls, row: tuple) -> TriblerProcess:
         rowid, row_version, pid, kind, active, canceled, app_version, started_at, creator_pid, api_port, \
@@ -99,16 +99,8 @@ class TriblerProcess:
                               app_version=app_version, started_at=started_at, creator_pid=creator_pid,
                               api_port=api_port, shutdown_request_pid=shutdown_request_pid,
                               shutdown_requested_at=shutdown_requested_at, finished_at=finished_at,
-                              exit_code=exit_code, error_msg=error_msg, error_info=from_json(error_info),
-                              other_params=from_json(other_params))
-
-    def to_dict(self) -> dict:
-        d = dict(rowid=self.rowid, pid=self.pid, kind=self.kind.value, active=self.active, canceled=self.canceled,
-                 app_version=self.app_version, started_at=self.started_at, creator_pid=self.creator_pid,
-                 api_port=self.api_port, finished_at=self.finished_at, exit_code=self.exit_code,
-                 error_msg=self.error_msg, error_info=self.error_info, shutdown_request_pid=self.shutdown_request_pid,
-                 shutdown_request_at=self.shutdown_requested_at, other_params=self.other_params)
-        return {key: value for key, value in d.items() if value is not None}
+                              exit_code=exit_code, error_msg=error_msg, error_info=cls._from_json(error_info),
+                              other_params=cls._from_json(other_params))
 
     def describe(self):
         kind = self.kind.value.capitalize()
@@ -195,8 +187,8 @@ class TriblerProcess:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [self.pid, self.kind.value, self.active, self.canceled, self.app_version, self.started_at,
                   self.creator_pid, self.api_port, self.shutdown_request_pid, self.shutdown_requested_at,
-                  self.finished_at, self.exit_code, self.error_msg, to_json(self.error_info),
-                  to_json(self.other_params)])
+                  self.finished_at, self.exit_code, self.error_msg, self._to_json(self.error_info),
+                  self._to_json(self.other_params)])
             self.rowid = cursor.lastrowid
         else:
             prev_version = self.row_version
@@ -209,8 +201,9 @@ class TriblerProcess:
                 WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
             """, [self.row_version, self.active, self.canceled, self.creator_pid, self.api_port,
                   self.shutdown_request_pid, self.shutdown_requested_at, self.finished_at,
-                  self.exit_code, self.error_msg, to_json(self.error_info), to_json(self.other_params),
-                  self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
+                  self.exit_code, self.error_msg, self._to_json(self.error_info),
+                  self._to_json(self.other_params), self.rowid, prev_version, self.pid, self.kind.value,
+                  self.app_version, self.started_at])
             if cursor.rowcount == 0:
                 logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
 

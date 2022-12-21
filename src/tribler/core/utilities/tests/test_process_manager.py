@@ -20,12 +20,6 @@ def test_tribler_process():
     assert p.is_current_process()
     assert p.is_running()
 
-    d = p.to_dict()
-    d2 = {'active': 0, 'canceled': 0, 'kind': 'core', 'pid': os.getpid(), 'creator_pid': 123,
-          'other_params': {'arbitrary_param': 456}}
-    assert d2.items() <= d.items()
-    assert 'app_version' in d and 'started_at' in d
-
     s = p.describe()
     pattern = r"^CoreProcess\(pid=\d+, gui_pid=123, version='[^']+', started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\)$"
     assert re.match(pattern, s)
