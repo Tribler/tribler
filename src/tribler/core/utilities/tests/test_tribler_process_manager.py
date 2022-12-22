@@ -5,7 +5,7 @@ import pytest
 
 from tribler.core.utilities.tribler_process import ProcessKind, TriblerProcess
 from tribler.core.utilities.tribler_process_manager import logger, ProcessManager, \
-    get_global_process_manager, set_api_port, set_error, set_global_process_manager
+    get_global_process_manager, set_error, set_global_process_manager
 
 
 @pytest.fixture(name='process_manager')
@@ -64,6 +64,7 @@ def test_save(process_manager: ProcessManager):
 
 def test_set_api_port(process_manager: ProcessManager):
     process_manager.set_api_port(12345)
+    assert process_manager.current_process.api_port == 12345
     with process_manager.transaction() as connection:
         rows = connection.execute('select rowid from processes where api_port = 12345').fetchall()
         assert len(rows) == 1 and rows[0][0] == process_manager.current_process.rowid
@@ -98,19 +99,13 @@ def test_get_last_processes(process_manager: ProcessManager):
 def test_global_process_manager(warning: Mock, process_manager: ProcessManager):
     assert get_global_process_manager() is None
 
-    set_api_port(12345)
-    assert warning.call_args[0][0] == 'Cannot set api_port for process locker: no process locker global instance is set'
-
     set_error('Error text')
     assert warning.call_args[0][0] == 'Cannot set error for process locker: no process locker global instance is set'
 
     set_global_process_manager(process_manager)
     assert get_global_process_manager() is process_manager
 
-    set_api_port(12345)
     set_error('Error text')
-
-    assert process_manager.current_process.api_port == 12345
     assert process_manager.current_process.error_msg == 'Error text'
 
     set_global_process_manager(None)

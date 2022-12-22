@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import traceback
+from typing import TYPE_CHECKING
 
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
@@ -12,12 +13,15 @@ from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.exceptions import CoreError
 
+if TYPE_CHECKING:
+    from tribler.gui.tribler_window import TriblerWindow
+
 
 # fmt: off
 
 
 class ErrorHandler:
-    def __init__(self, tribler_window):
+    def __init__(self, tribler_window: TriblerWindow):
         logger_name = self.__class__.__name__
         self._logger = logging.getLogger(logger_name)
         gui_sentry_reporter.ignore_logger(logger_name)
@@ -30,7 +34,8 @@ class ErrorHandler:
 
     def gui_error(self, exc_type, exc, tb):
         self._logger.info(f'Processing GUI error: {exc_type}')
-        tribler_process_manager.set_error(f"GUI {exc.__class__.__name__}: {exc}", exc=exc)
+        process_manager = self.tribler_window.process_manager
+        process_manager.set_error(f"GUI {exc.__class__.__name__}: {exc}", exc=exc)
 
         text = "".join(traceback.format_exception(exc_type, exc, tb))
         self._logger.error(text)
@@ -84,7 +89,8 @@ class ErrorHandler:
 
         self._handled_exceptions.add(reported_error.type)
         self._logger.info(f'Processing Core error: {reported_error}')
-        tribler_process_manager.set_error(f"Core {reported_error.type}: {reported_error.text}")
+        process_manager = self.tribler_window.process_manager
+        process_manager.set_error(f"Core {reported_error.type}: {reported_error.text}")
 
         error_text = f'{reported_error.text}\n{reported_error.long_text}'
         self._logger.error(error_text)

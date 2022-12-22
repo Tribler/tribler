@@ -55,14 +55,6 @@ def get_global_process_manager() -> Optional[ProcessManager]:
         return global_process_manager
 
 
-def set_api_port(api_port: int):
-    process_manager = get_global_process_manager()
-    if process_manager is None:
-        logger.warning('Cannot set api_port for process locker: no process locker global instance is set')
-    else:
-        process_manager.set_api_port(api_port)
-
-
 def set_error(error_msg: Optional[str] = None, error_info: Optional[dict] = None,
               exc: Optional[Exception] = None, replace: bool = False):
     process_manager = get_global_process_manager()
@@ -158,6 +150,11 @@ class ProcessManager:
 
     def set_api_port(self, api_port: int):
         self.current_process.api_port = api_port
+        self.save(self.current_process)
+
+    def set_error(self, error_msg: Optional[str] = None, error_info: Optional[dict] = None,
+                  exc: Optional[Exception] = None, replace: bool = False):
+        self.current_process.set_error(error_msg, error_info, exc, replace)
         self.save(self.current_process)
 
     def sys_exit(self, exit_code: Optional[int] = None, error_msg: Optional[str] = None,

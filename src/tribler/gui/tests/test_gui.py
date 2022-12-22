@@ -16,6 +16,8 @@ from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import path_to_url
+from tribler.core.utilities.tribler_process import ProcessKind
+from tribler.core.utilities.tribler_process_manager import ProcessManager
 from tribler.core.utilities.unicode import hexlify
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
@@ -36,17 +38,20 @@ TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 # pylint: disable=protected-access
 
 @pytest.fixture(name='window', scope="module")
-def fixture_window(tmpdir_factory):
+def fixture_window(tmp_path_factory):
     api_key = hexlify(os.urandom(16))
-    root_state_dir = str(tmpdir_factory.mktemp('tribler_state_dir'))
+    root_state_dir = tmp_path_factory.mktemp('tribler_state_dir')
 
-    app = TriblerApplication("triblerapp-guitest", sys.argv)
+    process_manager = ProcessManager(root_state_dir, ProcessKind.GUI)
+    another_process_is_primary = not process_manager.current_process.primary
+    app = TriblerApplication("triblerapp-guitest", sys.argv, another_process_is_primary)
     app_manager = AppManager(app)
     # We must create a separate instance of QSettings and clear it.
     # Otherwise, previous runs of the same app will affect this run.
     settings = QSettings("tribler-guitest")
     settings.clear()
     window = TriblerWindow(
+        process_manager,
         app_manager,
         settings,
         root_state_dir,
