@@ -601,10 +601,17 @@ class Download(TaskManager):
 
         # Count DHT and PeX peers
         dht_peers = pex_peers = 0
-        for peer_info in self.handle.get_peer_info():
-            if peer_info.source & peer_info.dht:
+        peer_info = []
+
+        try:
+            peer_info = self.handle.get_peer_info()
+        except Exception as e:  # pylint: disable=broad-except
+            self._logger.exception(e)
+
+        for info in peer_info:
+            if info.source & info.dht:
                 dht_peers += 1
-            if peer_info.source & peer_info.pex:
+            if info.source & info.pex:
                 pex_peers += 1
 
         ltsession = self.dlmgr.get_session(self.config.get_hops())

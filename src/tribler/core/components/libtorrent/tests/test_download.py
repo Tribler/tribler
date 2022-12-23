@@ -452,3 +452,16 @@ def test_process_alert_no_crash_exception(test_download: Download):
         # `process_alert` raises "AttributeError: 'str' object has no attribute 'category'" first
         # because the alert 'alert' has wrong type.
         test_download.process_alert('alert', 'type')
+
+
+def test_get_tracker_status_get_peer_info_error(test_download: Download):
+    """ Test that in the case `handle.get_peer_info()` raises an exception, the
+    result of `download.get_tracker_status()` be returned but without a piece of
+    information about peers.
+    """
+    test_download.handle = MagicMock(
+        is_valid=Mock(return_value=True),
+        get_peer_info=Mock(side_effect=RuntimeError)
+    )
+    status = test_download.get_tracker_status()
+    assert status
