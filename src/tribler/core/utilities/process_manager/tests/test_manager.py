@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from tribler.core.utilities.tribler_process import ProcessKind, TriblerProcess
-from tribler.core.utilities.tribler_process_manager import logger, ProcessManager, \
+from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
+from tribler.core.utilities.process_manager.manager import logger, ProcessManager, \
     get_global_process_manager, set_error, set_global_process_manager
 
 

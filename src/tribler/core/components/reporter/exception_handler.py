@@ -10,7 +10,7 @@ from typing import Callable, Optional
 from tribler.core.components.component import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
-from tribler.core.utilities import tribler_process_manager
+from tribler.core.utilities.process_manager import manager as tribler_process_manager
 
 # There are some errors that we are ignoring.
 IGNORED_ERRORS_BY_CODE = {

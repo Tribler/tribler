@@ -13,8 +13,7 @@ from tribler.core.check_os import (
 from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.core.utilities.tribler_process_manager import ProcessKind, ProcessManager, \
-    set_global_process_manager
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, set_global_process_manager
 from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.utilities import show_system_popup
 from tribler.gui import gui_sentry_reporter

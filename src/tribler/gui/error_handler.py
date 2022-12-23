@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.utilities import tribler_process_manager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog

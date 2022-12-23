@@ -10,33 +10,12 @@ from typing import ContextManager, List, Optional
 
 from decorator import contextmanager
 
-from tribler.core.utilities.tribler_process import ProcessKind, TriblerProcess
+from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
+from tribler.core.utilities.process_manager.sql_scripts import CREATE_TABLES
 
 logger = logging.getLogger(__name__)
 
 DB_FILENAME = 'processes.sqlite'
-
-CREATE_SQL = """
-    CREATE TABLE IF NOT EXISTS processes (
-        rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-        row_version INTEGER NOT NULL DEFAULT 0,
-        pid INTEGER NOT NULL,
-        kind TEXT NOT NULL,
-        "primary" INT NOT NULL,
-        canceled INT NOT NULL,
-        app_version TEXT NOT NULL,
-        started_at INT NOT NULL,
-        creator_pid INT,
-        api_port INT,
-        shutdown_request_pid INT,
-        shutdown_requested_at INT, 
-        finished_at INT,
-        exit_code INT,
-        error_msg TEXT,
-        error_info JSON,
-        other_params JSON
-    )
-"""
 
 
 global_process_manager: Optional[ProcessManager] = None
@@ -92,7 +71,7 @@ class ProcessManager:
         connection = sqlite3.connect(str(self.filename))
         try:
             connection.execute('BEGIN EXCLUSIVE TRANSACTION')
-            connection.execute(CREATE_SQL)
+            connection.execute(CREATE_TABLES)
             return connection
         except:  # noqa: E722
             connection.close()
