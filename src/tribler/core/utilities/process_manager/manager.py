@@ -44,6 +44,14 @@ def set_error(error: Union[str | Exception], replace: bool = False):
 
 
 def with_retry(func):
+    """
+    This decorator re-runs the wrapped function once in the case of sqlite3.Error` exception.
+
+    This way, it becomes possible to handle exceptions like sqlite3.DatabaseError "database disk image is malformed".
+    In case of an error, the first function invocation removes the corrupted database file, and the second invocation
+    re-creates the database structure. The content of the database is not critical for Tribler's functioning,
+    so it is OK for Tribler to re-create it in such cases.
+    """
     @wraps(func)
     def new_func(*args, **kwargs):
         try:
