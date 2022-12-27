@@ -36,11 +36,11 @@ def get_global_process_manager() -> Optional[ProcessManager]:
 
 def set_error(error: Union[str | Exception], replace: bool = False):
     process_manager = get_global_process_manager()
-    if process_manager is None:
-        logger.warning('Cannot set error for process locker: no process locker global instance is set')
-    else:
+    if process_manager:
         process_manager.current_process.set_error(error, replace)
         process_manager.save(process_manager.current_process)
+    else:
+        logger.warning('Cannot set error for process locker: no process locker global instance is set')
 
 
 def with_retry(func):
