@@ -96,7 +96,7 @@ class ProcessManager:
 
     @with_retry
     def atomic_get_primary_process(self, kind: ProcessKind,
-                                  current_process: Optional[TriblerProcess] = None) -> Optional[TriblerProcess]:
+                                   current_process: Optional[TriblerProcess] = None) -> Optional[TriblerProcess]:
         primary_process = None
         with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""
