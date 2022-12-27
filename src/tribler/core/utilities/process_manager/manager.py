@@ -116,7 +116,6 @@ class ProcessManager:
                     current_process.primary = 1
                     primary_process = current_process
                 else:
-                    current_process.primary = 0
                     current_process.canceled = 1
                 current_process.save(connection)
 
