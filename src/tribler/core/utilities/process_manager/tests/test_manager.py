@@ -13,25 +13,6 @@ def process_manager_fixture(tmp_path: Path):
     return ProcessManager(tmp_path, ProcessKind.Core)
 
 
-def test_connect(process_manager):
-    process_manager.filename = ':memory:'
-    process_manager.connect()
-    connection = process_manager.connect()
-    cursor = connection.execute('select * from processes')
-    column_names = [column[0] for column in cursor.description]
-    assert column_names == ['rowid', 'row_version', 'pid', 'kind', 'primary', 'canceled', 'app_version',
-                            'started_at', 'creator_pid', 'api_port', 'shutdown_request_pid', 'shutdown_requested_at',
-                            'finished_at', 'exit_code', 'error_msg', 'error_info', 'other_params']
-
-    with patch('sqlite3.connect') as connect:
-        connection = Mock()
-        connect.return_value = connection
-        connection.execute.side_effect = ValueError
-        with pytest.raises(ValueError):
-            process_manager.connect()
-        assert connection.close.called
-
-
 def test_atomic_get_primary_process(process_manager: ProcessManager):
     assert process_manager.current_process.primary == 1
     assert process_manager.primary_process is process_manager.current_process

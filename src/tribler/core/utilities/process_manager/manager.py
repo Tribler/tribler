@@ -67,21 +67,13 @@ class ProcessManager:
     def _get_file_name(cls, root_dir: Path) -> Path:  # The method is added for easier testing
         return root_dir / DB_FILENAME
 
-    def connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(str(self.filename))
-        try:
-            connection.execute('BEGIN EXCLUSIVE TRANSACTION')
-            connection.execute(CREATE_TABLES)
-            return connection
-        except:  # noqa: E722
-            connection.close()
-            raise
-
     @contextmanager
     def transaction(self) -> ContextManager[sqlite3.Connection]:
         connection = None
         try:
-            connection = self.connect()
+            connection = sqlite3.connect(str(self.filename))
+            connection.execute('BEGIN EXCLUSIVE TRANSACTION')
+            connection.execute(CREATE_TABLES)
             yield connection
             connection.execute('COMMIT')
             connection.close()
