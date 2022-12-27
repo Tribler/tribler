@@ -10,8 +10,6 @@ CREATE_TABLES = """
         started_at INT NOT NULL,
         creator_pid INT,
         api_port INT,
-        shutdown_request_pid INT,
-        shutdown_requested_at INT, 
         finished_at INT,
         exit_code INT,
         error_msg TEXT

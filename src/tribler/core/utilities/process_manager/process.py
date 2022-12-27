@@ -24,8 +24,7 @@ class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  rowid: Optional[int] = None, creator_pid: Optional[int] = None, primary: int = 0, canceled: int = 0,
                  row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
-                 exit_code: Optional[int] = None, error_msg: Optional[str] = None,
-                 shutdown_request_pid: Optional[int] = None, shutdown_requested_at: Optional[int] = None):
+                 exit_code: Optional[int] = None, error_msg: Optional[str] = None):
         self.rowid = rowid
         self.row_version = row_version
         self.pid = pid
@@ -39,20 +38,17 @@ class TriblerProcess:
         self.finished_at = finished_at
         self.exit_code = exit_code
         self.error_msg = error_msg
-        self.shutdown_request_pid = shutdown_request_pid
-        self.shutdown_requested_at = shutdown_requested_at
 
     @classmethod
     def from_row(cls, row: tuple) -> TriblerProcess:
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
-            shutdown_request_pid, shutdown_requested_at, finished_at, exit_code, error_msg = row
+            finished_at, exit_code, error_msg = row
 
         kind = ProcessKind(kind)
 
         return TriblerProcess(rowid=rowid, row_version=row_version, pid=pid, kind=kind, primary=primary,
                               canceled=canceled, app_version=app_version, started_at=started_at,
-                              creator_pid=creator_pid, api_port=api_port, shutdown_request_pid=shutdown_request_pid,
-                              shutdown_requested_at=shutdown_requested_at, finished_at=finished_at,
+                              creator_pid=creator_pid, api_port=api_port, finished_at=finished_at,
                               exit_code=exit_code, error_msg=error_msg)
 
     def describe(self):
@@ -128,12 +124,10 @@ class TriblerProcess:
             cursor.execute("""
                 INSERT INTO processes (
                     pid, kind, "primary", canceled, app_version, started_at,
-                    creator_pid, api_port, shutdown_request_pid, shutdown_requested_at,
-                    finished_at, exit_code, error_msg
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    creator_pid, api_port, finished_at, exit_code, error_msg
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [self.pid, self.kind.value, self.primary, self.canceled, self.app_version, self.started_at,
-                  self.creator_pid, self.api_port, self.shutdown_request_pid, self.shutdown_requested_at,
-                  self.finished_at, self.exit_code, self.error_msg])
+                  self.creator_pid, self.api_port, self.finished_at, self.exit_code, self.error_msg])
             self.rowid = cursor.lastrowid
         else:
             prev_version = self.row_version
@@ -141,14 +135,11 @@ class TriblerProcess:
             cursor.execute("""
                 UPDATE processes
                 SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
-                    shutdown_request_pid = ?, shutdown_requested_at = ?, finished_at = ?,
-                    exit_code = ?, error_msg = ?
+                    finished_at = ?, exit_code = ?, error_msg = ?
                 WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
             """, [self.row_version, self.primary, self.canceled, self.creator_pid, self.api_port,
-                  self.shutdown_request_pid, self.shutdown_requested_at, self.finished_at,
-                  self.exit_code, self.error_msg,
-                  self.rowid, prev_version, self.pid, self.kind.value,
-                  self.app_version, self.started_at])
+                  self.finished_at, self.exit_code, self.error_msg,
+                  self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
             if cursor.rowcount == 0:
                 logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
 
