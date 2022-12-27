@@ -1,23 +1,15 @@
-from pathlib import Path
 from unittest.mock import Mock, patch
-
-import pytest
 
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
 from tribler.core.utilities.process_manager.manager import logger, ProcessManager, \
     get_global_process_manager, set_error, set_global_process_manager
 
 
-@pytest.fixture(name='process_manager')
-def process_manager_fixture(tmp_path: Path):
-    return ProcessManager(tmp_path, ProcessKind.Core)
-
-
 def test_atomic_get_primary_process(process_manager: ProcessManager):
     assert process_manager.current_process.primary == 1
     assert process_manager.primary_process is process_manager.current_process
 
-    fake_process = TriblerProcess.current_process(ProcessKind.Core)
+    fake_process = TriblerProcess.current_process(process_manager, ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
     primary_process = process_manager.atomic_get_primary_process(fake_process)
     assert primary_process.primary == 1
@@ -26,7 +18,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
     with process_manager.connect() as connection:
         connection.execute('update processes set pid = pid + 100')
 
-    current_process = TriblerProcess.current_process(ProcessKind.Core)
+    current_process = TriblerProcess.current_process(process_manager, ProcessKind.Core)
     primary_process = process_manager.atomic_get_primary_process(current_process)
     assert current_process.primary
     assert primary_process is current_process
@@ -37,14 +29,14 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
 
 
 def test_save(process_manager: ProcessManager):
-    p = TriblerProcess.current_process(ProcessKind.Core)
+    p = TriblerProcess.current_process(process_manager, ProcessKind.Core)
     p.pid = p.pid + 100
     process_manager.save(p)
     assert p.rowid is not None
 
 
 def test_set_api_port(process_manager: ProcessManager):
-    process_manager.set_api_port(12345)
+    process_manager.current_process.set_api_port(12345)
     assert process_manager.current_process.api_port == 12345
     with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where api_port = 12345').fetchall()
@@ -66,7 +58,7 @@ def test_get_last_processes(process_manager: ProcessManager):
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 1 and last_processes[0].rowid == process_manager.current_process.rowid
 
-    fake_process = TriblerProcess.current_process(ProcessKind.Core)
+    fake_process = TriblerProcess.current_process(process_manager, ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
     process_manager.atomic_get_primary_process(fake_process)
 

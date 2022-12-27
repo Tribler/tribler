@@ -34,7 +34,7 @@ class ErrorHandler:
     def gui_error(self, exc_type, exc, tb):
         self._logger.info(f'Processing GUI error: {exc_type}')
         process_manager = self.tribler_window.process_manager
-        process_manager.set_error(exc)
+        process_manager.current_process.set_error(exc)
 
         text = "".join(traceback.format_exception(exc_type, exc, tb))
         self._logger.error(text)
@@ -89,7 +89,7 @@ class ErrorHandler:
         self._handled_exceptions.add(reported_error.type)
         self._logger.info(f'Processing Core error: {reported_error}')
         process_manager = self.tribler_window.process_manager
-        process_manager.set_error(f"Core {reported_error.type}: {reported_error.text}")
+        process_manager.current_process.set_error(f"Core {reported_error.type}: {reported_error.text}")
 
         error_text = f'{reported_error.text}\n{reported_error.long_text}'
         self._logger.error(error_text)

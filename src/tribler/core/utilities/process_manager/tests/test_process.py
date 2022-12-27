@@ -7,7 +7,8 @@ from tribler.core.utilities.process_manager.process import logger, ProcessKind, 
 
 
 def test_tribler_process():
-    p = TriblerProcess.current_process(ProcessKind.Core, 123)
+    process_manager = Mock()
+    p = TriblerProcess.current_process(process_manager, ProcessKind.Core, 123)
     assert p.is_current_process()
     assert p.is_running()
 
@@ -18,8 +19,10 @@ def test_tribler_process():
 
 @patch('psutil.Process')
 @patch('psutil.pid_exists')
-def test_tribler_process_is_running(pid_exists: Mock, process_class):
-    p = TriblerProcess.current_process(ProcessKind.GUI)
+def test_tribler_process_is_running(pid_exists: Mock, process_class: Mock, process_manager):
+    process_manager.connection = Mock()
+
+    p = TriblerProcess.current_process(process_manager, ProcessKind.GUI)
     assert not pid_exists.called
 
     # if the pid does not exist, the process is not running
@@ -50,8 +53,10 @@ def test_tribler_process_is_running(pid_exists: Mock, process_class):
     assert p.is_running() is True
 
 
-def test_tribler_process_set_error():
-    p = TriblerProcess.current_process(ProcessKind.GUI)
+def test_tribler_process_set_error(process_manager):
+    process_manager.connection = Mock()
+
+    p = TriblerProcess.current_process(process_manager, ProcessKind.GUI)
     assert p.error_msg is None
     p.set_error('Error text 1')
     assert p.error_msg == 'Error text 1'
@@ -74,9 +79,11 @@ def test_tribler_process_set_error():
     assert re.match(pattern, s)
 
 
-def test_tribler_process_mark_finished():
+def test_tribler_process_mark_finished(process_manager):
+    process_manager.connection = Mock()
+
     def make_tribler_process():
-        p = TriblerProcess.current_process(ProcessKind.Core)
+        p = TriblerProcess.current_process(process_manager, ProcessKind.Core)
         p.primary = 1
         p.api_port = 10000
         return p
@@ -104,25 +111,25 @@ def test_tribler_process_mark_finished():
 
 
 @patch.object(logger, 'error')
-def test_tribler_process_save(logger_error: Mock):
-    p = TriblerProcess.current_process(ProcessKind.Core)
+def test_tribler_process_save(logger_error: Mock, process_manager):
+    p = TriblerProcess.current_process(process_manager, ProcessKind.Core)
     assert p.rowid is None and p.row_version == 0
 
     cursor = Mock(lastrowid=123)
-    connection = Mock()
-    connection.cursor.return_value = cursor
+    process_manager.connection = Mock()
+    process_manager.connection.cursor.return_value = cursor
 
-    p.save(connection)
+    p.save()
     assert "INSERT INTO" in cursor.execute.call_args[0][0]
     assert p.rowid == 123 and p.row_version == 0
 
     cursor.rowcount = 1
-    p.save(connection)
+    p.save()
     assert "UPDATE" in cursor.execute.call_args[0][0]
     assert p.rowid == 123 and p.row_version == 1
 
     assert not logger_error.called
     cursor.rowcount = 0
-    p.save(connection)
+    p.save()
     assert logger_error.called
     assert logger_error.call_args[0][0] == 'Row 123 with row version 1 was not found'

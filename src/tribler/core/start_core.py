@@ -193,7 +193,7 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
         logger.error(msg)
         process_manager.sys_exit(1, msg)
 
-    process_manager.set_api_port(api_port)
+    process_manager.current_process.set_api_port(api_port)
 
     with single_tribler_instance(root_state_dir):
         version_history = VersionHistory(root_state_dir)

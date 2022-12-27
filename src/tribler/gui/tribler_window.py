@@ -185,7 +185,7 @@ class TriblerWindow(QMainWindow):
                 "Tribler configuration conflicts with the current OS state: "
                 "REST API port %i already in use" % api_port
             )
-        process_manager.set_api_port(api_port)
+        process_manager.current_process.set_api_port(api_port)
 
         api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
         set_api_key(self.gui_settings, api_key)

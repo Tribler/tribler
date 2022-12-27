@@ -6,11 +6,15 @@ import sqlite3
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, TYPE_CHECKING, Union
 
 import psutil
 
 from tribler.core.version import version_id
+
+if TYPE_CHECKING:
+    from tribler.core.utilities.process_manager import ProcessManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +25,11 @@ class ProcessKind(Enum):
 
 
 class TriblerProcess:
-    def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
+    def __init__(self, manager: ProcessManager, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  rowid: Optional[int] = None, creator_pid: Optional[int] = None, primary: int = 0, canceled: int = 0,
                  row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
                  exit_code: Optional[int] = None, error_msg: Optional[str] = None):
+        self.manager = manager
         self.rowid = rowid
         self.row_version = row_version
         self.pid = pid
@@ -40,14 +45,12 @@ class TriblerProcess:
         self.error_msg = error_msg
 
     @classmethod
-    def from_row(cls, row: tuple) -> TriblerProcess:
+    def from_row(cls, manager: ProcessManager, row: tuple) -> TriblerProcess:
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
             finished_at, exit_code, error_msg = row
 
-        kind = ProcessKind(kind)
-
-        return TriblerProcess(rowid=rowid, row_version=row_version, pid=pid, kind=kind, primary=primary,
-                              canceled=canceled, app_version=app_version, started_at=started_at,
+        return TriblerProcess(manager, rowid=rowid, row_version=row_version, pid=pid, kind=ProcessKind(kind),
+                              primary=primary, canceled=canceled, app_version=app_version, started_at=started_at,
                               creator_pid=creator_pid, api_port=api_port, finished_at=finished_at,
                               exit_code=exit_code, error_msg=error_msg)
 
@@ -73,9 +76,10 @@ class TriblerProcess:
         return ''.join(result)
 
     @classmethod
-    def current_process(cls, kind: ProcessKind, creator_pid: Optional[int] = None) -> TriblerProcess:
-        return cls(pid=os.getpid(), kind=kind, app_version=version_id, started_at=int(time.time()),
-                   creator_pid=creator_pid, row_version=0)
+    def current_process(cls, manager: ProcessManager, kind: ProcessKind,
+                        creator_pid: Optional[int] = None) -> TriblerProcess:
+        return cls(manager, row_version=0, pid=os.getpid(), kind=kind,
+                   app_version=version_id, started_at=int(time.time()), creator_pid=creator_pid)
 
     def is_current_process(self):
         return self.pid == os.getpid()
@@ -99,10 +103,15 @@ class TriblerProcess:
 
         return True
 
+    def set_api_port(self, api_port: int):
+        self.api_port = api_port
+        self.save()
+
     def set_error(self, error: Union[str | Exception], replace: bool = False):
         if isinstance(error, Exception):
             error = f"{error.__class__.__name__}: {error}"
         self.error_msg = error if replace else (self.error_msg or error)
+        self.save()
 
     def mark_finished(self, exit_code: Optional[int] = None):
         self.primary = 0
@@ -116,28 +125,44 @@ class TriblerProcess:
         if self.exit_code is None:
             self.exit_code = 0 if not self.error_msg else 1
 
-    def save(self, con: sqlite3.Connection):
-        cursor = con.cursor()
+        self.save()
+
+    def save(self):
+        """Saves object into the database"""
+        self.manager.save(self)  # `ProcessManager.save` method implements connection handling with retrying
+
+    def _save(self, connection: sqlite3.Connection):
+        """An internal method that is called from the `ProcessManager.save` method"""
         if self.rowid is None:
-            self.row_version = 0
-            cursor.execute("""
-                INSERT INTO processes (
-                    pid, kind, "primary", canceled, app_version, started_at,
-                    creator_pid, api_port, finished_at, exit_code, error_msg
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [self.pid, self.kind.value, self.primary, self.canceled, self.app_version, self.started_at,
-                  self.creator_pid, self.api_port, self.finished_at, self.exit_code, self.error_msg])
-            self.rowid = cursor.lastrowid
+            self._insert(connection)
         else:
-            prev_version = self.row_version
-            self.row_version += 1
-            cursor.execute("""
-                UPDATE processes
-                SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
-                    finished_at = ?, exit_code = ?, error_msg = ?
-                WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
-            """, [self.row_version, self.primary, self.canceled, self.creator_pid, self.api_port,
-                  self.finished_at, self.exit_code, self.error_msg,
-                  self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
-            if cursor.rowcount == 0:
-                logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
+            self._update(connection)
+
+    def _insert(self, connection: sqlite3.Connection):
+        """Insert a new row into the table"""
+        self.row_version = 0
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO processes (
+                pid, kind, "primary", canceled, app_version, started_at,
+                creator_pid, api_port, finished_at, exit_code, error_msg
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, [self.pid, self.kind.value, self.primary, self.canceled, self.app_version, self.started_at,
+              self.creator_pid, self.api_port, self.finished_at, self.exit_code, self.error_msg])
+        self.rowid = cursor.lastrowid
+
+    def _update(self, connection: sqlite3.Connection):
+        """Update an existing row in the table"""
+        prev_version = self.row_version
+        self.row_version += 1
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE processes
+            SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
+                finished_at = ?, exit_code = ?, error_msg = ?
+            WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
+        """, [self.row_version, self.primary, self.canceled, self.creator_pid, self.api_port,
+              self.finished_at, self.exit_code, self.error_msg,
+              self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
+        if cursor.rowcount == 0:
+            logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
