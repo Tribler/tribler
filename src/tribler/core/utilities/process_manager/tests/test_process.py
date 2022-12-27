@@ -7,7 +7,7 @@ from tribler.core.utilities.process_manager.process import logger, ProcessKind, 
 
 
 def test_tribler_process():
-    p = TriblerProcess.current_process(ProcessKind.Core, 123, arbitrary_param=456)
+    p = TriblerProcess.current_process(ProcessKind.Core, 123)
     assert p.is_current_process()
     assert p.is_running()
 

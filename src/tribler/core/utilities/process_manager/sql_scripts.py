@@ -15,7 +15,6 @@ CREATE_TABLES = """
         finished_at INT,
         exit_code INT,
         error_msg TEXT,
-        error_info JSON,
-        other_params JSON
+        error_info JSON
     )
 """

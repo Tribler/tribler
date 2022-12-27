@@ -96,14 +96,12 @@ def test_global_process_manager(warning: Mock, process_manager: ProcessManager):
 def test_json_fields(process_manager: ProcessManager):
     p = process_manager.current_process
     p.set_error('Error text', {'arbitrary_key': 'arbitrary_value'})
-    p.other_params = {'some_key': 'some_value'}
-    process_manager.save(p)  # should serialize `error_info` and `other_params` to JSON
+    process_manager.save(p)  # should serialize `error_info` to JSON
     processes = process_manager.get_last_processes()
     assert len(processes) == 1
     p2 = processes[0]
     assert p is not p2  # p2 is a new instance constructed from the database row
     assert processes[0].error_info == {'arbitrary_key': 'arbitrary_value'}  # parsed from the database
-    assert processes[0].other_params == {'some_key': 'some_value'}
 
 
 @patch.object(logger, 'warning')

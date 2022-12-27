@@ -57,10 +57,10 @@ def with_retry(func):
 
 
 class ProcessManager:
-    def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None, **other_params):
+    def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None):
         self.root_dir = root_dir
         self.db_filepath = self._get_file_name(root_dir)
-        self.current_process = TriblerProcess.current_process(process_kind, creator_pid, **other_params)
+        self.current_process = TriblerProcess.current_process(process_kind, creator_pid)
         self.primary_process = self.atomic_get_primary_process(process_kind, self.current_process)
 
     @classmethod
