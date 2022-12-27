@@ -68,7 +68,7 @@ class ProcessManager:
         return root_dir / DB_FILENAME
 
     @contextmanager
-    def transaction(self) -> ContextManager[sqlite3.Connection]:
+    def connect(self) -> ContextManager[sqlite3.Connection]:
         connection = None
         try:
             connection = sqlite3.connect(str(self.filename))
@@ -90,7 +90,7 @@ class ProcessManager:
     def atomic_get_primary_process(self, kind: ProcessKind,
                                    current_process: Optional[TriblerProcess] = None) -> Optional[TriblerProcess]:
         primary_process = None
-        with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
+        with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""
                 SELECT * FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
             """, [kind.value])
@@ -115,7 +115,7 @@ class ProcessManager:
 
     @with_retry
     def save(self, process: TriblerProcess):
-        with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
+        with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             process.save(connection)
 
     def set_api_port(self, api_port: int):
@@ -138,7 +138,7 @@ class ProcessManager:
 
     @with_retry
     def get_last_processes(self, limit=6) -> List[TriblerProcess]:
-        with self.transaction() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
+        with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""SELECT * FROM processes ORDER BY rowid DESC LIMIT ?""", [limit])
             result = [TriblerProcess.from_row(row) for row in cursor]
         result.reverse()

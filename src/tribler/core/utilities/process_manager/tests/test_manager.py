@@ -23,7 +23,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
     assert primary_process.primary == 1
     assert fake_process.primary == 0
 
-    with process_manager.transaction() as connection:
+    with process_manager.connect() as connection:
         connection.execute('update processes set pid = pid + 100')
 
     current_process = TriblerProcess.current_process(ProcessKind.Core)
@@ -31,7 +31,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
     assert current_process.primary
     assert primary_process is current_process
 
-    with process_manager.transaction() as connection:
+    with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where "primary" = 1').fetchall()
         assert len(rows) == 1 and rows[0][0] == current_process.rowid
 
@@ -46,7 +46,7 @@ def test_save(process_manager: ProcessManager):
 def test_set_api_port(process_manager: ProcessManager):
     process_manager.set_api_port(12345)
     assert process_manager.current_process.api_port == 12345
-    with process_manager.transaction() as connection:
+    with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where api_port = 12345').fetchall()
         assert len(rows) == 1 and rows[0][0] == process_manager.current_process.rowid
 
@@ -55,7 +55,7 @@ def test_set_api_port(process_manager: ProcessManager):
 def test_sys_exit(sys_exit: Mock, process_manager: ProcessManager):
     process_manager.sys_exit(123, 'Error text')
 
-    with process_manager.transaction() as connection:
+    with process_manager.connect() as connection:
         rows = connection.execute('select "primary", error_msg from processes where rowid = ?',
                                   [process_manager.current_process.rowid]).fetchall()
         assert len(rows) == 1 and rows[0] == (0, 'Error text')
