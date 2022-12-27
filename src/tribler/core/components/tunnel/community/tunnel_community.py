@@ -30,6 +30,7 @@ from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
 from ipv8.types import Address
 from ipv8.util import succeed
+from pony.orm import OrmError
 
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
@@ -322,7 +323,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.logger.info("Sending payout of %d (base: %d) to %s (cid: %s)", amount, base_amount, peer, circuit_id)
 
         tx = self.bandwidth_community.construct_signed_transaction(peer, amount)
-        self.bandwidth_community.database.BandwidthTransaction.insert(tx)
+        try:
+            self.bandwidth_community.database.BandwidthTransaction.insert(tx)
+        except OrmError as e:
+            self.logger.exception(e)
+            return
+
         payload = BandwidthTransactionPayload.from_transaction(tx, circuit_id, base_amount)
         packet = self._ez_pack(self._prefix, 30, [payload], False)
         self.send_packet(peer, packet)
