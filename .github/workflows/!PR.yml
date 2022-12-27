@@ -8,6 +8,25 @@ on:
       - ready_for_review
 
 jobs:
+  env: # setup shared env
+    runs-on: ubuntu-latest
+    env:
+      # https://github.com/actions/runner-images#available-images
+      WINDOWS_IMAGE: windows-latest
+      MACOS_IMAGE: macos-latest
+      UBUNTU_IMAGE: ubuntu-latest
+
+    outputs:
+      python-version: '3.8'
+      matrix-for-draft: '{"os": ["${{env.WINDOWS_IMAGE}}"]}'
+      matrix-for-ready: '{"os": ["${{env.UBUNTU_IMAGE}}", "${{env.MACOS_IMAGE}}"]}'
+      windows-image: ${{env.WINDOWS_IMAGE}}
+      ubuntu-image: ${{env.UBUNTU_IMAGE}}
+      macos-image: ${{env.MACOS_IMAGE}}
+
+    steps:
+      - run: echo successfully
+
   changes: # detect changes
     runs-on: ubuntu-latest
     outputs:
@@ -57,87 +76,89 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ----------------------------------------------------------------------------
-  # PR is Draft and PR is Ready
+  # PR stage: Draft
   pytest:
-    needs: [changes, gatekeeper]
+    needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/pytest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
-      python-version: 3.8
-      matrix: '{"os": ["windows-latest"]}'
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: ${{needs.env.outputs.matrix-for-draft}}
 
   guitest:
-    needs: [ changes, gatekeeper ]
+    needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/guitest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
-      python-version: 3.8
-      matrix: '{"os": ["windows-latest"]}'
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: ${{needs.env.outputs.matrix-for-draft}}
 
   scripttest:
-    needs: changes
+    needs: [ changes, env ]
     if: ${{ needs.changes.outputs.scripts == 'true' }}
     uses: ./.github/workflows/scripttest.yml
     with:
-      python-version: 3.8
+      python-version: ${{needs.env.outputs.python-version}}
 
   coverage:
-    needs: [ changes, gatekeeper ]
+    needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/coverage.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
       CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
     with:
-      python-version: 3.8
+      python-version: ${{needs.env.outputs.python-version}}
 
   # ----------------------------------------------------------------------------
-  # PR is Ready only
+  # PR stage: Ready
   pytest_nix:
-    needs: [changes, gatekeeper]
+    needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
-      python-version: 3.8
-      matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: ${{needs.env.outputs.matrix-for-ready}}
 
   guitest_nix:
-    needs: [changes, gatekeeper]
+    needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
-      python-version: 3.8
-      matrix: '{"os": ["macos-latest", "ubuntu-latest"]}'
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: ${{needs.env.outputs.matrix-for-ready}}
 
+  # build binaries
   ubuntu:
-    needs: changes
+    needs: [ changes, env ]
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_ubuntu.yml
     with:
       upload: false
-      os: ubuntu-20.04
-      python-version: 3.8
+      os: ${{needs.env.outputs.ubuntu-image}}
+      python-version: ${{needs.env.outputs.python-version}}
 
   windows:
-    needs: changes
+    needs: [ changes, env ]
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_windows.yml
     with:
       upload: false
-      os: windows-latest
-      python-version: 3.8
+      os: ${{needs.env.outputs.windows-image}}
+      python-version: ${{needs.env.outputs.python-version}}
 
+  # check documentation build
   documentation:
-    needs: changes
+    needs: [ changes, env ]
     if: ${{needs.changes.outputs.doc == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/documentation.yml
     with:
-      python-version: 3.8
+      python-version: ${{needs.env.outputs.python-version}}
