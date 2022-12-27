@@ -109,9 +109,9 @@ def test_json_fields(process_manager: ProcessManager):
 @patch.object(logger, 'warning')
 @patch.object(logger, 'exception')
 def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, process_manager: ProcessManager):
-    db_content = process_manager.filename.read_bytes()
+    db_content = process_manager.db_filepath.read_bytes()
     assert len(db_content) > 2000
-    process_manager.filename.write_bytes(db_content[:1500])  # corrupt the database file
+    process_manager.db_filepath.write_bytes(db_content[:1500])  # corrupt the database file
 
     # no exception, the database is silently re-created:
     process_manager2 = ProcessManager(process_manager.root_dir, ProcessKind.Core)

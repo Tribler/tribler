@@ -59,7 +59,7 @@ def with_retry(func):
 class ProcessManager:
     def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None, **other_params):
         self.root_dir = root_dir
-        self.filename = self._get_file_name(root_dir)
+        self.db_filepath = self._get_file_name(root_dir)
         self.current_process = TriblerProcess.current_process(process_kind, creator_pid, **other_params)
         self.primary_process = self.atomic_get_primary_process(process_kind, self.current_process)
 
@@ -71,7 +71,7 @@ class ProcessManager:
     def connect(self) -> ContextManager[sqlite3.Connection]:
         connection = None
         try:
-            connection = sqlite3.connect(str(self.filename))
+            connection = sqlite3.connect(str(self.db_filepath))
             connection.execute('BEGIN EXCLUSIVE TRANSACTION')
             connection.execute(CREATE_TABLES)
             yield connection
@@ -83,7 +83,7 @@ class ProcessManager:
             if connection:
                 connection.close()  # pragma: no cover
             if isinstance(e, sqlite3.DatabaseError):
-                self.filename.unlink(missing_ok=True)
+                self.db_filepath.unlink(missing_ok=True)
             raise
 
     @with_retry
