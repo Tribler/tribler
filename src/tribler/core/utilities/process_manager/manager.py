@@ -69,7 +69,7 @@ class ProcessManager:
         self.root_dir = root_dir
         self.db_filepath = root_dir / db_filename
         self.current_process = TriblerProcess.current_process(process_kind, creator_pid)
-        self.primary_process = self.atomic_get_primary_process(process_kind, self.current_process)
+        self.primary_process = self.atomic_get_primary_process(self.current_process)
 
     @contextmanager
     def connect(self) -> ContextManager[sqlite3.Connection]:
@@ -90,31 +90,32 @@ class ProcessManager:
                 self.db_filepath.unlink(missing_ok=True)
             raise
 
+    @staticmethod
+    def _load_primary_process(connection: sqlite3.Connection, kind: ProcessKind) -> Optional[TriblerProcess]:
+        cursor = connection.execute("""
+            SELECT * FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
+        """, [kind.value])
+        row = cursor.fetchone()
+        if row is not None:
+            process = TriblerProcess.from_row(row)
+            if process.is_running():
+                return process
+
+            # Process is not running anymore; mark it as not primary
+            process.primary = 0
+            process.save(connection)
+        return None
+
     @with_retry
-    def atomic_get_primary_process(self, kind: ProcessKind,
-                                   current_process: Optional[TriblerProcess] = None) -> Optional[TriblerProcess]:
-        primary_process = None
+    def atomic_get_primary_process(self, current_process: TriblerProcess) -> TriblerProcess:
         with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
-            cursor = connection.execute("""
-                SELECT * FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
-            """, [kind.value])
-            row = cursor.fetchone()
-            if row is not None:
-                previous_primary_process = TriblerProcess.from_row(row)
-                if previous_primary_process.is_running():
-                    primary_process = previous_primary_process
-                else:
-                    previous_primary_process.primary = 0
-                    previous_primary_process.save(connection)
-
-            if current_process is not None:
-                if primary_process is None:
-                    current_process.primary = 1
-                    primary_process = current_process
-                else:
-                    current_process.canceled = 1
-                current_process.save(connection)
-
+            primary_process = self._load_primary_process(connection, current_process.kind)
+            if primary_process is None:
+                current_process.primary = 1
+                primary_process = current_process
+            else:
+                current_process.canceled = 1
+            current_process.save(connection)
             return primary_process
 
     @with_retry

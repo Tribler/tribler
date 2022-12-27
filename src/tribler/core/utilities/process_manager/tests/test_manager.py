@@ -19,7 +19,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
-    primary_process = process_manager.atomic_get_primary_process(ProcessKind.Core, fake_process)
+    primary_process = process_manager.atomic_get_primary_process(fake_process)
     assert primary_process.primary == 1
     assert fake_process.primary == 0
 
@@ -27,7 +27,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
         connection.execute('update processes set pid = pid + 100')
 
     current_process = TriblerProcess.current_process(ProcessKind.Core)
-    primary_process = process_manager.atomic_get_primary_process(ProcessKind.Core, current_process)
+    primary_process = process_manager.atomic_get_primary_process(current_process)
     assert current_process.primary
     assert primary_process is current_process
 
@@ -68,7 +68,7 @@ def test_get_last_processes(process_manager: ProcessManager):
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core)
     fake_process.pid = fake_process.pid + 1
-    process_manager.atomic_get_primary_process(ProcessKind.Core, fake_process)
+    process_manager.atomic_get_primary_process(fake_process)
 
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 2
