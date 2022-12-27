@@ -64,15 +64,12 @@ def with_retry(func):
 
 
 class ProcessManager:
-    def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None):
+    def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None,
+                 db_filename: str = DB_FILENAME):
         self.root_dir = root_dir
-        self.db_filepath = self._get_file_name(root_dir)
+        self.db_filepath = root_dir / db_filename
         self.current_process = TriblerProcess.current_process(process_kind, creator_pid)
         self.primary_process = self.atomic_get_primary_process(process_kind, self.current_process)
-
-    @classmethod
-    def _get_file_name(cls, root_dir: Path) -> Path:  # The method is added for easier testing
-        return root_dir / DB_FILENAME
 
     @contextmanager
     def connect(self) -> ContextManager[sqlite3.Connection]:
