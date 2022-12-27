@@ -126,8 +126,3 @@ def test_tribler_process_save(logger_error: Mock):
     p.save(connection)
     assert logger_error.called
     assert logger_error.call_args[0][0] == 'Row 123 with row version 1 was not found'
-
-    p = TriblerProcess.current_process(ProcessKind.Core)
-    p.row_version = 1
-    p.save(connection)
-    assert logger_error.call_args[0][0] == 'The `row_version` value for a new process row should not be set. Got: 1'

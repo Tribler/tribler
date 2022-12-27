@@ -119,7 +119,6 @@ class TriblerProcess:
     def save(self, con: sqlite3.Connection):
         cursor = con.cursor()
         if self.rowid is None:
-            self._before_insert_check()
             self.row_version = 0
             cursor.execute("""
                 INSERT INTO processes (
@@ -142,7 +141,3 @@ class TriblerProcess:
                   self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
             if cursor.rowcount == 0:
                 logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
-
-    def _before_insert_check(self):
-        if self.row_version:
-            logger.error(f"The `row_version` value for a new process row should not be set. Got: {self.row_version}")
