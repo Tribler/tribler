@@ -14,7 +14,6 @@ CREATE_TABLES = """
         shutdown_requested_at INT, 
         finished_at INT,
         exit_code INT,
-        error_msg TEXT,
-        error_info JSON
+        error_msg TEXT
     )
 """

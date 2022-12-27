@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import sqlite3
-import json
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 import psutil
 
@@ -25,7 +24,7 @@ class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  rowid: Optional[int] = None, creator_pid: Optional[int] = None, primary: int = 0, canceled: int = 0,
                  row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
-                 exit_code: Optional[int] = None, error_msg: Optional[str] = None, error_info: Optional[dict] = None,
+                 exit_code: Optional[int] = None, error_msg: Optional[str] = None,
                  shutdown_request_pid: Optional[int] = None, shutdown_requested_at: Optional[int] = None):
         self.rowid = rowid
         self.row_version = row_version
@@ -40,26 +39,13 @@ class TriblerProcess:
         self.finished_at = finished_at
         self.exit_code = exit_code
         self.error_msg = error_msg
-        self.error_info = error_info
         self.shutdown_request_pid = shutdown_request_pid
         self.shutdown_requested_at = shutdown_requested_at
-
-    @staticmethod
-    def _to_json(value) -> Optional[str]:
-        if value is None:
-            return None
-        return json.dumps(value)
-
-    @staticmethod
-    def _from_json(value) -> Optional[dict]:
-        if value is None:
-            return None
-        return json.loads(value)
 
     @classmethod
     def from_row(cls, row: tuple) -> TriblerProcess:
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
-            shutdown_request_pid, shutdown_requested_at, finished_at, exit_code, error_msg, error_info = row
+            shutdown_request_pid, shutdown_requested_at, finished_at, exit_code, error_msg = row
 
         kind = ProcessKind(kind)
 
@@ -67,7 +53,7 @@ class TriblerProcess:
                               canceled=canceled, app_version=app_version, started_at=started_at,
                               creator_pid=creator_pid, api_port=api_port, shutdown_request_pid=shutdown_request_pid,
                               shutdown_requested_at=shutdown_requested_at, finished_at=finished_at,
-                              exit_code=exit_code, error_msg=error_msg, error_info=cls._from_json(error_info))
+                              exit_code=exit_code, error_msg=error_msg)
 
     def describe(self):
         kind = self.kind.value.capitalize()
@@ -117,17 +103,10 @@ class TriblerProcess:
 
         return True
 
-    def set_error(self, error_msg: Optional[str] = None, error_info: Optional[dict] = None,
-                  exc: Optional[Exception] = None, replace: bool = False):
-        if exc and not error_msg:
-            error_msg = f"{exc.__class__.__name__}: {exc}"
-
-        if replace:
-            self.error_msg = error_msg
-            self.error_info = error_info
-        else:
-            self.error_msg = self.error_msg or error_msg
-            self.error_info = self.error_info or error_info
+    def set_error(self, error: Union[str | Exception], replace: bool = False):
+        if isinstance(error, Exception):
+            error = f"{error.__class__.__name__}: {error}"
+        self.error_msg = error if replace else (self.error_msg or error)
 
     def mark_finished(self, exit_code: Optional[int] = None):
         self.primary = 0
@@ -150,11 +129,11 @@ class TriblerProcess:
                 INSERT INTO processes (
                     pid, kind, "primary", canceled, app_version, started_at,
                     creator_pid, api_port, shutdown_request_pid, shutdown_requested_at,
-                    finished_at, exit_code, error_msg, error_info
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    finished_at, exit_code, error_msg
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [self.pid, self.kind.value, self.primary, self.canceled, self.app_version, self.started_at,
                   self.creator_pid, self.api_port, self.shutdown_request_pid, self.shutdown_requested_at,
-                  self.finished_at, self.exit_code, self.error_msg, self._to_json(self.error_info)])
+                  self.finished_at, self.exit_code, self.error_msg])
             self.rowid = cursor.lastrowid
         else:
             prev_version = self.row_version
@@ -163,11 +142,11 @@ class TriblerProcess:
                 UPDATE processes
                 SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
                     shutdown_request_pid = ?, shutdown_requested_at = ?, finished_at = ?,
-                    exit_code = ?, error_msg = ?, error_info = ?
+                    exit_code = ?, error_msg = ?
                 WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
             """, [self.row_version, self.primary, self.canceled, self.creator_pid, self.api_port,
                   self.shutdown_request_pid, self.shutdown_requested_at, self.finished_at,
-                  self.exit_code, self.error_msg, self._to_json(self.error_info),
+                  self.exit_code, self.error_msg,
                   self.rowid, prev_version, self.pid, self.kind.value,
                   self.app_version, self.started_at])
             if cursor.rowcount == 0:

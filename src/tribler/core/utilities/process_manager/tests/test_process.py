@@ -52,38 +52,21 @@ def test_tribler_process_is_running(pid_exists: Mock, process_class):
 
 def test_tribler_process_set_error():
     p = TriblerProcess.current_process(ProcessKind.GUI)
-
-    # Initially there is no exception
-    assert p.error_msg is None and p.error_info is None
-
-    # In simplest case, just specify an
+    assert p.error_msg is None
     p.set_error('Error text 1')
-
-    assert p.error_msg == 'Error text 1' and p.error_info is None
-    # By default, the second exception does not override the first one (as the first exception may be the root case)
+    assert p.error_msg == 'Error text 1'
 
     p.set_error('Error text 2')
-    assert p.error_msg == 'Error text 1' and p.error_info is None
+    # By default, the second exception does not override the first one (as the first exception may be the root case)
+    assert p.error_msg == 'Error text 1'
 
     # But it is possible to override exception explicitly
     p.set_error('Error text 2', replace=True)
-    assert p.error_msg == 'Error text 2' and p.error_info is None
+    assert p.error_msg == 'Error text 2'
 
-    # It is possible to specify an additional dict with arbitrary JSON-serializable information about the error
-    p.set_error('Error text 3', error_info={'error3_param': 'error3_value'}, replace=True)
-    assert p.error_msg == 'Error text 3' and p.error_info == {'error3_param': 'error3_value'}
-
-    # If the error is replaced, then the entire error_info dict is replaced as well, the dicts are not mixed together
-    p.set_error('Error text 4', error_info={'error4_param': 'error4_value'}, replace=True)
-    assert p.error_msg == 'Error text 4' and p.error_info == {'error4_param': 'error4_value'}
-
-    # If error_info is not specified, the previous error_info is still replaced
-    p.set_error('Error text 5', replace=True)
-    assert p.error_msg == 'Error text 5' and p.error_info is None
-
-    # It is possible to specify an exception
-    p.set_error(exc=ValueError('exception text'), error_info={'some_param': 'some_value'}, replace=True)
-    assert p.error_msg == 'ValueError: exception text' and p.error_info == {'some_param': 'some_value'}
+    # It is also possible to specify an exception
+    p.set_error(ValueError('exception text'), replace=True)
+    assert p.error_msg == 'ValueError: exception text'
 
     # The error text is included in ProcessInfo.describe() output
     s = p.describe()

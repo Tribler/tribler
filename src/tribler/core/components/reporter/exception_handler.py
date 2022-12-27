@@ -112,7 +112,7 @@ class CoreExceptionHandler:
                 should_stop=should_stop
             )
             self.logger.error(f"Unhandled exception occurred! {reported_error}\n{reported_error.long_text}")
-            tribler_process_manager.set_error(exc=exception)
+            tribler_process_manager.set_error(exception)
 
             if self.report_callback:
                 self.logger.error('Call report callback')
@@ -125,7 +125,7 @@ class CoreExceptionHandler:
                     self.unreported_error = reported_error
 
         except Exception as ex:
-            tribler_process_manager.set_error(exc=ex)
+            tribler_process_manager.set_error(ex)
 
             self.sentry_reporter.capture_exception(ex)
             self.logger.exception(f'Error occurred during the error handling: {ex}')

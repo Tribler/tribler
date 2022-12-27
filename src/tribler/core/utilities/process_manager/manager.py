@@ -6,7 +6,7 @@ import sys
 from functools import wraps
 from pathlib import Path
 from threading import Lock
-from typing import ContextManager, List, Optional
+from typing import ContextManager, List, Optional, Union
 
 from decorator import contextmanager
 
@@ -34,13 +34,12 @@ def get_global_process_manager() -> Optional[ProcessManager]:
         return global_process_manager
 
 
-def set_error(error_msg: Optional[str] = None, error_info: Optional[dict] = None,
-              exc: Optional[Exception] = None, replace: bool = False):
+def set_error(error: Union[str | Exception], replace: bool = False):
     process_manager = get_global_process_manager()
     if process_manager is None:
         logger.warning('Cannot set error for process locker: no process locker global instance is set')
     else:
-        process_manager.current_process.set_error(error_msg, error_info, exc, replace)
+        process_manager.current_process.set_error(error, replace)
         process_manager.save(process_manager.current_process)
 
 
@@ -122,15 +121,13 @@ class ProcessManager:
         self.current_process.api_port = api_port
         self.save(self.current_process)
 
-    def set_error(self, error_msg: Optional[str] = None, error_info: Optional[dict] = None,
-                  exc: Optional[Exception] = None, replace: bool = False):
-        self.current_process.set_error(error_msg, error_info, exc, replace)
+    def set_error(self, error: Union[str | Exception], replace: bool = False):
+        self.current_process.set_error(error, replace)
         self.save(self.current_process)
 
-    def sys_exit(self, exit_code: Optional[int] = None, error_msg: Optional[str] = None,
-                 error_info: Optional[dict] = None, exc: Optional[Exception] = None, replace: bool = False):
-        if error_msg is not None:
-            self.current_process.set_error(error_msg, error_info, exc, replace)
+    def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
+        if error is not None:
+            self.current_process.set_error(error, replace)
         self.current_process.mark_finished(exit_code)
         self.save(self.current_process)
         exit_code = self.current_process.exit_code
