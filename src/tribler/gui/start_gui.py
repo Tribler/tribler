@@ -83,15 +83,10 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         exit_code = app.exec_()
         process_manager.sys_exit(exit_code or None)
 
-    except ImportError as ie:
-        logger.exception(ie)
-        show_system_popup("Import Error", f"Import error: {ie}")
-        process_manager.sys_exit(1, ie)
-
-    except TriblerException as te:
-        logger.exception(te)
-        show_system_popup("Tribler Exception", f"{te.__class__.__name__}: {te}")
-        process_manager.sys_exit(1, te)
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception(exc)
+        show_system_popup("Tribler Exception", f"{exc.__class__.__name__}: {exc}")
+        process_manager.sys_exit(1, exc)
 
     except SystemExit:
         logger.info("Shutting down Tribler")
