@@ -6,6 +6,7 @@ on:
       - opened
       - synchronize
       - ready_for_review
+      - labeled
 
 jobs:
   env: # setup shared env
@@ -68,7 +69,16 @@ jobs:
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
     steps:
+      - name: Check if PR has label
+        id: label_check
+        uses: docker://agilepathway/pull-request-label-checker:df296606f0e6
+        with:
+          one_of: 'PR: safe to check'
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          allow_failure: true
+
       - name: Check if user has write access
+        if: steps.label_check.outputs.label_check == 'failure'
         uses: lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f
         with:
           permission: write
