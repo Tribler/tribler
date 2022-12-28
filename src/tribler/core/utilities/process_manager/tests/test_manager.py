@@ -1,3 +1,4 @@
+import time
 from unittest.mock import Mock, patch
 
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
@@ -99,3 +100,41 @@ def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, proces
 
     processes = process_manager2.get_last_processes()
     assert len(processes) == 1
+
+
+def test_delete_old_records_1(process_manager):
+    # Let's check that records of processes finished more than 30 days ago are deleted from the database
+    now = int(time.time())
+    day = 60 * 60 * 24
+    with process_manager.connect() as connection:
+        # At that moment we have only the current process
+        assert connection.execute("select count(*) from processes").fetchone()[0] == 1
+
+        # Let's add 100 processes finished in previous days
+        for i in range(1, 101):
+            p = TriblerProcess(process_manager, pid=i, kind=ProcessKind.Core, app_version='',
+                               started_at=now - day * i - 60, finished_at=now - day * i + 60)
+            p.save()
+        assert connection.execute("select count(*) from processes").fetchone()[0] == 101
+
+    with process_manager.connect() as connection:
+        # Only the current primary process and processes finished during the last 30 days should remain
+        assert connection.execute("select count(*) from processes").fetchone()[0] == 31
+
+
+def test_delete_old_records_2(process_manager):
+    # Let's check that at most 100 non-primary processes are kept in the database
+    now = int(time.time())
+    with process_manager.connect() as connection:
+        # At that moment we have only the current process
+        assert connection.execute("select count(*) from processes").fetchone()[0] == 1
+
+        # Let's add 200 processes
+        for i in range(200):
+            p = TriblerProcess(process_manager, pid=i, kind=ProcessKind.Core, app_version='', started_at=now - 120)
+            p.save()
+        assert connection.execute("select count(*) from processes").fetchone()[0] == 201
+
+    with process_manager.connect() as connection:
+        # Only the current primary process and the last 100 processes should remain
+        assert connection.execute("select count(*) from processes").fetchone()[0] == 101

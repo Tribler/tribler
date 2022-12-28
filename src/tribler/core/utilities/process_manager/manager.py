@@ -10,8 +10,8 @@ from typing import ContextManager, List, Optional, Union
 
 from contextlib import contextmanager
 
+from tribler.core.utilities.process_manager import sql_scripts
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
-from tribler.core.utilities.process_manager.sql_scripts import CREATE_TABLES
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,8 @@ class ProcessManager:
             self.connection = connection = sqlite3.connect(str(self.db_filepath))
             try:
                 connection.execute('BEGIN EXCLUSIVE TRANSACTION')
-                connection.execute(CREATE_TABLES)
+                connection.execute(sql_scripts.CREATE_TABLES)
+                connection.execute(sql_scripts.DELETE_OLD_RECORDS)
                 yield connection
             finally:
                 self.connection = None
