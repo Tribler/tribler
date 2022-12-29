@@ -26,3 +26,6 @@ DELETE_OLD_RECORDS = """
         )
     )
 """
+
+SELECT_COLUMNS = 'rowid, row_version, pid, kind, "primary", canceled, app_version, ' \
+                 'started_at, creator_pid, api_port, finished_at, exit_code, error_msg'

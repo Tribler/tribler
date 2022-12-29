@@ -99,9 +99,8 @@ class ProcessManager:
         """
         A helper method to load the current primary process of the specified kind from the database.
         """
-        cursor = connection.execute("""
-            SELECT rowid, row_version, pid, kind, "primary", canceled, app_version,
-                   started_at, creator_pid, api_port, finished_at, exit_code, error_msg
+        cursor = connection.execute(f"""
+            SELECT {sql_scripts.SELECT_COLUMNS}
             FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
         """, [kind.value])
         row = cursor.fetchone()
@@ -149,9 +148,8 @@ class ProcessManager:
         Returns last `limit` processes from the database. They are used during the formatting of the error report.
         """
         with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
-            cursor = connection.execute("""
-                SELECT rowid, row_version, pid, kind, "primary", canceled, app_version,
-                       started_at, creator_pid, api_port, finished_at, exit_code, error_msg
+            cursor = connection.execute(f"""
+                SELECT {sql_scripts.SELECT_COLUMNS}
                 FROM processes ORDER BY rowid DESC LIMIT ?
             """, [limit])
             result = [TriblerProcess.from_row(self, row) for row in cursor]
