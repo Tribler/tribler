@@ -92,3 +92,5 @@ venv/
 _build/
 
 .Tribler/
+
+.mailmap
