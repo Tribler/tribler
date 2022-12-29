@@ -10,13 +10,11 @@ from typing import Optional, TYPE_CHECKING, Union
 
 import psutil
 
+from tribler.core.utilities.process_manager.utils import with_retry
 from tribler.core.version import version_id
 
 if TYPE_CHECKING:
     from tribler.core.utilities.process_manager import ProcessManager
-
-
-logger = logging.getLogger(__name__)
 
 
 class ProcessKind(Enum):
@@ -43,6 +41,25 @@ class TriblerProcess:
         self.finished_at = finished_at
         self.exit_code = exit_code
         self.error_msg = error_msg
+
+    @property
+    def logger(self) -> logging.Logger:
+        """Used by the `with_retry` decorator"""
+        return self.manager.logger
+
+    @property
+    def connection(self) -> Optional[sqlite3.Connection]:
+        """Used by the `with_retry` decorator"""
+        return self.manager.connection
+
+    @with_retry
+    def save(self):
+        """Saves object into the database"""
+        with self.manager.connect() as connection:
+            if self.rowid is None:
+                self._insert(connection)
+            else:
+                self._update(connection)
 
     @classmethod
     def from_row(cls, manager: ProcessManager, row: tuple) -> TriblerProcess:
@@ -92,7 +109,7 @@ class TriblerProcess:
             process = psutil.Process(self.pid)
             status = process.status()
         except psutil.Error as e:
-            logger.warning(e)
+            self.logger.warning(e)
             return False
 
         if status == psutil.STATUS_ZOMBIE:
@@ -127,17 +144,6 @@ class TriblerProcess:
 
         self.save()
 
-    def save(self):
-        """Saves object into the database"""
-        self.manager.save(self)  # `ProcessManager.save` method implements connection handling with retrying
-
-    def _save(self, connection: sqlite3.Connection):
-        """An internal method that is called from the `ProcessManager.save` method"""
-        if self.rowid is None:
-            self._insert(connection)
-        else:
-            self._update(connection)
-
     def _insert(self, connection: sqlite3.Connection):
         """Insert a new row into the table"""
         self.row_version = 0
@@ -165,4 +171,4 @@ class TriblerProcess:
               self.finished_at, self.exit_code, self.error_msg,
               self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
         if cursor.rowcount == 0:
-            logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
+            self.logger.error(f'Row {self.rowid} with row version {prev_version} was not found')

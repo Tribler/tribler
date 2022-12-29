@@ -32,7 +32,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
 def test_save(process_manager: ProcessManager):
     p = TriblerProcess.current_process(process_manager, ProcessKind.Core)
     p.pid = p.pid + 100
-    process_manager.save(p)
+    p.save()
     assert p.rowid is not None
 
 

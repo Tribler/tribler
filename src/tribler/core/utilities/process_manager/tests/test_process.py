@@ -3,7 +3,8 @@ from unittest.mock import Mock, patch
 
 import psutil
 
-from tribler.core.utilities.process_manager.process import logger, ProcessKind, TriblerProcess
+from tribler.core.utilities.process_manager.manager import logger
+from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
 
 
 def test_tribler_process():

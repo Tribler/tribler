@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import sqlite3
 import sys
-from functools import wraps
 from pathlib import Path
 from threading import Lock
 from typing import ContextManager, List, Optional, Union
@@ -12,6 +11,7 @@ from contextlib import contextmanager
 
 from tribler.core.utilities.process_manager import sql_scripts
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
+from tribler.core.utilities.process_manager.utils import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -42,30 +42,6 @@ def set_error(error: Union[str | Exception], replace: bool = False):
         logger.warning('Cannot set error for process locker: no process locker global instance is set')
 
 
-def with_retry(func):
-    """
-    This decorator re-runs the wrapped ProcessManager method once in the case of sqlite3.Error` exception.
-
-    This way, it becomes possible to handle exceptions like sqlite3.DatabaseError "database disk image is malformed".
-    In case of an error, the first function invocation removes the corrupted database file, and the second invocation
-    re-creates the database structure. The content of the database is not critical for Tribler's functioning,
-    so it is OK for Tribler to re-create it in such cases.
-    """
-    @wraps(func)
-    def new_func(self: ProcessManager, *args, **kwargs):
-        if self.connection:
-            # If we are already inside transaction just call the function without retrying
-            return func(self, *args, **kwargs)
-
-        try:
-            return func(self, *args, **kwargs)
-        except sqlite3.Error as e:
-            logger.warning(f'Retrying after the error: {e.__class__.__name__}: {e}')
-            return func(self, *args, **kwargs)
-    new_func: func
-    return new_func
-
-
 class ProcessManager:
     def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None,
                  db_filename: str = DB_FILENAME):
@@ -74,6 +50,13 @@ class ProcessManager:
         self.connection: Optional[sqlite3.Connection] = None
         self.current_process = TriblerProcess.current_process(self, process_kind, creator_pid)
         self.primary_process = self.atomic_get_primary_process(self.current_process)
+
+    @property
+    def logger(self) -> logging.Logger:
+        """
+        Used by the `with_retry` decorator
+        """
+        return logger
 
     @contextmanager
     def connect(self) -> ContextManager[sqlite3.Connection]:
@@ -127,7 +110,7 @@ class ProcessManager:
 
             # Process is not running anymore; mark it as not primary
             process.primary = 0
-            process._save(connection)  # pylint: disable=protected-access
+            process.save()
         return None
 
     @with_retry
@@ -142,18 +125,8 @@ class ProcessManager:
                 primary_process = current_process
             else:
                 current_process.canceled = 1
-            current_process._save(connection)  # pylint: disable=protected-access
+            current_process.save()
             return primary_process
-
-    @with_retry
-    def save(self, process: TriblerProcess):
-        """
-        Stores process to the database with a single retry to handle possible database corruption.
-
-        Used by the process.save() method.
-        """
-        with self.connect() as connection:
-            process._save(connection)  # pylint: disable=protected-access
 
     def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
         """
