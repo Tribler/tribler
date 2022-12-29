@@ -8,7 +8,6 @@ from typing import Optional
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment
 
-from tribler.core.utilities.process_checker import ProcessChecker
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
@@ -199,7 +198,7 @@ class CoreManager(QObject):
             self._logger.info('Core is not running, quitting GUI application')
             self.app_manager.quit_application()
 
-    def kill_core_process_and_remove_the_lock_file(self):
+    def kill_core_process(self):
         if not self.core_process:
             self._logger.warning("Cannot kill the Core process as it is not initialized")
 
@@ -207,9 +206,6 @@ class CoreManager(QObject):
         finished = self.core_process.waitForFinished()
         if not finished:
             self._logger.error('Cannot kill the core process')
-
-        process_checker = ProcessChecker(self.root_state_dir)
-        process_checker.remove_lock()
 
     def get_last_core_output(self, quoted=True):
         output = ''.join(self.last_core_stderr_output) or ''.join(self.last_core_stdout_output)
