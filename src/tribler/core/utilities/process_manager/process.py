@@ -71,7 +71,7 @@ class TriblerProcess:
                               creator_pid=creator_pid, api_port=api_port, finished_at=finished_at,
                               exit_code=exit_code, error_msg=error_msg)
 
-    def describe(self):
+    def __str__(self) -> str:
         kind = self.kind.value.capitalize()
         flags = f"{'primary, ' if self.primary else ''}{'canceled, ' if self.canceled else ''}"
         result = [f'{kind}Process({flags}pid={self.pid}']

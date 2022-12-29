@@ -13,9 +13,8 @@ def test_tribler_process():
     assert p.is_current_process()
     assert p.is_running()
 
-    s = p.describe()
     pattern = r"^CoreProcess\(pid=\d+, gui_pid=123, version='[^']+', started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\)$"
-    assert re.match(pattern, s)
+    assert re.match(pattern, str(p))
 
 
 @patch('psutil.Process')
@@ -74,10 +73,9 @@ def test_tribler_process_set_error(process_manager):
     p.set_error(ValueError('exception text'), replace=True)
     assert p.error_msg == 'ValueError: exception text'
 
-    # The error text is included in ProcessInfo.describe() output
-    s = p.describe()
+    # The error text is included in ProcessInfo.__str__() output
     pattern = r"^GuiProcess\(pid=\d+, version='[^']+', started='[^']+', error='ValueError: exception text'\)$"
-    assert re.match(pattern, s)
+    assert re.match(pattern, str(p))
 
 
 def test_tribler_process_mark_finished(process_manager):
@@ -98,8 +96,7 @@ def test_tribler_process_mark_finished(process_manager):
     assert p.exit_code == 123
     assert p.finished_at is not None
 
-    s = p.describe()
-    assert s.endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
+    assert str(p).endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
 
     p = make_tribler_process()
     p.mark_finished()  # the error is not set and the exit code is not specified, and by default should be 0

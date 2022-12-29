@@ -170,7 +170,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             "stack": stack,
         }
 
-        last_processes = [p.describe() for p in self.process_manager.get_last_processes()]
+        last_processes = [str(p) for p in self.process_manager.get_last_processes()]
 
         self.sentry_reporter.send_event(
             event=self.reported_error.event,
