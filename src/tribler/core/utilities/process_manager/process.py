@@ -63,6 +63,7 @@ class TriblerProcess:
 
     @classmethod
     def from_row(cls, manager: ProcessManager, row: tuple) -> TriblerProcess:
+        """Constructs an object from the database row"""
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
             finished_at, exit_code, error_msg = row
 
@@ -95,6 +96,7 @@ class TriblerProcess:
     @classmethod
     def current_process(cls, manager: ProcessManager, kind: ProcessKind,
                         creator_pid: Optional[int] = None) -> TriblerProcess:
+        """Constructs an object for a current process, specifying the PID value of the current process"""
         return cls(manager, row_version=0, pid=os.getpid(), kind=kind,
                    app_version=version_id, started_at=int(time.time()), creator_pid=creator_pid)
 
@@ -103,6 +105,7 @@ class TriblerProcess:
         return self.pid == os.getpid() and self.is_running()
 
     def is_running(self):
+        """Returns True if the object represents a running process"""
         if not psutil.pid_exists(self.pid):
             return False
 
