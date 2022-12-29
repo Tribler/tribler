@@ -98,8 +98,9 @@ class TriblerProcess:
         return cls(manager, row_version=0, pid=os.getpid(), kind=kind,
                    app_version=version_id, started_at=int(time.time()), creator_pid=creator_pid)
 
-    def is_current_process(self):
-        return self.pid == os.getpid()
+    def is_current_process(self) -> bool:
+        """Returns True if the object represents the current process"""
+        return self.pid == os.getpid() and self.is_running()
 
     def is_running(self):
         if not psutil.pid_exists(self.pid):
