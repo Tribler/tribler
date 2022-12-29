@@ -44,7 +44,7 @@ def set_error(error: Union[str | Exception], replace: bool = False):
 
 def with_retry(func):
     """
-    This decorator re-runs the wrapped function once in the case of sqlite3.Error` exception.
+    This decorator re-runs the wrapped ProcessManager method once in the case of sqlite3.Error` exception.
 
     This way, it becomes possible to handle exceptions like sqlite3.DatabaseError "database disk image is malformed".
     In case of an error, the first function invocation removes the corrupted database file, and the second invocation
@@ -77,6 +77,16 @@ class ProcessManager:
 
     @contextmanager
     def connect(self) -> ContextManager[sqlite3.Connection]:
+        """
+        A context manager opens a connection to the database and handles the transaction.
+
+        The opened connection is stored inside the ProcessManager instance. It allows to recursively
+        the context manager, the inner invocation re-uses the connection opened in the outer context manager.
+
+        In the case of a sqlite3.DatabaseError exception, the database is deleted to handle possible database
+        corruption. The database content is not critical for Tribler's functioning, so its loss is tolerable.
+        """
+
         if self.connection is not None:
             yield self.connection
             return
@@ -103,6 +113,9 @@ class ProcessManager:
             raise
 
     def _load_primary_process(self, connection: sqlite3.Connection, kind: ProcessKind) -> Optional[TriblerProcess]:
+        """
+        A helper method to load the current primary process of the specified kind from the database.
+        """
         cursor = connection.execute("""
             SELECT * FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
         """, [kind.value])
@@ -119,6 +132,9 @@ class ProcessManager:
 
     @with_retry
     def atomic_get_primary_process(self, current_process: TriblerProcess) -> TriblerProcess:
+        """
+        Retrieves the current primary process from the database or makes the current process the primary one.
+        """
         with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             primary_process = self._load_primary_process(connection, current_process.kind)
             if primary_process is None:
@@ -131,10 +147,20 @@ class ProcessManager:
 
     @with_retry
     def save(self, process: TriblerProcess):
+        """
+        Stores process to the database with a single retry to handle possible database corruption.
+
+        Used by the process.save() method.
+        """
         with self.connect() as connection:
             process._save(connection)  # pylint: disable=protected-access
 
     def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
+        """
+        Calls sys.exit(exit_code) and stores exit code & error information (if provided) to the processes' database.
+
+        Developers should use this method instead of a direct calling of sys.exit().
+        """
         p = self.current_process
         if error is not None:
             p.set_error(error, replace)
@@ -145,6 +171,9 @@ class ProcessManager:
 
     @with_retry
     def get_last_processes(self, limit=6) -> List[TriblerProcess]:
+        """
+        Returns last `limit` processes from the database. They are used during the formatting of the error report.
+        """
         with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
             cursor = connection.execute("""SELECT * FROM processes ORDER BY rowid DESC LIMIT ?""", [limit])
             result = [TriblerProcess.from_row(self, row) for row in cursor]
