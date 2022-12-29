@@ -131,7 +131,7 @@ class TriblerProcess:
         self.error_msg = error if replace else (self.error_msg or error)
         self.save()
 
-    def mark_finished(self, exit_code: Optional[int] = None):
+    def finish(self, exit_code: Optional[int] = None):
         self.primary = 0
         self.finished_at = int(time.time())
 

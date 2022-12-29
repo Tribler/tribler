@@ -139,8 +139,7 @@ class ProcessManager:
         p = self.current_process
         if error is not None:
             p.set_error(error, replace)
-        p.mark_finished(exit_code)
-        p.save()
+        p.finish(exit_code)
         exit_code = p.exit_code
         sys.exit(exit_code)
 

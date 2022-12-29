@@ -91,7 +91,7 @@ def test_tribler_process_mark_finished(process_manager):
     assert p.exit_code is None
     assert p.finished_at is None
 
-    p.mark_finished(123)
+    p.finish(123)
     assert p.primary == 0
     assert p.exit_code == 123
     assert p.finished_at is not None
@@ -99,12 +99,12 @@ def test_tribler_process_mark_finished(process_manager):
     assert str(p).endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
 
     p = make_tribler_process()
-    p.mark_finished()  # the error is not set and the exit code is not specified, and by default should be 0
+    p.finish()  # the error is not set and the exit code is not specified, and by default should be 0
     assert p.exit_code == 0
 
     p = make_tribler_process()
     p.error_msg = 'Error text'
-    p.mark_finished()  # the error is set and the exit code is not specified, and by default should be 1
+    p.finish()  # the error is set and the exit code is not specified, and by default should be 1
     assert p.exit_code == 1
 
 
