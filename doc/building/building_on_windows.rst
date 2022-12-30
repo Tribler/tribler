@@ -30,15 +30,27 @@ Inside the ``build`` folder, put the following items:
 3. ``libsodium.dll`` which can be downloaded from `libsodium.org <https://download.libsodium.org/libsodium/releases/>`_ (as of writing version 1.0.8).
 4. The openssl dll files ``libeay32.dll``, ``libssl32.dll`` and ``ssleay32.dll`` (place them in a directory named ``openssl``).
 
-Then, set a ``PASSWORD`` `environment variable <https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/sysdm_advancd_environmnt_addchange_variable.mspx?mfr=true>`__ with its value set to the password matching the one set in your ``.pfx`` file.
+Then:
+
+* Set a ``PASSWORD`` `environment variable <https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/sysdm_advancd_environmnt_addchange_variable.mspx?mfr=true>`__ with its value set to the password matching the one set in your ``.pfx`` file.
+* Create the ``.TriblerVersion`` file with the result of execution of the following command: ``git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))"``
+* Create the ``.TriblerCommit`` file with the result of execution of the following command: ``git rev-parse HEAD``
+* Set the ``TRIBLER_VERSION`` environment variable with the content of the ``.TriblerVersion`` file.
+* Set the ``QT_QPA_PLATFORM=offscreen`` environment variable
+* Set the ``QT_ACCESSIBILITY=1`` environment variable
+* Set the ``QT_IM_MODULE=ibus`` environment variable
 
 Finally, open a command prompt and enter the following commands (Change 11.0 depending on your version of Microsoft Visual Studio):
-Note that for building 32 bit you need to pass anything but 64, i.e. 32 or 86 to the ``update_version_from_git.py`` script.
+Note that for building 32 bit you need to pass anything but 64, i.e. 32 or 86 to the ``update_version.py`` script.
 
 .. code-block:: bash
-
     cd tribler
-    python build/update_version_from_git.py 64
-    build\win\makedist_win.bat 64
+
+    python -m pip install -r requirements-build.txt
+
+    python build\update_version.py 64
+    python build\win\replace_nsi.py -r . --architecture x64
+
+    build\win\makedist_win.bat
 
 This builds an ``.exe`` installer which installs Tribler.
