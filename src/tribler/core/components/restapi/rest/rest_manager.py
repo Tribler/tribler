@@ -17,6 +17,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
 )
 from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler.core.components.restapi.rest.settings import APISettings
+from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,13 @@ class RESTManager:
     def get_endpoint(self, name):
         return self.root_endpoint.endpoints.get('/' + name)
 
+    def set_api_port(self, api_port: int):
+        if self.config.http_port != api_port:
+            self.config.http_port = api_port
+        process_manager = get_global_process_manager()
+        if process_manager:
+            process_manager.current_process.set_api_port(api_port)
+
     async def start(self):
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
@@ -124,6 +132,7 @@ class RESTManager:
             api_port = self.config.http_port
             if not self.config.retry_port:
                 self.site = web.TCPSite(self.runner, self.http_host, api_port)
+                self.set_api_port(api_port)
                 await self.site.start()
             else:
                 bind_attempts = 0
@@ -131,7 +140,7 @@ class RESTManager:
                     try:
                         self.site = web.TCPSite(self.runner, self.http_host, api_port + bind_attempts)
                         await self.site.start()
-                        self.config.http_port = api_port + bind_attempts
+                        self.set_api_port(api_port + bind_attempts)
                         break
                     except OSError:
                         bind_attempts += 1

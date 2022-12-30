@@ -192,7 +192,6 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
         logger.error(msg)
         process_manager.sys_exit(1, msg)
 
-    process_manager.current_process.set_api_port(api_port)
     version_history = VersionHistory(root_state_dir)
     state_dir = version_history.code_version.directory
     exit_code = run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)
