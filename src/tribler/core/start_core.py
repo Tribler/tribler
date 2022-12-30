@@ -39,7 +39,8 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, set_global_process_manager
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
+    set_global_process_manager
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -179,7 +180,8 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
     load_logger_config('tribler-core', root_state_dir)
 
     gui_pid = GuiProcessWatcher.get_gui_pid()
-    process_manager = ProcessManager(root_state_dir, ProcessKind.Core, gui_pid)
+    current_process = TriblerProcess.current_process(ProcessKind.Core, creator_pid=gui_pid)
+    process_manager = ProcessManager(root_state_dir, current_process)
     set_global_process_manager(process_manager)
 
     if not process_manager.current_process.primary:

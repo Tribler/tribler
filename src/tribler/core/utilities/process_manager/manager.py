@@ -43,12 +43,12 @@ def set_error(error: Union[str | Exception], replace: bool = False):
 
 
 class ProcessManager:
-    def __init__(self, root_dir: Path, process_kind: ProcessKind, creator_pid: Optional[int] = None,
-                 db_filename: str = DB_FILENAME):
+    def __init__(self, root_dir: Path, current_process: TriblerProcess, db_filename: str = DB_FILENAME):
         self.root_dir = root_dir
         self.db_filepath = root_dir / db_filename
         self.connection: Optional[sqlite3.Connection] = None
-        self.current_process = TriblerProcess.current_process(self, process_kind, creator_pid)
+        self.current_process = current_process
+        current_process.manager = self
         self.primary_process = self.atomic_get_primary_process(self.current_process)
 
     @property

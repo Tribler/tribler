@@ -8,7 +8,8 @@ from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.osutils import get_root_state_directory
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, set_global_process_manager
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
+    set_global_process_manager
 from tribler.core.utilities.utilities import make_async_loop_fragile
 
 
@@ -68,7 +69,8 @@ class TinyTriblerService:
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.config.state_dir}')
 
         root_state_dir = get_root_state_directory()
-        self.process_manager = ProcessManager(root_state_dir, ProcessKind.Core)
+        current_process = TriblerProcess.current_process(ProcessKind.Core)
+        self.process_manager = ProcessManager(root_state_dir, current_process)
         set_global_process_manager(self.process_manager)
 
         if not self.process_manager.current_process.primary:

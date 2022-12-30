@@ -10,7 +10,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
     assert process_manager.current_process.primary == 1
     assert process_manager.primary_process is process_manager.current_process
 
-    fake_process = TriblerProcess.current_process(process_manager, ProcessKind.Core)
+    fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1
     primary_process = process_manager.atomic_get_primary_process(fake_process)
     assert primary_process.primary == 1
@@ -19,7 +19,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
     with process_manager.connect() as connection:
         connection.execute('update processes set pid = pid + 100')
 
-    current_process = TriblerProcess.current_process(process_manager, ProcessKind.Core)
+    current_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     primary_process = process_manager.atomic_get_primary_process(current_process)
     assert current_process.primary
     assert primary_process is current_process
@@ -30,7 +30,7 @@ def test_atomic_get_primary_process(process_manager: ProcessManager):
 
 
 def test_save(process_manager: ProcessManager):
-    p = TriblerProcess.current_process(process_manager, ProcessKind.Core)
+    p = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     p.pid = p.pid + 100
     p.save()
     assert p.rowid is not None
@@ -59,7 +59,7 @@ def test_get_last_processes(process_manager: ProcessManager):
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 1 and last_processes[0].rowid == process_manager.current_process.rowid
 
-    fake_process = TriblerProcess.current_process(process_manager, ProcessKind.Core)
+    fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1
     process_manager.atomic_get_primary_process(fake_process)
 
@@ -94,7 +94,8 @@ def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, proces
     process_manager.db_filepath.write_bytes(db_content[:1500])  # corrupt the database file
 
     # no exception, the database is silently re-created:
-    process_manager2 = ProcessManager(process_manager.root_dir, ProcessKind.Core)
+    current_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    process_manager2 = ProcessManager(process_manager.root_dir, current_process)
     assert logger_exception.call_args[0][0] == 'DatabaseError: database disk image is malformed'
     assert logger_warning.call_args[0][0] == 'Retrying after the error: DatabaseError: database disk image is malformed'
 
@@ -112,7 +113,7 @@ def test_delete_old_records_1(process_manager):
 
         # Let's add 100 processes finished in previous days
         for i in range(1, 101):
-            p = TriblerProcess(process_manager, pid=i, kind=ProcessKind.Core, app_version='',
+            p = TriblerProcess(manager=process_manager, pid=i, kind=ProcessKind.Core, app_version='',
                                started_at=now - day * i - 60, finished_at=now - day * i + 60)
             p.save()
         assert connection.execute("select count(*) from processes").fetchone()[0] == 101
@@ -131,7 +132,8 @@ def test_delete_old_records_2(process_manager):
 
         # Let's add 200 processes
         for i in range(200):
-            p = TriblerProcess(process_manager, pid=i, kind=ProcessKind.Core, app_version='', started_at=now - 120)
+            p = TriblerProcess(manager=process_manager, pid=i, kind=ProcessKind.Core, app_version='',
+                               started_at=now - 120)
             p.save()
         assert connection.execute("select count(*) from processes").fetchone()[0] == 201
 

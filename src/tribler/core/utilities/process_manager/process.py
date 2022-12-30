@@ -23,11 +23,12 @@ class ProcessKind(Enum):
 
 
 class TriblerProcess:
-    def __init__(self, manager: ProcessManager, pid: int, kind: ProcessKind, app_version: str, started_at: int,
+    def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  rowid: Optional[int] = None, creator_pid: Optional[int] = None, primary: int = 0, canceled: int = 0,
                  row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
-                 exit_code: Optional[int] = None, error_msg: Optional[str] = None):
-        self.manager = manager
+                 exit_code: Optional[int] = None, error_msg: Optional[str] = None,
+                 manager: Optional[ProcessManager] = None):
+        self._manager = manager
         self.rowid = rowid
         self.row_version = row_version
         self.pid = pid
@@ -41,6 +42,16 @@ class TriblerProcess:
         self.finished_at = finished_at
         self.exit_code = exit_code
         self.error_msg = error_msg
+
+    @property
+    def manager(self) -> ProcessManager:
+        if self._manager is None:
+            raise RuntimeError('Tribler process manager is not set in process object')
+        return self._manager
+
+    @manager.setter
+    def manager(self, manager: ProcessManager):
+        self._manager = manager
 
     @property
     def logger(self) -> logging.Logger:
@@ -67,7 +78,7 @@ class TriblerProcess:
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
             finished_at, exit_code, error_msg = row
 
-        return TriblerProcess(manager, rowid=rowid, row_version=row_version, pid=pid, kind=ProcessKind(kind),
+        return TriblerProcess(manager=manager, rowid=rowid, row_version=row_version, pid=pid, kind=ProcessKind(kind),
                               primary=primary, canceled=canceled, app_version=app_version, started_at=started_at,
                               creator_pid=creator_pid, api_port=api_port, finished_at=finished_at,
                               exit_code=exit_code, error_msg=error_msg)
@@ -94,10 +105,11 @@ class TriblerProcess:
         return ''.join(result)
 
     @classmethod
-    def current_process(cls, manager: ProcessManager, kind: ProcessKind,
-                        creator_pid: Optional[int] = None) -> TriblerProcess:
+    def current_process(cls, kind: ProcessKind,
+                        creator_pid: Optional[int] = None,
+                        manager: Optional[ProcessManager] = None) -> TriblerProcess:
         """Constructs an object for a current process, specifying the PID value of the current process"""
-        return cls(manager, row_version=0, pid=os.getpid(), kind=kind,
+        return cls(manager=manager, row_version=0, pid=os.getpid(), kind=kind,
                    app_version=version_id, started_at=int(time.time()), creator_pid=creator_pid)
 
     def is_current_process(self) -> bool:
