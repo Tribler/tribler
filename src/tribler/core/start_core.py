@@ -184,8 +184,8 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
     process_manager = ProcessManager(root_state_dir, current_process)
     set_global_process_manager(process_manager)
 
-    if not process_manager.current_process.primary:
-        msg = f'Another Core process with PID {process_manager.primary_process.pid} is already running'
+    if not process_manager.current_process.become_primary():
+        msg = f'Another Core process is already running'
         logger.warning(msg)
         process_manager.sys_exit(1, msg)
 

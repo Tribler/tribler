@@ -49,7 +49,6 @@ class ProcessManager:
         self.connection: Optional[sqlite3.Connection] = None
         self.current_process = current_process
         current_process.manager = self
-        self.primary_process = self.atomic_get_primary_process(self.current_process)
 
     @property
     def logger(self) -> logging.Logger:
@@ -95,39 +94,27 @@ class ProcessManager:
                 self.db_filepath.unlink(missing_ok=True)
             raise
 
-    def _load_primary_process(self, connection: sqlite3.Connection, kind: ProcessKind) -> Optional[TriblerProcess]:
+    def primary_process_rowid(self, kind: ProcessKind) -> Optional[int]:
         """
         A helper method to load the current primary process of the specified kind from the database.
-        """
-        cursor = connection.execute(f"""
-            SELECT {sql_scripts.SELECT_COLUMNS}
-            FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
-        """, [kind.value])
-        row = cursor.fetchone()
-        if row is not None:
-            process = TriblerProcess.from_row(self, row)
-            if process.is_running():
-                return process
 
-            # Process is not running anymore; mark it as not primary
-            process.primary = 0
-            process.save()
-        return None
+        Returns rowid of the existing process or None.
+        """
+        with self.connect() as connection:
+            cursor = connection.execute(f"""
+                SELECT {sql_scripts.SELECT_COLUMNS}
+                FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
+            """, [kind.value])
+            row = cursor.fetchone()
+            if row is not None:
+                process = TriblerProcess.from_row(self, row)
+                if process.is_running():
+                    return process.rowid
 
-    @with_retry
-    def atomic_get_primary_process(self, current_process: TriblerProcess) -> TriblerProcess:
-        """
-        Retrieves the current primary process from the database or makes the current process the primary one.
-        """
-        with self.connect() as connection:  # pylint: disable=not-context-manager  # false Pylint alarm
-            primary_process = self._load_primary_process(connection, current_process.kind)
-            if primary_process is None:
-                current_process.primary = 1
-                primary_process = current_process
-            else:
-                current_process.canceled = 1
-            current_process.save()
-            return primary_process
+                # Process is not running anymore; mark it as not primary
+                process.primary = 0
+                process.save()
+            return None
 
     def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
         """
@@ -135,11 +122,11 @@ class ProcessManager:
 
         Developers should use this method instead of a direct calling of sys.exit().
         """
-        p = self.current_process
+        process = self.current_process
         if error is not None:
-            p.set_error(error, replace)
-        p.finish(exit_code)
-        exit_code = p.exit_code
+            process.set_error(error, replace)
+        process.finish(exit_code)
+        exit_code = process.exit_code
         sys.exit(exit_code)
 
     @with_retry

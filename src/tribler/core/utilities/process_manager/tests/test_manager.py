@@ -6,23 +6,20 @@ from tribler.core.utilities.process_manager.manager import logger, ProcessManage
     get_global_process_manager, set_error, set_global_process_manager
 
 
-def test_atomic_get_primary_process(process_manager: ProcessManager):
+def test_become_primary(process_manager: ProcessManager):
     assert process_manager.current_process.primary == 1
-    assert process_manager.primary_process is process_manager.current_process
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1
-    primary_process = process_manager.atomic_get_primary_process(fake_process)
-    assert primary_process.primary == 1
+    assert not fake_process.become_primary()
     assert fake_process.primary == 0
 
     with process_manager.connect() as connection:
         connection.execute('update processes set pid = pid + 100')
 
     current_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
-    primary_process = process_manager.atomic_get_primary_process(current_process)
+    assert current_process.become_primary()
     assert current_process.primary
-    assert primary_process is current_process
 
     with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where "primary" = 1').fetchall()
@@ -61,7 +58,7 @@ def test_get_last_processes(process_manager: ProcessManager):
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1
-    process_manager.atomic_get_primary_process(fake_process)
+    fake_process.become_primary()
 
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 2
@@ -96,6 +93,7 @@ def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, proces
     # no exception, the database is silently re-created:
     current_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     process_manager2 = ProcessManager(process_manager.root_dir, current_process)
+    current_process.become_primary()
     assert logger_exception.call_args[0][0] == 'DatabaseError: database disk image is malformed'
     assert logger_warning.call_args[0][0] == 'Retrying after the error: DatabaseError: database disk image is malformed'
 

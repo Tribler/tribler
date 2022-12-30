@@ -116,6 +116,21 @@ class TriblerProcess:
         """Returns True if the object represents the current process"""
         return self.pid == os.getpid() and self.is_running()
 
+    @with_retry
+    def become_primary(self) -> bool:
+        """
+        If there is no primary process already, makes the current process primary and returns the primary status
+        """
+        with self.manager.connect():
+            # for a new process object self.rowid is None
+            primary_rowid = self.manager.primary_process_rowid(self.kind)
+            if primary_rowid is None or primary_rowid == self.rowid:
+                self.primary = 1
+            else:
+                self.canceled = 1
+            self.save()
+        return bool(self.primary)
+
     def is_running(self):
         """Returns True if the object represents a running process"""
         if not psutil.pid_exists(self.pid):
