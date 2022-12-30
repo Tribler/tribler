@@ -43,8 +43,8 @@ def fixture_window(tmp_path_factory):
 
     current_process = TriblerProcess.current_process(ProcessKind.GUI)
     process_manager = ProcessManager(root_state_dir, current_process)
-    another_process_is_primary = not process_manager.current_process.become_primary()
-    app = TriblerApplication("triblerapp-guitest", sys.argv, another_process_is_primary)
+    is_primary_process = process_manager.current_process.become_primary()
+    app = TriblerApplication("triblerapp-guitest", sys.argv, start_local_server=is_primary_process)
     app_manager = AppManager(app)
     # We must create a separate instance of QSettings and clear it.
     # Otherwise, previous runs of the same app will affect this run.

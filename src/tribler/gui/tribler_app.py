@@ -23,8 +23,8 @@ class TriblerApplication(QtSingleApplication):
     This class represents the main Tribler application.
     """
 
-    def __init__(self, app_name: str, args, another_process_is_primary: bool = False):
-        QtSingleApplication.__init__(self, app_name, another_process_is_primary, args)
+    def __init__(self, app_name: str, args: list, start_local_server: bool = False):
+        QtSingleApplication.__init__(self, app_name, start_local_server, args)
         self.code_executor = None
         connect(self.message_received, self.on_app_message)
 

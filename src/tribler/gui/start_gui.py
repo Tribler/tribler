@@ -52,10 +52,10 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
     current_process = TriblerProcess.current_process(ProcessKind.GUI)
     process_manager = ProcessManager(root_state_dir, current_process)
     set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
-    another_process_is_primary = not process_manager.current_process.become_primary()
+    current_process_is_primary = process_manager.current_process.become_primary()
     try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
-        app = TriblerApplication(app_name, sys.argv, another_process_is_primary)
+        app = TriblerApplication(app_name, sys.argv, start_local_server=current_process_is_primary)
         app_manager = AppManager(app)
 
         # Note (@ichorid): translator MUST BE created and assigned to a separate variable
@@ -64,7 +64,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         translator = get_translator(settings.value('translation', None))
         app.installTranslator(translator)
 
-        if app.is_running():
+        if not current_process_is_primary and app.connected_to_previous_instance:
             # if an application is already running, then send the command line
             # argument to it and close the current instance
             logger.info('GUI Application is already running. Passing a torrent file path to it.')

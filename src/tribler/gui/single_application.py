@@ -20,7 +20,7 @@ class QtSingleApplication(QApplication):
 
     message_received = pyqtSignal(str)
 
-    def __init__(self, win_id: str, another_process_is_primary: bool, *argv):
+    def __init__(self, win_id: str, start_local_server: bool, *argv):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f'Start Tribler application. Win id: "{win_id}". '
                          f'Sys argv: "{sys.argv}"')
@@ -34,21 +34,18 @@ class QtSingleApplication(QApplication):
         self._outgoing_connection = QLocalSocket()
         self._outgoing_connection.connectToServer(self._id)
 
-        connected_to_previous_instance = self._outgoing_connection.waitForConnected()
-        self._is_app_already_running = connected_to_previous_instance or another_process_is_primary
+        self.connected_to_previous_instance = self._outgoing_connection.waitForConnected()
 
         self._stream_to_running_app = None
         self._incoming_connection = None
         self._incoming_stream = None
         self._server = None
 
-        if self._is_app_already_running:
-            # Yes, there is.
+        if self.connected_to_previous_instance:
             self.logger.info('Another instance is running')
             self._stream_to_running_app = QTextStream(self._outgoing_connection)
             self._stream_to_running_app.setCodec('UTF-8')
-        else:
-            # No, there isn't, at least not properly.
+        elif start_local_server:
             # Cleanup any past, crashed server.
             error = self._outgoing_connection.error()
             self.logger.info(f'No running instances (socket error: {error})')
@@ -70,9 +67,6 @@ class QtSingleApplication(QApplication):
             self._server.close()
         QLocalServer.removeServer(self._id)
         self.logger.info('Crashed server was removed')
-
-    def is_running(self):
-        return self._is_app_already_running
 
     def get_id(self):
         return self._id
