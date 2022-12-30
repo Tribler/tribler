@@ -7,7 +7,7 @@ Tribler
 
 |downloads_7_0| |downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4|
 |downloads_7_5| |downloads_7_6| |downloads_7_7| |downloads_7_8| |downloads_7_9|
-|downloads_7_10| |downloads_7_11|
+|downloads_7_10| |downloads_7_11| |downloads_7_12|
 
 |doi| |openhub| |discord|
 
@@ -182,6 +182,10 @@ We like to hear your feedback and suggestions. To reach out to us, you can join 
 .. |downloads_7_11| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.11.0/total.svg?style=flat
      :target: https://github.com/Tribler/tribler/releases
      :alt: Downloads(7.11.0)
+
+.. |downloads_7_12| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.12.1/total.svg?style=flat
+     :target: https://github.com/Tribler/tribler/releases
+     :alt: Downloads(7.12.1)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors
