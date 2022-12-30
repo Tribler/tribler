@@ -1,20 +1,90 @@
 import errno
 import sys
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from tribler.gui.core_manager import CoreCrashedError, CoreManager
+from tribler.gui.exceptions import CoreConnectTimeoutError
 
 
 @pytest.fixture(name='core_manager')
 def fixture_core_manager():
     core_manager = CoreManager(root_state_dir=MagicMock(), api_port=MagicMock(), api_key=MagicMock(),
-                               app_manager=MagicMock(),
-                               events_manager=MagicMock())
+                               app_manager=MagicMock(), process_manager=MagicMock(), events_manager=MagicMock())
     core_manager.core_process = MagicMock(readAllStandardOutput=MagicMock(return_value=b'core stdout'),
                                           readAllStandardError=MagicMock(return_value=b'core stderr'))
+    core_manager.check_core_api_port_timer = MagicMock()
     return core_manager
+
+
+def test_on_core_started_calls_check_core_api_port(core_manager):
+    assert not core_manager.core_running
+    assert not core_manager.core_started
+    assert core_manager.core_started_at is None
+    with patch.object(core_manager, 'check_core_api_port') as check_core_api_port:
+        core_manager.on_core_started()
+        assert check_core_api_port.called
+
+
+def test_check_core_api_port_not_running(core_manager):
+    assert not core_manager.core_running
+    core_manager.check_core_api_port()
+    assert not core_manager.process_manager.current_process.get_core_process.called
+
+
+def test_check_core_api_port_already_connected(core_manager):
+    core_manager.core_running = True
+    core_manager.core_connected = True
+    core_manager.check_core_api_port()
+    assert not core_manager.process_manager.current_process.get_core_process.called
+
+
+def test_check_core_api_port_shutting_down(core_manager):
+    core_manager.core_running = True
+    core_manager.shutting_down = True
+    core_manager.check_core_api_port()
+    assert not core_manager.process_manager.current_process.get_core_process.called
+
+
+def test_check_core_api_port_core_process_not_found(core_manager):
+    core_manager.core_running = True
+    core_manager.core_started_at = time.time()
+    core_manager.process_manager.current_process.get_core_process.return_value = None
+    core_manager.check_core_api_port()
+    assert core_manager.process_manager.current_process.get_core_process.called
+    assert core_manager.check_core_api_port_timer.start.called
+
+
+def test_check_core_api_port_not_set(core_manager):
+    core_manager.core_running = True
+    core_manager.core_started_at = time.time()
+    core_manager.process_manager.current_process.get_core_process().api_port = None
+    core_manager.check_core_api_port()
+    assert core_manager.process_manager.current_process.get_core_process.called
+    assert core_manager.check_core_api_port_timer.start.called
+
+
+@patch('tribler.gui.core_manager.request_manager')
+def test_check_core_api_port(request_manager: MagicMock, core_manager):
+    core_manager.core_running = True
+    core_manager.core_started_at = time.time()
+    api_port = core_manager.process_manager.current_process.get_core_process().api_port
+    core_manager.check_core_api_port()
+    assert core_manager.process_manager.current_process.get_core_process.called
+    assert not core_manager.check_core_api_port_timer.start.called
+    assert core_manager.api_port == api_port
+    assert request_manager.port == api_port
+
+
+def test_check_core_api_port_timeout(core_manager):
+    core_manager.core_running = True
+    # The timeout should be 30 seconds so let's pretend the core started 31 seconds before now
+    core_manager.core_started_at = time.time() - 31
+    core_manager.process_manager.current_process.get_core_process.return_value = None
+    with pytest.raises(CoreConnectTimeoutError, match="^Can't get Core API port value within 30 seconds$"):
+        core_manager.check_core_api_port()
 
 
 def test_on_core_finished_calls_quit_application(core_manager):

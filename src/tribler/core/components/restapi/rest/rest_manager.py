@@ -98,7 +98,7 @@ class RESTManager:
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
-        self._logger.info(f'Start {self.http_host}:{self.config.http_port}')
+        self._logger.info(f'An attempt to start REST API on {self.http_host}:{self.config.http_port}')
 
         # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
         aiohttp_apispec = AiohttpApiSpec(
@@ -135,6 +135,7 @@ class RESTManager:
                 self.set_api_port(api_port)
                 await self.site.start()
             else:
+                self._logger.info(f"Searching for a free port starting from {api_port}")
                 bind_attempts = 0
                 while bind_attempts < 10:
                     try:

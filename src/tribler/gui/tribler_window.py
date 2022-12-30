@@ -202,7 +202,8 @@ class TriblerWindow(QMainWindow):
 
         self.error_handler = ErrorHandler(self)
         self.events_manager = EventRequestManager(api_port, api_key, self.error_handler)
-        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, app_manager, self.events_manager)
+        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key,
+                                        app_manager, process_manager, self.events_manager)
         self.version_history = VersionHistory(self.root_state_dir)
         self.upgrade_manager = UpgradeManager(self.version_history)
         self.pending_requests = {}
@@ -1212,7 +1213,7 @@ class TriblerWindow(QMainWindow):
         e.accept()
 
     def clicked_force_shutdown(self):
-        self.core_manager.kill_core_process_and_remove_the_lock_file()
+        self.core_manager.kill_core_process()
         self.app_manager.quit_application()
 
     def clicked_skip_conversion(self):

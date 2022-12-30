@@ -13,6 +13,6 @@ class APISettings(TriblerConfigSection):
     https_port: int = -1
     https_certfile: str = ''
     key: Optional[str] = None
-    retry_port: bool = False
+    retry_port: bool = True
 
     _port_validator = validator('http_port', 'https_port', allow_reuse=True)(validate_port_with_minus_one)
