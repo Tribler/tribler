@@ -43,18 +43,12 @@ def set_error(error: Union[str | Exception], replace: bool = False):
 
 class ProcessManager:
     def __init__(self, root_dir: Path, current_process: TriblerProcess, db_filename: str = DB_FILENAME):
+        self.logger = logger  # Used by the `with_retry` decorator
         self.root_dir = root_dir
         self.db_filepath = root_dir / db_filename
         self.connection: Optional[sqlite3.Connection] = None
         self.current_process = current_process
         current_process.manager = self
-
-    @property
-    def logger(self) -> logging.Logger:
-        """
-        Used by the `with_retry` decorator
-        """
-        return logger
 
     @contextmanager
     def connect(self) -> ContextManager[sqlite3.Connection]:
