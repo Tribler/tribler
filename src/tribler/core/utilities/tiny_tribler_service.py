@@ -74,7 +74,7 @@ class TinyTriblerService:
         set_global_process_manager(self.process_manager)
 
         if not self.process_manager.current_process.become_primary():
-            msg = f'Another Core process is already running'
+            msg = 'Another Core process is already running'
             self.logger.warning(msg)
             self.process_manager.sys_exit(1, msg)
 
