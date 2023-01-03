@@ -68,11 +68,10 @@ def test_is_running(process_class: Mock, manager):
     assert manager.current_process.is_running() is True
 
 
-def test_tribler_process_set_error(process_manager):
-    process_manager.connection = Mock()
-
-    p = TriblerProcess.current_process(ProcessKind.GUI, manager=process_manager)
+def test_tribler_process_set_error(manager):
+    p = manager.current_process
     assert p.error_msg is None
+
     p.set_error('Error text 1')
     assert p.error_msg == 'Error text 1'
 
@@ -89,35 +88,32 @@ def test_tribler_process_set_error(process_manager):
     assert p.error_msg == 'ValueError: exception text'
 
     # The error text is included in ProcessInfo.__str__() output
-    pattern = r"^GuiProcess\(pid=\d+, version='[^']+', started='[^']+', error='ValueError: exception text'\)$"
+    pattern = r"^CoreProcess\(pid=\d+, version='[^']+', started='[^']+', error='ValueError: exception text'\)$"
     assert re.match(pattern, str(p))
 
 
-def test_tribler_process_mark_finished(process_manager):
-    process_manager.connection = Mock()
-
-    def make_tribler_process():
-        p = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
-        p.primary = True
-        p.api_port = 10000
-        return p
-
-    p = make_tribler_process()
+def test_tribler_process_mark_finished(manager):
+    p = manager.current_process
     assert p.exit_code is None
     assert p.finished_at is None
-
+    p.primary = True
+    p.api_port = 10000
     p.finish(123)
     assert not p.primary
     assert p.exit_code == 123
     assert p.finished_at is not None
+    s = str(p)
+    assert s.endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
 
-    assert str(p).endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
 
-    p = make_tribler_process()
+def test_tribler_process_mark_finished_no_exit_code(manager):
+    p = manager.current_process
     p.finish()  # the error is not set and the exit code is not specified, and by default should be 0
     assert p.exit_code == 0
 
-    p = make_tribler_process()
+
+def test_tribler_process_mark_finished_error_text(manager):
+    p = manager.current_process
     p.error_msg = 'Error text'
     p.finish()  # the error is set and the exit code is not specified, and by default should be 1
     assert p.exit_code == 1
