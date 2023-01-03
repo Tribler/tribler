@@ -10,6 +10,7 @@ from typing import Optional, TYPE_CHECKING, Union
 
 import psutil
 
+from tribler.core.utilities.process_manager import sql_scripts
 from tribler.core.utilities.process_manager.utils import with_retry
 from tribler.core.version import version_id
 
@@ -203,3 +204,20 @@ class TriblerProcess:
               self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
         if cursor.rowcount == 0:
             self.logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
+
+    def get_core_process(self) -> Optional[TriblerProcess]:
+        """
+        Returns Core process created by the current GUI process, or None if the Core process was not found in the DB.
+        """
+        if self.kind != ProcessKind.GUI:
+            raise TypeError('The `get_core_process` method can only be used for a GUI process')
+
+        with self.manager.connect() as connection:
+            cursor = connection.execute(f"""
+                SELECT {sql_scripts.SELECT_COLUMNS}
+                FROM processes WHERE "primary" = 1 and kind = ? and creator_pid = ?
+            """, [ProcessKind.Core.value, self.pid])
+            rows = cursor.fetchall()
+            if len(rows) > 1:  # should not happen
+                raise RuntimeError('Multiple Core processes were found for a single GUI process')
+            return TriblerProcess.from_row(self.manager, rows[0]) if rows else None
