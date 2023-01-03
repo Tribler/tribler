@@ -7,23 +7,40 @@ from tribler.core.utilities.process_manager.manager import logger, ProcessManage
 
 
 def test_become_primary(process_manager: ProcessManager):
-    assert process_manager.current_process.primary
+    # Initially process manager fixture creates a primary current process that is a single process in DB
+    p1 = process_manager.current_process
+    assert p1.primary
 
-    fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
-    fake_process.pid = fake_process.pid + 1
-    assert not fake_process.become_primary()
-    assert not fake_process.primary
+    # Create a new process object with a different PID value
+    # (it is not important for the test do we have an actual process with this PID value or not)
+    p2 = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    p2.pid += 1
+    # The new process should not be able to become a primary process, as we already have the primary process in the DB
+    assert not p2.become_primary()
+    assert not p2.primary
 
     with process_manager.connect() as connection:
-        connection.execute('update processes set pid = pid + 100')
+        # Here we are emulating the situation that the current process abnormally terminated without updating the row
+        # in the database. To emulate it, we update the `started_at` time of the primary process in the DB.
 
-    current_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
-    assert current_process.become_primary()
-    assert current_process.primary
+        # After the update, it looks like the actual process with the PID of the primary process (that is, the process
+        # from which the test suite is running) was created 100 days after the row was added to the database.
+
+        # As a result, TriblerProcess.is_running() returns False for the previous primary process because it
+        # believes the running process with the same PID is a new process, different from the process in the DB
+        connection.execute('update processes set started_at = started_at - (60 * 60 * 24 * 100) where "primary" = 1')
+
+    p3 = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    p3.pid += 2
+    # Now p3 can become a new primary process, because the previous primary process considered
+    # already finished and replaced with a new unrelated process with the same PID
+    assert p3.become_primary()
+    assert p3.primary
 
     with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where "primary" = 1').fetchall()
-        assert len(rows) == 1 and rows[0][0] == current_process.rowid
+        # At the end, the DB should contain only one primary process, namely p3
+        assert len(rows) == 1 and rows[0][0] == p3.rowid
 
 
 def test_save(process_manager: ProcessManager):
