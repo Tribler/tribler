@@ -1,15 +1,16 @@
 import re
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import psutil
+import pytest
 
-from tribler.core.utilities.process_manager.manager import logger
+from tribler.core.utilities.process_manager.manager import ProcessManager, logger
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
 
 
 def test_tribler_process():
-    process_manager = Mock()
-    p = TriblerProcess.current_process(ProcessKind.Core, 123, manager=process_manager)
+    p = TriblerProcess.current_process(ProcessKind.Core, 123, manager=Mock())
     assert p.is_current_process()
     assert p.is_running()
 
@@ -17,40 +18,54 @@ def test_tribler_process():
     assert re.match(pattern, str(p))
 
 
-@patch('psutil.Process')
-@patch('psutil.pid_exists')
-def test_tribler_process_is_running(pid_exists: Mock, process_class: Mock, process_manager):
+@pytest.fixture(name='manager')
+def manager_fixture(tmp_path: Path) -> ProcessManager:
+    current_process = TriblerProcess.current_process(ProcessKind.Core)
+    process_manager = ProcessManager(tmp_path, current_process)
     process_manager.connection = Mock()
+    return process_manager
 
-    p = TriblerProcess.current_process(ProcessKind.GUI, manager=process_manager)
-    assert not pid_exists.called
 
-    # if the pid does not exist, the process is not running
+@patch('psutil.pid_exists')
+def test_is_running_pid_does_not_exists(pid_exists: Mock, manager):
     pid_exists.return_value = False
-    assert p.is_running() is False
+    # if the pid does not exist, the process is not running
+    assert not pid_exists.called
+    assert manager.current_process.is_running() is False
     assert pid_exists.called
 
-    # if the instantiation of the Process instance lead to psutil.Error, the process is not running
-    pid_exists.return_value = True
+
+@patch('psutil.Process')
+def test_is_running_process_not_running(process_class: Mock, manager):
     process_class.side_effect = psutil.Error
-    assert p.is_running() is False
+    # if the instantiation of the Process instance lead to psutil.Error, the process is not running
+    assert manager.current_process.is_running() is False
     assert process_class.called
 
+
+@patch('psutil.Process')
+def test_is_running_zombie_process(process_class: Mock, manager):
+    process_class.return_value.status.return_value = psutil.STATUS_ZOMBIE
     # if the process is zombie, it is not considered to be running
-    process = Mock()
-    process.status.return_value = psutil.STATUS_ZOMBIE
-    process_class.side_effect = None
-    process_class.return_value = process
-    assert p.is_running() is False
+    assert manager.current_process.is_running() is False
 
-    # if the process with the specified pid was created after the specified time, it is a different process
+
+@patch('psutil.Process')
+def test_is_running_incorrect_process_create_time(process_class: Mock, manager):
+    process = process_class.return_value
     process.status.return_value = psutil.STATUS_RUNNING
-    process.create_time.return_value = p.started_at + 1
-    assert p.is_running() is False
+    process.create_time.return_value = manager.current_process.started_at + 1
+    # if the process with the specified pid was created after the specified time, it is a different process
+    assert manager.current_process.is_running() is False
 
+
+@patch('psutil.Process')
+def test_is_running(process_class: Mock, manager):
+    process = process_class.return_value
+    process.status.return_value = psutil.STATUS_RUNNING
+    process.create_time.return_value = manager.current_process.started_at
     # if the process exists, it is not a zombie, and its creation time matches the recorded value, it is running
-    process.create_time.return_value = p.started_at
-    assert p.is_running() is True
+    assert manager.current_process.is_running() is True
 
 
 def test_tribler_process_set_error(process_manager):
