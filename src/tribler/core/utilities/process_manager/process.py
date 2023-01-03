@@ -24,9 +24,9 @@ class ProcessKind(Enum):
 
 class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
-                 rowid: Optional[int] = None, creator_pid: Optional[int] = None, primary: int = 0, canceled: int = 0,
-                 row_version: int = 0, api_port: Optional[int] = None, finished_at: Optional[int] = None,
-                 exit_code: Optional[int] = None, error_msg: Optional[str] = None,
+                 row_version: int = 0, rowid: Optional[int] = None, creator_pid: Optional[int] = None,
+                 primary: bool = False, canceled: bool = False, api_port: Optional[int] = None,
+                 finished_at: Optional[int] = None, exit_code: Optional[int] = None, error_msg: Optional[str] = None,
                  manager: Optional[ProcessManager] = None):
         self._manager = manager
         self.rowid = rowid
@@ -125,9 +125,9 @@ class TriblerProcess:
             # for a new process object self.rowid is None
             primary_rowid = self.manager.primary_process_rowid(self.kind)
             if primary_rowid is None or primary_rowid == self.rowid:
-                self.primary = 1
+                self.primary = True
             else:
-                self.canceled = 1
+                self.canceled = True
             self.save()
         return bool(self.primary)
 
@@ -162,7 +162,7 @@ class TriblerProcess:
         self.save()
 
     def finish(self, exit_code: Optional[int] = None):
-        self.primary = 0
+        self.primary = False
         self.finished_at = int(time.time())
 
         # if exit_code is specified, it overrides the previously set exit code
@@ -184,7 +184,7 @@ class TriblerProcess:
                 pid, kind, "primary", canceled, app_version, started_at,
                 creator_pid, api_port, finished_at, exit_code, error_msg
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, [self.pid, self.kind.value, self.primary, self.canceled, self.app_version, self.started_at,
+        """, [self.pid, self.kind.value, int(self.primary), int(self.canceled), self.app_version, self.started_at,
               self.creator_pid, self.api_port, self.finished_at, self.exit_code, self.error_msg])
         self.rowid = cursor.lastrowid
 
@@ -198,7 +198,7 @@ class TriblerProcess:
             SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
                 finished_at = ?, exit_code = ?, error_msg = ?
             WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
-        """, [self.row_version, self.primary, self.canceled, self.creator_pid, self.api_port,
+        """, [self.row_version, int(self.primary), int(self.canceled), self.creator_pid, self.api_port,
               self.finished_at, self.exit_code, self.error_msg,
               self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
         if cursor.rowcount == 0:

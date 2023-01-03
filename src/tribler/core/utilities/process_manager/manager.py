@@ -105,7 +105,7 @@ class ProcessManager:
                     return process.rowid
 
                 # Process is not running anymore; mark it as not primary
-                process.primary = 0
+                process.primary = False
                 process.save()
             return None
 

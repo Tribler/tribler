@@ -83,7 +83,7 @@ def test_tribler_process_mark_finished(process_manager):
 
     def make_tribler_process():
         p = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
-        p.primary = 1
+        p.primary = True
         p.api_port = 10000
         return p
 
@@ -92,7 +92,7 @@ def test_tribler_process_mark_finished(process_manager):
     assert p.finished_at is None
 
     p.finish(123)
-    assert p.primary == 0
+    assert not p.primary
     assert p.exit_code == 123
     assert p.finished_at is not None
 

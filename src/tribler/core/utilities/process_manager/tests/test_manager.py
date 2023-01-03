@@ -7,12 +7,12 @@ from tribler.core.utilities.process_manager.manager import logger, ProcessManage
 
 
 def test_become_primary(process_manager: ProcessManager):
-    assert process_manager.current_process.primary == 1
+    assert process_manager.current_process.primary
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1
     assert not fake_process.become_primary()
-    assert fake_process.primary == 0
+    assert not fake_process.primary
 
     with process_manager.connect() as connection:
         connection.execute('update processes set pid = pid + 100')
