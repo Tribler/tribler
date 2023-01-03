@@ -120,13 +120,12 @@ def test_tribler_process_mark_finished_error_text(manager):
 
 
 @patch.object(logger, 'error')
-def test_tribler_process_save(logger_error: Mock, process_manager):
-    p = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+def test_tribler_process_save(logger_error: Mock, manager):
+    p = manager.current_process
     assert p.rowid is None and p.row_version == 0
 
     cursor = Mock(lastrowid=123)
-    process_manager.connection = Mock()
-    process_manager.connection.cursor.return_value = cursor
+    manager.connection.cursor.return_value = cursor
 
     p.save()
     assert "INSERT INTO" in cursor.execute.call_args[0][0]
