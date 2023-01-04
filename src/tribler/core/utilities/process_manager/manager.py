@@ -5,7 +5,7 @@ import sqlite3
 import sys
 from pathlib import Path
 from threading import Lock
-from typing import ContextManager, List, Optional, Union
+from typing import ContextManager, List, Optional
 
 from contextlib import contextmanager
 
@@ -32,22 +32,6 @@ def set_global_process_manager(process_manager: Optional[ProcessManager]):
 def get_global_process_manager() -> Optional[ProcessManager]:
     with _lock:
         return global_process_manager
-
-
-def set_error_for_current_process(error: Union[str | Exception], replace: bool = False):
-    """
-    Sets the error message for the current process if a global process manager is set, or issue warning to the logger.
-
-    It is more convenient to use this function instead of calling
-    `get_global_process_manager().current_process.set_error(...)`, because it
-
-    :param error: an exception or an error text
-    :param replace: if True and a previous error was already set for the current process, replace the previous error
-    """
-    if process_manager := get_global_process_manager():
-        process_manager.current_process.set_error(error, replace)
-    else:
-        logger.warning('Cannot set error for process locker: no process locker global instance is set')
 
 
 class ProcessManager:
