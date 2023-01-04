@@ -34,7 +34,16 @@ def get_global_process_manager() -> Optional[ProcessManager]:
         return global_process_manager
 
 
-def set_error(error: Union[str | Exception], replace: bool = False):
+def set_error_for_current_process(error: Union[str | Exception], replace: bool = False):
+    """
+    Sets the error message for the current process if a global process manager is set, or issue warning to the logger.
+
+    It is more convenient to use this function instead of calling
+    `get_global_process_manager().current_process.set_error(...)`, because it
+
+    :param error: an exception or an error text
+    :param replace: if True and a previous error was already set for the current process, replace the previous error
+    """
     if process_manager := get_global_process_manager():
         process_manager.current_process.set_error(error, replace)
     else:
