@@ -90,14 +90,20 @@ def test_global_process_manager(warning: Mock, process_manager: ProcessManager):
     set_error('Error text')
     assert warning.call_args[0][0] == 'Cannot set error for process locker: no process locker global instance is set'
 
-    set_global_process_manager(process_manager)
-    assert get_global_process_manager() is process_manager
+    try:
+        set_global_process_manager(process_manager)
+        assert get_global_process_manager() is process_manager
 
-    set_error('Error text')
-    assert process_manager.current_process.error_msg == 'Error text'
+        set_error('Error text')
+        assert process_manager.current_process.error_msg == 'Error text'
 
-    set_global_process_manager(None)
-    assert get_global_process_manager() is None
+        set_global_process_manager(None)
+        assert get_global_process_manager() is None
+
+    finally:
+        # An additional safety measure to be sure that at the end of the test, even in case of exception,
+        # the global process manager is not set and cannot somehow affect the following tests
+        set_global_process_manager(None)
 
 
 @patch.object(logger, 'warning')
