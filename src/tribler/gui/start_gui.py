@@ -38,8 +38,12 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         logger.info('Enabling a workaround for Ubuntu 21.04+ wayland environment')
         os.environ["GDK_BACKEND"] = "x11"
 
-    # Set up logging
-    load_logger_config('tribler-gui', root_state_dir)
+    current_process = TriblerProcess.current_process(ProcessKind.GUI)
+    process_manager = ProcessManager(root_state_dir, current_process)
+    set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
+    current_process_is_primary = process_manager.current_process.become_primary()
+
+    load_logger_config('tribler-gui', root_state_dir, current_process_is_primary)
 
     # Enable tracer using commandline args: --trace-debug or --trace-exceptions
     trace_logger = check_and_enable_code_tracing('gui', root_state_dir)
@@ -49,10 +53,6 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
     check_environment()
     check_free_space()
 
-    current_process = TriblerProcess.current_process(ProcessKind.GUI)
-    process_manager = ProcessManager(root_state_dir, current_process)
-    set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
-    current_process_is_primary = process_manager.current_process.become_primary()
     try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
         app = TriblerApplication(app_name, sys.argv, start_local_server=current_process_is_primary)

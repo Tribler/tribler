@@ -177,14 +177,16 @@ def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_t
 
 def run_core(api_port, api_key, root_state_dir, parsed_args):
     logger.info(f"Running Core in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
-    load_logger_config('tribler-core', root_state_dir)
 
     gui_pid = GuiProcessWatcher.get_gui_pid()
     current_process = TriblerProcess.current_process(ProcessKind.Core, creator_pid=gui_pid)
     process_manager = ProcessManager(root_state_dir, current_process)
     set_global_process_manager(process_manager)
+    current_process_is_primary = process_manager.current_process.become_primary()
 
-    if not process_manager.current_process.become_primary():
+    load_logger_config('tribler-core', root_state_dir, current_process_is_primary)
+
+    if not current_process_is_primary:
         msg = 'Another Core process is already running'
         logger.warning(msg)
         process_manager.sys_exit(1, msg)
