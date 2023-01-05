@@ -176,7 +176,7 @@ def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_t
 
 
 def run_core(api_port, api_key, root_state_dir, parsed_args):
-    logger.info('Running Core' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
+    logger.info(f"Running Core in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
     load_logger_config('tribler-core', root_state_dir)
 
     gui_pid = GuiProcessWatcher.get_gui_pid()
