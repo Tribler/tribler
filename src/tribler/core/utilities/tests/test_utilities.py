@@ -286,14 +286,18 @@ def test_add_url_param_clean():
     assert "data=values" in result
 
 
-def test_load_logger(tmpdir):
+@patch('logging.config.dictConfig')
+def test_load_logger(dict_config: Mock, tmpdir):
     """
     Test loading the Tribler logger configuration.
     """
-    logger_count = len(logging.root.manager.loggerDict)
     load_logger_config('test', tmpdir)
-    assert len(logging.root.manager.loggerDict) >= logger_count
 
+    dict_config.assert_called_once()
+    config = dict_config.call_args.args[0]
+    assert config['handlers'].keys() == {'info_file_handler', 'info_memory_handler',
+                                         'error_file_handler', 'error_memory_handler',
+                                         'stdout_handler', 'stderr_handler'}
 
 @pytest.mark.skip(reason="Skipping the randomness check as it can sometimes fail.")
 def test_get_normally_distributed_number():
