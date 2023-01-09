@@ -83,14 +83,15 @@ def test_get_last_processes(process_manager: ProcessManager):
     assert last_processes[1].rowid == fake_process.rowid
 
 
-@patch.object(logger, 'warning')
-def test_global_process_manager(warning: Mock, process_manager: ProcessManager):
+def test_global_process_manager(process_manager: ProcessManager):
     assert get_global_process_manager() is None
 
-    set_global_process_manager(process_manager)
-    assert get_global_process_manager() is process_manager
+    try:
+        set_global_process_manager(process_manager)
+        assert get_global_process_manager() is process_manager
+    finally:
+        set_global_process_manager(None)
 
-    set_global_process_manager(None)
     assert get_global_process_manager() is None
 
 
