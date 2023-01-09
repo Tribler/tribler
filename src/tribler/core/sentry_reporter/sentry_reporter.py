@@ -147,7 +147,8 @@ class SentryReporter:
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
     def send_event(self, event: Dict = None, post_data: Dict = None, sys_info: Dict = None,
-                   additional_tags: List[str] = None, last_core_output: Optional[str] = None):
+                   additional_tags: List[str] = None, last_core_output: Optional[str] = None,
+                   last_processes: List[str] = None):
         """Send the event to the Sentry server
 
         This method
@@ -168,6 +169,7 @@ class SentryReporter:
             sys_info: dictionary made by the feedbackdialog.py
             additional_tags: tags that will be added to the event
             last_core_output: string that represents last core output
+            last_processes: list of strings describing last Tribler GUI/Core processes
 
         Returns:
             Event that was sent to Sentry server
@@ -218,6 +220,9 @@ class SentryReporter:
 
         reporter['events'] = extract_dict(sys_info, r'^(event|request)')
         reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
+
+        if last_processes:
+            reporter['last_processes'] = last_processes
 
         # try to retrieve an error from the last_core_output
         if last_core_output:

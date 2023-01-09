@@ -8,13 +8,15 @@ from tribler.core.check_os import (
     check_and_enable_code_tracing,
     check_environment,
     check_free_space,
-    enable_fault_handler,
-    error_and_exit,
+    enable_fault_handler
 )
 from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
+    set_global_process_manager
 from tribler.core.utilities.rest_utils import path_to_url
+from tribler.core.utilities.utilities import show_system_popup
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.tribler_app import TriblerApplication
@@ -25,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_gui(api_port, api_key, root_state_dir, parsed_args):
-    logger.info('Running GUI' + ' in gui_test_mode' if parsed_args.gui_test_mode else '')
+    logger.info(f"Running GUI in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
 
     # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728
     if sys.platform == "darwin":
@@ -36,19 +38,24 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         logger.info('Enabling a workaround for Ubuntu 21.04+ wayland environment')
         os.environ["GDK_BACKEND"] = "x11"
 
-    # Set up logging
-    load_logger_config('tribler-gui', root_state_dir)
+    current_process = TriblerProcess.current_process(ProcessKind.GUI)
+    process_manager = ProcessManager(root_state_dir, current_process)
+    set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
+    current_process_is_primary = process_manager.current_process.become_primary()
+
+    load_logger_config('tribler-gui', root_state_dir, current_process_is_primary)
 
     # Enable tracer using commandline args: --trace-debug or --trace-exceptions
     trace_logger = check_and_enable_code_tracing('gui', root_state_dir)
-    try:
-        enable_fault_handler(root_state_dir)
-        # Exit if we cant read/write files, etc.
-        check_environment()
-        check_free_space()
 
+    enable_fault_handler(root_state_dir)
+    # Exit if we cant read/write files, etc.
+    check_environment()
+    check_free_space()
+
+    try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
-        app = TriblerApplication(app_name, sys.argv)
+        app = TriblerApplication(app_name, sys.argv, start_local_server=current_process_is_primary)
         app_manager = AppManager(app)
 
         # Note (@ichorid): translator MUST BE created and assigned to a separate variable
@@ -57,7 +64,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         translator = get_translator(settings.value('translation', None))
         app.installTranslator(translator)
 
-        if app.is_running():
+        if not current_process_is_primary and app.connected_to_previous_instance:
             # if an application is already running, then send the command line
             # argument to it and close the current instance
             logger.info('GUI Application is already running. Passing a torrent file path to it.')
@@ -67,22 +74,21 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
                 elif arg.startswith('magnet'):
                     app.send_message(arg)
             logger.info('Close the current application.')
-            sys.exit(1)
+            process_manager.sys_exit(1, 'Tribler GUI application is already running')
 
         logger.info('Start Tribler Window')
-        window = TriblerWindow(app_manager, settings, root_state_dir, api_port=api_port, api_key=api_key)
+        window = TriblerWindow(process_manager, app_manager, settings, root_state_dir,
+                               api_port=api_port, api_key=api_key)
         window.setWindowTitle("Tribler")
         app.tribler_window = window
         app.parse_sys_args(sys.argv)
-        sys.exit(app.exec_())
+        exit_code = app.exec_()
+        process_manager.sys_exit(exit_code or None)
 
-    except ImportError as ie:
-        logger.exception(ie)
-        error_and_exit("Import Error", f"Import error: {ie}")
-
-    except TriblerException as te:
-        logger.exception(te)
-        error_and_exit("Tribler Exception", f"{te}")
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception(exc)
+        show_system_popup("Tribler Exception", f"{exc.__class__.__name__}: {exc}")
+        process_manager.sys_exit(1, exc)
 
     except SystemExit:
         logger.info("Shutting down Tribler")

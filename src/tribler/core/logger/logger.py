@@ -16,13 +16,21 @@ class StdoutFilter(logging.Filter):
         return record.levelno < logging.ERROR
 
 
-def load_logger_config(app_mode, log_dir):
+def load_logger_config(app_mode, log_dir, current_process_is_primary=True):
     """
     Loads tribler-gui module logger configuration. Note that this function should be called explicitly to
     enable GUI logs dump to a file in the log directory (default: inside state directory).
     """
-    logger_config_path = get_logger_config_path()
-    setup_logging(app_mode, Path(log_dir), logger_config_path)
+    if current_process_is_primary:
+        # Set up logging to files for primary process only, as logging module does not support
+        # writing to the same log file from multiple Python processes
+        logger_config_path = get_logger_config_path()
+        setup_logging(app_mode, Path(log_dir), logger_config_path)
+    else:
+        logger.info('Skip the initialization of a normal file-based logging as the current process is non-primary.\n'
+                    'Continue using the basic logging config from the boot logger initialization.\n'
+                    'Only primary Tribler process can write to Tribler log files, as logging module does not support\n'
+                    'writing to files from multiple Python processes.')
 
 
 def get_logger_config_path():

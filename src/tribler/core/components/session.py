@@ -27,7 +27,7 @@ class Session:
     def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
                  shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
-        self.exit_code = 0
+        self.exit_code = None
         self.failfast = failfast
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config: TriblerConfig = config or TriblerConfig()

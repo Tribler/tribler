@@ -286,13 +286,31 @@ def test_add_url_param_clean():
     assert "data=values" in result
 
 
-def test_load_logger(tmpdir):
+@patch('logging.config.dictConfig')
+def test_load_logger(dict_config: Mock, tmpdir):
     """
     Test loading the Tribler logger configuration.
     """
-    logger_count = len(logging.root.manager.loggerDict)
     load_logger_config('test', tmpdir)
-    assert len(logging.root.manager.loggerDict) >= logger_count
+
+    dict_config.assert_called_once()
+    config = dict_config.call_args.args[0]
+    assert config['handlers'].keys() == {'info_file_handler', 'info_memory_handler',
+                                         'error_file_handler', 'error_memory_handler',
+                                         'stdout_handler', 'stderr_handler'}
+
+
+@patch('logging.config.dictConfig')
+@patch('tribler.core.logger.logger.logger')
+def test_load_logger_no_primary_process(logger: Mock, dict_config: Mock, tmpdir):
+    """
+    Test loading the Tribler logger configuration.
+    """
+    load_logger_config('test', tmpdir, current_process_is_primary=False)
+    logger.info.assert_called_once()
+    assert logger.info.call_args.args[0].startswith(
+        'Skip the initialization of a normal file-based logging as the current process is non-primary.')
+    dict_config.assert_not_called()
 
 
 @pytest.mark.skip(reason="Skipping the randomness check as it can sometimes fail.")

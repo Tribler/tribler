@@ -23,10 +23,10 @@ class TriblerApplication(QtSingleApplication):
     This class represents the main Tribler application.
     """
 
-    def __init__(self, app_name, args):
-        QtSingleApplication.__init__(self, app_name, args)
+    def __init__(self, app_name: str, args: list, start_local_server: bool = False):
+        QtSingleApplication.__init__(self, app_name, start_local_server, args)
         self.code_executor = None
-        connect(self.messageReceived, self.on_app_message)
+        connect(self.message_received, self.on_app_message)
 
     def on_app_message(self, msg):
         if msg.startswith('file') or msg.startswith('magnet'):

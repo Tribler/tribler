@@ -44,6 +44,7 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
+from tribler.core.utilities.process_manager import ProcessManager
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
@@ -153,9 +154,10 @@ class TriblerWindow(QMainWindow):
 
     def __init__(
             self,
+            process_manager: ProcessManager,
             app_manager: AppManager,
             settings,
-            root_state_dir,
+            root_state_dir: Path,
             core_args=None,
             core_env=None,
             api_port=None,
@@ -164,6 +166,7 @@ class TriblerWindow(QMainWindow):
     ):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.process_manager = process_manager
         self.app_manager = app_manager
 
         QCoreApplication.setOrganizationDomain("nl")
@@ -172,7 +175,7 @@ class TriblerWindow(QMainWindow):
 
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
-        self.root_state_dir = Path(root_state_dir)
+        self.root_state_dir = root_state_dir
         self.gui_settings = settings
         api_port = api_port or default_network_utils.get_first_free_port(
             start=int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
@@ -182,6 +185,7 @@ class TriblerWindow(QMainWindow):
                 "Tribler configuration conflicts with the current OS state: "
                 "REST API port %i already in use" % api_port
             )
+        process_manager.current_process.set_api_port(api_port)
 
         api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
         set_api_key(self.gui_settings, api_key)

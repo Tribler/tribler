@@ -8,7 +8,8 @@ from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.osutils import get_root_state_directory
-from tribler.core.utilities.process_checker import ProcessChecker
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
+    set_global_process_manager
 from tribler.core.utilities.utilities import make_async_loop_fragile
 
 
@@ -22,7 +23,7 @@ class TinyTriblerService:
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
-        self.process_checker: Optional[ProcessChecker] = None
+        self.process_manager: Optional[ProcessManager] = None
         self.config = TriblerConfig(state_dir=state_dir.absolute())
         self.timeout_in_sec = timeout_in_sec
         self.components = components
@@ -68,9 +69,14 @@ class TinyTriblerService:
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.config.state_dir}')
 
         root_state_dir = get_root_state_directory()
-        self.process_checker = ProcessChecker(root_state_dir)
-        self.process_checker.check_and_restart_if_necessary()
-        self.process_checker.create_lock()
+        current_process = TriblerProcess.current_process(ProcessKind.Core)
+        self.process_manager = ProcessManager(root_state_dir, current_process)
+        set_global_process_manager(self.process_manager)
+
+        if not self.process_manager.current_process.become_primary():
+            msg = 'Another Core process is already running'
+            self.logger.warning(msg)
+            self.process_manager.sys_exit(1, msg)
 
     def _enable_graceful_shutdown(self):
         self.logger.info("Enabling graceful shutdown")
@@ -82,18 +88,19 @@ class TinyTriblerService:
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-    def _graceful_shutdown(self):
-        self.logger.info("Shutdown gracefully")
-
-        if self.process_checker:
-            self.process_checker.remove_lock()
-
-        task = asyncio.create_task(self.session.shutdown())
-        task.add_done_callback(lambda result: asyncio.get_running_loop().stop())
-
     async def _terminate_by_timeout(self):
         self.logger.info(f"Scheduling terminating by timeout {self.timeout_in_sec}s from now")
         await asyncio.sleep(self.timeout_in_sec)
 
         self.logger.info("Terminating by timeout")
         self._graceful_shutdown()
+
+    def _graceful_shutdown(self):
+        self.logger.info("Shutdown gracefully")
+        task = asyncio.create_task(self.session.shutdown())
+        task.add_done_callback(lambda result: self._stop_event_loop())
+
+    def _stop_event_loop(self):
+        asyncio.get_running_loop().stop()
+        if self.process_manager:
+            self.process_manager.current_process.finish()
