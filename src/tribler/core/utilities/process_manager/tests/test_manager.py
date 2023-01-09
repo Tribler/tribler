@@ -2,8 +2,7 @@ import time
 from unittest.mock import Mock, patch
 
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
-from tribler.core.utilities.process_manager.manager import logger, ProcessManager, \
-    get_global_process_manager, set_global_process_manager
+from tribler.core.utilities.process_manager.manager import logger, ProcessManager
 
 
 def test_become_primary(process_manager: ProcessManager):
@@ -81,18 +80,6 @@ def test_get_last_processes(process_manager: ProcessManager):
     assert len(last_processes) == 2
     assert last_processes[0].rowid == process_manager.current_process.rowid
     assert last_processes[1].rowid == fake_process.rowid
-
-
-def test_global_process_manager(process_manager: ProcessManager):
-    assert get_global_process_manager() is None
-
-    try:
-        set_global_process_manager(process_manager)
-        assert get_global_process_manager() is process_manager
-    finally:
-        set_global_process_manager(None)
-
-    assert get_global_process_manager() is None
 
 
 @patch.object(logger, 'warning')
