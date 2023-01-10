@@ -2,19 +2,24 @@ import logging
 import os
 import re
 import sys
+import time
 from collections import deque
 from pathlib import Path
 from typing import Optional
 
-from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment
+from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 
+from tribler.core.utilities.process_manager import ProcessManager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
-from tribler.gui.exceptions import CoreCrashedError
-from tribler.gui.tribler_request_manager import ShutdownRequest
+from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
+from tribler.gui.tribler_request_manager import ShutdownRequest, request_manager
 from tribler.gui.utilities import connect
 
+
+API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core API port
+API_PORT_CHECK_TIMEOUT = 30  # Stop trying to determine API port after 30 seconds
 
 CORE_OUTPUT_DEQUE_LENGTH = 10
 
@@ -25,8 +30,8 @@ class CoreManager(QObject):
     a fake API will be started.
     """
 
-    def __init__(self, root_state_dir: Path, api_port: int, api_key: str, app_manager: AppManager,
-                 events_manager: EventRequestManager):
+    def __init__(self, root_state_dir: Path, api_port: int, api_key: str,
+                 app_manager: AppManager, process_manager: ProcessManager, events_manager: EventRequestManager):
         QObject.__init__(self, None)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -35,6 +40,12 @@ class CoreManager(QObject):
         self.core_process: Optional[QProcess] = None
         self.api_port = api_port
         self.api_key = api_key
+
+        self.process_manager = process_manager
+        self.check_core_api_port_timer = QTimer()
+        self.check_core_api_port_timer.setSingleShot(True)
+        connect(self.check_core_api_port_timer.timeout, self.check_core_api_port)
+
         self.events_manager = events_manager
 
         self.upgrade_manager = None
@@ -42,6 +53,7 @@ class CoreManager(QObject):
         self.core_env = None
 
         self.core_started = False
+        self.core_started_at: Optional[int] = None
         self.core_running = False
         self.core_connected = False
         self.shutting_down = False
@@ -118,9 +130,44 @@ class CoreManager(QObject):
         self.core_process.start(sys.executable, core_args)
 
     def on_core_started(self):
+        self._logger.info("Core process started")
         self.core_started = True
+        self.core_started_at = time.time()
         self.core_running = True
-        self.events_manager.connect(reschedule_on_err=True)  # retry until REST API is ready
+        self.check_core_api_port()
+
+    def check_core_api_port(self, *args):
+        """
+        Determines the actual REST API port of the Core process.
+
+        This function is first executed from the `on_core_started` after the physical Core process starts and then
+        repeatedly executed after API_PORT_CHECK_INTERVAL milliseconds until it retrieves the REST API port value from
+        the Core process. Shortly after the Core process starts, it adds itself to a process database. At that moment,
+        the api_port value in the database is not specified yet for the Core process. Then the Core REST manager finds
+        a suitable port and sets the api_port value in the process database. After that, the `check_core_api_port`
+        method retrieves the api_port value from the database and asks EventRequestManager to connect to that port.
+        """
+        if not self.core_running or self.core_connected or self.shutting_down:
+            return
+
+        core_process = self.process_manager.current_process.get_core_process()
+        if core_process is not None and core_process.api_port:
+            api_port = core_process.api_port
+            self._logger.info(f"Got REST API port value from the Core process: {api_port}")
+            if api_port != self.api_port:
+                self.api_port = api_port
+                request_manager.port = api_port
+                self.events_manager.set_api_port(api_port)
+            # Previously it was necessary to reschedule on error because `events_manager.connect()` was executed
+            # before the REST API was available, so it retried until the REST API was ready. Now the API is ready
+            # to use when we can read the api_port value from the database, so now we can call
+            # events_manager.connect(reschedule_on_err=False). I kept reschedule_on_err=True just for reinsurance.
+            self.events_manager.connect(reschedule_on_err=True)
+
+        elif time.time() - self.core_started_at > API_PORT_CHECK_TIMEOUT:
+            raise CoreConnectTimeoutError(f"Can't get Core API port value within {API_PORT_CHECK_TIMEOUT} seconds")
+        else:
+            self.check_core_api_port_timer.start(API_PORT_CHECK_INTERVAL)
 
     def on_core_stdout_read_ready(self):
         if self.app_manager.quitting_app:
@@ -176,7 +223,7 @@ class CoreManager(QObject):
             if not self.core_connected:
                 # If Core is not connected via events_manager it also most probably cannot process API requests.
                 self._logger.warning('Core is not connected during the CoreManager shutdown, killing it...')
-                self.kill_core_process_and_remove_the_lock_file()
+                self.kill_core_process()
                 return
 
             self.events_manager.shutting_down = True

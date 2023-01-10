@@ -143,3 +143,52 @@ def test_tribler_process_save(logger_error: Mock, current_process):
     p.save()
     assert logger_error.called
     assert logger_error.call_args[0][0] == 'Row 123 with row version 1 was not found'
+
+
+@pytest.fixture(name='gui_process')
+def gui_process_fixture(process_manager):
+    gui_process = TriblerProcess(pid=1, kind=ProcessKind.GUI, app_version='v1', started_at=1, manager=process_manager)
+    gui_process.save()
+    return gui_process
+
+
+def test_get_core_process_no_core_process_found(gui_process):
+    assert gui_process.get_core_process() is None  # no associated core processes were found
+
+
+def test_get_core_process_non_primary(gui_process):
+    core_process = TriblerProcess(pid=2, kind=ProcessKind.Core, app_version='v1', started_at=1, creator_pid=1,
+                                  manager=gui_process.manager)
+    core_process.save()
+    assert gui_process.get_core_process() is None  # core process should be primary to be selected
+
+
+def test_get_core_process(gui_process):
+    core_process = TriblerProcess(pid=2, kind=ProcessKind.Core, app_version='v1', started_at=1, creator_pid=1,
+                                  manager=gui_process.manager)
+    core_process.primary = True
+    core_process.save()
+    p = gui_process.get_core_process()
+    assert p is not None  # the core process was found for this GUI process
+    assert p is not core_process  # it is a new object retrieved from the database, not the one created initially
+    assert p.pid == core_process.pid  # it has the correct pid value
+    assert p.api_port is None  # the api port is not specified yet
+
+    core_process.set_api_port(123)
+    p2 = gui_process.get_core_process()
+    assert p2 is not None  # the core process was found for this GUI process
+    assert p2 is not core_process and p2 is not p  # it is a new object retrieved from the database
+    assert p2.api_port == 123  # it has correct API port value
+
+    # Second Core process for the same GUI process should lead to an error
+    p3 = TriblerProcess(pid=3, kind=ProcessKind.Core, app_version='v1', started_at=1, creator_pid=1, primary=True,
+                        manager=gui_process.manager)
+    p3.save()
+    with pytest.raises(RuntimeError, match='^Multiple Core processes were found for a single GUI process$'):
+        gui_process.get_core_process()
+
+
+def test_get_core_process_exception(process_manager):
+    # in the process_manager fixture the current_process is a Core process
+    with pytest.raises(TypeError, match='^The `get_core_process` method can only be used for a GUI process$'):
+        process_manager.current_process.get_core_process()
