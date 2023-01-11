@@ -54,6 +54,7 @@ jobs:
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
+          sudo apt-get update
           sudo apt install pyqt5-dev-tools
 
       - name: Setup headless display (Linux)
