@@ -1,7 +1,7 @@
 -r requirements-core.txt
 
-Pillow==9.3.0
-PyQt5==5.15.1
-PyQt5-sip==12.8.1
-pyqtgraph==0.12.3
-PyQtWebEngine==5.15.2
+Pillow==9.4.0
+PyQt5==5.15.7
+PyQt5-sip==12.11.0
+pyqtgraph==0.13.1
+PyQtWebEngine==5.15.6
