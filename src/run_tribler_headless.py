@@ -74,7 +74,7 @@ class TriblerService:
         config = TriblerConfig.load(state_dir=statedir)
 
         # Check if we are already running a Tribler instance
-        root_state_dir = get_root_state_directory()
+        root_state_dir = get_root_state_directory(create=True)
 
         current_process = TriblerProcess.current_process(ProcessKind.Core)
         self.process_manager = ProcessManager(root_state_dir, current_process)

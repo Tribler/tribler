@@ -79,7 +79,7 @@ if __name__ == "__main__":
     parsed_args = RunTriblerArgsParser().parse_args()
     logger.info(f'Run Tribler: {parsed_args}')
 
-    root_state_dir = get_root_state_directory()
+    root_state_dir = get_root_state_directory(create=True)
     logger.info(f'Root state dir: {root_state_dir}')
 
     api_port = os.environ.get('CORE_API_PORT')

@@ -220,9 +220,19 @@ def merge_dir(src_dir, dest_dir):
             shutil.copy(src_file, dest_sub_dir)
 
 
-def get_root_state_directory(home_dir_postfix='.Tribler'):
+def get_root_state_directory(home_dir_postfix='.Tribler', create=False) -> Path:
     """Get the default application state directory."""
-    if 'TSTATEDIR' in os.environ:
-        path = os.environ['TSTATEDIR']
-        return Path(path) if os.path.isabs(path) else Path(os.getcwd(), path)
-    return Path(get_appstate_dir(), home_dir_postfix)
+    if state_dir := os.environ.get('TSTATEDIR'):
+        root_state_dir = Path(state_dir) if os.path.isabs(state_dir) else Path(os.getcwd(), state_dir)
+    else:
+        root_state_dir = Path(get_appstate_dir(), home_dir_postfix)
+
+    if root_state_dir.exists():
+        if not root_state_dir.is_dir():
+            raise OSError(errno.ENOTDIR, 'Root state path is not a directory', str(root_state_dir))
+    elif create:
+        root_state_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        raise OSError(errno.ENOENT, 'Root directory does not exist', str(root_state_dir))
+
+    return root_state_dir
