@@ -10,12 +10,14 @@ import time
 from asyncio import ensure_future, get_event_loop, sleep
 from datetime import date
 from socket import inet_aton
+from typing import Optional
 
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.components.session import Session
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.process_checker import ProcessChecker
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
+    set_global_process_manager
 
 
 class IPPortAction(argparse.Action):
@@ -43,7 +45,7 @@ class TriblerService:
         """
         self.session = None
         self._stopping = False
-        self.process_checker = None
+        self.process_manager: Optional[ProcessManager] = None
 
     def log_incoming_remote_search(self, sock_addr, keywords):
         d = date.today()
@@ -63,7 +65,7 @@ class TriblerService:
                 await self.session.shutdown()
                 print("Tribler shut down")
                 get_event_loop().stop()
-                self.process_checker.remove_lock()
+                self.process_manager.current_process.finish()
 
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
@@ -74,9 +76,14 @@ class TriblerService:
         # Check if we are already running a Tribler instance
         root_state_dir = get_root_state_directory()
 
-        self.process_checker = ProcessChecker(root_state_dir)
-        self.process_checker.check_and_restart_if_necessary()
-        self.process_checker.create_lock()
+        current_process = TriblerProcess.current_process(ProcessKind.Core)
+        self.process_manager = ProcessManager(root_state_dir, current_process)
+        set_global_process_manager(self.process_manager)
+
+        if not self.process_manager.current_process.become_primary():
+            msg = 'Another Core process is already running'
+            print(msg)
+            self.process_manager.sys_exit(1, msg)
 
         print("Starting Tribler")
 
