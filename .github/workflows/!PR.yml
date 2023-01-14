@@ -12,20 +12,8 @@ jobs:
   env: # setup shared env
     runs-on: ubuntu-latest
     permissions: { }
-    env:
-      # https://github.com/actions/runner-images#available-images
-      WINDOWS_IMAGE: windows-latest
-      MACOS_IMAGE: macos-latest
-      UBUNTU_IMAGE: ubuntu-latest
-
     outputs:
       python-version: '3.8'
-      matrix-for-draft: '{"os": ["${{env.WINDOWS_IMAGE}}"]}'
-      matrix-for-ready: '{"os": ["${{env.UBUNTU_IMAGE}}", "${{env.MACOS_IMAGE}}"]}'
-      windows-image: ${{env.WINDOWS_IMAGE}}
-      ubuntu-image: ${{env.UBUNTU_IMAGE}}
-      macos-image: ${{env.MACOS_IMAGE}}
-
     steps:
       - run: echo done
 
@@ -91,36 +79,6 @@ jobs:
 
   # ----------------------------------------------------------------------------
   # PR stage: Draft
-  pytest:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
-    uses: ./.github/workflows/pytest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-draft}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
-
-  guitest:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
-    uses: ./.github/workflows/guitest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-draft}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
-
-  scripttest:
-    needs: [ changes, env ]
-    if: ${{ needs.changes.outputs.scripts == 'true' }}
-    uses: ./.github/workflows/scripttest.yml
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
-
   coverage:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
@@ -132,10 +90,28 @@ jobs:
       python-version: ${{needs.env.outputs.python-version}}
       ref: refs/pull/${{github.event.pull_request.number}}/merge
 
+  guitest:
+    needs: [ changes, gatekeeper, env ]
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    uses: ./.github/workflows/guitest.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+    with:
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: '{"os": ["windows-latest"]}'
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
+
+  scripttest:
+    needs: [ changes, env ]
+    if: ${{ needs.changes.outputs.scripts == 'true' }}
+    uses: ./.github/workflows/scripttest.yml
+    with:
+      python-version: ${{needs.env.outputs.python-version}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   # ----------------------------------------------------------------------------
   # PR stage: Ready
-  pytest_nix:
+  pytest:
     needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
@@ -143,7 +119,7 @@ jobs:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-ready}}
+      matrix: '{"os": ["windows-latest", "macos-latest"]}'
       ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   guitest_nix:
@@ -154,7 +130,7 @@ jobs:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-ready}}
+      matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
       ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   # build binaries
