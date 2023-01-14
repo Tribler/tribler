@@ -5,6 +5,10 @@ on:
     secrets:
       CODACY_PROJECT_TOKEN:
         required: true
+
+permissions:
+  contents: read
+
 jobs:
   analyse:
     runs-on: ubuntu-latest

@@ -7,11 +7,19 @@ on:
         default: 3.8
         type: string
         required: false
+
+      ref:
+        type: string
+        required: true
+
     secrets:
       CODACY_PROJECT_TOKEN:
         required: false
       PYTEST_SENTRY_DSN:
         required: false
+
+permissions:
+  contents: read
 
 jobs:
   generate_and_upload:
@@ -23,12 +31,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{inputs.ref}}
 
       - name: Create python environment
         uses: ./.github/actions/pyenv
         with:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
+          custom_cache_key_element: ${{inputs.ref}}
 
       - name: Export env
         uses: cardinalby/export-env-action@v2

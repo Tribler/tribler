@@ -13,18 +13,28 @@ on:
         type: string
         required: false
 
+      ref:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{inputs.ref}}
 
       - name: Create python environment
         uses: ./.github/actions/pyenv
         with:
           python-version: ${{inputs.python-version}}
           requirements: requirements-core.txt
+          custom_cache_key_element: ${{inputs.ref}}
 
       - name: Set PYTHONPATH
         run: |
