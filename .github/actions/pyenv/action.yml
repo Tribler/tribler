@@ -38,7 +38,7 @@ runs:
       id: cache-virtualenv
       with:
         requirement_files: ${{inputs.requirements-key}}
-        custom_cache_key_element: ${{inputs.custom_cache_key_element}}
+        custom_cache_key_element: ${{inputs.custom_cache_key_element}}:${{inputs.requirements}}
 
     - name: Install pip dependencies
       if: steps.cache-virtualenv.outputs.cache-hit != 'true'
