@@ -26,9 +26,6 @@ on:
       PYTEST_SENTRY_DSN:
         required: false
 
-permissions:
-  contents: read
-
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -55,6 +52,7 @@ jobs:
         with:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
+          custom_cache_key_element: ${{inputs.ref}}
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
