@@ -14,6 +14,7 @@ jobs:
     permissions: { }
     outputs:
       python-version: '3.8'
+      source-ref: refs/pull/${{github.event.pull_request.number}}/merge
     steps:
       - run: echo done
 
@@ -88,7 +89,7 @@ jobs:
       CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
 
   guitest:
     needs: [ changes, gatekeeper, env ]
@@ -99,7 +100,7 @@ jobs:
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["windows-latest"]}'
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
 
   scripttest:
     needs: [ changes, env ]
@@ -107,7 +108,8 @@ jobs:
     uses: ./.github/workflows/scripttest.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
+
 
   # ----------------------------------------------------------------------------
   # PR stage: Ready
@@ -120,7 +122,7 @@ jobs:
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["windows-latest", "macos-latest"]}'
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
 
   guitest_nix:
     needs: [ changes, gatekeeper, env ]
@@ -131,7 +133,7 @@ jobs:
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
 
   # build binaries
   ubuntu:
@@ -142,7 +144,7 @@ jobs:
       upload: false
       os: ${{needs.env.outputs.ubuntu-image}}
       python-version: ${{needs.env.outputs.python-version}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
 
   windows:
     needs: [ changes, env ]
@@ -152,7 +154,7 @@ jobs:
       upload: false
       os: ${{needs.env.outputs.windows-image}}
       python-version: ${{needs.env.outputs.python-version}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
 
   # check documentation build
   documentation:
@@ -161,4 +163,4 @@ jobs:
     uses: ./.github/workflows/documentation.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      ref: refs/pull/${{github.event.pull_request.number}}/merge
+      ref: ${{needs.env.outputs.source-ref}}
