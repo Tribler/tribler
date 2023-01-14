@@ -91,6 +91,8 @@ jobs:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/pytest.yml
+    permissions:
+      contents: read
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
