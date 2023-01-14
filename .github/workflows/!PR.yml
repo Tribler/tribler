@@ -184,5 +184,5 @@ jobs:
     if: ${{needs.changes.outputs.doc == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/documentation.yml
     with:
-      python-version: ${{needs.env.outputs.python-version}
+      python-version: ${{needs.env.outputs.python-version}}
       ref: refs/pull/${{github.event.pull_request.number}}/merge
