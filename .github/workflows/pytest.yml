@@ -26,6 +26,9 @@ on:
       PYTEST_SENTRY_DSN:
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ${{ matrix.os }}
