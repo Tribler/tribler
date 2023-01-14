@@ -15,6 +15,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
 
 
 def test_first():
+    raise Exception
     assert get_first_item(None, '') == ''
     assert get_first_item([], '') == ''
     assert get_first_item(['some'], '') == 'some'
