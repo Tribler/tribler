@@ -26,10 +26,12 @@ jobs:
       macos-image: ${{env.MACOS_IMAGE}}
 
     steps:
-      - run: echo successfully
+      - run: echo done
 
   changes: # detect changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       src: ${{ steps.filter.outputs.src }}
       scripts: ${{ steps.filter.outputs.scripts }}
@@ -68,6 +70,7 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
+    permissions: read-all
     steps:
       - name: Check if PR has label
         id: label_check
