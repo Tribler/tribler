@@ -35,7 +35,6 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
 
         self.add_argument('--testnet', action="store_true", help="run Tribler in a separate test network")
 
-
         self.add_argument('--chant-testnet', action="store_true", help="use a separate test database for channels")
         self.add_argument('--trustchain-testnet', action="store_true", help="use a separate trustchain community")
         self.add_argument('--tunnel-testnet', action="store_true", help="use a separate tunnel community")
