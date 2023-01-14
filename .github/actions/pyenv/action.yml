@@ -16,6 +16,11 @@ inputs:
     description: 'Requirements-files to use for building the cache key'
     required: false
 
+  custom_cache_key_element:
+    default: ${{github.ref_name}}
+    description: 'Custom element that will be used when constructing the cache key'
+    required: false
+
 outputs:
   virtualenv-directory:
     description: 'The path to the restored or created virtualenv'
@@ -33,7 +38,7 @@ runs:
       id: cache-virtualenv
       with:
         requirement_files: ${{inputs.requirements-key}}
-        custom_cache_key_element: ${{github.ref_name}}:${{inputs.requirements}}
+        custom_cache_key_element: ${{inputs.custom_cache_key_element}}:${{inputs.requirements}}
 
     - name: Install pip dependencies
       if: steps.cache-virtualenv.outputs.cache-hit != 'true'
@@ -41,3 +46,8 @@ runs:
       run: |
         python -m pip install --upgrade pip
         pip install -r ${{inputs.requirements}}
+
+    - name: Print installed packages
+      shell: bash
+      run: |
+        pip list

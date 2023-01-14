@@ -11,25 +11,16 @@ on:
 jobs:
   env: # setup shared env
     runs-on: ubuntu-latest
-    env:
-      # https://github.com/actions/runner-images#available-images
-      WINDOWS_IMAGE: windows-latest
-      MACOS_IMAGE: macos-latest
-      UBUNTU_IMAGE: ubuntu-latest
-
+    permissions: { }
     outputs:
       python-version: '3.8'
-      matrix-for-draft: '{"os": ["${{env.WINDOWS_IMAGE}}"]}'
-      matrix-for-ready: '{"os": ["${{env.UBUNTU_IMAGE}}", "${{env.MACOS_IMAGE}}"]}'
-      windows-image: ${{env.WINDOWS_IMAGE}}
-      ubuntu-image: ${{env.UBUNTU_IMAGE}}
-      macos-image: ${{env.MACOS_IMAGE}}
-
     steps:
-      - run: echo successfully
+      - run: echo done
 
   changes: # detect changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       src: ${{ steps.filter.outputs.src }}
       scripts: ${{ steps.filter.outputs.scripts }}
@@ -68,6 +59,7 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
+    permissions: read-all
     steps:
       - name: Check if PR has label
         id: label_check
@@ -87,33 +79,6 @@ jobs:
 
   # ----------------------------------------------------------------------------
   # PR stage: Draft
-  pytest:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
-    uses: ./.github/workflows/pytest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-draft}}
-
-  guitest:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
-    uses: ./.github/workflows/guitest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-draft}}
-
-  scripttest:
-    needs: [ changes, env ]
-    if: ${{ needs.changes.outputs.scripts == 'true' }}
-    uses: ./.github/workflows/scripttest.yml
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-
   coverage:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
@@ -123,10 +88,30 @@ jobs:
       CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
+
+  guitest:
+    needs: [ changes, gatekeeper, env ]
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    uses: ./.github/workflows/guitest.yml
+    secrets:
+      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+    with:
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: '{"os": ["windows-latest"]}'
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
+
+  scripttest:
+    needs: [ changes, env ]
+    if: ${{ needs.changes.outputs.scripts == 'true' }}
+    uses: ./.github/workflows/scripttest.yml
+    with:
+      python-version: ${{needs.env.outputs.python-version}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   # ----------------------------------------------------------------------------
   # PR stage: Ready
-  pytest_nix:
+  pytest:
     needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
@@ -134,7 +119,8 @@ jobs:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-ready}}
+      matrix: '{"os": ["windows-latest", "macos-latest"]}'
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   guitest_nix:
     needs: [ changes, gatekeeper, env ]
@@ -144,7 +130,8 @@ jobs:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: ${{needs.env.outputs.matrix-for-ready}}
+      matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   # build binaries
   ubuntu:
@@ -155,6 +142,7 @@ jobs:
       upload: false
       os: ${{needs.env.outputs.ubuntu-image}}
       python-version: ${{needs.env.outputs.python-version}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   windows:
     needs: [ changes, env ]
@@ -164,6 +152,7 @@ jobs:
       upload: false
       os: ${{needs.env.outputs.windows-image}}
       python-version: ${{needs.env.outputs.python-version}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   # check documentation build
   documentation:
@@ -172,3 +161,4 @@ jobs:
     uses: ./.github/workflows/documentation.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
