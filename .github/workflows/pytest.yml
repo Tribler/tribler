@@ -18,9 +18,16 @@ on:
         type: boolean
         required: false
 
+      ref:
+        type: string
+        required: true
+
     secrets:
       PYTEST_SENTRY_DSN:
         required: false
+
+permissions:
+  contents: read
 
 jobs:
   run:
@@ -40,6 +47,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{inputs.ref}}
 
       - name: Create python environment
         uses: ./.github/actions/pyenv

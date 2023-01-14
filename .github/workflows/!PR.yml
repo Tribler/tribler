@@ -96,6 +96,7 @@ jobs:
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: ${{needs.env.outputs.matrix-for-draft}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   guitest:
     needs: [ changes, gatekeeper, env ]
@@ -135,6 +136,7 @@ jobs:
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: ${{needs.env.outputs.matrix-for-ready}}
+      ref: refs/pull/${{github.event.pull_request.number}}/merge
 
   guitest_nix:
     needs: [ changes, gatekeeper, env ]
