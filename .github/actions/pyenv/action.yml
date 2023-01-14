@@ -17,7 +17,7 @@ inputs:
     required: false
 
   custom_cache_key_element:
-    default:  ${{github.ref_name}}
+    default: ${{github.ref_name}}
     description: 'Custom element that will be used when constructing the cache key'
     required: false
 
@@ -46,4 +46,8 @@ runs:
       run: |
         python -m pip install --upgrade pip
         pip install -r ${{inputs.requirements}}
+
+    - name: Print installed packages
+      shell: bash
+      run: |
         pip list
