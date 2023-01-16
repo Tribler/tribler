@@ -146,6 +146,16 @@ jobs:
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
 
+  mac:
+    needs: [ changes, env ]
+    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
+    uses: ./.github/workflows/build_mac.yml
+    with:
+      upload: false
+      os: macos-latest
+      python-version: ${{needs.env.outputs.python-version}}
+      ref: ${{needs.env.outputs.source-ref}}
+
   windows:
     needs: [ changes, env ]
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
