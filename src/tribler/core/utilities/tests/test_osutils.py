@@ -1,6 +1,9 @@
 import os
 import sys
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 from tribler.core.utilities.osutils import (
     dir_copy,
@@ -9,6 +12,7 @@ from tribler.core.utilities.osutils import (
     get_desktop_dir,
     get_home_dir,
     get_picture_dir,
+    get_root_state_directory,
     is_android,
 )
 
@@ -124,3 +128,42 @@ def test_dir_copy(tmpdir):
     dir_copy(src_dir, dest_dir2, merge_if_exists=True)
     assert len(os.listdir(src_dir)) == len(os.listdir(dest_dir2))
     assert Path(dest_dir2, dummy_file).read_text() == "source: hello world"
+
+
+@patch.dict(os.environ, {'TSTATEDIR': '/absolute/path'})
+def test_get_root_state_directory_env(tmp_path):
+    (tmp_path / '.Tribler').mkdir()
+    with patch.dict(os.environ, {'TSTATEDIR': str(tmp_path)}):
+        path = get_root_state_directory()
+    assert path == tmp_path
+
+
+@patch('tribler.core.utilities.osutils.get_appstate_dir')
+def test_get_root_state_directory(get_appstate_dir_mock: Mock, tmp_path):
+    get_appstate_dir_mock.return_value = tmp_path
+    (tmp_path / '.Tribler').mkdir()
+    path = get_root_state_directory()
+    assert path.name == '.Tribler'
+
+
+@patch('tribler.core.utilities.osutils.get_appstate_dir')
+def test_get_root_state_directory_does_not_exist(get_appstate_dir_mock: Mock, tmp_path):
+    get_appstate_dir_mock.return_value = tmp_path
+    with pytest.raises(FileNotFoundError, match=r'^\[Errno 2\] Root directory does not exist:'):
+        get_root_state_directory()
+
+
+@patch('tribler.core.utilities.osutils.get_appstate_dir')
+def test_get_root_state_directory_not_a_dir(get_appstate_dir_mock: Mock, tmp_path):
+    (tmp_path / 'some_file').write_text('')
+    get_appstate_dir_mock.return_value = tmp_path
+    with pytest.raises(NotADirectoryError, match=r'^\[Errno 20\] Root state path is not a directory:'):
+        get_root_state_directory(home_dir_postfix='some_file')
+
+
+@patch('tribler.core.utilities.osutils.get_appstate_dir')
+def test_get_root_state_directory_create(get_appstate_dir_mock: Mock, tmp_path):
+    get_appstate_dir_mock.return_value = tmp_path
+    path = get_root_state_directory(create=True)
+    assert path.name == '.Tribler'
+    assert path.exists()

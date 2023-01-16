@@ -68,7 +68,7 @@ class TinyTriblerService:
     def _check_already_running(self):
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.config.state_dir}')
 
-        root_state_dir = get_root_state_directory()
+        root_state_dir = get_root_state_directory(create=True)
         current_process = TriblerProcess.current_process(ProcessKind.Core)
         self.process_manager = ProcessManager(root_state_dir, current_process)
         set_global_process_manager(self.process_manager)
