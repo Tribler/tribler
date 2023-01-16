@@ -144,8 +144,19 @@ def has_bep33_support():
     """
     Return whether our libtorrent version has support for BEP33 (DHT health lookups).
     Also see https://github.com/devos50/libtorrent/tree/bep33_support
+
+    Previously, to check if BEP33 support is available was done by checking
+    'dht_pkt_alert' in dir(lt)
+
+    Currently for PyPi package of libtorrent, this is not sufficient to check full BEP33 support.
+    This is because 'dht_pkt_alert' is exposed but it is currently not possible to send DHT scrape
+    requests. This is documented in the following GitHub issue:
+    Check progress here: https://github.com/arvidn/libtorrent/issues/3701
+
+    So, for now, until the upstream issue on libtorrent is fixed,
+    we disable BEP33 support by simply returning False here.
     """
-    return 'dht_pkt_alert' in dir(lt)
+    return False
 
 
 def is_infohash(infohash):
