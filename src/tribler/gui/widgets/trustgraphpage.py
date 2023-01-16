@@ -98,8 +98,8 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         super().hideEvent(QHideEvent)
 
     def initialize_trust_graph(self):
-        pg.setConfigOption('background', '222222')
-        pg.setConfigOption('foreground', '555')
+        pg.setConfigOption('background', '#222222')
+        pg.setConfigOption('foreground', '#555')
         pg.setConfigOption('antialias', True)
 
         graph_layout = pg.GraphicsLayoutWidget()
