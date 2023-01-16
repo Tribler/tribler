@@ -37,6 +37,9 @@ on:
         type: string
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ${{ matrix.os }}
