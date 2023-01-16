@@ -86,7 +86,7 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
 
 
 @db_session
-def generate_torrent(metadata_store, tags_db, parent):
+def generate_torrent(metadata_store, tags_db, parent, title=None):
     infohash = random_infohash()
 
     # Give each torrent some health information. For now, we assume all torrents are healthy.
@@ -94,8 +94,8 @@ def generate_torrent(metadata_store, tags_db, parent):
     last_check = now - random.randint(3600, 24 * 3600)
     category = random.choice(["Video", "Audio", "Documents", "Compressed", "Books", "Science"])
     torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=10, last_check=last_check)
-    metadata_store.TorrentMetadata(title=generate_title(words_count=4), infohash=infohash, origin_id=parent.id_,
-                                   health=torrent_state, tags=category)
+    metadata_store.TorrentMetadata(title=title or generate_title(words_count=4), infohash=infohash,
+                                   origin_id=parent.id_, health=torrent_state, tags=category)
 
     tag_torrent(infohash, tags_db)
 
@@ -114,7 +114,7 @@ def generate_channel(metadata_store: MetadataStore, tags_db: KnowledgeDatabase, 
 
     metadata_store.ChannelNode._my_key = default_eccrypto.generate_key('low')
     chan = metadata_store.ChannelMetadata(
-        title=generate_title(words_count=5), subscribed=subscribed, infohash=random_infohash()
+        title=title or generate_title(words_count=5), subscribed=subscribed, infohash=random_infohash()
     )
 
     # add some collections to the channel
@@ -131,13 +131,15 @@ def generate_test_channels(metadata_store, tags_db) -> None:
         generate_channel(metadata_store, tags_db, subscribed=ind % 2 == 0)
 
     # This one is necessary to test filters, etc
-    generate_channel(metadata_store, tags_db, title="non-random channel name")
+    generate_channel(metadata_store, tags_db, title="nonrandom unsubscribed channel name")
 
     # The same, but subscribed
-    generate_channel(metadata_store, tags_db, title="non-random subscribed channel name", subscribed=True)
+    generate_channel(metadata_store, tags_db, title="nonrandom subscribed channel name", subscribed=True)
 
     # Now generate a couple of personal channels
-    chan1 = metadata_store.ChannelMetadata.create_channel(title="personal channel with non-random name")
+    chan1 = metadata_store.ChannelMetadata.create_channel(title="personal channel with nonrandom name")
+    generate_torrent(metadata_store, tags_db, chan1, title='Some torrent with nonrandom name')
+    generate_torrent(metadata_store, tags_db, chan1, title='Another torrent with nonrandom name')
 
     with open(PNG_FILE, "rb") as f:
         pic_bytes = f.read()

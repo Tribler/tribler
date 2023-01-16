@@ -217,17 +217,21 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
     widget.content_table.sortByColumn(sort_column, 1)
     wait_for_list_populated(widget.content_table)
     screenshot(window, name=f"{widget_name}-sorted")
-    max_items = min(widget.content_table.model().channel_info["total"], 50)
-    assert widget.content_table.verticalHeader().count() <= max_items
+    total = widget.content_table.model().channel_info.get("total")
+    if total is not None:
+        max_items = min(total, 50)
+        assert widget.content_table.verticalHeader().count() <= max_items
 
     # Filter
     if test_filter:
         old_num_items = widget.content_table.verticalHeader().count()
-        QTest.keyClick(widget.channel_torrents_filter_input, 'r')
+        widget.channel_torrents_filter_input.setText("nonrandom")
+        widget.controller.on_filter_input_return_pressed()
         wait_for_list_populated(widget.content_table)
         screenshot(window, name=f"{widget_name}-filtered")
         assert widget.content_table.verticalHeader().count() <= old_num_items
-        QTest.keyPress(widget.channel_torrents_filter_input, Qt.Key_Backspace)
+        widget.channel_torrents_filter_input.setText("")
+        widget.controller.on_filter_input_return_pressed()
         wait_for_list_populated(widget.content_table)
 
     if test_subscribe:
@@ -380,14 +384,14 @@ def test_download_details(window):
 @pytest.mark.guitest
 def test_search_suggestions(window):
     QTest.keyClick(window.top_search_bar, 't')
-    QTest.keyClick(window.top_search_bar, 'r')
+    QTest.keyClick(window.top_search_bar, 'o')
     wait_for_signal(window.received_search_completions)
     screenshot(window, name="search_suggestions")
 
 
 @pytest.mark.guitest
 def test_search(window):
-    window.top_search_bar.setText("a")  # This is likely to trigger some search results
+    window.top_search_bar.setText("torrent")  # This is likely to trigger some search results
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
     QTest.qWait(100)
     screenshot(window, name="search_loading_page")

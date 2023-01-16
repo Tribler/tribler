@@ -40,7 +40,7 @@ class TriblerTableViewController(QObject):
 
         self.filter_input = filter_input
         if self.filter_input:
-            connect(self.filter_input.textChanged, self._on_filter_input_change)
+            connect(self.filter_input.returnPressed, self.on_filter_input_return_pressed)
 
     def set_model(self, model):
         self.model = model
@@ -71,7 +71,7 @@ class TriblerTableViewController(QObject):
         sort_asc = self.table_view.horizontalHeader().sortIndicatorOrder()
         return sort_by, sort_asc
 
-    def _on_filter_input_change(self, _):
+    def on_filter_input_return_pressed(self):
         self.model.text_filter = self.filter_input.text().lower()
         self.model.reset()
 
