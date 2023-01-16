@@ -142,7 +142,7 @@ jobs:
     uses: ./.github/workflows/build_ubuntu.yml
     with:
       upload: false
-      os: ${{needs.env.outputs.ubuntu-image}}
+      os: ubuntu-latest
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
 
@@ -152,7 +152,7 @@ jobs:
     uses: ./.github/workflows/build_windows.yml
     with:
       upload: false
-      os: ${{needs.env.outputs.windows-image}}
+      os: windows-latest
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
 
