@@ -19,6 +19,7 @@ on:
         required: false
 
       ref:
+        default: ${{ github.ref }}
         type: string
         required: true
 
@@ -56,7 +57,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          ref: ${{inputs.ref}}
+          ref: ${{inputs.ref || github.ref}}
 
       - name: Create python environment
         id: pyenv

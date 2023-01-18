@@ -14,6 +14,7 @@ on:
         required: false
 
       ref:
+        default: ${{ github.ref }}
         type: string
         required: true
 
