@@ -19,8 +19,9 @@ on:
         required: false
 
       ref:
+        default: ${{ github.ref }}
         type: string
-        required: true
+        required: false
 
     secrets:
       PYTEST_SENTRY_DSN:
