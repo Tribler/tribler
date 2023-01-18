@@ -343,6 +343,14 @@ class RemoteTableModel(QAbstractTableModel):
         txt_filter = to_fts_query(self.text_filter)
         if txt_filter:
             kwargs.update({"txt_filter": txt_filter})
+            # Global full-text search queries should not request the total number of rows for several reasons:
+            # * The total number of rows is useful for paginated queries, and FTS queries in Tribler are not paginated.
+            # * Our goal is to display the most relevant results for the user at the top of the search result list.
+            #   The user doesn't need to see that the database has exactly 300001 results for the "MP3" search.
+            #   In other words, we should search like Google, not Altavista.
+            # * The result list also integrates the results from remote peers that are not from the local database.
+            if 'origin_id' not in kwargs:
+                kwargs.pop("include_total", None)
 
         if self.max_rowid is not None:
             kwargs["max_rowid"] = self.max_rowid

@@ -253,7 +253,7 @@ def to_fts_query(text):
     if not words:
         return None
 
-    return ' '.join(words) + '*'
+    return ' '.join(words)
 
 
 def show_system_popup(title, text):

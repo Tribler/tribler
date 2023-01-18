@@ -147,21 +147,21 @@ async def test_search_with_space(rest_api, metadata_store):
         metadata_store.TorrentMetadata(title='abc defxyz', infohash=random_infohash())
 
     s1 = to_fts_query("abc")
-    assert s1 == '"abc"*'
+    assert s1 == '"abc"'
 
     s2 = to_fts_query("abc def")
-    assert s2 == '"abc" "def"*'
+    assert s2 == '"abc" "def"'
 
     ss2 = to_fts_query(s2)
     assert ss2 == s2
 
     parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
     results = {item["name"] for item in parsed["results"]}
-    assert results == {'abc', 'abc.def', 'abc def', 'abc defxyz', 'abcxyz def'}
+    assert results == {'abc', 'abc.def', 'abc def', 'abc defxyz'}
 
     parsed = await do_request(rest_api, f'search?txt_filter={s2}', expected_code=200)
     results = {item["name"] for item in parsed["results"]}
-    assert results == {'abc.def', 'abc def', 'abc defxyz'}  # but not 'abcxyz def'
+    assert results == {'abc.def', 'abc def'}  # but not 'abcxyz def'
 
 
 async def test_single_snippet_in_search(rest_api, metadata_store, knowledge_db):

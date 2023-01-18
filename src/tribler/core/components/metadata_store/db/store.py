@@ -579,7 +579,7 @@ class MetadataStore:
         )
 
     # pylint: disable=unused-argument
-    def search_keyword(self, query):
+    def search_keyword(self, query, origin_id=None):
         # Requires FTS5 table "FtsIndex" to be generated and populated.
         # FTS table is maintained automatically by SQL triggers.
         # BM25 ranking is embedded in FTS5.
@@ -588,16 +588,44 @@ class MetadataStore:
         if not query or query == "*":
             return []
 
-        fts_ids = raw_sql("""
-            SELECT fts.rowid
-            FROM (
-                SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY rowid DESC LIMIT 10000
-            ) fts
-            LEFT JOIN ChannelNode cn on fts.rowid = cn.rowid
-            LEFT JOIN main.TorrentState ts on cn.health = ts.rowid
-            ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC  
-            LIMIT 1000
-        """)
+        if origin_id is not None:
+            # When filtering a specific channel folder, we want to return all matching results
+            fts_ids = raw_sql("""
+                SELECT rowid FROM ChannelNode
+                WHERE origin_id = $origin_id
+                  AND rowid IN (SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query)
+            """)
+        else:
+            # When searching through an entire database for some text queries, the database can contain hundreds
+            # of thousands of matching torrents. The ranking of this number of torrents may be very expensive: we need
+            # to retrieve each matching torrent info and the torrent state from the database for proper ordering.
+            # They are scattered randomly through the entire database file, so fetching all these torrents is slow.
+            # Also, the torrent_rank function used inside the final ORDER BY section is written in Python. It is about
+            # 30 times slower than a possible similar function written in C due to SQLite-Python communication cost.
+            #
+            # To speed up the query, we limit and filter search results in several iterations, and each time apply
+            # a more expensive ranking algorithm:
+            #   * First, we quickly fetch at most 10000 of the most recent torrents that match the search criteria
+            #     and ignore older torrents. This way, we avoid sorting all hundreds of thousands of matching torrents
+            #     in degenerative cases. In typical cases, when the text query is specific enough, the number of
+            #     matching torrents is not that big.
+            #   * Then, we sort these 10000 torrents to prioritize torrents with seeders and restrict the number
+            #     of torrents to just 1000.
+            #   * Finally, in the main query, we apply a slow ranking function to these 1000 torrents to show the most
+            #     relevant torrents at the top of the search result list.
+            #
+            # This multistep sort+limit sequence allows speedup queries up to two orders of magnitude. To further
+            # speed up full-text search queries, we can rewrite the torrent_rank function to C one day.
+            fts_ids = raw_sql("""
+                SELECT fts.rowid
+                FROM (
+                    SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $query ORDER BY rowid DESC LIMIT 10000
+                ) fts
+                LEFT JOIN ChannelNode cn on fts.rowid = cn.rowid
+                LEFT JOIN main.TorrentState ts on cn.health = ts.rowid
+                ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC  
+                LIMIT 1000
+            """)
         return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
 
     @db_session
@@ -633,7 +661,12 @@ class MetadataStore:
 
         if cls is None:
             cls = self.ChannelNode
-        pony_query = self.search_keyword(txt_filter) if txt_filter else left_join(g for g in cls)
+
+        if txt_filter:
+            pony_query = self.search_keyword(txt_filter, origin_id=origin_id)
+        else:
+            pony_query = left_join(g for g in cls)
+
         infohash_set = infohash_set or ({infohash} if infohash else None)
         if popular:
             if metadata_type != REGULAR_TORRENT:
