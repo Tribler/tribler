@@ -12,11 +12,6 @@ jobs:
       DOCKER_USER: ${{ secrets.DOCKER_USER }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
-  codacy:
-    uses: ./.github/workflows/codacy.yml
-    secrets:
-      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-
   coverage:
     uses: ./.github/workflows/coverage.yml
     with:
