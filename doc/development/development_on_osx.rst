@@ -54,3 +54,20 @@ Help
 ~~~~
 
 If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
+
+Apple Silicon
+-------
+There are currently no python bindings available to install from pip.
+Therefore you need to build them from source.
+
+To do this, please install openssl and boost first:
+
+.. code-block:: bash
+    brew install openssl boost boost-build boost-python3
+
+And then follow the `instruction <https://github.com/arvidn/libtorrent/blob/v1.2.18/docs/python_binding.rst>`_.
+
+This instruction was checked for the following versions:
+
+* python 3.11
+* libtorrent 1.2.18
