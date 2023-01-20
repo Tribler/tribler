@@ -1,12 +1,10 @@
 import math
 
+import numpy as np
+import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QWidget
-
-import numpy as np
-
-import pyqtgraph as pg
 
 from tribler.gui.defs import (
     COLOR_DEFAULT,
@@ -19,8 +17,9 @@ from tribler.gui.defs import (
     TB,
     TRUST_GRAPH_PEER_LEGENDS,
 )
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, format_size, html_label, tr
 
 
@@ -154,17 +153,17 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         diff = selected_node.get('total_up', 0) - selected_node.get('total_down', 0)
         color = COLOR_GREEN if diff > 0 else COLOR_RED if diff < 0 else COLOR_DEFAULT
         bandwidth_message = (
-            "<b>Bandwidth</b> "
-            + HTML_SPACE * 2
-            + " Given "
-            + HTML_SPACE
-            + html_label(format_size(selected_node.get('total_up', 0)))
-            + " Taken "
-            + HTML_SPACE
-            + html_label(format_size(selected_node.get('total_down', 0)))
-            + " Balance "
-            + HTML_SPACE
-            + html_label(format_size(diff), color=color)
+                "<b>Bandwidth</b> "
+                + HTML_SPACE * 2
+                + " Given "
+                + HTML_SPACE
+                + html_label(format_size(selected_node.get('total_up', 0)))
+                + " Taken "
+                + HTML_SPACE
+                + html_label(format_size(selected_node.get('total_down', 0)))
+                + " Balance "
+                + HTML_SPACE
+                + html_label(format_size(diff), color=color)
         )
         self.window().tr_selected_node_stats.setHidden(False)
         self.window().tr_selected_node_stats.setText(bandwidth_message)
@@ -175,10 +174,14 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def fetch_graph_data(self, checked=False):
         if self.rest_request:
-            self.rest_request.cancel_request()
-        self.rest_request = TriblerNetworkRequest(
-            "trustview?refresh=1", self.on_received_data, priority=QNetworkRequest.LowPriority
+            self.rest_request.cancel()
+        self.rest_request = Request(
+            endpoint="trustview",
+            url_params={'refresh': 1},
+            on_finish=self.on_received_data,
+            priority=QNetworkRequest.LowPriority
         )
+        request_manager.add(self.rest_request)
 
     def on_received_data(self, data):
         if data is None or not isinstance(data, dict) or 'graph' not in data:

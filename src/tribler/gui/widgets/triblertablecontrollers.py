@@ -12,10 +12,10 @@ from PyQt5.QtWidgets import QAction
 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
-
 from tribler.gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, dict_item_is_any_of, get_health, tr
 from tribler.gui.widgets.tablecontentmodel import Column
 
@@ -54,9 +54,9 @@ class TriblerTableViewController(QObject):
 
     def _on_list_scroll(self, event):  # pylint: disable=W0613
         if (
-            self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum()
-            and self.model.data_items
-            and not self.model.all_local_entries_loaded
+                self.table_view.verticalScrollBar().value() == self.table_view.verticalScrollBar().maximum()
+                and self.model.data_items
+                and not self.model.all_local_entries_loaded
         ):  # workaround for duplicate calls to _on_list_scroll on view creation
             self.model.perform_query()
 
@@ -182,13 +182,17 @@ class HealthCheckerMixin:
         health_cell_index = self.model.index(row, self.model.column_position[Column.HEALTH])
         self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
 
-        TriblerNetworkRequest(
-            f"metadata/torrents/{infohash}/health",
-            self.on_health_response,
-            url_params={"nowait": True, "refresh": True},
-            capture_core_errors=False,
+        request = Request(
+            endpoint=f"metadata/torrents/{infohash}/health",
+            on_finish=self.on_health_response,
+            url_params={
+                "nowait": True,
+                "refresh": True
+            },
+            capture_errors=False,
             priority=QNetworkRequest.LowPriority,
         )
+        request_manager.add(request)
 
     def on_health_response(self, response):
         total_seeders = 0
@@ -283,14 +287,15 @@ class ContextMenuMixin:
 
         def on_add_to_channel(_):
             def on_confirm_clicked(channel_id):
-                TriblerNetworkRequest(
-                    f"collections/mychannel/{channel_id}/copy",
-                    lambda _: self.table_view.window().tray_show_message(
+                request = Request(
+                    endpoint=f"collections/mychannel/{channel_id}/copy",
+                    on_finish=lambda _: self.table_view.window().tray_show_message(
                         tr("Channel update"), tr("Torrent(s) added to your channel")
                     ),
-                    raw_data=json.dumps(entries),
-                    method='POST',
+                    data=json.dumps(entries),
+                    method=Request.POST,
                 )
+                request_manager.add(request)
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Copy")
@@ -302,7 +307,12 @@ class ContextMenuMixin:
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
                 self.model.remove_items(entries)
-                TriblerNetworkRequest("metadata", lambda _: None, raw_data=json.dumps(changes_list), method='PATCH')
+                request = Request(
+                    endpoint="metadata",
+                    data=json.dumps(changes_list),
+                    method=Request.PATCH
+                )
+                request_manager.add(request)
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Move")

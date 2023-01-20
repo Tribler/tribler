@@ -6,9 +6,9 @@ from PyQt5.QtWidgets import QAbstractItemView, QAbstractScrollArea, QAction, QLi
 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
-
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, get_image_path, tr
 
 
@@ -33,12 +33,13 @@ class ChannelListItem(QListWidgetItem):
         if role == Qt.EditRole:
             item = self.channel_info
             if item['name'] != new_value:
-                TriblerNetworkRequest(
-                    f"metadata/{item['public_key']}/{item['id']}",
-                    lambda _: None,
-                    method='PATCH',
-                    raw_data=json.dumps({"title": new_value}),
+                request = Request(
+                    endpoint=f"metadata/{item['public_key']}/{item['id']}",
+                    method=Request.PATCH,
+                    data=json.dumps({"title": new_value}),
                 )
+                request_manager.add(request)
+
         return super().setData(role, new_value)
 
 
@@ -128,13 +129,21 @@ class ChannelsMenuListWidget(QListWidget):
                 item.setIcon(self.empty_image)
             tooltip_text = channel_info['name'] + "\n" + channel_info['state']
             if channel_info.get('progress'):
-                tooltip_text += f" {int(float(channel_info['progress'])*100)}%"
+                tooltip_text += f" {int(float(channel_info['progress']) * 100)}%"
             item.setToolTip(tooltip_text)
 
         self.items_set = frozenset(entry_to_tuple(channel_info) for channel_info in channels)
 
     def load_channels(self):
-        TriblerNetworkRequest(self.base_url, self.on_query_results, url_params={"subscribed": True, "last": 1000})
+        request = Request(
+            endpoint=self.base_url,
+            on_finish=self.on_query_results,
+            url_params={
+                "subscribed": True,
+                "last": 1000
+            }
+        )
+        request_manager.add(request)
 
     def reload_if_necessary(self, changed_entries):
         # Compare the state changes in the changed entries list to our current list

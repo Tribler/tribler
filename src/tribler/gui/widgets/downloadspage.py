@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Optional
+from typing import Optional, Tuple
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
@@ -27,9 +27,11 @@ from tribler.gui.defs import (
     DOWNLOADS_FILTER_INACTIVE,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.network.request.file_download_request import FileDownloadRequest
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerFileDownloadRequest, TriblerNetworkRequest
 from tribler.gui.utilities import compose_magnetlink, connect, format_speed, tr
 from tribler.gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDownloadWidgetItem
 from tribler.gui.widgets.loading_list_item import LoadingListItem
@@ -124,7 +126,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_downloads_request_timeout(self):
         if self.rest_request:
-            self.rest_request.cancel_request()
+            self.rest_request.cancel()
         self.schedule_downloads_timer()
 
     def stop_loading_downloads(self):
@@ -145,8 +147,13 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.downloads_last_update = time.time()
             priority = QNetworkRequest.LowPriority if not isactive else QNetworkRequest.HighPriority
             if self.rest_request:
-                self.rest_request.cancel_request()
-            self.rest_request = TriblerNetworkRequest(url, self.on_received_downloads, priority=priority)
+                self.rest_request.cancel()
+            self.rest_request = Request(
+                endpoint=url,
+                on_finish=self.on_received_downloads,
+                priority=priority
+            )
+            request_manager.add(self.rest_request)
 
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads:
@@ -202,8 +209,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             download_infohashes.add(download["infohash"])
 
             if (
-                self.window().download_details_widget.current_download is not None
-                and self.window().download_details_widget.current_download["infohash"] == download["infohash"]
+                    self.window().download_details_widget.current_download is not None
+                    and self.window().download_details_widget.current_download["infohash"] == download["infohash"]
             ):
                 self.window().download_details_widget.update_with_download(download)
 
@@ -304,9 +311,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_start_download_clicked(self, checked):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            TriblerNetworkRequest(
-                f"downloads/{infohash}", self.on_download_resumed, method='PATCH', data={"state": "resume"}
+            request = Request(
+                endpoint=f"downloads/{infohash}",
+                on_finish=self.on_download_resumed,
+                method=Request.PATCH,
+                data={
+                    "state": "resume"
+                }
             )
+            request_manager.add(request)
 
     def on_download_resumed(self, json_result):
         if json_result and 'modified' in json_result:
@@ -319,9 +332,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_stop_download_clicked(self, checked):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            TriblerNetworkRequest(
-                f"downloads/{infohash}", self.on_download_stopped, method='PATCH', data={"state": "stop"}
+            request = Request(
+                endpoint=f"downloads/{infohash}",
+                on_finish=self.on_download_stopped,
+                method=Request.PATCH,
+                data={
+                    "state": "stop"
+                }
             )
+            request_manager.add(request)
 
     def on_download_stopped(self, json_result):
         if json_result and "modified" in json_result:
@@ -353,12 +372,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 if current_download and current_download.get(infohash) == infohash:
                     self.window().download_details_widget.current_download = None
 
-                TriblerNetworkRequest(
-                    f"downloads/{infohash}",
-                    self.on_download_removed,
-                    method='DELETE',
-                    data={"remove_data": bool(action)},
+                request = Request(
+                    endpoint=f"downloads/{infohash}",
+                    on_finish=self.on_download_removed,
+                    method=Request.DELETE,
+                    data={
+                        "remove_data": bool(action)
+                    },
                 )
+                request_manager.add(request)
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
@@ -374,9 +396,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_force_recheck_download(self, checked):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            TriblerNetworkRequest(
-                f"downloads/{infohash}", self.on_forced_recheck, method='PATCH', data={"state": "recheck"}
+            request = Request(
+                endpoint=f"downloads/{infohash}",
+                on_finish=self.on_forced_recheck,
+                method=Request.PATCH,
+                data={
+                    "state": "recheck"
+                }
             )
+            request_manager.add(request)
 
     def on_forced_recheck(self, result):
         if result and "modified" in result:
@@ -392,9 +420,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def change_anonymity(self, hops):
         for selected_item in self.selected_items:
             infohash = selected_item.download_info["infohash"]
-            TriblerNetworkRequest(
-                f"downloads/{infohash}", self.on_change_anonymity, method='PATCH', data={"anon_hops": hops}
+            request = Request(
+                endpoint=f"downloads/{infohash}",
+                on_finish=self.on_change_anonymity,
+                method=Request.PATCH,
+                data={
+                    "anon_hops": hops
+                }
             )
+            request_manager.add(request)
 
     def on_explore_files(self, checked):
         # ACHTUNG! To whomever might stumble upon here intending to debug the case
@@ -425,12 +459,13 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         data = {"state": "move_storage", "dest_dir": dest_dir}
 
-        TriblerNetworkRequest(
-            f"downloads/{_infohash}",
-            lambda res: self.on_files_moved(res, _name, dest_dir),
+        request = Request(
+            endpoint=f"downloads/{_infohash}",
+            on_finish=lambda res: self.on_files_moved(res, _name, dest_dir),
             data=data,
-            method='PATCH',
+            method=Request.PATCH,
         )
+        request_manager.add(request)
 
     def on_files_moved(self, response, name, dest_dir):
         if "modified" in response and response["modified"]:
@@ -459,12 +494,16 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.dialog.show()
 
     def on_export_download_dialog_done(self, action):
+        def on_finish(result: Tuple):
+            data, _ = result
+            self.on_export_download_request_done(filename, data)
+
         selected_item = self.selected_items[:1]
         if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
-            TriblerFileDownloadRequest(
+            FileDownloadRequest(
                 f"downloads/{selected_item[0].download_info['infohash']}/torrent",
-                lambda data: self.on_export_download_request_done(filename, data),
+                on_finish,
             )
 
         self.dialog.close_dialog()
@@ -492,14 +531,17 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             for selected_item in self.selected_items:
                 infohash = selected_item.download_info["infohash"]
                 name = selected_item.download_info["name"]
-                TriblerNetworkRequest(
-                    f"channels/mychannel/{channel_id}/torrents",
-                    lambda _: self.window().tray_show_message(
+                request = Request(
+                    endpoint=f"channels/mychannel/{channel_id}/torrents",
+                    on_finish=lambda _: self.window().tray_show_message(
                         tr("Channel update"), tr("Torrent(s) added to your channel")
                     ),
-                    method='PUT',
-                    data={"uri": compose_magnetlink(infohash, name=name)},
+                    method=Request.PUT,
+                    data={
+                        "uri": compose_magnetlink(infohash, name=name)
+                    },
                 )
+                request_manager.add(request)
 
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text=tr("Add torrent(s)"))
 

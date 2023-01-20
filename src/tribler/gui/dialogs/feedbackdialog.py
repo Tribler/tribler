@@ -16,9 +16,9 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 from tribler.gui.event_request_manager import received_events
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import performed_requests as tribler_performed_requests
 from tribler.gui.utilities import connect, get_ui_file_path, tr
 
 if TYPE_CHECKING:
@@ -27,14 +27,14 @@ if TYPE_CHECKING:
 
 class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals
-        self,
-        parent: TriblerWindow,
-        sentry_reporter: SentryReporter,
-        reported_error: ReportedError,
-        tribler_version,
-        start_time,
-        stop_application_on_close=True,
-        additional_tags=None,
+            self,
+            parent: TriblerWindow,
+            sentry_reporter: SentryReporter,
+            reported_error: ReportedError,
+            tribler_version,
+            start_time,
+            stop_application_on_close=True,
+            additional_tags=None,
     ):
         QDialog.__init__(self, parent)
         self.core_manager = parent.core_manager
@@ -101,11 +101,12 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         # Add recent requests to feedback dialog
         request_ind = 1
-        for request, status_code in sorted(tribler_performed_requests, key=lambda rq: rq[0].time)[-30:]:
+
+        for request, status_code in request_manager.performed_requests.items():
             add_item_to_info_widget(
                 'request_%d' % request_ind,
                 '%s %s %s (time: %s, code: %s)'
-                % (request.url, request.method, request.raw_data, request.time, status_code),
+                % (request.endpoint, request.method, request.data, request.time, status_code),
             )
             request_ind += 1
 

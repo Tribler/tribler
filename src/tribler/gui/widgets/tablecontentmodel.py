@@ -15,9 +15,9 @@ from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORR
 from tribler.core.utilities.search_utils import item_rank
 from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
-
 from tribler.gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
@@ -55,16 +55,20 @@ def define_columns():
     # fmt:off
     # pylint: disable=line-too-long
     columns_dict = {
-        Column.ACTIONS:    d('',           "",               width=60, sortable=False),
-        Column.CATEGORY:   d('category',   "",               width=30, tooltip_filter=lambda data: data),
-        Column.NAME:       d('name',       tr("Name"),       width=EXPANDING),
-        Column.SIZE:       d('size',       tr("Size"),       width=90, display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
-        Column.HEALTH:     d('health',     tr("Health"),     width=120, tooltip_filter=lambda data: f"{data}" + ('' if data == HEALTH_CHECKING else '\n(Click to recheck)'),),
-        Column.UPDATED:    d('updated',    tr("Updated"),    width=120, display_filter=lambda timestamp: pretty_date(timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else "",),
-        Column.VOTES:      d('votes',      tr("Popularity"), width=120, display_filter=format_votes, tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None,),
-        Column.STATUS:     d('status',     "",               sortable=False),
-        Column.STATE:      d('state',      "",               width=80, tooltip_filter=lambda data: data, sortable=False),
-        Column.TORRENTS:   d('torrents',   tr("Torrents"),   width=90),
+        Column.ACTIONS: d('', "", width=60, sortable=False),
+        Column.CATEGORY: d('category', "", width=30, tooltip_filter=lambda data: data),
+        Column.NAME: d('name', tr("Name"), width=EXPANDING),
+        Column.SIZE: d('size', tr("Size"), width=90,
+                       display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
+        Column.HEALTH: d('health', tr("Health"), width=120, tooltip_filter=lambda data: f"{data}" + (
+            '' if data == HEALTH_CHECKING else '\n(Click to recheck)'), ),
+        Column.UPDATED: d('updated', tr("Updated"), width=120, display_filter=lambda timestamp: pretty_date(
+            timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else "", ),
+        Column.VOTES: d('votes', tr("Popularity"), width=120, display_filter=format_votes,
+                        tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None, ),
+        Column.STATUS: d('status', "", sortable=False),
+        Column.STATE: d('state', "", width=80, tooltip_filter=lambda data: data, sortable=False),
+        Column.TORRENTS: d('torrents', tr("Torrents"), width=90),
         Column.SUBSCRIBED: d('subscribed', tr("Subscribed"), width=95),
     }
     # pylint: enable=line-too-long
@@ -248,7 +252,7 @@ class RemoteTableModel(QAbstractTableModel):
             torrents += new_torrents
             non_torrents += new_non_torrents
 
-            torrents.sort(key = lambda item: item['rank'], reverse=True)
+            torrents.sort(key=lambda item: item['rank'], reverse=True)
             new_data_items = non_torrents + torrents
 
             new_item_uid_map = {}
@@ -359,7 +363,11 @@ class RemoteTableModel(QAbstractTableModel):
             kwargs.update({"hide_xxx": self.hide_xxx})
         rest_endpoint_url = kwargs.pop("rest_endpoint_url") if "rest_endpoint_url" in kwargs else self.endpoint_url
         self._logger.info(f'Request to "{rest_endpoint_url}":{kwargs}')
-        TriblerNetworkRequest(rest_endpoint_url, self.on_query_results, url_params=kwargs)
+        request = Request(
+            endpoint=rest_endpoint_url,
+            on_finish=self.on_query_results,
+            url_params=kwargs)
+        request_manager.add(request)
 
     def on_query_results(self, response, remote=False, on_top=False):
         """
@@ -404,15 +412,15 @@ class ChannelContentModel(RemoteTableModel):
     columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.UPDATED)
 
     def __init__(
-        self,
-        channel_info=None,
-        hide_xxx=None,
-        exclude_deleted=None,
-        subscribed_only=None,
-        endpoint_url=None,
-        text_filter='',
-        tags=None,
-        type_filter=None,
+            self,
+            channel_info=None,
+            hide_xxx=None,
+            exclude_deleted=None,
+            subscribed_only=None,
+            endpoint_url=None,
+            text_filter='',
+            tags=None,
+            type_filter=None,
     ):
         RemoteTableModel.__init__(self, parent=None)
 
@@ -492,10 +500,10 @@ class ChannelContentModel(RemoteTableModel):
 
         # Print number of torrents in the channel for channel rows in the "size" column
         if (
-            column_type == Column.SIZE
-            and "torrents" not in self.columns
-            and "torrents" in item
-            and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, SNIPPET)
+                column_type == Column.SIZE
+                and "torrents" not in self.columns
+                and "torrents" in item
+                and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, SNIPPET)
         ):
             if item["type"] == SNIPPET:
                 return ""
@@ -544,8 +552,8 @@ class ChannelContentModel(RemoteTableModel):
         """
 
         if (
-            self.channel_info.get("public_key") == update_dict.get("public_key") is not None
-            and self.channel_info.get("id") == update_dict.get("id") is not None
+                self.channel_info.get("public_key") == update_dict.get("public_key") is not None
+                and self.channel_info.get("id") == update_dict.get("id") is not None
         ):
             self.channel_info.update(**update_dict)
             self.info_changed.emit([])
@@ -605,12 +613,13 @@ class ChannelContentModel(RemoteTableModel):
             data_item_dict.update(response)
             self.info_changed.emit([data_item_dict])
 
-        TriblerNetworkRequest(
-            f"metadata/{item['public_key']}/{item['id']}",
-            on_row_update_results,
-            method='PATCH',
-            raw_data=json.dumps({attribute_name: new_value}),
+        request = Request(
+            endpoint=f"metadata/{item['public_key']}/{item['id']}",
+            on_finish=on_row_update_results,
+            method=Request.PATCH,
+            data=json.dumps({attribute_name: new_value}),
         )
+        request_manager.add(request)
 
         # ACHTUNG: instead of reloading the whole row from DB, this line just changes the displayed value!
         self.data_items[index.row()][attribute_name] = new_value
@@ -737,21 +746,30 @@ class PersonalChannelsModel(ChannelContentModel):
         # button, by the moment the request callback triggers some actions on the model,
         # QT could have already deleted the underlying model object, which will result in
         # "wrapped C/C++ object has been deleted" error (see e.g. https://github.com/Tribler/tribler/issues/6083)
-        for data, method in ((patch_data, "PATCH"), (delete_data, "DELETE")):
+        for data, method in ((patch_data, Request.PATCH), (delete_data, Request.DELETE)):
             if data:
                 self.remove_items(data)
-                TriblerNetworkRequest("metadata", lambda _: None, raw_data=json.dumps(data), method=method)
+                request = Request(
+                    endpoint="metadata",
+                    data=json.dumps(data),
+                    method=method
+                )
+                request_manager.add(request)
 
     def create_new_channel(self, channel_name=None):
-        url = (
-            self.endpoint_url_override or "channels/%s/%i" % (self.channel_info["public_key"], self.channel_info["id"])
-        ) + ("/channels" if self.channel_info.get("id", 0) == 0 else "/collections")
-        TriblerNetworkRequest(
-            url,
-            self.on_create_query_results,
-            method='POST',
-            raw_data=json.dumps({"name": channel_name}) if channel_name else None,
+        public_key = self.channel_info.get("public_key", '')
+        channel_id = self.channel_info.get("id", 0)
+
+        endpoint = self.endpoint_url_override or f"channels/{public_key}/{channel_id}"
+        postfix = "channels" if not channel_id else "collections"
+
+        request = Request(
+            endpoint=f'{endpoint}/{postfix}',
+            on_finish=self.on_create_query_results,
+            method=Request.POST,
+            data=json.dumps({"name": channel_name}) if channel_name else None,
         )
+        request_manager.add(request)
 
     def on_create_query_results(self, response, **kwargs):
         # This is a hack to put the newly created object at the top of the table

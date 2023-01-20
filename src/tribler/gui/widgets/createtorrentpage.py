@@ -6,9 +6,10 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, get_image_path
 
 
@@ -88,9 +89,20 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
 
         name = self.window().create_torrent_name_field.text()
         description = self.window().create_torrent_description_field.toPlainText()
-        post_data = {"name": name, "description": description, "files": files_list}
-        url = "createtorrent?download=1" if self.window().seed_after_adding_checkbox.isChecked() else "createtorrent"
-        TriblerNetworkRequest(url, self.on_torrent_created, data=post_data, method='POST')
+
+        is_seed = self.window().seed_after_adding_checkbox.isChecked()
+        request = Request(
+            endpoint='createtorrent',
+            on_finish=self.on_torrent_created,
+            data={
+                "name": name,
+                "description": description,
+                "files": files_list
+            },
+            url_params={'download': 1} if is_seed else None,
+            method=Request.POST
+        )
+        request_manager.add(request)
         # Show creating torrent text
         self.window().edit_channel_create_torrent_progress_label.show()
 
@@ -106,9 +118,15 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
             self.add_torrent_to_channel(result['torrent'])
 
     def add_torrent_to_channel(self, torrent):
-        TriblerNetworkRequest(
-            "mychannel/torrents", self.on_torrent_to_channel_added, data={"torrent": torrent}, method='PUT'
+        request = Request(
+            endpoint="mychannel/torrents",
+            on_finish=self.on_torrent_to_channel_added,
+            data={
+                "torrent": torrent
+            },
+            method=Request.PUT
         )
+        request_manager.add(request)
 
     def on_torrent_to_channel_added(self, result):
         if not result:

@@ -1,8 +1,5 @@
 import json
 import logging
-import os
-import shutil
-from typing import List
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
@@ -21,8 +18,9 @@ from tribler.gui.defs import (
     PAGE_SETTINGS_SEEDING,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.network.request.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import (
     AVAILABLE_TRANSLATIONS,
     connect,
@@ -345,7 +343,11 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().settings_stacked_widget.hide()
         self.window().settings_tab.hide()
 
-        TriblerNetworkRequest("settings", self.initialize_with_settings)
+        request = Request(
+            endpoint="settings",
+            on_finish=self.initialize_with_settings
+        )
+        request_manager.add(request)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "settings_general_button":
@@ -534,7 +536,12 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().update_recent_download_locations(settings_data['download_defaults']['saveas'])
         self.settings = settings_data
 
-        TriblerNetworkRequest("settings", self.on_settings_saved, method='POST', raw_data=json.dumps(settings_data))
+        request = Request(
+            endpoint="settings",
+            on_finish=self.on_settings_saved,
+            method=Request.POST,
+            data=json.dumps(settings_data))
+        request_manager.add(request)
 
     def save_language_selection(self):
         ind = self.window().language_selector.currentIndex()
