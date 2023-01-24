@@ -15,6 +15,4 @@ freezegun==1.2.1
 coverage==6.3.2
 looptime==0.2
 
-asynctest==0.13.0 # this library has to be installed to properly work with ipv8 TestBase.
-
 scipy==1.10.0
