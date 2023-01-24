@@ -149,7 +149,7 @@ def test_title_rank():
 
 def test_item_rank():
     item = dict(name="abc", num_seeders=10, num_leechers=20)
-    assert item_rank("abc", item) == pytest.approx(0.81978445)
+    assert item_rank("abc", item) == pytest.approx(0.819784)
 
 
 def test_find_word():
