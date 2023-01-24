@@ -25,3 +25,4 @@ bitarray==2.5.1
 pyipv8==2.8.0
 libtorrent==1.2.15
 file-read-backwards==2.0.0
+Brotli==1.0.9 # to prevent AttributeError on macOs: module 'brotli' has no attribute 'error' (in urllib3.response)

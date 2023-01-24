@@ -161,4 +161,4 @@ if sys.platform == 'darwin':
 
 # On Windows 10, we have to make sure that qwindows.dll is in the right path
 if sys.platform == 'win32':
-    shutil.copytree(os.path.join('dist', 'tribler', 'PyQt5', 'Qt5', 'plugins', 'platforms'), os.path.join('dist', 'tribler', 'platforms'))
+    shutil.copytree(os.path.join('dist', 'tribler', 'PyQt5', 'Qt', 'plugins', 'platforms'), os.path.join('dist', 'tribler', 'platforms'))

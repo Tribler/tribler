@@ -10,7 +10,7 @@ from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.utilities.notifier import Notifier
 from tribler.gui import gui_sentry_reporter
-from tribler.gui.exceptions import CoreConnectTimeoutError
+from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
 from tribler.gui.utilities import connect, make_network_errors_dict
 
 received_events = []
@@ -122,6 +122,16 @@ class EventRequestManager(QNetworkAccessManager):
         # First, it is unnecessary, as the reply is sent almost immediately after the REST API is started,
         # so the GUI will not wait five seconds for that. Also, with TransferTimeout specified, AIOHTTP starts
         # raising ConnectionResetError "Cannot write to closing transport".
+
+        if self.shutting_down:
+            return
+
+        if self.receiving_data:
+            # We are performing reconnect on the initial connection error only.
+            # In the future, if we consider it useful, we can immediately call here
+            # `self.reconnect(reschedule_on_err=False)`
+            # and raise an exception if it fails to reconnect
+            raise CoreConnectionError('The connection to the Tribler Core was lost')
 
         should_retry = reschedule_on_err and time.time() < self.start_time + CORE_CONNECTION_TIMEOUT
         error_name = self.network_errors.get(error, error)
