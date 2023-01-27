@@ -52,12 +52,14 @@ class Request(QObject):
         self.method = method
         self.capture_errors = capture_errors
         self.raw_response = raw_response
-        self.data: Optional[bytes] = data
-        self.raw_data = data
-        if isinstance(self.data, Dict):
-            self.data = json.dumps(data)
-        if isinstance(self.data, str):
-            self.data = self.data.encode('utf8')
+        self.data = data
+        if isinstance(data, Dict):
+            raw_data = json.dumps(data).encode('utf8')
+        elif isinstance(data, str):
+            raw_data = data.encode('utf8')
+        else:
+            raw_data = data
+        self.raw_data: Optional[bytes] = raw_data
 
         connect(self.on_finished_signal, on_finish)
         connect(self.on_cancel_signal, on_cancel)

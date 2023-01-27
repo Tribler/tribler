@@ -17,7 +17,7 @@ def test_dict_data_constructor():
             'key': 'value'
         }
     )
-    assert request.data == b'{"key": "value"}'
+    assert request.raw_data == b'{"key": "value"}'
 
 
 def test_bytes_data_constructor():
@@ -25,7 +25,7 @@ def test_bytes_data_constructor():
         endpoint='endpoint',
         data=b'bytes'
     )
-    assert request.data == b'bytes'
+    assert request.raw_data == b'bytes'
 
 
 def test_str_data_constructor():
@@ -33,4 +33,4 @@ def test_str_data_constructor():
         endpoint='endpoint',
         data='str'
     )
-    assert request.data == b'str'
+    assert request.raw_data == b'str'

@@ -56,8 +56,8 @@ class RequestManager(QNetworkAccessManager):
         qt_request.setRawHeader(b'X-Api-Key', self.key.encode('ascii'))
 
         buf = QBuffer()
-        if request.data:
-            buf.setData(request.data)
+        if request.raw_data is not None:
+            buf.setData(request.raw_data)
         buf.open(QIODevice.ReadOnly)
 
         # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
