@@ -116,7 +116,7 @@ class RequestManager(QNetworkAccessManager):
         for req in list(self.active_requests.values()):
             if skip_shutdown_request and isinstance(req, ShutdownRequest):
                 continue
-            req.cancel_request()
+            req.cancel()
 
     def _drop_timed_out_requests(self):
         for req in list(self.active_requests.values()):
