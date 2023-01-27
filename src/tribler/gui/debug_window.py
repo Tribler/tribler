@@ -328,15 +328,16 @@ class DebugWindow(QMainWindow):
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
-        for request, status_code in request_manager.performed_requests.items():
+        for request in request_manager.performed_requests:
             endpoint = request.endpoint
             method = request.method
             data = request.data
             timestamp = request.time
+            status_code = request.status_code
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
             item.setText(0, f"{method} {repr(endpoint)} {repr(data)}")
-            item.setText(1, ("%d" % status_code) if status_code else "unknown")
+            item.setText(1, str(status_code or "unknown"))
             item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
 

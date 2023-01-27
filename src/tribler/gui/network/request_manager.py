@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import deque
 from time import time
 from typing import Dict, Set, TYPE_CHECKING
 from urllib.parse import quote_plus
@@ -9,7 +10,6 @@ from urllib.parse import quote_plus
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-from tribler.core.utilities.limited_ordered_dict import LimitedOrderedDict
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request.shutdown_request import ShutdownRequest
@@ -33,7 +33,7 @@ class RequestManager(QNetworkAccessManager):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.active_requests: Set[Request] = set()
-        self.performed_requests: Dict[Request, int] = LimitedOrderedDict(limit=200)
+        self.performed_requests: deque[Request] = deque(maxlen=200)
 
         self.protocol = DEFAULT_API_PROTOCOL
         self.host = DEFAULT_API_HOST
@@ -47,7 +47,7 @@ class RequestManager(QNetworkAccessManager):
             self._drop_timed_out_requests()
 
         self.active_requests.add(request)
-        self.performed_requests[request] = 0
+        self.performed_requests.append(request)
         request.manager = self
         request.url = self._get_base_url() + request.endpoint
         request.url += f'?{self._urlencode(request.url_params)}' if request.url_params else ''
@@ -77,11 +77,6 @@ class RequestManager(QNetworkAccessManager):
         if request.reply:
             request.reply.deleteLater()
             request.reply = None
-
-    def update(self, request: Request, status: int):
-        self.logger.debug(f'Update {request}: {status}')
-
-        self.performed_requests[request] = status
 
     def show_error(self, request: Request, data: Dict) -> str:
         text = self.get_message_from_error(data)

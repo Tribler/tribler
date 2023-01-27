@@ -102,11 +102,11 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         # Add recent requests to feedback dialog
         request_ind = 1
 
-        for request, status_code in request_manager.performed_requests.items():
+        for request in request_manager.performed_requests:
             add_item_to_info_widget(
                 'request_%d' % request_ind,
                 '%s %s %s (time: %s, code: %s)'
-                % (request.endpoint, request.method, request.data, request.time, status_code),
+                % (request.endpoint, request.method, request.data, request.time, request.status_code),
             )
             request_ind += 1
 

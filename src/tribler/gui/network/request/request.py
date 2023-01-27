@@ -67,6 +67,11 @@ class Request(QObject):
 
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
         self.time = time()
+        self.status_code = 0
+
+    def update_status(self, status_code: int):
+        self.logger.debug(f'Update {self}: {status_code}')
+        self.status_code = status_code
 
     def _on_finished(self):
         if not self.reply or not self.manager:
@@ -75,7 +80,7 @@ class Request(QObject):
         self.logger.info(f'Finished: {self}')
         try:
             if status_code := self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute):
-                self.manager.update(self, status_code)
+                self.update_status(status_code)
 
             data = bytes(self.reply.readAll())
             if self.raw_response:
