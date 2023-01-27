@@ -5,7 +5,6 @@ import logging
 from collections import deque
 from time import time
 from typing import Dict, Set, TYPE_CHECKING
-from urllib.parse import quote_plus
 
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
@@ -48,9 +47,7 @@ class RequestManager(QNetworkAccessManager):
 
         self.active_requests.add(request)
         self.performed_requests.append(request)
-        request.manager = self
-        request.url = self._get_base_url() + request.endpoint
-        request.url += f'?{self._urlencode(request.url_params)}' if request.url_params else ''
+        request.set_manager(self)
         self.logger.info(f'Request: {request}')
 
         qt_request = QNetworkRequest(QUrl(request.url))
@@ -93,7 +90,7 @@ class RequestManager(QNetworkAccessManager):
         error_dialog.show()
         return text
 
-    def _get_base_url(self) -> str:
+    def get_base_url(self) -> str:
         return f'{self.protocol}://{self.host}:{self.port}/'
 
     @staticmethod
@@ -118,27 +115,6 @@ class RequestManager(QNetworkAccessManager):
             is_time_to_cancel = time() - req.time > self.timeout_interval
             if is_time_to_cancel:
                 req.cancel()
-
-    def _urlencode(self, data):
-        # Convert all keys and values in the data to utf-8 unicode strings
-        utf8_items = []
-        for key, value in data.items():
-            if isinstance(value, list):
-                utf8_items.extend([self._urlencode_single(key, list_item) for list_item in value if value])
-            else:
-                utf8_items.append(self._urlencode_single(key, value))
-
-        data = "&".join(utf8_items)
-        return data
-
-    @staticmethod
-    def _urlencode_single(key, value):
-        utf8_key = quote_plus(str(key).encode('utf-8'))
-        # Convert bool values to ints
-        if isinstance(value, bool):
-            value = int(value)
-        utf8_value = quote_plus(str(value).encode('utf-8'))
-        return f"{utf8_key}={utf8_value}"
 
 
 # Request manager singleton.

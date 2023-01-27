@@ -4,6 +4,7 @@ import json
 import logging
 from time import time
 from typing import Callable, Dict, Optional, TYPE_CHECKING, Union
+from urllib.parse import urlencode
 
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtNetwork import QNetworkReply, QNetworkRequest
@@ -68,6 +69,18 @@ class Request(QObject):
         # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
         self.time = time()
         self.status_code = 0
+
+    def set_manager(self, manager: RequestManager):
+        self.manager = manager
+        self._set_url(manager.get_base_url())
+
+    def _set_url(self, base_url: str):
+        self.url = base_url + self.endpoint
+        if self.url_params:
+            # Encode True and False as "1" and "0" and not as "True" and "False"
+            url_params = {key: int(value) if isinstance(value, bool) else value
+                          for key, value in self.url_params.items()}
+            self.url += '?' + urlencode(url_params, doseq=True)
 
     def update_status(self, status_code: int):
         self.logger.debug(f'Update {self}: {status_code}')

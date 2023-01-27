@@ -12,7 +12,7 @@ def request_manager():
 
 
 def test_get_base_string(request_manager: RequestManager):
-    assert request_manager._get_base_url() == 'http://localhost:20100/'
+    assert request_manager.get_base_url() == 'http://localhost:20100/'
 
 
 def test_get_message_from_error_string(request_manager: RequestManager):
