@@ -68,7 +68,6 @@ class Request(QObject):
         self.manager: Optional[RequestManager] = None
         self.url: str = ''
 
-        # Pass the newly created object to the manager singleton, so the object can be dispatched immediately
         self.time = time()
         self.status_code = 0
 
