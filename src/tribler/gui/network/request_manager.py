@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from time import time
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, Set, TYPE_CHECKING
 from urllib.parse import quote_plus
 
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
@@ -32,7 +32,7 @@ class RequestManager(QNetworkAccessManager):
         QNetworkAccessManager.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.active_requests = {}
+        self.active_requests: Set[Request] = set()
         self.performed_requests: Dict[Request, int] = LimitedOrderedDict(limit=200)
 
         self.protocol = DEFAULT_API_PROTOCOL
@@ -46,7 +46,7 @@ class RequestManager(QNetworkAccessManager):
         if len(self.active_requests) > self.limit:
             self._drop_timed_out_requests()
 
-        self.active_requests[request] = request
+        self.active_requests.add(request)
         self.performed_requests[request] = 0
         request.manager = self
         request.url = self._get_base_url() + request.endpoint
@@ -72,7 +72,7 @@ class RequestManager(QNetworkAccessManager):
         connect(request.reply.finished, request._on_finished)  # pylint: disable=protected-access
 
     def remove(self, request: Request):
-        self.active_requests.pop(request, None)
+        self.active_requests.discard(request)
 
         if request.reply:
             request.reply.deleteLater()
@@ -113,13 +113,13 @@ class RequestManager(QNetworkAccessManager):
         return json.dumps(d)
 
     def clear(self, skip_shutdown_request=True):
-        for req in list(self.active_requests.values()):
+        for req in list(self.active_requests):
             if skip_shutdown_request and isinstance(req, ShutdownRequest):
                 continue
             req.cancel()
 
     def _drop_timed_out_requests(self):
-        for req in list(self.active_requests.values()):
+        for req in list(self.active_requests):
             is_time_to_cancel = time() - req.time > self.timeout_interval
             if is_time_to_cancel:
                 req.cancel()
