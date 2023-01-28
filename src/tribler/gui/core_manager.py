@@ -238,7 +238,7 @@ class CoreManager(QObject):
                 else:
                     self._logger.warning("Re-sending shutdown request to Tribler Core")
 
-                request = ShutdownRequest(shutdown_request_processed, on_cancel=send_shutdown_request)
+                request = ShutdownRequest(shutdown_request_processed)
                 request_manager.add(request)
 
             send_shutdown_request(initial=True)

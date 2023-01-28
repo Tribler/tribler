@@ -28,13 +28,11 @@ class Request(QObject):
     # because we want the request object be deleted independent of what happens
     # during the callback call.
     on_finished_signal = pyqtSignal(object)
-    on_cancel_signal = pyqtSignal()
 
     def __init__(
             self,
             endpoint: str,
             on_finish: Callable = lambda _: None,
-            on_cancel: Callable = lambda: None,
             url_params: Optional[Dict] = None,
             data: Optional[Union[bytes, str, Dict]] = None,
             method: str = GET,
@@ -62,7 +60,6 @@ class Request(QObject):
         self.raw_data: Optional[bytes] = raw_data
 
         connect(self.on_finished_signal, on_finish)
-        connect(self.on_cancel_signal, on_cancel)
 
         self.reply: Optional[QNetworkReply] = None  # to hold the associated QNetworkReply object
         self.manager: Optional[RequestManager] = None
@@ -119,14 +116,12 @@ class Request(QObject):
 
     def cancel(self):
         """
-        Cancel the request by aborting the reply handle and calling on_cancel if available.
+        Cancel the request by aborting the reply handle
         """
         try:
             self.logger.warning(f'Request was canceled: {self}')
             if self.reply:
                 self.reply.abort()
-
-            self.on_cancel_signal.emit()
         finally:
             self._delete()
 
