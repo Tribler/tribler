@@ -71,10 +71,6 @@ class RequestManager(QNetworkAccessManager):
     def remove(self, request: Request):
         self.active_requests.discard(request)
 
-        if request.reply:
-            request.reply.deleteLater()
-            request.reply = None
-
     def show_error(self, request: Request, data: Dict) -> str:
         text = self.get_message_from_error(data)
         if self.window.core_manager.shutting_down:

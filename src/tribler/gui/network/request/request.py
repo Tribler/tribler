@@ -136,5 +136,9 @@ class Request(QObject):
             self.manager.remove(self)
             self.manager = None
 
+        if self.reply:
+            self.reply.deleteLater()
+            self.reply = None
+
     def __str__(self):
         return f'{self.method} {self.url}'
