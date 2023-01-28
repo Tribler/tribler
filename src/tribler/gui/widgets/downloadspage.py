@@ -501,10 +501,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         selected_item = self.selected_items[:1]
         if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
-            FileDownloadRequest(
+            request = FileDownloadRequest(
                 f"downloads/{selected_item[0].download_info['infohash']}/torrent",
                 on_finish,
             )
+            request_manager.add(request)
 
         self.dialog.close_dialog()
         self.dialog = None
