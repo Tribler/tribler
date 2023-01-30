@@ -27,7 +27,6 @@ from tribler.gui.defs import (
     DOWNLOADS_FILTER_INACTIVE,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.network.request.file_download_request import FileDownloadRequest
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -450,11 +449,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         selected_item = self.selected_items[:1]
         if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
-            request = FileDownloadRequest(
-                f"downloads/{selected_item[0].download_info['infohash']}/torrent",
-                on_finish,
-            )
-            request_manager.add(request)
+            request_manager.get(f"downloads/{selected_item[0].download_info['infohash']}/torrent",
+                                on_finish, priority=QNetworkRequest.LowPriority, raw_response=True)
 
         self.dialog.close_dialog()
         self.dialog = None
