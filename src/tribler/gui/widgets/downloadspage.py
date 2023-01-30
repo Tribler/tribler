@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Optional
+from typing import Optional, Tuple
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices

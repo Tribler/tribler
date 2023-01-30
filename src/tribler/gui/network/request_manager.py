@@ -4,14 +4,14 @@ import json
 import logging
 from collections import deque
 from time import time
-from typing import Callable, Dict, Optional, Set, Union
+from typing import Callable, Dict, Optional, Set
 
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.network.request import Request
+from tribler.gui.network.request import DATA_TYPE, Request
 from tribler.gui.utilities import connect
 
 
@@ -42,7 +42,7 @@ class RequestManager(QNetworkAccessManager):
             endpoint: str,
             on_finish: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
-            data: Optional[Union[bytes, str, Dict]] = None,
+            data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
             raw_response: bool = False) -> Request:
@@ -57,7 +57,7 @@ class RequestManager(QNetworkAccessManager):
              endpoint: str,
              on_finish: Callable = lambda _: None,
              url_params: Optional[Dict] = None,
-             data: Optional[Union[bytes, str, Dict]] = None,
+             data: DATA_TYPE = None,
              capture_errors: bool = True,
              priority: int = QNetworkRequest.NormalPriority,
              raw_response: bool = False) -> Request:
@@ -72,7 +72,7 @@ class RequestManager(QNetworkAccessManager):
             endpoint: str,
             on_finish: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
-            data: Optional[Union[bytes, str, Dict]] = None,
+            data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
             raw_response: bool = False) -> Request:
@@ -87,7 +87,7 @@ class RequestManager(QNetworkAccessManager):
               endpoint: str,
               on_finish: Callable = lambda _: None,
               url_params: Optional[Dict] = None,
-              data: Optional[Union[bytes, str, Dict]] = None,
+              data: DATA_TYPE = None,
               capture_errors: bool = True,
               priority: int = QNetworkRequest.NormalPriority,
               raw_response: bool = False) -> Request:
@@ -102,7 +102,7 @@ class RequestManager(QNetworkAccessManager):
                endpoint: str,
                on_finish: Callable = lambda _: None,
                url_params: Optional[Dict] = None,
-               data: Optional[Union[bytes, str, Dict]] = None,
+               data: DATA_TYPE = None,
                capture_errors: bool = True,
                priority: int = QNetworkRequest.NormalPriority,
                raw_response: bool = False) -> Request:

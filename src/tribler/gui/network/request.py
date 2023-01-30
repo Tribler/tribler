@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from time import time
-from typing import Callable, Dict, Optional, TYPE_CHECKING, Union
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from urllib.parse import urlencode
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -13,6 +13,8 @@ from tribler.gui.utilities import connect
 
 if TYPE_CHECKING:
     from tribler.gui.network.request_manager import RequestManager
+
+DATA_TYPE = Optional[Union[bytes, str, Dict, List]]
 
 
 class Request(QObject):
@@ -34,7 +36,7 @@ class Request(QObject):
             endpoint: str,
             on_finish: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
-            data: Optional[Union[bytes, str, Dict]] = None,
+            data: DATA_TYPE = None,
             method: str = GET,
             capture_errors: bool = True,
             priority=QNetworkRequest.NormalPriority,
@@ -51,7 +53,7 @@ class Request(QObject):
         self.capture_errors = capture_errors
         self.raw_response = raw_response
         self.data = data
-        if isinstance(data, Dict):
+        if isinstance(data, (Dict, List)):
             raw_data = json.dumps(data).encode('utf8')
         elif isinstance(data, str):
             raw_data = data.encode('utf8')

@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import signal
@@ -44,8 +43,8 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
-from tribler.core.utilities.process_manager import ProcessManager
 from tribler.core.utilities.network_utils import default_network_utils
+from tribler.core.utilities.process_manager import ProcessManager
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     MAGNET_SCHEME,
@@ -1222,7 +1221,11 @@ class TriblerWindow(QMainWindow):
         self.core_manager.events_manager.node_info_updated.emit(node_info)
 
     def on_channel_subscribe(self, channel_info):
-        patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": True}]
+        patch_data = [{
+            "public_key": channel_info['public_key'],
+            "id": channel_info['id'],
+            "subscribed": True
+        }]
         request_manager.patch("metadata", lambda data: self.node_info_updated(data[0]), data=patch_data)
 
     def on_channel_unsubscribe(self, channel_info):
