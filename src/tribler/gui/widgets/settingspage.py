@@ -18,7 +18,6 @@ from tribler.gui.defs import (
     PAGE_SETTINGS_SEEDING,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import (
@@ -342,12 +341,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def load_settings(self):
         self.window().settings_stacked_widget.hide()
         self.window().settings_tab.hide()
-
-        request = Request(
-            endpoint="settings",
-            on_finish=self.initialize_with_settings
-        )
-        request_manager.add(request)
+        request_manager.get("settings", self.initialize_with_settings)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "settings_general_button":
@@ -535,13 +529,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         if self.settings['download_defaults']['saveas'] != settings_data['download_defaults']['saveas']:
             self.window().update_recent_download_locations(settings_data['download_defaults']['saveas'])
         self.settings = settings_data
-
-        request = Request(
-            endpoint="settings",
-            on_finish=self.on_settings_saved,
-            method=Request.POST,
-            data=json.dumps(settings_data))
-        request_manager.add(request)
+        request_manager.post("settings", self.on_settings_saved, data=json.dumps(settings_data))
 
     def save_language_selection(self):
         ind = self.window().language_selector.currentIndex()

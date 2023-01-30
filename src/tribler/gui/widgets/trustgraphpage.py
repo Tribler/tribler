@@ -17,7 +17,6 @@ from tribler.gui.defs import (
     TB,
     TRUST_GRAPH_PEER_LEGENDS,
 )
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import connect, format_size, html_label, tr
@@ -175,13 +174,8 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
     def fetch_graph_data(self, checked=False):
         if self.rest_request:
             self.rest_request.cancel()
-        self.rest_request = Request(
-            endpoint="trustview",
-            url_params={'refresh': 1},
-            on_finish=self.on_received_data,
-            priority=QNetworkRequest.LowPriority
-        )
-        request_manager.add(self.rest_request)
+        request_manager.get("trustview", self.on_received_data, url_params={'refresh': 1},
+                            priority=QNetworkRequest.LowPriority)
 
     def on_received_data(self, data):
         if data is None or not isinstance(data, dict) or 'graph' not in data:

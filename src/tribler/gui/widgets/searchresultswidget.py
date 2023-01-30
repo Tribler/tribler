@@ -7,7 +7,6 @@ from PyQt5 import uic
 
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.utilities.utilities import Query, to_fts_query
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import connect, get_ui_file_path, tr
@@ -118,13 +117,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
 
         params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags),
                   'metadata_type': REGULAR_TORRENT, 'exclude_deleted': True}
-        request = Request(
-            endpoint='remote_query',
-            on_finish=register_request,
-            method=Request.PUT,
-            url_params=params
-        )
-        request_manager.add(request)
+        request_manager.put('remote_query', register_request, url_params=params)
 
         return True
 

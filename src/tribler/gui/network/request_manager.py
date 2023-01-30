@@ -4,18 +4,16 @@ import json
 import logging
 from collections import deque
 from time import time
-from typing import Dict, Set, TYPE_CHECKING
+from typing import Callable, Dict, Optional, Set, Union
 
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.network.request.request import Request
 from tribler.gui.network.request.shutdown_request import ShutdownRequest
 from tribler.gui.utilities import connect
-
-if TYPE_CHECKING:
-    from tribler.gui.network.request.request import Request
 
 
 class RequestManager(QNetworkAccessManager):
@@ -40,6 +38,81 @@ class RequestManager(QNetworkAccessManager):
         self.key = b""
         self.limit = limit
         self.timeout_interval = timeout_interval
+
+    def get(self,
+            endpoint: str,
+            on_finish: Callable = lambda _: None,
+            url_params: Optional[Dict] = None,
+            data: Optional[Union[bytes, str, Dict]] = None,
+            capture_errors: bool = True,
+            priority: int = QNetworkRequest.NormalPriority,
+            raw_response: bool = False) -> Request:
+
+        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
+                          method=Request.GET)
+        self.add(request)
+        return request
+
+    def post(self,
+             endpoint: str,
+             on_finish: Callable = lambda _: None,
+             url_params: Optional[Dict] = None,
+             data: Optional[Union[bytes, str, Dict]] = None,
+             capture_errors: bool = True,
+             priority: int = QNetworkRequest.NormalPriority,
+             raw_response: bool = False) -> Request:
+
+        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
+                          method=Request.POST)
+        self.add(request)
+        return request
+
+    def put(self,
+            endpoint: str,
+            on_finish: Callable = lambda _: None,
+            url_params: Optional[Dict] = None,
+            data: Optional[Union[bytes, str, Dict]] = None,
+            capture_errors: bool = True,
+            priority: int = QNetworkRequest.NormalPriority,
+            raw_response: bool = False) -> Request:
+
+        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
+                          method=Request.PUT)
+        self.add(request)
+        return request
+
+    def patch(self,
+              endpoint: str,
+              on_finish: Callable = lambda _: None,
+              url_params: Optional[Dict] = None,
+              data: Optional[Union[bytes, str, Dict]] = None,
+              capture_errors: bool = True,
+              priority: int = QNetworkRequest.NormalPriority,
+              raw_response: bool = False) -> Request:
+
+        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
+                          method=Request.PATCH)
+        self.add(request)
+        return request
+
+    def delete(self,
+               endpoint: str,
+               on_finish: Callable = lambda _: None,
+               url_params: Optional[Dict] = None,
+               data: Optional[Union[bytes, str, Dict]] = None,
+               capture_errors: bool = True,
+               priority: int = QNetworkRequest.NormalPriority,
+               raw_response: bool = False) -> Request:
+
+        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
+                          method=Request.DELETE)
+        self.add(request)
+        return request
 
     def add(self, request: Request):
         if len(self.active_requests) > self.limit:

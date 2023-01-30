@@ -9,7 +9,6 @@ from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, get_objects_with_predicate, get_ui_file_path, tr
 from tribler.gui.widgets.tagbutton import TagButton
@@ -71,11 +70,7 @@ class EditMetadataDialog(DialogContainer):
         self.dialog_widget.content_name_label.setText(self.data_item["name"])
 
         # Fetch suggestions
-        request = Request(
-            endpoint=f"knowledge/{self.infohash}/tag_suggestions",
-            on_finish=self.on_received_tag_suggestions
-        )
-        request_manager.add(request)
+        request_manager.get(f"knowledge/{self.infohash}/tag_suggestions", on_finish=self.on_received_tag_suggestions)
 
         self.update_window()
 

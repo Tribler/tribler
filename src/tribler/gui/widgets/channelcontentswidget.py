@@ -17,7 +17,6 @@ from tribler.gui.defs import (
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -131,12 +130,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.update_labels()
 
     def commit_channels(self, checked=False):  # pylint: disable=W0613
-        request = Request(
-            endpoint="channels/mychannel/0/commit",
-            on_finish=self.on_channel_committed,
-            method=Request.POST
-        )
-        request_manager.add(request)
+        request_manager.post("channels/mychannel/0/commit", on_finish=self.on_channel_committed)
 
     def initialize_content_page(
             self,
@@ -580,13 +574,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def _add_torrent_request(self, data):
         channel_id = self.model.channel_info["id"]
-        request = Request(
-            endpoint=f'collections/mychannel/{channel_id}/torrents',
-            on_finish=self._on_torrent_to_channel_added,
-            method=Request.PUT,
-            data=data,
-        )
-        request_manager.add(request)
+        request_manager.put(f'collections/mychannel/{channel_id}/torrents', on_finish=self._on_torrent_to_channel_added,
+                            data=data)
 
     def add_torrent_to_channel(self, filename):
         with open(filename, "rb") as torrent_file:

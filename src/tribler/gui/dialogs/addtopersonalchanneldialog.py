@@ -6,7 +6,6 @@ from PyQt5.QtCore import pyqtSignal
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, get_ui_file_path
 
@@ -47,13 +46,8 @@ class AddToChannelDialog(DialogContainer):
 
     def on_create_new_channel_clicked(self, checked):
         def create_channel_callback(channel_name=None):
-            request = Request(
-                endpoint="channels/mychannel/0/channels",
-                on_finish=self.on_new_channel_response,
-                method=Request.POST,
-                data=json.dumps({"name": channel_name}) if channel_name else None,
-            )
-            request_manager.add(request)
+            request_manager.post("channels/mychannel/0/channels", self.on_new_channel_response,
+                                 data=json.dumps({"name": channel_name}) if channel_name else None)
 
         NewChannelDialog(self, create_channel_callback)
 
@@ -67,13 +61,8 @@ class AddToChannelDialog(DialogContainer):
         endpoint = f"channels/mychannel/{channel_id}/{postfix}"
 
         def create_channel_callback(channel_name=None):
-            request = Request(
-                endpoint,
-                on_finish=self.on_new_channel_response,
-                method=Request.POST,
-                data=json.dumps({"name": channel_name}) if channel_name else None,
-            )
-            request_manager.add(request)
+            request_manager.post(endpoint, self.on_new_channel_response,
+                                 data=json.dumps({"name": channel_name}) if channel_name else None)
 
         NewChannelDialog(self, create_channel_callback)
 
@@ -102,19 +91,15 @@ class AddToChannelDialog(DialogContainer):
             self.load_channel(channel_id)
 
     def load_channel(self, channel_id):
-        request = Request(
-            endpoint=f"channels/mychannel/{channel_id}",
-            on_finish=lambda result: self.on_channel_contents(result, channel_id),
-            url_params={
-                "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
-                "first": 1,
-                "last": 1000,
-                "exclude_deleted": True,
-            },
-        )
-
+        request = request_manager.get(f"channels/mychannel/{channel_id}",
+                                      on_finish=lambda result: self.on_channel_contents(result, channel_id),
+                                      url_params={
+                                          "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
+                                          "first": 1,
+                                          "last": 1000,
+                                          "exclude_deleted": True,
+                                      })
         self.root_requests_list.append(request)
-        request_manager.add(request)
 
     def get_selected_channel_id(self):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()

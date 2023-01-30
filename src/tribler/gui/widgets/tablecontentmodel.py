@@ -16,7 +16,6 @@ from tribler.core.utilities.search_utils import item_rank
 from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
 from tribler.gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
@@ -363,11 +362,7 @@ class RemoteTableModel(QAbstractTableModel):
             kwargs.update({"hide_xxx": self.hide_xxx})
         rest_endpoint_url = kwargs.pop("rest_endpoint_url") if "rest_endpoint_url" in kwargs else self.endpoint_url
         self._logger.info(f'Request to "{rest_endpoint_url}":{kwargs}')
-        request = Request(
-            endpoint=rest_endpoint_url,
-            on_finish=self.on_query_results,
-            url_params=kwargs)
-        request_manager.add(request)
+        request_manager.get(rest_endpoint_url, self.on_query_results, url_params=kwargs)
 
     def on_query_results(self, response, remote=False, on_top=False):
         """
@@ -613,13 +608,8 @@ class ChannelContentModel(RemoteTableModel):
             data_item_dict.update(response)
             self.info_changed.emit([data_item_dict])
 
-        request = Request(
-            endpoint=f"metadata/{item['public_key']}/{item['id']}",
-            on_finish=on_row_update_results,
-            method=Request.PATCH,
-            data=json.dumps({attribute_name: new_value}),
-        )
-        request_manager.add(request)
+        request_manager.patch(f"metadata/{item['public_key']}/{item['id']}", on_row_update_results,
+                              data=json.dumps({attribute_name: new_value}))
 
         # ACHTUNG: instead of reloading the whole row from DB, this line just changes the displayed value!
         self.data_items[index.row()][attribute_name] = new_value
@@ -746,15 +736,14 @@ class PersonalChannelsModel(ChannelContentModel):
         # button, by the moment the request callback triggers some actions on the model,
         # QT could have already deleted the underlying model object, which will result in
         # "wrapped C/C++ object has been deleted" error (see e.g. https://github.com/Tribler/tribler/issues/6083)
-        for data, method in ((patch_data, Request.PATCH), (delete_data, Request.DELETE)):
-            if data:
-                self.remove_items(data)
-                request = Request(
-                    endpoint="metadata",
-                    data=json.dumps(data),
-                    method=method
-                )
-                request_manager.add(request)
+
+        if patch_data:
+            self.remove_items(patch_data)
+            request_manager.patch("metadata", data=patch_data)
+
+        if delete_data:
+            self.remove_items(delete_data)
+            request_manager.delete("metadata", data=delete_data)
 
     def create_new_channel(self, channel_name=None):
         public_key = self.channel_info.get("public_key", '')
@@ -762,14 +751,8 @@ class PersonalChannelsModel(ChannelContentModel):
 
         endpoint = self.endpoint_url_override or f"channels/{public_key}/{channel_id}"
         postfix = "channels" if not channel_id else "collections"
-
-        request = Request(
-            endpoint=f'{endpoint}/{postfix}',
-            on_finish=self.on_create_query_results,
-            method=Request.POST,
-            data=json.dumps({"name": channel_name}) if channel_name else None,
-        )
-        request_manager.add(request)
+        request_manager.post(f'{endpoint}/{postfix}', self.on_create_query_results,
+                             data=json.dumps({"name": channel_name}) if channel_name else None)
 
     def on_create_query_results(self, response, **kwargs):
         # This is a hack to put the newly created object at the top of the table

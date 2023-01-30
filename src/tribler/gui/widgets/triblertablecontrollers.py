@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import QAction
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, dict_item_is_any_of, get_health, tr
@@ -181,18 +180,10 @@ class HealthCheckerMixin:
         data_item['health'] = HEALTH_CHECKING
         health_cell_index = self.model.index(row, self.model.column_position[Column.HEALTH])
         self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
-
-        request = Request(
-            endpoint=f"metadata/torrents/{infohash}/health",
-            on_finish=self.on_health_response,
-            url_params={
-                "nowait": True,
-                "refresh": True
-            },
-            capture_errors=False,
-            priority=QNetworkRequest.LowPriority,
-        )
-        request_manager.add(request)
+        request_manager.get(f"metadata/torrents/{infohash}/health", self.on_health_response,
+                            url_params={"nowait": True, "refresh": True},
+                            capture_errors=False,
+                            priority=QNetworkRequest.LowPriority)
 
     def on_health_response(self, response):
         total_seeders = 0
@@ -287,15 +278,11 @@ class ContextMenuMixin:
 
         def on_add_to_channel(_):
             def on_confirm_clicked(channel_id):
-                request = Request(
-                    endpoint=f"collections/mychannel/{channel_id}/copy",
-                    on_finish=lambda _: self.table_view.window().tray_show_message(
-                        tr("Channel update"), tr("Torrent(s) added to your channel")
-                    ),
-                    data=json.dumps(entries),
-                    method=Request.POST,
-                )
-                request_manager.add(request)
+                request_manager.post(f"collections/mychannel/{channel_id}/copy",
+                                     on_finish=lambda _: self.table_view.window().tray_show_message(
+                                         tr("Channel update"), tr("Torrent(s) added to your channel")
+                                     ),
+                                     data=json.dumps(entries))
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Copy")
@@ -307,12 +294,7 @@ class ContextMenuMixin:
                     {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
                 ]
                 self.model.remove_items(entries)
-                request = Request(
-                    endpoint="metadata",
-                    data=json.dumps(changes_list),
-                    method=Request.PATCH
-                )
-                request_manager.add(request)
+                request_manager.patch("metadata", data=changes_list)
 
             self.table_view.window().add_to_channel_dialog.show_dialog(
                 on_confirm_clicked, confirm_button_text=tr("Move")

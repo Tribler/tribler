@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
 from tribler.core.utilities.simpledefs import dlstatus_strings
 from tribler.gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 
@@ -199,14 +198,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         if not self.current_download:
             return
         included_list = self.window().download_files_list.get_selected_files_indexes()
-        request = Request(
-            endpoint=f"downloads/{self.current_download['infohash']}",
-            method=Request.PATCH,
-            data={
-                "selected_files": included_list
-            }
-        )
-        request_manager.add(request)
+        request_manager.patch(f"downloads/{self.current_download['infohash']}", data={"selected_files": included_list})
 
     def on_copy_magnet_clicked(self, checked):
         trackers = [

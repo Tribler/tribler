@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -91,18 +90,9 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
         description = self.window().create_torrent_description_field.toPlainText()
 
         is_seed = self.window().seed_after_adding_checkbox.isChecked()
-        request = Request(
-            endpoint='createtorrent',
-            on_finish=self.on_torrent_created,
-            data={
-                "name": name,
-                "description": description,
-                "files": files_list
-            },
-            url_params={'download': 1} if is_seed else None,
-            method=Request.POST
-        )
-        request_manager.add(request)
+        request_manager.post('createtorrent', self.on_torrent_created,
+                             data={"name": name, "description": description, "files": files_list},
+                             url_params={'download': 1} if is_seed else None)
         # Show creating torrent text
         self.window().edit_channel_create_torrent_progress_label.show()
 
@@ -118,15 +108,7 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
             self.add_torrent_to_channel(result['torrent'])
 
     def add_torrent_to_channel(self, torrent):
-        request = Request(
-            endpoint="mychannel/torrents",
-            on_finish=self.on_torrent_to_channel_added,
-            data={
-                "torrent": torrent
-            },
-            method=Request.PUT
-        )
-        request_manager.add(request)
+        request_manager.put("mychannel/torrents", self.on_torrent_to_channel_added, data={"torrent": torrent})
 
     def on_torrent_to_channel_added(self, result):
         if not result:

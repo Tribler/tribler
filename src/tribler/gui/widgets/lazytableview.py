@@ -11,7 +11,6 @@ from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORR
 
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
 from tribler.gui.dialogs.editmetadatadialog import EditMetadataDialog
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, data_item2uri, get_image_path, index2uri
 from tribler.gui.widgets.tablecontentdelegate import TriblerContentDelegate
@@ -282,10 +281,6 @@ class TriblerContentTableView(QTableView):
 
     def save_edited_metadata(self, index: QModelIndex, statements: List[Dict]):
         data_item = self.model().data_items[index.row()]
-        request = Request(
-            endpoint=f"knowledge/{data_item['infohash']}",
-            on_finish=lambda _, ind=index, stmts=statements: self.on_metadata_edited(ind, statements),
-            data=json.dumps({"statements": statements}),
-            method=Request.PATCH,
-        )
-        request_manager.add(request)
+        request_manager.patch(f"knowledge/{data_item['infohash']}",
+                              on_finish=lambda _, ind=index, stmts=statements: self.on_metadata_edited(ind, statements),
+                              data=json.dumps({"statements": statements}))

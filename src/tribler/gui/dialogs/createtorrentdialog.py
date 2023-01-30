@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 from tribler.gui.defs import BUTTON_TYPE_NORMAL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
@@ -114,20 +113,12 @@ class CreateTorrentDialog(DialogContainer):
         description = self.dialog_widget.create_torrent_description_field.toPlainText()
 
         is_seed = self.dialog_widget.seed_after_adding_checkbox.isChecked()
-        self.rest_request1 = Request(
+        self.rest_request1 = request_manager.post(
             endpoint='createtorrent',
             on_finish=self.on_torrent_created,
-            method=Request.POST,
             url_params={'download': 1} if is_seed else None,
-            data={
-                "name": self.name,
-                "description": description,
-                "files": files_list,
-                "export_dir": export_dir
-            },
+            data={"name": self.name, "description": description, "files": files_list, "export_dir": export_dir},
         )
-        request_manager.add(self.rest_request1)
-
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText(tr("Creating torrent. Please wait..."))
 
     def on_torrent_created(self, result):

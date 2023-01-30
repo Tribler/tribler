@@ -6,7 +6,6 @@ from PyQt5.QtGui import QIcon, QImage, QPixmap
 from PyQt5.QtWidgets import QFileDialog, QPushButton
 
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import connect, get_image_path, get_ui_file_path, tr
@@ -144,16 +143,9 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
         if self.description_text is not None:
             descr_changed = True
-
-            request = Request(
-                endpoint=f'channels/{self.channel_pk}/{self.channel_id}/description',
-                on_finish=self._on_description_received,
-                method=Request.PUT,
-                data={
-                    "description_text": self.description_text
-                },
-            )
-            request_manager.add(request)
+            request_manager.put(f'channels/{self.channel_pk}/{self.channel_id}/description',
+                                on_finish=self._on_description_received,
+                                data={"description_text": self.description_text})
 
         if self.channel_thumbnail_bytes is not None:
             thumb_changed = True
@@ -161,14 +153,10 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             def _on_thumbnail_updated(_):
                 pass
 
-            request = Request(
-                endpoint=f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
-                on_finish=_on_thumbnail_updated,
-                method=Request.PUT,
-                data=self.channel_thumbnail_bytes,
-                raw_response=True,
-            )
-            request_manager.add(request)
+            request_manager.put(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
+                                on_finish=_on_thumbnail_updated,
+                                data=self.channel_thumbnail_bytes,
+                                raw_response=True)
 
         if descr_changed or thumb_changed:
             self.description_changed.emit()
@@ -243,12 +231,9 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.description_text = None
             self.description_text_preview.setMarkdown("")
 
-        request = Request(
-            endpoint=f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
-            on_finish=self._on_thumbnail_received,
-            raw_response=True,
-        )
-        request_manager.add(request)
+        request_manager.get(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
+                            on_finish=self._on_thumbnail_received,
+                            raw_response=True)
 
     def set_widget_visible(self, show):
         self.bottom_buttons_container.setHidden(True)
@@ -290,12 +275,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.edit_enabled = edit
         self.floating_edit_button.setHidden(not self.edit_enabled)
         self.channel_pk, self.channel_id = channel_pk, channel_id
-
-        request = Request(
-            endpoint=f'channels/{self.channel_pk}/{self.channel_id}/description',
-            on_finish=self._on_description_received,
-        )
-        request_manager.add(request)
+        request_manager.get(f'channels/{self.channel_pk}/{self.channel_id}/description', self._on_description_received)
 
     def enable_edit(self):
         self.floating_edit_button.setHidden(False)

@@ -12,7 +12,6 @@ from tribler.core.utilities.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme
 from tribler.gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
-from tribler.gui.network.request.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import (
     connect,
@@ -145,13 +144,8 @@ class StartDownloadDialog(DialogContainer):
         params = {'uri': self.download_uri}
         if direct:
             params['hops'] = 0
-        self.rest_request = Request(
-            endpoint='torrentinfo',
-            on_finish=self.on_received_metainfo,
-            url_params=params,
-            capture_errors=False,
-        )
-        request_manager.add(self.rest_request)
+        self.rest_request = request_manager.get('torrentinfo', on_finish=self.on_received_metainfo,
+                                                url_params=params, capture_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
             fetch_mode = tr("directly") if direct else tr("anonymously")
