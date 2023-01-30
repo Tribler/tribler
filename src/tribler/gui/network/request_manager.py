@@ -12,7 +12,6 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request.request import Request
-from tribler.gui.network.request.shutdown_request import ShutdownRequest
 from tribler.gui.utilities import connect
 
 
@@ -173,11 +172,10 @@ class RequestManager(QNetworkAccessManager):
 
         return json.dumps(d)
 
-    def clear(self, skip_shutdown_request=True):
-        for req in list(self.active_requests):
-            if skip_shutdown_request and isinstance(req, ShutdownRequest):
-                continue
-            req.cancel()
+    def clear(self):
+        for request in list(self.active_requests):
+            if request.cancellable:
+                request.cancel()
 
     def _drop_timed_out_requests(self):
         for req in list(self.active_requests):

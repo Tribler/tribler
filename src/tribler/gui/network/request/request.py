@@ -67,6 +67,7 @@ class Request(QObject):
 
         self.time = time()
         self.status_code = 0
+        self.cancellable = True
 
     def set_manager(self, manager: RequestManager):
         self.manager = manager

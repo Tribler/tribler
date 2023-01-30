@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Optional
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
+from PyQt5.QtNetwork import QNetworkRequest
 
 from tribler.core.utilities.process_manager import ProcessManager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
-from tribler.gui.network.request.shutdown_request import ShutdownRequest
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect
 
@@ -238,8 +238,9 @@ class CoreManager(QObject):
                 else:
                     self._logger.warning("Re-sending shutdown request to Tribler Core")
 
-                request = ShutdownRequest(shutdown_request_processed)
-                request_manager.add(request)
+                request = request_manager.put("shutdown", shutdown_request_processed,
+                                              priority=QNetworkRequest.HighPriority)
+                request.cancellable = False
 
             send_shutdown_request(initial=True)
 
