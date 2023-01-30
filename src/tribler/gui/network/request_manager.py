@@ -11,7 +11,7 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.network.request.request import Request
+from tribler.gui.network.request import Request
 from tribler.gui.utilities import connect
 
 

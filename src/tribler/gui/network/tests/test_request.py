@@ -1,4 +1,4 @@
-from tribler.gui.network.request.request import Request
+from tribler.gui.network.request import Request
 
 
 def test_default_constructor():

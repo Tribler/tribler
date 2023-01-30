@@ -19,7 +19,7 @@ from tribler.core.utilities.utilities import has_bep33_support
 from tribler.gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.event_request_manager import received_events as tribler_received_events
-from tribler.gui.network.request.request import Request
+from tribler.gui.network.request import Request
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.resource_monitor import GuiResourceMonitor
 from tribler.gui.utilities import connect, format_size, get_ui_file_path
