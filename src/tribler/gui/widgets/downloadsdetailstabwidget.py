@@ -4,9 +4,8 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
 from tribler.core.utilities.simpledefs import dlstatus_strings
-
 from tribler.gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 
 INCLUDED_FILES_CHANGE_DELAY = 1000  # milliseconds
@@ -77,9 +76,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         # that's a different download. Thus, we must differ between the old one and the new one, to prevent
         # "caching" the previous parameters. The most reliable way to make difference is by time_added property
         did_change = (
-            self.current_download is None
-            or self.current_download.get('infohash') != download.get('infohash')
-            or self.current_download.get('time_added') != download.get('time_added')
+                self.current_download is None
+                or self.current_download.get('infohash') != download.get('infohash')
+                or self.current_download.get('time_added') != download.get('time_added')
         )
         self.current_download = download
         # When we switch to another download, we want to fixate the changes user did to selected files.
@@ -199,10 +198,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
         if not self.current_download:
             return
         included_list = self.window().download_files_list.get_selected_files_indexes()
-        post_data = {"selected_files": included_list}
-        TriblerNetworkRequest(
-            f"downloads/{self.current_download['infohash']}", lambda _: None, method='PATCH', data=post_data
-        )
+        request_manager.patch(f"downloads/{self.current_download['infohash']}", data={"selected_files": included_list})
 
     def on_copy_magnet_clicked(self, checked):
         trackers = [

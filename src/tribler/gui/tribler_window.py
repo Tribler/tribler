@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import signal
@@ -44,8 +43,8 @@ from PyQt5.QtWidgets import (
 from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
-from tribler.core.utilities.process_manager import ProcessManager
 from tribler.core.utilities.network_utils import default_network_utils
+from tribler.core.utilities.process_manager import ProcessManager
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     MAGNET_SCHEME,
@@ -85,12 +84,11 @@ from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import TriblerGuiTestException
-from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import (
-    TriblerNetworkRequest,
-    TriblerRequestManager,
+from tribler.gui.network.request_manager import (
+    RequestManager,
     request_manager,
 )
+from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.upgrade_manager import UpgradeManager
 from tribler.gui.utilities import (
     connect,
@@ -233,7 +231,7 @@ class TriblerWindow(QMainWindow):
         sys.excepthook = self.error_handler.gui_error
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
-        TriblerRequestManager.window = self
+        RequestManager.window = self
         self.tribler_status_bar.hide()
 
         self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
@@ -401,10 +399,7 @@ class TriblerWindow(QMainWindow):
         raise TriblerGuiTestException("Tribler GUI Test Exception")
 
     def on_test_tribler_core_exception(self, *_):
-        def dummy_callback(_):
-            pass
-
-        TriblerNetworkRequest("/debug/core_test_exception", dummy_callback, method='POST')
+        request_manager.post("/debug/core_test_exception")
 
     def restore_window_geometry(self):
         screen_geometry: QRect = QApplication.desktop().availableGeometry()
@@ -446,12 +441,8 @@ class TriblerWindow(QMainWindow):
             self.add_to_channel_dialog.clear_channels_tree()
 
         def create_channel_callback(channel_name):
-            TriblerNetworkRequest(
-                "channels/mychannel/0/channels",
-                update_channels_state,
-                method='POST',
-                raw_data=json.dumps({"name": channel_name}) if channel_name else None,
-            )
+            request_manager.post("channels/mychannel/0/channels", update_channels_state,
+                                 data={"name": channel_name} if channel_name else None)
 
         NewChannelDialog(self, create_channel_callback)
 
@@ -683,16 +674,15 @@ class TriblerWindow(QMainWindow):
 
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
-        post_data = {
-            "uri": uri,
-            "anon_hops": anon_hops,
-            "safe_seeding": safe_seeding,
-            "destination": destination,
-            "selected_files": selected_files,
-        }
-        TriblerNetworkRequest(
-            "downloads", callback if callback else self.on_download_added, method='PUT', data=post_data
-        )
+        request_manager.put("downloads",
+                            on_finish=callback if callback else self.on_download_added,
+                            data={
+                                "uri": uri,
+                                "anon_hops": anon_hops,
+                                "safe_seeding": safe_seeding,
+                                "destination": destination,
+                                "selected_files": selected_files,
+                            })
 
         self.update_recent_download_locations(destination)
 
@@ -711,12 +701,10 @@ class TriblerWindow(QMainWindow):
                 post_data['uri'] = uri
 
             if post_data:
-                TriblerNetworkRequest(
-                    f"channels/mychannel/{channel_id}/torrents",
-                    lambda _: self.tray_show_message(tr("Channel update"), tr("Torrent(s) added to your channel")),
-                    method='PUT',
-                    data=post_data,
-                )
+                request_manager.put(f"channels/mychannel/{channel_id}/torrents",
+                                    on_finish=lambda _: self.tray_show_message(tr("Channel update"),
+                                                                               tr("Torrent(s) added to your channel")),
+                                    data=post_data)
 
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
 
@@ -725,12 +713,10 @@ class TriblerWindow(QMainWindow):
             post_data = {'torrent': torrent_data}
 
             if post_data:
-                TriblerNetworkRequest(
-                    f"channels/mychannel/{channel_id}/torrents",
-                    lambda _: self.tray_show_message(tr("Channel update"), tr("Torrent(s) added to your channel")),
-                    method='PUT',
-                    data=post_data,
-                )
+                request_manager.put(f"channels/mychannel/{channel_id}/torrents",
+                                    on_finish=lambda _: self.tray_show_message(tr("Channel update"),
+                                                                               tr("Torrent(s) added to your channel")),
+                                    data=post_data)
 
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
 
@@ -741,7 +727,7 @@ class TriblerWindow(QMainWindow):
         # We do not want to bother the database on petty 1-character queries
         if len(text) < 2:
             return
-        TriblerNetworkRequest("search/completions", self.on_received_search_completions, url_params={'q': text})
+        request_manager.get("search/completions", self.on_received_search_completions, url_params={'q': text})
 
     def on_received_search_completions(self, completions):
         if completions is None:
@@ -754,14 +740,14 @@ class TriblerWindow(QMainWindow):
             self.search_completion_model.setStringList(completions_list)
 
     def fetch_settings(self):
-        TriblerNetworkRequest("settings", self.received_settings, capture_core_errors=False)
+        request_manager.get("settings", self.received_settings, capture_errors=False)
 
     def received_settings(self, settings):
         if not settings:
             return
         # If we cannot receive the settings, stop Tribler with an option to send the crash report.
         if 'error' in settings:
-            raise RuntimeError(TriblerRequestManager.get_message_from_error(settings))
+            raise RuntimeError(RequestManager.get_message_from_error(settings))
 
         # If there is any pending dialog (likely download dialog or error dialog of setting not available),
         # close the dialog
@@ -801,7 +787,7 @@ class TriblerWindow(QMainWindow):
         self.trust_page.load_history()
 
     def load_token_balance(self):
-        TriblerNetworkRequest("bandwidth/statistics", self.received_bandwidth_statistics, capture_core_errors=False)
+        request_manager.get("bandwidth/statistics", self.received_bandwidth_statistics, capture_errors=False)
 
     def received_bandwidth_statistics(self, statistics):
         if not statistics or "statistics" not in statistics:
@@ -991,13 +977,12 @@ class TriblerWindow(QMainWindow):
                         show_message_box(f'"{self.chosen_dir}" is not a directory')
                         return
 
-                    TriblerNetworkRequest(
-                        f"collections/mychannel/{channel_id}/torrents",
-                        lambda _: self.tray_show_message(
+                    request_manager.put(
+                        endpoint=f"collections/mychannel/{channel_id}/torrents",
+                        on_finish=lambda _: self.tray_show_message(
                             tr("Channels update"), tr("%s added to your channel") % self.chosen_dir
                         ),
-                        method='PUT',
-                        data={"torrents_dir": self.chosen_dir},
+                        data={"torrents_dir": self.chosen_dir}
                     )
 
                 self.window().add_to_channel_dialog.show_dialog(
@@ -1232,25 +1217,22 @@ class TriblerWindow(QMainWindow):
         connect(self.dialog.button_clicked, self.on_skip_conversion_dialog)
         self.dialog.show()
 
+    def node_info_updated(self, node_info):
+        self.core_manager.events_manager.node_info_updated.emit(node_info)
+
     def on_channel_subscribe(self, channel_info):
-        patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": True}]
-        TriblerNetworkRequest(
-            "metadata",
-            lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
-            raw_data=json.dumps(patch_data),
-            method='PATCH',
-        )
+        patch_data = [{
+            "public_key": channel_info['public_key'],
+            "id": channel_info['id'],
+            "subscribed": True
+        }]
+        request_manager.patch("metadata", lambda data: self.node_info_updated(data[0]), data=patch_data)
 
     def on_channel_unsubscribe(self, channel_info):
         def _on_unsubscribe_action(action):
             if action == 0:
                 patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": False}]
-                TriblerNetworkRequest(
-                    "metadata",
-                    lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
-                    raw_data=json.dumps(patch_data),
-                    method='PATCH',
-                )
+                request_manager.patch("metadata", lambda data: self.node_info_updated(data[0]), data=patch_data)
             if self.dialog:
                 self.dialog.close_dialog()
                 self.dialog = None
@@ -1272,12 +1254,7 @@ class TriblerWindow(QMainWindow):
         def _on_delete_action(action):
             if action == 0:
                 delete_data = [{"public_key": channel_info['public_key'], "id": channel_info['id']}]
-                TriblerNetworkRequest(
-                    "metadata",
-                    lambda data: self.core_manager.events_manager.node_info_updated.emit(data[0]),
-                    raw_data=json.dumps(delete_data),
-                    method='DELETE',
-                )
+                request_manager.delete("metadata", lambda data: self.node_info_updated(data[0]), data=delete_data)
             if self.dialog:
                 self.dialog.close_dialog()
                 self.dialog = None

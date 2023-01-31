@@ -9,11 +9,10 @@ from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy
 
 from tribler.core.utilities.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_url, url_to_path
-
 from tribler.gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import (
     connect,
     format_size,
@@ -122,7 +121,7 @@ class StartDownloadDialog(DialogContainer):
 
     def close_dialog(self, checked=False):
         if self.rest_request:
-            self.rest_request.cancel_request()
+            self.rest_request.cancel()
 
         if self.metainfo_fetch_timer:
             self.metainfo_fetch_timer.stop()
@@ -145,9 +144,8 @@ class StartDownloadDialog(DialogContainer):
         params = {'uri': self.download_uri}
         if direct:
             params['hops'] = 0
-        self.rest_request = TriblerNetworkRequest(
-            'torrentinfo', self.on_received_metainfo, capture_core_errors=False, url_params=params
-        )
+        self.rest_request = request_manager.get('torrentinfo', on_finish=self.on_received_metainfo,
+                                                url_params=params, capture_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:
             fetch_mode = tr("directly") if direct else tr("anonymously")
@@ -224,11 +222,11 @@ class StartDownloadDialog(DialogContainer):
             label_text = tr("Torrent size: ") + format_size(total_files_size)
         else:
             label_text = (
-                tr("Selected: ")
-                + format_size(selected_files_size)
-                + " / "
-                + tr("Total: ")
-                + format_size(total_files_size)
+                    tr("Selected: ")
+                    + format_size(selected_files_size)
+                    + " / "
+                    + tr("Total: ")
+                    + format_size(total_files_size)
             )
         self.dialog_widget.loading_files_label.setStyleSheet("color:#ffffff;")
         self.dialog_widget.loading_files_label.setText(label_text)

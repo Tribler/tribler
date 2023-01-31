@@ -19,8 +19,9 @@ from tribler.core.utilities.utilities import has_bep33_support
 from tribler.gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.event_request_manager import received_events as tribler_received_events
+from tribler.gui.network.request import Request
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.resource_monitor import GuiResourceMonitor
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest, performed_requests as tribler_performed_requests
 from tribler.gui.utilities import connect, format_size, get_ui_file_path
 from tribler.gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 from tribler.gui.widgets.ipv8health import MonitorWidget
@@ -144,9 +145,7 @@ class DebugWindow(QMainWindow):
     def showEvent(self, show_event):
         if self.ipv8_health_widget and self.ipv8_health_widget.isVisible():
             self.ipv8_health_widget.resume()
-            TriblerNetworkRequest(
-                "ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT'
-            )
+            request_manager.put("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True})
 
     def run_with_timer(self, call_fn, timeout=DEBUG_PANE_REFRESH_TIMEOUT):
         call_fn()
@@ -252,7 +251,7 @@ class DebugWindow(QMainWindow):
         widget.addTopLevelItem(item)
 
     def load_general_tab(self):
-        TriblerNetworkRequest("statistics/tribler", self.on_tribler_statistics)
+        request_manager.get("statistics/tribler", self.on_tribler_statistics)
 
     def on_tribler_statistics(self, data):
         if not data:
@@ -320,15 +319,16 @@ class DebugWindow(QMainWindow):
 
     def load_requests_tab(self):
         self.window().requests_tree_widget.clear()
-        for request, status_code in sorted(tribler_performed_requests, key=lambda rq: rq[0].time):
-            endpoint = request.url
+        for request in request_manager.performed_requests:
+            endpoint = request.endpoint
             method = request.method
-            data = request.raw_data
+            data = request.data
             timestamp = request.time
+            status_code = request.status_code
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
             item.setText(0, f"{method} {repr(endpoint)} {repr(data)}")
-            item.setText(1, ("%d" % status_code) if status_code else "unknown")
+            item.setText(1, str(status_code or "unknown"))
             item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
 
@@ -336,7 +336,7 @@ class DebugWindow(QMainWindow):
         """
         Initiate a request to the Tribler core to fetch statistics on bandwidth accounting.
         """
-        TriblerNetworkRequest("bandwidth/statistics", self.on_bandwidth_statistics)
+        request_manager.get("bandwidth/statistics", self.on_bandwidth_statistics)
 
     def on_bandwidth_statistics(self, data: Dict) -> None:
         """
@@ -350,7 +350,7 @@ class DebugWindow(QMainWindow):
             self.create_and_add_widget_item(key, value, self.window().bandwidth_tree_widget)
 
     def load_ipv8_general_tab(self):
-        TriblerNetworkRequest("statistics/ipv8", self.on_ipv8_general_stats)
+        request_manager.get("statistics/ipv8", self.on_ipv8_general_stats)
 
     def on_ipv8_general_stats(self, data):
         if not data:
@@ -364,7 +364,7 @@ class DebugWindow(QMainWindow):
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
-        TriblerNetworkRequest("ipv8/overlays", self.on_ipv8_community_stats)
+        request_manager.get("ipv8/overlays", self.on_ipv8_community_stats)
 
     def _colored_peer_count(self, peer_count, max_peers):
         limits = [20, max_peers + 1]
@@ -440,7 +440,7 @@ class DebugWindow(QMainWindow):
     def load_ipv8_community_details_tab(self):
         if self.ipv8_statistics_enabled:
             self.window().ipv8_statistics_error_label.setHidden(True)
-            TriblerNetworkRequest("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
+            request_manager.get("ipv8/overlays/statistics", self.on_ipv8_community_detail_stats)
         else:
             self.window().ipv8_statistics_error_label.setHidden(False)
             self.window().ipv8_communities_details_widget.setHidden(True)
@@ -489,7 +489,7 @@ class DebugWindow(QMainWindow):
             # We already loaded the widget, just resume it.
             self.ipv8_health_widget.resume()
         # Whether the widget is newly loaded or not, start the measurements.
-        TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True}, method='PUT')
+        request_manager.put("ipv8/asyncio/drift", self.on_ipv8_health_enabled, data={"enable": True})
 
     def hide_ipv8_health_widget(self):
         """
@@ -500,7 +500,7 @@ class DebugWindow(QMainWindow):
         """
         if self.ipv8_health_widget is not None and not self.ipv8_health_widget.is_paused:
             self.ipv8_health_widget.pause()
-            TriblerNetworkRequest("ipv8/asyncio/drift", lambda _: None, data={"enable": False}, method='PUT')
+            request_manager.put("ipv8/asyncio/drift", data={"enable": False})
 
     def on_ipv8_health(self, data):
         """
@@ -518,7 +518,11 @@ class DebugWindow(QMainWindow):
         """
         if not data:
             return
-        self.run_with_timer(lambda: TriblerNetworkRequest("ipv8/asyncio/drift", self.on_ipv8_health), 100)
+
+        def send_request():
+            request_manager.get("ipv8/asyncio/drift", self.on_ipv8_health)
+
+        self.run_with_timer(send_request, 100)
 
     def add_items_to_tree(self, tree, items, keys):
         tree.clear()
@@ -536,7 +540,7 @@ class DebugWindow(QMainWindow):
 
     def load_tunnel_circuits_tab(self):
         self.window().circuits_tree_widget.setColumnWidth(3, 200)
-        TriblerNetworkRequest("ipv8/tunnel/circuits", self.on_tunnel_circuits)
+        request_manager.get("ipv8/tunnel/circuits", self.on_tunnel_circuits)
 
     def on_tunnel_circuits(self, circuits):
         if not circuits:
@@ -553,7 +557,7 @@ class DebugWindow(QMainWindow):
         )
 
     def load_tunnel_relays_tab(self):
-        TriblerNetworkRequest("ipv8/tunnel/relays", self.on_tunnel_relays)
+        request_manager.get("ipv8/tunnel/relays", self.on_tunnel_relays)
 
     def on_tunnel_relays(self, data):
         if data:
@@ -564,7 +568,7 @@ class DebugWindow(QMainWindow):
             )
 
     def load_tunnel_exits_tab(self):
-        TriblerNetworkRequest("ipv8/tunnel/exits", self.on_tunnel_exits)
+        request_manager.get("ipv8/tunnel/exits", self.on_tunnel_exits)
 
     def on_tunnel_exits(self, data):
         if data:
@@ -575,7 +579,7 @@ class DebugWindow(QMainWindow):
             )
 
     def load_tunnel_swarms_tab(self):
-        TriblerNetworkRequest("ipv8/tunnel/swarms", self.on_tunnel_swarms)
+        request_manager.get("ipv8/tunnel/swarms", self.on_tunnel_swarms)
 
     def on_tunnel_swarms(self, data):
         if data:
@@ -596,7 +600,7 @@ class DebugWindow(QMainWindow):
 
     def load_tunnel_peers_tab(self):
         self.window().peers_tree_widget.setColumnWidth(2, 300)
-        TriblerNetworkRequest("ipv8/tunnel/peers", self.on_tunnel_peers)
+        request_manager.get("ipv8/tunnel/peers", self.on_tunnel_peers)
 
     def on_tunnel_peers(self, data):
         if data:
@@ -605,7 +609,7 @@ class DebugWindow(QMainWindow):
             )
 
     def load_dht_statistics_tab(self):
-        TriblerNetworkRequest("ipv8/dht/statistics", self.on_dht_statistics)
+        request_manager.get("ipv8/dht/statistics", self.on_dht_statistics)
 
     def on_dht_statistics(self, data):
         if not data:
@@ -615,7 +619,7 @@ class DebugWindow(QMainWindow):
             self.create_and_add_widget_item(key, value, self.window().dhtstats_tree_widget)
 
     def load_dht_buckets_tab(self):
-        TriblerNetworkRequest("ipv8/dht/buckets", self.on_dht_buckets)
+        request_manager.get("ipv8/dht/buckets", self.on_dht_buckets)
 
     def on_dht_buckets(self, data):
         if data:
@@ -661,7 +665,7 @@ class DebugWindow(QMainWindow):
         except psutil.AccessDenied as exc:
             gui_item.setText(0, f"Unable to get open files for GUI ({exc})")
 
-        TriblerNetworkRequest("debug/open_files", self.on_core_open_files)
+        request_manager.get("debug/open_files", self.on_core_open_files)
 
     def on_core_open_files(self, data):
         if not data:
@@ -677,7 +681,7 @@ class DebugWindow(QMainWindow):
             core_item.addChild(item)
 
     def load_open_sockets_tab(self):
-        TriblerNetworkRequest("debug/open_sockets", self.on_core_open_sockets)
+        request_manager.get("debug/open_sockets", self.on_core_open_sockets)
 
     def on_core_open_sockets(self, data):
         if not data:
@@ -703,7 +707,7 @@ class DebugWindow(QMainWindow):
             self.window().open_sockets_tree_widget.addTopLevelItem(item)
 
     def load_threads_tab(self):
-        TriblerNetworkRequest("debug/threads", self.on_core_threads)
+        request_manager.get("debug/threads", self.on_core_threads)
 
     def on_core_threads(self, data):
         if not data:
@@ -741,7 +745,7 @@ class DebugWindow(QMainWindow):
     def refresh_cpu_plot(self):
         # To update the core CPU graph, call Debug REST API to get the history
         # and update the CPU graph after receiving the response.
-        TriblerNetworkRequest("debug/cpu/history", self.on_core_cpu_history)
+        request_manager.get("debug/cpu/history", self.on_core_cpu_history)
 
         # GUI CPU graph can be simply updated using the data from GuiResourceMonitor object.
         self._update_cpu_graph(self.gui_cpu_plot, self.resource_monitor.get_cpu_history_dict())
@@ -779,7 +783,7 @@ class DebugWindow(QMainWindow):
 
     def load_profiler_tab(self):
         self.window().toggle_profiler_button.setEnabled(False)
-        TriblerNetworkRequest("debug/profiler", self.on_profiler_info)
+        request_manager.get("debug/profiler", self.on_profiler_info)
 
     def on_profiler_info(self, data):
         if not data:
@@ -795,7 +799,8 @@ class DebugWindow(QMainWindow):
         self.toggling_profiler = True
         self.window().toggle_profiler_button.setEnabled(False)
         method = "DELETE" if self.profiler_enabled else "PUT"
-        TriblerNetworkRequest("debug/profiler", self.on_profiler_state_changed, method=method)
+        request = Request("debug/profiler", self.on_profiler_state_changed, method=method)
+        request_manager.add(request)
 
     def on_profiler_state_changed(self, data):
         if not data:
@@ -812,7 +817,7 @@ class DebugWindow(QMainWindow):
     def refresh_memory_plot(self):
         # To update the core memory graph, call Debug REST API to get the history
         # and update the memory graph after receiving the response.
-        TriblerNetworkRequest("debug/memory/history", self.on_core_memory_history)
+        request_manager.get("debug/memory/history", self.on_core_memory_history)
 
         # GUI memory graph can be simply updated using the data from GuiResourceMonitor object.
         self._update_memory_graph(self.gui_memory_plot, self.resource_monitor.get_memory_history_dict())
@@ -831,7 +836,7 @@ class DebugWindow(QMainWindow):
 
     def closeEvent(self, close_event):
         if self.rest_request:
-            self.rest_request.cancel_request()
+            self.rest_request.cancel()
         if self.cpu_plot_timer:
             self.cpu_plot_timer.stop()
 
@@ -845,8 +850,8 @@ class DebugWindow(QMainWindow):
         tab_index = self.window().log_tab_widget.currentIndex()
         tab_name = "core" if tab_index == 0 else "gui"
 
-        params = {'process': tab_name, 'max_lines': max_log_lines}
-        TriblerNetworkRequest(f"debug/log", url_params=params, reply_callback=self.display_logs)
+        request_manager.get("debug/log", self.display_logs,
+                            url_params={'process': tab_name, 'max_lines': max_log_lines})
 
     def display_logs(self, data):
         if not data:
@@ -899,9 +904,8 @@ class DebugWindow(QMainWindow):
             self.load_libtorrent_sessions_tab(hop, export=export)
 
     def load_libtorrent_settings_tab(self, hop, export=False):
-        TriblerNetworkRequest(
-            "libtorrent/settings?hop=%d" % hop, lambda data: self.on_libtorrent_settings_received(data, export=export)
-        )
+        request_manager.get(endpoint=f"libtorrent/settings?hop={hop}",
+                            on_finish=lambda data: self.on_libtorrent_settings_received(data, export=export))
         self.window().libtorrent_settings_tree_widget.clear()
 
     def on_libtorrent_settings_received(self, data, export=False):
@@ -916,9 +920,8 @@ class DebugWindow(QMainWindow):
             self.save_to_file("libtorrent_settings.json", data)
 
     def load_libtorrent_sessions_tab(self, hop, export=False):
-        TriblerNetworkRequest(
-            "libtorrent/session?hop=%d" % hop, lambda data: self.on_libtorrent_session_received(data, export=export)
-        )
+        request_manager.get(endpoint=f"libtorrent/session?hop={hop}",
+                            on_finish=lambda data: self.on_libtorrent_session_received(data, export=export))
         self.window().libtorrent_session_tree_widget.clear()
 
     def on_libtorrent_session_received(self, data, export=False):
@@ -962,7 +965,7 @@ class DebugWindow(QMainWindow):
             widget.addTopLevelItem(channel_item)
 
     def load_channels_peers_tab(self):
-        TriblerNetworkRequest("remote_query/channels_peers", self.on_channels_peers)
+        request_manager.get("remote_query/channels_peers", self.on_channels_peers)
 
     def channels_tab_changed(self, index):
         if index == 0:

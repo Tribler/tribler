@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import QWidget
 
 from tribler.gui.defs import PB, TB
 from tribler.gui.dialogs.trustexplanationdialog import TrustExplanationDialog
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect
 from tribler.gui.widgets.graphs.dataplot import TimeSeriesDataPlot
 
@@ -67,7 +67,7 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
         """
         Load the bandwidth balance history by initiating a request to the Tribler core.
         """
-        TriblerNetworkRequest("bandwidth/history", self.received_history)
+        request_manager.get("bandwidth/history", self.received_history)
 
     def received_history(self, history: Dict):
         """

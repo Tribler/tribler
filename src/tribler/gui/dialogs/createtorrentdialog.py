@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 from tribler.gui.defs import BUTTON_TYPE_NORMAL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
 
 
@@ -18,7 +18,6 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 
 
 class CreateTorrentDialog(DialogContainer):
-
     create_torrent_notification = pyqtSignal(dict)
     add_to_channel_selected = pyqtSignal(str)
 
@@ -47,9 +46,9 @@ class CreateTorrentDialog(DialogContainer):
 
     def close_dialog(self, checked=False):
         if self.rest_request1:
-            self.rest_request1.cancel_request()
+            self.rest_request1.cancel()
         if self.rest_request2:
-            self.rest_request2.cancel_request()
+            self.rest_request2.cancel()
 
         super().close_dialog()
 
@@ -112,11 +111,14 @@ class CreateTorrentDialog(DialogContainer):
 
         self.name = self.dialog_widget.create_torrent_name_field.text()
         description = self.dialog_widget.create_torrent_description_field.toPlainText()
-        post_data = {"name": self.name, "description": description, "files": files_list, "export_dir": export_dir}
-        url = (
-            "createtorrent?download=1" if self.dialog_widget.seed_after_adding_checkbox.isChecked() else "createtorrent"
+
+        is_seed = self.dialog_widget.seed_after_adding_checkbox.isChecked()
+        self.rest_request1 = request_manager.post(
+            endpoint='createtorrent',
+            on_finish=self.on_torrent_created,
+            url_params={'download': 1} if is_seed else None,
+            data={"name": self.name, "description": description, "files": files_list, "export_dir": export_dir},
         )
-        self.rest_request1 = TriblerNetworkRequest(url, self.on_torrent_created, data=post_data, method='POST')
         self.dialog_widget.edit_channel_create_torrent_progress_label.setText(tr("Creating torrent. Please wait..."))
 
     def on_torrent_created(self, result):

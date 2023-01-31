@@ -4,13 +4,11 @@ from PyQt5 import uic
 from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
-
 from psutil import LINUX
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
-
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -19,9 +17,9 @@ from tribler.gui.defs import (
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
 from tribler.gui.widgets.tablecontentmodel import (
     ChannelContentModel,
@@ -39,7 +37,6 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
-
     model_query_completed = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -133,14 +130,14 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.update_labels()
 
     def commit_channels(self, checked=False):  # pylint: disable=W0613
-        TriblerNetworkRequest("channels/mychannel/0/commit", self.on_channel_committed, method='POST')
+        request_manager.post("channels/mychannel/0/commit", on_finish=self.on_channel_committed)
 
     def initialize_content_page(
-        self,
-        autocommit_enabled=False,
-        hide_xxx=None,
-        controller_class=ContentTableViewController,
-        categories=CATEGORY_SELECTOR_FOR_SEARCH_ITEMS,
+            self,
+            autocommit_enabled=False,
+            hide_xxx=None,
+            controller_class=ContentTableViewController,
+            categories=CATEGORY_SELECTOR_FOR_SEARCH_ITEMS,
     ):
         if self.initialized:
             return
@@ -252,9 +249,10 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         for entry in changed_entries:
             dirty = dirty or entry.get('status', None) in DIRTY_STATUSES
             structure_changed = (
-                structure_changed
-                or entry.get("state", None) == "Deleted"
-                or (entry.get("type", None) in [CHANNEL_TORRENT, COLLECTION_NODE] and entry["status"] in DIRTY_STATUSES)
+                    structure_changed
+                    or entry.get("state", None) == "Deleted"
+                    or (entry.get("type", None) in [CHANNEL_TORRENT, COLLECTION_NODE] and entry[
+                "status"] in DIRTY_STATUSES)
             )
 
         if structure_changed:
@@ -407,15 +405,15 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             if must_elide:
                 channel_name = "..."
             breadcrumb_text = (
-                slash_separator
-                + f'<a style="text-decoration:none;color:#eee;" href="{m}">{channel_name}</a>'
-                + breadcrumb_text
+                    slash_separator
+                    + f'<a style="text-decoration:none;color:#eee;" href="{m}">{channel_name}</a>'
+                    + breadcrumb_text
             )
             if must_elide:
                 break
         # Remove the leftmost slash:
         if len(breadcrumb_text) >= len(slash_separator):
-            breadcrumb_text = breadcrumb_text[len(slash_separator) :]
+            breadcrumb_text = breadcrumb_text[len(slash_separator):]
 
         self.channel_name_label.setText(breadcrumb_text)
         self.channel_name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
@@ -575,12 +573,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.model.reset()
 
     def _add_torrent_request(self, data):
-        TriblerNetworkRequest(
-            f'collections/mychannel/{self.model.channel_info["id"]}/torrents',
-            self._on_torrent_to_channel_added,
-            method='PUT',
-            data=data,
-        )
+        channel_id = self.model.channel_info["id"]
+        request_manager.put(f'collections/mychannel/{channel_id}/torrents', on_finish=self._on_torrent_to_channel_added,
+                            data=data)
 
     def add_torrent_to_channel(self, filename):
         with open(filename, "rb") as torrent_file:

@@ -2,18 +2,16 @@ import json
 from typing import Dict, List
 
 from PyQt5 import uic
-from PyQt5.QtCore import QModelIndex, QPoint, pyqtSignal, Qt
+from PyQt5.QtCore import QModelIndex, QPoint, Qt, pyqtSignal
 from PyQt5.QtWidgets import QComboBox, QSizePolicy, QWidget
 
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
-
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
-from tribler.gui.utilities import connect, get_ui_file_path, tr, get_objects_with_predicate
+from tribler.gui.network.request_manager import request_manager
+from tribler.gui.utilities import connect, get_objects_with_predicate, get_ui_file_path, tr
 from tribler.gui.widgets.tagbutton import TagButton
-
 
 METADATA_TABLE_PREDICATES = [ResourceType.TITLE, ResourceType.DESCRIPTION, ResourceType.DATE, ResourceType.LANGUAGE]
 
@@ -72,7 +70,7 @@ class EditMetadataDialog(DialogContainer):
         self.dialog_widget.content_name_label.setText(self.data_item["name"])
 
         # Fetch suggestions
-        TriblerNetworkRequest(f"knowledge/{self.infohash}/tag_suggestions", self.on_received_tag_suggestions)
+        request_manager.get(f"knowledge/{self.infohash}/tag_suggestions", on_finish=self.on_received_tag_suggestions)
 
         self.update_window()
 

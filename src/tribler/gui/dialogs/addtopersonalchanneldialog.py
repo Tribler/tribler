@@ -4,10 +4,9 @@ from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal
 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
-
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
 from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, get_ui_file_path
 
 
@@ -47,12 +46,8 @@ class AddToChannelDialog(DialogContainer):
 
     def on_create_new_channel_clicked(self, checked):
         def create_channel_callback(channel_name=None):
-            TriblerNetworkRequest(
-                "channels/mychannel/0/channels",
-                self.on_new_channel_response,
-                method='POST',
-                raw_data=json.dumps({"name": channel_name}) if channel_name else None,
-            )
+            request_manager.post("channels/mychannel/0/channels", self.on_new_channel_response,
+                                 data=json.dumps({"name": channel_name}) if channel_name else None)
 
         NewChannelDialog(self, create_channel_callback)
 
@@ -62,22 +57,19 @@ class AddToChannelDialog(DialogContainer):
             return
 
         channel_id = selected[0].id_
-        url = ("channels/mychannel/%i" % channel_id) + ("/channels" if channel_id == 0 else "/collections")
+        postfix = "channels" if not channel_id else "collections"
+        endpoint = f"channels/mychannel/{channel_id}/{postfix}"
 
         def create_channel_callback(channel_name=None):
-            TriblerNetworkRequest(
-                url,
-                self.on_new_channel_response,
-                method='POST',
-                raw_data=json.dumps({"name": channel_name}) if channel_name else None,
-            )
+            request_manager.post(endpoint, self.on_new_channel_response,
+                                 data=json.dumps({"name": channel_name}) if channel_name else None)
 
         NewChannelDialog(self, create_channel_callback)
 
     def clear_channels_tree(self):
         # ACHTUNG! All running requests must always be cancelled first to prevent race condition!
         for rq in self.root_requests_list:
-            rq.cancel_request()
+            rq.cancel()
         self.dialog_widget.channels_tree_wt.clear()
         self.id2wt_mapping = {0: self.dialog_widget.channels_tree_wt}
         self.load_channel(0)
@@ -99,18 +91,15 @@ class AddToChannelDialog(DialogContainer):
             self.load_channel(channel_id)
 
     def load_channel(self, channel_id):
-        self.root_requests_list.append(
-            TriblerNetworkRequest(
-                "channels/mychannel/%i" % channel_id,
-                lambda x: self.on_channel_contents(x, channel_id),
-                url_params={
-                    "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
-                    "first": 1,
-                    "last": 1000,
-                    "exclude_deleted": True,
-                },
-            )
-        )
+        request = request_manager.get(f"channels/mychannel/{channel_id}",
+                                      on_finish=lambda result: self.on_channel_contents(result, channel_id),
+                                      url_params={
+                                          "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
+                                          "first": 1,
+                                          "last": 1000,
+                                          "exclude_deleted": True,
+                                      })
+        self.root_requests_list.append(request)
 
     def get_selected_channel_id(self):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()

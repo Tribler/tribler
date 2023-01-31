@@ -3,12 +3,11 @@ from pathlib import Path
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import QDir, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QIcon, QImage, QPixmap
-from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QFileDialog, QPushButton
 
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
-from tribler.gui.tribler_request_manager import TriblerNetworkRequest
 from tribler.gui.utilities import connect, get_image_path, get_ui_file_path, tr
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('channel_description.ui'))
@@ -20,7 +19,6 @@ PREVIEW_BUTTON_NUM = 1
 
 DEFAULT_THUMBNAIL_PIXMAP = QPixmap(get_image_path('chan_thumb.png'))
 CREATE_THUMBNAIL_TEXT = tr("Click this to add \n channel thumbnail \n (max. 1MB JPG/PNG)")
-
 
 PREVIEW_PAGE = 0
 EDIT_PAGE = 1
@@ -78,7 +76,6 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
         self.description_text = None
         self.channel_thumbnail_bytes = None
-        self.channel_thumbnail_type = None
         self.channel_thumbnail_qimage = None
 
         self.channel_pk = None
@@ -131,7 +128,6 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
     def on_create_description_button_clicked(self, *args):
         self.description_text = ""
         self.channel_thumbnail_bytes = None
-        self.channel_thumbnail_type = None
         self.show_description_page()
         self.on_start_editing()
 
@@ -147,13 +143,9 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
 
         if self.description_text is not None:
             descr_changed = True
-
-            TriblerNetworkRequest(
-                f'channels/{self.channel_pk}/{self.channel_id}/description',
-                self._on_description_received,
-                method='PUT',
-                data={"description_text": self.description_text},
-            )
+            request_manager.put(f'channels/{self.channel_pk}/{self.channel_id}/description',
+                                on_finish=self._on_description_received,
+                                data={"description_text": self.description_text})
 
         if self.channel_thumbnail_bytes is not None:
             thumb_changed = True
@@ -161,14 +153,10 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             def _on_thumbnail_updated(_):
                 pass
 
-            TriblerNetworkRequest(
-                f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
-                _on_thumbnail_updated,
-                method='PUT',
-                raw_data=self.channel_thumbnail_bytes,
-                decode_json_response=False,
-                content_type_header=self.channel_thumbnail_type,
-            )
+            request_manager.put(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
+                                on_finish=_on_thumbnail_updated,
+                                data=self.channel_thumbnail_bytes,
+                                raw_response=True)
 
         if descr_changed or thumb_changed:
             self.description_changed.emit()
@@ -200,7 +188,6 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             return
 
         self.channel_thumbnail_bytes = data
-        self.channel_thumbnail_type = content_type
         self.update_channel_thumbnail(data, content_type)
 
     @pyqtSlot()
@@ -244,13 +231,9 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.description_text = None
             self.description_text_preview.setMarkdown("")
 
-        TriblerNetworkRequest(
-            f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
-            self._on_thumbnail_received,
-            method='GET',
-            decode_json_response=False,
-            include_header_in_response=QNetworkRequest.ContentTypeHeader,
-        )
+        request_manager.get(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
+                            on_finish=self._on_thumbnail_received,
+                            raw_response=True)
 
     def set_widget_visible(self, show):
         self.bottom_buttons_container.setHidden(True)
@@ -280,13 +263,11 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         result, header = result_and_header
         if not (result and header):
             self.channel_thumbnail_bytes = None
-            self.channel_thumbnail_type = None
             self.channel_thumbnail.setPixmap(DEFAULT_THUMBNAIL_PIXMAP)
             self.set_widget_visible(self.description_text is not None)
             return
         self.channel_thumbnail_bytes = result
-        self.channel_thumbnail_type = header
-        self.update_channel_thumbnail(self.channel_thumbnail_bytes, self.channel_thumbnail_type)
+        self.update_channel_thumbnail(result, header)
         self.set_widget_visible(True)
 
     def initialize_with_channel(self, channel_pk, channel_id, edit=True):
@@ -294,12 +275,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.edit_enabled = edit
         self.floating_edit_button.setHidden(not self.edit_enabled)
         self.channel_pk, self.channel_id = channel_pk, channel_id
-
-        TriblerNetworkRequest(
-            f'channels/{self.channel_pk}/{self.channel_id}/description',
-            self._on_description_received,
-            method='GET',
-        )
+        request_manager.get(f'channels/{self.channel_pk}/{self.channel_id}/description', self._on_description_received)
 
     def enable_edit(self):
         self.floating_edit_button.setHidden(False)
