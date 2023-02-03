@@ -7,9 +7,9 @@ filters:
 # Logging formatter
 formatters:
     standard:
-        format: "[PID:%(process)d] %(asctime)s - %(levelname)s - %(name)s(%(lineno)d) - %(message)s"
+        format: "[%(app_mode)s PID:%(process)d] %(asctime)s - %(levelname)s - %(name)s(%(lineno)d) - %(message)s"
     error:
-        format: "[PID:%(process)d] %(asctime)s - %(levelname)s <%(module)s:%(lineno)d> %(name)s.%(funcName)s(): %(message)s"
+        format: "[%(app_mode)s PID:%(process)d] %(asctime)s - %(levelname)s <%(module)s:%(lineno)d> %(name)s.%(funcName)s(): %(message)s"
 
 # Logging handlers
 handlers:
