@@ -1,13 +1,11 @@
-import heapq
 import random
 from binascii import unhexlify
 
 from ipv8.lazy_community import lazy_wrapper
-
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
-from tribler.core.components.popularity.community.payload import TorrentsHealthPayload, PopularTorrentsRequest
+from tribler.core.components.popularity.community.payload import PopularTorrentsRequest, TorrentsHealthPayload
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
@@ -75,8 +73,8 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, peer, payload):
         self.logger.debug(f"Received torrent health information for "
-                         f"{len(payload.torrents_checked)} popular torrents and"
-                         f" {len(payload.random_torrents)} random torrents")
+                          f"{len(payload.torrents_checked)} popular torrents and"
+                          f" {len(payload.random_torrents)} random torrents")
 
         torrents = payload.random_torrents + payload.torrents_checked
 

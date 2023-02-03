@@ -53,7 +53,7 @@ class Download(TaskManager):
         self.tdef = tdef
         self.handle: Optional[lt.torrent_handle] = None
         self.state_dir = state_dir
-        self.dlmgr = download_manager
+        self.download_manager = download_manager
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
         self.notifier = notifier
 
@@ -127,7 +127,7 @@ class Download(TaskManager):
         self.alert_handlers[alert_type].append(handler)
 
     def wait_for_alert(self, success_type: str, success_getter: Optional[Callable[[Any], Any]] = None,
-                       fail_type: str = None, fail_getter: Optional[Callable[[Any], Any]] = None):
+                       fail_type: str = None, fail_getter: Optional[Callable[[Any], Any]] = None) -> Future:
         future = Future()
         if success_type:
             self.futures[success_type].append((future, future.set_result, success_getter))
@@ -213,7 +213,7 @@ class Download(TaskManager):
             self.pause_after_next_hashcheck = user_stopped
 
         # Limit the amount of connections if we have specified that
-        self.handle.set_max_connections(self.dlmgr.config.max_connections_download)
+        self.handle.set_max_connections(self.download_manager.config.max_connections_download)
 
         # By default don't apply the IP filter
         self.apply_ip_filter(False)
@@ -297,7 +297,7 @@ class Download(TaskManager):
 
         # Save it to file
         basename = hexlify(resume_data[b'info-hash']) + '.conf'
-        filename = self.dlmgr.get_checkpoint_dir() / basename
+        filename = self.download_manager.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
         try:
             self.config.write(str(filename))
@@ -381,25 +381,25 @@ class Download(TaskManager):
     def on_performance_alert(self, alert: lt.performance_alert):
         self._logger.info(f'On performance alert: {alert}')
 
-        if self.get_anon_mode() or self.dlmgr.ltsessions is None:
+        if self.get_anon_mode() or self.download_manager.ltsessions is None:
             return
 
         # When the send buffer watermark is too low, double the buffer size to a
         # maximum of 50MiB. This is the same mechanism as Deluge uses.
-        lt_session = self.dlmgr.get_session(self.config.get_hops())
-        settings = self.dlmgr.get_session_settings(lt_session)
+        lt_session = self.download_manager.get_session(self.config.get_hops())
+        settings = self.download_manager.get_session_settings(lt_session)
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
             if settings['send_buffer_watermark'] <= 26214400:
                 self._logger.info("Setting send_buffer_watermark to %s", 2 * settings['send_buffer_watermark'])
                 settings['send_buffer_watermark'] *= 2
-                self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
+                self.download_manager.set_session_settings(self.download_manager.get_session(), settings)
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
             if settings['max_queued_disk_bytes'] <= 33554432:
                 self._logger.info("Setting max_queued_disk_bytes to %s", 2 * settings['max_queued_disk_bytes'])
                 settings['max_queued_disk_bytes'] *= 2
-                self.dlmgr.set_session_settings(self.dlmgr.get_session(), settings)
+                self.download_manager.set_session_settings(self.download_manager.get_session(), settings)
 
     def on_torrent_removed_alert(self, alert: lt.torrent_removed_alert):
         self._logger.info(f'On torrent remove alert: {alert}')
@@ -614,7 +614,7 @@ class Download(TaskManager):
             if info.source & info.pex:
                 pex_peers += 1
 
-        ltsession = self.dlmgr.get_session(self.config.get_hops())
+        ltsession = self.download_manager.get_session(self.config.get_hops())
         public = self.tdef and not self.tdef.is_private()
 
         result = self.tracker_status.copy()
@@ -626,10 +626,10 @@ class Download(TaskManager):
         async def state_callback_loop():
             if usercallback:
                 when = 1
-                while when and not self.future_removed.done() and not self.dlmgr._shutdown:
+                while when and not self.future_removed.done() and not self.download_manager._shutdown:
                     result = usercallback(self.get_state())
                     when = (await result) if iscoroutine(result) else result
-                    if when > 0.0 and not self.dlmgr._shutdown:
+                    if when > 0.0 and not self.download_manager._shutdown:
                         await sleep(when)
 
         return self.register_anonymous_task("downloads_cb", state_callback_loop)
@@ -684,7 +684,7 @@ class Download(TaskManager):
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
             basename = hexlify(self.tdef.get_infohash()) + '.conf'
-            filename = Path(self.dlmgr.get_checkpoint_dir() / basename)
+            filename = Path(self.download_manager.get_checkpoint_dir() / basename)
             if not filename.is_file():
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.

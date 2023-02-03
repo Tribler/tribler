@@ -38,7 +38,7 @@ async def test_download_resume_in_upload_mode(mock_handle, mock_download_config,
     test_download.handle.set_upload_mode.assert_called_with(test_download.get_upload_mode())
 
 
-async def test_save_resume(mock_handle, test_download, test_tdef):
+async def test_save_resume(mock_handle, test_download: Download, test_tdef):
     """
     testing call resume data alert
     """
@@ -49,7 +49,7 @@ async def test_save_resume(mock_handle, test_download, test_tdef):
     alert = Mock(resume_data={b'info-hash': test_tdef.get_infohash()})
     await test_download.save_resume_data()
     basename = hexlify(test_tdef.get_infohash()) + '.conf'
-    filename = test_download.dlmgr.get_checkpoint_dir() / basename
+    filename = test_download.download_manager.get_checkpoint_dir() / basename
     dcfg = DownloadConfig.load(str(filename))
     assert test_tdef.get_infohash() == dcfg.get_engineresumedata().get(b'info-hash')
 
@@ -78,7 +78,7 @@ def test_move_storage(mock_handle, test_download, test_tdef, test_tdef_no_metain
 async def test_save_checkpoint(test_download, test_tdef):
     await test_download.checkpoint()
     basename = hexlify(test_tdef.get_infohash()) + '.conf'
-    filename = Path(test_download.dlmgr.get_checkpoint_dir() / basename)
+    filename = Path(test_download.download_manager.get_checkpoint_dir() / basename)
     assert filename.is_file()
 
 

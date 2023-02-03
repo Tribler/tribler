@@ -11,7 +11,7 @@ from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from shutil import rmtree
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
@@ -48,7 +48,8 @@ METAINFO_CACHE_PERIOD = 5 * 60
 DEFAULT_DHT_ROUTERS = [
     ("dht.libtorrent.org", 25401),
     ("router.bittorrent.com", 6881),
-    ("router.utorrent.com", 6881)
+    ("router.utorrent.com", 6881),
+    ("dht.transmissionbt.com", 6881),
 ]
 DEFAULT_LT_EXTENSIONS = [
     lt.create_ut_metadata_plugin,
@@ -86,7 +87,7 @@ class DownloadManager(TaskManager):
         self.state_dir = state_dir
         self.ltsettings = {}  # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions = {}
-        self.dht_health_manager = None
+        self.dht_health_manager: Optional[DHTHealthManager] = None
         self.listen_ports = {}
 
         self.socks_listen_ports = socks_listen_ports
@@ -461,7 +462,8 @@ class DownloadManager(TaskManager):
             ip_filter.add_rule(ip, ip, 0)
         lt_session.set_ip_filter(ip_filter)
 
-    async def get_metainfo(self, infohash, timeout=30, hops=None, url=None):
+    async def get_metainfo(self, infohash: bytes, timeout: float = 30, hops: Optional[int] = None,
+                           url: Optional[str] = None, raise_errors: bool = False) -> Optional[Dict]:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
@@ -490,17 +492,24 @@ class DownloadManager(TaskManager):
             dcfg.set_dest_dir(self.metadata_tmpdir)
             try:
                 download = self.start_download(tdef=tdef, config=dcfg, hidden=True, checkpoint_disabled=True)
-            except TypeError:
-                return
+            except TypeError as e:
+                self._logger.warning(e)
+                if raise_errors:
+                    raise e
+                return None
             self.metainfo_requests[infohash] = [download, 1]
 
         try:
             metainfo = download.tdef.get_metainfo() or await wait_for(shield(download.future_metainfo), timeout)
-            self._logger.info('Successfully retrieved metainfo for %s', infohash_hex)
-            self.metainfo_cache[infohash] = {'time': timemod.time(), 'meta_info': metainfo}
-        except (CancelledError, asyncio.TimeoutError):
-            metainfo = None
+        except (CancelledError, asyncio.TimeoutError) as e:
+            self._logger.warning(f'{type(e).__name__}: {e} (timeout={timeout})')
             self._logger.info('Failed to retrieve metainfo for %s', infohash_hex)
+            if raise_errors:
+                raise e
+            return None
+
+        self._logger.info('Successfully retrieved metainfo for %s', infohash_hex)
+        self.metainfo_cache[infohash] = {'time': timemod.time(), 'meta_info': metainfo}
 
         if infohash in self.metainfo_requests:
             self.metainfo_requests[infohash][1] -= 1

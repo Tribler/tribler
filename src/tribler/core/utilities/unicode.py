@@ -79,5 +79,5 @@ def recursive_bytes(obj):
     return obj
 
 
-def hexlify(binary):
+def hexlify(binary: bytes) -> str:
     return binascii.hexlify(binary).decode('utf-8')

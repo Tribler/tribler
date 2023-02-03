@@ -3,23 +3,22 @@ import struct
 from asyncio import CancelledError, DatagramProtocol, Future, ensure_future, get_event_loop, sleep, start_server
 from unittest.mock import Mock
 
-from aiohttp.web_exceptions import HTTPBadRequest
-
-from ipv8.util import succeed
-
-from libtorrent import bencode
-
 import pytest
+from aiohttp.web_exceptions import HTTPBadRequest
+from ipv8.util import succeed
+from libtorrent import bencode
 
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,
     HttpTrackerSession,
-    UdpSocketManager,
+    InfohashHealth, UdpSocketManager,
     UdpTrackerSession,
 )
 from tribler.core.utilities.unicode import hexlify
 
+
+# pylint: disable=redefined-outer-name
 
 class FakeUdpSocketManager:
     transport = 1
@@ -39,14 +38,14 @@ def fixture_fake_udp_socket_manager():
 
 @pytest.fixture
 async def bep33_session(mock_dlmgr):
-    bep33_dht_session = FakeBep33DHTSession(mock_dlmgr, b'a' * 20, 10)
+    bep33_dht_session = FakeBep33DHTSession(mock_dlmgr, 10)
     yield bep33_dht_session
     await bep33_dht_session.cleanup()
 
 
 @pytest.fixture
 async def fake_dht_session(mock_dlmgr):
-    fake_dht_session = FakeDHTSession(mock_dlmgr, b'a' * 20, 10)
+    fake_dht_session = FakeDHTSession(mock_dlmgr, 10)
     yield fake_dht_session
     await fake_dht_session.shutdown_task_manager()
 
@@ -74,6 +73,7 @@ async def test_httpsession_code_not_200():
 
     def fake_request(_):
         raise HTTPBadRequest()
+
     session._session.get = fake_request
 
     with pytest.raises(Exception):
@@ -340,20 +340,24 @@ async def test_connect_to_tracker(mock_dlmgr, fake_dht_session):
     """
     metainfo = {b'seeders': 42, b'leechers': 42}
     mock_dlmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
+    fake_dht_session.add_infohash(b'a' * 20)
+    response = await fake_dht_session.connect_to_tracker()
 
-    metainfo = await fake_dht_session.connect_to_tracker()
+    assert response.url == 'DHT'
+    assert len(response.torrent_health_list) == 1
 
-    assert 'DHT' in metainfo
-    assert metainfo['DHT'][0]['leechers'] == 42
-    assert metainfo['DHT'][0]['seeders'] == 42
+    health = response.torrent_health_list[0]
+    assert health.leechers == 42
+    assert health.seeders == 42
 
 
 async def test_connect_to_tracker_fail(mock_dlmgr, fake_dht_session):
     """
     Test the metainfo lookup of the DHT session when it fails
     """
-    mock_dlmgr.get_metainfo = lambda *_, **__: succeed(None)
-    with pytest.raises(RuntimeError):
+    mock_dlmgr.get_metainfo = Mock(side_effect=TimeoutError)
+    fake_dht_session.add_infohash(b'a' * 20)
+    with pytest.raises(TimeoutError):
         await fake_dht_session.connect_to_tracker()
 
 
@@ -361,24 +365,16 @@ async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr):
     """
     Test the metainfo lookup of the BEP33 DHT session
     """
-    dht_health_dict = {
-        "infohash": hexlify(b'a' * 20),
-        "seeders": 1,
-        "leechers": 2
-    }
+    infohash = b'a' * 20
+    infohash_health = InfohashHealth(infohash=infohash, seeders=1, leechers=2)
+
     mock_dlmgr.dht_health_manager = Mock()
-    mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
+    mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed(infohash_health)
+    bep33_session.add_infohash(infohash)
+    response = await bep33_session.connect_to_tracker()
+    assert response.url == 'DHT'
+    assert len(response.torrent_health_list) == 1
 
-    metainfo = await bep33_session.connect_to_tracker()
-
-    assert 'DHT' in metainfo
-    assert metainfo['DHT'][0]['leechers'] == 2
-    assert metainfo['DHT'][0]['seeders'] == 1
-
-
-def test_methods(bep33_session):
-    """
-    Test various methods in the DHT session class
-    """
-    bep33_session.add_infohash('b' * 20)
-    assert bep33_session.infohash == 'b' * 20
+    health = response.torrent_health_list[0]
+    assert health.leechers == 2
+    assert health.seeders == 1

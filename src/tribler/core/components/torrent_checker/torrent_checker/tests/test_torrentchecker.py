@@ -2,7 +2,7 @@ import os
 import random
 import secrets
 import time
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from ipv8.util import succeed
@@ -11,11 +11,11 @@ from pony.orm import db_session
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HttpTrackerSession, \
-    UdpSocketManager
+    InfohashHealth, TrackerResponse, UdpSocketManager
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
-from tribler.core.tests.tools.base_test import MockObject
-from tribler.core.utilities.unicode import hexlify
 
+
+# pylint: disable=protected-access
 
 @pytest.fixture
 def tracker_manager(tmp_path, metadata_store):
@@ -24,7 +24,6 @@ def tracker_manager(tmp_path, metadata_store):
 
 @pytest.fixture(name="torrent_checker")
 async def fixture_torrent_checker(tribler_config, tracker_manager, metadata_store):
-
     torrent_checker = TorrentChecker(config=tribler_config,
                                      download_manager=MagicMock(),
                                      notifier=MagicMock(),
@@ -35,19 +34,11 @@ async def fixture_torrent_checker(tribler_config, tracker_manager, metadata_stor
     await torrent_checker.shutdown()
 
 
-async def test_initialize(torrent_checker):  # pylint: disable=unused-argument
-    """
-    Test the initialization of the torrent checker
-    """
-    await torrent_checker.initialize()
-    assert torrent_checker.is_pending_task_active("tracker_check")
-    assert torrent_checker.is_pending_task_active("torrent_check")
-
-
 async def test_create_socket_fail(torrent_checker):
     """
     Test creation of the UDP socket of the torrent checker when it fails
     """
+
     def mocked_listen_on_udp():
         raise OSError("Something went wrong")
 
@@ -95,6 +86,7 @@ def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused
     Test if the torrents_checked set is properly initialized based on the last_check
     and self_checked values from the database.
     """
+
     @db_session
     def save_random_torrent_state(last_checked=0, self_checked=False, count=1):
         for _ in range(count):
@@ -184,11 +176,11 @@ async def test_task_select_tracker(torrent_checker):
 
     assert not result
     assert len(controlled_session.infohash_list) == 1
-    
+
     await controlled_session.cleanup()
 
 
-async def test_tracker_test_error_resolve(torrent_checker):
+async def test_tracker_test_error_resolve(torrent_checker: TorrentChecker):
     """
     Test whether we capture the error when a tracker check fails
     """
@@ -200,7 +192,7 @@ async def test_tracker_test_error_resolve(torrent_checker):
     assert not result
 
     # Verify whether we successfully cleaned up the session after an error
-    assert len(torrent_checker._session_list) == 1
+    assert not torrent_checker._sessions
 
 
 async def test_tracker_no_infohashes(torrent_checker):
@@ -216,10 +208,14 @@ def test_get_valid_next_tracker_for_auto_check(torrent_checker):
     """
     Test if only valid tracker url are used for auto check
     """
-    mock_tracker_state_invalid = MockObject()
-    mock_tracker_state_invalid.url = "http://anno nce.torrentsmd.com:8080/announce"
-    mock_tracker_state_valid = MockObject()
-    mock_tracker_state_valid.url = "http://announce.torrentsmd.com:8080/announce"
+    mock_tracker_state_invalid = MagicMock(
+        url="http://anno nce.torrentsmd.com:8080/announce",
+        failures=0
+    )
+    mock_tracker_state_valid = MagicMock(
+        url="http://announce.torrentsmd.com:8080/announce",
+        failures=0
+    )
     tracker_states = [mock_tracker_state_invalid, mock_tracker_state_valid]
 
     def get_next_tracker_for_auto_check():
@@ -228,69 +224,46 @@ def test_get_valid_next_tracker_for_auto_check(torrent_checker):
     def remove_tracker(_):
         tracker_states.remove(mock_tracker_state_invalid)
 
-    torrent_checker.get_next_tracker_for_auto_check = get_next_tracker_for_auto_check
-    torrent_checker.remove_tracker = remove_tracker
-
-    next_tracker = torrent_checker.get_valid_next_tracker_for_auto_check()
+    torrent_checker.tracker_manager.get_next_tracker = get_next_tracker_for_auto_check
+    torrent_checker.tracker_manager.remove_tracker = remove_tracker
+    next_tracker = torrent_checker.get_next_tracker()
     assert len(tracker_states) == 1
     assert next_tracker.url == "http://announce.torrentsmd.com:8080/announce"
 
 
-def test_on_health_check_completed(torrent_checker):
-    tracker1 = 'udp://localhost:2801'
-    tracker2 = "http://badtracker.org/announce"
-    infohash_bin = b'\xee'*20
-    infohash_hex = hexlify(infohash_bin)
+def test_filter_non_exceptions():
+    response = TrackerResponse(url='url', torrent_health_list=[])
+    responses = (response, Exception())
 
-    exception = Exception()
-    exception.tracker_url = tracker2
-    result = [
-        {tracker1: [{'leechers': 1, 'seeders': 2, 'infohash': infohash_hex}]},
-        exception,
-        {'DHT': [{'leechers': 12, 'seeders': 13, 'infohash': infohash_hex}]}
+    assert torrent_checker_module.filter_non_exceptions(responses) == [response]
+
+
+def test_update_health(torrent_checker: TorrentChecker):
+    infohash_bin = b'\xee' * 20
+
+    responses = [
+        TrackerResponse(
+            url='udp://localhost:2801',
+            torrent_health_list=[InfohashHealth(leechers=1, seeders=2, infohash=infohash_bin)]
+        ),
+        TrackerResponse(
+            url='DHT', torrent_health_list=[InfohashHealth(leechers=12, seeders=13, infohash=infohash_bin)]
+        ),
     ]
-    # Check that everything works fine even if the database contains no proper infohash
-    res_dict = {
-        'DHT': {
-            'leechers': 12,
-            'seeders': 13,
-            'infohash': infohash_hex
-        },
-        'http://badtracker.org/announce': {
-            'error': ''
-        },
-        'udp://localhost:2801': {
-            'leechers': 1,
-            'seeders': 2,
-            'infohash': infohash_hex
-        }
-    }
-    torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
-    assert torrent_checker.on_torrent_health_check_completed(infohash_bin, result) == res_dict
-    assert not torrent_checker.on_torrent_health_check_completed(infohash_bin, None)
+
+    torrent_checker.update_health(responses)
 
     with db_session:
         ts = torrent_checker.mds.TorrentState(infohash=infohash_bin)
         previous_check = ts.last_check
-        torrent_checker.on_torrent_health_check_completed(infohash_bin, result)
-        assert 1 == len(torrent_checker.torrents_checked)
-        assert result[2]['DHT'][0]['leechers'] == ts.leechers
-        assert result[2]['DHT'][0]['seeders'] == ts.seeders
-        assert previous_check < ts.last_check
+        torrent_checker.update_health(responses)
+        assert len(torrent_checker.torrents_checked) == 1
+        assert ts.leechers == 12
+        assert ts.seeders == 13
+        assert ts.last_check > previous_check
 
 
-def test_on_health_check_failed(torrent_checker):
-    """
-    Check whether there is no crash when the torrent health check failed and the response is None
-    No torrent info is added to torrent_checked list.
-    """
-    infohash_bin = b'\xee' * 20
-    torrent_checker.on_torrent_health_check_completed(infohash_bin, [None])
-    assert 0 == len(torrent_checker.torrents_checked)
-
-
-@db_session
-def test_check_local_torrents(torrent_checker):
+async def test_check_local_torrents(torrent_checker):
     """
     Test that the random torrent health checking mechanism picks the right torrents
     """
@@ -302,7 +275,7 @@ def test_check_local_torrents(torrent_checker):
     torrent_checker.check_torrent_health = lambda _: succeed(None)
 
     # No torrents yet, the selected torrents should be empty
-    selected_torrents = torrent_checker.check_local_torrents()
+    selected_torrents, _ = await torrent_checker.check_local_torrents()
     assert len(selected_torrents) == 0
 
     # Add some freshly checked torrents
@@ -310,10 +283,11 @@ def test_check_local_torrents(torrent_checker):
     fresh_infohashes = []
     for index in range(0, num_torrents):
         infohash = random_infohash()
-        torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
-        torrent.health.seeders = index
-        torrent.health.last_check = int(time_fresh) + index
-        fresh_infohashes.append(infohash)
+        with db_session:
+            torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
+            torrent.health.seeders = index
+            torrent.health.last_check = int(time_fresh) + index
+            fresh_infohashes.append(infohash)
 
     # Add some stale (old) checked torrents
     time_stale = time_fresh - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
@@ -321,13 +295,14 @@ def test_check_local_torrents(torrent_checker):
     max_seeder = 10000  # some random value
     for index in range(0, num_torrents):
         infohash = random_infohash()
-        torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
-        torrent.health.seeders = max_seeder - index     # Note: decreasing trend
-        torrent.health.last_check = int(time_stale) - index  # Note: decreasing trend
+        with db_session:
+            torrent = torrent_checker.mds.TorrentMetadata(title=f'torrent{index}', infohash=infohash)
+            torrent.health.seeders = max_seeder - index  # Note: decreasing trend
+            torrent.health.last_check = int(time_stale) - index  # Note: decreasing trend
         stale_infohashes.append(infohash)
 
     # Now check that all torrents selected for check are stale torrents.
-    selected_torrents = torrent_checker.check_local_torrents()
+    selected_torrents, _ = await torrent_checker.check_local_torrents()
     assert len(selected_torrents) <= torrent_checker_module.TORRENT_SELECTION_POOL_SIZE
 
     # In the above setup, both seeder (popularity) count and last_check are decreasing so,
@@ -335,14 +310,13 @@ def test_check_local_torrents(torrent_checker):
     # 2. Older torrents are towards the back
     # Therefore the selection range becomes:
     selection_range = stale_infohashes[0: torrent_checker_module.TORRENT_SELECTION_POOL_SIZE] \
-        + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
+                      + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
 
-    for infohash in selected_torrents:
-        assert infohash in selection_range
+    for t in selected_torrents:
+        assert t.infohash in selection_range
 
 
-@db_session
-def test_check_channel_torrents(torrent_checker):
+async def test_check_channel_torrents(torrent_checker: TorrentChecker):
     """
     Test that the channel torrents are checked based on last checked time.
     Only outdated torrents are selected for health checks.
@@ -351,13 +325,14 @@ def test_check_channel_torrents(torrent_checker):
     def random_infohash():
         return os.urandom(20)
 
+    @db_session
     def add_torrent_to_channel(infohash, last_check):
         torrent = torrent_checker.mds.TorrentMetadata(public_key=torrent_checker.mds.my_public_key_bin,
                                                       infohash=infohash)
         torrent.health.last_check = last_check
         return torrent
 
-    check_torrent_health_mock = MagicMock(return_value=None)
+    check_torrent_health_mock = AsyncMock(return_value=None)
     torrent_checker.check_torrent_health = lambda _: check_torrent_health_mock()
 
     # No torrents yet in channel, the selected channel torrents to check should be empty
@@ -365,7 +340,7 @@ def test_check_channel_torrents(torrent_checker):
     assert len(selected_torrents) == 0
 
     # No health check call are done
-    torrent_checker.check_torrents_in_user_channel()
+    await torrent_checker.check_torrents_in_user_channel()
     assert check_torrent_health_mock.call_count == len(selected_torrents)
 
     num_torrents = 20
@@ -381,14 +356,14 @@ def test_check_channel_torrents(torrent_checker):
     outdated_torrents = []
     for _ in range(num_torrents):
         torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_outdated)
-        outdated_torrents.append(torrent)
+        outdated_torrents.append(torrent.infohash)
 
     # Now check that only outdated torrents are selected for check
     selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
     assert len(selected_torrents) <= torrent_checker_module.USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE
     for torrent in selected_torrents:
-        assert torrent in outdated_torrents
+        assert torrent.infohash in outdated_torrents
 
     # Health check requests are sent for all selected torrents
-    torrent_checker.check_torrents_in_user_channel()
-    assert check_torrent_health_mock.call_count == len(selected_torrents)
+    result = await torrent_checker.check_torrents_in_user_channel()
+    assert len(result) == len(selected_torrents)

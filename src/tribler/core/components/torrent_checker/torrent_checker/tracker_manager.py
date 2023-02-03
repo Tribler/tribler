@@ -1,14 +1,16 @@
 import logging
 import time
 from pathlib import Path
+from typing import Optional
 
 from pony.orm import count, db_session
+from pony.orm.core import Entity
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.tracker_utils import get_uniformed_tracker_url
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
-TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
+TRACKER_RETRY_INTERVAL = 60  # A "dead" tracker will be retired every 60 seconds
 
 
 class TrackerManager:
@@ -92,7 +94,7 @@ class TrackerManager:
                 option.delete()
 
     @db_session
-    def update_tracker_info(self, tracker_url, is_successful):
+    def update_tracker_info(self, tracker_url, is_successful=True):
         """
         Updates a tracker information.
         :param tracker_url: The given tracker_url.
@@ -117,19 +119,20 @@ class TrackerManager:
         tracker.last_check = current_time
         tracker.failures = failures
         tracker.alive = is_alive
+        self._logger.info(f'Tracker updated: {tracker.url}. Alive: {is_alive}. Failures: {failures}.')
 
     @db_session
-    def get_next_tracker_for_auto_check(self):
+    def get_next_tracker(self) -> Optional[Entity]:
         """
-        Gets the next tracker for automatic tracker-checking.
-        :return: The next tracker for automatic tracker-checking.
+        Gets the next tracker.
+        :return: The next tracker for torrent-checking.
         """
-        tracker = self.tracker_store.select(lambda g: str(g.url)
-                                            and g.alive
-                                            and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
-                                            and str(g.url) not in self.blacklist)\
-            .order_by(self.tracker_store.last_check).limit(1)
-
+        tracker = self.tracker_store.select(
+            lambda g: str(g.url)
+                      and g.alive
+                      and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
+                      and str(g.url) not in self.blacklist
+        ).order_by(self.tracker_store.last_check).limit(1)
         if not tracker:
             return None
         return tracker[0]

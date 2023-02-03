@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from aiohttp.web_app import Application
-from ipv8.util import succeed
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
@@ -15,7 +14,7 @@ from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import has_bep33_support, random_infohash
+from tribler.core.utilities.utilities import random_infohash
 
 
 # pylint: disable=unused-argument
@@ -210,32 +209,8 @@ async def test_check_torrent_health(rest_api, mock_dlmgr, udp_tracker, metadata_
     Test the endpoint to fetch the health of a chant-managed, infohash-only torrent
     """
     infohash = b'a' * 20
-    tracker_url = f'udp://localhost:{udp_tracker.port}/announce'
-    udp_tracker.tracker_info.add_info_about_infohash(infohash, 12, 11, 1)
-
-    with db_session:
-        tracker_state = metadata_store.TrackerState(url=tracker_url)
-        torrent_state = metadata_store.TorrentState(trackers=tracker_state, infohash=infohash)
-        metadata_store.TorrentMetadata(
-            infohash=infohash, title='ubuntu-torrent.iso', size=42, tracker_info=tracker_url, health=torrent_state
-        )
-    url = f'metadata/torrents/{hexlify(infohash)}/health?timeout={TORRENT_CHECK_TIMEOUT}&refresh=1'
-
-    # Add mock DHT response - we both need to account for the case when BEP33 is used and the old lookup method
-    mock_dlmgr.get_metainfo = lambda _, **__: succeed(None)
-    dht_health_dict = {"infohash": hexlify(infohash), "seeders": 1, "leechers": 2}
-    mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed({"DHT": [dht_health_dict]})
-
-    # Left for compatibility with other tests in this object
-    await udp_tracker.start()
-
+    url = f'metadata/torrents/{hexlify(infohash)}/health?timeout={TORRENT_CHECK_TIMEOUT}'
     json_response = await do_request(rest_api, url)
-    assert "health" in json_response
-    assert f"udp://localhost:{udp_tracker.port}" in json_response['health']
-    if has_bep33_support():
-        assert "DHT" in json_response['health']
-
-    json_response = await do_request(rest_api, url + '&nowait=1')
     assert json_response == {'checking': '1'}
 
 

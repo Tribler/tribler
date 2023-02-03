@@ -1,14 +1,11 @@
+import asyncio
 from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Integer, String
-
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
@@ -198,7 +195,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 'in': 'query',
                 'name': 'refresh',
                 'description': 'Whether or not to force a health recheck. Settings this to 0 means that the '
-                'health of a torrent will not be checked again if it was recently checked.',
+                               'health of a torrent will not be checked again if it was recently checked.',
                 'type': 'integer',
                 'enum': [0, 1],
                 'required': False,
@@ -207,7 +204,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 'in': 'query',
                 'name': 'nowait',
                 'description': 'Whether or not to return immediately. If enabled, results '
-                'will be passed through to the events endpoint.',
+                               'will be passed through to the events endpoint.',
                 'type': 'integer',
                 'enum': [0, 1],
                 'required': False,
@@ -239,6 +236,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         },
     )
     async def get_torrent_health(self, request):
+        self._logger.info(f'Get torrent health: {request}')
         timeout = request.query.get('timeout')
         if not timeout:
             timeout = TORRENT_CHECK_TIMEOUT
@@ -246,15 +244,8 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             timeout = int(timeout)
         else:
             return RESTResponse({"error": f"Error processing timeout parameter '{timeout}'"}, status=HTTP_BAD_REQUEST)
-        refresh = request.query.get('refresh', '0') == '1'
-        nowait = request.query.get('nowait', '0') == '1'
 
         infohash = unhexlify(request.match_info['infohash'])
-        result_future = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=refresh)
-        # Return immediately. Used by GUI to schedule health updates through the EventsEndpoint
-        if nowait:
-            return RESTResponse({'checking': '1'})
-
-        # Errors will be handled by error_middleware
-        result = await result_future
-        return RESTResponse({'health': result})
+        task = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
+        asyncio.get_event_loop().create_task(task)
+        return RESTResponse({'checking': '1'})
