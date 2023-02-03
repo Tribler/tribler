@@ -4,6 +4,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import timedelta
 from enum import Enum, auto
 from typing import Callable, Dict, List
 
@@ -255,11 +256,13 @@ class RemoteTableModel(QAbstractTableModel):
             new_data_items = non_torrents + torrents
 
             new_item_uid_map = {}
+            insert_index = 0
             for item in new_data_items:
                 item_uid = get_item_uid(item)
                 new_item_uid_map[item_uid] = insert_index
                 if 'infohash' in item:
                     new_item_uid_map[item['infohash']] = insert_index
+                insert_index += 1
             self.beginResetModel()
             self.data_items = new_data_items
             self.item_uid_map = new_item_uid_map
@@ -515,6 +518,22 @@ class ChannelContentModel(RemoteTableModel):
             )
             return tooltip_txt
 
+        if role == Qt.ToolTipRole and column_type == Column.HEALTH:
+            last_tracker_check = item.get('last_tracker_check')
+            if item.get('health') == HEALTH_CHECKING:
+                return 'Checking...'
+            if last_tracker_check is None:
+                return 'Unknown'
+            if last_tracker_check == 0:
+                return 'Not checked'
+
+            td = timedelta(seconds=time.time() - last_tracker_check)
+            if td.days > 0:
+                return f'Checked: {td.days} days ago'
+
+            time_without_microseconds = str(td).partition('.')[0]
+            return f'Checked: {time_without_microseconds} ago'
+
         # The 'name' column is special in a sense that we want to draw the title and tags ourselves.
         # At the same time, we want to name this column to not break the renaming of torrent files, hence this check.
         if column_type == Column.NAME and not is_editing:
@@ -546,15 +565,16 @@ class ChannelContentModel(RemoteTableModel):
         it is time to update the labels.
         """
 
-        if (
-                self.channel_info.get("public_key") == update_dict.get("public_key") is not None
-                and self.channel_info.get("id") == update_dict.get("id") is not None
-        ):
+        MISSING = object()  # to avoid false positive comparison with None
+        public_key_is_equal = self.channel_info.get("public_key", None) == update_dict.get("public_key", MISSING)
+        id_is_equal = self.channel_info.get("id", None) == update_dict.get("id", MISSING)
+        if public_key_is_equal and id_is_equal:
             self.channel_info.update(**update_dict)
             self.info_changed.emit([])
             return
 
-        row = self.item_uid_map.get(get_item_uid(update_dict))
+        uid = get_item_uid(update_dict)
+        row = self.item_uid_map.get(uid)
         if row is not None and row < len(self.data_items):
             self.data_items[row].update(**update_dict)
             self.dataChanged.emit(self.index(row, 0), self.index(row, len(self.columns)), [])
