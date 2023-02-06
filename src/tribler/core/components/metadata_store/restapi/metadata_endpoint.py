@@ -1,4 +1,4 @@
-import asyncio
+from asyncio import create_task
 from binascii import unhexlify
 
 from aiohttp import ContentTypeError, web
@@ -228,6 +228,5 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             return RESTResponse({"error": f"Error processing timeout parameter '{timeout}'"}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info['infohash'])
-        task = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
-        asyncio.get_event_loop().create_task(task)
+        create_task(self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True))
         return RESTResponse({'checking': '1'})
