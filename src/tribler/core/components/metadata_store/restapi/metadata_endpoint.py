@@ -191,24 +191,6 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
                 'default': 20,
                 'required': False,
             },
-            {
-                'in': 'query',
-                'name': 'refresh',
-                'description': 'Whether or not to force a health recheck. Settings this to 0 means that the '
-                               'health of a torrent will not be checked again if it was recently checked.',
-                'type': 'integer',
-                'enum': [0, 1],
-                'required': False,
-            },
-            {
-                'in': 'query',
-                'name': 'nowait',
-                'description': 'Whether or not to return immediately. If enabled, results '
-                               'will be passed through to the events endpoint.',
-                'type': 'integer',
-                'enum': [0, 1],
-                'required': False,
-            },
         ],
         responses={
             200: {
