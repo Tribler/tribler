@@ -155,10 +155,8 @@ class HttpTrackerSession(TrackerSession):
 
     def _process_scrape_response(self, body) -> TrackerResponse:
         """
-        This function handles the response body of a HTTP tracker,
-        parsing the results.
+        This function handles the response body of an HTTP result from an HTTP tracker
         """
-        # parse the retrieved results
         if body is None:
             self.failed(msg="no response body")
 
@@ -166,39 +164,31 @@ class HttpTrackerSession(TrackerSession):
         if not response_dict:
             self.failed(msg="no valid response")
 
-        response_list = []
+        health_list: List[InfohashHealth] = []
 
-        unprocessed_infohash_list = self.infohash_list[:]
-        if b'files' in response_dict and isinstance(response_dict[b'files'], dict):
-            for infohash in response_dict[b'files']:
-                complete = 0
-                incomplete = 0
-                if isinstance(response_dict[b'files'][infohash], dict):
-                    complete = response_dict[b'files'][infohash].get(b'complete', 0)
-                    incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
+        unprocessed_infohashes = set(self.infohash_list)
+        files = response_dict.get(b'files')
+        if isinstance(files, dict):
+            for infohash, file_info in files.items():
+                seeders = leechers = 0
+                if isinstance(file_info, dict):
+                    # "complete: number of peers with the entire file, i.e. seeders (integer)"
+                    #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
+                    seeders = file_info.get(b'complete', 0)
+                    leechers = file_info.get(b'incomplete', 0)
 
-                # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
-                #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-                seeders = complete
-                leechers = incomplete
-
-                # Store the information in the dictionary
-                response_list.append(InfohashHealth(infohash=infohash, seeders=seeders, leechers=leechers))
-
-                # remove this infohash in the infohash list of this session
-                if infohash in unprocessed_infohash_list:
-                    unprocessed_infohash_list.remove(infohash)
+                unprocessed_infohashes.discard(infohash)
+                health_list.append(InfohashHealth(infohash=infohash, seeders=seeders, leechers=leechers))
 
         elif b'failure reason' in response_dict:
             self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
             self.failed(msg=repr(response_dict[b'failure reason']))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
-        for infohash in unprocessed_infohash_list:
-            response_list.append(InfohashHealth(infohash=infohash))
+        health_list.extend(InfohashHealth(infohash=infohash) for infohash in unprocessed_infohashes)
 
         self.is_finished = True
-        return TrackerResponse(url=self.tracker_url, torrent_health_list=response_list)
+        return TrackerResponse(url=self.tracker_url, torrent_health_list=health_list)
 
     async def cleanup(self):
         """
