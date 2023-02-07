@@ -218,14 +218,11 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         },
     )
     async def get_torrent_health(self, request):
-        self._logger.info(f'Get torrent health: {request}')
-        timeout = request.query.get('timeout')
-        if not timeout:
-            timeout = TORRENT_CHECK_TIMEOUT
-        elif timeout.isdigit():
-            timeout = int(timeout)
-        else:
-            return RESTResponse({"error": f"Error processing timeout parameter '{timeout}'"}, status=HTTP_BAD_REQUEST)
+        self._logger.info(f'Get torrent health request: {request}')
+        try:
+            timeout = int(request.query.get('timeout', TORRENT_CHECK_TIMEOUT))
+        except ValueError as e:
+            return RESTResponse({"error": f"Error processing timeout parameter: {e}"}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info['infohash'])
         create_task(self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True))
