@@ -61,7 +61,7 @@ async def test_health_check_blacklisted_trackers(torrent_checker):
 
     torrent_checker.tracker_manager.blacklist.append("http://localhost/tracker")
     result = await torrent_checker.check_torrent_health(b'a' * 20)
-    assert {'db'} == set(result.keys())
+    assert result.keys() == {'db'}
     assert result['db']['seeders'] == 5
     assert result['db']['leechers'] == 10
 
@@ -76,7 +76,7 @@ async def test_health_check_cached(torrent_checker):
                                          last_check=int(time.time()))
 
     result = await torrent_checker.check_torrent_health(b'a' * 20)
-    assert 'db' in result
+    assert result.keys() == {'db'}
     assert result['db']['seeders'] == 5
     assert result['db']['leechers'] == 10
 
