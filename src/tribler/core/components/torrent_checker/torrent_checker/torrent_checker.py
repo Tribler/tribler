@@ -284,9 +284,9 @@ class TorrentChecker(TaskManager):
         return tracker_url in self.tracker_manager.blacklist
 
     @db_session
-    def get_valid_trackers_of_torrent(self, torrent_id):
+    def get_valid_trackers_of_torrent(self, infohash):
         """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.mds.TorrentState.get(infohash=torrent_id).trackers
+        db_tracker_list = self.mds.TorrentState.get(infohash=infohash).trackers
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
@@ -355,17 +355,16 @@ class TorrentChecker(TaskManager):
 
         # We first check whether the torrent is already in the database and checked before
         with db_session:
-            responses = self.mds.TorrentState.get(infohash=infohash)
-            if responses:
-                torrent_id = responses.infohash
-                last_check = responses.last_check
+            torrent_state = self.mds.TorrentState.get(infohash=infohash)
+            if torrent_state:
+                last_check = torrent_state.last_check
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
                     self._logger.info(f"Time interval too short, not doing torrent health check for {infohash_hex}")
                     responses = {
                         "db": {
-                            "seeders": responses.seeders,
-                            "leechers": responses.leechers,
+                            "seeders": torrent_state.seeders,
+                            "leechers": torrent_state.leechers,
                             "infohash": infohash_hex
                         }
                     }
@@ -373,7 +372,7 @@ class TorrentChecker(TaskManager):
                     return responses
 
                 # get torrent's tracker list from DB
-                tracker_set = self.get_valid_trackers_of_torrent(torrent_id)
+                tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)
                 self._logger.info(f'Trackers for {infohash_hex}: {tracker_set}')
 
         tasks = []
@@ -434,12 +433,12 @@ class TorrentChecker(TaskManager):
         self._logger.info(f'Update torrent health: {health}')
         with db_session:
             # Update torrent state
-            torrent = self.mds.TorrentState.get(infohash=health.infohash)
-            if not torrent:
+            torrent_state = self.mds.TorrentState.get(infohash=health.infohash)
+            if not torrent_state:
                 self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
                 return
-            torrent.seeders = health.seeders
-            torrent.leechers = health.leechers
-            torrent.last_check = health.last_check
-            torrent.self_checked = True
+            torrent_state.seeders = health.seeders
+            torrent_state.leechers = health.leechers
+            torrent_state.last_check = health.last_check
+            torrent_state.self_checked = True
         self._logger.info('Torrent health has been updated')
