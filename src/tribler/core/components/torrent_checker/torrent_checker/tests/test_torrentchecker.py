@@ -10,6 +10,8 @@ from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
+    filter_non_exceptions
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     HttpTrackerSession, UdpSocketManager
@@ -62,9 +64,8 @@ async def test_health_check_blacklisted_trackers(torrent_checker):
 
     torrent_checker.tracker_manager.blacklist.append("http://localhost/tracker")
     result = await torrent_checker.check_torrent_health(b'a' * 20)
-    assert result.keys() == {'db'}
-    assert result['db']['seeders'] == 5
-    assert result['db']['leechers'] == 10
+    assert result.seeders == 5
+    assert result.leechers == 10
 
 
 async def test_health_check_cached(torrent_checker):
@@ -77,9 +78,8 @@ async def test_health_check_cached(torrent_checker):
                                          last_check=int(time.time()))
 
     result = await torrent_checker.check_torrent_health(b'a' * 20)
-    assert result.keys() == {'db'}
-    assert result['db']['seeders'] == 5
-    assert result['db']['leechers'] == 10
+    assert result.seeders == 5
+    assert result.leechers == 10
 
 
 def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused-argument
@@ -234,30 +234,33 @@ def test_get_valid_next_tracker_for_auto_check(torrent_checker):
 
 def test_filter_non_exceptions():
     response = TrackerResponse(url='url', torrent_health_list=[])
-    responses = (response, Exception())
+    responses = [response, Exception()]
 
-    assert torrent_checker_module.filter_non_exceptions(responses) == [response]
+    assert filter_non_exceptions(responses) == [response]
 
 
 def test_update_health(torrent_checker: TorrentChecker):
-    infohash_bin = b'\xee' * 20
+    infohash = b'\xee' * 20
 
     responses = [
         TrackerResponse(
             url='udp://localhost:2801',
-            torrent_health_list=[InfohashHealth(leechers=1, seeders=2, infohash=infohash_bin)]
+            torrent_health_list=[InfohashHealth(leechers=1, seeders=2, infohash=infohash)]
         ),
         TrackerResponse(
-            url='DHT', torrent_health_list=[InfohashHealth(leechers=12, seeders=13, infohash=infohash_bin)]
+            url='DHT', torrent_health_list=[InfohashHealth(leechers=12, seeders=13, infohash=infohash)]
         ),
     ]
 
-    torrent_checker.update_health(responses)
+    health = aggregate_responses_for_infohash(infohash, responses)
+    health.last_check = int(time.time()) - 1
+    torrent_checker.update_torrent_health(health)
 
     with db_session:
-        ts = torrent_checker.mds.TorrentState(infohash=infohash_bin)
+        ts = torrent_checker.mds.TorrentState(infohash=infohash)
         previous_check = ts.last_check
-        torrent_checker.update_health(responses)
+        health.last_check = int(time.time()) - 1
+        torrent_checker.update_torrent_health(health)
         assert len(torrent_checker.torrents_checked) == 1
         assert ts.leechers == 12
         assert ts.seeders == 13

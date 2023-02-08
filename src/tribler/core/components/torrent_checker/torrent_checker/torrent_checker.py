@@ -1,12 +1,10 @@
 import asyncio
-import functools
-import itertools
 import logging
 import random
 import time
-from asyncio import CancelledError, gather
+from asyncio import CancelledError
 from collections import defaultdict
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
@@ -18,6 +16,8 @@ from tribler.core.components.metadata_store.db.serialization import REGULAR_TORR
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
+    filter_non_exceptions, gather_coros, aggregate_health_by_infohash
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     FakeBep33DHTSession, FakeDHTSession, TrackerSession, UdpSocketManager, create_tracker_session
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
@@ -38,10 +38,6 @@ TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random
 USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
 HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
 TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
-
-
-def filter_non_exceptions(responses: Sequence):
-    return [r for r in responses if not isinstance(r, BaseException)]
 
 
 class TorrentChecker(TaskManager):
@@ -163,7 +159,9 @@ class TorrentChecker(TaskManager):
             self._logger.warning(e)
         else:
             self._logger.info(f'Random tracker check result: {response}')
-            self.update_health([response], 'random tracker')
+            for health in aggregate_health_by_infohash(response.torrent_health_list):
+                health.last_check = int(time.time())
+                self.update_torrent_health(health)
 
     async def get_tracker_response(self, session: TrackerSession) -> TrackerResponse:
         self._logger.info(f'Connecting to the tracker: {session.tracker_url}')
@@ -224,11 +222,11 @@ class TorrentChecker(TaskManager):
         selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
         return selected_torrents
 
-    async def check_torrents(self, torrents: List[Entity], source: str = '') -> List[Union[Dict, Exception]]:
+    async def check_torrents(self, torrents: List[Entity], source: str = ''):
         self._logger.info(f'{len(torrents)} torrents have been chosen to check for {source}')
 
         coros = [self.check_torrent_health(t.infohash) for t in torrents]
-        results = await gather(*coros, return_exceptions=True)
+        results = await gather_coros(coros)
         self._logger.info(f'Results for {source}: {results}')
         return results
 
@@ -256,7 +254,7 @@ class TorrentChecker(TaskManager):
                                 .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
         return channel_torrents
 
-    async def check_torrents_in_user_channel(self) -> List[Union[Dict, Exception]]:
+    async def check_torrents_in_user_channel(self) -> List[Union[InfohashHealth, BaseException]]:
         """
         Perform a full health check of torrents in user's channel
         """
@@ -287,41 +285,7 @@ class TorrentChecker(TaskManager):
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
-    def update_health(self, responses: List[TrackerResponse], source: str = ''):
-        self._logger.info(f'Update health for {source}: {responses}')
-
-        # health comes here with the format of
-        # responses:
-        # [
-        #     (tracker_url1, [(infohash11, seeders11, leechers11)...(infohash1N, seeders1N, leechers1N)]),
-        #     (tracker_url2, [(infohash21, seeders21, leechers21)...(infohash2N, seeders2N, leechers2N)])
-        #     ...
-        #     (tracker_urlM, [(infohashM1, seedersM1, leechersM1)...(infohashMN, seedersMN, leechersMN)])
-        # ]
-
-        # remove tracker urls, left only health info:
-        flat_list = itertools.chain(*(r.torrent_health_list for r in responses))
-
-        # group healths by infohash:
-        # [
-        #     (infohash1, [health11...health1N]),
-        #     (infohash2, [health21...health2N]),
-        #     ...
-        #     (infohashM, [healthM1...healthMN]),
-        # ]
-        grouped_by_infohash = itertools.groupby(flat_list, key=lambda r: r.infohash)
-
-        # reduce health list to the single aggregated health information
-        aggregated = {}
-        for infohash, group in grouped_by_infohash:
-            aggregated[infohash] = functools.reduce(lambda a, b: a if a.seeders > b.seeders else b, group)
-
-        # save health information
-        for infohash, health in aggregated.items():
-            health.last_check = int(time.time())
-            self.update_torrent_health(health)
-
-    async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False):
+    async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False) -> InfohashHealth:
         """
         Check the health of a torrent with a given infohash.
         :param infohash: Torrent infohash.
@@ -340,15 +304,8 @@ class TorrentChecker(TaskManager):
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
                     self._logger.info(f"Time interval too short, not doing torrent health check for {infohash_hex}")
-                    responses = {
-                        "db": {
-                            "seeders": torrent_state.seeders,
-                            "leechers": torrent_state.leechers,
-                            "infohash": infohash_hex
-                        }
-                    }
-                    self._logger.info(f'Returning: {responses}')
-                    return responses
+                    return InfohashHealth(infohash, seeders=torrent_state.seeders, leechers=torrent_state.leechers,
+                                          last_check=torrent_state.last_check)
 
                 # get torrent's tracker list from DB
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)
@@ -367,11 +324,13 @@ class TorrentChecker(TaskManager):
 
         self._sessions[DHT].append(session)
         coros.append(self.get_tracker_response(session))
-        responses = await gather(*coros, return_exceptions=True)
+        responses = await gather_coros(coros)
         self._logger.info(f'{len(responses)} responses for {infohash_hex} have been received: {responses}')
 
         if successful_responses := filter_non_exceptions(responses):
-            self.update_health(successful_responses, f'torrent {infohash_hex}')
+            health = aggregate_responses_for_infohash(infohash, successful_responses)
+            health.last_check = int(time.time())
+            self.update_torrent_health(health)
         else:
             self.notifier[notifications.channel_entity_updated]({
                 'infohash': infohash_hex,
