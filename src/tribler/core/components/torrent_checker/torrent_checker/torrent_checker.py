@@ -230,8 +230,8 @@ class TorrentChecker(TaskManager):
     async def check_torrents(self, torrents: List[Entity], source: str = '') -> List[Union[Dict, Exception]]:
         self._logger.info(f'{len(torrents)} torrents have been chosen to check for {source}')
 
-        tasks = [self.check_torrent_health(t.infohash) for t in torrents]
-        results = await gather(*tasks, return_exceptions=True)
+        coros = [self.check_torrent_health(t.infohash) for t in torrents]
+        results = await gather(*coros, return_exceptions=True)
         self._logger.info(f'Results for {source}: {results}')
         return results
 
@@ -375,11 +375,11 @@ class TorrentChecker(TaskManager):
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)
                 self._logger.info(f'Trackers for {infohash_hex}: {tracker_set}')
 
-        tasks = []
+        coros = []
         for tracker_url in tracker_set:
             if session := self._create_session_for_request(tracker_url, timeout=timeout):
                 session.add_infohash(infohash)
-                tasks.append(self.get_tracker_response(session))
+                coros.append(self.get_tracker_response(session))
 
         session_cls = FakeBep33DHTSession if has_bep33_support() else FakeDHTSession
         session = session_cls(self.download_manager, timeout)
@@ -387,8 +387,8 @@ class TorrentChecker(TaskManager):
         self._logger.info(f'DHT session has been created for {infohash_hex}: {session}')
 
         self._sessions[DHT].append(session)
-        tasks.append(self.get_tracker_response(session))
-        responses = await gather(*tasks, return_exceptions=True)
+        coros.append(self.get_tracker_response(session))
+        responses = await gather(*coros, return_exceptions=True)
         self._logger.info(f'{len(responses)} responses for {infohash_hex} have been received: {responses}')
 
         if successful_responses := filter_non_exceptions(responses):
