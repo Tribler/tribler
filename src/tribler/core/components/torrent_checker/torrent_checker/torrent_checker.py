@@ -44,7 +44,7 @@ TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 ho
 
 
 def filter_non_exceptions(responses: Sequence):
-    return [r for r in responses if not isinstance(r, Exception)]
+    return [r for r in responses if not isinstance(r, BaseException)]
 
 
 class TorrentChecker(TaskManager):
