@@ -5,7 +5,7 @@ from typing import Awaitable
 from ipv8.taskmanager import TaskManager
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import InfohashHealth
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
 from tribler.core.utilities.unicode import hexlify
 
 

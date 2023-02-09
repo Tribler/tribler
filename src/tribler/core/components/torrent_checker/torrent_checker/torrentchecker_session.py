@@ -8,7 +8,6 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod
 from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, gather, get_event_loop
-from dataclasses import dataclass, field
 from typing import List, TYPE_CHECKING
 
 import async_timeout
@@ -18,8 +17,8 @@ from ipv8.taskmanager import TaskManager
 from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.components.socks_servers.socks5.client import Socks5Client
 from tribler.core.components.torrent_checker.torrent_checker import DHT
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
 from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
-from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
 if TYPE_CHECKING:
@@ -36,24 +35,6 @@ MAX_INT32 = 2 ** 16 - 1
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 
 MAX_INFOHASHES_IN_SCRAPE = 60
-
-
-@dataclass
-class TrackerResponse:
-    url: str
-    torrent_health_list: List[InfohashHealth]
-
-
-@dataclass
-class InfohashHealth:
-    infohash: bytes = field(repr=False)
-    infohash_hex: str = field(init=False)
-    seeders: int = 0
-    leechers: int = 0
-    last_check: int = 0
-
-    def __post_init__(self):
-        self.infohash_hex = hexlify(self.infohash)
 
 
 class TrackerSession(TaskManager):

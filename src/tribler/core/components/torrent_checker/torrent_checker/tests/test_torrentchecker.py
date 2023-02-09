@@ -9,9 +9,10 @@ from ipv8.util import succeed
 from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HttpTrackerSession, \
-    InfohashHealth, TrackerResponse, UdpSocketManager
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
+    HttpTrackerSession, UdpSocketManager
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 
 

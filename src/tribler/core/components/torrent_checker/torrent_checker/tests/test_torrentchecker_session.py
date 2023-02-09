@@ -8,14 +8,9 @@ from aiohttp.web_exceptions import HTTPBadRequest
 from ipv8.util import succeed
 from libtorrent import bencode
 
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
-    FakeBep33DHTSession,
-    FakeDHTSession,
-    HttpTrackerSession,
-    InfohashHealth, UdpSocketManager,
-    UdpTrackerSession,
-)
-from tribler.core.utilities.unicode import hexlify
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
+    FakeBep33DHTSession, FakeDHTSession, HttpTrackerSession, UdpSocketManager, UdpTrackerSession
 
 
 # pylint: disable=redefined-outer-name

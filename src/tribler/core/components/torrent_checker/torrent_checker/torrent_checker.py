@@ -17,12 +17,9 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
-    FakeBep33DHTSession,
-    FakeDHTSession,
-    InfohashHealth, TrackerResponse, TrackerSession, UdpSocketManager,
-    create_tracker_session,
-)
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
+    FakeBep33DHTSession, FakeDHTSession, TrackerSession, UdpSocketManager, create_tracker_session
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.notifier import Notifier
