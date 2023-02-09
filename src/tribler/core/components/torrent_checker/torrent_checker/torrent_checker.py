@@ -4,7 +4,7 @@ import random
 import time
 from asyncio import CancelledError
 from collections import defaultdict
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
@@ -64,7 +64,7 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
-        self._torrents_checked = dict()
+        self._torrents_checked: Dict[bytes, InfohashHealth] = {}
 
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
@@ -179,10 +179,10 @@ class TorrentChecker(TaskManager):
             await self.clean_session(session)
 
     @property
-    def torrents_checked(self):
+    def torrents_checked(self) -> Dict[bytes, InfohashHealth]:
         if not self._torrents_checked:
             self.load_torrents_checked_from_db()
-        return self._torrents_checked.values()
+        return self._torrents_checked
 
     @db_session
     def load_torrents_checked_from_db(self):
@@ -193,8 +193,8 @@ class TorrentChecker(TaskManager):
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
         for torrent in checked_torrents:
-            self._torrents_checked[torrent.infohash] = (torrent.infohash, torrent.seeders, torrent.leechers,
-                                                        torrent.last_check)
+            self._torrents_checked[torrent.infohash] = InfohashHealth(
+                torrent.infohash, seeders=torrent.seeders, leechers=torrent.leechers, last_check=torrent.last_check)
 
     @db_session
     def torrents_to_check(self):
@@ -378,8 +378,7 @@ class TorrentChecker(TaskManager):
         self._logger.info('Torrent health has been updated')
 
         if health.seeders > 0:
-            torrent_checked = (health.infohash, health.seeders, health.leechers, health.last_check)
-            self._torrents_checked[health.infohash] = torrent_checked
+            self._torrents_checked[health.infohash] = health
 
         self.notifier[notifications.channel_entity_updated]({
             'infohash': health.infohash_hex,

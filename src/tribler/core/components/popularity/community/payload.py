@@ -1,6 +1,10 @@
+from typing import List
+
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.payload_dataclass import dataclass
 from ipv8.messaging.serialization import default_serializer
+
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
 
 
 @vp_compile
@@ -40,9 +44,13 @@ class TorrentsHealthPayload(VariablePayload):
         return [payload.to_tuple() for payload in TorrentInfoFormat.from_list_bytes(value)]
 
     @classmethod
-    def create(cls, random_torrents_checked, popular_torrents_checked):
+    def create(cls, random_torrents_checked: List[InfohashHealth], popular_torrents_checked: List[InfohashHealth]):
+        random_torrent_tuples = [(health.infohash, health.seeders, health.leechers, health.last_check)
+                                 for health in random_torrents_checked]
+        popular_torrent_tuples = [(health.infohash, health.seeders, health.leechers, health.last_check)
+                                  for health in popular_torrents_checked]
         return cls(len(random_torrents_checked), len(popular_torrents_checked),
-                   random_torrents_checked, popular_torrents_checked)
+                   random_torrent_tuples, popular_torrent_tuples)
 
 
 @dataclass(msg_id=2)

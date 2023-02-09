@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import random
 from binascii import unhexlify
+from typing import List, TYPE_CHECKING
 
 from ipv8.lazy_community import lazy_wrapper
 from pony.orm import db_session
@@ -10,6 +13,11 @@ from tribler.core.components.popularity.community.version_community_mixin import
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
+
+
+if TYPE_CHECKING:
+    from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import InfohashHealth
+    from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 
 
 class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
@@ -33,7 +41,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     def __init__(self, *args, torrent_checker=None, **kwargs):
         # Creating a separate instance of Network for this community to find more peers
         super().__init__(*args, **kwargs)
-        self.torrent_checker = torrent_checker
+        self.torrent_checker: TorrentChecker = torrent_checker
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
         self.add_message_handler(PopularTorrentsRequest, self.on_popular_torrents_request)
@@ -50,13 +58,12 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         # Send request to peer to send popular torrents
         self.ez_send(peer, PopularTorrentsRequest())
 
-    def get_alive_checked_torrents(self):
-        if not self.torrent_checker or not self.torrent_checker.torrents_checked:
+    def get_alive_checked_torrents(self) -> List[InfohashHealth]:
+        if not self.torrent_checker:
             return []
 
         # Filter torrents that have seeders
-        alive = {(_, seeders, *rest) for (_, seeders, *rest) in self.torrent_checker.torrents_checked if seeders > 0}
-        return alive
+        return [health for health in self.torrent_checker.torrents_checked.values() if health.seeders > 0]
 
     def gossip_random_torrents_health(self):
         """
@@ -97,20 +104,20 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         popular_torrents = self.get_likely_popular_torrents()
         self.ez_send(peer, TorrentsHealthPayload.create({}, popular_torrents))
 
-    def get_likely_popular_torrents(self):
+    def get_likely_popular_torrents(self) -> List[InfohashHealth]:
         checked_and_alive = self.get_alive_checked_torrents()
         if not checked_and_alive:
-            return {}
+            return []
 
         num_torrents = len(checked_and_alive)
         num_torrents_to_send = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, num_torrents)
         likely_popular_indices = self._get_likely_popular_indices(num_torrents_to_send, num_torrents)
 
-        sorted_torrents = sorted(list(checked_and_alive), key=lambda t: -t[1])
-        likely_popular_torrents = {sorted_torrents[i] for i in likely_popular_indices}
+        sorted_torrents = sorted(list(checked_and_alive), key=lambda health: -health.seeders)
+        likely_popular_torrents = [sorted_torrents[i] for i in likely_popular_indices]
         return likely_popular_torrents
 
-    def _get_likely_popular_indices(self, size, limit):
+    def _get_likely_popular_indices(self, size, limit) -> List[int]:
         """
         Returns a list of indices favoring the lower value numbers.
 
@@ -122,13 +129,13 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         """
         return get_normally_distributed_positive_integers(size=size, upper_limit=limit)
 
-    def get_random_torrents(self):
+    def get_random_torrents(self) -> List[InfohashHealth]:
         checked_and_alive = list(self.get_alive_checked_torrents())
         if not checked_and_alive:
-            return {}
+            return []
 
         num_torrents = len(checked_and_alive)
         num_torrents_to_send = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, num_torrents)
 
-        random_torrents = set(random.sample(checked_and_alive, num_torrents_to_send))
+        random_torrents = random.sample(checked_and_alive, num_torrents_to_send)
         return random_torrents
