@@ -290,14 +290,6 @@ class TorrentChecker(TaskManager):
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
-    def update_torrents_checked(self, health: InfohashHealth):
-        """
-        Update the set with torrents that we have checked ourselves.
-        """
-        if health.seeders > 0:
-            torrent_checked = (health.infohash, health.seeders, health.leechers, health.last_check)
-            self._torrents_checked[health.infohash] = torrent_checked
-
     def update_health(self, responses: List[TrackerResponse], source: str = ''):
         self._logger.info(f'Update health for {source}: {responses}')
 
@@ -330,17 +322,7 @@ class TorrentChecker(TaskManager):
         # save health information
         for infohash, health in aggregated.items():
             health.last_check = int(time.time())
-
             self.update_torrent_health(health)
-            self.update_torrents_checked(health)
-
-            self.notifier[notifications.channel_entity_updated]({
-                'infohash': health.infohash_hex,
-                'num_seeders': health.seeders,
-                'num_leechers': health.leechers,
-                'last_tracker_check': health.last_check,
-                'health': 'updated'
-            })
 
     async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False):
         """
@@ -442,3 +424,15 @@ class TorrentChecker(TaskManager):
             torrent_state.last_check = health.last_check
             torrent_state.self_checked = True
         self._logger.info('Torrent health has been updated')
+
+        if health.seeders > 0:
+            torrent_checked = (health.infohash, health.seeders, health.leechers, health.last_check)
+            self._torrents_checked[health.infohash] = torrent_checked
+
+        self.notifier[notifications.channel_entity_updated]({
+            'infohash': health.infohash_hex,
+            'num_seeders': health.seeders,
+            'num_leechers': health.leechers,
+            'last_tracker_check': health.last_check,
+            'health': 'updated'
+        })
