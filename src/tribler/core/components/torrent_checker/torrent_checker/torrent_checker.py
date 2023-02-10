@@ -8,7 +8,6 @@ from typing import List, Optional, Tuple, Union
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
-from pony.orm.core import Entity
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
@@ -222,21 +221,15 @@ class TorrentChecker(TaskManager):
         selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
         return selected_torrents
 
-    async def check_torrents(self, torrents: List[Entity], source: str = ''):
-        self._logger.info(f'{len(torrents)} torrents have been chosen to check for {source}')
-
-        coros = [self.check_torrent_health(t.infohash) for t in torrents]
-        results = await gather_coros(coros)
-        self._logger.info(f'Results for {source}: {results}')
-        return results
-
     async def check_local_torrents(self) -> Tuple[List, List]:
         """
         Perform a full health check on a few popular and old torrents in the database.
         """
-        self._logger.info('Check local torrents')
         selected_torrents = self.torrents_to_check()
-        results = await self.check_torrents(selected_torrents, 'local torrents')
+        self._logger.info(f'Check {len(selected_torrents)} local torrents')
+        coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
+        results = await gather_coros(coros)
+        self._logger.info(f'Results for local torrents check: {results}')
         return selected_torrents, results
 
     @db_session
@@ -258,9 +251,12 @@ class TorrentChecker(TaskManager):
         """
         Perform a full health check of torrents in user's channel
         """
-        self._logger.info('Check torrents in a user channel')
         selected_torrents = self.torrents_to_check_in_user_channel()
-        return await self.check_torrents(selected_torrents, 'user channel')
+        self._logger.info(f'Check {len(selected_torrents)} torrents in user channel')
+        coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
+        results = await gather_coros(coros)
+        self._logger.info(f'Results for torrents in user channel: {results}')
+        return results
 
     def get_next_tracker(self):
         while tracker := self.tracker_manager.get_next_tracker():
