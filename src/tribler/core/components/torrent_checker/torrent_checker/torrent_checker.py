@@ -159,7 +159,6 @@ class TorrentChecker(TaskManager):
         else:
             self._logger.info(f'Random tracker check result: {response}')
             for health in aggregate_health_by_infohash(response.torrent_health_list):
-                health.last_check = int(time.time())
                 self.update_torrent_health(health)
 
     async def get_tracker_response(self, session: TrackerSession) -> TrackerResponse:
@@ -324,7 +323,6 @@ class TorrentChecker(TaskManager):
 
         if successful_responses := filter_non_exceptions(responses):
             health = aggregate_responses_for_infohash(infohash, successful_responses)
-            health.last_check = int(time.time())
             self.update_torrent_health(health)
         else:
             self.notifier[notifications.channel_entity_updated]({
