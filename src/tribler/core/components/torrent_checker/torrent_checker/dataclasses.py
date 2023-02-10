@@ -8,9 +8,9 @@ from tribler.core.utilities.unicode import hexlify
 class InfohashHealth:
     infohash: bytes = field(repr=False)
     infohash_hex: str = field(init=False)
+    last_check: int
     seeders: int = 0
     leechers: int = 0
-    last_check: int = 0
 
     def __post_init__(self):
         self.infohash_hex = hexlify(self.infohash)

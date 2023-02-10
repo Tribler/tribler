@@ -32,8 +32,8 @@ def _generate_single_checked_torrent(status: str = None) -> InfohashHealth:
             return randint(101, 1000)
         return randint(1, 100)
 
-    return InfohashHealth(random_infohash(), seeders=get_peers_for(status), leechers=get_peers_for(status),
-                          last_check=int(time.time()))
+    return InfohashHealth(random_infohash(), last_check=int(time.time()),
+                          seeders=get_peers_for(status), leechers=get_peers_for(status))
 
 
 def _generate_checked_torrents(count: int, status: str = None) -> List[InfohashHealth]:

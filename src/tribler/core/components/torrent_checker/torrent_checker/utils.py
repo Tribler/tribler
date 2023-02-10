@@ -28,7 +28,7 @@ def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerRes
     """
     Finds the "best" health info (with the max number of seeders) for a specified infohash
     """
-    result = InfohashHealth(infohash)
+    result = InfohashHealth(infohash, last_check=0)
     for response in responses:
         for health in response.torrent_health_list:
             if health.infohash == infohash and health.seeders > result.seeders:

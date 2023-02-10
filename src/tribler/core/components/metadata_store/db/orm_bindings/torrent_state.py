@@ -26,7 +26,7 @@ def define_binding(db):
                        last_check=health.last_check)
 
         def to_health(self) -> InfohashHealth:
-            return InfohashHealth(infohash=self.infohash, seeders=self.seeders, leechers=self.leechers,
-                                  last_check=self.last_check)
+            return InfohashHealth(infohash=self.infohash, last_check=self.last_check,
+                                  seeders=self.seeders, leechers=self.leechers)
 
     return TorrentState

@@ -242,13 +242,15 @@ def test_filter_non_exceptions():
 def test_update_health(torrent_checker: TorrentChecker):
     infohash = b'\xee' * 20
 
+    now = int(time.time())
     responses = [
         TrackerResponse(
             url='udp://localhost:2801',
-            torrent_health_list=[InfohashHealth(leechers=1, seeders=2, infohash=infohash)]
+            torrent_health_list=[InfohashHealth(infohash, last_check=now, leechers=1, seeders=2)]
         ),
         TrackerResponse(
-            url='DHT', torrent_health_list=[InfohashHealth(leechers=12, seeders=13, infohash=infohash)]
+            url='DHT',
+            torrent_health_list=[InfohashHealth(infohash, last_check=now, leechers=12, seeders=13)]
         ),
     ]
 

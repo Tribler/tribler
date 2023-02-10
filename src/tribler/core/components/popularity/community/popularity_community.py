@@ -84,7 +84,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
                           f" {len(payload.random_torrents)} random torrents")
 
         health_tuples = payload.random_torrents + payload.torrents_checked
-        health_list = [InfohashHealth(infohash, seeders=seeders, leechers=leechers, last_check=last_check)
+        health_list = [InfohashHealth(infohash, last_check=last_check, seeders=seeders, leechers=leechers)
                        for infohash, seeders, leechers, last_check in health_tuples]
 
         for infohash in await run_threaded(self.mds.db, self.process_torrents_health, health_list):

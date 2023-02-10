@@ -1,5 +1,6 @@
 import socket
 import struct
+import time
 from asyncio import CancelledError, DatagramProtocol, Future, ensure_future, get_event_loop, sleep, start_server
 from unittest.mock import Mock
 
@@ -361,7 +362,7 @@ async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr):
     Test the metainfo lookup of the BEP33 DHT session
     """
     infohash = b'a' * 20
-    infohash_health = InfohashHealth(infohash=infohash, seeders=1, leechers=2)
+    infohash_health = InfohashHealth(infohash, last_check=int(time.time()), seeders=1, leechers=2)
 
     mock_dlmgr.dht_health_manager = Mock()
     mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed(infohash_health)

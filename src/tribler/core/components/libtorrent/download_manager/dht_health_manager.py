@@ -1,4 +1,5 @@
 import math
+import time
 from asyncio import Future
 from typing import Awaitable
 
@@ -64,7 +65,8 @@ class DHTHealthManager(TaskManager):
         seeders = DHTHealthManager.get_size_from_bloomfilter(bf_seeders)
         peers = DHTHealthManager.get_size_from_bloomfilter(bf_peers)
         if not self.lookup_futures[infohash].done():
-            self.lookup_futures[infohash].set_result(InfohashHealth(infohash=infohash, seeders=seeders, leechers=peers))
+            health = InfohashHealth(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers)
+            self.lookup_futures[infohash].set_result(health)
 
         self.lookup_futures.pop(infohash, None)
 

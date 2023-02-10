@@ -511,8 +511,8 @@ class MetadataStore:
             with db_session:
                 for payload, (seeders, leechers, last_check) in zip(payload_list, health_info):
                     if hasattr(payload, 'infohash'):
-                        health = InfohashHealth(infohash=payload.infohash, seeders=seeders, leechers=leechers,
-                                                last_check=last_check)
+                        health = InfohashHealth(payload.infohash, last_check=last_check,
+                                                seeders=seeders, leechers=leechers)
                         self.process_torrent_health(health)
 
         result = []
