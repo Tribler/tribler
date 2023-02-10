@@ -1,10 +1,8 @@
 import logging
 import time
 from pathlib import Path
-from typing import Optional
 
 from pony.orm import count, db_session
-from pony.orm.core import Entity
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.tracker_utils import get_uniformed_tracker_url
@@ -18,7 +16,7 @@ class TrackerManager:
     def __init__(self, state_dir: Path = None, metadata_store: MetadataStore = None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
-        self.tracker_store = metadata_store.TrackerState
+        self.TrackerState = metadata_store.TrackerState
 
         self.blacklist = []
         self.load_blacklist()
@@ -46,7 +44,7 @@ class TrackerManager:
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != "DHT" else tracker_url
 
         with db_session:
-            tracker = list(self.tracker_store.select(lambda g: g.url == sanitized_tracker_url))
+            tracker = list(self.TrackerState.select(lambda g: g.url == sanitized_tracker_url))
             if tracker:
                 return {
                     'id': tracker[0].url,
@@ -67,17 +65,17 @@ class TrackerManager:
             return
 
         with db_session:
-            num = count(g for g in self.tracker_store if g.url == sanitized_tracker_url)
+            num = count(g for g in self.TrackerState if g.url == sanitized_tracker_url)
             if num > 0:
                 self._logger.debug("skip existing tracker: %s", repr(tracker_url))
                 return
 
             # insert into database
-            self.tracker_store(url=sanitized_tracker_url,
-                               last_check=0,
-                               failures=0,
-                               alive=True,
-                               torrents={})
+            self.TrackerState(url=sanitized_tracker_url,
+                              last_check=0,
+                              failures=0,
+                              alive=True,
+                              torrents={})
 
     def remove_tracker(self, tracker_url):
         """
@@ -89,7 +87,7 @@ class TrackerManager:
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
 
         with db_session:
-            options = self.tracker_store.select(lambda g: g.url in [tracker_url, sanitized_tracker_url])
+            options = self.TrackerState.select(lambda g: g.url in [tracker_url, sanitized_tracker_url])
             for option in options[:]:
                 option.delete()
 
@@ -105,7 +103,7 @@ class TrackerManager:
             return
 
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
-        tracker = self.tracker_store.get(lambda g: g.url == sanitized_tracker_url)
+        tracker = self.TrackerState.get(lambda g: g.url == sanitized_tracker_url)
 
         if not tracker:
             self._logger.error("Trying to update the tracker info of an unknown tracker URL")
@@ -122,17 +120,17 @@ class TrackerManager:
         self._logger.info(f'Tracker updated: {tracker.url}. Alive: {is_alive}. Failures: {failures}.')
 
     @db_session
-    def get_next_tracker(self) -> Optional[Entity]:
+    def get_next_tracker(self):
         """
         Gets the next tracker.
         :return: The next tracker for torrent-checking.
         """
-        tracker = self.tracker_store.select(
+        tracker = self.TrackerState.select(
             lambda g: str(g.url)
                       and g.alive
                       and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
                       and str(g.url) not in self.blacklist
-        ).order_by(self.tracker_store.last_check).limit(1)
+        ).order_by(self.TrackerState.last_check).limit(1)
         if not tracker:
             return None
         return tracker[0]

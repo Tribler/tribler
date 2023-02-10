@@ -159,7 +159,7 @@ async def test_check_random_tracker_not_alive(torrent_checker):
     assert not result
 
     with db_session:
-        tracker = torrent_checker.tracker_manager.tracker_store.get()
+        tracker = torrent_checker.tracker_manager.TrackerState.get()
         assert not tracker.alive
 
 
