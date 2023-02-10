@@ -7,7 +7,7 @@ import struct
 import sys
 import time
 from abc import ABCMeta, abstractmethod
-from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, gather, get_event_loop
+from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
 from typing import List, TYPE_CHECKING
 
 import async_timeout
@@ -18,6 +18,7 @@ from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks
 from tribler.core.components.socks_servers.socks5.client import Socks5Client
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions, gather_coros
 from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
 from tribler.core.utilities.utilities import bdecode_compat
 
@@ -434,9 +435,10 @@ class FakeBep33DHTSession(FakeDHTSession):
     """
 
     async def connect_to_tracker(self) -> TrackerResponse:
-        tasks = [self.download_manager.dht_health_manager.get_health(infohash, timeout=self.timeout) for infohash in
-                 self.infohash_list]
-        return TrackerResponse(url=DHT, torrent_health_list=await gather(*tasks))
+        coros = [self.download_manager.dht_health_manager.get_health(infohash, timeout=self.timeout)
+                 for infohash in self.infohash_list]
+        results = await gather_coros(coros)
+        return TrackerResponse(url=DHT, torrent_health_list=filter_non_exceptions(results))
 
 
 def create_tracker_session(tracker_url, timeout, proxy, socket_manager) -> TrackerSession:
