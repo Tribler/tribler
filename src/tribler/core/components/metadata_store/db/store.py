@@ -23,7 +23,7 @@ from tribler.core.components.metadata_store.db.orm_bindings import (
     metadata_node,
     misc,
     torrent_metadata,
-    torrent_state,
+    torrent_state as torrent_state_,
     tracker_state,
     vsids,
 )
@@ -44,6 +44,7 @@ from tribler.core.components.metadata_store.db.serialization import (
     read_payload_with_offset,
 )
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import process_payload
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
@@ -188,7 +189,7 @@ class MetadataStore:
         self.MiscData = misc.define_binding(self.db)
 
         self.TrackerState = tracker_state.define_binding(self.db)
-        self.TorrentState = torrent_state.define_binding(self.db)
+        self.TorrentState = torrent_state_.define_binding(self.db)
 
         self.ChannelNode = channel_node.define_binding(self.db, logger=self._logger, key=my_key)
 
@@ -471,22 +472,20 @@ class MetadataStore:
 
         return self.process_squashed_mdblob(decompressed_data, health_info=health_info, **kwargs)
 
-    def process_torrent_health(self, infohash: bytes, seeders: int, leechers: int, last_check: int) -> bool:
+    def process_torrent_health(self, health: InfohashHealth) -> bool:
         """
         Adds or updates information about a torrent health for the torrent with the specified infohash value
-        :param infohash: the infohash of the torrent
-        :param seeders: a number of seeders
-        :param leechers: a number of leechers
-        :param last_check: a timestamp when the seeders/leechers count was checked
+        :param health: a health info of a torrent
         :return: True if a new TorrentState object was added
         """
-        health = self.TorrentState.get_for_update(infohash=infohash)
-        if health and last_check > health.last_check:
-            health.set(seeders=seeders, leechers=leechers, last_check=last_check)
-            self._logger.debug(f"Update health info for {hexlify(infohash)}: ({seeders},{leechers})")
-        elif not health:
-            self.TorrentState(infohash=infohash, seeders=seeders, leechers=leechers, last_check=last_check)
-            self._logger.debug(f"Add health info for {hexlify(infohash)}: ({seeders},{leechers})")
+        torrent_state = self.TorrentState.get_for_update(infohash=health.infohash)
+        if torrent_state and health.last_check > torrent_state.last_check:
+            torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check)
+            self._logger.debug(f"Update health info {health}")
+        elif not torrent_state:
+            self.TorrentState(infohash=health.infohash, seeders=health.seeders, leechers=health.leechers,
+                              last_check=health.last_check)
+            self._logger.debug(f"Add health info {health}")
             return True
         return False
 
@@ -513,7 +512,9 @@ class MetadataStore:
             with db_session:
                 for payload, (seeders, leechers, last_check) in zip(payload_list, health_info):
                     if hasattr(payload, 'infohash'):
-                        self.process_torrent_health(payload.infohash, seeders, leechers, last_check)
+                        health = InfohashHealth(infohash=payload.infohash, seeders=seeders, leechers=leechers,
+                                                last_check=last_check)
+                        self.process_torrent_health(health)
 
         result = []
         total_size = len(payload_list)

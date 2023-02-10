@@ -10,13 +10,13 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.popularity.community.payload import PopularTorrentsRequest, TorrentsHealthPayload
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
 
 
 if TYPE_CHECKING:
-    from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import InfohashHealth
     from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 
 
@@ -83,19 +83,21 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
                           f"{len(payload.torrents_checked)} popular torrents and"
                           f" {len(payload.random_torrents)} random torrents")
 
-        torrents = payload.random_torrents + payload.torrents_checked
+        health_tuples = payload.random_torrents + payload.torrents_checked
+        health_list = [InfohashHealth(infohash, seeders=seeders, leechers=leechers, last_check=last_check)
+                       for infohash, seeders, leechers, last_check in health_tuples]
 
-        for infohash in await run_threaded(self.mds.db, self.process_torrents_health, torrents):
+        for infohash in await run_threaded(self.mds.db, self.process_torrents_health, health_list):
             # Get a single result per infohash to avoid duplicates
             self.send_remote_select(peer=peer, infohash=infohash, last=1)
 
     @db_session
-    def process_torrents_health(self, torrent_healths):
+    def process_torrents_health(self, health_list: List[InfohashHealth]):
         infohashes_to_resolve = set()
-        for infohash, seeders, leechers, last_check in torrent_healths:
-            added = self.mds.process_torrent_health(infohash, seeders, leechers, last_check)
+        for health in health_list:
+            added = self.mds.process_torrent_health(health)
             if added:
-                infohashes_to_resolve.add(infohash)
+                infohashes_to_resolve.add(health.infohash)
         return infohashes_to_resolve
 
     @lazy_wrapper(PopularTorrentsRequest)
