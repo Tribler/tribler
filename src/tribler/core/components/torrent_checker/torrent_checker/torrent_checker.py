@@ -360,14 +360,19 @@ class TorrentChecker(TaskManager):
         await session.cleanup()
         self._logger.debug('Session has been cleaned up')
 
-    def update_torrent_health(self, health: InfohashHealth):
+    def update_torrent_health(self, health: InfohashHealth) -> bool:
+        """
+        Updates the torrent state in the database if it already exists, otherwise do nothing.
+        Returns True if the update was successful, False otherwise.
+        """
         self._logger.info(f'Update torrent health: {health}')
         with db_session:
             # Update torrent state
             torrent_state = self.mds.TorrentState.get(infohash=health.infohash)
             if not torrent_state:
                 self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
-                return
+                return False
+
             torrent_state.seeders = health.seeders
             torrent_state.leechers = health.leechers
             torrent_state.last_check = health.last_check
@@ -384,3 +389,4 @@ class TorrentChecker(TaskManager):
             'last_tracker_check': health.last_check,
             'health': 'updated'
         })
+        return True

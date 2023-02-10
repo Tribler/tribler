@@ -255,18 +255,19 @@ def test_update_health(torrent_checker: TorrentChecker):
     ]
 
     health = aggregate_responses_for_infohash(infohash, responses)
-    health.last_check = int(time.time()) - 1
-    torrent_checker.update_torrent_health(health)
+
+    # Check that everything works fine even if the database contains no proper infohash
+    updated = torrent_checker.update_torrent_health(health)
+    assert not updated
 
     with db_session:
         ts = torrent_checker.mds.TorrentState(infohash=infohash)
-        previous_check = ts.last_check
-        health.last_check = int(time.time()) - 1
-        torrent_checker.update_torrent_health(health)
+        updated = torrent_checker.update_torrent_health(health)
+        assert updated
         assert len(torrent_checker.torrents_checked) == 1
         assert ts.leechers == 12
         assert ts.seeders == 13
-        assert ts.last_check > previous_check
+        assert ts.last_check == now
 
 
 async def test_check_local_torrents(torrent_checker):
