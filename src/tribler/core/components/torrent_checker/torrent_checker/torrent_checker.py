@@ -178,6 +178,9 @@ class TorrentChecker(TaskManager):
     def torrents_checked(self) -> Dict[bytes, HealthInfo]:
         if self._torrents_checked is None:
             self._torrents_checked = self.load_torrents_checked_from_db()
+            lines = '\n'.join(f'    {health}' for health in sorted(self._torrents_checked.values(),
+                                                                   key=lambda health: -health.last_check))
+            self._logger.info(f'Initially loaded self-checked torrents:\n{lines}')
         return self._torrents_checked
 
     @db_session
