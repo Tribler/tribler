@@ -169,6 +169,7 @@ class TorrentChecker(TaskManager):
             return response
         except CancelledError:
             self._logger.info(f"Tracker session is being cancelled: {session.tracker_url}")
+            raise
         except Exception as e:
             exception_str = str(e).replace('\n]', ']')
             self._logger.warning(f"Got session error for the tracker: {session.tracker_url}\n{exception_str}")
