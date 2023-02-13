@@ -109,7 +109,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
         if not self.has_connection_to_gui():
             return
         try:
-            self._logger.info(f'Write message: {message}')
+            self._logger.debug(f'Write message: {message}')
             message_bytes = self.encode_message(message)
         except Exception as e:  # pylint: disable=broad-except
             # if a notification arguments contains non-JSON-serializable data, the exception should be logged

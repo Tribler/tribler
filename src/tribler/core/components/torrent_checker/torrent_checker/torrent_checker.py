@@ -113,11 +113,10 @@ class TorrentChecker(TaskManager):
         if self._should_stop:
             self._logger.warning("Not performing tracker check since we are shutting down")
             return
-        self._logger.info('Check health for a random tracker')
-        if tracker := self.get_next_tracker():
-            self._logger.info(f'The next tracker: {tracker.url}')
-        else:
-            self._logger.warning("No tracker to select from, skip")
+
+        tracker = self.get_next_tracker()
+        if not tracker:
+            self._logger.warning("No tracker to select from to check torrent health, skip")
             return
 
         # get the torrents that should be checked
@@ -132,7 +131,6 @@ class TorrentChecker(TaskManager):
             self._logger.info(f"No torrent to check for tracker {url}")
             self.tracker_manager.update_tracker_info(url)
             return
-        self._logger.info(f"Selected {len(infohashes)} new torrents to check on tracker: {url}")
 
         try:
             session = self._create_session_for_request(url, timeout=30)
@@ -151,22 +149,20 @@ class TorrentChecker(TaskManager):
         for infohash in infohashes:
             session.add_infohash(infohash)
 
-        self._logger.info(f"Selected {len(infohashes)} new torrents to check on tracker: {url}")
+        self._logger.info(f"Selected {len(infohashes)} new torrents to check on random tracker: {url}")
         try:
             response = await self.get_tracker_response(session)
         except Exception as e:  # pylint: disable=broad-except
             self._logger.warning(e)
         else:
-            self._logger.info(f'Random tracker check result: {response}')
-            for health in aggregate_health_by_infohash(response.torrent_health_list):
+            health_list = response.torrent_health_list
+            self._logger.info(f"Received {len(health_list)} health info results from tracker: {health_list}")
+            for health in aggregate_health_by_infohash(health_list):
                 self.update_torrent_health(health)
 
     async def get_tracker_response(self, session: TrackerSession) -> TrackerResponse:
-        self._logger.info(f'Connecting to the tracker: {session.tracker_url}')
         try:
-            response = await session.connect_to_tracker()
-            self._logger.info(f"Successfully connected to the tracker: {session.tracker_url}. Response: {response}")
-            return response
+            return await session.connect_to_tracker()
         except CancelledError:
             self._logger.info(f"Tracker session is being cancelled: {session.tracker_url}")
             raise
@@ -368,7 +364,7 @@ class TorrentChecker(TaskManager):
         Updates the torrent state in the database if it already exists, otherwise do nothing.
         Returns True if the update was successful, False otherwise.
         """
-        self._logger.info(f'Update torrent health: {health}')
+        self._logger.debug(f'Update torrent health: {health}')
         with db_session:
             # Update torrent state
             torrent_state = self.mds.TorrentState.get(infohash=health.infohash)
@@ -380,7 +376,6 @@ class TorrentChecker(TaskManager):
             torrent_state.leechers = health.leechers
             torrent_state.last_check = health.last_check
             torrent_state.self_checked = True
-        self._logger.info('Torrent health has been updated')
 
         if health.seeders > 0:
             self.torrents_checked[health.infohash] = health
