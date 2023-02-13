@@ -314,23 +314,15 @@ class TorrentChecker(TaskManager):
         session = session_cls(self.download_manager, timeout)
         session.add_infohash(infohash)
         self._logger.info(f'DHT session has been created for {infohash_hex}: {session}')
-
         self._sessions[DHT].append(session)
+
         coros.append(self.get_tracker_response(session))
         responses = await gather_coros(coros)
-        self._logger.info(f'{len(responses)} responses for {infohash_hex} have been received: {responses}')
 
-        if successful_responses := filter_non_exceptions(responses):
-            health = aggregate_responses_for_infohash(infohash, successful_responses)
-            self.update_torrent_health(health)
-        else:
-            self.notifier[notifications.channel_entity_updated]({
-                'infohash': infohash_hex,
-                'num_seeders': 0,
-                'num_leechers': 0,
-                'last_tracker_check': int(time.time()),
-                'health': 'updated'
-            })
+        self._logger.info(f'{len(responses)} responses for {infohash_hex} have been received: {responses}')
+        successful_responses = filter_non_exceptions(responses)
+        health = aggregate_responses_for_infohash(infohash, successful_responses)
+        self.update_torrent_health(health)
 
     def _create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
         self._logger.debug(f'Creating a session for the request: {tracker_url}')
