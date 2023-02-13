@@ -379,6 +379,8 @@ class TorrentChecker(TaskManager):
 
         if health.seeders > 0:
             self.torrents_checked[health.infohash] = health
+        else:
+            self.torrents_checked.pop(health.infohash, None)
 
         self.notifier[notifications.channel_entity_updated]({
             'infohash': health.infohash_hex,
