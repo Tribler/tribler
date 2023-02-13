@@ -105,16 +105,19 @@ def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused
     # Case 1: Save random 10 non-self checked torrents
     # Expected: empty set, since only self checked torrents are considered.
     save_random_torrent_state(last_checked=now, self_checked=False, count=10)
+    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
     assert not torrent_checker.torrents_checked
 
     # Case 2: Save 10 self checked torrent but not within the freshness period
     # Expected: empty set, since only self checked fresh torrents are considered.
     save_random_torrent_state(last_checked=before_threshold, self_checked=True, count=10)
+    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
     assert not torrent_checker.torrents_checked
 
     # Case 3: Save 10 self checked fresh torrents
     # Expected: 10 torrents, since there are 10 self checked and fresh torrents
     save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=10)
+    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
     assert len(torrent_checker.torrents_checked) == 10
 
     # Case 4: Save some more self checked fresh torrents
@@ -125,7 +128,7 @@ def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused
     # Case 5: Clear the torrent_checked set (private variable),
     # and save freshly self checked torrents more than max return size (10 more).
     # Expected: max (return size) torrents, since limit is placed on how many to load.
-    torrent_checker._torrents_checked = {}  # pylint: disable=protected-access
+    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
     return_size = torrent_checker_module.TORRENTS_CHECKED_RETURN_SIZE
     save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=return_size + 10)
     assert len(torrent_checker.torrents_checked) == return_size

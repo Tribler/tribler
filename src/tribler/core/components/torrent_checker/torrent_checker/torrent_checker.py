@@ -64,7 +64,7 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
-        self._torrents_checked: Dict[bytes, InfohashHealth] = {}
+        self._torrents_checked: Optional[Dict[bytes, InfohashHealth]] = None
 
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
@@ -179,12 +179,13 @@ class TorrentChecker(TaskManager):
 
     @property
     def torrents_checked(self) -> Dict[bytes, InfohashHealth]:
-        if not self._torrents_checked:
-            self.load_torrents_checked_from_db()
+        if self._torrents_checked is None:
+            self._torrents_checked = self.load_torrents_checked_from_db()
         return self._torrents_checked
 
     @db_session
-    def load_torrents_checked_from_db(self):
+    def load_torrents_checked_from_db(self) -> Dict[bytes, InfohashHealth]:
+        result = {}
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.mds.TorrentState
                                 .select(lambda g: g.has_data and g.last_check > last_fresh_time and g.self_checked)
@@ -192,8 +193,9 @@ class TorrentChecker(TaskManager):
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
         for torrent in checked_torrents:
-            self._torrents_checked[torrent.infohash] = InfohashHealth(
+            result[torrent.infohash] = InfohashHealth(
                 torrent.infohash, seeders=torrent.seeders, leechers=torrent.leechers, last_check=torrent.last_check)
+        return result
 
     @db_session
     def torrents_to_check(self):
@@ -380,7 +382,7 @@ class TorrentChecker(TaskManager):
         self._logger.info('Torrent health has been updated')
 
         if health.seeders > 0:
-            self._torrents_checked[health.infohash] = health
+            self.torrents_checked[health.infohash] = health
 
         self.notifier[notifications.channel_entity_updated]({
             'infohash': health.infohash_hex,
