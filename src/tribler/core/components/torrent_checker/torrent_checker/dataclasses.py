@@ -7,6 +7,9 @@ import human_readable
 from tribler.core.utilities.unicode import hexlify
 
 
+TOLERABLE_TIME_DRIFT = 60  # one minute
+
+
 @dataclass
 class HealthInfo:
     infohash: bytes = field(repr=False)
@@ -38,6 +41,9 @@ class HealthInfo:
     @property
     def infohash_hex(self):
         return hexlify(self.infohash)
+
+    def is_valid(self) -> bool:
+        return self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
 
 
 @dataclass

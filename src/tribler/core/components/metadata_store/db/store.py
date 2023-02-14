@@ -478,6 +478,10 @@ class MetadataStore:
         :param health: a health info of a torrent
         :return: True if a new TorrentState object was added
         """
+        if not health.is_valid():
+            self._logger.warning(f'Invalid health info ignored: {health}')
+            return False
+
         torrent_state = self.TorrentState.get_for_update(infohash=health.infohash)
         if torrent_state and health.last_check > torrent_state.last_check:
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,

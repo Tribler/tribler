@@ -362,6 +362,10 @@ class TorrentChecker(TaskManager):
         Updates the torrent state in the database if it already exists, otherwise do nothing.
         Returns True if the update was successful, False otherwise.
         """
+        if not health.is_valid():
+            self._logger.warning(f'Invalid health info ignored: {health}')
+            return False
+
         self._logger.debug(f'Update torrent health: {health}')
         with db_session:
             # Update torrent state
