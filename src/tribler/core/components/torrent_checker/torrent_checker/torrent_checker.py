@@ -374,10 +374,12 @@ class TorrentChecker(TaskManager):
                 self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
                 return False
 
-            torrent_state.seeders = health.seeders
-            torrent_state.leechers = health.leechers
-            torrent_state.last_check = health.last_check
-            torrent_state.self_checked = True
+            if not health.should_update(torrent_state, self_checked=True):
+                self._logger.info("Skip health update, the health in the database is fresher")
+                return False
+
+            torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
+                              self_checked=True)
 
         if health.seeders > 0:
             self.torrents_checked[health.infohash] = health

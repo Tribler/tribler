@@ -8,6 +8,7 @@ from tribler.core.utilities.unicode import hexlify
 
 
 TOLERABLE_TIME_DRIFT = 60  # one minute
+HOUR = 60 * 60
 
 
 @dataclass
@@ -45,6 +46,19 @@ class HealthInfo:
     def is_valid(self) -> bool:
         return self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
 
+    def should_update(self, torrent_state, self_checked=False):
+        if self.last_check <= torrent_state.last_check:
+            # The torrent state in the DB is already fresher than this health
+            return False
+
+        now = int(time.time())
+        hour_ago = now - HOUR
+        if not self_checked and torrent_state.self_checked and hour_ago <= torrent_state.last_check <= now:
+            # The torrent state in the DB was locally checked just recently,
+            # and we trust this recent local check more than the new health info received remotely
+            return False
+
+        return True
 
 @dataclass
 class TrackerResponse:
