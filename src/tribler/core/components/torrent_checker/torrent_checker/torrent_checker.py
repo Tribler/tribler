@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
+from pony.utils import between
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
@@ -186,9 +187,11 @@ class TorrentChecker(TaskManager):
     @db_session
     def load_torrents_checked_from_db(self) -> Dict[bytes, HealthInfo]:
         result = {}
-        last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
+        now = int(time.time())
+        last_fresh_time = now - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.mds.TorrentState
-                                .select(lambda g: g.has_data and g.last_check > last_fresh_time and g.self_checked)
+                                .select(lambda g: g.has_data and g.self_checked
+                                        and between(g.last_check, last_fresh_time, now))
                                 .order_by(lambda g: (desc(g.seeders), g.last_check))
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
