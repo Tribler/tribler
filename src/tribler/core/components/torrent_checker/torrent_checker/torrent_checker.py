@@ -359,7 +359,7 @@ class TorrentChecker(TaskManager):
         self._logger.debug(f'Update torrent health: {health}')
         with db_session:
             # Update torrent state
-            torrent_state = self.mds.TorrentState.get(infohash=health.infohash)
+            torrent_state = self.mds.TorrentState.get_for_update(infohash=health.infohash)
             if not torrent_state:
                 self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
                 return False
