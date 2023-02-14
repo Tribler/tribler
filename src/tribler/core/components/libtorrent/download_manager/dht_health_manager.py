@@ -6,7 +6,7 @@ from typing import Awaitable
 from ipv8.taskmanager import TaskManager
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.utilities.unicode import hexlify
 
 
@@ -27,7 +27,7 @@ class DHTHealthManager(TaskManager):
         self.outstanding = {}  # Map from transaction_id to infohash
         self.lt_session = lt_session
 
-    def get_health(self, infohash, timeout=15) -> Awaitable[InfohashHealth]:
+    def get_health(self, infohash, timeout=15) -> Awaitable[HealthInfo]:
         """
         Lookup the health of a given infohash.
         :param infohash: The 20-byte infohash to lookup.
@@ -65,7 +65,7 @@ class DHTHealthManager(TaskManager):
         seeders = DHTHealthManager.get_size_from_bloomfilter(bf_seeders)
         peers = DHTHealthManager.get_size_from_bloomfilter(bf_peers)
         if not self.lookup_futures[infohash].done():
-            health = InfohashHealth(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers)
+            health = HealthInfo(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers)
             self.lookup_futures[infohash].set_result(health)
 
         self.lookup_futures.pop(infohash, None)

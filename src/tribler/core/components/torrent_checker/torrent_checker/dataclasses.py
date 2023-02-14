@@ -8,7 +8,7 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @dataclass
-class InfohashHealth:
+class HealthInfo:
     infohash: bytes = field(repr=False)
     last_check: int
     seeders: int = 0
@@ -43,4 +43,4 @@ class InfohashHealth:
 @dataclass
 class TrackerResponse:
     url: str
-    torrent_health_list: List[InfohashHealth]
+    torrent_health_list: List[HealthInfo]

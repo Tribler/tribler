@@ -3,7 +3,7 @@ from __future__ import annotations
 from asyncio import gather
 from typing import Awaitable, Dict, Iterable, List, TypeVar, Union, cast
 
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 
 
 T = TypeVar("T")
@@ -24,11 +24,11 @@ def filter_non_exceptions(items: List[Union[T, BaseException]]) -> List[T]:
     return [item for item in items if not isinstance(item, BaseException)]
 
 
-def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerResponse]) -> InfohashHealth:
+def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerResponse]) -> HealthInfo:
     """
     Finds the "best" health info (with the max number of seeders) for a specified infohash
     """
-    result = InfohashHealth(infohash, last_check=0)
+    result = HealthInfo(infohash, last_check=0)
     for response in responses:
         for health in response.torrent_health_list:
             if health.infohash == infohash and health.seeders > result.seeders:
@@ -36,11 +36,11 @@ def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerRes
     return result
 
 
-def aggregate_health_by_infohash(health_list: List[InfohashHealth]) -> List[InfohashHealth]:
+def aggregate_health_by_infohash(health_list: List[HealthInfo]) -> List[HealthInfo]:
     """
     For each infohash in the health list, finds the "best" health info (with the max number of seeders)
     """
-    d: Dict[bytes, InfohashHealth] = {}
+    d: Dict[bytes, HealthInfo] = {}
     for health in health_list:
         infohash = health.infohash
         if infohash not in d or health.seeders > d[infohash].seeders:

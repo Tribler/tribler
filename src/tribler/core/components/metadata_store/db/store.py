@@ -44,7 +44,7 @@ from tribler.core.components.metadata_store.db.serialization import (
     read_payload_with_offset,
 )
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import process_payload
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
@@ -472,7 +472,7 @@ class MetadataStore:
 
         return self.process_squashed_mdblob(decompressed_data, health_info=health_info, **kwargs)
 
-    def process_torrent_health(self, health: InfohashHealth) -> bool:
+    def process_torrent_health(self, health: HealthInfo) -> bool:
         """
         Adds or updates information about a torrent health for the torrent with the specified infohash value
         :param health: a health info of a torrent
@@ -511,8 +511,8 @@ class MetadataStore:
             with db_session:
                 for payload, (seeders, leechers, last_check) in zip(payload_list, health_info):
                     if hasattr(payload, 'infohash'):
-                        health = InfohashHealth(payload.infohash, last_check=last_check,
-                                                seeders=seeders, leechers=leechers)
+                        health = HealthInfo(payload.infohash, last_check=last_check,
+                                            seeders=seeders, leechers=leechers)
                         self.process_torrent_health(health)
 
         result = []

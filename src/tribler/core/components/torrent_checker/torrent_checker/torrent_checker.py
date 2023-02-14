@@ -14,7 +14,7 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
     filter_non_exceptions, gather_coros, aggregate_health_by_infohash
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
@@ -64,7 +64,7 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The popularity community gossips this information around.
-        self._torrents_checked: Optional[Dict[bytes, InfohashHealth]] = None
+        self._torrents_checked: Optional[Dict[bytes, HealthInfo]] = None
 
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
@@ -175,13 +175,13 @@ class TorrentChecker(TaskManager):
             await self.clean_session(session)
 
     @property
-    def torrents_checked(self) -> Dict[bytes, InfohashHealth]:
+    def torrents_checked(self) -> Dict[bytes, HealthInfo]:
         if self._torrents_checked is None:
             self._torrents_checked = self.load_torrents_checked_from_db()
         return self._torrents_checked
 
     @db_session
-    def load_torrents_checked_from_db(self) -> Dict[bytes, InfohashHealth]:
+    def load_torrents_checked_from_db(self) -> Dict[bytes, HealthInfo]:
         result = {}
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.mds.TorrentState
@@ -190,7 +190,7 @@ class TorrentChecker(TaskManager):
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
         for torrent in checked_torrents:
-            result[torrent.infohash] = InfohashHealth(
+            result[torrent.infohash] = HealthInfo(
                 torrent.infohash, seeders=torrent.seeders, leechers=torrent.leechers, last_check=torrent.last_check)
         return result
 
@@ -245,7 +245,7 @@ class TorrentChecker(TaskManager):
                                 .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
         return channel_torrents
 
-    async def check_torrents_in_user_channel(self) -> List[Union[InfohashHealth, BaseException]]:
+    async def check_torrents_in_user_channel(self) -> List[Union[HealthInfo, BaseException]]:
         """
         Perform a full health check of torrents in user's channel
         """
@@ -279,7 +279,7 @@ class TorrentChecker(TaskManager):
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
-    async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False) -> InfohashHealth:
+    async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False) -> HealthInfo:
         """
         Check the health of a torrent with a given infohash.
         :param infohash: Torrent infohash.
@@ -351,7 +351,7 @@ class TorrentChecker(TaskManager):
         await session.cleanup()
         self._logger.debug('Session has been cleaned up')
 
-    def update_torrent_health(self, health: InfohashHealth) -> bool:
+    def update_torrent_health(self, health: HealthInfo) -> bool:
         """
         Updates the torrent state in the database if it already exists, otherwise do nothing.
         Returns True if the update was successful, False otherwise.

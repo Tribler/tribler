@@ -9,7 +9,7 @@ from ipv8.util import succeed
 from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
     filter_non_exceptions
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
@@ -249,11 +249,11 @@ def test_update_health(torrent_checker: TorrentChecker):
     responses = [
         TrackerResponse(
             url='udp://localhost:2801',
-            torrent_health_list=[InfohashHealth(infohash, last_check=now, leechers=1, seeders=2)]
+            torrent_health_list=[HealthInfo(infohash, last_check=now, leechers=1, seeders=2)]
         ),
         TrackerResponse(
             url='DHT',
-            torrent_health_list=[InfohashHealth(infohash, last_check=now, leechers=12, seeders=13)]
+            torrent_health_list=[HealthInfo(infohash, last_check=now, leechers=12, seeders=13)]
         ),
     ]
 

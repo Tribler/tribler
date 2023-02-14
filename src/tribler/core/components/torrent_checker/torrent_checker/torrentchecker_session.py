@@ -17,7 +17,7 @@ from ipv8.taskmanager import TaskManager
 from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.components.socks_servers.socks5.client import Socks5Client
 from tribler.core.components.torrent_checker.torrent_checker import DHT
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions, gather_coros
 from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
 from tribler.core.utilities.utilities import bdecode_compat
@@ -146,7 +146,7 @@ class HttpTrackerSession(TrackerSession):
         if not response_dict:
             self.failed(msg="no valid response")
 
-        health_list: List[InfohashHealth] = []
+        health_list: List[HealthInfo] = []
         now = int(time.time())
 
         unprocessed_infohashes = set(self.infohash_list)
@@ -161,14 +161,14 @@ class HttpTrackerSession(TrackerSession):
                     leechers = file_info.get(b'incomplete', 0)
 
                 unprocessed_infohashes.discard(infohash)
-                health_list.append(InfohashHealth(infohash, last_check=now, seeders=seeders, leechers=leechers))
+                health_list.append(HealthInfo(infohash, last_check=now, seeders=seeders, leechers=leechers))
 
         elif b'failure reason' in response_dict:
             self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
             self.failed(msg=repr(response_dict[b'failure reason']))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
-        health_list.extend(InfohashHealth(infohash=infohash, last_check=now) for infohash in unprocessed_infohashes)
+        health_list.extend(HealthInfo(infohash=infohash, last_check=now) for infohash in unprocessed_infohashes)
 
         self.is_finished = True
         return TrackerResponse(url=self.tracker_url, torrent_health_list=health_list)
@@ -397,7 +397,7 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            response_list.append(InfohashHealth(infohash, last_check=now, seeders=complete, leechers=incomplete))
+            response_list.append(HealthInfo(infohash, last_check=now, seeders=complete, leechers=incomplete))
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
@@ -422,8 +422,7 @@ class FakeDHTSession(TrackerSession):
         now = int(time.time())
         for infohash in self.infohash_list:
             metainfo = await self.download_manager.get_metainfo(infohash, timeout=self.timeout, raise_errors=True)
-            health = InfohashHealth(infohash, last_check=now,
-                                    seeders=metainfo[b'seeders'], leechers=metainfo[b'leechers'])
+            health = HealthInfo(infohash, last_check=now, seeders=metainfo[b'seeders'], leechers=metainfo[b'leechers'])
             health_list.append(health)
 
         return TrackerResponse(url=DHT, torrent_health_list=health_list)

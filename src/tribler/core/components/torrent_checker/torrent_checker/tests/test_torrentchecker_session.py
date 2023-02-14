@@ -9,7 +9,7 @@ from aiohttp.web_exceptions import HTTPBadRequest
 from ipv8.util import succeed
 from libtorrent import bencode
 
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     FakeBep33DHTSession, FakeDHTSession, HttpTrackerSession, UdpSocketManager, UdpTrackerSession
 
@@ -362,7 +362,7 @@ async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr):
     Test the metainfo lookup of the BEP33 DHT session
     """
     infohash = b'a' * 20
-    infohash_health = InfohashHealth(infohash, last_check=int(time.time()), seeders=1, leechers=2)
+    infohash_health = HealthInfo(infohash, last_check=int(time.time()), seeders=1, leechers=2)
 
     mock_dlmgr.dht_health_manager = Mock()
     mock_dlmgr.dht_health_manager.get_health = lambda *_, **__: succeed(infohash_health)

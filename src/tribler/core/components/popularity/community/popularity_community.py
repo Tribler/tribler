@@ -10,7 +10,7 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.popularity.community.payload import PopularTorrentsRequest, TorrentsHealthPayload
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import InfohashHealth
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
@@ -58,7 +58,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         # Send request to peer to send popular torrents
         self.ez_send(peer, PopularTorrentsRequest())
 
-    def get_alive_checked_torrents(self) -> List[InfohashHealth]:
+    def get_alive_checked_torrents(self) -> List[HealthInfo]:
         if not self.torrent_checker:
             return []
 
@@ -84,7 +84,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
                           f" {len(payload.random_torrents)} random torrents")
 
         health_tuples = payload.random_torrents + payload.torrents_checked
-        health_list = [InfohashHealth(infohash, last_check=last_check, seeders=seeders, leechers=leechers)
+        health_list = [HealthInfo(infohash, last_check=last_check, seeders=seeders, leechers=leechers)
                        for infohash, seeders, leechers, last_check in health_tuples]
 
         for infohash in await run_threaded(self.mds.db, self.process_torrents_health, health_list):
@@ -92,7 +92,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
             self.send_remote_select(peer=peer, infohash=infohash, last=1)
 
     @db_session
-    def process_torrents_health(self, health_list: List[InfohashHealth]):
+    def process_torrents_health(self, health_list: List[HealthInfo]):
         infohashes_to_resolve = set()
         for health in health_list:
             added = self.mds.process_torrent_health(health)
@@ -106,7 +106,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         popular_torrents = self.get_likely_popular_torrents()
         self.ez_send(peer, TorrentsHealthPayload.create({}, popular_torrents))
 
-    def get_likely_popular_torrents(self) -> List[InfohashHealth]:
+    def get_likely_popular_torrents(self) -> List[HealthInfo]:
         checked_and_alive = self.get_alive_checked_torrents()
         if not checked_and_alive:
             return []
@@ -131,7 +131,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         """
         return get_normally_distributed_positive_integers(size=size, upper_limit=limit)
 
-    def get_random_torrents(self) -> List[InfohashHealth]:
+    def get_random_torrents(self) -> List[HealthInfo]:
         checked_and_alive = list(self.get_alive_checked_torrents())
         if not checked_and_alive:
             return []
