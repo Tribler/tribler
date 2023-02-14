@@ -300,8 +300,7 @@ class TorrentChecker(TaskManager):
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
                     self._logger.info(f"Time interval too short, not doing torrent health check for {infohash_hex}")
-                    return InfohashHealth(infohash, seeders=torrent_state.seeders, leechers=torrent_state.leechers,
-                                          last_check=torrent_state.last_check)
+                    return torrent_state.to_health()
 
                 # get torrent's tracker list from DB
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)

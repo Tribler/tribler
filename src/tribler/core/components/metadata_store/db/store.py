@@ -483,8 +483,7 @@ class MetadataStore:
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check)
             self._logger.debug(f"Update health info {health}")
         elif not torrent_state:
-            self.TorrentState(infohash=health.infohash, seeders=health.seeders, leechers=health.leechers,
-                              last_check=health.last_check)
+            self.TorrentState.from_health(health)
             self._logger.debug(f"Add health info {health}")
             return True
         return False
