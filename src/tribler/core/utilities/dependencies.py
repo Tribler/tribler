@@ -52,7 +52,12 @@ def _get_pip_dependencies(path_to_requirements: Path) -> Iterator[str]:
 def _extract_libraries_from_requirements(text: str) -> Iterator[str]:
     logger.debug(f'requirements.txt content: {text}')
     for line in text.split('\n'):
-        library = line.strip()
+        library = _extract_library(line)
         if library:
             pip_package = re.split(r'[><=~]', library, maxsplit=1)[0]
             yield package_to_import_mapping.get(pip_package, pip_package)
+
+
+def _extract_library(line) -> Optional[str]:
+    library = line.partition('#')[0].strip()
+    return library or None
