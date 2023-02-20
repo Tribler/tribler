@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from pony import orm
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 
 
 def define_binding(db):
@@ -16,5 +19,14 @@ def define_binding(db):
         has_data = orm.Required(bool, default=False, sql_default='0', volatile=True)
         metadata = orm.Set('TorrentMetadata', reverse='health')
         trackers = orm.Set('TrackerState', reverse='torrents')
+
+        @classmethod
+        def from_health(cls, health: HealthInfo):
+            return cls(infohash=health.infohash, seeders=health.seeders, leechers=health.leechers,
+                       last_check=health.last_check)
+
+        def to_health(self) -> HealthInfo:
+            return HealthInfo(infohash=self.infohash, last_check=self.last_check,
+                              seeders=self.seeders, leechers=self.leechers)
 
     return TorrentState

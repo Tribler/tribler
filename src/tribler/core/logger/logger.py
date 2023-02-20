@@ -16,6 +16,9 @@ class StdoutFilter(logging.Filter):
         return record.levelno < logging.ERROR
 
 
+log_factory = logging.getLogRecordFactory()
+
+
 def load_logger_config(app_mode, log_dir, current_process_is_primary=True):
     """
     Loads tribler-gui module logger configuration. Note that this function should be called explicitly to
@@ -45,6 +48,11 @@ def setup_logging(app_mode, log_dir: Path, config_path: Path):
     """
     Setup logging configuration with the given YAML file.
     """
+    def record_factory(*args, **kwargs):
+        record = log_factory(*args, **kwargs)
+        record.app_mode = app_mode
+        return record
+
     logger.info(f'Load logger config: app_mode={app_mode}, config_path={config_path}, dir={log_dir}')
     if not config_path.exists():
         print(f'Logger config not found in {config_path}. Using default configs.', file=sys.stderr)
@@ -65,9 +73,9 @@ def setup_logging(app_mode, log_dir: Path, config_path: Path):
         # Create log directory if it does not exist
         if not log_dir.exists():
             log_dir.mkdir(parents=True)
-
         config = yaml.safe_load(config_text)
         logging.config.dictConfig(config)
+        logging.setLogRecordFactory(record_factory)
         logger.info(f'Config loaded for app_mode={app_mode}')
     except Exception as e:  # pylint: disable=broad-except
         error_description = format_error_description(e)

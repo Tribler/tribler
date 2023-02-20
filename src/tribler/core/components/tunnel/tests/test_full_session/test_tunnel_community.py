@@ -63,8 +63,8 @@ async def proxy_factory(tmp_path_factory: TempPathFactory):
     yield factory
 
     for community in factory.communities:
-        if community.dlmgr:
-            await community.dlmgr.shutdown()
+        if community.download_manager:
+            await community.download_manager.shutdown()
         await community.unload()
     test_community.global_dht_services = defaultdict(list)  # Reset the global_dht_services variable
 
@@ -78,7 +78,7 @@ async def hidden_seeder_comm(proxy_factory: ProxyFactory, video_tdef: TorrentDef
     download_config = DownloadConfig()
     download_config.set_dest_dir(TESTS_DATA_DIR)
     download_config.set_hops(1)
-    upload = community.dlmgr.start_download(tdef=video_tdef, config=download_config)
+    upload = community.download_manager.start_download(tdef=video_tdef, config=download_config)
 
     def seeder_state_callback(download_state):
         """
@@ -160,7 +160,7 @@ def start_anon_download(tunnel_community: TriblerTunnelCommunity,
     """
     Start an anonymous download in the main Tribler session.
     """
-    download_manager = tunnel_community.dlmgr
+    download_manager = tunnel_community.download_manager
     config = DownloadConfig()
     config.set_dest_dir(download_manager.state_dir)
     config.set_hops(hops)
@@ -219,7 +219,7 @@ async def tunnel_community(tmp_path_factory: TempPathFactory):
 
     yield community
 
-    await community.dlmgr.shutdown()
+    await community.download_manager.shutdown()
     await community.unload()
 
 
@@ -231,7 +231,7 @@ async def test_anon_download(proxy_factory: ProxyFactory, video_seeder: Download
     """
     relays, exit_nodes = await create_nodes(proxy_factory)
     await introduce_peers([tunnel_community] + relays + exit_nodes)
-    download_manager = tunnel_community.dlmgr
+    download_manager = tunnel_community.download_manager
 
     download = start_anon_download(tunnel_community, video_seeder.libtorrent_port, video_tdef)
     await download.wait_for_status(DLSTATUS_DOWNLOADING)
@@ -282,6 +282,7 @@ async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: 
     for e in exit_nodes:
         e.exit_sockets = MockExitDict(e.exit_sockets)
 
-    download = start_anon_download(leecher_community, hidden_seeder_comm.dlmgr.libtorrent_port, video_tdef, hops=1)
+    download = start_anon_download(leecher_community, hidden_seeder_comm.download_manager.libtorrent_port, video_tdef,
+                                   hops=1)
     download.set_state_callback(download_state_callback)
     await download_finished.wait()

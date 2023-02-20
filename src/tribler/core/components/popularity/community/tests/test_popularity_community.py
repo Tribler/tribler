@@ -1,6 +1,6 @@
 import time
 from random import randint
-from typing import Set, Tuple
+from typing import List
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -12,12 +12,13 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HealthInfo
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import random_infohash
 
 
-def _generate_single_checked_torrent(status: str = None) -> Tuple:
+def _generate_single_checked_torrent(status: str = None) -> HealthInfo:
     """
     Assumptions
     DEAD    -> peers: 0
@@ -31,12 +32,12 @@ def _generate_single_checked_torrent(status: str = None) -> Tuple:
             return randint(101, 1000)
         return randint(1, 100)
 
-    # checked torrent structure is (infohash, seeders, leechers, last_check)
-    return random_infohash(), get_peers_for(status), get_peers_for(status), int(time.time())
+    return HealthInfo(random_infohash(), last_check=int(time.time()),
+                      seeders=get_peers_for(status), leechers=get_peers_for(status))
 
 
-def _generate_checked_torrents(count: int, status: str = None) -> Set:
-    return {_generate_single_checked_torrent(status) for _ in range(count)}
+def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInfo]:
+    return [_generate_single_checked_torrent(status) for _ in range(count)]
 
 
 class TestPopularityCommunity(TestBase):
@@ -59,7 +60,7 @@ class TestPopularityCommunity(TestBase):
                             default_eccrypto.generate_key("curve25519"))
         self.metadata_store_set.add(mds)
         torrent_checker = MockObject()
-        torrent_checker.torrents_checked = set()
+        torrent_checker.torrents_checked = {}
 
         self.count += 1
 
@@ -76,8 +77,8 @@ class TestPopularityCommunity(TestBase):
             metadata_store.TorrentState(
                 infohash=str(torrent_ind).encode() * 20, seeders=torrent_ind + 1, last_check=last_check)
 
-    async def init_first_node_and_gossip(self, checked_torrent_info, deliver_timeout=.1):
-        self.nodes[0].overlay.torrent_checker.torrents_checked.add(checked_torrent_info)
+    async def init_first_node_and_gossip(self, checked_torrent_info: HealthInfo, deliver_timeout: float = 0.1):
+        self.nodes[0].overlay.torrent_checker.torrents_checked[checked_torrent_info.infohash] = checked_torrent_info
         await self.introduce_nodes()
 
         self.nodes[0].overlay.gossip_random_torrents_health()
@@ -88,7 +89,7 @@ class TestPopularityCommunity(TestBase):
         """
         Test whether torrent health information is correctly gossiped around
         """
-        checked_torrent_info = (b'a' * 20, 200, 0, int(time.time()))
+        checked_torrent_info = HealthInfo(b'a' * 20, seeders=200, leechers=0, last_check=int(time.time()))
         node0_db = self.nodes[0].overlay.mds.TorrentState
         node1_db2 = self.nodes[1].overlay.mds.TorrentState
 
@@ -101,21 +102,22 @@ class TestPopularityCommunity(TestBase):
         # Check whether node 1 has new torrent health information
         with db_session:
             torrent = node1_db2.select().first()
-            assert torrent.infohash == checked_torrent_info[0]
-            assert torrent.seeders == checked_torrent_info[1]
-            assert torrent.leechers == checked_torrent_info[2]
-            assert torrent.last_check == checked_torrent_info[3]
+            assert torrent.infohash == checked_torrent_info.infohash
+            assert torrent.seeders == checked_torrent_info.seeders
+            assert torrent.leechers == checked_torrent_info.leechers
+            assert torrent.last_check == checked_torrent_info.last_check
 
     def test_get_alive_torrents(self):
         dead_torrents = _generate_checked_torrents(100, 'DEAD')
         popular_torrents = _generate_checked_torrents(100, 'POPULAR')
         alive_torrents = _generate_checked_torrents(100)
 
-        all_checked_torrents = dead_torrents | alive_torrents | popular_torrents
-        self.nodes[0].overlay.torrent_checker.torrents_checked.update(all_checked_torrents)
+        all_checked_torrents = dead_torrents + alive_torrents + popular_torrents
+        self.nodes[0].overlay.torrent_checker.torrents_checked.update(
+            {health.infohash: health for health in all_checked_torrents})
 
         actual_alive_torrents = self.nodes[0].overlay.get_alive_checked_torrents()
-        assert len(actual_alive_torrents) == len(alive_torrents | popular_torrents)
+        assert len(actual_alive_torrents) == len(alive_torrents + popular_torrents)
 
     async def test_torrents_health_gossip_multiple(self):
         """
@@ -125,7 +127,7 @@ class TestPopularityCommunity(TestBase):
         popular_torrents = _generate_checked_torrents(100, 'POPULAR')
         alive_torrents = _generate_checked_torrents(100)
 
-        all_checked_torrents = dead_torrents | alive_torrents | popular_torrents
+        all_checked_torrents = dead_torrents + alive_torrents + popular_torrents
 
         node0_db = self.nodes[0].overlay.mds.TorrentState
         node1_db = self.nodes[1].overlay.mds.TorrentState
@@ -138,7 +140,8 @@ class TestPopularityCommunity(TestBase):
             assert node1_count == 0
 
         # Setup, node 0 checks some torrents, both dead and alive (including popular ones).
-        self.nodes[0].overlay.torrent_checker.torrents_checked.update(all_checked_torrents)
+        self.nodes[0].overlay.torrent_checker.torrents_checked.update(
+            {health.infohash: health for health in all_checked_torrents})
 
         # Nodes are introduced
         await self.introduce_nodes()
@@ -177,7 +180,7 @@ class TestPopularityCommunity(TestBase):
         """
         self.fill_database(self.nodes[1].overlay.mds)
 
-        checked_torrent_info = (b'0' * 20, 200, 0, int(time.time()))
+        checked_torrent_info = HealthInfo(b'0' * 20, seeders=200, leechers=0, last_check=int(time.time()))
         await self.init_first_node_and_gossip(checked_torrent_info, deliver_timeout=0.5)
 
         # Check whether node 1 has new torrent health information
@@ -193,7 +196,8 @@ class TestPopularityCommunity(TestBase):
         infohash = b'1' * 20
         with db_session:
             self.nodes[0].overlay.mds.TorrentMetadata(infohash=infohash)
-        await self.init_first_node_and_gossip((infohash, 200, 0, int(time.time())))
+        await self.init_first_node_and_gossip(
+            HealthInfo(infohash, seeders=200, leechers=0, last_check=int(time.time())))
         with db_session:
             assert self.nodes[1].overlay.mds.TorrentMetadata.get()
 
@@ -204,5 +208,6 @@ class TestPopularityCommunity(TestBase):
             self.nodes[0].overlay.mds.TorrentMetadata(infohash=infohash)
             self.nodes[1].overlay.mds.TorrentMetadata(infohash=infohash)
         self.nodes[1].overlay.send_remote_select = Mock()
-        await self.init_first_node_and_gossip((infohash, 200, 0, int(time.time())))
+        await self.init_first_node_and_gossip(
+            HealthInfo(infohash, seeders=200, leechers=0, last_check=int(time.time())))
         self.nodes[1].overlay.send_remote_select.assert_not_called()

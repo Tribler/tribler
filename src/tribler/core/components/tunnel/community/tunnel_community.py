@@ -76,7 +76,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.exitnode_cache: Optional[Path] = kwargs.pop('exitnode_cache', None)
         self.config = kwargs.pop('config', None)
         self.notifier = kwargs.pop('notifier', None)
-        self.dlmgr = kwargs.pop('dlmgr', None)
+        self.download_manager = kwargs.pop('dlmgr', None)
         self.socks_servers: List[Socks5Server] = kwargs.pop('socks_servers', [])
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
@@ -115,7 +115,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         if self.exitnode_cache is not None:
             self.restore_exitnodes_from_disk()
-        if self.dlmgr is not None:
+        if self.download_manager is not None:
             downloads_polling_interval = 1.0
             self.register_task('Poll download manager for new or changed downloads',
                                self._poll_download_manager,
@@ -124,7 +124,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     async def _poll_download_manager(self):
         # This must run in all circumstances, so catch all exceptions
         try:
-            dl_states = self.dlmgr.get_last_download_states()
+            dl_states = self.download_manager.get_last_download_states()
             self.monitor_downloads(dl_states)
         except Exception as e:  # pylint: disable=broad-except
             self.logger.error("Error on polling Download Manager: %s", e)
@@ -416,8 +416,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Make sure the circuit is marked as closing, otherwise we may end up reusing it
         circuit.close()
 
-        if self.dlmgr:
-            for download in self.dlmgr.get_downloads():
+        if self.download_manager:
+            for download in self.download_manager.get_downloads():
                 self.update_torrent(affected_peers, download)
 
         # Now we actually remove the circuit
@@ -534,21 +534,21 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super().on_rendezvous_established(source_address, data, circuit_id)
 
         circuit = self.circuits.get(circuit_id)
-        if circuit and self.dlmgr:
+        if circuit and self.download_manager:
             self.update_ip_filter(circuit.info_hash)
 
     def update_ip_filter(self, info_hash):
         download = self.get_download(info_hash)
-        lt_session = self.dlmgr.get_session(download.config.get_hops())
+        lt_session = self.download_manager.get_session(download.config.get_hops())
         ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
                         for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)] + ['1.1.1.1']
-        self.dlmgr.update_ip_filter(lt_session, ip_addresses)
+        self.download_manager.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash):
-        if not self.dlmgr:
+        if not self.download_manager:
             return None
 
-        for download in self.dlmgr.get_downloads():
+        for download in self.download_manager.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
 
@@ -564,12 +564,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # the connection and the libtorrent listen port.
             # Starting from libtorrent 1.2.4 on Windows, listen_port() returns 0 if used in combination with a
             # SOCKS5 proxy. Therefore on Windows, we resort to using ports received through listen_succeeded_alert.
-            if LooseVersion(self.dlmgr.get_libtorrent_version()) < LooseVersion("1.2.0"):
+            if LooseVersion(self.download_manager.get_libtorrent_version()) < LooseVersion("1.2.0"):
                 download.add_peer(('1.1.1.1', 1024))
             else:
                 hops = download.config.get_hops()
-                lt_listen_port = self.dlmgr.listen_ports.get(hops)
-                lt_listen_port = lt_listen_port or self.dlmgr.get_session(hops).listen_port()
+                lt_listen_port = self.download_manager.listen_ports.get(hops)
+                lt_listen_port = lt_listen_port or self.download_manager.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
                     if session.udp_connection and lt_listen_port:
                         session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)

@@ -62,21 +62,21 @@ def test_get_tracker_for_check(tracker_manager):
     """
     Test whether the correct tracker is returned when fetching the next eligable tracker for the auto check
     """
-    assert not tracker_manager.get_next_tracker_for_auto_check()
+    assert not tracker_manager.get_next_tracker()
 
     tracker_manager.add_tracker("http://test1.com:80/announce")
-    assert tracker_manager.get_next_tracker_for_auto_check().url == 'http://test1.com/announce'
+    assert tracker_manager.get_next_tracker().url == 'http://test1.com/announce'
 
 
 def test_get_tracker_for_check_blacklist(tracker_manager):
     """
     Test whether the next tracker for autocheck is not in the blacklist
     """
-    assert not tracker_manager.get_next_tracker_for_auto_check()
+    assert not tracker_manager.get_next_tracker()
 
     tracker_manager.add_tracker("http://test1.com:80/announce")
     tracker_manager.blacklist.append("http://test1.com/announce")
-    assert not tracker_manager.get_next_tracker_for_auto_check()
+    assert not tracker_manager.get_next_tracker()
 
 
 def test_load_blacklist_from_file_none(tracker_manager):

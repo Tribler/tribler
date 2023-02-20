@@ -5,8 +5,9 @@ from unittest.mock import Mock
 import pytest
 
 from tribler.core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
-from tribler.core.utilities.unicode import hexlify
 
+
+# pylint: disable=redefined-outer-name
 
 @pytest.fixture
 async def dht_health_manager():
@@ -15,14 +16,12 @@ async def dht_health_manager():
     await manager.shutdown_task_manager()
 
 
-async def test_get_health(dht_health_manager):
+async def test_get_health(dht_health_manager: DHTHealthManager):
     """
     Test fetching the health of a trackerless torrent.
     """
-    response = await dht_health_manager.get_health(b'a' * 20, timeout=0.1)
-    assert isinstance(response, dict)
-    assert 'DHT' in response
-    assert response['DHT'][0]['infohash'] == hexlify(b'a' * 20)
+    health = await dht_health_manager.get_health(b'a' * 20, timeout=0.1)
+    assert health.infohash == b'a' * 20
 
 
 async def test_existing_get_health(dht_health_manager):

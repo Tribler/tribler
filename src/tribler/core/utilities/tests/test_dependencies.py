@@ -12,17 +12,16 @@ from tribler.core.utilities.path_util import Path
 
 # pylint: disable=protected-access
 
-# fmt: off
-
 def test_extract_libraries_from_requirements():
     # check that libraries extracts from text correctly
-    text = 'PyQt5>=5.14\n' \
-           'psutil\n' \
-           '\n' \
-           'configobj\n'
-
+    text = (
+        'PyQt5>=5.14\n'
+        'psutil  # some comment\n'
+        '\n'
+        '# comment line\n'
+        'configobj\n'
+    )
     assert list(_extract_libraries_from_requirements(text)) == ['PyQt5', 'psutil', 'configobj']
-
 
 def test_pip_dependencies_gen():
     # check that libraries extracts from file correctly

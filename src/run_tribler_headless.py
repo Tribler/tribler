@@ -2,6 +2,7 @@
 This script enables you to start Tribler headless.
 """
 import argparse
+import logging
 import os
 import re
 import signal
@@ -12,8 +13,9 @@ from datetime import date
 from socket import inet_aton
 from typing import Optional
 
-from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.components.session import Session
+from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.start_core import components_gen
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
@@ -107,7 +109,7 @@ class TriblerService:
             config.chant.testnet = True
             config.bandwidth_accounting.testnet = True
 
-        self.session = Session(config)
+        self.session = Session(config, components=list(components_gen(config)))
         try:
             await self.session.start_components()
         except Exception as e:
@@ -115,6 +117,11 @@ class TriblerService:
             get_event_loop().stop()
         else:
             print("Tribler started")
+
+
+def setup_logger(verbosity):
+    logging_level = logging.DEBUG if verbosity else logging.INFO
+    logging.basicConfig(level=logging_level)
 
 
 def main(argv):
@@ -129,8 +136,10 @@ def main(argv):
                         help='Force the usage of specific IPv8 bootstrap server (ip:port)', action=IPPortAction)
 
     parser.add_argument('--testnet', '-t', action='store_const', default=False, const=True, help='Join the testnet')
+    parser.add_argument('-v', '--verbosity', help='increase output verbosity', action='store_true')
 
     args = parser.parse_args(sys.argv[1:])
+    setup_logger(args.verbosity)
     service = TriblerService()
 
     loop = get_event_loop()

@@ -3,6 +3,7 @@ This file contains various controllers for table views.
 The responsibility of the controller is to populate the table view with some data, contained in a specific model.
 """
 import json
+import logging
 import time
 
 from PyQt5.QtCore import QObject, QTimer, Qt
@@ -151,6 +152,7 @@ class TableSelectionMixin:
 class HealthCheckerMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.health_checker_logger = logging.getLogger('HealthCheckerMixin')
 
         connect(
             self.table_view.delegate.health_status_widget.clicked,
@@ -159,65 +161,26 @@ class HealthCheckerMixin:
         connect(self.table_view.torrent_clicked, self.check_torrent_health)
 
     def check_torrent_health(self, data_item, forced=False):
-        # ACHTUNG: The health check can be triggered multiple times for a single infohash
-        # by e.g. selection and click signals
         if not dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT]):
             return
-
-        infohash = data_item['infohash']
-
         if Column.HEALTH not in self.model.column_position:
             return
         # Check if the entry still exists in the table
+        infohash = data_item['infohash']
         row = self.model.item_uid_map.get(infohash)
-        items = self.model.data_items
-        if row is None or row >= len(items):
+        if row is None:
             return
 
-        data_item = items[row]
         if not forced and data_item.get('health', HEALTH_UNCHECKED) != HEALTH_UNCHECKED:
             return
         data_item['health'] = HEALTH_CHECKING
         health_cell_index = self.model.index(row, self.model.column_position[Column.HEALTH])
         self.model.dataChanged.emit(health_cell_index, health_cell_index, [])
-        request_manager.get(f"metadata/torrents/{infohash}/health", self.on_health_response,
-                            url_params={"nowait": True, "refresh": True},
-                            capture_errors=False,
-                            priority=QNetworkRequest.LowPriority)
-
-    def on_health_response(self, response):
-        total_seeders = 0
-        total_leechers = 0
-
-        if not response or 'error' in response or 'checking' in response:
-            return
-
-        infohash = response['infohash']
-        for _, status in response['health'].items():
-            if 'error' in status:
-                continue  # Timeout or invalid status
-            total_seeders += int(status['seeders'])
-            total_leechers += int(status['leechers'])
-
-        self.update_torrent_health(infohash, total_seeders, total_leechers)
-
-    def update_torrent_health(self, infohash, seeders, leechers):
-        # Check if details widget is still showing the same entry and the entry still exists in the table
-        row = self.model.item_uid_map.get(infohash)
-        if row is None:
-            return
-
-        data_item = self.model.data_items[row]
-        data_item['num_seeders'] = seeders
-        data_item['num_leechers'] = leechers
-        data_item['last_tracker_check'] = time.time()
-        data_item['health'] = get_health(
-            data_item['num_seeders'], data_item['num_leechers'], data_item['last_tracker_check']
+        request_manager.get(
+            f"metadata/torrents/{infohash}/health",
+            capture_errors=False,
+            priority=QNetworkRequest.LowPriority
         )
-
-        if Column.HEALTH in self.model.column_position:
-            index = self.model.index(row, self.model.column_position[Column.HEALTH])
-            self.model.dataChanged.emit(index, index, [])
 
 
 class ContextMenuMixin:

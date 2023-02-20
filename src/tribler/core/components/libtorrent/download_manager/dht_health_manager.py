@@ -1,9 +1,12 @@
 import math
+import time
 from asyncio import Future
+from typing import Awaitable
 
 from ipv8.taskmanager import TaskManager
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.utilities.unicode import hexlify
 
 
@@ -18,18 +21,17 @@ class DHTHealthManager(TaskManager):
         :param lt_session: The session used to perform health lookups.
         """
         TaskManager.__init__(self)
-        self.lookup_futures = {}    # Map from binary infohash to future
-        self.bf_seeders = {}        # Map from infohash to (final) seeders bloomfilter
-        self.bf_peers = {}          # Map from infohash to (final) peers bloomfilter
-        self.outstanding = {}       # Map from transaction_id to infohash
+        self.lookup_futures = {}  # Map from binary infohash to future
+        self.bf_seeders = {}  # Map from infohash to (final) seeders bloomfilter
+        self.bf_peers = {}  # Map from infohash to (final) peers bloomfilter
+        self.outstanding = {}  # Map from transaction_id to infohash
         self.lt_session = lt_session
 
-    def get_health(self, infohash, timeout=15):
+    def get_health(self, infohash, timeout=15) -> Awaitable[HealthInfo]:
         """
         Lookup the health of a given infohash.
         :param infohash: The 20-byte infohash to lookup.
         :param timeout: The timeout of the lookup.
-        :return: A Future that fires with a tuple, indicating the number of seeders and peers respectively.
         """
         if infohash in self.lookup_futures:
             return self.lookup_futures[infohash]
@@ -63,13 +65,8 @@ class DHTHealthManager(TaskManager):
         seeders = DHTHealthManager.get_size_from_bloomfilter(bf_seeders)
         peers = DHTHealthManager.get_size_from_bloomfilter(bf_peers)
         if not self.lookup_futures[infohash].done():
-            self.lookup_futures[infohash].set_result({
-                "DHT": [{
-                    "infohash": hexlify(infohash),
-                    "seeders": seeders,
-                    "leechers": peers
-                }]
-            })
+            health = HealthInfo(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers)
+            self.lookup_futures[infohash].set_result(health)
 
         self.lookup_futures.pop(infohash, None)
 
@@ -94,6 +91,7 @@ class DHTHealthManager(TaskManager):
         :param bf: The bloom filter of which we estimate the size.
         :return: A rounded integer, approximating the number of items in the filter.
         """
+
         def tobits(s):
             result = []
             for c in s:
@@ -129,7 +127,7 @@ class DHTHealthManager(TaskManager):
             # Libtorrent is reusing the transaction_id, and is now using it for a infohash that we're not interested in.
             self.outstanding.pop(transaction_id, None)
 
-    def received_bloomfilters(self, transaction_id,  bf_seeds=bytearray(256), bf_peers=bytearray(256)):
+    def received_bloomfilters(self, transaction_id, bf_seeds=bytearray(256), bf_peers=bytearray(256)):
         """
         We have received bloom filters from the libtorrent DHT. Register the bloom filters and process them.
         :param transaction_id: The ID of the query for which we are receiving the bloom filter.

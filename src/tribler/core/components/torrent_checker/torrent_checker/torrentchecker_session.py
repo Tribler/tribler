@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 import socket
@@ -6,18 +8,22 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod
 from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
-
-from aiohttp import ClientResponseError, ClientSession, ClientTimeout
+from typing import List, TYPE_CHECKING
 
 import async_timeout
-
+from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 from ipv8.taskmanager import TaskManager
+
 from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.components.socks_servers.socks5.client import Socks5Client
-
+from tribler.core.components.torrent_checker.torrent_checker import DHT
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions, gather_coros
 from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
-from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
+
+if TYPE_CHECKING:
+    from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -30,20 +36,6 @@ MAX_INT32 = 2 ** 16 - 1
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 
 MAX_INFOHASHES_IN_SCRAPE = 60
-
-
-def create_tracker_session(tracker_url, timeout, proxy, socket_manager):
-    """
-    Creates a tracker session with the given tracker URL.
-    :param tracker_url: The given tracker URL.
-    :param timeout: The timeout for the session.
-    :return: The tracker session.
-    """
-    tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
-
-    if tracker_type == 'udp':
-        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, proxy, socket_manager)
-    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout, proxy)
 
 
 class TrackerSession(TaskManager):
@@ -69,7 +61,7 @@ class TrackerSession(TaskManager):
         self.is_failed = False
 
     def __str__(self):
-        return f"Tracker[{self.tracker_type}, {self.tracker_url}]"
+        return f"{self.__class__.__name__}[{self.tracker_type}, {self.tracker_url}]"
 
     async def cleanup(self):
         await self.shutdown_task_manager()
@@ -101,7 +93,7 @@ class TrackerSession(TaskManager):
             raise ValueError(result_msg)
 
     @abstractmethod
-    async def connect_to_tracker(self):
+    async def connect_to_tracker(self) -> TrackerResponse:
         """Does some work when a connection has been established."""
 
 
@@ -112,7 +104,7 @@ class HttpTrackerSession(TrackerSession):
                                       raise_for_status=True,
                                       timeout=ClientTimeout(total=self.timeout))
 
-    async def connect_to_tracker(self):
+    async def connect_to_tracker(self) -> TrackerResponse:
         # create the HTTP GET message
         # Note: some trackers have strange URLs, e.g.,
         #       http://moviezone.ws/announce.php?passkey=8ae51c4b47d3e7d0774a720fa511cc2a
@@ -143,12 +135,10 @@ class HttpTrackerSession(TrackerSession):
 
         return self._process_scrape_response(body)
 
-    def _process_scrape_response(self, body):
+    def _process_scrape_response(self, body) -> TrackerResponse:
         """
-        This function handles the response body of a HTTP tracker,
-        parsing the results.
+        This function handles the response body of an HTTP result from an HTTP tracker
         """
-        # parse the retrieved results
         if body is None:
             self.failed(msg="no response body")
 
@@ -156,39 +146,32 @@ class HttpTrackerSession(TrackerSession):
         if not response_dict:
             self.failed(msg="no valid response")
 
-        response_list = []
+        health_list: List[HealthInfo] = []
+        now = int(time.time())
 
-        unprocessed_infohash_list = self.infohash_list[:]
-        if b'files' in response_dict and isinstance(response_dict[b'files'], dict):
-            for infohash in response_dict[b'files']:
-                complete = 0
-                incomplete = 0
-                if isinstance(response_dict[b'files'][infohash], dict):
-                    complete = response_dict[b'files'][infohash].get(b'complete', 0)
-                    incomplete = response_dict[b'files'][infohash].get(b'incomplete', 0)
+        unprocessed_infohashes = set(self.infohash_list)
+        files = response_dict.get(b'files')
+        if isinstance(files, dict):
+            for infohash, file_info in files.items():
+                seeders = leechers = 0
+                if isinstance(file_info, dict):
+                    # "complete: number of peers with the entire file, i.e. seeders (integer)"
+                    #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
+                    seeders = file_info.get(b'complete', 0)
+                    leechers = file_info.get(b'incomplete', 0)
 
-                # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
-                #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-                seeders = complete
-                leechers = incomplete
-
-                # Store the information in the dictionary
-                response_list.append({'infohash': hexlify(infohash), 'seeders': seeders, 'leechers': leechers})
-
-                # remove this infohash in the infohash list of this session
-                if infohash in unprocessed_infohash_list:
-                    unprocessed_infohash_list.remove(infohash)
+                unprocessed_infohashes.discard(infohash)
+                health_list.append(HealthInfo(infohash, last_check=now, seeders=seeders, leechers=leechers))
 
         elif b'failure reason' in response_dict:
             self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
             self.failed(msg=repr(response_dict[b'failure reason']))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
-        for infohash in unprocessed_infohash_list:
-            response_list.append({'infohash': hexlify(infohash), 'seeders': 0, 'leechers': 0})
+        health_list.extend(HealthInfo(infohash=infohash, last_check=now) for infohash in unprocessed_infohashes)
 
         self.is_finished = True
-        return {self.tracker_url: response_list}
+        return TrackerResponse(url=self.tracker_url, torrent_health_list=health_list)
 
     async def cleanup(self):
         """
@@ -304,7 +287,7 @@ class UdpTrackerSession(TrackerSession):
         await super().cleanup()
         self.remove_transaction_id()
 
-    async def connect_to_tracker(self):
+    async def connect_to_tracker(self) -> TrackerResponse:
         """
         Connects to the tracker and starts querying for seed and leech data.
         :return: A dictionary containing seed/leech information per infohash
@@ -368,7 +351,7 @@ class UdpTrackerSession(TrackerSession):
         self.generate_transaction_id()
         self.last_contact = int(time.time())
 
-    async def scrape(self):
+    async def scrape(self) -> TrackerResponse:
         # pack and send the message
         if sys.version_info.major > 2:
             infohash_list = self.infohash_list
@@ -405,6 +388,7 @@ class UdpTrackerSession(TrackerSession):
         offset = 8
 
         response_list = []
+        now = int(time.time())
 
         for infohash in self.infohash_list:
             complete, _downloaded, incomplete = struct.unpack_from('!iii', response, offset)
@@ -413,15 +397,14 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            response_list.append({'infohash': hexlify(infohash),
-                                  'seeders': complete, 'leechers': incomplete})
+            response_list.append(HealthInfo(infohash, last_check=now, seeders=complete, leechers=incomplete))
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
         self.last_contact = int(time.time())
         self.is_finished = True
 
-        return {self.tracker_url: response_list}
+        return TrackerResponse(url=self.tracker_url, torrent_health_list=response_list)
 
 
 class FakeDHTSession(TrackerSession):
@@ -429,43 +412,20 @@ class FakeDHTSession(TrackerSession):
     Fake TrackerSession that manages DHT requests
     """
 
-    def __init__(self, dlmgr, infohash, timeout):
-        super().__init__('DHT', 'DHT', 'DHT', 'DHT', timeout)
+    def __init__(self, download_manager: DownloadManager, timeout: float):
+        super().__init__(DHT, DHT, DHT, DHT, timeout)
 
-        self.infohash = infohash
-        self.dlmgr = dlmgr
+        self.download_manager = download_manager
 
-    async def cleanup(self):
-        """
-        Cleans the session by cancelling all deferreds and closing sockets.
-        :return: A deferred that fires once the cleanup is done.
-        """
-        await super().shutdown_task_manager()
-        self.infohash_list = None
+    async def connect_to_tracker(self) -> TrackerResponse:
+        health_list = []
+        now = int(time.time())
+        for infohash in self.infohash_list:
+            metainfo = await self.download_manager.get_metainfo(infohash, timeout=self.timeout, raise_errors=True)
+            health = HealthInfo(infohash, last_check=now, seeders=metainfo[b'seeders'], leechers=metainfo[b'leechers'])
+            health_list.append(health)
 
-    def add_infohash(self, infohash):
-        """
-        This function adds a infohash to the request list.
-        :param infohash: The infohash to be added.
-        """
-        self.infohash = infohash
-
-    async def connect_to_tracker(self):
-        """
-        Fakely connects to a tracker.
-        :return: A deferred that fires with the health information.
-        """
-        metainfo = await self.dlmgr.get_metainfo(self.infohash, timeout=self.timeout)
-        if not metainfo:
-            raise RuntimeError("Metainfo lookup error")
-
-        return {
-            "DHT": [{
-                "infohash": hexlify(self.infohash),
-                "seeders": metainfo[b"seeders"],
-                "leechers": metainfo[b"leechers"]
-            }]
-        }
+        return TrackerResponse(url=DHT, torrent_health_list=health_list)
 
 
 class FakeBep33DHTSession(FakeDHTSession):
@@ -473,12 +433,22 @@ class FakeBep33DHTSession(FakeDHTSession):
     Fake session for a BEP33 lookup.
     """
 
-    async def connect_to_tracker(self):
-        """
-        Fakely connects to a tracker.
-        :return: A deferred that fires with the health information.
-        """
-        try:
-            return await self.dlmgr.dht_health_manager.get_health(self.infohash, timeout=self.timeout)
-        except TimeoutError:
-            self.failed(msg='request timed out')
+    async def connect_to_tracker(self) -> TrackerResponse:
+        coros = [self.download_manager.dht_health_manager.get_health(infohash, timeout=self.timeout)
+                 for infohash in self.infohash_list]
+        results = await gather_coros(coros)
+        return TrackerResponse(url=DHT, torrent_health_list=filter_non_exceptions(results))
+
+
+def create_tracker_session(tracker_url, timeout, proxy, socket_manager) -> TrackerSession:
+    """
+    Creates a tracker session with the given tracker URL.
+    :param tracker_url: The given tracker URL.
+    :param timeout: The timeout for the session.
+    :return: The tracker session.
+    """
+    tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
+
+    if tracker_type == 'udp':
+        return UdpTrackerSession(tracker_url, tracker_address, announce_page, timeout, proxy, socket_manager)
+    return HttpTrackerSession(tracker_url, tracker_address, announce_page, timeout, proxy)

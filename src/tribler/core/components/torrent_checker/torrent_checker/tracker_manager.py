@@ -8,7 +8,7 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.tracker_utils import get_uniformed_tracker_url
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
-TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
+TRACKER_RETRY_INTERVAL = 60  # A "dead" tracker will be retired every 60 seconds
 
 
 class TrackerManager:
@@ -16,7 +16,7 @@ class TrackerManager:
     def __init__(self, state_dir: Path = None, metadata_store: MetadataStore = None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
-        self.tracker_store = metadata_store.TrackerState
+        self.TrackerState = metadata_store.TrackerState
 
         self.blacklist = []
         self.load_blacklist()
@@ -44,7 +44,7 @@ class TrackerManager:
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url) if tracker_url != "DHT" else tracker_url
 
         with db_session:
-            tracker = list(self.tracker_store.select(lambda g: g.url == sanitized_tracker_url))
+            tracker = list(self.TrackerState.select(lambda g: g.url == sanitized_tracker_url))
             if tracker:
                 return {
                     'id': tracker[0].url,
@@ -65,17 +65,17 @@ class TrackerManager:
             return
 
         with db_session:
-            num = count(g for g in self.tracker_store if g.url == sanitized_tracker_url)
+            num = count(g for g in self.TrackerState if g.url == sanitized_tracker_url)
             if num > 0:
                 self._logger.debug("skip existing tracker: %s", repr(tracker_url))
                 return
 
             # insert into database
-            self.tracker_store(url=sanitized_tracker_url,
-                               last_check=0,
-                               failures=0,
-                               alive=True,
-                               torrents={})
+            self.TrackerState(url=sanitized_tracker_url,
+                              last_check=0,
+                              failures=0,
+                              alive=True,
+                              torrents={})
 
     def remove_tracker(self, tracker_url):
         """
@@ -87,12 +87,12 @@ class TrackerManager:
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
 
         with db_session:
-            options = self.tracker_store.select(lambda g: g.url in [tracker_url, sanitized_tracker_url])
+            options = self.TrackerState.select(lambda g: g.url in [tracker_url, sanitized_tracker_url])
             for option in options[:]:
                 option.delete()
 
     @db_session
-    def update_tracker_info(self, tracker_url, is_successful):
+    def update_tracker_info(self, tracker_url, is_successful=True):
         """
         Updates a tracker information.
         :param tracker_url: The given tracker_url.
@@ -103,7 +103,7 @@ class TrackerManager:
             return
 
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
-        tracker = self.tracker_store.get(lambda g: g.url == sanitized_tracker_url)
+        tracker = self.TrackerState.get(lambda g: g.url == sanitized_tracker_url)
 
         if not tracker:
             self._logger.error("Trying to update the tracker info of an unknown tracker URL")
@@ -117,19 +117,20 @@ class TrackerManager:
         tracker.last_check = current_time
         tracker.failures = failures
         tracker.alive = is_alive
+        self._logger.info(f'Tracker updated: {tracker.url}. Alive: {is_alive}. Failures: {failures}.')
 
     @db_session
-    def get_next_tracker_for_auto_check(self):
+    def get_next_tracker(self):
         """
-        Gets the next tracker for automatic tracker-checking.
-        :return: The next tracker for automatic tracker-checking.
+        Gets the next tracker.
+        :return: The next tracker for torrent-checking.
         """
-        tracker = self.tracker_store.select(lambda g: str(g.url)
-                                            and g.alive
-                                            and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
-                                            and str(g.url) not in self.blacklist)\
-            .order_by(self.tracker_store.last_check).limit(1)
-
+        tracker = self.TrackerState.select(
+            lambda g: str(g.url)
+                      and g.alive
+                      and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
+                      and str(g.url) not in self.blacklist
+        ).order_by(self.TrackerState.last_check).limit(1)
         if not tracker:
             return None
         return tracker[0]

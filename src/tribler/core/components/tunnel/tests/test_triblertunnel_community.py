@@ -286,19 +286,19 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[0].overlay.get_download = lambda _: download
 
         lt_session = Mock()
-        self.nodes[0].overlay.dlmgr = Mock()
-        self.nodes[0].overlay.dlmgr.get_session = lambda _: lt_session
-        self.nodes[0].overlay.dlmgr.update_ip_filter = Mock()
-        self.nodes[0].overlay.dlmgr.get_downloads = lambda: [download]
+        self.nodes[0].overlay.download_manager = Mock()
+        self.nodes[0].overlay.download_manager.get_session = lambda _: lt_session
+        self.nodes[0].overlay.download_manager.update_ip_filter = Mock()
+        self.nodes[0].overlay.download_manager.get_downloads = lambda: [download]
 
         self.nodes[0].overlay.update_ip_filter(0)
         ips = ['1.1.1.1']
-        self.nodes[0].overlay.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
+        self.nodes[0].overlay.download_manager.update_ip_filter.assert_called_with(lt_session, ips)
 
         circuit.ctype = CIRCUIT_TYPE_RP_SEEDER
         self.nodes[0].overlay.update_ip_filter(0)
         ips = [self.nodes[0].overlay.circuit_id_to_ip(circuit.circuit_id), '1.1.1.1']
-        self.nodes[0].overlay.dlmgr.update_ip_filter.assert_called_with(lt_session, ips)
+        self.nodes[0].overlay.download_manager.update_ip_filter.assert_called_with(lt_session, ips)
 
     def test_update_torrent(self):
         """

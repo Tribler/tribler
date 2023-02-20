@@ -20,39 +20,43 @@ import asyncio
 import logging
 import os
 import sys
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logging.info('Start to execute conf.py')
 
-# pylint: disable=wrong-import-position
+# root_dir = Path(__file__).parent.parent
+
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__name__), '..'))
-tribler_components = [
+tribler_source_dirs = [
     os.path.join(root_dir, "src"),
     os.path.join(root_dir, "doc"),
 ]
-for component in tribler_components:
-    logging.info(f'Add component: {component}')
+for source_dir in tribler_source_dirs:
+    logging.info(f'Add source dir: {source_dir}')
+    sys.path.append(str(source_dir))
 
-    sys.path.append(str(component))
-
+# pylint: disable=wrong-import-position
 from tribler.core.utilities.patch_import import patch_import
+from tribler.core.utilities.dependencies import Scope, get_dependencies
 
-# patch extra imports that can not be extracted from the `requirements-core.txt` file
-with patch_import(modules={'libtorrent', 'validate', 'file_read_backwards'}):
-    from tribler.core.utilities.dependencies import Scope, get_dependencies
+# extra modules that can't be extracted from the `requirements-core.txt` file
+modules = [
+    'validate',  # automatically installed alongside with configobj 5.x, should be fixed in configobj 6.0
+]
+modules.extend(set(get_dependencies(scope=Scope.core)))
 
-    # patch imports that can be extracted from the `requirements-core.txt` file
-    with patch_import(modules=set(get_dependencies(scope=Scope.core))):
-        from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
+with patch_import(modules):
+    from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 
-        add_endpoint = RootEndpoint.add_endpoint
-        RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
-            if path not in ['/ipv8', '/market', '/wallets'] else None
+    add_endpoint = RootEndpoint.add_endpoint
+    RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
+        if path not in ['/ipv8', '/market', '/wallets'] else None
 
-        # Extract Swagger docs
-        from extract_swagger import extract_swagger  
+    # Extract Swagger docs
+    from extract_swagger import extract_swagger
 
-        asyncio.run(extract_swagger('restapi/swagger.yaml'))
+    asyncio.run(extract_swagger('restapi/swagger.yaml'))
 
 # -- General configuration ------------------------------------------------
 
