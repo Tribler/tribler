@@ -87,7 +87,7 @@ class Request(QObject):
         self.logger.debug(f'Update {self}: {status_code}')
         self.status_code = status_code
 
-    def _on_finished(self):
+    def on_finished(self):
         if not self.reply or not self.manager:
             return
 
@@ -101,6 +101,10 @@ class Request(QObject):
                 self.logger.debug('Create a raw response')
                 header = self.reply.header(QNetworkRequest.ContentTypeHeader)
                 self.on_finished_signal.emit((data, header))
+                return
+
+            if not data:
+                self.on_finished_signal.emit({})
                 return
 
             self.logger.debug('Create a json response')
