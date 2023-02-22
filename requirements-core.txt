@@ -3,7 +3,7 @@ aiohttp-apispec==2.2.3 # keep this higher or equal to 2.2.3 https://githubhot.co
 anyio==3.6.2
 chardet==4.0.0
 configobj==5.0.6
-cryptography==35.0.0
+cryptography==39.0.1
 decorator==5.1.0
 Faker==14.1.0
 libnacl==1.8.0
