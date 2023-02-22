@@ -138,7 +138,7 @@ class RequestManager(QNetworkAccessManager):
         request.reply = self.sendCustomRequest(qt_request, request.method.encode("utf8"), buf)
         buf.setParent(request.reply)
 
-        connect(request.reply.finished, request._on_finished)  # pylint: disable=protected-access
+        connect(request.reply.finished, request.on_finished)
 
     def remove(self, request: Request):
         self.active_requests.discard(request)
