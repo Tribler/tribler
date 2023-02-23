@@ -2,7 +2,8 @@ import asyncio
 import platform
 from asyncio import sleep
 from dataclasses import dataclass
-from unittest.mock import MagicMock, Mock, patch
+from ssl import SSLError
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from aiohttp import web
@@ -140,3 +141,18 @@ async def test_fallback_on_multiple_urls(version_server: VersionCheckManager):
 def test_useragent_string():
     s = VersionCheckManager._get_user_agent_string('1.2.3', platform)
     assert s == 'Tribler/1.2.3 (machine=AMD64; os=Windows 10; python=3.9.1; executable=64bit)'
+
+
+async def test_check_urls_error(version_server: VersionCheckManager):
+    # This test ensures that there is no Application crash in the case of failed new version request.
+    # see: https://github.com/Tribler/tribler/issues/5816
+
+    # first check that the `_check_urls` returns expected value if there is no errors
+    with patch.object(VersionCheckManager, '_raw_request_new_version', AsyncMock(return_value={'name': 'mock'})):
+        actual = await version_server._check_urls()
+        assert actual == {'name': 'mock'}
+
+    # second check that the `_check_urls` returns None if there is an error
+    with patch.object(VersionCheckManager, '_raw_request_new_version', AsyncMock(side_effect=SSLError)):
+        actual = await version_server._check_urls()
+        assert not actual
