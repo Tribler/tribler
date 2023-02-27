@@ -18,7 +18,7 @@ class ShutdownEndpoint(RESTEndpoint):
         self.shutdown_callback = shutdown_callback
 
     def setup_routes(self):
-        self.app.add_routes([web.put('', self.shutdown)])
+        self.app.add_routes([web.put('', self.shutdown_request)])
 
     @docs(
         tags=["General"],
@@ -31,7 +31,7 @@ class ShutdownEndpoint(RESTEndpoint):
             }
         }
     )
-    async def shutdown(self, request):
+    async def shutdown_request(self, _):
         self._logger.info('Received a shutdown request from GUI')
         self.shutdown_callback()
         return RESTResponse({"shutdown": True})

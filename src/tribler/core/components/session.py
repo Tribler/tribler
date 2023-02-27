@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Type, TypeVar
 from tribler.core.components.component import Component, ComponentError, ComponentStartupException, \
     MultipleComponentsFound
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.async_group import AsyncGroup
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
 from tribler.core.utilities.network_utils import default_network_utils
@@ -33,6 +34,7 @@ class Session:
         self.config: TriblerConfig = config or TriblerConfig()
         self.shutdown_event: Event = shutdown_event or Event()
         self.notifier: Notifier = notifier or Notifier(loop=get_event_loop())
+        self.async_group = AsyncGroup()
         self.components: Dict[Type[Component], Component] = {}
         for component in components:
             self.register(component.__class__, component)
@@ -104,7 +106,7 @@ class Session:
             self.logger.info(f'Reraise startup exception: {self._startup_exception}')
             raise self._startup_exception
 
-        get_event_loop().create_task(exception_reraiser())
+        self.async_group.add(exception_reraiser())
 
     def set_startup_exception(self, exc: Exception):
         if not self._startup_exception:
@@ -113,6 +115,7 @@ class Session:
     async def shutdown(self):
         self.logger.info("Stopping components")
         await gather(*[create_task(component.stop()) for component in self.components.values()])
+        await self.async_group.cancel()
         self.logger.info("All components are stopped")
 
 
