@@ -150,7 +150,7 @@ async def test_on_tribler_exception_stores_only_first_error(endpoint, reported_e
     assert endpoint.undelivered_error == endpoint.error_message(first_reported_error)
 
 
-@patch.object(EventsEndpoint, 'register_anonymous_task', new=AsyncMock(side_effect=CancelledError))
+@patch('asyncio.sleep', new=AsyncMock(side_effect=CancelledError))
 @patch.object(RESTStreamResponse, 'prepare', new=AsyncMock())
 @patch.object(RESTStreamResponse, 'write', new_callable=AsyncMock)
 @patch.object(EventsEndpoint, 'encode_message')

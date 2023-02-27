@@ -7,6 +7,7 @@ from typing import List, Optional
 from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.async_group import AsyncGroup
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
     set_global_process_manager
@@ -27,6 +28,8 @@ class TinyTriblerService:
         self.config = TriblerConfig(state_dir=state_dir.absolute())
         self.timeout_in_sec = timeout_in_sec
         self.components = components
+        self.async_group = AsyncGroup()
+        self._main_task = None
 
     async def on_tribler_started(self):
         """Function will calls after the Tribler session is started
@@ -42,7 +45,7 @@ class TinyTriblerService:
             await self._start_session()
 
             if self.timeout_in_sec:
-                asyncio.create_task(self._terminate_by_timeout())
+                self.async_group.add(self._terminate_by_timeout())
 
             self._enable_graceful_shutdown()
             await self.on_tribler_started()
@@ -51,7 +54,9 @@ class TinyTriblerService:
         if fragile:
             make_async_loop_fragile(loop)
 
-        loop.create_task(start_tribler())
+        # the variable `self._main_task` is used here to prevent a naked `loop.create_task()` call
+        # more details: https://github.com/Tribler/tribler/issues/7299
+        self._main_task = loop.create_task(start_tribler())
         try:
             loop.run_forever()
         finally:
@@ -97,8 +102,9 @@ class TinyTriblerService:
 
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
-        task = asyncio.create_task(self.session.shutdown())
-        task.add_done_callback(lambda result: self._stop_event_loop())
+        tasks = self.async_group.add(self.session.shutdown())
+        shutdown_task = tasks[0]
+        shutdown_task.add_done_callback(lambda result: self._stop_event_loop())
 
     def _stop_event_loop(self):
         asyncio.get_running_loop().stop()

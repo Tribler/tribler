@@ -30,21 +30,23 @@ async def raise_exception():
 
 
 async def test_add_single_coro(group: AsyncGroup):
-    group.add(
+    tasks = group.add(
         void()
     )
 
     assert len(group._futures) == 1
+    assert len(tasks) == 1
 
 
 async def test_add_iterable(group: AsyncGroup):
-    group.add(
+    tasks = group.add(
         void(),
         void(),
         void()
     )
 
     assert len(group._futures) == 3
+    assert len(tasks) == 3
 
 
 async def test_cancel(group: AsyncGroup):

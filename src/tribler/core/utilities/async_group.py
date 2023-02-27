@@ -1,5 +1,5 @@
 import asyncio
-from asyncio import CancelledError, Future
+from asyncio import CancelledError, Future, Task
 from contextlib import suppress
 from typing import Iterable, List, Set
 
@@ -24,13 +24,17 @@ class AsyncGroup:
     def __init__(self):
         self._futures: Set[Future] = set()
 
-    def add(self, *coroutines):
+    def add(self, *coroutines) -> List[Task]:
         """Add a coroutine to the group.
         """
+        result = []
         for coroutine in coroutines:
             task = asyncio.create_task(coroutine)
             self._futures.add(task)
             task.add_done_callback(self._done_callback)
+            result.append(task)
+
+        return result
 
     async def wait(self):
         """ Wait for completion of all futures

@@ -1,7 +1,16 @@
+from __future__ import annotations
+
 import json
 import logging
+from typing import Dict, TYPE_CHECKING
 
 from aiohttp import web
+
+from tribler.core.utilities.async_group import AsyncGroup
+
+if TYPE_CHECKING:
+    from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
+    from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
@@ -14,15 +23,31 @@ class RESTEndpoint:
     def __init__(self, middlewares=()):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.app = web.Application(middlewares=middlewares, client_max_size=2 * 1024 ** 2)
-        self.endpoints = {}
+        self.endpoints: Dict[str, RESTEndpoint] = {}
+        self.async_group = AsyncGroup()
         self.setup_routes()
+
+        self._shutdown = False
 
     def setup_routes(self):
         pass
 
-    def add_endpoint(self, prefix, endpoint):
+    def add_endpoint(self, prefix: str, endpoint: RESTEndpoint | EventsEndpoint | IPV8RootEndpoint):
         self.endpoints[prefix] = endpoint
         self.app.add_subapp(prefix, endpoint.app)
+
+    async def shutdown(self):
+        if self._shutdown:
+            return
+        self._shutdown = True
+
+        shutdown_group = AsyncGroup()
+        for endpoint in self.endpoints.values():
+            if isinstance(endpoint, RESTEndpoint):
+                shutdown_group.add(endpoint.shutdown())  # IPV8RootEndpoint doesn't have a shutdown method
+
+        await shutdown_group.wait()
+        await self.async_group.cancel()
 
 
 class RESTResponse(web.Response):

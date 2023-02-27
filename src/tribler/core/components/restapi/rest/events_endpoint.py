@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 from asyncio import CancelledError
@@ -8,7 +9,6 @@ from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
-from ipv8.taskmanager import TaskManager, task
 from marshmallow.fields import Dict, String
 
 from tribler.core import notifications
@@ -39,7 +39,7 @@ topics_to_send_to_gui = [
 
 
 @froze_it
-class EventsEndpoint(RESTEndpoint, TaskManager):
+class EventsEndpoint(RESTEndpoint):
     """
     Important events in Tribler are returned over the events endpoint. This connection is held open. Each event is
     pushed over this endpoint in the form of a JSON dictionary. Each JSON dictionary contains a type field that
@@ -47,8 +47,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     """
 
     def __init__(self, notifier: Notifier, public_key: str = None):
-        RESTEndpoint.__init__(self)
-        TaskManager.__init__(self)
+        super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
         self.app.on_shutdown.append(self.on_shutdown)
         self.undelivered_error: Optional[dict] = None
@@ -59,7 +58,8 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
     def on_notification(self, topic, *args, **kwargs):
         if topic in topics_to_send_to_gui:
-            self.write_data({"topic": topic.__name__, "args": args, "kwargs": kwargs})
+            data = {"topic": topic.__name__, "args": args, "kwargs": kwargs}
+            self.async_group.add(self.write_data(data))
 
     def on_circuit_removed(self, circuit: Circuit, additional_info: str):
         # The original notification contains non-JSON-serializable argument, so we send another one to GUI
@@ -69,10 +69,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
                                                     additional_info=additional_info)
 
     async def on_shutdown(self, _):
-        await self.shutdown_task_manager()
-
-    async def shutdown(self):
-        await self.shutdown_task_manager()
+        await self.shutdown()
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
@@ -101,7 +98,6 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     def has_connection_to_gui(self):
         return bool(self.events_responses)
 
-    @task
     async def write_data(self, message):
         """
         Write data over the event socket if it's open.
@@ -124,7 +120,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
     def on_tribler_exception(self, reported_error: ReportedError):
         message = self.error_message(reported_error)
         if self.has_connection_to_gui():
-            self.write_data(message)
+            self.async_group.add(self.write_data(message))
         elif not self.undelivered_error:
             # If there are several undelivered errors, we store the first error as more important and skip other
             self.undelivered_error = message
@@ -170,7 +166,7 @@ class EventsEndpoint(RESTEndpoint, TaskManager):
 
         try:
             while True:
-                await self.register_anonymous_task('event_sleep', lambda: None, delay=3600)
+                await asyncio.sleep(3600)
         except CancelledError:
             self.events_responses.remove(response)
             return response
