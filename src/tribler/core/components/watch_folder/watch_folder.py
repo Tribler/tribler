@@ -7,7 +7,7 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.components.watch_folder.settings import WatchFolderSettings
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
 

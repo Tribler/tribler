@@ -3,7 +3,7 @@ from contextlib import suppress
 
 import pytest
 
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 
 # pylint: disable=redefined-outer-name, protected-access

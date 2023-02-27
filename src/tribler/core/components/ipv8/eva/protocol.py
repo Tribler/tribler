@@ -53,7 +53,7 @@ from tribler.core.components.ipv8.eva.transfer.base import Transfer
 from tribler.core.components.ipv8.eva.transfer.incoming import IncomingTransfer
 from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 from tribler.core.components.ipv8.protocol_decorator import make_protocol_decorator
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 __version__ = '2.2.0'
 

@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, patch
 
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 
 # pylint: disable=protected-access

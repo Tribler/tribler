@@ -7,7 +7,7 @@ from typing import List, Optional
 from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
     set_global_process_manager

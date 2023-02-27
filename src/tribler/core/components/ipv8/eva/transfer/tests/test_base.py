@@ -9,7 +9,7 @@ from tribler.core.components.ipv8.eva.exceptions import TimeoutException, Transf
 from tribler.core.components.ipv8.eva.protocol import blank
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 
 # pylint: disable=redefined-outer-name, protected-access

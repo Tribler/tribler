@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Type, TypeVar
 from tribler.core.components.component import Component, ComponentError, ComponentStartupException, \
     MultipleComponentsFound
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
 from tribler.core.utilities.network_utils import default_network_utils

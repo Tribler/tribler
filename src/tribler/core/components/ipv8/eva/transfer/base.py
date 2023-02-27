@@ -12,7 +12,7 @@ from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, T
 from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferCancelledException, TransferException
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.settings import EVASettings
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 
 class Transfer:

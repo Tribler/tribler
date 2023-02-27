@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, TYPE_CHECKING
 
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 if TYPE_CHECKING:
     from tribler.core.components.ipv8.eva.protocol import EVAProtocol
