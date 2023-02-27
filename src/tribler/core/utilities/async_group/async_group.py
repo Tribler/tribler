@@ -24,17 +24,13 @@ class AsyncGroup:
     def __init__(self):
         self._futures: Set[Future] = set()
 
-    def add_task(self, *coroutines) -> List[Task]:
+    def add_task(self, coroutine) -> Task:
         """Add a coroutine to the group.
         """
-        result = []
-        for coroutine in coroutines:
-            task = asyncio.create_task(coroutine)
-            self._futures.add(task)
-            task.add_done_callback(self._done_callback)
-            result.append(task)
-
-        return result
+        task = asyncio.create_task(coroutine)
+        self._futures.add(task)
+        task.add_done_callback(self._done_callback)
+        return task
 
     async def wait(self):
         """ Wait for completion of all futures

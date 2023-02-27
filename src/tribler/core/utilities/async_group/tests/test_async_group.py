@@ -29,32 +29,17 @@ async def raise_exception():
     raise ValueError
 
 
-async def test_add_single_coro(group: AsyncGroup):
-    tasks = group.add_task(
-        void()
-    )
+async def test_add_task(group: AsyncGroup):
+    task = group.add_task(void())
 
     assert len(group._futures) == 1
-    assert len(tasks) == 1
-
-
-async def test_add_iterable(group: AsyncGroup):
-    tasks = group.add_task(
-        void(),
-        void(),
-        void()
-    )
-
-    assert len(group._futures) == 3
-    assert len(tasks) == 3
+    assert task
 
 
 async def test_cancel(group: AsyncGroup):
     """Ensure that all active tasks have been cancelled"""
-    group.add_task(
-        void(),
-        sleep_1s()
-    )
+    group.add_task(void())
+    group.add_task(sleep_1s())
 
     cancelled = await group.cancel()
 
@@ -64,10 +49,8 @@ async def test_cancel(group: AsyncGroup):
 
 async def test_wait(group: AsyncGroup):
     """Ensure that awe can wait for the futures"""
-    group.add_task(
-        void(),
-        sleep_1s()
-    )
+    group.add_task(void())
+    group.add_task(sleep_1s())
 
     await group.wait()
     assert not group._futures
@@ -81,10 +64,7 @@ async def test_wait_no_futures(group: AsyncGroup):
 
 async def test_double_cancel(group: AsyncGroup):
     """Ensure that double call of cancel doesn't lead to any exception"""
-
-    group.add_task(
-        void()
-    )
+    group.add_task(void())
 
     assert len(await group.cancel()) == 1
     assert len(await group.cancel()) == 0
