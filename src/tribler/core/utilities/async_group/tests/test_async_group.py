@@ -4,6 +4,7 @@ from contextlib import suppress
 import pytest
 
 from tribler.core.utilities.async_group.async_group import AsyncGroup
+from tribler.core.utilities.async_group.exceptions import CancelledException
 
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -36,6 +37,13 @@ async def test_add_task(group: AsyncGroup):
     assert task
 
 
+async def test_add_task_when_cancelled(group: AsyncGroup):
+    await group.cancel()
+
+    with pytest.raises(CancelledException):
+        group.add_task(void())
+
+
 async def test_cancel(group: AsyncGroup):
     """Ensure that all active tasks have been cancelled"""
     group.add_task(void())
@@ -65,8 +73,10 @@ async def test_wait_no_futures(group: AsyncGroup):
 async def test_double_cancel(group: AsyncGroup):
     """Ensure that double call of cancel doesn't lead to any exception"""
     group.add_task(void())
+    assert not group.cancelled
 
     assert len(await group.cancel()) == 1
+    assert group.cancelled
     assert len(await group.cancel()) == 0
 
 
