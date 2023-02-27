@@ -106,7 +106,7 @@ class Session:
             self.logger.info(f'Reraise startup exception: {self._startup_exception}')
             raise self._startup_exception
 
-        self.async_group.add(exception_reraiser())
+        self.async_group.add_task(exception_reraiser())
 
     def set_startup_exception(self, exc: Exception):
         if not self._startup_exception:

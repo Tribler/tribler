@@ -28,7 +28,7 @@ class WatchFolder:
         self._logger.info(f'Initialised with {settings}')
 
     def start(self):
-        self.group.add(self._run())
+        self.group.add_task(self._run())
 
     async def stop(self):
         await self.group.cancel()
@@ -36,7 +36,7 @@ class WatchFolder:
     async def _run(self):
         while True:
             await asyncio.sleep(self.check_interval)
-            self.group.add(self._check_watch_folder_handle_exceptions())
+            self.group.add_task(self._check_watch_folder_handle_exceptions())
 
     async def _check_watch_folder_handle_exceptions(self):
         try:

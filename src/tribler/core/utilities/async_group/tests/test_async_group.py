@@ -30,7 +30,7 @@ async def raise_exception():
 
 
 async def test_add_single_coro(group: AsyncGroup):
-    tasks = group.add(
+    tasks = group.add_task(
         void()
     )
 
@@ -39,7 +39,7 @@ async def test_add_single_coro(group: AsyncGroup):
 
 
 async def test_add_iterable(group: AsyncGroup):
-    tasks = group.add(
+    tasks = group.add_task(
         void(),
         void(),
         void()
@@ -51,7 +51,7 @@ async def test_add_iterable(group: AsyncGroup):
 
 async def test_cancel(group: AsyncGroup):
     """Ensure that all active tasks have been cancelled"""
-    group.add(
+    group.add_task(
         void(),
         sleep_1s()
     )
@@ -64,7 +64,7 @@ async def test_cancel(group: AsyncGroup):
 
 async def test_wait(group: AsyncGroup):
     """Ensure that awe can wait for the futures"""
-    group.add(
+    group.add_task(
         void(),
         sleep_1s()
     )
@@ -82,7 +82,7 @@ async def test_wait_no_futures(group: AsyncGroup):
 async def test_double_cancel(group: AsyncGroup):
     """Ensure that double call of cancel doesn't lead to any exception"""
 
-    group.add(
+    group.add_task(
         void()
     )
 
@@ -117,7 +117,7 @@ async def test_auto_cleanup(group: AsyncGroup):
 
     for f in functions:
         for _ in range(100):
-            group.add(f())
+            group.add_task(f())
     assert len(group._futures) == 300
 
     with suppress(ValueError):

@@ -13,7 +13,7 @@ class AsyncGroup:
     >>> async def void():
     ...     pass
     >>> group = AsyncGroup()
-    >>> group.add([
+    >>> group.add_task([
     ...     void(),
     ...     void(),
     ...     void()
@@ -24,7 +24,7 @@ class AsyncGroup:
     def __init__(self):
         self._futures: Set[Future] = set()
 
-    def add(self, *coroutines) -> List[Task]:
+    def add_task(self, *coroutines) -> List[Task]:
         """Add a coroutine to the group.
         """
         result = []

@@ -45,7 +45,7 @@ class TinyTriblerService:
             await self._start_session()
 
             if self.timeout_in_sec:
-                self.async_group.add(self._terminate_by_timeout())
+                self.async_group.add_task(self._terminate_by_timeout())
 
             self._enable_graceful_shutdown()
             await self.on_tribler_started()
@@ -102,7 +102,7 @@ class TinyTriblerService:
 
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
-        tasks = self.async_group.add(self.session.shutdown())
+        tasks = self.async_group.add_task(self.session.shutdown())
         shutdown_task = tasks[0]
         shutdown_task.add_done_callback(lambda result: self._stop_event_loop())
 

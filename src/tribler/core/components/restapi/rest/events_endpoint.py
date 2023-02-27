@@ -59,7 +59,7 @@ class EventsEndpoint(RESTEndpoint):
     def on_notification(self, topic, *args, **kwargs):
         if topic in topics_to_send_to_gui:
             data = {"topic": topic.__name__, "args": args, "kwargs": kwargs}
-            self.async_group.add(self.write_data(data))
+            self.async_group.add_task(self.write_data(data))
 
     def on_circuit_removed(self, circuit: Circuit, additional_info: str):
         # The original notification contains non-JSON-serializable argument, so we send another one to GUI
@@ -120,7 +120,7 @@ class EventsEndpoint(RESTEndpoint):
     def on_tribler_exception(self, reported_error: ReportedError):
         message = self.error_message(reported_error)
         if self.has_connection_to_gui():
-            self.async_group.add(self.write_data(message))
+            self.async_group.add_task(self.write_data(message))
         elif not self.undelivered_error:
             # If there are several undelivered errors, we store the first error as more important and skip other
             self.undelivered_error = message

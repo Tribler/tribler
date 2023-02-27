@@ -44,7 +44,7 @@ class RESTEndpoint:
         shutdown_group = AsyncGroup()
         for endpoint in self.endpoints.values():
             if isinstance(endpoint, RESTEndpoint):
-                shutdown_group.add(endpoint.shutdown())  # IPV8RootEndpoint doesn't have a shutdown method
+                shutdown_group.add_task(endpoint.shutdown())  # IPV8RootEndpoint doesn't have a shutdown method
 
         await shutdown_group.wait()
         await self.async_group.cancel()

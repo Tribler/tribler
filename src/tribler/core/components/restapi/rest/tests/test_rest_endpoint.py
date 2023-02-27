@@ -14,13 +14,13 @@ async def test_shutdown():
         ...
 
     root_endpoint = RESTEndpoint()
-    root_endpoint.async_group.add(coro())
+    root_endpoint.async_group.add_task(coro())
 
     # add 2 child endpoints with a single coro in each:
     child_endpoints = [RESTEndpoint(), RESTEndpoint()]
     for index, child_endpoint in enumerate(child_endpoints):
         root_endpoint.add_endpoint(prefix=f'/{index}', endpoint=child_endpoint)
-        child_endpoint.async_group.add(coro())
+        child_endpoint.async_group.add_task(coro())
 
     def total_coro_count():
         count = 0

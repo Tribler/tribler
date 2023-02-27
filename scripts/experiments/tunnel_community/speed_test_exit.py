@@ -29,7 +29,7 @@ class Service(TinyTriblerService, TaskManager):
         self.output_file = 'speed_test_exit.txt'
 
     def _graceful_shutdown(self):
-        tasks = self.async_group.add(self.on_tribler_shutdown())
+        tasks = self.async_group.add_task(self.on_tribler_shutdown())
         shutdown_task = tasks[0]
         shutdown_task.add_done_callback(lambda result: TinyTriblerService._graceful_shutdown(self))
 
