@@ -88,7 +88,7 @@ class BandwidthTransactionData:
         return True
 
     @classmethod
-    def from_payload(cls, payload: BandwidthTransactionPayload) -> BandwidthTransaction:  # noqa: F821
+    def from_payload(cls, payload: BandwidthTransactionPayload):
         """
         Create a block according to a given payload.
         This method can be used when receiving a block from the network.
@@ -99,10 +99,10 @@ class BandwidthTransactionData:
                    payload.signature_a, payload.signature_b, payload.amount, payload.timestamp)
 
     @classmethod
-    def from_db(cls, db_obj: BandwidthTransaction) -> BandwidthTransactionData:  # noqa: F821
+    def from_db(cls, db_obj) -> BandwidthTransactionData:
         """
         Return a BandwidthTransaction object from a database object.
-        :param db_obj: The database object to convert.
+        :param db_obj: The BandwidthTransaction object to convert.
         :return A BandwidthTransaction object, based on the database object.
         """
         return BandwidthTransactionData(db_obj.sequence_number, db_obj.public_key_a, db_obj.public_key_b,
