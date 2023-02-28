@@ -19,7 +19,7 @@ RUN pip3 install -r requirements/core-requirements.txt
 
 # Copy the source code and set the working directory
 COPY ./ tribler
-WORKDIR tribler
+WORKDIR /home/user/tribler
 
 # Set the REST API port and expose it
 ENV CORE_API_PORT=20100
