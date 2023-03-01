@@ -1,5 +1,8 @@
 import asyncio
+import gc
+from asyncio import gather
 from contextlib import suppress
+from weakref import ref
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -136,3 +139,31 @@ async def test_del_no_error(group: AsyncGroup, caplog: LogCaptureFixture):
     await group.wait()
     group.__del__()
     assert f'AsyncGroup is destroying but 1 futures are active' not in caplog.text
+
+
+async def test_gc_error(caplog: LogCaptureFixture):
+    assert not AsyncGroup._global_futures
+
+    async def infinite_loop():
+        while True:
+            await asyncio.sleep(1)
+
+    task1 = infinite_loop()
+    task2 = infinite_loop()
+
+    group = AsyncGroup()
+    group.add_task(task1)
+    group.add_task(task2)
+    assert len(AsyncGroup._global_futures) == 2
+
+    group_ref = ref(group)
+    del group
+
+    gc.collect()
+    assert group_ref() is None
+
+    text = caplog.text
+    assert 'AsyncGroup is destroying but 2 futures are active' in text
+
+    await asyncio.sleep(0.01)
+    assert not AsyncGroup._global_futures
