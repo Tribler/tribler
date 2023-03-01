@@ -2,9 +2,10 @@ import asyncio
 from contextlib import suppress
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 
 from tribler.core.utilities.async_group.async_group import AsyncGroup
-from tribler.core.utilities.async_group.exceptions import CancelledException
+from tribler.core.utilities.async_group.exceptions import CanceledException
 
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -40,7 +41,7 @@ async def test_add_task(group: AsyncGroup):
 async def test_add_task_when_cancelled(group: AsyncGroup):
     await group.cancel()
 
-    with pytest.raises(CancelledException):
+    with pytest.raises(CanceledException):
         group.add_task(void())
 
 
@@ -114,3 +115,24 @@ async def test_auto_cleanup(group: AsyncGroup):
         await asyncio.gather(*group._futures, return_exceptions=True)
 
     assert not group._futures
+
+
+async def test_del_error(group: AsyncGroup, caplog: LogCaptureFixture):
+    """ In this test we add a single coroutine to the group and call __del__ before the coroutine is completed.
+
+    The group should add an error message to a log.
+    """
+    group.add_task(void())
+    group.__del__()
+    assert f'AsyncGroup is destroying but 1 futures are active' in caplog.text
+
+
+async def test_del_no_error(group: AsyncGroup, caplog: LogCaptureFixture):
+    """ In this test we add a single coroutine to the group and call __del__ after the coroutine is completed.
+
+    The group should not add an error message to a log.
+    """
+    group.add_task(void())
+    await group.wait()
+    group.__del__()
+    assert f'AsyncGroup is destroying but 1 futures are active' not in caplog.text

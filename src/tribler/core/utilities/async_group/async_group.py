@@ -1,9 +1,10 @@
 import asyncio
+import logging
 from asyncio import CancelledError, Future, Task
 from contextlib import suppress
-from typing import Iterable, List, Set
+from typing import Coroutine, Iterable, List, Set
 
-from tribler.core.utilities.async_group.exceptions import CancelledException
+from tribler.core.utilities.async_group.exceptions import CanceledException
 
 
 class AsyncGroup:
@@ -22,14 +23,15 @@ class AsyncGroup:
     """
 
     def __init__(self):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self._futures: Set[Future] = set()
-        self._cancelled = False
+        self._canceled = False
 
-    def add_task(self, coroutine) -> Task:
+    def add_task(self, coroutine: Coroutine) -> Task:
         """Add a coroutine to the group.
         """
-        if self._cancelled:
-            raise CancelledException()
+        if self._canceled:
+            raise CanceledException()
 
         task = asyncio.create_task(coroutine)
         self._futures.add(task)
@@ -47,10 +49,10 @@ class AsyncGroup:
 
         Only active futures will be cancelled.
         """
-        if self._cancelled:
+        if self._canceled:
             return []
 
-        self._cancelled = True
+        self._canceled = True
 
         active = list(self._active(self._futures))
         for future in active:
@@ -63,11 +65,15 @@ class AsyncGroup:
 
     @property
     def cancelled(self):
-        return self._cancelled
+        return self._canceled
 
     def _done_callback(self, future: Future):
-        self._futures.remove(future)
+        self._futures.discard(future)
 
     @staticmethod
     def _active(futures: Iterable[Future]) -> Iterable[Future]:
         return (future for future in futures if not future.done())
+
+    def __del__(self):
+        if active := list(self._active(self._futures)):
+            self._logger.error(f'AsyncGroup is destroying but {len(active)} futures are active')
