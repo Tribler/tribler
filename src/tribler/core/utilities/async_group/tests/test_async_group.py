@@ -15,11 +15,25 @@ from tribler.core.utilities.async_group.exceptions import CanceledException
 
 @pytest.fixture
 async def group():
+    # When test is just started, the global set of futures should be empty.
+    # If not, they are the futures leaked from the previous test
+    assert not AsyncGroup._global_futures
+
     g = AsyncGroup()
 
     yield g
 
-    await g.cancel()
+    if not g._canceled:
+        await g.cancel()
+
+    if AsyncGroup._global_futures:
+        # It is possible that after the group was canceled, some of its futures were canceled as well,
+        # but their done_callbacks were not executed yet. Here we give these futures a chance to execute
+        # their done_callbacks and remove themselves from the global set of futures
+        await asyncio.sleep(0.01)
+
+    # The test should not leave unfinished futures at the end
+    assert not AsyncGroup._global_futures
 
 
 async def void():
@@ -166,4 +180,31 @@ async def test_gc_error(caplog: LogCaptureFixture):
     assert 'AsyncGroup is destroying but 2 futures are active' in text
 
     await asyncio.sleep(0.01)
+    assert not AsyncGroup._global_futures
+
+
+async def test_group_fixture():
+    # There should be no active futures before the test
+    assert not AsyncGroup._global_futures
+
+    # We want to test the `group` fixture itself. Pytest does not allow to call fixture functions directly,
+    # so we access fixture implementation using a Pytest internal attribute for that
+    group_fixture_iter = group.__pytest_wrapped__.obj()
+
+    g: AsyncGroup
+    async for g in group_fixture_iter:
+        # this for-loop should iterate over the fixture generator exactly once
+
+        # we add a task to the async group, and the task should be canceled during the fixture teardown
+        g.add_task(void())
+
+        # if you remove the following two lines from the fixture, the test should fail,
+        # as the task cannot call its done_callback:
+        # if AsyncGroup._global_futures:
+        #     await asyncio.sleep(0.01)
+
+        # a magical line, without it the test passes even if two lines from the fixture were removed
+        await asyncio.sleep(0)
+
+    # There should be no active futures after the test
     assert not AsyncGroup._global_futures
