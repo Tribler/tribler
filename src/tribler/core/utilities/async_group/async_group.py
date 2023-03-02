@@ -57,10 +57,11 @@ class AsyncGroup:
     def add_task(self, coroutine: Coroutine) -> Task:
         """Add a coroutine to the group.
         """
-        if self._canceled:
-            raise CanceledException()
-
         task = asyncio.create_task(coroutine)
+
+        if self._canceled:
+            task.cancel()
+            raise CanceledException()
 
         self._futures.add(task)
         self._global_futures.add(task)
