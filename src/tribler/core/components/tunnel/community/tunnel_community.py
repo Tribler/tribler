@@ -6,7 +6,7 @@ from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import async_timeout
 from ipv8.messaging.anonymization.caches import CreateRequestCache
@@ -94,7 +94,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.download_states = {}
         self.competing_slots = [(0, None)] * num_competing_slots  # 1st tuple item = token balance, 2nd = circuit id
         self.random_slots = [None] * num_random_slots
-        self.reject_callback = None  # This callback is invoked with a tuple (time, balance) when we reject a circuit
+        # This callback is invoked with a tuple (time, balance) when we reject a circuit
+        self.reject_callback: Optional[Callable] = None
         self.last_forced_announce = {}
 
         if self.socks_servers:

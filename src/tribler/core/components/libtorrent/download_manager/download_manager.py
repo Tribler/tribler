@@ -11,7 +11,7 @@ from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from shutil import rmtree
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from ipv8.taskmanager import TaskManager, task
 
@@ -119,7 +119,7 @@ class DownloadManager(TaskManager):
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
                                   lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
-        self.session_stats_callback = None
+        self.session_stats_callback: Optional[Callable] = None
         self.state_cb_count = 0
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.

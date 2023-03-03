@@ -14,10 +14,10 @@ class BandwidthTransactionPayload(VariablePayload):
              "circuit_id", "base_amount"]
 
     @classmethod
-    def from_transaction(cls, transaction: BandwidthTransaction, circuit_id: int, base_amount: int):  # noqa: F821
+    def from_transaction(cls, transaction, circuit_id: int, base_amount: int):
         """
         Create a transaction from the provided payload.
-        :param transaction: The transaction to convert to a payload.
+        :param transaction: The BandwidthTransaction to convert to a payload.
         :param circuit_id: The circuit identifier to include in the payload.
         :param base_amount: The base amount of bandwidth to payout.
         """

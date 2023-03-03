@@ -751,14 +751,6 @@ class Download(TaskManager):
         self.config.set_upload_mode(upload_mode)
         self.handle.set_upload_mode(upload_mode)
 
-    @check_handle()
-    def get_upload_mode(self):
-        return self.handle.status().upload_mode
-
-    @require_handle
-    def set_upload_mode(self, upload_mode):
-        self.handle.set_upload_mode(upload_mode)
-
     @require_handle
     def force_dht_announce(self):
         self.handle.force_dht_announce()

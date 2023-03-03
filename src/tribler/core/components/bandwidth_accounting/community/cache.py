@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from asyncio import Future
+from typing import TYPE_CHECKING
 
 from ipv8.requestcache import RandomNumberCache
 
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
+
+if TYPE_CHECKING:
+    from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import \
+        BandwidthAccountingCommunity
 
 
 class BandwidthTransactionSignCache(RandomNumberCache):
@@ -12,7 +17,7 @@ class BandwidthTransactionSignCache(RandomNumberCache):
     This cache keeps track of pending bandwidth transaction signature requests.
     """
 
-    def __init__(self, community: BandwidthAccountingCommunity, transaction: BandwidthTransactionData) -> None:  # noqa: F821
+    def __init__(self, community: BandwidthAccountingCommunity, transaction: BandwidthTransactionData) -> None:
         """
         Initialize the cache.
         :param community: The bandwidth community associated with this cache.

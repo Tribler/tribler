@@ -14,7 +14,7 @@ class BandwidthTransactionPayload(VariablePayload):
              "timestamp", "request_id"]
 
     @classmethod
-    def from_transaction(cls, transaction: BandwidthTransaction, request_id: int) -> BandwidthTransactionPayload:  # noqa: F821
+    def from_transaction(cls, transaction, request_id: int) -> BandwidthTransactionPayload:
         return BandwidthTransactionPayload(
             transaction.sequence_number,
             transaction.public_key_a,

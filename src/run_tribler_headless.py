@@ -26,16 +26,16 @@ class IPPortAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parsed = re.match(r"^([\d\.]+)\:(\d+)$", values)
         if not parsed:
-            raise argparse.ArgumentError("Invalid address:port")
+            raise argparse.ArgumentError(self, "Invalid address:port")
 
         ip, port = parsed.group(1), int(parsed.group(2))
         try:
             inet_aton(ip)
         except:
-            raise argparse.ArgumentError("Invalid server address")
+            raise argparse.ArgumentError(self, "Invalid server address")
 
         if not (0 < port < 65535):
-            raise argparse.ArgumentError("Invalid server port")
+            raise argparse.ArgumentError(self, "Invalid server port")
         setattr(namespace, self.dest, values)
 
 
