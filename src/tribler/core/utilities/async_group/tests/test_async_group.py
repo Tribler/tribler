@@ -1,6 +1,5 @@
 import asyncio
 import gc
-from asyncio import gather
 from contextlib import suppress
 from weakref import ref
 
@@ -17,7 +16,7 @@ from tribler.core.utilities.async_group.exceptions import CanceledException
 async def group():
     # When test is just started, the global set of futures should be empty.
     # If not, they are the futures leaked from the previous test
-    assert not AsyncGroup._global_futures
+    assert not AsyncGroup.global_futures
 
     g = AsyncGroup()
 
@@ -26,14 +25,14 @@ async def group():
     if not g._canceled:
         await g.cancel()
 
-    if AsyncGroup._global_futures:
+    if AsyncGroup.global_futures:
         # It is possible that after the group was canceled, some of its futures were canceled as well,
         # but their done_callbacks were not executed yet. Here we give these futures a chance to execute
         # their done_callbacks and remove themselves from the global set of futures
         await asyncio.sleep(0.01)
 
     # The test should not leave unfinished futures at the end
-    assert not AsyncGroup._global_futures
+    assert not AsyncGroup.global_futures
 
 
 async def void():
@@ -51,7 +50,7 @@ async def raise_exception():
 async def test_add_task(group: AsyncGroup):
     task = group.add_task(void())
 
-    assert len(group._futures) == 1
+    assert len(group.futures) == 1
     assert task
 
 
@@ -79,13 +78,13 @@ async def test_wait(group: AsyncGroup):
     group.add_task(sleep_1s())
 
     await group.wait()
-    assert not group._futures
+    assert not group.futures
 
 
 async def test_wait_no_futures(group: AsyncGroup):
     """Ensure that awe can wait for the futures even there are no futures"""
     await group.wait()
-    assert not group._futures
+    assert not group.futures
 
 
 async def test_double_cancel(group: AsyncGroup):
@@ -108,7 +107,7 @@ async def test_cancel_completed_task(group: AsyncGroup):
     await asyncio.gather(*completed)
 
     active = asyncio.create_task(void())
-    group._futures = completed + [active]
+    group.futures = completed + [active]
 
     cancelled = await group.cancel()
 
@@ -126,12 +125,12 @@ async def test_auto_cleanup(group: AsyncGroup):
     for f in functions:
         for _ in range(100):
             group.add_task(f())
-    assert len(group._futures) == 300
+    assert len(group.futures) == 300
 
     with suppress(ValueError):
-        await asyncio.gather(*group._futures, return_exceptions=True)
+        await asyncio.gather(*group.futures, return_exceptions=True)
 
-    assert not group._futures
+    assert not group.futures
 
 
 async def test_del_error(group: AsyncGroup, caplog: LogCaptureFixture):
@@ -141,7 +140,7 @@ async def test_del_error(group: AsyncGroup, caplog: LogCaptureFixture):
     """
     group.add_task(void())
     group.__del__()
-    assert f'AsyncGroup is destroying but 1 futures are active' in caplog.text
+    assert 'AsyncGroup is destroying but 1 futures are active' in caplog.text
 
 
 async def test_del_no_error(group: AsyncGroup, caplog: LogCaptureFixture):
@@ -152,11 +151,11 @@ async def test_del_no_error(group: AsyncGroup, caplog: LogCaptureFixture):
     group.add_task(void())
     await group.wait()
     group.__del__()
-    assert f'AsyncGroup is destroying but 1 futures are active' not in caplog.text
+    assert 'AsyncGroup is destroying but 1 futures are active' not in caplog.text
 
 
 async def test_gc_error(caplog: LogCaptureFixture):
-    assert not AsyncGroup._global_futures
+    assert not AsyncGroup.global_futures
 
     async def infinite_loop():
         while True:
@@ -168,7 +167,7 @@ async def test_gc_error(caplog: LogCaptureFixture):
     group = AsyncGroup()
     group.add_task(task1)
     group.add_task(task2)
-    assert len(AsyncGroup._global_futures) == 2
+    assert len(AsyncGroup.global_futures) == 2
 
     group_ref = ref(group)
     del group
@@ -180,12 +179,12 @@ async def test_gc_error(caplog: LogCaptureFixture):
     assert 'AsyncGroup is destroying but 2 futures are active' in text
 
     await asyncio.sleep(0.01)
-    assert not AsyncGroup._global_futures
+    assert not AsyncGroup.global_futures
 
 
 async def test_group_fixture():
     # There should be no active futures before the test
-    assert not AsyncGroup._global_futures
+    assert not AsyncGroup.global_futures
 
     # We want to test the `group` fixture itself. Pytest does not allow to call fixture functions directly,
     # so we access fixture implementation using a Pytest internal attribute for that
@@ -207,4 +206,4 @@ async def test_group_fixture():
         await asyncio.sleep(0)
 
     # There should be no active futures after the test
-    assert not AsyncGroup._global_futures
+    assert not AsyncGroup.global_futures

@@ -25,7 +25,7 @@ async def test_shutdown():
     def total_coro_count():
         count = 0
         for endpoint in child_endpoints + [root_endpoint]:
-            count += len(endpoint.async_group._futures)
+            count += len(endpoint.async_group.futures)
         return count
 
     assert total_coro_count() == 3

@@ -93,7 +93,7 @@ async def test_start(transfer: Transfer):
 
     assert transfer.started
     assert transfer.peer in transfer.container
-    assert len(transfer.task_group._futures) == 2
+    assert len(transfer.task_group.futures) == 2
 
 
 async def test_double_start(transfer: Transfer):

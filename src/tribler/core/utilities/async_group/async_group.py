@@ -12,16 +12,17 @@ from tribler.core.utilities.async_group.exceptions import CanceledException
 
 def done_callback(group_ref):
     def actual_callback(future):
-        AsyncGroup._global_futures.discard(future)
+        AsyncGroup.global_futures.discard(future)
         group: Optional[AsyncGroup] = group_ref()
         if group is not None:
-            group._futures.discard(future)
+            group.futures.discard(future)
+
     return actual_callback
 
 
 class AsyncGroup:
-    """This class is a little brother of TaskManager and his purpose is only to
-    correct cancel a group asyncio Tasks/Futures
+    """This class is a little brother of TaskManager and its purpose is only to cancel a group
+    of asyncio Tasks/Futures correctly.
 
     Example:
     >>> from tribler.core.utilities.async_group.async_group import AsyncGroup
@@ -46,12 +47,12 @@ class AsyncGroup:
     # But theoretically, some async groups can be garbage collected too early.
     #
     # To prevent this problem all futures stores in the global set.
-    _global_futures: Set[Future] = set()
+    global_futures: Set[Future] = set()
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.ref = ref(self)
-        self._futures: Set[Future] = set()
+        self.futures: Set[Future] = set()
         self._canceled = False
 
     def add_task(self, coroutine: Coroutine) -> Task:
@@ -63,8 +64,8 @@ class AsyncGroup:
             task.cancel()
             raise CanceledException()
 
-        self._futures.add(task)
-        self._global_futures.add(task)
+        self.futures.add(task)
+        self.global_futures.add(task)
 
         task.add_done_callback(done_callback(self.ref))
         return task
@@ -72,8 +73,8 @@ class AsyncGroup:
     async def wait(self):
         """ Wait for completion of all futures
         """
-        if self._futures:
-            await asyncio.wait(self._futures)
+        if self.futures:
+            await asyncio.wait(self.futures)
 
     async def cancel(self) -> List[Future]:
         """Cancel the group.
@@ -85,7 +86,7 @@ class AsyncGroup:
 
         self._canceled = True
 
-        active = list(self._active(self._futures))
+        active = list(self._active(self.futures))
         for future in active:
             future.cancel()
 
@@ -103,7 +104,7 @@ class AsyncGroup:
         return (future for future in futures if not future.done())
 
     def __del__(self):
-        if active := list(self._active(self._futures)):
+        if active := list(self._active(self.futures)):
             self._logger.error(f'AsyncGroup is destroying but {len(active)} futures are active')
             for future in active:
                 future.cancel()
