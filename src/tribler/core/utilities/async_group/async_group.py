@@ -7,7 +7,7 @@ from contextlib import suppress
 from typing import Coroutine, Iterable, List, Optional, Set
 from weakref import ref
 
-from tribler.core.utilities.async_group.exceptions import CanceledException
+from tribler.core.utilities.async_group.exceptions import DoneException
 
 
 def done_callback(group_ref):
@@ -21,8 +21,8 @@ def done_callback(group_ref):
 
 
 class AsyncGroup:
-    """This class is a little brother of TaskManager and its purpose is only to cancel a group
-    of asyncio Tasks/Futures correctly.
+    """This class is a little brother of TaskManager and its purpose is only to cancel or to wait a group
+    of asyncio Tasks/Futures.
 
     Example:
     >>> from tribler.core.utilities.async_group.async_group import AsyncGroup
@@ -53,16 +53,16 @@ class AsyncGroup:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.ref = ref(self)
         self.futures: Set[Future] = set()
-        self._canceled = False
+        self._done = False
 
     def add_task(self, coroutine: Coroutine) -> Task:
         """Add a coroutine to the group.
         """
         task = asyncio.create_task(coroutine)
 
-        if self._canceled:
+        if self._done:
             task.cancel()
-            raise CanceledException()
+            raise DoneException()
 
         self.futures.add(task)
         self.global_futures.add(task)
@@ -73,18 +73,20 @@ class AsyncGroup:
     async def wait(self):
         """ Wait for completion of all futures
         """
-        if self.futures:
-            await asyncio.wait(self.futures)
+        while active := set(self._active(self.futures)):
+            await asyncio.wait(active)
+
+        self._done = True
 
     async def cancel(self) -> List[Future]:
         """Cancel the group.
 
         Only active futures will be cancelled.
         """
-        if self._canceled:
+        if self._done:
             return []
 
-        self._canceled = True
+        self._done = True
 
         active = list(self._active(self.futures))
         for future in active:
@@ -96,8 +98,8 @@ class AsyncGroup:
         return active
 
     @property
-    def cancelled(self):
-        return self._canceled
+    def done(self):
+        return self._done
 
     @staticmethod
     def _active(futures: Iterable[Future]) -> Iterable[Future]:

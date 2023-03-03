@@ -1,13 +1,14 @@
 import asyncio
 import gc
 from contextlib import suppress
+from unittest.mock import AsyncMock
 from weakref import ref
 
 import pytest
 from _pytest.logging import LogCaptureFixture
 
 from tribler.core.utilities.async_group.async_group import AsyncGroup
-from tribler.core.utilities.async_group.exceptions import CanceledException
+from tribler.core.utilities.async_group.exceptions import DoneException
 
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -22,7 +23,7 @@ async def group():
 
     yield g
 
-    if not g._canceled:
+    if not g.done:
         await g.cancel()
 
     if AsyncGroup.global_futures:
@@ -50,6 +51,7 @@ async def raise_exception():
 async def test_add_task(group: AsyncGroup):
     task = group.add_task(void())
 
+    assert not group.done
     assert len(group.futures) == 1
     assert task
 
@@ -57,7 +59,7 @@ async def test_add_task(group: AsyncGroup):
 async def test_add_task_when_cancelled(group: AsyncGroup):
     await group.cancel()
 
-    with pytest.raises(CanceledException):
+    with pytest.raises(DoneException):
         group.add_task(void())
 
 
@@ -68,6 +70,7 @@ async def test_cancel(group: AsyncGroup):
 
     cancelled = await group.cancel()
 
+    assert group.done
     assert len(cancelled) == 2
     assert all(f.cancelled() for f in cancelled)
 
@@ -78,6 +81,8 @@ async def test_wait(group: AsyncGroup):
     group.add_task(sleep_1s())
 
     await group.wait()
+
+    assert group.done
     assert not group.futures
 
 
@@ -90,10 +95,10 @@ async def test_wait_no_futures(group: AsyncGroup):
 async def test_double_cancel(group: AsyncGroup):
     """Ensure that double call of cancel doesn't lead to any exception"""
     group.add_task(void())
-    assert not group.cancelled
+    assert not group.done
 
     assert len(await group.cancel()) == 1
-    assert group.cancelled
+    assert group.done
     assert len(await group.cancel()) == 0
 
 
@@ -207,3 +212,17 @@ async def test_group_fixture():
 
     # There should be no active futures after the test
     assert not AsyncGroup.global_futures
+
+
+async def test_add_task_during_wait(group: AsyncGroup):
+    # In this test we add a coro during `await group.wait()` and check that this coro also was awaited.
+    async_mock = AsyncMock()
+
+    async def add_coro_during_wait():
+        group.add_task(async_mock())
+
+    group.add_task(add_coro_during_wait())
+
+    await group.wait()  # here `async_mock` should be added to the group
+
+    async_mock.assert_awaited()
