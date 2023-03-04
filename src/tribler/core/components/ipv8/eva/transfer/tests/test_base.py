@@ -9,7 +9,7 @@ from tribler.core.components.ipv8.eva.exceptions import TimeoutException, Transf
 from tribler.core.components.ipv8.eva.protocol import blank
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -93,7 +93,7 @@ async def test_start(transfer: Transfer):
 
     assert transfer.started
     assert transfer.peer in transfer.container
-    assert len(transfer.task_group._futures) == 2
+    assert len(transfer.task_group.futures) == 2
 
 
 async def test_double_start(transfer: Transfer):

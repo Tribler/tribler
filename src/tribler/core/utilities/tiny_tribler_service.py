@@ -7,7 +7,7 @@ from typing import List, Optional
 from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
     set_global_process_manager
@@ -45,7 +45,7 @@ class TinyTriblerService:
             await self._start_session()
 
             if self.timeout_in_sec:
-                self.async_group.add(self._terminate_by_timeout())
+                self.async_group.add_task(self._terminate_by_timeout())
 
             self._enable_graceful_shutdown()
             await self.on_tribler_started()
@@ -102,7 +102,7 @@ class TinyTriblerService:
 
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
-        tasks = self.async_group.add(self.session.shutdown())
+        tasks = self.async_group.add_task(self.session.shutdown())
         shutdown_task = tasks[0]
         shutdown_task.add_done_callback(lambda result: self._stop_event_loop())
 

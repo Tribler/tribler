@@ -225,5 +225,5 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
 
         infohash = unhexlify(request.match_info['infohash'])
         check_coro = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
-        self.async_group.add(check_coro)
+        self.async_group.add_task(check_coro)
         return RESTResponse({'checking': '1'})

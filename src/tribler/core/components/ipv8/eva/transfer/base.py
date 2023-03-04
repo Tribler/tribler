@@ -12,7 +12,7 @@ from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, T
 from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferCancelledException, TransferException
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.settings import EVASettings
-from tribler.core.utilities.async_group import AsyncGroup
+from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 
 class Transfer:
@@ -61,7 +61,7 @@ class Transfer:
 
         self.container[self.peer] = self
         for function in self.background_functions:
-            self.task_group.add(function())
+            self.task_group.add_task(function())
 
         self.started = True
 
@@ -73,7 +73,7 @@ class Transfer:
         self.logger.debug('Release')
         self.finished = True
 
-        self.protocol_task_group.add(self.task_group.cancel())
+        self.protocol_task_group.add_task(self.task_group.cancel())
 
         if self.container:
             self.container.pop(self.peer, None)
@@ -89,12 +89,12 @@ class Transfer:
 
             # To prevent "Future exception was never retrieved" error when the future is not used
             self.future.exception()
-            self.protocol_task_group.add(self.on_error(self.peer, exception))
+            self.protocol_task_group.add_task(self.on_error(self.peer, exception))
 
         if result:
             self.logger.debug(f'Finish with result: {result}')
             self.future.set_result(result)
-            self.protocol_task_group.add(self.on_complete(result))
+            self.protocol_task_group.add_task(self.on_complete(result))
 
         self._release()
 
@@ -104,7 +104,7 @@ class Transfer:
 
         self.logger.warning('Future was cancelled')
         exception = TransferCancelledException('The future was cancelled', self)
-        self.protocol_task_group.add(self.on_error(self.peer, exception))
+        self.protocol_task_group.add_task(self.on_error(self.peer, exception))
         self._release()
 
     async def terminate_by_timeout(self):
