@@ -534,6 +534,9 @@ class ChannelContentModel(RemoteTableModel):
             time_without_microseconds = str(td).partition('.')[0]
             return f'Checked: {time_without_microseconds} ago'
 
+        if role == Qt.ToolTipRole and column_type == Column.NAME:
+            return f'{item["infohash"][:8]}'
+
         # The 'name' column is special in a sense that we want to draw the title and tags ourselves.
         # At the same time, we want to name this column to not break the renaming of torrent files, hence this check.
         if column_type == Column.NAME and not is_editing:
