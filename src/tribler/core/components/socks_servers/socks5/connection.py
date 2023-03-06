@@ -41,6 +41,7 @@ class Socks5Connection(Protocol):
     def __init__(self, socksserver):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger.setLevel(logging.WARNING)
         self.socksserver = socksserver
         self.transport = None
         self.connect_to = None
