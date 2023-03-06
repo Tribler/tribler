@@ -107,6 +107,7 @@ class Notifier:
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.topics_by_name: Dict[str, Callable] = {}
+        self.unknown_topic_names = set()
         # We use the dict type for `self.observers` and `set.generic_observers` instead of the set type to provide
         # the deterministic ordering of callbacks. In Python, dictionaries are ordered while sets aren't.
         # Therefore, `value: bool` here is unnecessary and is never used.
@@ -204,7 +205,9 @@ class Notifier:
         with self.lock:
             topic = self.topics_by_name.get(topic_name)
         if topic is None:
-            self.logger.warning(f'Topic with name `{topic_name}` not found')
+            if topic_name not in self.unknown_topic_names:
+                self.unknown_topic_names.add(topic_name)
+                self.logger.warning(f'Topic with name `{topic_name}` not found')
         else:
             self.notify(topic, *args, **kwargs)
 
