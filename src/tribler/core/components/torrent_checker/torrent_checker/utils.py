@@ -31,6 +31,6 @@ def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerRes
     result = HealthInfo(infohash, last_check=0)
     for response in responses:
         for health in response.torrent_health_list:
-            if health.infohash == infohash and health.seeders > result.seeders:
+            if health.infohash == infohash and health.seeders_leechers_last_check > result.seeders_leechers_last_check:
                 result = health
     return result
