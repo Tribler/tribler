@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
 import human_readable
 
@@ -45,6 +45,10 @@ class HealthInfo:
 
     def is_valid(self) -> bool:
         return self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
+
+    @property
+    def seeders_leechers_last_check(self) -> Tuple[int, int, int]:
+        return self.seeders, self.leechers, self.last_check
 
     def should_update(self, torrent_state, self_checked=False):
         if self.last_check <= torrent_state.last_check:

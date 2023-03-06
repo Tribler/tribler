@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Tuple
+
 from pony import orm
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 
@@ -28,5 +30,9 @@ def define_binding(db):
         def to_health(self) -> HealthInfo:
             return HealthInfo(infohash=self.infohash, last_check=self.last_check,
                               seeders=self.seeders, leechers=self.leechers)
+
+        @property
+        def seeders_leechers_last_check(self) -> Tuple[int, int, int]:
+            return self.seeders, self.leechers, self.last_check
 
     return TorrentState
