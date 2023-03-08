@@ -18,7 +18,7 @@ from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
     TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
-    filter_non_exceptions, gather_coros, aggregate_health_by_infohash
+    filter_non_exceptions, gather_coros
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     FakeBep33DHTSession, FakeDHTSession, TrackerSession, UdpSocketManager, create_tracker_session
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
@@ -158,8 +158,6 @@ class TorrentChecker(TaskManager):
         else:
             health_list = response.torrent_health_list
             self._logger.info(f"Received {len(health_list)} health info results from tracker: {health_list}")
-            for health in aggregate_health_by_infohash(health_list):
-                self.update_torrent_health(health)
 
     async def get_tracker_response(self, session: TrackerSession) -> TrackerResponse:
         t1 = time.time()
@@ -178,6 +176,10 @@ class TorrentChecker(TaskManager):
 
         t2 = time.time()
         self._logger.info(f"Got response from {session.__class__.__name__} in {t2-t1:.3f}seconds: {result}")
+
+        with db_session:
+            for health in result.torrent_health_list:
+                self.update_torrent_health(health)
 
         return result
 
@@ -334,7 +336,9 @@ class TorrentChecker(TaskManager):
         self._logger.info(f'{len(responses)} responses for {infohash_hex} have been received: {responses}')
         successful_responses = filter_non_exceptions(responses)
         health = aggregate_responses_for_infohash(infohash, successful_responses)
-        self.update_torrent_health(health)
+        if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
+            health.last_check = int(time.time())
+            self.update_torrent_health(health)
 
     def _create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
         self._logger.debug(f'Creating a session for the request: {tracker_url}')
