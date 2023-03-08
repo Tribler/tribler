@@ -386,6 +386,7 @@ class TorrentChecker(TaskManager):
 
             if not health.should_update(torrent_state, self_checked=True):
                 self._logger.info("Skip health update, the health in the database is fresher")
+                self.notify(torrent_state.to_health())  # to update UI state from "Checking..."
                 return False
 
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
