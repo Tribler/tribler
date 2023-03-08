@@ -387,7 +387,7 @@ class TorrentChecker(TaskManager):
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
                               self_checked=True)
 
-        if health.seeders > 0:
+        if health.seeders > 0 or health.leechers > 0:
             self.torrents_checked[health.infohash] = health
         else:
             self.torrents_checked.pop(health.infohash, None)
