@@ -15,7 +15,8 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
+    TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
     filter_non_exceptions, gather_coros, aggregate_health_by_infohash
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
@@ -36,7 +37,6 @@ MAX_TORRENTS_CHECKED_PER_SESSION = 50
 
 TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
 USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
-HEALTH_FRESHNESS_SECONDS = 4 * 3600  # Number of seconds before a torrent health is considered stale. Default: 4 hours
 TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
 
 
