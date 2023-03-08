@@ -162,8 +162,9 @@ class TorrentChecker(TaskManager):
                 self.update_torrent_health(health)
 
     async def get_tracker_response(self, session: TrackerSession) -> TrackerResponse:
+        t1 = time.time()
         try:
-            return await session.connect_to_tracker()
+            result = await session.connect_to_tracker()
         except CancelledError:
             self._logger.info(f"Tracker session is being cancelled: {session.tracker_url}")
             raise
@@ -174,6 +175,11 @@ class TorrentChecker(TaskManager):
             raise e
         finally:
             await self.clean_session(session)
+
+        t2 = time.time()
+        self._logger.info(f"Got response from {session.__class__.__name__} in {t2-t1:.3f}seconds: {result}")
+
+        return result
 
     @property
     def torrents_checked(self) -> Dict[bytes, HealthInfo]:
