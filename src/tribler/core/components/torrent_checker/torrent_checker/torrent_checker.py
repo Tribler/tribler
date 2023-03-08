@@ -396,6 +396,10 @@ class TorrentChecker(TaskManager):
         else:
             self.torrents_checked.pop(health.infohash, None)
 
+        self.notify(health)
+        return True
+
+    def notify(self, health: HealthInfo):
         self.notifier[notifications.channel_entity_updated]({
             'infohash': health.infohash_hex,
             'num_seeders': health.seeders,
@@ -403,4 +407,3 @@ class TorrentChecker(TaskManager):
             'last_tracker_check': health.last_check,
             'health': 'updated'
         })
-        return True
