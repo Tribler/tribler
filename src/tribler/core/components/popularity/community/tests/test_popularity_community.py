@@ -32,8 +32,7 @@ def _generate_single_checked_torrent(status: str = None) -> HealthInfo:
             return randint(101, 1000)
         return randint(1, 100)
 
-    return HealthInfo(random_infohash(), last_check=int(time.time()),
-                      seeders=get_peers_for(status), leechers=get_peers_for(status))
+    return HealthInfo(random_infohash(), seeders=get_peers_for(status), leechers=get_peers_for(status))
 
 
 def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInfo]:
@@ -89,7 +88,7 @@ class TestPopularityCommunity(TestBase):
         """
         Test whether torrent health information is correctly gossiped around
         """
-        checked_torrent_info = HealthInfo(b'a' * 20, seeders=200, leechers=0, last_check=int(time.time()))
+        checked_torrent_info = HealthInfo(b'a' * 20, seeders=200, leechers=0)
         node0_db = self.nodes[0].overlay.mds.TorrentState
         node1_db2 = self.nodes[1].overlay.mds.TorrentState
 
@@ -180,7 +179,7 @@ class TestPopularityCommunity(TestBase):
         """
         self.fill_database(self.nodes[1].overlay.mds)
 
-        checked_torrent_info = HealthInfo(b'0' * 20, seeders=200, leechers=0, last_check=int(time.time()))
+        checked_torrent_info = HealthInfo(b'0' * 20, seeders=200, leechers=0)
         await self.init_first_node_and_gossip(checked_torrent_info, deliver_timeout=0.5)
 
         # Check whether node 1 has new torrent health information
@@ -197,7 +196,7 @@ class TestPopularityCommunity(TestBase):
         with db_session:
             self.nodes[0].overlay.mds.TorrentMetadata(infohash=infohash)
         await self.init_first_node_and_gossip(
-            HealthInfo(infohash, seeders=200, leechers=0, last_check=int(time.time())))
+            HealthInfo(infohash, seeders=200, leechers=0))
         with db_session:
             assert self.nodes[1].overlay.mds.TorrentMetadata.get()
 
@@ -209,5 +208,5 @@ class TestPopularityCommunity(TestBase):
             self.nodes[1].overlay.mds.TorrentMetadata(infohash=infohash)
         self.nodes[1].overlay.send_remote_select = Mock()
         await self.init_first_node_and_gossip(
-            HealthInfo(infohash, seeders=200, leechers=0, last_check=int(time.time())))
+            HealthInfo(infohash, seeders=200, leechers=0))
         self.nodes[1].overlay.send_remote_select.assert_not_called()

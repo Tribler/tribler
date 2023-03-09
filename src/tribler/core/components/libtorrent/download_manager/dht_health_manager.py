@@ -65,7 +65,7 @@ class DHTHealthManager(TaskManager):
         seeders = DHTHealthManager.get_size_from_bloomfilter(bf_seeders)
         peers = DHTHealthManager.get_size_from_bloomfilter(bf_peers)
         if not self.lookup_futures[infohash].done():
-            health = HealthInfo(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers)
+            health = HealthInfo(infohash, seeders=seeders, leechers=peers)
             self.lookup_futures[infohash].set_result(health)
 
         self.lookup_futures.pop(infohash, None)

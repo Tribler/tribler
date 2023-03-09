@@ -20,7 +20,7 @@ def torrent_state_fixture():
 
 
 def test_different_infohashes(torrent_state: Mock):
-    health = HealthInfo(infohash=b'infohash_2', last_check=now())
+    health = HealthInfo(infohash=b'infohash_2')
     with pytest.raises(ValueError, match='^An attempt to compare health for different infohashes$'):
         health.should_update(torrent_state)
 
@@ -33,14 +33,14 @@ def test_invalid_health(torrent_state: Mock):
 
 def test_self_checked_health_remote_torrent_state(torrent_state: Mock):
     torrent_state.self_checked = False
-    health = HealthInfo(INFOHASH, last_check=now())
+    health = HealthInfo(INFOHASH)
     assert health.should_update(torrent_state, self_checked=True)
 
 
 def test_self_checked_health_torrent_state_outside_window(torrent_state: Mock):
     torrent_state.self_checked = True
     torrent_state.last_check = now() - TORRENT_CHECK_WINDOW - 1
-    health = HealthInfo(INFOHASH, last_check=now())
+    health = HealthInfo(INFOHASH)
     assert health.should_update(torrent_state, self_checked=True)
 
 

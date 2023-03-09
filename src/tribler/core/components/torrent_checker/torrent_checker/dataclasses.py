@@ -17,9 +17,9 @@ HEALTH_FRESHNESS_SECONDS = 4 * HOUR  # Number of seconds before a torrent health
 @dataclass
 class HealthInfo:
     infohash: bytes = field(repr=False)
-    last_check: int
     seeders: int = 0
     leechers: int = 0
+    last_check: int = field(default_factory=lambda: int(time.time()))
 
     def __repr__(self):
         infohash_repr = hexlify(self.infohash[:4])
