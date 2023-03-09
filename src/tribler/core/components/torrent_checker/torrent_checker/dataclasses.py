@@ -56,50 +56,43 @@ class HealthInfo:
     def is_valid(self) -> bool:
         return self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
 
-    def should_replace(self, prev_health: HealthInfo) -> bool:
-        if self.infohash != prev_health.infohash:
+    def old(self) -> bool:
+        now = int(time.time())
+        return self.last_check < now - HEALTH_FRESHNESS_SECONDS
+
+    def older_than(self, other: HealthInfo) -> bool:
+        return self.last_check < other.last_check - TORRENT_CHECK_WINDOW
+
+    def much_older_than(self, other: HealthInfo) -> bool:
+        return self.last_check + HEALTH_FRESHNESS_SECONDS < other.last_check
+
+    def should_replace(self, prev: HealthInfo) -> bool:
+        if self.infohash != prev.infohash:
             raise ValueError('An attempt to compare health for different infohashes')
 
         if not self.is_valid():
             return False  # Health info with future last_check time is ignored
 
-        now = int(time.time())
-
         if self.self_checked:
-            if not prev_health.self_checked:
-                return True  # Always prefer self-checked info
+            return not prev.self_checked \
+                   or prev.older_than(self) \
+                   or (self.seeders, self.leechers) > (prev.seeders, prev.leechers)
 
-            if prev_health.last_check < now - TORRENT_CHECK_WINDOW:
-                # The previous torrent's health info is too old, replace it with the new health info,
-                # even if the new health info has fewer seeders
-                return True
-
-            if self > prev_health:
-                # The new health info is received almost immediately after the previous health info from another tracker
-                # and have a bigger number of seeders/leechers, or at least is a bit more fresh
-                return True
-
-            # The previous health info is also self-checked, not too old, and has more seeders/leechers
+        if self.older_than(prev):
+            # Always ignore a new health info if it is older than the previous health info
             return False
 
-        if prev_health.self_checked and prev_health.last_check >= now - HEALTH_FRESHNESS_SECONDS:
-            # The previous self-checked health is fresh enough, do not replace it with remote health info
+        if prev.self_checked and not prev.old():
+            # The previous self-checked health info is fresh enough, do not replace it with a remote health info
             return False
 
-        if prev_health.last_check + HEALTH_FRESHNESS_SECONDS < self.last_check:
-            # The new health info appears to be significantly more recent; let's use it disregarding
-            # the number of seeders (Note: it is possible that the newly received health info was actually
-            # checked earlier, but with incorrect OS time. To mitigate this, we can switch to a relative
-            # time when sending health info over the wire (like, "this remote health check was performed
-            # 1000 seconds ago"), then the correctness of the OS time will not matter anymore)
+        if prev.much_older_than(self):
+            # The previous health info (that can be self-checked ot not) is very old,
+            # let's replace it with a more recent remote health info
             return True
 
-        if prev_health.last_check - TOLERABLE_TIME_DRIFT <= self.last_check and self > prev_health:
-            # The new remote health info is not (too) older than the previous one, and have more seeders/leechers
-            return True
-
-        # The new remote health info is older than the previous health info, or not much fresher and has fewer seeders
-        return False
+        # self is a remote health info that isn't older than previous health info, but isn't much fresher as well
+        return (self.seeders, self.leechers) > (prev.seeders, prev.leechers)
 
 
 @dataclass
