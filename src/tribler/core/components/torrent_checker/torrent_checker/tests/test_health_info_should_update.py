@@ -14,70 +14,67 @@ def now() -> int:
     return int(time.time())
 
 
-@pytest.fixture(name='torrent_state')
-def torrent_state_fixture():
-    return Mock(infohash=INFOHASH)
+def mock_torrent_state(self_checked=False, seeders=0, leechers=0, last_check=None) -> Mock:
+    result = Mock(infohash=INFOHASH, self_checked=self_checked, seeders=seeders, leechers=leechers,
+                  last_check=now() if last_check is None else last_check)
+    result.to_health.return_value = HealthInfo(INFOHASH, seeders, leechers, last_check)
+    return result
 
 
-def test_different_infohashes(torrent_state: Mock):
+def test_different_infohashes():
+    torrent_state = mock_torrent_state()
     health = HealthInfo(infohash=b'infohash_2')
     with pytest.raises(ValueError, match='^An attempt to compare health for different infohashes$'):
         health.should_update(torrent_state)
 
 
-def test_invalid_health(torrent_state: Mock):
+def test_invalid_health():
+    torrent_state = mock_torrent_state()
     health = HealthInfo(INFOHASH, last_check=now() + TOLERABLE_TIME_DRIFT + 2)
     assert not health.is_valid()
     assert not health.should_update(torrent_state)
 
 
-def test_self_checked_health_remote_torrent_state(torrent_state: Mock):
-    torrent_state.self_checked = False
+def test_self_checked_health_remote_torrent_state():
+    torrent_state = mock_torrent_state(self_checked=False)
     health = HealthInfo(INFOHASH)
     assert health.should_update(torrent_state, self_checked=True)
 
 
-def test_self_checked_health_torrent_state_outside_window(torrent_state: Mock):
-    torrent_state.self_checked = True
-    torrent_state.last_check = now() - TORRENT_CHECK_WINDOW - 1
+def test_self_checked_health_torrent_state_outside_window():
+    torrent_state = mock_torrent_state(self_checked=True, last_check=now() - TORRENT_CHECK_WINDOW - 1)
     health = HealthInfo(INFOHASH)
     assert health.should_update(torrent_state, self_checked=True)
 
 
-def test_self_checked_health_inside_window_more_seeders(torrent_state: Mock):
+def test_self_checked_health_inside_window_more_seeders():
     now_ = now()
-    torrent_state.self_checked = True
-    torrent_state.last_check = now_ - TORRENT_CHECK_WINDOW + 2
-    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=1, leechers=2,
-                                                      last_check=torrent_state.last_check)
+    torrent_state = mock_torrent_state(self_checked=True, seeders=1, leechers=2,
+                                       last_check=now_ - TORRENT_CHECK_WINDOW + 2)
     health = HealthInfo(INFOHASH, last_check=now_, seeders=2, leechers=1)
     assert health > torrent_state.to_health()
     assert health.should_update(torrent_state, self_checked=True)
 
 
-def test_self_checked_health_inside_window_fewer_seeders(torrent_state: Mock):
+def test_self_checked_health_inside_window_fewer_seeders():
     now_ = now()
-    torrent_state.self_checked = True
-    torrent_state.last_check = now_ - TORRENT_CHECK_WINDOW + 2
-    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=2, leechers=1,
-                                                      last_check=torrent_state.last_check)
+    torrent_state = mock_torrent_state(self_checked=True, seeders=2, leechers=1,
+                                       last_check=now_ - TORRENT_CHECK_WINDOW + 2)
     health = HealthInfo(INFOHASH, last_check=now_, seeders=1, leechers=2)
     assert health < torrent_state.to_health()
     assert not health.should_update(torrent_state, self_checked=True)
 
 
-def test_self_checked_torrent_state_fresh_enough(torrent_state: Mock):
+def test_self_checked_torrent_state_fresh_enough():
     now_ = now()
-    torrent_state.self_checked = True
-    torrent_state.last_check = now_ - HEALTH_FRESHNESS_SECONDS + 2  # self-checked, fresh enough
+    torrent_state = mock_torrent_state(self_checked=True, last_check=now_ - HEALTH_FRESHNESS_SECONDS + 2)
     health = HealthInfo(INFOHASH, last_check=now_)
     assert not health.should_update(torrent_state)
 
 
-def test_torrent_state_self_checked_long_ago(torrent_state: Mock):
+def test_torrent_state_self_checked_long_ago():
     now_ = now()
-    torrent_state.self_checked = True
-    torrent_state.last_check = now_ - HEALTH_FRESHNESS_SECONDS - 2
+    torrent_state = mock_torrent_state(self_checked=True, last_check=now_ - HEALTH_FRESHNESS_SECONDS - 2)
     health = HealthInfo(INFOHASH, last_check=now_)
     assert health.should_update(torrent_state)
 
@@ -88,11 +85,9 @@ def test_torrent_state_self_checked_long_ago(torrent_state: Mock):
     assert health.should_update(torrent_state)
 
 
-def test_more_recent_more_seeders(torrent_state: Mock):
+def test_more_recent_more_seeders():
     t = now() - 100
-    torrent_state.self_checked = False
-    torrent_state.last_check = t
-    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=1, leechers=2, last_check=t)
+    torrent_state = mock_torrent_state(self_checked=False, seeders=1, leechers=2, last_check=t)
 
     health = HealthInfo(INFOHASH, last_check=t-1, seeders=2, leechers=1)
     assert abs(torrent_state.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
@@ -103,11 +98,9 @@ def test_more_recent_more_seeders(torrent_state: Mock):
     assert health.should_update(torrent_state)
 
 
-def test_more_recent_fewer_seeders(torrent_state: Mock):
+def test_more_recent_fewer_seeders():
     t = now() - 100
-    torrent_state.self_checked = False
-    torrent_state.last_check = t
-    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=2, leechers=1, last_check=t)
+    torrent_state = mock_torrent_state(self_checked=False, seeders=2, leechers=1, last_check=t)
 
     health = HealthInfo(INFOHASH, last_check=t-1, seeders=1, leechers=2)
     assert abs(torrent_state.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
@@ -118,10 +111,8 @@ def test_more_recent_fewer_seeders(torrent_state: Mock):
     assert not health.should_update(torrent_state)
 
 
-def test_less_recent_more_seeders(torrent_state: Mock):
+def test_less_recent_more_seeders():
     t = now() - 100
-    torrent_state.self_checked = False
-    torrent_state.last_check = t
-
+    torrent_state = mock_torrent_state(self_checked=False, last_check=t)
     health = HealthInfo(INFOHASH, last_check=t - TOLERABLE_TIME_DRIFT - 1, seeders=100)
     assert not health.should_update(torrent_state)
