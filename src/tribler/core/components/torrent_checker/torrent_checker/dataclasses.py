@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass, field
-from typing import List, Tuple
+from typing import List
 
 import human_readable
 
@@ -14,7 +14,7 @@ TORRENT_CHECK_WINDOW = MINUTE  # When asking multiple trackers in parallel, we i
 HEALTH_FRESHNESS_SECONDS = 4 * HOUR  # Number of seconds before a torrent health is considered stale. Default: 4 hours
 
 
-@dataclass
+@dataclass(order=True)
 class HealthInfo:
     infohash: bytes = field(repr=False)
     seeders: int = 0
@@ -49,10 +49,6 @@ class HealthInfo:
     def is_valid(self) -> bool:
         return self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
 
-    @property
-    def seeders_leechers_last_check(self) -> Tuple[int, int, int]:
-        return self.seeders, self.leechers, self.last_check
-
     def should_update(self, torrent_state, self_checked=False) -> bool:
         # Self is a new health info, torrent_state is a previously saved health info for the same infohash
         if self.infohash != torrent_state.infohash:
@@ -71,7 +67,7 @@ class HealthInfo:
                 # even if the new health info has fewer seeders
                 return True
 
-            if self.seeders_leechers_last_check > torrent_state.seeders_leechers_last_check:
+            if self > torrent_state.to_health():
                 # The new health info is received almost immediately after the previous health info from another tracker
                 # and have a bigger number of seeders/leechers, or at least is a bit more fresh
                 return True
@@ -94,7 +90,7 @@ class HealthInfo:
             return True
 
         if torrent_state.last_check - TOLERABLE_TIME_DRIFT <= self.last_check \
-                and self.seeders_leechers_last_check > torrent_state.seeders_leechers_last_check:
+                and self > torrent_state.to_health():
             # The new remote health info is not (too) older than the previous one, and have more seeders/leechers
             return True
 

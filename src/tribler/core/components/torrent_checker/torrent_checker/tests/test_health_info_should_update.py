@@ -48,10 +48,10 @@ def test_self_checked_health_inside_window_more_seeders(torrent_state: Mock):
     now_ = now()
     torrent_state.self_checked = True
     torrent_state.last_check = now_ - TORRENT_CHECK_WINDOW + 2
-    torrent_state.seeders_leechers_last_check = (1, 2, torrent_state.last_check)
+    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=1, leechers=2,
+                                                      last_check=torrent_state.last_check)
     health = HealthInfo(INFOHASH, last_check=now_, seeders=2, leechers=1)
-    assert health.seeders_leechers_last_check == (2, 1, now_)
-    assert health.seeders_leechers_last_check > torrent_state.seeders_leechers_last_check
+    assert health > torrent_state.to_health()
     assert health.should_update(torrent_state, self_checked=True)
 
 
@@ -59,10 +59,10 @@ def test_self_checked_health_inside_window_fewer_seeders(torrent_state: Mock):
     now_ = now()
     torrent_state.self_checked = True
     torrent_state.last_check = now_ - TORRENT_CHECK_WINDOW + 2
-    torrent_state.seeders_leechers_last_check = (2, 1, torrent_state.last_check)
+    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=2, leechers=1,
+                                                      last_check=torrent_state.last_check)
     health = HealthInfo(INFOHASH, last_check=now_, seeders=1, leechers=2)
-    assert health.seeders_leechers_last_check == (1, 2, now_)
-    assert health.seeders_leechers_last_check < torrent_state.seeders_leechers_last_check
+    assert health < torrent_state.to_health()
     assert not health.should_update(torrent_state, self_checked=True)
 
 
@@ -92,7 +92,7 @@ def test_more_recent_more_seeders(torrent_state: Mock):
     t = now() - 100
     torrent_state.self_checked = False
     torrent_state.last_check = t
-    torrent_state.seeders_leechers_last_check = (1, 2, t)
+    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=1, leechers=2, last_check=t)
 
     health = HealthInfo(INFOHASH, last_check=t-1, seeders=2, leechers=1)
     assert abs(torrent_state.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
@@ -107,7 +107,7 @@ def test_more_recent_fewer_seeders(torrent_state: Mock):
     t = now() - 100
     torrent_state.self_checked = False
     torrent_state.last_check = t
-    torrent_state.seeders_leechers_last_check = (2, 1, t)
+    torrent_state.to_health.return_value = HealthInfo(INFOHASH, seeders=2, leechers=1, last_check=t)
 
     health = HealthInfo(INFOHASH, last_check=t-1, seeders=1, leechers=2)
     assert abs(torrent_state.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
