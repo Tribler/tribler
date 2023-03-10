@@ -161,14 +161,15 @@ class HttpTrackerSession(TrackerSession):
                     leechers = file_info.get(b'incomplete', 0)
 
                 unprocessed_infohashes.discard(infohash)
-                health_list.append(HealthInfo(infohash, seeders=seeders, leechers=leechers, last_check=now))
+                health_list.append(HealthInfo(infohash, seeders, leechers, last_check=now, self_checked=True))
 
         elif b'failure reason' in response_dict:
             self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b'failure reason']))
             self.failed(msg=repr(response_dict[b'failure reason']))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
-        health_list.extend(HealthInfo(infohash=infohash, last_check=now) for infohash in unprocessed_infohashes)
+        health_list.extend(HealthInfo(infohash=infohash, last_check=now, self_checked=True)
+                           for infohash in unprocessed_infohashes)
 
         self.is_finished = True
         return TrackerResponse(url=self.tracker_url, torrent_health_list=health_list)
@@ -397,7 +398,8 @@ class UdpTrackerSession(TrackerSession):
             # Store the information in the hash dict to be returned.
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
-            response_list.append(HealthInfo(infohash, seeders=complete, leechers=incomplete, last_check=now))
+            response_list.append(HealthInfo(infohash, seeders=complete, leechers=incomplete,
+                                            last_check=now, self_checked=True))
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
@@ -422,7 +424,8 @@ class FakeDHTSession(TrackerSession):
         now = int(time.time())
         for infohash in self.infohash_list:
             metainfo = await self.download_manager.get_metainfo(infohash, timeout=self.timeout, raise_errors=True)
-            health = HealthInfo(infohash, seeders=metainfo[b'seeders'], leechers=metainfo[b'leechers'], last_check=now)
+            health = HealthInfo(infohash, seeders=metainfo[b'seeders'], leechers=metainfo[b'leechers'],
+                                last_check=now, self_checked=True)
             health_list.append(health)
 
         return TrackerResponse(url=DHT, torrent_health_list=health_list)

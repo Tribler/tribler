@@ -23,10 +23,9 @@ def define_binding(db):
         @classmethod
         def from_health(cls, health: HealthInfo):
             return cls(infohash=health.infohash, seeders=health.seeders, leechers=health.leechers,
-                       last_check=health.last_check)
+                       last_check=health.last_check, self_checked=health.self_checked)
 
         def to_health(self) -> HealthInfo:
-            return HealthInfo(infohash=self.infohash, last_check=self.last_check,
-                              seeders=self.seeders, leechers=self.leechers)
+            return HealthInfo(self.infohash, self.seeders, self.leechers, self.last_check, self.self_checked)
 
     return TorrentState

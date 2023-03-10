@@ -258,6 +258,7 @@ def test_update_health(torrent_checker: TorrentChecker):
     ]
 
     health = aggregate_responses_for_infohash(infohash, responses)
+    health.self_checked = True
 
     # Check that everything works fine even if the database contains no proper infohash
     updated = torrent_checker.update_torrent_health(health)

@@ -204,8 +204,8 @@ class TorrentChecker(TaskManager):
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
         for torrent in checked_torrents:
-            result[torrent.infohash] = HealthInfo(
-                torrent.infohash, seeders=torrent.seeders, leechers=torrent.leechers, last_check=torrent.last_check)
+            result[torrent.infohash] = HealthInfo(torrent.infohash, torrent.seeders, torrent.leechers,
+                                                  last_check=torrent.last_check, self_checked=True)
         return result
 
     @db_session
@@ -338,6 +338,7 @@ class TorrentChecker(TaskManager):
         health = aggregate_responses_for_infohash(infohash, successful_responses)
         if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
             health.last_check = int(time.time())
+            health.self_checked = True
             self.update_torrent_health(health)
 
     def _create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
@@ -376,6 +377,10 @@ class TorrentChecker(TaskManager):
             self._logger.warning(f'Invalid health info ignored: {health}')
             return False
 
+        if not health.self_checked:
+            self._logger.error(f'Self-checked torrent health expected. Got: {health}')
+            return False
+
         self._logger.debug(f'Update torrent health: {health}')
         with db_session:
             # Update torrent state
@@ -384,9 +389,10 @@ class TorrentChecker(TaskManager):
                 self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
                 return False
 
-            if not health.should_update(torrent_state, self_checked=True):
+            prev_health = torrent_state.to_health()
+            if not health.should_replace(prev_health):
                 self._logger.info("Skip health update, the health in the database is fresher")
-                self.notify(torrent_state.to_health())  # to update UI state from "Checking..."
+                self.notify(prev_health)  # to update UI state from "Checking..."
                 return False
 
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
