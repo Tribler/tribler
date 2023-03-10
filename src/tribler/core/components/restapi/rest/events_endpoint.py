@@ -49,7 +49,6 @@ class EventsEndpoint(RESTEndpoint):
     def __init__(self, notifier: Notifier, public_key: str = None):
         super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
-        self.app.on_shutdown.append(self.on_shutdown)
         self.undelivered_error: Optional[dict] = None
         self.public_key = public_key
         self.notifier = notifier
@@ -67,9 +66,6 @@ class EventsEndpoint(RESTEndpoint):
                                                     bytes_down=circuit.bytes_down,
                                                     uptime=time.time() - circuit.creation_time,
                                                     additional_info=additional_info)
-
-    async def on_shutdown(self, _):
-        await self.shutdown()
 
     async def shutdown(self):
         self.notifier.remove_observer(notifications.circuit_removed, self.on_circuit_removed)
