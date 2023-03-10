@@ -71,6 +71,11 @@ class EventsEndpoint(RESTEndpoint):
     async def on_shutdown(self, _):
         await self.shutdown()
 
+    async def shutdown(self):
+        self.notifier.remove_observer(notifications.circuit_removed, self.on_circuit_removed)
+        self.notifier.remove_generic_observer(self.on_notification)
+        await super().shutdown()
+
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
