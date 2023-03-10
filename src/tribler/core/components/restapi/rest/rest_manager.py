@@ -71,7 +71,7 @@ class RESTManager:
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """
 
-    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None):
+    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None, shutdown_timeout: int = 1):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = root_endpoint
@@ -83,6 +83,7 @@ class RESTManager:
 
         self.http_host = '127.0.0.1'
         self.https_host = '0.0.0.0'
+        self.shutdown_timeout = shutdown_timeout
 
     def get_endpoint(self, name):
         return self.root_endpoint.endpoints.get('/' + name)
@@ -131,7 +132,7 @@ class RESTManager:
 
             api_port = self.config.http_port
             if not self.config.retry_port:
-                self.site = web.TCPSite(self.runner, self.http_host, api_port)
+                self.site = web.TCPSite(self.runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
                 self.set_api_port(api_port)
                 await self.site.start()
             else:
@@ -139,9 +140,11 @@ class RESTManager:
                 bind_attempts = 0
                 while bind_attempts < 10:
                     try:
-                        self.site = web.TCPSite(self.runner, self.http_host, api_port + bind_attempts)
+                        port = api_port + bind_attempts
+                        self.site = web.TCPSite(self.runner, self.http_host, port,
+                                                shutdown_timeout=self.shutdown_timeout)
                         await self.site.start()
-                        self.set_api_port(api_port + bind_attempts)
+                        self.set_api_port(port)
                         break
                     except OSError:
                         bind_attempts += 1
@@ -163,7 +166,7 @@ class RESTManager:
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
     async def stop(self):
-        self._logger.info('Stop')
+        self._logger.info('Stopping...')
         if self.runner:
-            await self.runner.shutdown()  # should be called before self.runner.cleanup()
-            await self.runner.cleanup()  # self.site.stop() is called inside this method
+            await self.runner.cleanup()
+        self._logger.info('Stopped')
