@@ -88,7 +88,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().stop_download_button.clicked, self.on_stop_download_clicked)
         connect(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
 
-        connect(self.window().downloads_list.itemSelectionChanged, self.on_download_item_clicked)
+        connect(self.window().downloads_list.itemSelectionChanged, self.update_downloads)
 
         connect(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
 
@@ -226,7 +226,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         # Update the top download management button if we have a row selected
         if len(self.window().downloads_list.selectedItems()) > 0:
-            self.on_download_item_clicked()
+            self.update_downloads()
 
         self.received_downloads.emit(downloads)
 
@@ -279,26 +279,25 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             ]
         )
 
-    def on_download_item_clicked(self):
-        selected_count = len(self.window().downloads_list.selectedItems())
+    def update_downloads(self):
+        selected = self.window().downloads_list.selectedItems()
+        selected_count = len(selected)
         if selected_count == 0:
             self.window().remove_download_button.setEnabled(False)
             self.window().start_download_button.setEnabled(False)
             self.window().stop_download_button.setEnabled(False)
             self.window().download_details_widget.hide()
-        elif selected_count == 1:
-            self.selected_items = self.window().downloads_list.selectedItems()
-            self.window().remove_download_button.setEnabled(True)
-            self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
-            self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+            return
 
-            self.window().download_details_widget.update_with_download(self.selected_items[0].download_info)
+        self.selected_items = selected
+        self.window().remove_download_button.setEnabled(True)
+        self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
+        self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+
+        if selected_count == 1:
+            self.window().download_details_widget.update_with_download(selected[0].download_info)
             self.window().download_details_widget.show()
         else:
-            self.selected_items = self.window().downloads_list.selectedItems()
-            self.window().remove_download_button.setEnabled(True)
-            self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
-            self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
             self.window().download_details_widget.hide()
 
     def on_start_download_clicked(self, checked):
@@ -312,7 +311,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 if selected_item.download_info["infohash"] == json_result["infohash"]:
                     selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
                     selected_item.update_item()
-                    self.on_download_item_clicked()
+                    self.update_downloads()
 
     def on_stop_download_clicked(self, checked):
         for selected_item in self.selected_items:
@@ -325,7 +324,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 if selected_item.download_info["infohash"] == json_result["infohash"]:
                     selected_item.download_info['status'] = "DLSTATUS_STOPPED"
                     selected_item.update_item()
-                    self.on_download_item_clicked()
+                    self.update_downloads()
 
     def on_remove_download_clicked(self, checked):
         self.dialog = ConfirmationDialog(
@@ -374,7 +373,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 if selected_item.download_info["infohash"] == result["infohash"]:
                     selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
                     selected_item.update_item()
-                    self.on_download_item_clicked()
+                    self.update_downloads()
 
     def on_change_anonymity(self, result):
         pass

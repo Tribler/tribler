@@ -24,10 +24,10 @@ class DownloadProgressBar(QWidget):
         if download["status"] in ("DLSTATUS_SEEDING", "DLSTATUS_CIRCUITS"):
             self.set_fraction(download["progress"])
         elif download["status"] in (
-            "DLSTATUS_HASHCHECKING",
-            "DLSTATUS_DOWNLOADING",
-            "DLSTATUS_STOPPED",
-            "DLSTATUS_STOPPED_ON_ERROR",
+                "DLSTATUS_HASHCHECKING",
+                "DLSTATUS_DOWNLOADING",
+                "DLSTATUS_STOPPED",
+                "DLSTATUS_STOPPED_ON_ERROR",
         ):
             self.set_pieces()
         else:
@@ -64,22 +64,23 @@ class DownloadProgressBar(QWidget):
 
             if len(self.pieces) <= self.width():  # We have less pieces than pixels
                 piece_width = self.width() / float(len(self.pieces))
-                for i in range(len(self.pieces)):
-                    if self.pieces[i]:
+                for pixel in range(len(self.pieces)):
+                    if self.pieces[pixel]:
                         painter.fillRect(
-                            QRect(int(float(i) * piece_width), 0, math.ceil(piece_width), self.height()),
+                            QRect(int(float(pixel) * piece_width), 0, math.ceil(piece_width), self.height()),
                             QColor(230, 115, 0),
                         )
             else:  # We have more pieces than pixels, group pieces
                 pieces_per_pixel = len(self.pieces) / float(self.width())
-                for i in range(self.width()):
-                    begin_piece = int(pieces_per_pixel * i)
-                    end_piece = int(begin_piece + pieces_per_pixel)
-                    piece_sum = 0
-                    for j in range(begin_piece, end_piece):
-                        piece_sum += self.pieces[j]
-                    qt_color = QColor()
-                    qt_color.setHsl(26, 255, 128 + int(127 * (1 - piece_sum // pieces_per_pixel)))
-                    painter.fillRect(QRect(i, 0, 10, self.height()), qt_color)
+                for pixel in range(self.width()):
+                    start = int(pieces_per_pixel * pixel)
+                    stop = int(start + pieces_per_pixel)
+
+                    downloaded_pieces = sum(self.pieces[start:stop])
+                    qt_color = QColor(230, 115, 0)
+                    decimal_percentage = 1 - downloaded_pieces / pieces_per_pixel
+                    fill_size = 128 + int(127 * decimal_percentage)
+                    qt_color.setHsl(26, 255, fill_size)
+                    painter.fillRect(QRect(pixel, 0, 10, self.height()), qt_color)
         else:
             painter.fillRect(QRect(0, 0, int(self.width() * self.fraction), self.height()), QColor(230, 115, 0))
