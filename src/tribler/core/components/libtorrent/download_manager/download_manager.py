@@ -37,7 +37,7 @@ from tribler.core.utilities.rest_utils import (
     url_to_path,
 )
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR, \
-    Status
+    DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler.core.version import version_id
@@ -839,7 +839,7 @@ class DownloadManager(TaskManager):
             download = ds.get_download()
             infohash = download.get_def().get_infohash()
 
-            if ds.get_status() == Status.DLSTATUS_SEEDING:
+            if ds.get_status() == DownloadStatus.SEEDING:
                 if download.config.get_hops() == 0 and download.config.get_safe_seeding():
                     # Re-add the download with anonymity enabled
                     hops = self.download_defaults.number_hops

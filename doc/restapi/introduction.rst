@@ -55,23 +55,23 @@ Download states
 There are various download states possible which are returned when fetching downloads. These states are explained in the table below.
 
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_ALLOCATING_DISKSPACE | Libtorrent is allocating disk space for the download                                                                   |
+| ALLOCATING_DISKSPACE  | Libtorrent is allocating disk space for the download                                                                   |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_WAITING4HASHCHECK    | The download is waiting for the hash check to be performed                                                             |
+| WAITING_FOR_HASHCHECK | The download is waiting for the hash check to be performed                                                             |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_HASHCHECKING         | Libtorrent is checking the hashes of the download                                                                      |
+| HASHCHECKING          | Libtorrent is checking the hashes of the download                                                                      |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_DOWNLOADING          | The torrent is being downloaded                                                                                        |
+| DOWNLOADING           | The torrent is being downloaded                                                                                        |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_SEEDING              | The torrent has been downloaded and is now being seeded to other peers                                                 |
+| SEEDING               | The torrent has been downloaded and is now being seeded to other peers                                                 |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_STOPPED              | The torrent has stopped downloading, either because the downloading has completed or the user has stopped the download |
+| STOPPED               | The torrent has stopped downloading, either because the downloading has completed or the user has stopped the download |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_STOPPED_ON_ERROR     | The torrent has stopped because an error occurred                                                                      |
+| STOPPED_ON_ERROR      | The torrent has stopped because an error occurred                                                                      |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_METADATA             | The torrent information is being fetched from the DHT                                                                  |
+| METADATA              | The torrent information is being fetched from the DHT                                                                  |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
-| DLSTATUS_CIRCUITS             | The (anonymous) download is building circuits                                                                          |
+| CIRCUITS              | The (anonymous) download is building circuits                                                                          |
 +-------------------------------+------------------------------------------------------------------------------------------------------------------------+
 
 Endpoints

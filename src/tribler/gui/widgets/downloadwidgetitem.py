@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from tribler.core.utilities.simpledefs import Status
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.gui.defs import STATUS_STRING
 from tribler.gui.utilities import duration_to_string, format_size, format_speed
 
@@ -68,13 +68,13 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.download_info = download
         self.update_item()
 
-    def get_status(self) -> Status:
-        return Status(self.download_info["status_code"])
+    def get_status(self) -> DownloadStatus:
+        return DownloadStatus(self.download_info["status_code"])
 
     def update_item(self):
         self.setText(0, self.download_info["name"])
 
-        if self.download_info["size"] == 0 and self.get_status() == Status.DLSTATUS_METADATA:
+        if self.download_info["size"] == 0 and self.get_status() == DownloadStatus.METADATA:
             self.setText(1, "unknown")
         else:
             self.setText(1, format_size(float(self.download_info["size"])))
@@ -87,7 +87,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         if self.download_info["vod_mode"]:
             self.setText(3, "Streaming")
         else:
-            status = Status(self.download_info["status_code"])
+            status = DownloadStatus(self.download_info["status_code"])
             status_string = STATUS_STRING[status]
             self.setText(3, status_string)
         self.setText(4, f"{self.download_info['num_connected_seeds']} ({self.download_info['num_seeds']})")
@@ -100,7 +100,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(12, datetime.fromtimestamp(int(self.download_info["time_added"])).strftime('%Y-%m-%d %H:%M'))
 
         eta_text = "-"
-        if self.get_status() == Status.DLSTATUS_DOWNLOADING:
+        if self.get_status() == DownloadStatus.DOWNLOADING:
             eta_text = duration_to_string(self.download_info["eta"])
         self.setText(11, eta_text)
 

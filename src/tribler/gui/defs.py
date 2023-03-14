@@ -6,7 +6,7 @@ from collections import namedtuple
 
 from PyQt5.QtGui import QColor
 
-from tribler.core.utilities.simpledefs import Status
+from tribler.core.utilities.simpledefs import DownloadStatus
 
 DEFAULT_API_PROTOCOL = "http"
 DEFAULT_API_HOST = "localhost"
@@ -35,16 +35,16 @@ PAGE_SETTINGS_DATA = 5
 PAGE_SETTINGS_DEBUG = 6
 
 STATUS_STRING = {
-    Status.DLSTATUS_ALLOCATING_DISKSPACE: "Allocating disk space",
-    Status.DLSTATUS_WAITING4HASHCHECK: "Waiting for check",
-    Status.DLSTATUS_HASHCHECKING: "Checking",
-    Status.DLSTATUS_DOWNLOADING: "Downloading",
-    Status.DLSTATUS_SEEDING: "Seeding",
-    Status.DLSTATUS_STOPPED: "Stopped",
-    Status.DLSTATUS_STOPPED_ON_ERROR: "Stopped on error",
-    Status.DLSTATUS_METADATA: "Waiting for metadata",
-    Status.DLSTATUS_CIRCUITS: "Building circuits",
-    Status.DLSTATUS_EXIT_NODES: "Finding exit nodes",
+    DownloadStatus.ALLOCATING_DISKSPACE: "Allocating disk space",
+    DownloadStatus.WAITING_FOR_HASHCHECK: "Waiting for check",
+    DownloadStatus.HASHCHECKING: "Checking",
+    DownloadStatus.DOWNLOADING: "Downloading",
+    DownloadStatus.SEEDING: "Seeding",
+    DownloadStatus.STOPPED: "Stopped",
+    DownloadStatus.STOPPED_ON_ERROR: "Stopped on error",
+    DownloadStatus.METADATA: "Waiting for metadata",
+    DownloadStatus.CIRCUITS: "Building circuits",
+    DownloadStatus.EXIT_NODES: "Finding exit nodes",
 }
 
 # Definitions of the download filters. For each filter, it is specified which download statuses can be displayed.
@@ -57,36 +57,36 @@ DOWNLOADS_FILTER_CHANNELS = 6
 
 DOWNLOADS_FILTER_DEFINITION = {
     DOWNLOADS_FILTER_ALL: [
-        Status.DLSTATUS_ALLOCATING_DISKSPACE,
-        Status.DLSTATUS_WAITING4HASHCHECK,
-        Status.DLSTATUS_HASHCHECKING,
-        Status.DLSTATUS_DOWNLOADING,
-        Status.DLSTATUS_SEEDING,
-        Status.DLSTATUS_STOPPED,
-        Status.DLSTATUS_STOPPED_ON_ERROR,
-        Status.DLSTATUS_METADATA,
-        Status.DLSTATUS_CIRCUITS,
-        Status.DLSTATUS_EXIT_NODES,
+        DownloadStatus.ALLOCATING_DISKSPACE,
+        DownloadStatus.WAITING_FOR_HASHCHECK,
+        DownloadStatus.HASHCHECKING,
+        DownloadStatus.DOWNLOADING,
+        DownloadStatus.SEEDING,
+        DownloadStatus.STOPPED,
+        DownloadStatus.STOPPED_ON_ERROR,
+        DownloadStatus.METADATA,
+        DownloadStatus.CIRCUITS,
+        DownloadStatus.EXIT_NODES,
     ],
     DOWNLOADS_FILTER_DOWNLOADING: [
-        Status.DLSTATUS_DOWNLOADING,
+        DownloadStatus.DOWNLOADING,
     ],
     DOWNLOADS_FILTER_COMPLETED: [
-        Status.DLSTATUS_SEEDING,
+        DownloadStatus.SEEDING,
     ],
     DOWNLOADS_FILTER_ACTIVE: [
-        Status.DLSTATUS_ALLOCATING_DISKSPACE,
-        Status.DLSTATUS_WAITING4HASHCHECK,
-        Status.DLSTATUS_HASHCHECKING,
-        Status.DLSTATUS_DOWNLOADING,
-        Status.DLSTATUS_SEEDING,
-        Status.DLSTATUS_METADATA,
-        Status.DLSTATUS_CIRCUITS,
-        Status.DLSTATUS_EXIT_NODES,
+        DownloadStatus.ALLOCATING_DISKSPACE,
+        DownloadStatus.WAITING_FOR_HASHCHECK,
+        DownloadStatus.HASHCHECKING,
+        DownloadStatus.DOWNLOADING,
+        DownloadStatus.SEEDING,
+        DownloadStatus.METADATA,
+        DownloadStatus.CIRCUITS,
+        DownloadStatus.EXIT_NODES,
     ],
     DOWNLOADS_FILTER_INACTIVE: [
-        Status.DLSTATUS_STOPPED,
-        Status.DLSTATUS_STOPPED_ON_ERROR
+        DownloadStatus.STOPPED,
+        DownloadStatus.STOPPED_ON_ERROR
     ],
 }
 

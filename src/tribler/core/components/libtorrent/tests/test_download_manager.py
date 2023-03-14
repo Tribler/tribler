@@ -11,7 +11,7 @@ from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import Status
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 
 
@@ -32,7 +32,7 @@ def create_fake_download_and_state():
     fake_download.shutdown = lambda: succeed(None)
     dl_state = MagicMock()
     dl_state.get_infohash = lambda: b'aaaa'
-    dl_state.get_status = lambda: Status.DLSTATUS_SEEDING
+    dl_state.get_status = lambda: DownloadStatus.SEEDING
     dl_state.get_download = lambda: fake_download
     fake_config = MagicMock()
     fake_config.get_hops = lambda: 0

@@ -14,7 +14,7 @@ from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORR
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.pony_utils import run_threaded
-from tribler.core.utilities.simpledefs import Status
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 
 PROCESS_CHANNEL_DIR = 1
@@ -107,7 +107,7 @@ class GigaChannelManager(TaskManager):
 
     async def check_and_regen_personal_channel_torrent(self, channel_pk, channel_id, channel_download, timeout=60):
         try:
-            await wait_for(channel_download.wait_for_status(Status.DLSTATUS_SEEDING), timeout=timeout)
+            await wait_for(channel_download.wait_for_status(DownloadStatus.SEEDING), timeout=timeout)
         except asyncio.TimeoutError:
             self._logger.warning("Time out waiting for personal channel %s %i to seed", hexlify(channel_pk), channel_id)
             await self.regenerate_channel_torrent(channel_pk, channel_id)
@@ -200,7 +200,7 @@ class GigaChannelManager(TaskManager):
                         channel.timestamp,
                     )
                     self.download_channel(channel)
-                elif status == Status.DLSTATUS_SEEDING:
+                elif status == DownloadStatus.SEEDING:
                     self._logger.info(
                         "Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
                         channel.dirname,

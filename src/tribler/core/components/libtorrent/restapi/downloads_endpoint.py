@@ -25,7 +25,7 @@ from tribler.core.components.restapi.rest.util import return_handled_exception
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DOWNLOAD,
-    Status, UPLOAD,
+    DownloadStatus, UPLOAD,
 )
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import froze_it
@@ -53,7 +53,7 @@ def _safe_extended_peer_info(ext_peer_info):
         return ''.join([chr(c) for c in ext_peer_info])
 
 
-def get_extended_status(tunnel_community, download) -> Status:
+def get_extended_status(tunnel_community, download) -> DownloadStatus:
     """
     This function filters the original download status to possibly add tunnel-related status.
     Extracted from DownloadState to remove coupling between DownloadState and Tunnels.
@@ -64,13 +64,13 @@ def get_extended_status(tunnel_community, download) -> Status:
     # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
     stopped_by_user = state.lt_status and state.lt_status.paused
 
-    if status == Status.DLSTATUS_STOPPED and not stopped_by_user:
+    if status == DownloadStatus.STOPPED and not stopped_by_user:
         if download.config.get_hops() > 0:
             if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-                return Status.DLSTATUS_CIRCUITS
+                return DownloadStatus.CIRCUITS
             else:
-                return Status.DLSTATUS_EXIT_NODES
-        return Status.DLSTATUS_STOPPED
+                return DownloadStatus.EXIT_NODES
+        return DownloadStatus.STOPPED
     return status
 
 

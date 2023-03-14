@@ -6,19 +6,19 @@ Author(s): Arno Bakker
 import logging
 
 from tribler.core.utilities.simpledefs import (
-    Status, UPLOAD,
+    DownloadStatus, UPLOAD,
 )
 
 # Map used to convert libtorrent -> Tribler download status
-DLSTATUS_MAP = [
-    Status.DLSTATUS_WAITING4HASHCHECK,
-    Status.DLSTATUS_HASHCHECKING,
-    Status.DLSTATUS_METADATA,
-    Status.DLSTATUS_DOWNLOADING,
-    Status.DLSTATUS_SEEDING,
-    Status.DLSTATUS_SEEDING,
-    Status.DLSTATUS_ALLOCATING_DISKSPACE,
-    Status.DLSTATUS_HASHCHECKING,
+DOWNLOAD_STATUS_MAP = [
+    DownloadStatus.WAITING_FOR_HASHCHECK,
+    DownloadStatus.HASHCHECKING,
+    DownloadStatus.METADATA,
+    DownloadStatus.DOWNLOADING,
+    DownloadStatus.SEEDING,
+    DownloadStatus.SEEDING,
+    DownloadStatus.ALLOCATING_DISKSPACE,
+    DownloadStatus.HASHCHECKING,
 ]
 
 
@@ -50,27 +50,27 @@ class DownloadState:
 
     def get_progress(self):
         """ The general progress of the Download as a percentage. When status is
-         * DLSTATUS_HASHCHECKING it is the percentage of already downloaded
+         * HASHCHECKING it is the percentage of already downloaded
            content checked for integrity.
-         * DLSTATUS_DOWNLOADING/SEEDING it is the percentage downloaded.
+         * DOWNLOADING/SEEDING it is the percentage downloaded.
         @return Progress as a float (0..1).
         """
         return self.lt_status.progress if self.lt_status else 0
 
-    def get_status(self) -> Status:
+    def get_status(self) -> DownloadStatus:
         """ Returns the status of the torrent.
-        @return DLSTATUS_* """
+        @return DownloadStatus* """
 
         if self.lt_status:
             if self.lt_status.paused:
-                return Status.DLSTATUS_STOPPED
-            return DLSTATUS_MAP[self.lt_status.state]
+                return DownloadStatus.STOPPED
+            return DOWNLOAD_STATUS_MAP[self.lt_status.state]
         if self.get_error():
-            return Status.DLSTATUS_STOPPED_ON_ERROR
-        return Status.DLSTATUS_STOPPED
+            return DownloadStatus.STOPPED_ON_ERROR
+        return DownloadStatus.STOPPED
 
     def get_error(self):
-        """ Returns the Exception that caused the download to be moved to DLSTATUS_STOPPED_ON_ERROR status.
+        """ Returns the Exception that caused the download to be moved to STOPPED_ON_ERROR status.
         @return An error message
         """
         return self.error or (self.lt_status.error if self.lt_status and self.lt_status.error else None)
@@ -80,7 +80,7 @@ class DownloadState:
         Returns the current up or download speed.
         @return The speed in bytes/s.
         """
-        if not self.lt_status or self.get_status() not in [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING]:
+        if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0
         if direct == UPLOAD:
             return self.lt_status.upload_rate
@@ -91,7 +91,7 @@ class DownloadState:
         Returns the current up or download payload speed.
         @return The speed in bytes/s.
         """
-        if not self.lt_status or self.get_status() not in [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING]:
+        if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0
         if direct == UPLOAD:
             return self.lt_status.upload_payload_rate
@@ -130,7 +130,7 @@ class DownloadState:
         Returns the sum of the number of seeds and peers.
         @return A tuple (num seeds, num peers)
         """
-        if not self.lt_status or self.get_status() not in [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING]:
+        if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0, 0
 
         total = self.lt_status.list_peers

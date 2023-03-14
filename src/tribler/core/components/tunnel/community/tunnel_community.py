@@ -50,7 +50,7 @@ from tribler.core.components.tunnel.community.payload import (
 from tribler.core.utilities.bencodecheck import is_bencoded
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
-    Status,
+    DownloadStatus,
 )
 from tribler.core.utilities.unicode import hexlify
 
@@ -474,7 +474,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 hops[info_hash] = hop_count
                 new_states[info_hash] = ds.get_status()
 
-                active = [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING, Status.DLSTATUS_METADATA]
+                active = [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING, DownloadStatus.METADATA]
                 if download.get_state().get_status() in active:
                     active_downloads_per_hop[hop_count] = active_downloads_per_hop.get(hop_count, 0) + 1
 
@@ -499,16 +499,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             state_changed = new_state != old_state
 
             # Join/leave hidden swarm as needed.
-            active = [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING, Status.DLSTATUS_METADATA]
+            active = [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING, DownloadStatus.METADATA]
             if state_changed and new_state in active:
-                if old_state != Status.DLSTATUS_METADATA or new_state != Status.DLSTATUS_DOWNLOADING:
-                    self.join_swarm(info_hash, hops[info_hash], seeding=new_state == Status.DLSTATUS_SEEDING,
+                if old_state != DownloadStatus.METADATA or new_state != DownloadStatus.DOWNLOADING:
+                    self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DownloadStatus.SEEDING,
                                     callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
-            elif state_changed and new_state in [Status.DLSTATUS_STOPPED, None]:
+            elif state_changed and new_state in [DownloadStatus.STOPPED, None]:
                 self.leave_swarm(info_hash)
 
             # Ensure we have enough introduction points for this infohash. Currently, we only create 1.
-            if new_state == Status.DLSTATUS_SEEDING:
+            if new_state == DownloadStatus.SEEDING:
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
                     self.logger.info('Create introducing circuit for %s', hexlify(info_hash))
                     self.create_introduction_point(info_hash)

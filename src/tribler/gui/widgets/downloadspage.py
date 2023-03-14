@@ -8,7 +8,7 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
-from tribler.core.utilities.simpledefs import Status
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -233,12 +233,12 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
             is_channel = item.download_info["channel_download"]
             if self.filter == DOWNLOADS_FILTER_CHANNELS:
-                ahide = not (is_channel and filter_match)
-                item.setHidden(ahide)
+                hide = not (is_channel and filter_match)
+                item.setHidden(hide)
             else:
                 filtered = DOWNLOADS_FILTER_DEFINITION[self.filter]
-                ahide = item.get_status() not in filtered or not filter_match or is_channel
-                item.setHidden(ahide)
+                hide = item.get_status() not in filtered or not filter_match or is_channel
+                item.setHidden(hide)
 
     def on_downloads_tab_button_clicked(self, button_name):
         self.filter = button_name2filter[button_name]
@@ -249,16 +249,16 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     @staticmethod
     def start_download_enabled(download_widgets):
-        return any(dw.get_status() == Status.DLSTATUS_STOPPED for dw in download_widgets)
+        return any(dw.get_status() == DownloadStatus.STOPPED for dw in download_widgets)
 
     @staticmethod
     def stop_download_enabled(download_widgets):
-        stopped = {Status.DLSTATUS_STOPPED, Status.DLSTATUS_STOPPED_ON_ERROR}
+        stopped = {DownloadStatus.STOPPED, DownloadStatus.STOPPED_ON_ERROR}
         return any(dw.get_status() not in stopped for dw in download_widgets)
 
     @staticmethod
     def force_recheck_download_enabled(download_widgets):
-        recheck = {Status.DLSTATUS_METADATA, Status.DLSTATUS_HASHCHECKING, Status.DLSTATUS_WAITING4HASHCHECK}
+        recheck = {DownloadStatus.METADATA, DownloadStatus.HASHCHECKING, DownloadStatus.WAITING_FOR_HASHCHECK}
         return any(dw.get_status() not in recheck for dw in download_widgets)
 
     def update_downloads(self):
@@ -359,7 +359,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if result and "modified" in result:
             for selected_item in self.selected_items:
                 if selected_item.download_info["infohash"] == result["infohash"]:
-                    selected_item.download_info['status'] = Status.DLSTATUS_HASHCHECKING.name
+                    selected_item.download_info['status'] = DownloadStatus.HASHCHECKING.name
                     selected_item.update_item()
                     self.update_downloads()
 
@@ -525,11 +525,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         menu.addSeparator()
 
         exclude_states = [
-            Status.DLSTATUS_METADATA,
-            Status.DLSTATUS_CIRCUITS,
-            Status.DLSTATUS_EXIT_NODES,
-            Status.DLSTATUS_HASHCHECKING,
-            Status.DLSTATUS_WAITING4HASHCHECK,
+            DownloadStatus.METADATA,
+            DownloadStatus.CIRCUITS,
+            DownloadStatus.EXIT_NODES,
+            DownloadStatus.HASHCHECKING,
+            DownloadStatus.WAITING_FOR_HASHCHECK,
         ]
         if len(self.selected_items) == 1 and self.selected_items[0].get_status() not in exclude_states:
             menu.addAction(export_download_action)

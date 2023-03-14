@@ -27,7 +27,7 @@ from tribler.core.exceptions import SaveResumeDataError
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.osutils import fix_filebasename
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import DOWNLOAD, Status
+from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
@@ -436,7 +436,7 @@ class Download(TaskManager):
 
     def _stop_if_finished(self):
         state = self.get_state()
-        if state.get_status() == Status.DLSTATUS_SEEDING:
+        if state.get_status() == DownloadStatus.SEEDING:
             mode = self.download_defaults.seeding_mode
             seeding_ratio = self.download_defaults.seeding_ratio
             seeding_time = self.download_defaults.seeding_time
@@ -475,7 +475,7 @@ class Download(TaskManager):
     @check_handle()
     def force_recheck(self):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            if self.get_state().get_status() == Status.DLSTATUS_STOPPED:
+            if self.get_state().get_status() == DownloadStatus.STOPPED:
                 self.pause_after_next_hashcheck = True
             self.checkpoint_after_next_hashcheck = True
             self.handle.resume()
