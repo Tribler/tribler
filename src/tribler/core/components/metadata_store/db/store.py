@@ -484,7 +484,7 @@ class MetadataStore:
 
         torrent_state = self.TorrentState.get_for_update(infohash=health.infohash)
 
-        if torrent_state and health.should_update(torrent_state):
+        if torrent_state and health.should_replace(torrent_state.to_health()):
             self._logger.debug(f"Update health info {health}")
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
                               self_checked=False)

@@ -23,8 +23,6 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
-from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 

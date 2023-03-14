@@ -1,15 +1,19 @@
+import logging
 import os
 import random
 import secrets
 import time
-from unittest.mock import AsyncMock, MagicMock
+from asyncio import CancelledError
+from binascii import unhexlify
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from ipv8.util import succeed
 from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TOLERABLE_TIME_DRIFT, \
+    TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
     filter_non_exceptions
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
@@ -20,13 +24,13 @@ from tribler.core.components.torrent_checker.torrent_checker.tracker_manager imp
 
 # pylint: disable=protected-access
 
-@pytest.fixture
-def tracker_manager(tmp_path, metadata_store):
+@pytest.fixture(name="tracker_manager")
+def tracker_manager_fixture(tmp_path, metadata_store):
     return TrackerManager(state_dir=tmp_path, metadata_store=metadata_store)
 
 
 @pytest.fixture(name="torrent_checker")
-async def fixture_torrent_checker(tribler_config, tracker_manager, metadata_store):
+async def torrent_checker_fixture(tribler_config, tracker_manager, metadata_store):
     torrent_checker = TorrentChecker(config=tribler_config,
                                      download_manager=MagicMock(),
                                      notifier=MagicMock(),
@@ -258,6 +262,7 @@ def test_update_health(torrent_checker: TorrentChecker):
     ]
 
     health = aggregate_responses_for_infohash(infohash, responses)
+    health.self_checked = True
 
     # Check that everything works fine even if the database contains no proper infohash
     updated = torrent_checker.update_torrent_health(health)
@@ -377,3 +382,121 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
     # Health check requests are sent for all selected torrents
     result = await torrent_checker.check_torrents_in_user_channel()
     assert len(result) == len(selected_torrents)
+
+
+async def test_get_tracker_response_cancelled_error(torrent_checker: TorrentChecker, caplog):
+    """
+    Tests that CancelledError from session.connect_to_tracker() is handled correctly
+    """
+    torrent_checker.clean_session = AsyncMock()
+    torrent_checker.update_torrent_health = Mock()
+    torrent_checker.tracker_manager.update_tracker_info = Mock()
+
+    tracker_url = '<tracker_url>'
+    session = Mock(tracker_url=tracker_url)
+    session.connect_to_tracker = AsyncMock(side_effect=CancelledError())
+
+    with pytest.raises(CancelledError):
+        await torrent_checker.get_tracker_response(session)
+
+    torrent_checker.clean_session.assert_called_once()
+    torrent_checker.update_torrent_health.assert_not_called()
+    torrent_checker.tracker_manager.update_tracker_info.assert_not_called()
+
+    assert caplog.record_tuples == [
+        ('TorrentChecker', logging.INFO, 'Tracker session is being cancelled: <tracker_url>')
+    ]
+
+
+async def test_get_tracker_response_other_error(torrent_checker: TorrentChecker, caplog):
+    """
+    Tests that arbitrary exception from session.connect_to_tracker() is handled correctly
+    """
+    torrent_checker.clean_session = AsyncMock()
+    torrent_checker.update_torrent_health = Mock()
+    torrent_checker.tracker_manager.update_tracker_info = Mock()
+
+    tracker_url = '<tracker_url>'
+    session = Mock(tracker_url=tracker_url)
+    session.connect_to_tracker = AsyncMock(side_effect=ValueError('error text'))
+
+    with pytest.raises(ValueError, match='^error text$'):
+        await torrent_checker.get_tracker_response(session)
+
+    torrent_checker.clean_session.assert_called_once()
+    torrent_checker.update_torrent_health.assert_not_called()
+    torrent_checker.tracker_manager.update_tracker_info.assert_called_once_with(tracker_url, False)
+
+    assert caplog.record_tuples == [
+        ('TorrentChecker', logging.WARNING, "Got session error for the tracker: <tracker_url>\nerror text")
+    ]
+
+
+async def test_get_tracker_response(torrent_checker: TorrentChecker, caplog):
+    """
+    Tests that the result from session.connect_to_tracker() is handled correctly and passed to update_torrent_health()
+    """
+    health = HealthInfo(unhexlify('abcd0123'))
+    tracker_url = '<tracker_url>'
+    tracker_response = TrackerResponse(url=tracker_url, torrent_health_list=[health])
+
+    session = Mock(tracker_url=tracker_url)
+    session.connect_to_tracker = AsyncMock(return_value=tracker_response)
+
+    torrent_checker.clean_session = AsyncMock()
+    torrent_checker.update_torrent_health = Mock()
+    results = await torrent_checker.get_tracker_response(session)
+
+    assert results is tracker_response
+    torrent_checker.update_torrent_health.assert_called_once_with(health)
+
+    assert "Got response from Mock" in caplog.text
+
+
+def test_update_torrent_health_invalid_health(torrent_checker: TorrentChecker, caplog):
+    """
+    Tests that invalid health is ignored in TorrentChecker.update_torrent_health()
+    """
+    caplog.set_level(logging.WARNING)
+    now = int(time.time())
+    health = HealthInfo(unhexlify('abcd0123'), last_check=now + TOLERABLE_TIME_DRIFT + 2)
+    assert not torrent_checker.update_torrent_health(health)
+    assert "Invalid health info ignored: " in caplog.text
+
+
+def test_update_torrent_health_not_self_checked(torrent_checker: TorrentChecker, caplog):
+    """
+    Tests that non-self-checked health is ignored in TorrentChecker.update_torrent_health()
+    """
+    caplog.set_level(logging.ERROR)
+    health = HealthInfo(unhexlify('abcd0123'))
+    assert not torrent_checker.update_torrent_health(health)
+    assert "Self-checked torrent health expected" in caplog.text
+
+
+def test_update_torrent_health_unknown_torrent(torrent_checker: TorrentChecker, caplog):
+    """
+    Tests that unknown torrent's health is ignored in TorrentChecker.update_torrent_health()
+    """
+    caplog.set_level(logging.WARNING)
+    health = HealthInfo(unhexlify('abcd0123'), 1, 2, self_checked=True)
+    assert not torrent_checker.update_torrent_health(health)
+    assert "Unknown torrent: abcd0123" in caplog.text
+
+
+async def test_update_torrent_health_no_replace(torrent_checker, caplog):
+    """
+    Tests that the TorrentChecker.notify() method is called even if the new health does not replace the old health
+    """
+    now = int(time.time())
+    torrent_checker.notify = Mock()
+
+    with db_session:
+        torrent_state = torrent_checker.mds.TorrentState(infohash=unhexlify('abcd0123'), seeders=2, leechers=1,
+                                                         last_check=now, self_checked=True)
+        prev_health = torrent_state.to_health()
+
+    health = HealthInfo(unhexlify('abcd0123'), 1, 2, self_checked=True, last_check=now)
+    assert not torrent_checker.update_torrent_health(health)
+    assert "Skip health update, the health in the database is fresher or have more seeders" in caplog.text
+    torrent_checker.notify.assert_called_with(prev_health)

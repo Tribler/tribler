@@ -31,18 +31,6 @@ def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerRes
     result = HealthInfo(infohash, last_check=0)
     for response in responses:
         for health in response.torrent_health_list:
-            if health.infohash == infohash and health.seeders > result.seeders:
+            if health.infohash == infohash and health > result:
                 result = health
     return result
-
-
-def aggregate_health_by_infohash(health_list: List[HealthInfo]) -> List[HealthInfo]:
-    """
-    For each infohash in the health list, finds the "best" health info (with the max number of seeders)
-    """
-    d: Dict[bytes, HealthInfo] = {}
-    for health in health_list:
-        infohash = health.infohash
-        if infohash not in d or health.seeders > d[infohash].seeders:
-            d[infohash] = health
-    return list(d.values())
