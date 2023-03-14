@@ -71,7 +71,7 @@ class RESTManager:
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """
 
-    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None, shutdown_timeout: int = 1):
+    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None, shutdown_timeout: int = 10):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = root_endpoint

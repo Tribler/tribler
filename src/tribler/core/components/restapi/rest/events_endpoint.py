@@ -166,8 +166,13 @@ class EventsEndpoint(RESTEndpoint):
         self.events_responses.append(response)
 
         try:
-            while True:
-                await asyncio.sleep(3600)
+            while not self._shutdown:
+                await asyncio.sleep(1)
         except CancelledError:
+            self._logger.warning('Event stream was canceled')
+        else:
+            self._logger.info('Event stream was closed due to shutdown')
+        finally:
             self.events_responses.remove(response)
-            return response
+
+        return response
