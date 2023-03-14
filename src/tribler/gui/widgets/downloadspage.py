@@ -288,12 +288,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             request_manager.patch(f"downloads/{infohash}", self.on_download_resumed, data={"state": "resume"})
 
     def on_download_resumed(self, json_result):
-        if json_result and 'modified' in json_result:
-            for selected_item in self.selected_items:
-                if selected_item.download_info["infohash"] == json_result["infohash"]:
-                    selected_item.download_info['status'] = STATUS_STRING[Status.DLSTATUS_DOWNLOADING]
-                    selected_item.update_item()
-                    self.update_downloads()
+        if not json_result or 'modified' not in json_result:
+            return
+
+        for selected_item in self.selected_items:
+            if selected_item.download_info["infohash"] != json_result["infohash"]:
+                continue
+
+            selected_item.update_item()
+            self.update_downloads()
 
     def on_stop_download_clicked(self, checked):
         for selected_item in self.selected_items:
@@ -301,12 +304,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             request_manager.patch(f"downloads/{infohash}", self.on_download_stopped, data={"state": "stop"})
 
     def on_download_stopped(self, json_result):
-        if json_result and "modified" in json_result:
-            for selected_item in self.selected_items:
-                if selected_item.download_info["infohash"] == json_result["infohash"]:
-                    selected_item.download_info['status'] = STATUS_STRING[Status.DLSTATUS_STOPPED]
-                    selected_item.update_item()
-                    self.update_downloads()
+        if not json_result or "modified" not in json_result:
+            return
+
+        for selected_item in self.selected_items:
+            if selected_item.download_info["infohash"] != json_result["infohash"]:
+                continue
+
+            selected_item.update_item()
+            self.update_downloads()
 
     def on_remove_download_clicked(self, checked):
         self.dialog = ConfirmationDialog(
