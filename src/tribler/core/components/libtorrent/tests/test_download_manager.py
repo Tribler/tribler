@@ -11,7 +11,7 @@ from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
+from tribler.core.utilities.simpledefs import Status
 from tribler.core.utilities.unicode import hexlify
 
 
@@ -32,7 +32,7 @@ def create_fake_download_and_state():
     fake_download.shutdown = lambda: succeed(None)
     dl_state = MagicMock()
     dl_state.get_infohash = lambda: b'aaaa'
-    dl_state.get_status = lambda: DLSTATUS_SEEDING
+    dl_state.get_status = lambda: Status.DLSTATUS_SEEDING
     dl_state.get_download = lambda: fake_download
     fake_config = MagicMock()
     fake_config.get_hops = lambda: 0
@@ -214,11 +214,12 @@ async def test_start_download(fake_dlmgr):
         while not flag:
             check_was_run()
             await sleep(0.1)
+
     fake_dlmgr._check_dht_ready = mock_check
     fake_dlmgr.initialize()
 
     mock_download = MagicMock()
-    mock_download.get_def().get_infohash = lambda: b"1"*20
+    mock_download.get_def().get_infohash = lambda: b"1" * 20
     mock_download.future_added = succeed(True)
     mock_ltsession.async_add_torrent = MagicMock()
     await fake_dlmgr.start_handle(mock_download, {})
@@ -290,7 +291,7 @@ def test_remove_unregistered_torrent(fake_dlmgr):
     fake_dlmgr.initialize()
     mock_handle = MagicMock()
     mock_handle.is_valid = lambda: False
-    alert = type('torrent_removed_alert', (object, ), dict(handle=mock_handle, info_hash='0'*20))
+    alert = type('torrent_removed_alert', (object,), dict(handle=mock_handle, info_hash='0' * 20))
     fake_dlmgr.process_alert(alert())
 
     assert '0' * 20 not in fake_dlmgr.downloads
@@ -300,6 +301,7 @@ def test_set_proxy_settings(fake_dlmgr):
     """
     Test setting the proxy settings
     """
+
     def on_proxy_set(settings):
         assert settings
         assert settings.hostname == 'a'
@@ -352,6 +354,7 @@ def test_load_checkpoint(fake_dlmgr):
 
     def mock_start_download(*_, **__):
         good.append(1)
+
     fake_dlmgr.start_download = mock_start_download
 
     # Try opening real state file
@@ -397,6 +400,7 @@ async def test_load_checkpoints(fake_dlmgr, tmpdir):
     """
     Test whether we are resuming downloads after loading checkpoints
     """
+
     def mocked_load_checkpoint(filename):
         assert str(filename).endswith('abcd.conf')
         mocked_load_checkpoint.called = True

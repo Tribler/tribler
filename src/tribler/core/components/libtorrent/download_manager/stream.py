@@ -21,7 +21,7 @@ import logging
 from asyncio import sleep
 
 from tribler.core.components.libtorrent.utils.torrent_utils import check_vod, get_info_from_handle
-from tribler.core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
+from tribler.core.utilities.simpledefs import Status
 
 # Header and footer sizes are necessary for video client to detect file codecs and muxer metadata.
 # Without below pieces are ready, streamer should not start
@@ -140,7 +140,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
         # wait until dlstate is downloading or seeding
         while True:
             status = self.__lt_state().get_status()
-            if status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
+            if status in [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING]:
                 break
             await sleep(1)
 

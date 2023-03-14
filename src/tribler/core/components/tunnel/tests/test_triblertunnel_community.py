@@ -33,6 +33,7 @@ from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.tests.tools.tracker.http_tracker import HTTPTracker
 from tribler.core.utilities.network_utils import NetworkUtils
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.simpledefs import Status
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
@@ -196,7 +197,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         mock_download.config = MockObject()
         mock_download.config.get_hops = lambda: 1
         mock_download.apply_ip_filter = lambda _: None
-        mock_state.get_status = lambda: 4
+        mock_state.get_status = lambda: Status.DLSTATUS_SEEDING
         mock_state.get_download = lambda: mock_download
 
         def mock_create_ip(*_, **__):
@@ -205,7 +206,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         mock_create_ip.called = False
         self.nodes[0].overlay.create_introduction_point = mock_create_ip
 
-        self.nodes[0].overlay.download_states[b'a'] = 3
+        self.nodes[0].overlay.download_states[b'a'] = Status.DLSTATUS_DOWNLOADING
         self.nodes[0].overlay.monitor_downloads([mock_state])
         self.assertTrue(mock_create_ip.called)
 

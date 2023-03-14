@@ -12,12 +12,7 @@ from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
-from tribler.core.utilities.simpledefs import (
-    DLSTATUS_CIRCUITS,
-    DLSTATUS_DOWNLOADING,
-    DLSTATUS_EXIT_NODES,
-    DLSTATUS_STOPPED,
-)
+from tribler.core.utilities.simpledefs import Status
 from tribler.core.utilities.unicode import hexlify
 
 
@@ -77,7 +72,7 @@ def test_get_extended_status_downloading_nohops_nocandidates(mock_extended_statu
     """
     Testing whether a non-anonymous download with state is considered "DOWNLOADING" without candidates.
     """
-    assert mock_extended_status == DLSTATUS_DOWNLOADING
+    assert mock_extended_status == Status.DLSTATUS_DOWNLOADING
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -87,7 +82,7 @@ def test_get_extended_status_downloading_nohops_candidates(mock_extended_status)
     """
     Testing whether a non-anonymous download with state is considered "DOWNLOADING" with candidates.
     """
-    assert mock_extended_status == DLSTATUS_DOWNLOADING
+    assert mock_extended_status == Status.DLSTATUS_DOWNLOADING
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -97,7 +92,7 @@ def test_get_extended_status_downloading_hops_nocandidates(mock_extended_status)
     """
     Testing whether an anonymous download with state is considered "DOWNLOADING" without candidates.
     """
-    assert mock_extended_status == DLSTATUS_DOWNLOADING
+    assert mock_extended_status == Status.DLSTATUS_DOWNLOADING
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -107,7 +102,7 @@ def test_get_extended_status_downloading_hops_candidates(mock_extended_status):
     """
     Testing whether an anonymous download with state is considered "DOWNLOADING" with candidates.
     """
-    assert mock_extended_status == DLSTATUS_DOWNLOADING
+    assert mock_extended_status == Status.DLSTATUS_DOWNLOADING
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -117,7 +112,7 @@ def test_get_extended_status_stopped(mock_extended_status):
     """
     Testing whether a non-anonymous download without state is considered "STOPPED" without candidates.
     """
-    assert mock_extended_status == DLSTATUS_STOPPED
+    assert mock_extended_status == Status.DLSTATUS_STOPPED
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -127,7 +122,7 @@ def test_get_extended_status_stopped_hascandidates(mock_extended_status):
     """
     Testing whether a non-anonymous download without state is considered "STOPPED" with candidates.
     """
-    assert mock_extended_status == DLSTATUS_STOPPED
+    assert mock_extended_status == Status.DLSTATUS_STOPPED
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -137,7 +132,7 @@ def test_get_extended_status_exit_nodes(mock_extended_status):
     """
     Testing whether an anonymous download without state is considered looking for "EXIT_NODES" without candidates.
     """
-    assert mock_extended_status == DLSTATUS_EXIT_NODES
+    assert mock_extended_status == Status.DLSTATUS_EXIT_NODES
 
 
 @pytest.mark.parametrize("mock_extended_status",
@@ -147,7 +142,7 @@ def test_get_extended_status_circuits(mock_extended_status):
     """
     Testing whether an anonymous download without state is considered looking for "CIRCUITS" with candidates.
     """
-    assert mock_extended_status == DLSTATUS_CIRCUITS
+    assert mock_extended_status == Status.DLSTATUS_CIRCUITS
 
 
 async def test_get_downloads_if_checkpoints_are_not_loaded(mock_dlmgr, rest_api):
@@ -215,6 +210,7 @@ async def test_start_download_with_selected_files(test_download, mock_dlmgr, res
     """
     Testing whether we can start a download with the selected_files parameter set
     """
+
     def mocked_start_download(*_, config=None):
         assert config.get_selected_files() == [0]
         return succeed(test_download)
@@ -264,6 +260,7 @@ async def test_start_invalid_download(mock_dlmgr, rest_api):
     """
     Testing whether an Exception triggered in start_download_from_uri is correctly handled
     """
+
     def mocked_start_download(*_, **__):
         raise Exception("test")
 
@@ -319,6 +316,7 @@ async def test_stop_download(mock_dlmgr, test_download, rest_api):
     def mocked_stop(*_, **__):
         test_download.should_stop = True
         return succeed(None)
+
     test_download.stop = mocked_stop
 
     await do_request(rest_api, f'downloads/{test_download.infohash}', post_data={"state": "stop"},
@@ -366,6 +364,7 @@ async def test_resume_download(mock_dlmgr, test_download, rest_api):
 
     def mocked_resume():
         test_download.should_resume = True
+
     test_download.resume = mocked_resume
 
     await do_request(rest_api, f'downloads/{test_download.infohash}', post_data={"state": "resume"},

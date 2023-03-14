@@ -5,6 +5,8 @@ from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
+from tribler.core.utilities.simpledefs import Status
+
 
 class DownloadProgressBar(QWidget):
     """
@@ -21,14 +23,22 @@ class DownloadProgressBar(QWidget):
 
     def update_with_download(self, download):
         self.download = download
-        if download["status"] in ("DLSTATUS_SEEDING", "DLSTATUS_CIRCUITS"):
+        status = Status(download["status_code"])
+
+        seeding_or_circuits = {
+            Status.DLSTATUS_SEEDING,
+            Status.DLSTATUS_CIRCUITS,
+        }
+        downloading_or_stopped = {
+            Status.DLSTATUS_HASHCHECKING,
+            Status.DLSTATUS_DOWNLOADING,
+            Status.DLSTATUS_STOPPED,
+            Status.DLSTATUS_STOPPED_ON_ERROR,
+        }
+
+        if status in seeding_or_circuits:
             self.set_fraction(download["progress"])
-        elif download["status"] in (
-                "DLSTATUS_HASHCHECKING",
-                "DLSTATUS_DOWNLOADING",
-                "DLSTATUS_STOPPED",
-                "DLSTATUS_STOPPED_ON_ERROR",
-        ):
+        elif status in downloading_or_stopped:
             self.set_pieces()
         else:
             self.set_fraction(0.0)

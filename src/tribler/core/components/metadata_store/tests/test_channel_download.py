@@ -11,7 +11,7 @@ from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.serialization import ChannelMetadataPayload
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
+from tribler.core.utilities.simpledefs import Status
 
 CHANNEL_DIR = TESTS_DATA_DIR / 'sample_channel'
 CHANNEL_TORRENT = CHANNEL_DIR / 'channel.torrent'
@@ -39,7 +39,7 @@ async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unu
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR / 'sample_channel')
     upload = seeder_dlmgr.start_download(tdef=channel_tdef, config=dscfg_seed)
-    await upload.wait_for_status(DLSTATUS_SEEDING)
+    await upload.wait_for_status(Status.DLSTATUS_SEEDING)
     yield seeder_dlmgr
     await seeder_dlmgr.shutdown()
 

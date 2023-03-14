@@ -50,10 +50,7 @@ from tribler.core.components.tunnel.community.payload import (
 from tribler.core.utilities.bencodecheck import is_bencoded
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
-    DLSTATUS_DOWNLOADING,
-    DLSTATUS_METADATA,
-    DLSTATUS_SEEDING,
-    DLSTATUS_STOPPED,
+    Status,
 )
 from tribler.core.utilities.unicode import hexlify
 
@@ -477,7 +474,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 hops[info_hash] = hop_count
                 new_states[info_hash] = ds.get_status()
 
-                if download.get_state().get_status() in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
+                active = [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING, Status.DLSTATUS_METADATA]
+                if download.get_state().get_status() in active:
                     active_downloads_per_hop[hop_count] = active_downloads_per_hop.get(hop_count, 0) + 1
 
                     # Ugly work-around for the libtorrent DHT not making any requests
@@ -501,15 +499,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             state_changed = new_state != old_state
 
             # Join/leave hidden swarm as needed.
-            if state_changed and new_state in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_METADATA]:
-                if old_state != DLSTATUS_METADATA or new_state != DLSTATUS_DOWNLOADING:
-                    self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DLSTATUS_SEEDING,
+            active = [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING, Status.DLSTATUS_METADATA]
+            if state_changed and new_state in active:
+                if old_state != Status.DLSTATUS_METADATA or new_state != Status.DLSTATUS_DOWNLOADING:
+                    self.join_swarm(info_hash, hops[info_hash], seeding=new_state == Status.DLSTATUS_SEEDING,
                                     callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
-            elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
+            elif state_changed and new_state in [Status.DLSTATUS_STOPPED, None]:
                 self.leave_swarm(info_hash)
 
             # Ensure we have enough introduction points for this infohash. Currently, we only create 1.
-            if new_state == DLSTATUS_SEEDING:
+            if new_state == Status.DLSTATUS_SEEDING:
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
                     self.logger.info('Create introducing circuit for %s', hexlify(info_hash))
                     self.create_introduction_point(info_hash)

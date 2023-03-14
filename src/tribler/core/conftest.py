@@ -22,7 +22,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
 from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler.core.utilities.network_utils import default_network_utils
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
+from tribler.core.utilities.simpledefs import Status
 from tribler.core.utilities.unicode import hexlify
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
@@ -128,7 +128,7 @@ async def video_seeder(tmp_path_factory, video_tdef):
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR)
     upload = dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
-    await upload.wait_for_status(DLSTATUS_SEEDING)
+    await upload.wait_for_status(Status.DLSTATUS_SEEDING)
     yield dlmgr
     await dlmgr.shutdown()
 
