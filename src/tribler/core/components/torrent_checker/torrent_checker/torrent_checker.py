@@ -175,7 +175,7 @@ class TorrentChecker(TaskManager):
             await self.clean_session(session)
 
         t2 = time.time()
-        self._logger.info(f"Got response from {session.__class__.__name__} in {t2-t1:.3f}seconds: {result}")
+        self._logger.info(f"Got response from {session.__class__.__name__} in {t2-t1:.3f} seconds: {result}")
 
         with db_session:
             for health in result.torrent_health_list:
@@ -391,7 +391,7 @@ class TorrentChecker(TaskManager):
 
             prev_health = torrent_state.to_health()
             if not health.should_replace(prev_health):
-                self._logger.info("Skip health update, the health in the database is fresher")
+                self._logger.info("Skip health update, the health in the database is fresher or have more seeders")
                 self.notify(prev_health)  # to update UI state from "Checking..."
                 return False
 
