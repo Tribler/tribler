@@ -29,7 +29,7 @@ from tribler.core.components.socks_servers.socks_servers_component import NUM_SO
 from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
 from tribler.core.components.tunnel.settings import TunnelCommunitySettings
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, dlstatus_strings
+from tribler.core.utilities.simpledefs import DownloadStatus
 
 logger = logging.getLogger("TunnelTests")
 
@@ -87,13 +87,13 @@ async def hidden_seeder_comm(proxy_factory: ProxyFactory, video_tdef: TorrentDef
         """
         community.monitor_downloads([download_state])
         download = download_state.get_download()
-        status = dlstatus_strings[download_state.get_status()]
+        status = download_state.get_status().name
         logger.info(f"seeder: {repr(download.get_def().get_name())} {status} {download_state.get_progress()}")
         return 2
 
     upload.set_state_callback(seeder_state_callback)
 
-    await upload.wait_for_status(DLSTATUS_SEEDING)
+    await upload.wait_for_status(DownloadStatus.SEEDING)
     return community
 
 
@@ -234,7 +234,7 @@ async def test_anon_download(proxy_factory: ProxyFactory, video_seeder: Download
     download_manager = tunnel_community.download_manager
 
     download = start_anon_download(tunnel_community, video_seeder.libtorrent_port, video_tdef)
-    await download.wait_for_status(DLSTATUS_DOWNLOADING)
+    await download.wait_for_status(DownloadStatus.DOWNLOADING)
     download_manager.set_download_states_callback(download_manager.sesscb_states_callback, interval=.1)
 
     while not tunnel_community.find_circuits():

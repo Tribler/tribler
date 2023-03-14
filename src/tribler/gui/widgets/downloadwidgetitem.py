@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime
+from typing import Dict, Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from tribler.core.utilities.simpledefs import dlstatus_strings
-
-from tribler.gui.defs import DLSTATUS_DOWNLOADING, DLSTATUS_METADATA, DLSTATUS_STRINGS
+from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.gui.defs import STATUS_STRING
 from tribler.gui.utilities import duration_to_string, format_size, format_speed
 
 
@@ -60,21 +60,21 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
     def __init__(self):
         QTreeWidgetItem.__init__(self)
-        self.download_info = None
+        self.download_info: Optional[Dict] = None
         self._logger = logging.getLogger('TriblerGUI')
         self.bar_container, self.progress_slider = create_progress_bar_widget()
 
-    def update_with_download(self, download):
+    def update_with_download(self, download: Dict):
         self.download_info = download
         self.update_item()
 
-    def get_raw_download_status(self):
-        return dlstatus_strings.index(self.download_info["status"])
+    def get_status(self) -> DownloadStatus:
+        return DownloadStatus(self.download_info["status_code"])
 
     def update_item(self):
         self.setText(0, self.download_info["name"])
 
-        if self.download_info["size"] == 0 and self.get_raw_download_status() == DLSTATUS_METADATA:
+        if self.download_info["size"] == 0 and self.get_status() == DownloadStatus.METADATA:
             self.setText(1, "unknown")
         else:
             self.setText(1, format_size(float(self.download_info["size"])))
@@ -87,7 +87,9 @@ class DownloadWidgetItem(QTreeWidgetItem):
         if self.download_info["vod_mode"]:
             self.setText(3, "Streaming")
         else:
-            self.setText(3, DLSTATUS_STRINGS[dlstatus_strings.index(self.download_info["status"])])
+            status = DownloadStatus(self.download_info["status_code"])
+            status_string = STATUS_STRING[status]
+            self.setText(3, status_string)
         self.setText(4, f"{self.download_info['num_connected_seeds']} ({self.download_info['num_seeds']})")
         self.setText(5, f"{self.download_info['num_connected_peers']} ({self.download_info['num_peers']})")
         self.setText(6, format_speed(self.download_info["speed_down"]))
@@ -98,7 +100,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(12, datetime.fromtimestamp(int(self.download_info["time_added"])).strftime('%Y-%m-%d %H:%M'))
 
         eta_text = "-"
-        if self.get_raw_download_status() == DLSTATUS_DOWNLOADING:
+        if self.get_status() == DownloadStatus.DOWNLOADING:
             eta_text = duration_to_string(self.download_info["eta"])
         self.setText(11, eta_text)
 
@@ -127,7 +129,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         elif column == 11:
             # Put finished downloads with an ETA of 0 after all other downloads
             return (float(self.download_info["eta"]) or float('inf')) > (
-                float(other.download_info["eta"]) or float('inf')
+                    float(other.download_info["eta"]) or float('inf')
             )
         elif column == 12:
             return int(self.download_info["time_added"]) > int(other.download_info["time_added"])

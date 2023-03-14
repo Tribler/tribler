@@ -6,29 +6,19 @@ Author(s): Arno Bakker
 from enum import Enum
 from uuid import UUID
 
-DLSTATUS_ALLOCATING_DISKSPACE = 0  # TODO: make sure this get set when in this alloc mode
-DLSTATUS_WAITING4HASHCHECK = 1
-DLSTATUS_HASHCHECKING = 2
-DLSTATUS_DOWNLOADING = 3
-DLSTATUS_SEEDING = 4
-DLSTATUS_STOPPED = 5
-DLSTATUS_STOPPED_ON_ERROR = 6
-DLSTATUS_METADATA = 7
-DLSTATUS_CIRCUITS = 8
-DLSTATUS_EXIT_NODES = 9
 
-dlstatus_strings = [
-    'DLSTATUS_ALLOCATING_DISKSPACE',
-    'DLSTATUS_WAITING4HASHCHECK',
-    'DLSTATUS_HASHCHECKING',
-    'DLSTATUS_DOWNLOADING',
-    'DLSTATUS_SEEDING',
-    'DLSTATUS_STOPPED',
-    'DLSTATUS_STOPPED_ON_ERROR',
-    'DLSTATUS_METADATA',
-    'DLSTATUS_CIRCUITS',
-    'DLSTATUS_EXIT_NODES',
-]
+class DownloadStatus(Enum):
+    ALLOCATING_DISKSPACE = 0
+    WAITING_FOR_HASHCHECK = 1
+    HASHCHECKING = 2
+    DOWNLOADING = 3
+    SEEDING = 4
+    STOPPED = 5
+    STOPPED_ON_ERROR = 6
+    METADATA = 7
+    CIRCUITS = 8
+    EXIT_NODES = 9
+
 
 UPLOAD = 'up'
 DOWNLOAD = 'down'
@@ -54,7 +44,6 @@ STATE_START_TORRENT_CHECKER = 'Starting torrent checker...'
 STATE_START_API_ENDPOINTS = 'Starting API endpoints...'
 STATE_START_WATCH_FOLDER = 'Starting watch folder...'
 STATE_START_RESOURCE_MONITOR = 'Starting resource monitor...'
-
 
 # This UUID is used to push new channels through the events endpoint. GigaChannel Community
 # sends updates over the Events endpoints with this UUID when new toplevel channels discovered.

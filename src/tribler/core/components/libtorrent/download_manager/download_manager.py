@@ -36,7 +36,8 @@ from tribler.core.utilities.rest_utils import (
     scheme_from_url,
     url_to_path,
 )
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
+from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR, \
+    DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler.core.version import version_id
@@ -104,7 +105,7 @@ class DownloadManager(TaskManager):
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
 
-        self.downloads = {}
+        self.downloads: Dict[bytes, Download] = {}
 
         self.checkpoints_count = None
         self.checkpoints_loaded = 0
@@ -742,10 +743,10 @@ class DownloadManager(TaskManager):
         else:
             self._logger.debug("Cannot remove unknown download")
 
-    def get_download(self, infohash):
+    def get_download(self, infohash: bytes) -> Download:
         return self.downloads.get(infohash, None)
 
-    def get_downloads(self):
+    def get_downloads(self) -> List[Download]:
         return list(self.downloads.values())
 
     def get_channel_downloads(self):
@@ -838,7 +839,7 @@ class DownloadManager(TaskManager):
             download = ds.get_download()
             infohash = download.get_def().get_infohash()
 
-            if ds.get_status() == DLSTATUS_SEEDING:
+            if ds.get_status() == DownloadStatus.SEEDING:
                 if download.config.get_hops() == 0 and download.config.get_safe_seeding():
                     # Re-add the download with anonymity enabled
                     hops = self.download_defaults.number_hops

@@ -24,12 +24,8 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
 from tribler.core.components.restapi.rest.util import return_handled_exception
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
-    DLSTATUS_CIRCUITS,
-    DLSTATUS_EXIT_NODES,
-    DLSTATUS_STOPPED,
     DOWNLOAD,
-    UPLOAD,
-    dlstatus_strings,
+    DownloadStatus, UPLOAD,
 )
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import froze_it
@@ -57,25 +53,25 @@ def _safe_extended_peer_info(ext_peer_info):
         return ''.join([chr(c) for c in ext_peer_info])
 
 
-def get_extended_status(tunnel_community, download):
+def get_extended_status(tunnel_community, download) -> DownloadStatus:
     """
     This function filters the original download status to possibly add tunnel-related status.
     Extracted from DownloadState to remove coupling between DownloadState and Tunnels.
     """
     state = download.get_state()
-    dlstatus = state.get_status()
+    status = state.get_status()
 
     # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
     stopped_by_user = state.lt_status and state.lt_status.paused
 
-    if dlstatus is DLSTATUS_STOPPED and not stopped_by_user:
+    if status == DownloadStatus.STOPPED and not stopped_by_user:
         if download.config.get_hops() > 0:
             if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-                return DLSTATUS_CIRCUITS
+                return DownloadStatus.CIRCUITS
             else:
-                return DLSTATUS_EXIT_NODES
-        return DLSTATUS_STOPPED
-    return dlstatus
+                return DownloadStatus.EXIT_NODES
+        return DownloadStatus.STOPPED
+    return status
 
 
 @froze_it
@@ -192,6 +188,7 @@ class DownloadsEndpoint(RESTEndpoint):
                         'speed_down': Float,
                         'speed_up': Float,
                         'status': String,
+                        'status_code': Integer,
                         'size': Integer,
                         'eta': Integer,
                         'num_peers': Integer,
@@ -282,7 +279,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 "infohash": hexlify(tdef.get_infohash()),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
-                "status": dlstatus_strings[download_status],
+                "status": download_status.name,
+                "status_code": download_status.value,
                 "size": tdef.get_length(),
                 "eta": state.get_eta(),
                 "num_peers": num_peers,

@@ -8,23 +8,17 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
-    DLSTATUS_CIRCUITS,
-    DLSTATUS_EXIT_NODES,
-    DLSTATUS_HASHCHECKING,
-    DLSTATUS_METADATA,
-    DLSTATUS_STOPPED,
-    DLSTATUS_STOPPED_ON_ERROR,
-    DLSTATUS_WAITING4HASHCHECK,
     DOWNLOADS_FILTER_ACTIVE,
     DOWNLOADS_FILTER_ALL,
     DOWNLOADS_FILTER_CHANNELS,
     DOWNLOADS_FILTER_COMPLETED,
     DOWNLOADS_FILTER_DEFINITION,
     DOWNLOADS_FILTER_DOWNLOADING,
-    DOWNLOADS_FILTER_INACTIVE,
+    DOWNLOADS_FILTER_INACTIVE, STATUS_STRING,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request_manager import request_manager
@@ -239,13 +233,12 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
             is_channel = item.download_info["channel_download"]
             if self.filter == DOWNLOADS_FILTER_CHANNELS:
-                item.setHidden(not is_channel or not filter_match)
+                hide = not (is_channel and filter_match)
+                item.setHidden(hide)
             else:
-                item.setHidden(
-                    not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter]
-                    or not filter_match
-                    or is_channel
-                )
+                filtered = DOWNLOADS_FILTER_DEFINITION[self.filter]
+                hide = item.get_status() not in filtered or not filter_match or is_channel
+                item.setHidden(hide)
 
     def on_downloads_tab_button_clicked(self, button_name):
         self.filter = button_name2filter[button_name]
@@ -256,28 +249,17 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     @staticmethod
     def start_download_enabled(download_widgets):
-        return any(
-            [download_widget.get_raw_download_status() == DLSTATUS_STOPPED for download_widget in download_widgets]
-        )
+        return any(dw.get_status() == DownloadStatus.STOPPED for dw in download_widgets)
 
     @staticmethod
     def stop_download_enabled(download_widgets):
-        return any(
-            [
-                download_widget.get_raw_download_status() not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
-                for download_widget in download_widgets
-            ]
-        )
+        stopped = {DownloadStatus.STOPPED, DownloadStatus.STOPPED_ON_ERROR}
+        return any(dw.get_status() not in stopped for dw in download_widgets)
 
     @staticmethod
     def force_recheck_download_enabled(download_widgets):
-        return any(
-            [
-                download_widget.get_raw_download_status()
-                not in [DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]
-                for download_widget in download_widgets
-            ]
-        )
+        recheck = {DownloadStatus.METADATA, DownloadStatus.HASHCHECKING, DownloadStatus.WAITING_FOR_HASHCHECK}
+        return any(dw.get_status() not in recheck for dw in download_widgets)
 
     def update_downloads(self):
         selected = self.window().downloads_list.selectedItems()
@@ -306,12 +288,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             request_manager.patch(f"downloads/{infohash}", self.on_download_resumed, data={"state": "resume"})
 
     def on_download_resumed(self, json_result):
-        if json_result and 'modified' in json_result:
-            for selected_item in self.selected_items:
-                if selected_item.download_info["infohash"] == json_result["infohash"]:
-                    selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
-                    selected_item.update_item()
-                    self.update_downloads()
+        if not json_result or 'modified' not in json_result:
+            return
+
+        for selected_item in self.selected_items:
+            if selected_item.download_info["infohash"] != json_result["infohash"]:
+                continue
+
+            selected_item.update_item()
+            self.update_downloads()
 
     def on_stop_download_clicked(self, checked):
         for selected_item in self.selected_items:
@@ -319,12 +304,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             request_manager.patch(f"downloads/{infohash}", self.on_download_stopped, data={"state": "stop"})
 
     def on_download_stopped(self, json_result):
-        if json_result and "modified" in json_result:
-            for selected_item in self.selected_items:
-                if selected_item.download_info["infohash"] == json_result["infohash"]:
-                    selected_item.download_info['status'] = "DLSTATUS_STOPPED"
-                    selected_item.update_item()
-                    self.update_downloads()
+        if not json_result or "modified" not in json_result:
+            return
+
+        for selected_item in self.selected_items:
+            if selected_item.download_info["infohash"] != json_result["infohash"]:
+                continue
+
+            selected_item.update_item()
+            self.update_downloads()
 
     def on_remove_download_clicked(self, checked):
         self.dialog = ConfirmationDialog(
@@ -371,7 +359,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if result and "modified" in result:
             for selected_item in self.selected_items:
                 if selected_item.download_info["infohash"] == result["infohash"]:
-                    selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
+                    selected_item.download_info['status'] = DownloadStatus.HASHCHECKING.name
                     selected_item.update_item()
                     self.update_downloads()
 
@@ -537,13 +525,13 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         menu.addSeparator()
 
         exclude_states = [
-            DLSTATUS_METADATA,
-            DLSTATUS_CIRCUITS,
-            DLSTATUS_EXIT_NODES,
-            DLSTATUS_HASHCHECKING,
-            DLSTATUS_WAITING4HASHCHECK,
+            DownloadStatus.METADATA,
+            DownloadStatus.CIRCUITS,
+            DownloadStatus.EXIT_NODES,
+            DownloadStatus.HASHCHECKING,
+            DownloadStatus.WAITING_FOR_HASHCHECK,
         ]
-        if len(self.selected_items) == 1 and self.selected_items[0].get_raw_download_status() not in exclude_states:
+        if len(self.selected_items) == 1 and self.selected_items[0].get_status() not in exclude_states:
             menu.addAction(export_download_action)
         menu.addAction(explore_files_action)
         if len(self.selected_items) == 1:

@@ -3,8 +3,8 @@ from pathlib import PurePosixPath
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
-from tribler.core.utilities.simpledefs import dlstatus_strings
-from tribler.gui.defs import DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STRINGS
+from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.gui.defs import STATUS_STRING
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 
@@ -143,8 +143,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         if self.current_download["vod_mode"]:
             self.window().download_detail_status_label.setText('Streaming')
         else:
-            status_string = DLSTATUS_STRINGS[dlstatus_strings.index(self.current_download["status"])]
-            if dlstatus_strings.index(self.current_download["status"]) == DLSTATUS_STOPPED_ON_ERROR:
+            status = DownloadStatus(self.current_download["status_code"])
+            status_string = STATUS_STRING[status]
+            if status == DownloadStatus.STOPPED_ON_ERROR:
                 status_string += f" (error: {self.current_download['error']})"
             self.window().download_detail_status_label.setText(status_string)
 

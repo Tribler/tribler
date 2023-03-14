@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler.core.utilities.simpledefs import DLSTATUS_DOWNLOADING, DOWNLOAD, UPLOAD
+from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus, UPLOAD
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def test_getters_setters_2(mock_download, mock_lt_status):
     """
     download_state = DownloadState(mock_download, mock_lt_status, None)
 
-    assert download_state.get_status() == DLSTATUS_DOWNLOADING
+    assert download_state.get_status() == DownloadStatus.DOWNLOADING
     assert download_state.get_current_speed(UPLOAD) == 123
     assert download_state.get_current_speed(DOWNLOAD) == 43
     assert download_state.get_total_transferred(UPLOAD) == 100

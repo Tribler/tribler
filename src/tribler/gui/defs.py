@@ -6,10 +6,11 @@ from collections import namedtuple
 
 from PyQt5.QtGui import QColor
 
+from tribler.core.utilities.simpledefs import DownloadStatus
+
 DEFAULT_API_PROTOCOL = "http"
 DEFAULT_API_HOST = "localhost"
 DEFAULT_API_PORT = 20100
-
 
 # Define stacked widget page indices
 PAGE_SEARCH_RESULTS = 0
@@ -33,30 +34,18 @@ PAGE_SETTINGS_ANONYMITY = 4
 PAGE_SETTINGS_DATA = 5
 PAGE_SETTINGS_DEBUG = 6
 
-# Definition of the download statuses and the corresponding strings
-DLSTATUS_ALLOCATING_DISKSPACE = 0
-DLSTATUS_WAITING4HASHCHECK = 1
-DLSTATUS_HASHCHECKING = 2
-DLSTATUS_DOWNLOADING = 3
-DLSTATUS_SEEDING = 4
-DLSTATUS_STOPPED = 5
-DLSTATUS_STOPPED_ON_ERROR = 6
-DLSTATUS_METADATA = 7
-DLSTATUS_CIRCUITS = 8
-DLSTATUS_EXIT_NODES = 9
-
-DLSTATUS_STRINGS = [
-    "Allocating disk space",
-    "Waiting for check",
-    "Checking",
-    "Downloading",
-    "Seeding",
-    "Stopped",
-    "Stopped on error",
-    "Waiting for metadata",
-    "Building circuits",
-    "Finding exit nodes",
-]
+STATUS_STRING = {
+    DownloadStatus.ALLOCATING_DISKSPACE: "Allocating disk space",
+    DownloadStatus.WAITING_FOR_HASHCHECK: "Waiting for check",
+    DownloadStatus.HASHCHECKING: "Checking",
+    DownloadStatus.DOWNLOADING: "Downloading",
+    DownloadStatus.SEEDING: "Seeding",
+    DownloadStatus.STOPPED: "Stopped",
+    DownloadStatus.STOPPED_ON_ERROR: "Stopped on error",
+    DownloadStatus.METADATA: "Waiting for metadata",
+    DownloadStatus.CIRCUITS: "Building circuits",
+    DownloadStatus.EXIT_NODES: "Finding exit nodes",
+}
 
 # Definitions of the download filters. For each filter, it is specified which download statuses can be displayed.
 DOWNLOADS_FILTER_ALL = 0
@@ -68,30 +57,37 @@ DOWNLOADS_FILTER_CHANNELS = 6
 
 DOWNLOADS_FILTER_DEFINITION = {
     DOWNLOADS_FILTER_ALL: [
-        DLSTATUS_ALLOCATING_DISKSPACE,
-        DLSTATUS_WAITING4HASHCHECK,
-        DLSTATUS_HASHCHECKING,
-        DLSTATUS_DOWNLOADING,
-        DLSTATUS_SEEDING,
-        DLSTATUS_STOPPED,
-        DLSTATUS_STOPPED_ON_ERROR,
-        DLSTATUS_METADATA,
-        DLSTATUS_CIRCUITS,
-        DLSTATUS_EXIT_NODES,
+        DownloadStatus.ALLOCATING_DISKSPACE,
+        DownloadStatus.WAITING_FOR_HASHCHECK,
+        DownloadStatus.HASHCHECKING,
+        DownloadStatus.DOWNLOADING,
+        DownloadStatus.SEEDING,
+        DownloadStatus.STOPPED,
+        DownloadStatus.STOPPED_ON_ERROR,
+        DownloadStatus.METADATA,
+        DownloadStatus.CIRCUITS,
+        DownloadStatus.EXIT_NODES,
     ],
-    DOWNLOADS_FILTER_DOWNLOADING: [DLSTATUS_DOWNLOADING],
-    DOWNLOADS_FILTER_COMPLETED: [DLSTATUS_SEEDING],
+    DOWNLOADS_FILTER_DOWNLOADING: [
+        DownloadStatus.DOWNLOADING,
+    ],
+    DOWNLOADS_FILTER_COMPLETED: [
+        DownloadStatus.SEEDING,
+    ],
     DOWNLOADS_FILTER_ACTIVE: [
-        DLSTATUS_ALLOCATING_DISKSPACE,
-        DLSTATUS_WAITING4HASHCHECK,
-        DLSTATUS_HASHCHECKING,
-        DLSTATUS_DOWNLOADING,
-        DLSTATUS_SEEDING,
-        DLSTATUS_METADATA,
-        DLSTATUS_CIRCUITS,
-        DLSTATUS_EXIT_NODES,
+        DownloadStatus.ALLOCATING_DISKSPACE,
+        DownloadStatus.WAITING_FOR_HASHCHECK,
+        DownloadStatus.HASHCHECKING,
+        DownloadStatus.DOWNLOADING,
+        DownloadStatus.SEEDING,
+        DownloadStatus.METADATA,
+        DownloadStatus.CIRCUITS,
+        DownloadStatus.EXIT_NODES,
     ],
-    DOWNLOADS_FILTER_INACTIVE: [DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR],
+    DOWNLOADS_FILTER_INACTIVE: [
+        DownloadStatus.STOPPED,
+        DownloadStatus.STOPPED_ON_ERROR
+    ],
 }
 
 BUTTON_TYPE_NORMAL = 0
@@ -115,7 +111,6 @@ HEALTH_UNCHECKED = 'Unknown'
 
 # Interval for refreshing the results in the debug pane
 DEBUG_PANE_REFRESH_TIMEOUT = 5000  # 5 seconds
-
 
 ContentCategoryTuple = namedtuple("ContentCategoryTuple", "code emoji long_name short_name")
 
@@ -163,7 +158,6 @@ class ContentCategories:
 CATEGORY_SELECTOR_FOR_SEARCH_ITEMS = ("All", "Channels") + ContentCategories.long_names
 CATEGORY_SELECTOR_FOR_POPULAR_ITEMS = ("All",) + ContentCategories.long_names
 
-
 # Trust Graph constants
 COLOR_RED = "#b37477"
 COLOR_GREEN = "#23cc2b"
@@ -173,10 +167,10 @@ COLOR_ROOT = "#FE6D01"
 COLOR_SELECTED = "#5c58ee"
 HTML_SPACE = '&nbsp;'
 TRUST_GRAPH_PEER_LEGENDS = (
-    "<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
-    "<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;"
-    "<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;"
-    "<span style='color:%s'>\u25CF Selected</span>" % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
+        "<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
+        "<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;"
+        "<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;"
+        "<span style='color:%s'>\u25CF Selected</span>" % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
 )
 
 CONTEXT_MENU_WIDTH = 200
@@ -196,7 +190,6 @@ PB = 1024 * TB
 
 DARWIN = sys.platform == 'darwin'
 WINDOWS = sys.platform == 'win32'
-
 
 # Constants related to the tag widgets
 TAG_BACKGROUND_COLOR = QColor("#36311e")

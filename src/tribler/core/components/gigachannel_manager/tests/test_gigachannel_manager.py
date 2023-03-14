@@ -13,7 +13,7 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
-from tribler.core.utilities.simpledefs import DLSTATUS_SEEDING
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.utilities import random_infohash
 
 update_metainfo = None
@@ -204,7 +204,7 @@ async def test_check_channels_updates(personal_channel, gigachannel_manager, met
         gigachannel_manager.download_manager.download_exists = lambda _: True
 
         mock_download = MagicMock()
-        mock_download.get_state.get_status = DLSTATUS_SEEDING
+        mock_download.get_state.get_status = DownloadStatus.SEEDING
 
         gigachannel_manager.download_manager.get_download = lambda _: mock_download
 
