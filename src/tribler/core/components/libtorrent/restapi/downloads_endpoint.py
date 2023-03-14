@@ -4,12 +4,9 @@ from contextlib import suppress
 from pathlib import PurePosixPath
 
 from aiohttp import web
-
 from aiohttp_apispec import docs, json_schema
-
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_BT
-
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -36,7 +33,6 @@ from tribler.core.utilities.simpledefs import (
 )
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import froze_it
-
 
 TOTAL = 'total'
 LOADED = 'loaded'
@@ -94,11 +90,6 @@ class DownloadsEndpoint(RESTEndpoint):
         self.download_manager = download_manager
         self.mds = metadata_store
         self.tunnel_community = tunnel_community
-
-        self.app.on_shutdown.append(self.on_shutdown)
-
-    async def on_shutdown(self, _):
-        pass
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_downloads),
@@ -178,19 +169,19 @@ class DownloadsEndpoint(RESTEndpoint):
             'required': False
         },
             {
-            'in': 'query',
-            'name': 'get_pieces',
-            'description': 'Flag indicating whether or not to include pieces',
-            'type': 'boolean',
-            'required': False
-        },
+                'in': 'query',
+                'name': 'get_pieces',
+                'description': 'Flag indicating whether or not to include pieces',
+                'type': 'boolean',
+                'required': False
+            },
             {
-            'in': 'query',
-            'name': 'get_files',
-            'description': 'Flag indicating whether or not to include files',
-            'type': 'boolean',
-            'required': False
-        }],
+                'in': 'query',
+                'name': 'get_files',
+                'description': 'Flag indicating whether or not to include files',
+                'type': 'boolean',
+                'required': False
+            }],
         responses={
             200: {
                 "schema": schema(DownloadsResponse={
@@ -280,7 +271,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 download_name = tdef.get_name_utf8()
             else:
                 download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
-                    tdef.get_name_utf8()
+                                tdef.get_name_utf8()
 
             download_status = get_extended_status(
                 self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
@@ -364,19 +355,19 @@ class DownloadsEndpoint(RESTEndpoint):
             'required': False
         },
             {
-            'in': 'query',
-            'name': 'get_pieces',
-            'description': 'Flag indicating whether or not to include pieces',
-            'type': 'boolean',
-            'required': False
-        },
+                'in': 'query',
+                'name': 'get_pieces',
+                'description': 'Flag indicating whether or not to include pieces',
+                'type': 'boolean',
+                'required': False
+            },
             {
-            'in': 'query',
-            'name': 'get_files',
-            'description': 'Flag indicating whether or not to include files',
-            'type': 'boolean',
-            'required': False
-        }],
+                'in': 'query',
+                'name': 'get_files',
+                'description': 'Flag indicating whether or not to include files',
+                'type': 'boolean',
+                'required': False
+            }],
         responses={
             200: {
                 "schema": schema(AddDownloadResponse={"started": Boolean, "infohash": String}),
@@ -573,7 +564,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse(lt.bencode(torrent), headers={'content-type': 'application/x-bittorrent',
                                                           'Content-Disposition': 'attachment; filename=%s.torrent'
-                                                          % hexlify(infohash).encode('utf-8')})
+                                                                                 % hexlify(infohash).encode('utf-8')})
 
     @docs(
         tags=["Libtorrent"],
@@ -613,12 +604,12 @@ class DownloadsEndpoint(RESTEndpoint):
             'required': True
         },
             {
-            'in': 'path',
-            'name': 'fileindex',
-            'description': 'The fileindex to stream',
-            'type': 'string',
-            'required': True
-        }],
+                'in': 'path',
+                'name': 'fileindex',
+                'description': 'The fileindex to stream',
+                'type': 'string',
+                'required': True
+            }],
         responses={
             206: {'description': 'Contents of the stream'}
         }

@@ -49,7 +49,6 @@ class EventsEndpoint(RESTEndpoint):
     def __init__(self, notifier: Notifier, public_key: str = None):
         super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
-        self.app.on_shutdown.append(self.on_shutdown)
         self.undelivered_error: Optional[dict] = None
         self.public_key = public_key
         self.notifier = notifier
@@ -68,8 +67,10 @@ class EventsEndpoint(RESTEndpoint):
                                                     uptime=time.time() - circuit.creation_time,
                                                     additional_info=additional_info)
 
-    async def on_shutdown(self, _):
-        await self.shutdown()
+    async def shutdown(self):
+        self.notifier.remove_observer(notifications.circuit_removed, self.on_circuit_removed)
+        self.notifier.remove_generic_observer(self.on_notification)
+        await super().shutdown()
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
@@ -165,8 +166,13 @@ class EventsEndpoint(RESTEndpoint):
         self.events_responses.append(response)
 
         try:
-            while True:
-                await asyncio.sleep(3600)
+            while not self._shutdown:
+                await asyncio.sleep(1)
         except CancelledError:
+            self._logger.warning('Event stream was canceled')
+        else:
+            self._logger.info('Event stream was closed due to shutdown')
+        finally:
             self.events_responses.remove(response)
-            return response
+
+        return response
