@@ -82,7 +82,7 @@ class DownloadState:
         """
         if not self.lt_status or self.get_status() not in [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING]:
             return 0
-        elif direct == UPLOAD:
+        if direct == UPLOAD:
             return self.lt_status.upload_rate
         return self.lt_status.download_rate
 
@@ -93,7 +93,7 @@ class DownloadState:
         """
         if not self.lt_status or self.get_status() not in [Status.DLSTATUS_DOWNLOADING, Status.DLSTATUS_SEEDING]:
             return 0
-        elif direct == UPLOAD:
+        if direct == UPLOAD:
             return self.lt_status.upload_payload_rate
         return self.lt_status.download_payload_rate
 
