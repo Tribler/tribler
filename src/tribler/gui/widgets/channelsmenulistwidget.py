@@ -1,5 +1,3 @@
-import json
-
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QBrush, QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QAbstractScrollArea, QAction, QListWidget, QListWidgetItem

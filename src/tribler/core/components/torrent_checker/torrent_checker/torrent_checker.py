@@ -17,11 +17,11 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
     TrackerResponse
-from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
-    filter_non_exceptions, gather_coros
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     FakeBep33DHTSession, FakeDHTSession, TrackerSession, UdpSocketManager, create_tracker_session
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
+from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
+    filter_non_exceptions, gather_coros
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.tracker_utils import MalformedTrackerURLException
@@ -175,7 +175,7 @@ class TorrentChecker(TaskManager):
             await self.clean_session(session)
 
         t2 = time.time()
-        self._logger.info(f"Got response from {session.__class__.__name__} in {t2-t1:.3f} seconds: {result}")
+        self._logger.info(f"Got response from {session.__class__.__name__} in {t2 - t1:.3f} seconds: {result}")
 
         with db_session:
             for health in result.torrent_health_list:
@@ -199,7 +199,7 @@ class TorrentChecker(TaskManager):
         last_fresh_time = now - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.mds.TorrentState
                                 .select(lambda g: g.has_data and g.self_checked
-                                        and between(g.last_check, last_fresh_time, now))
+                                                  and between(g.last_check, last_fresh_time, now))
                                 .order_by(lambda g: (desc(g.seeders), g.last_check))
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 

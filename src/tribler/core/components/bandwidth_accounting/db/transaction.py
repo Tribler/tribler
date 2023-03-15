@@ -14,12 +14,12 @@ from typing import Dict
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.keys import Key
 from ipv8.messaging.serialization import default_serializer
-
 from pony.orm import PrimaryKey, Required, db_session
 
 from tribler.core.components.bandwidth_accounting.community.payload import BandwidthTransactionPayload
 
 EMPTY_SIGNATURE = b'0' * 64
+
 
 @dataclass
 class BandwidthTransactionData:
@@ -151,8 +151,8 @@ def define_binding(bandwidth_database):
             if not bandwidth_database.store_all_transactions:
                 # Make sure to only store the latest pairwise transaction.
                 for tx in cls.select(
-                    lambda c: c.public_key_a == transaction.public_key_a and
-                        c.public_key_b == transaction.public_key_b):
+                        lambda c: c.public_key_a == transaction.public_key_a and
+                                  c.public_key_b == transaction.public_key_b):
                     tx.delete()
                 db.commit()
                 cls(**transaction.get_db_kwargs())

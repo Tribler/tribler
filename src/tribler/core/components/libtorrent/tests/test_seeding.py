@@ -3,7 +3,6 @@ Seeding tests.
 
 Author(s): Arno Bakker, Niels Zeilemaker
 """
-import pytest
 
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR

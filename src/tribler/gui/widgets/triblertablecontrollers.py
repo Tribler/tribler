@@ -4,7 +4,6 @@ The responsibility of the controller is to populate the table view with some dat
 """
 import json
 import logging
-import time
 
 from PyQt5.QtCore import QObject, QTimer, Qt
 from PyQt5.QtGui import QCursor
@@ -16,7 +15,7 @@ from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.utilities import connect, dict_item_is_any_of, get_health, tr
+from tribler.gui.utilities import connect, dict_item_is_any_of, tr
 from tribler.gui.widgets.tablecontentmodel import Column
 
 HEALTHCHECK_DELAY_MS = 500

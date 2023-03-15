@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Optional
 
-import pytest
-
 from tribler.core.config.tribler_config_section import TriblerConfigSection
 
 

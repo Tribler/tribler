@@ -18,6 +18,7 @@ def with_retry(method):
     re-creates the database structure. The content of the database is not critical for Tribler's functioning,
     so it is OK for Tribler to re-create it in such cases.
     """
+
     @wraps(method)
     def new_method(self: ClassWithOptionalConnection, *args, **kwargs):
         if self.connection:

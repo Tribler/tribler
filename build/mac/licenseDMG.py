@@ -27,12 +27,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 from __future__ import unicode_literals
-from subprocess import check_call, check_output, call, CalledProcessError
+
 import argparse
 import logging as logger
 import os
 import sys
 import tempfile
+from subprocess import CalledProcessError, call, check_call, check_output
 
 logger.basicConfig(format='%(message)s', level=logger.DEBUG)
 

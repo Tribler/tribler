@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pony import orm
+
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 
 

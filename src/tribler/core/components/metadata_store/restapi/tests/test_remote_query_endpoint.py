@@ -1,14 +1,11 @@
 import uuid
 from unittest.mock import Mock
 
+import pytest
 from aiohttp.web_app import Application
-
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
-
 from pony.orm import db_session
-
-import pytest
 
 from tribler.core.components.gigachannel.community.gigachannel_community import ChannelsPeersMapping
 from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
@@ -16,6 +13,7 @@ from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
+
 
 # pylint: disable=unused-argument
 
@@ -71,7 +69,8 @@ async def test_create_remote_search_request(rest_api, endpoint, mock_gigachannel
     assert hexlify(sent['channel_pk']) == channel_pk
 
 
-async def test_get_channels_peers(rest_api, endpoint, metadata_store, mock_gigachannel_community):  # pylint: disable=W0621, C0321
+async def test_get_channels_peers(rest_api, endpoint, metadata_store,
+                                  mock_gigachannel_community):  # pylint: disable=W0621, C0321
     """
     Test getting debug info about the state of channels to peers mapping
     """

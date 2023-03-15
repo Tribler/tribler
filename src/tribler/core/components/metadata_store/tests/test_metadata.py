@@ -1,11 +1,8 @@
+import pytest
 from ipv8.keyvault.crypto import default_eccrypto
-
 from pony import orm
 from pony.orm import db_session
 
-import pytest
-
-from tribler.core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_NODE,
     ChannelNodePayload,
@@ -13,6 +10,7 @@ from tribler.core.components.metadata_store.db.serialization import (
     NULL_KEY,
     NULL_SIG,
 )
+from tribler.core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from tribler.core.utilities.unicode import hexlify
 
 

@@ -1,7 +1,5 @@
 from unittest.mock import Mock
 
-import pytest
-
 from tribler.core.components.libtorrent.utils.torrent_utils import (
     common_prefix,
     create_torrent_file,

@@ -30,7 +30,6 @@ REP_TTL_EXPIRED = 0x06
 REP_COMMAND_NOT_SUPPORTED = 0x07
 REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
 
-
 logger = logging.getLogger(__name__)
 
 

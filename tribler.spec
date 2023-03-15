@@ -3,12 +3,11 @@ block_cipher = None
 import imp
 import os
 import pkgutil
-import sys
 import shutil
+import sys
 
 import aiohttp_apispec
 import sentry_sdk
-
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 root_dir = os.path.abspath(os.path.dirname(__name__))
@@ -16,6 +15,7 @@ src_dir = os.path.join(root_dir, "src")
 sys.path.append(src_dir)
 
 from tribler.core.version import version_id
+
 version_str = version_id.split('-')[0]
 
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
@@ -69,6 +69,7 @@ excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tk
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']
 
+
 # Sentry hidden imports
 def get_sentry_hooks():
     package = sentry_sdk.integrations
@@ -79,27 +80,29 @@ def get_sentry_hooks():
         sentry_hooks.append(modname)
     return sentry_hooks
 
+
 # Hidden imports
 hiddenimports = [
-    'csv',
-    'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
-    'ecdsa',
-    'ipv8',
-    'PIL',
-    'pkg_resources', # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
-    'pyaes',
-    'pydantic',
-    'pyqtgraph',
-    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
-    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
-    'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
-    'PyQt5.QtTest',
-    'requests',
-    'scrypt', '_scrypt',
-    'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
-    'tribler.core.logger.logger_streams',
-    'typing_extensions',
-] + widget_files + pony_deps + get_sentry_hooks()
+                    'csv',
+                    'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
+                    'ecdsa',
+                    'ipv8',
+                    'PIL',
+                    'pkg_resources',
+                    # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
+                    'pyaes',
+                    'pydantic',
+                    'pyqtgraph',
+                    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
+                    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
+                    'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
+                    'PyQt5.QtTest',
+                    'requests',
+                    'scrypt', '_scrypt',
+                    'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
+                    'tribler.core.logger.logger_streams',
+                    'typing_extensions',
+                ] + widget_files + pony_deps + get_sentry_hooks()
 
 # https://github.com/pyinstaller/pyinstaller/issues/5359
 hiddenimports += collect_submodules('pydantic')
@@ -107,7 +110,6 @@ hiddenimports += collect_submodules('pydantic')
 # fixes ZeroDivisionError in pyqtgraph\graphicsItems\ButtonItem.py
 # https://issueexplorer.com/issue/pyqtgraph/pyqtgraph/1811
 hiddenimports += collect_submodules("pyqtgraph", filter=lambda name: "Template" in name)
-
 
 sys.modules['FixTk'] = None
 a = Analysis(['src/run_tribler.py'],
@@ -123,12 +125,12 @@ a = Analysis(['src/run_tribler.py'],
              cipher=block_cipher)
 
 pyz = PYZ(a.pure, a.zipped_data,
-             cipher=block_cipher)
+          cipher=block_cipher)
 
 # Add libsodium.dylib on OS X
 if sys.platform == 'darwin':
-    a.binaries = a.binaries - TOC([('/usr/local/lib/libsodium.so', None, None),])
-    a.binaries = a.binaries + TOC([('libsodium.dylib', '/usr/local/lib/libsodium.dylib', None),])
+    a.binaries = a.binaries - TOC([('/usr/local/lib/libsodium.so', None, None), ])
+    a.binaries = a.binaries + TOC([('libsodium.dylib', '/usr/local/lib/libsodium.dylib', None), ])
 
 exe = EXE(pyz,
           a.scripts,
@@ -152,7 +154,9 @@ app = BUNDLE(coll,
              name='Tribler.app',
              icon='build/mac/resources/tribler.icns',
              bundle_identifier='nl.tudelft.tribler',
-             info_plist={'CFBundleName': 'Tribler', 'CFBundleDisplayName': 'Tribler', 'NSHighResolutionCapable': 'True', 'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str, 'CFBundleShortVersionString': version_str},
+             info_plist={'CFBundleName': 'Tribler', 'CFBundleDisplayName': 'Tribler', 'NSHighResolutionCapable': 'True',
+                         'CFBundleInfoDictionaryVersion': 1.0, 'CFBundleVersion': version_str,
+                         'CFBundleShortVersionString': version_str},
              console=show_console)
 
 # Replace the Info.plist file on MacOS
@@ -161,4 +165,5 @@ if sys.platform == 'darwin':
 
 # On Windows 10, we have to make sure that qwindows.dll is in the right path
 if sys.platform == 'win32':
-    shutil.copytree(os.path.join('dist', 'tribler', 'PyQt5', 'Qt', 'plugins', 'platforms'), os.path.join('dist', 'tribler', 'platforms'))
+    shutil.copytree(os.path.join('dist', 'tribler', 'PyQt5', 'Qt', 'plugins', 'platforms'),
+                    os.path.join('dist', 'tribler', 'platforms'))

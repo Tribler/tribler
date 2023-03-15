@@ -12,6 +12,7 @@ class TriblerConfigSection(BaseSettings):
     We are waiting https://github.com/samuelcolvin/pydantic/pull/2625
     for proper and native manipulations with relative and absolute paths.
     """
+
     class Config:
         extra = Extra.ignore
 

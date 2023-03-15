@@ -14,12 +14,12 @@ from pony.orm import db_session
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TOLERABLE_TIME_DRIFT, \
     TrackerResponse
-from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
-    filter_non_exceptions
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     HttpTrackerSession, UdpSocketManager
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
+from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
+    filter_non_exceptions
 
 
 # pylint: disable=protected-access

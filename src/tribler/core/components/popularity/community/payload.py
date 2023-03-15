@@ -18,13 +18,12 @@ class TorrentInfoFormat(VariablePayload):
 
     @classmethod
     def from_list_bytes(cls, serialized):
-        return default_serializer.unpack_serializable_list([cls] * (len(serialized)//cls.length),
+        return default_serializer.unpack_serializable_list([cls] * (len(serialized) // cls.length),
                                                            serialized, consume_all=False)[:-1]
 
 
 @vp_compile
 class TorrentsHealthPayload(VariablePayload):
-
     msg_id = 1
     format_list = ['I', 'I', 'varlenI', 'raw']  # Number of random torrents, number of torrents checked by you
     names = ['random_torrents_length', 'torrents_checked_length', 'random_torrents', 'torrents_checked']

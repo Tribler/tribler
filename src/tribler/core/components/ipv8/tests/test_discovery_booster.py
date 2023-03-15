@@ -29,7 +29,7 @@ def fixture_community():
             self.tasks = []
 
         def register_task(
-            self, name, task, *args, delay=None, interval=None, ignore=()
+                self, name, task, *args, delay=None, interval=None, ignore=()
         ):  # pylint: disable=unused-argument
             self.tasks.append(name)
 

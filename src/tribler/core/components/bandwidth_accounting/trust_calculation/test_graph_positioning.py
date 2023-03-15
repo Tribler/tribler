@@ -1,5 +1,4 @@
 import networkx as nx
-
 import pytest
 
 from tribler.core.components.bandwidth_accounting.trust_calculation.graph_positioning import GraphPositioning

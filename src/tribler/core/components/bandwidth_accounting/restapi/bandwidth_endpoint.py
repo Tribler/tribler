@@ -1,9 +1,6 @@
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Integer, String
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (

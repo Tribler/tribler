@@ -28,7 +28,6 @@ class PayoutComponent(Component):
         self.session.notifier.add_observer(notifications.peer_disconnected, self.payout_manager.on_peer_disconnected)
         self.session.notifier.add_observer(notifications.tribler_torrent_peer_update, self.payout_manager.update_peer)
 
-
     async def shutdown(self):
         await super().shutdown()
         if self.payout_manager:

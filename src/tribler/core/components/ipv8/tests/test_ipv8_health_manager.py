@@ -7,18 +7,16 @@ import threading
 import time
 
 import pytest
-
 from ipv8.taskmanager import TaskManager
 
 from tribler.core.components.ipv8.ipv8_health_monitor import IPv8Monitor
-
 
 DEFAULT_WALK_INTERVAL = 0.5
 
 
 @pytest.fixture(name="ipv8")
 def fixture_ipv8():
-    return type("IPv8", (object, ), {
+    return type("IPv8", (object,), {
         "strategies": [],
         "overlay_lock": threading.RLock(),
         "walk_interval": DEFAULT_WALK_INTERVAL

@@ -4,8 +4,8 @@ import math
 
 import networkx as nx
 
-from tribler.core.exceptions import TrustGraphException
 from tribler.core.components.bandwidth_accounting.trust_calculation.graph_positioning import GraphPositioning
+from tribler.core.exceptions import TrustGraphException
 from tribler.core.utilities.unicode import hexlify
 
 MAX_NODES = 500

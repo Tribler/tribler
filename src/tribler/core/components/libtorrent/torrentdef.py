@@ -302,7 +302,9 @@ class TorrentDef:
                             return chr(char)
                         self._logger.debug("Bad character 0x%X", char)
                         return "?"
+
                     return "".join([filter_character(char) for char in name])
+
                 return filter_characters(self.metainfo[b"info"][b"name"])
             except UnicodeError:
                 pass
@@ -379,7 +381,9 @@ class TorrentDef:
                                     return chr(char)
                                 self._logger.debug("Bad character 0x%X", char)
                                 return "?"
+
                             return "".join([filter_character(char) for char in name])
+
                         yield (Path(*[filter_characters(element) for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
@@ -501,7 +505,7 @@ class TorrentDefNoMetainfo:
         """
         Not all names are utf-8, attempt to construct it as utf-8 anyway.
         """
-        return escape_as_utf8(self.name.encode('utf-8 ')if isinstance(self.name, str) else self.name)
+        return escape_as_utf8(self.name.encode('utf-8 ') if isinstance(self.name, str) else self.name)
 
     def get_name_as_unicode(self):
         return ensure_unicode(self.name, 'utf-8')

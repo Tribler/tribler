@@ -8,7 +8,6 @@ import human_readable
 
 from tribler.core.utilities.unicode import hexlify
 
-
 MINUTE = 60
 HOUR = MINUTE * 60
 TOLERABLE_TIME_DRIFT = MINUTE  # When receiving health from another peer, how far the timestamp can be in the future?

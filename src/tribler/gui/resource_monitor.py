@@ -12,6 +12,7 @@ class GuiResourceMonitor(ResourceMonitor, QWidget):
     Implementation class of ResourceMonitor by the GUI process. The GUI process uses
     QTimer to implement start() and stop() methods.
     """
+
     def __init__(self):
         QWidget.__init__(self)
         ResourceMonitor.__init__(self, history_size=GUI_RESOURCE_HISTORY_SIZE)

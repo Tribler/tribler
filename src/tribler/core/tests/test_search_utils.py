@@ -2,9 +2,8 @@ from collections import deque
 
 import pytest
 
-from tribler.core.utilities.search_utils import filter_keywords, find_word_and_rotate_title, freshness_rank, item_rank,\
-    seeders_rank, split_into_keywords, torrent_rank, title_rank
-
+from tribler.core.utilities.search_utils import filter_keywords, find_word_and_rotate_title, freshness_rank, item_rank, \
+    seeders_rank, split_into_keywords, title_rank, torrent_rank
 
 DAY = 60 * 60 * 24
 

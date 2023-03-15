@@ -3,7 +3,6 @@ Make torrent.
 
 Author(s): Arno Bakker, Bram Cohen
 """
-from tribler.core.utilities import path_util
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import ensure_unicode_detect_encoding
 

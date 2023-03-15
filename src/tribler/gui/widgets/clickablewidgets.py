@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import QLabel
 
 
 class ClickableLabel(QLabel):
-
     clicked = pyqtSignal()
 
     def mousePressEvent(self, event):

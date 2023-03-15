@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget
 
 from tribler.gui.utilities import get_ui_file_path
 
+
 # This file is a result of a nasty QT bug that PREVENTS US from loading some custom
 # widgets WITHOUT custom subwidgets.
 # Total crazyness.

@@ -404,6 +404,7 @@ def test_search(window):
         test_subscribe=False,
     )
 
+
 @pytest.mark.guitest
 def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)

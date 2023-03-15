@@ -1,12 +1,10 @@
-import pytest
-
-from tribler.core.components.session import Session
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
-from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 
 

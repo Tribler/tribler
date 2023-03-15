@@ -5,10 +5,10 @@ from faker import Faker
 from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
-from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType, KnowledgeDatabase
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
+from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.tests.tools.common import PNG_FILE
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash

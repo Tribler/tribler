@@ -1,5 +1,4 @@
-
-Our GUI uses QT toolkit. It can be quite tricky at times. Also, PyQt have LOTS of bugs, so be warned! 
+Our GUI uses QT toolkit. It can be quite tricky at times. Also, PyQt have LOTS of bugs, so be warned!
 For the beginner, the best way to develop QT is to just copy-paste stuff around, looking for examples in our codebase.
 
 

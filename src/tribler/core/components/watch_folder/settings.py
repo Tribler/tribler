@@ -1,5 +1,6 @@
 from tribler.core.config.tribler_config_section import TriblerConfigSection
 
+
 # pylint: disable=no-self-argument
 
 

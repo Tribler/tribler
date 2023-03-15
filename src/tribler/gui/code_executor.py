@@ -105,6 +105,7 @@ class CodeExecutor:
     def _on_socket_disconnect(self, socket):
         def on_socket_disconnect_handler():
             self.sockets.remove(socket)
+
         return on_socket_disconnect_handler
 
 

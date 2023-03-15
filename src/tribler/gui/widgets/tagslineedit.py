@@ -95,7 +95,7 @@ class TagsLineEdit(QLineEdit):
         Return whether the provided point is within the cross rect of the tag with a particular index.
         """
         return TagsLineEdit.compute_cross_rect(self.tags[tag_index].rect).adjusted(-2, 0, 0, 0).contains(point) and (
-            not self.cursor_is_visible() or tag_index != self.editing_index
+                not self.cursor_is_visible() or tag_index != self.editing_index
         )
 
     def resizeEvent(self, _) -> None:
@@ -231,9 +231,9 @@ class TagsLineEdit(QLineEdit):
             self.compute_tag_rects_with_range(lt, TAG_HEIGHT, (0, self.editing_index))
 
             w = (
-                self.fontMetrics().horizontalAdvance(self.text_layout.text())
-                + TAG_TEXT_HORIZONTAL_PADDING
-                + TAG_TEXT_HORIZONTAL_PADDING
+                    self.fontMetrics().horizontalAdvance(self.text_layout.text())
+                    + TAG_TEXT_HORIZONTAL_PADDING
+                    + TAG_TEXT_HORIZONTAL_PADDING
             )
 
             # Check if we overflow and if so, move the editor rect to the next line in the input field.
@@ -278,7 +278,7 @@ class TagsLineEdit(QLineEdit):
     def remove_selection(self) -> None:
         self.cursor_ind = self.select_start
         txt = self.tags[self.editing_index].text
-        self.tags[self.editing_index].text = txt[: self.cursor_ind] + txt[self.cursor_ind + self.select_size :]
+        self.tags[self.editing_index].text = txt[: self.cursor_ind] + txt[self.cursor_ind + self.select_size:]
         self.deselectAll()
 
     def remove_backwards_character(self) -> None:
@@ -287,7 +287,7 @@ class TagsLineEdit(QLineEdit):
         else:
             self.cursor_ind -= 1
             txt = self.tags[self.editing_index].text
-            txt = txt[: self.cursor_ind] + txt[self.cursor_ind + 1 :]
+            txt = txt[: self.cursor_ind] + txt[self.cursor_ind + 1:]
             self.tags[self.editing_index].text = txt
 
     def selectAll(self) -> None:
@@ -441,8 +441,8 @@ class TagsLineEdit(QLineEdit):
                 event.accept()
             elif event.key() == Qt.Key_End:
                 if (
-                    self.cursor_ind == len(self.tags[self.editing_index].text)
-                    and self.editing_index < len(self.tags) - 1
+                        self.cursor_ind == len(self.tags[self.editing_index].text)
+                        and self.editing_index < len(self.tags) - 1
                 ):
                     self.edit_tag(len(self.tags) - 1)
                 else:
@@ -476,7 +476,7 @@ class TagsLineEdit(QLineEdit):
             if self.has_selection_active():
                 self.remove_selection()
             txt = self.tags[self.editing_index].text
-            txt = txt[: self.cursor_ind] + event.text().lower() + txt[self.cursor_ind :]
+            txt = txt[: self.cursor_ind] + event.text().lower() + txt[self.cursor_ind:]
             self.tags[self.editing_index].text = txt
             self.cursor_ind += len(event.text())
             event.accept()

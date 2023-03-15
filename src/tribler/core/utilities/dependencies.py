@@ -11,7 +11,6 @@ from typing import Iterator, Optional
 
 import tribler
 
-
 # fmt: off
 
 logger = logging.getLogger(__name__)

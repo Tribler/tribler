@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import os
 import time
 from binascii import hexlify, unhexlify

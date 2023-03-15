@@ -2,7 +2,6 @@ from random import choice
 
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
-
 TARGET_PEERS_NUMBER = 20
 
 

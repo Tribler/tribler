@@ -77,7 +77,7 @@ class TriblerProcess:
     def from_row(cls, manager: ProcessManager, row: tuple) -> TriblerProcess:
         """Constructs an object from the database row"""
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
-            finished_at, exit_code, error_msg = row
+        finished_at, exit_code, error_msg = row
 
         return TriblerProcess(manager=manager, rowid=rowid, row_version=row_version, pid=pid, kind=ProcessKind(kind),
                               primary=primary, canceled=canceled, app_version=app_version, started_at=started_at,

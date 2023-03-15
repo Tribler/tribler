@@ -1,10 +1,9 @@
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QPushButton
 
-from tribler.gui.defs import SUGGESTED_TAG_TEXT_COLOR, TAG_HEIGHT, SUGGESTED_TAG_BACKGROUND_COLOR, \
-    SUGGESTED_TAG_BORDER_COLOR, \
-    TAG_TEXT_HORIZONTAL_PADDING
+from tribler.gui.defs import SUGGESTED_TAG_BACKGROUND_COLOR, SUGGESTED_TAG_BORDER_COLOR, SUGGESTED_TAG_TEXT_COLOR, \
+    TAG_HEIGHT, TAG_TEXT_HORIZONTAL_PADDING
 
 
 class TagButton(QPushButton):

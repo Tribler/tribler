@@ -75,11 +75,11 @@ def test_more_recent_more_seeders():
     t = now() - 100
     prev_health = HealthInfo(INFOHASH, 1, 2, last_check=t)
 
-    health = HealthInfo(INFOHASH, 2, 1, last_check=t-1)
+    health = HealthInfo(INFOHASH, 2, 1, last_check=t - 1)
     assert abs(prev_health.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
     assert health.should_replace(prev_health)
 
-    health.last_check = t+1
+    health.last_check = t + 1
     assert abs(prev_health.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
     assert health.should_replace(prev_health)
 
@@ -88,11 +88,11 @@ def test_more_recent_fewer_seeders():
     t = now() - 100
     prev_health = HealthInfo(INFOHASH, 2, 1, last_check=t)
 
-    health = HealthInfo(INFOHASH, last_check=t-1, seeders=1, leechers=2)
+    health = HealthInfo(INFOHASH, last_check=t - 1, seeders=1, leechers=2)
     assert abs(prev_health.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
     assert not health.should_replace(prev_health)
 
-    health.last_check = t+1
+    health.last_check = t + 1
     assert abs(prev_health.last_check - health.last_check) <= TOLERABLE_TIME_DRIFT
     assert not health.should_replace(prev_health)
 

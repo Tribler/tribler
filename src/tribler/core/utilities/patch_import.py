@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, patch
 
 __all__ = ['patch_import']
 
-
 _builtins_import = builtins.__import__
 
 

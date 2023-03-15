@@ -1,4 +1,5 @@
 from tribler.core.setuptools import find_packages, setup
+
 from tribler.core.version import version_id
 
 with open('README.rst') as f:

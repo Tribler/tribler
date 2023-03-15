@@ -2,6 +2,7 @@ import sys
 
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
+
 from tribler.core.version import version_id
 
 

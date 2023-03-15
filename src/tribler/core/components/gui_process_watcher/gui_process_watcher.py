@@ -5,10 +5,8 @@ from typing import Callable, Optional
 import psutil
 from ipv8.taskmanager import TaskManager
 
-
 GUI_PID_ENV_KEY = 'TRIBLER_GUI_PID'
 CHECK_INTERVAL = 10
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,28 +1,18 @@
 import binascii
-import logging
-from unittest.mock import MagicMock, patch, Mock
-
-from aiohttp import ClientSession
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from aiohttp import ClientSession
 from scipy.stats import shapiro
 
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.utilities.patch_import import patch_import
 from tribler.core.utilities.tracker_utils import add_url_params
-from tribler.core.utilities.utilities import (
-    Query,
-    extract_tags,
-    is_channel_public_key,
-    is_infohash,
-    is_simple_match_query,
-    is_valid_url,
-    parse_magnetlink,
-    parse_query,
-    random_infohash,
-    show_system_popup,
-    to_fts_query, get_normally_distributed_number_with_zero_mean, get_normally_distributed_positive_integers,
-)
+from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_distributed_number_with_zero_mean,
+                                              get_normally_distributed_positive_integers, is_channel_public_key,
+                                              is_infohash, is_simple_match_query, is_valid_url, parse_magnetlink,
+                                              parse_query, random_infohash, show_system_popup, to_fts_query)
+
 
 # pylint: disable=import-outside-toplevel, import-error
 # fmt: off
@@ -58,7 +48,8 @@ def test_parse_invalid_magnetlink_long():
     """
     Test if a magnet link with invalid and long infohash (v1) can be parsed
     """
-    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
+    _, hashed, _ = parse_magnetlink(
+        'magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
     assert hashed is None
 

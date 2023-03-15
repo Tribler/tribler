@@ -1,11 +1,8 @@
 from asyncio import Future
 
 from aiohttp import web
-
 from aiohttp_apispec import docs
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Integer
 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager

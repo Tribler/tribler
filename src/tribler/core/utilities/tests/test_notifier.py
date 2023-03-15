@@ -88,7 +88,6 @@ def test_add_remove_observer():
     with pytest.raises(TypeError, match=r'^Topic and observer cannot be the same function. Got: <function .*>$'):
         notifier.add_observer(topic1, topic1)
 
-
     def observer7(x: int):
         pass
 
@@ -197,7 +196,7 @@ def test_notify():
     notifier = Notifier()
     notifier.add_observer(topic_a, observer_a1)  # add an observer
     notifier.add_observer(topic_a, observer_a1)  # adding the same observer multiple times should affect nothing
-    notifier.add_generic_observer(generic_1)     # add a generic observer
+    notifier.add_generic_observer(generic_1)  # add a generic observer
 
     with pytest.raises(TypeError):
         notifier[topic_a](123)
@@ -211,7 +210,7 @@ def test_notify():
 
     notifier.add_observer(topic_a, observer_a2)  # add a second observer to the same topic
     notifier.add_observer(topic_b, observer_b1)  # observer to a different topic
-    notifier.add_generic_observer(generic_2)     # a second generic observer
+    notifier.add_generic_observer(generic_2)  # a second generic observer
 
     notifier[topic_a](2, 'bbb')
 
@@ -268,7 +267,7 @@ async def test_notify_async(event_loop):
     notifier = Notifier(loop=event_loop)
     notifier.add_observer(topic_a, observer_a1)  # add an observer
     notifier.add_observer(topic_a, observer_a1)  # adding the same observer multiple times should affect nothing
-    notifier.add_generic_observer(generic_1)     # add a generic observer
+    notifier.add_generic_observer(generic_1)  # add a generic observer
 
     # An attempt to add the same observer with different `synchronous` option value should raise an error
     with pytest.raises(NotifierError, match=r'^Cannot register the same observer '
@@ -289,7 +288,7 @@ async def test_notify_async(event_loop):
 
     notifier.add_observer(topic_a, observer_a2)  # add a second observer to the same topic
     notifier.add_observer(topic_b, observer_b1)  # observer to a different topic
-    notifier.add_generic_observer(generic_2)     # a second generic observer
+    notifier.add_generic_observer(generic_2)  # a second generic observer
 
     notifier[topic_a](2, 'bbb')
 

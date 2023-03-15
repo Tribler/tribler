@@ -3,7 +3,6 @@ from binascii import unhexlify
 from datetime import datetime
 
 from lz4.frame import LZ4FrameCompressor
-
 from pony import orm
 from pony.orm import db_session, raw_sql, select
 
@@ -231,8 +230,8 @@ def define_binding(db):  # pylint: disable=R0915
         _category_filter = None
         _CHUNK_SIZE_LIMIT = 1 * 1024 * 1024  # We use 1MB chunks as a workaround for Python's lack of string pointers
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
-            : _payload_class.__init__.__code__.co_argcount
-        ][1:]
+                            : _payload_class.__init__.__code__.co_argcount
+                            ][1:]
 
         # As channel metadata depends on the public key, we can't include the infohash in nonpersonal_attributes
         nonpersonal_attributes = set(db.CollectionNode.nonpersonal_attributes)
@@ -376,11 +375,11 @@ def define_binding(db):  # pylint: disable=R0915
             torrent_date = datetime.utcfromtimestamp(torrent[b'creation date'])
 
             return {
-                "infohash": infohash,
-                "timestamp": last_existing_blob_number,
-                "torrent_date": torrent_date,
-                "reserved_flags": flags,
-            }, torrent
+                       "infohash": infohash,
+                       "timestamp": last_existing_blob_number,
+                       "torrent_date": torrent_date,
+                       "reserved_flags": flags,
+                   }, torrent
 
         def commit_channel_torrent(self, new_start_timestamp=None, commit_list=None):
             """

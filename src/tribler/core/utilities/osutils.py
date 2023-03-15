@@ -33,11 +33,13 @@ if sys.platform == "win32":
     try:
         from win32com.shell import shell, shellcon
 
+
         def get_home_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_PROFILE = &H28
             # C:\Documents and Settings\username
             return path_util.Path(shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_PROFILE))
+
 
         def get_appstate_dir():
             # http://www.mvps.org/access/api/api0054.htm
@@ -45,11 +47,13 @@ if sys.platform == "win32":
             # C:\Documents and Settings\username\Application Data
             return path_util.Path(shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_APPDATA))
 
+
         def get_picture_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_MYPICTURES = &H27
             # C:\Documents and Settings\username\My Documents\My Pictures
             return path_util.Path(shell.SHGetSpecialFolderPath(0, 0x27))
+
 
         def get_desktop_dir():
             # http://www.mvps.org/access/api/api0054.htm
@@ -62,6 +66,7 @@ if sys.platform == "win32":
         def get_home_dir():
             # This will always succeed on python 3.x
             return Path("~").expanduser()
+
 
         def get_appstate_dir():
             homedir = get_home_dir()
@@ -76,8 +81,10 @@ if sys.platform == "win32":
                 appdir = homedir / "Application Data"
             return appdir
 
+
         def get_picture_dir():
             return get_home_dir()
+
 
         def get_desktop_dir():
             home = get_home_dir()
@@ -89,11 +96,14 @@ elif is_android():
     def get_home_dir():
         return Path(str(os.environ['EXTERNAL_STORAGE'])).resolve()
 
+
     def get_appstate_dir():
         return Path(os.environ['ANDROID_PRIVATE'] / '../.Tribler').resolve()
 
+
     def get_picture_dir():
         return get_home_dir() / 'DCIM'
+
 
     def get_desktop_dir():
         return get_home_dir()
@@ -104,17 +114,19 @@ else:
     def get_home_dir():
         return Path("~").expanduser()
 
+
     def get_appstate_dir():
         return get_home_dir()
 
+
     def get_picture_dir():
         return get_desktop_dir()
+
 
     def get_desktop_dir():
         home = get_home_dir()
         desktop = home / "Desktop"
         return desktop if desktop.exists() else home
-
 
 invalidwinfilenamechars = ''
 for i in range(32):

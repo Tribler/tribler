@@ -5,6 +5,7 @@ from pydantic import validator
 from tribler.core.config.tribler_config_section import TriblerConfigSection
 from tribler.core.utilities.network_utils import NetworkUtils
 
+
 # pylint: disable=no-self-argument
 
 

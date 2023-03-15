@@ -1,7 +1,5 @@
 import shutil
 
-import pytest
-
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.rest_utils import path_to_url

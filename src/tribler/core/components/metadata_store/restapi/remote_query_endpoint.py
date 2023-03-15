@@ -2,13 +2,9 @@ import time
 from binascii import unhexlify
 
 from aiohttp import web
-
 from aiohttp_apispec import docs, querystring_schema
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import String
-
 from pony.orm import db_session
 
 from tribler.core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
@@ -25,7 +21,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     This endpoint fires a remote search in the IPv8 GigaChannel Community.
     """
 
-    def __init__(self, gigachannel_community: GigaChannelCommunity,  *args, **kwargs):
+    def __init__(self, gigachannel_community: GigaChannelCommunity, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
         self.gigachannel_community = gigachannel_community
 

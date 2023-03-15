@@ -1,8 +1,8 @@
 import time
 from unittest.mock import Mock, patch
 
+from tribler.core.utilities.process_manager.manager import ProcessManager, logger
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
-from tribler.core.utilities.process_manager.manager import logger, ProcessManager
 
 
 def test_become_primary(process_manager: ProcessManager):

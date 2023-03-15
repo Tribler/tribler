@@ -12,7 +12,6 @@ from ipv8.peerdiscovery.churn import RandomChurn
 from ipv8.peerdiscovery.community import DiscoveryCommunity, PeriodicSimilarity
 from ipv8.peerdiscovery.discovery import RandomWalk
 from ipv8.taskmanager import TaskManager
-
 from ipv8_service import IPv8
 
 from tribler.core.components.component import Component

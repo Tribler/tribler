@@ -6,6 +6,7 @@ class LimitedOrderedDict(OrderedDict):
 
     If the size of the dict exceeds the limit, the oldest entries will be deleted.
     """
+
     def __init__(self, *args, limit: int = 200, **kwargs):
         self.limit = limit
         super().__init__(*args, **kwargs)

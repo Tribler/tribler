@@ -21,7 +21,7 @@ The seedbox consists of two parts:
    ```shell
     export PYTHONPATH=${PYTHONPATH}:./src
    ```
-   
+
 ## Torrent seeding
 
 To start torrents' seeding run the following script:
@@ -70,10 +70,11 @@ source folder
 ```
 
 Above you can see two "special" files:
+
 * thumbnail.png
 * description.md
 
-The channel will be created with description based on these files. 
+The channel will be created with description based on these files.
 As the channel name, the source folder's name will be used.
 
 ### Error reporting

@@ -54,6 +54,7 @@ def rest_component():
     component.root_endpoint = MagicMock()
     return component
 
+
 def test_maybe_add_check_args(rest_component, endpoint_cls):
     # test that in case `*args` in `maybe_add` function contains `NoneComponent` instance
     # no root_endpoint methods are called
