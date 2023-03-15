@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+import time
 from configparser import MissingSectionHeaderError, ParsingError
 from types import SimpleNamespace
 from typing import List, Optional, Tuple
@@ -102,6 +103,7 @@ class TriblerUpgrader:
         self.upgrade_pony_db_13to14()
         self.upgrade_tags_to_knowledge()
         self.remove_old_logs()
+        self.upgrade_pony_db_14to15()
 
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
         self._logger.info(f'Remove old logs')
@@ -127,6 +129,16 @@ class TriblerUpgrader:
     def upgrade_tags_to_knowledge(self):
         migration = MigrationTagsToKnowledge(self.state_dir, self.secondary_key)
         migration.run()
+
+    def upgrade_pony_db_14to15(self):
+        mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+
+        mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
+                            check_tables=False, db_version=14) if mds_path.exists() else None
+
+        self.do_upgrade_pony_db_14to15(mds)
+        if mds:
+            mds.shutdown()
 
     def upgrade_pony_db_13to14(self):
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
@@ -254,6 +266,30 @@ class TriblerUpgrader:
             db.execute(sql_create_partial_index_channelnode_subscribed)
 
             db_version.value = str(to_version)
+
+    def do_upgrade_pony_db_14to15(self, mds: Optional[MetadataStore]):
+        if not mds:
+            return
+
+        version = SimpleNamespace(current='14', next='15')
+        with db_session:
+            db_version = mds.get_value(key='db_version')
+            if db_version != version.current:
+                return
+
+            self._logger.info('Clean the incorrectly set self_checked flag for health info in the db')
+            sql = 'UPDATE "TorrentState" SET "self_checked" = 0 WHERE "self_checked" != 0;'
+            cursor = mds.db.execute(sql)
+            self._logger.info(f'The self_checked flag was cleared in {cursor.rowcount} rows')
+
+            self._logger.info('Reset the last_check future timestamps values to zero')
+            now = int(time.time())  # pylint: disable=unused-variable
+            sql = 'UPDATE "TorrentState" SET "seeders" = 0, "leechers" = 0, "has_data" = 0, "last_check" = 0 ' \
+                  ' WHERE "last_check" > $now;'
+            cursor = mds.db.execute(sql)
+            self._logger.info(f'{cursor.rowcount} rows with future last_check timestamps were reset')
+
+            mds.set_value(key='db_version', value=version.next)
 
     def do_upgrade_pony_db_13to14(self, mds: Optional[MetadataStore], tags: Optional[TagDatabase]):
         def add_column(db, table_name, column_name, column_type):
