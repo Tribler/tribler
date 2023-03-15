@@ -1,7 +1,5 @@
 from ipv8.requestcache import RandomNumberCache
 
-from tribler.core.utilities.unicode import hexlify
-
 
 class SearchRequestCache(RandomNumberCache):
     """

@@ -2,6 +2,7 @@ import pytest
 
 from tribler.core.utilities.network_utils import FreePortNotFoundError, NetworkUtils
 
+
 # fmt: off
 
 @pytest.fixture(name="network_utils")

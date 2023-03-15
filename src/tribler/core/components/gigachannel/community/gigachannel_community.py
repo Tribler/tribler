@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from random import sample
 
 from anyio import Event, create_task_group, move_on_after
-
 from ipv8.types import Peer
-
 from pony.orm import db_session
 
 from tribler.core import notifications
@@ -73,14 +71,14 @@ class GigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
 
     def create_introduction_response(
-        self,
-        lan_socket_address,
-        socket_address,
-        identifier,
-        introduction=None,
-        extra_bytes=b'',
-        prefix=None,
-        new_style=False,
+            self,
+            lan_socket_address,
+            socket_address,
+            identifier,
+            introduction=None,
+            extra_bytes=b'',
+            prefix=None,
+            new_style=False,
     ):
         # ACHTUNG! We add extra_bytes here to identify the newer, 7.6+ version RemoteQuery/GigaChannel community
         # dialect, so that other 7.6+ are able to distinguish between the older and newer versions.
@@ -94,7 +92,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         )
 
     def __init__(
-        self, *args, notifier: Notifier = None, **kwargs
+            self, *args, notifier: Notifier = None, **kwargs
     ):  # pylint: disable=unused-argument
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
@@ -124,9 +122,9 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         # to ourselves (peer's public_key is not sent along with the introduction). To prevent querying
         # ourselves, we add the check for blacklist_mids here, which by default contains our own peer.
         if (
-            peer.address in self.network.blacklist
-            or peer.mid in self.queried_peers
-            or peer.mid in self.network.blacklist_mids
+                peer.address in self.network.blacklist
+                or peer.mid in self.queried_peers
+                or peer.mid in self.network.blacklist_mids
         ):
             return
         if len(self.queried_peers) >= self.settings.queried_peers_limit:
@@ -147,9 +145,9 @@ class GigaChannelCommunity(RemoteQueryCommunity):
                 r.md_obj.to_simple_dict()
                 for r in processing_results
                 if (
-                    r.obj_state == ObjState.NEW_OBJECT
-                    and r.md_obj.metadata_type == CHANNEL_TORRENT
-                    and r.md_obj.origin_id == 0
+                        r.obj_state == ObjState.NEW_OBJECT
+                        and r.md_obj.metadata_type == CHANNEL_TORRENT
+                        and r.md_obj.origin_id == 0
                 )
             ]
             if self.notifier and results:

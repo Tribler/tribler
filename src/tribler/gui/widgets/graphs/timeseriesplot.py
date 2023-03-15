@@ -1,4 +1,5 @@
 import time
+
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph import DateAxisItem

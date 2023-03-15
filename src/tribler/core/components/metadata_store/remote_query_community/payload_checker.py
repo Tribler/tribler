@@ -101,7 +101,8 @@ class PayloadChecker:
         Otherwise, CONTINUE control to further checks.
         """
         if is_forbidden(
-            " ".join([getattr(self.payload, attr) for attr in ("title", "tags", "text") if hasattr(self.payload, attr)])
+                " ".join(
+                    [getattr(self.payload, attr) for attr in ("title", "tags", "text") if hasattr(self.payload, attr)])
         ):
             return []
         return CONTINUE
@@ -126,11 +127,11 @@ class PayloadChecker:
         If it is impossible, CONTINUE control to further checks (there should not be any more, really).
         """
         for orm_class in (
-            self.mds.TorrentMetadata,
-            self.mds.ChannelMetadata,
-            self.mds.CollectionNode,
-            self.mds.ChannelThumbnail,
-            self.mds.ChannelDescription,
+                self.mds.TorrentMetadata,
+                self.mds.ChannelMetadata,
+                self.mds.CollectionNode,
+                self.mds.ChannelThumbnail,
+                self.mds.ChannelDescription,
         ):
             if orm_class._discriminator_ == self.payload.metadata_type:  # pylint: disable=W0212
                 obj = orm_class.from_payload(self.payload)
@@ -237,7 +238,7 @@ class PayloadChecker:
         """
         for r in node_list:
             updated_local_channel_node = (
-                r.obj_state == ObjState.UPDATED_LOCAL_VERSION and r.md_obj.metadata_type == CHANNEL_TORRENT
+                    r.obj_state == ObjState.UPDATED_LOCAL_VERSION and r.md_obj.metadata_type == CHANNEL_TORRENT
             )
             r.missing_deps.extend(
                 self.requests_for_child_dependencies(r.md_obj, include_newer=updated_local_channel_node)

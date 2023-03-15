@@ -36,8 +36,7 @@ from tribler.core.utilities.rest_utils import (
     scheme_from_url,
     url_to_path,
 )
-from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR, \
-    DownloadStatus
+from tribler.core.utilities.simpledefs import DownloadStatus, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler.core.version import version_id

@@ -3,7 +3,6 @@ import random
 from datetime import datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
-
 from pony.orm import db_session
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
@@ -23,7 +22,6 @@ DATA_DIR = Path(__file__).parent / '..' / '..' / 'data'
 SAMPLE_DIR = DATA_DIR / 'sample_channel'
 
 my_key = default_eccrypto.generate_key("curve25519")
-
 
 ALL_PRINTABLE_CHARS = ''.join(tuple(chr(i) for i in range(32, 0x110000) if chr(i).isprintable()))
 

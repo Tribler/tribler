@@ -1,9 +1,8 @@
 import struct
 
+import pytest
 from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 from ipv8.messaging.serialization import PackError
-
-import pytest
 
 from tribler.core.components.socks_servers.socks5.conversion import (
     CommandRequest,

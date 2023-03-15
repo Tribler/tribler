@@ -67,5 +67,7 @@ def make_protocol_decorator(protocol_attr_name):
                 raise TypeError(f'Incorrect payload type: {payload.__class__.__name__}')
 
             return outer
+
         return actual_decorator
+
     return protocol_decorator

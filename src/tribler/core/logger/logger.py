@@ -48,6 +48,7 @@ def setup_logging(app_mode, log_dir: Path, config_path: Path):
     """
     Setup logging configuration with the given YAML file.
     """
+
     def record_factory(*args, **kwargs):
         record = log_factory(*args, **kwargs)
         record.app_mode = app_mode

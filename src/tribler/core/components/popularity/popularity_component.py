@@ -4,9 +4,9 @@ from tribler.core.components.component import Component
 from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
+from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
-from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
 
 
 class PopularityComponent(Component):

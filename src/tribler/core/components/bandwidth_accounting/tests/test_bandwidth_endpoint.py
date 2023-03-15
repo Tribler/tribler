@@ -1,8 +1,7 @@
+import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.mocking.ipv8 import MockIPv8
-
-import pytest
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,

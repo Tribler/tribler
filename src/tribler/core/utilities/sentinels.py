@@ -55,6 +55,7 @@ def sentinel(
 
     def __new__(cls):
         return sentinel
+
     __new__.__qualname__ = f'{class_name}.__new__'
     cls.__new__ = __new__
 
@@ -62,7 +63,8 @@ def sentinel(
 
 
 if hasattr(_sys, '_getframe'):
-    def _get_parent_frame(): return _sys._getframe(2)
+    def _get_parent_frame():
+        return _sys._getframe(2)  # pylint: disable=protected-access
 else:  # pragma: no cover
     def _get_parent_frame():
         """Return the frame object for the caller's parent stack frame."""

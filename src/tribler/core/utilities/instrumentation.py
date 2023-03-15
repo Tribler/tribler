@@ -38,7 +38,6 @@ def synchronized(wrapped, instance, *args, **kwargs):
 
 
 class WatchDog(Thread):
-
     """
     Watchdog thread, will periodically check if all registered events are set and
     clear them.  If any if them is still cleared on the next iteration, a big fat

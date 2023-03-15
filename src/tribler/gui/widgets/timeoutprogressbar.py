@@ -5,7 +5,6 @@ from tribler.gui.utilities import connect
 
 
 class TimeoutProgressBar(QProgressBar):
-
     timeout = pyqtSignal()
 
     def __init__(self, parent=None, timeout=10000):

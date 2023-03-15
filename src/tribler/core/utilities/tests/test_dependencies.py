@@ -23,6 +23,7 @@ def test_extract_libraries_from_requirements():
     )
     assert list(_extract_libraries_from_requirements(text)) == ['PyQt5', 'psutil', 'configobj']
 
+
 def test_pip_dependencies_gen():
     # check that libraries extracts from file correctly
     path = Path(tribler.__file__).parent.parent.parent / 'requirements.txt'

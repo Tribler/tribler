@@ -1,10 +1,8 @@
 import random
 
-from ipv8.keyvault.crypto import default_eccrypto
-
-from pony.orm import db_session
-
 import pytest
+from ipv8.keyvault.crypto import default_eccrypto
+from pony.orm import db_session
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE

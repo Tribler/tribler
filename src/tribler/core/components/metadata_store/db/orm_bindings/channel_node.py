@@ -2,7 +2,6 @@ import random
 from datetime import datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
-
 from pony import orm
 from pony.orm.core import DEFAULT, db_session
 

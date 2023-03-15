@@ -25,8 +25,8 @@ def define_binding(db):
         # Special class-level properties
         _payload_class = MetadataNodePayload
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
-            : _payload_class.__init__.__code__.co_argcount
-        ][1:]
+                            : _payload_class.__init__.__code__.co_argcount
+                            ][1:]
         nonpersonal_attributes = db.ChannelNode.nonpersonal_attributes + ('title', 'tags')
 
         def to_simple_dict(self):

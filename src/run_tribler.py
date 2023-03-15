@@ -1,12 +1,13 @@
 import argparse
+import logging.config
+import os
+import sys
+
 # A fix for "LookupError: unknown encoding: idna" error.
 # Adding encodings.idna to hiddenimports is not enough.
 # https://github.com/pyinstaller/pyinstaller/issues/1113
 # noinspection PyUnresolvedReferences
 import encodings.idna  # pylint: disable=unused-import
-import logging.config
-import os
-import sys
 
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber

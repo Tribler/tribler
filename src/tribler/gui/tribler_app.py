@@ -53,7 +53,6 @@ class TriblerApplication(QtSingleApplication):
             connect(self.tribler_window.events_manager.core_connected, self.code_executor.on_core_connected)
             connect(self.tribler_window.tribler_crashed, self.code_executor.on_crash)
 
-
         if '--testnet' in sys.argv[1:]:
             os.environ['TESTNET'] = "YES"
         if '--trustchain-testnet' in sys.argv[1:]:

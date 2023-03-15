@@ -3,14 +3,11 @@ import json
 from binascii import unhexlify
 from unittest.mock import Mock, patch
 
+import pytest
 from aiohttp.web_app import Application
-
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.util import succeed
-
 from pony.orm import db_session
-
-import pytest
 
 from tribler.core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType

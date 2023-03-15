@@ -1,10 +1,8 @@
 import shutil
 
-from aiohttp import ClientResponseError
-
-from libtorrent import bencode
-
 import pytest
+from aiohttp import ClientResponseError
+from libtorrent import bencode
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE

@@ -33,8 +33,8 @@ from tribler.gui.defs import (
     TAG_TOP_MARGIN,
     WINDOWS,
 )
-from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, tr, \
-    get_objects_with_predicate
+from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, \
+    get_objects_with_predicate, tr
 from tribler.gui.widgets.tablecontentmodel import Column, RemoteTableModel
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 

@@ -1,11 +1,9 @@
 import hashlib
 from time import time
 
-from ipv8.keyvault.crypto import default_eccrypto
-
-from pony.orm import db_session
-
 import pytest
+from ipv8.keyvault.crypto import default_eccrypto
+from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.utils import tag_torrent

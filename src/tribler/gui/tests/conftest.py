@@ -3,7 +3,7 @@ import pytest
 
 def pytest_addoption(parser):
     parser.addoption('--guitests', action='store_true', dest="guitests",
-                 default=False, help="enable longrundecorated tests")
+                     default=False, help="enable longrundecorated tests")
 
 
 def pytest_collection_modifyitems(config, items):

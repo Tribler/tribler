@@ -1,18 +1,13 @@
 import base64
-import codecs
 import json
 from asyncio import CancelledError
 from binascii import unhexlify
 from pathlib import Path
 
 from aiohttp import ClientSession, ContentTypeError, web
-
 from aiohttp_apispec import docs, json_schema
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import Boolean, Integer, String
-
 from pony.orm import db_session
 
 from tribler.core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
@@ -28,7 +23,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST,
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import froze_it, is_infohash, parse_magnetlink
+from tribler.core.utilities.utilities import froze_it, parse_magnetlink
 
 ERROR_INVALID_MAGNET_LINK = "Invalid magnet link: %s"
 

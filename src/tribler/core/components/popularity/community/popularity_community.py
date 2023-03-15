@@ -15,7 +15,6 @@ from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
 
-
 if TYPE_CHECKING:
     from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 

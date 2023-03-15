@@ -4,7 +4,6 @@ import time
 
 from ipv8.REST.asyncio_endpoint import DriftMeasurementStrategy
 from ipv8.taskmanager import TaskManager
-
 from ipv8_service import IPv8
 
 
@@ -40,7 +39,7 @@ class IPv8Monitor:
         self.interval = 5.0
 
         # 5 steps from slowest to fastest (with the default interval of 5 seconds, this takes 25 seconds).
-        self.speedup_step = (self.max_update_rate - self.min_update_rate)/5.0
+        self.speedup_step = (self.max_update_rate - self.min_update_rate) / 5.0
 
         self.logger = logging.getLogger(self.__class__.__name__)
 

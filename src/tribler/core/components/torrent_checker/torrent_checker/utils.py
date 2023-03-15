@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from asyncio import gather
-from typing import Awaitable, Dict, Iterable, List, TypeVar, Union, cast
+from typing import Awaitable, Iterable, List, TypeVar, Union, cast
 
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
-
 
 T = TypeVar("T")
 

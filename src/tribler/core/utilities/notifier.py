@@ -5,7 +5,6 @@ from collections import defaultdict
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, cast
 
-
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 
@@ -136,7 +135,7 @@ class Notifier:
 
         """
         synchronous = self._check_synchronous(synchronous)
-        empty = inspect._empty # pylint: disable=protected-access
+        empty = inspect._empty  # pylint: disable=protected-access
         # ignore types of return values, as during the notification call the return values are ignored
         topic_signature = inspect.signature(topic).replace(return_annotation=empty)
         callback_signature = inspect.signature(observer).replace(return_annotation=empty)
@@ -199,6 +198,7 @@ class Notifier:
     def __getitem__(self, topic: FuncT) -> FuncT:
         def wrapper(*args, **kwargs):
             self.notify(topic, *args, **kwargs)
+
         return cast(FuncT, wrapper)
 
     def notify_by_topic_name(self, topic_name: str, *args, **kwargs):

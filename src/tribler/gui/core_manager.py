@@ -18,7 +18,6 @@ from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect
 
-
 API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core API port
 API_PORT_CHECK_TIMEOUT = 30  # Stop trying to determine API port after 30 seconds
 

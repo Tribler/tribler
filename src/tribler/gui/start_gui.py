@@ -10,7 +10,6 @@ from tribler.core.check_os import (
     check_free_space,
     enable_fault_handler
 )
-from tribler.core.exceptions import TriblerException
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
@@ -40,7 +39,7 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
 
     current_process = TriblerProcess.current_process(ProcessKind.GUI)
     process_manager = ProcessManager(root_state_dir, current_process)
-    set_global_process_manager(process_manager)   # to be able to add information about exception to the process info
+    set_global_process_manager(process_manager)  # to be able to add information about exception to the process info
     current_process_is_primary = process_manager.current_process.become_primary()
 
     load_logger_config('tribler-gui', root_state_dir, current_process_is_primary)

@@ -57,7 +57,7 @@ async def gigachannel_manager(metadata_store, download_manager):
 
 
 async def test_channel_update_and_download(
-    channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
+        channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
 ):
     """
     Test whether we can successfully update a channel and download the new version

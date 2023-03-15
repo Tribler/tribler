@@ -20,7 +20,6 @@ import asyncio
 import logging
 import os
 import sys
-from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logging.info('Start to execute conf.py')

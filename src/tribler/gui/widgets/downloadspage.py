@@ -18,8 +18,7 @@ from tribler.gui.defs import (
     DOWNLOADS_FILTER_COMPLETED,
     DOWNLOADS_FILTER_DEFINITION,
     DOWNLOADS_FILTER_DOWNLOADING,
-    DOWNLOADS_FILTER_INACTIVE, STATUS_STRING,
-)
+    DOWNLOADS_FILTER_INACTIVE, )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin

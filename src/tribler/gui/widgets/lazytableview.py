@@ -1,5 +1,5 @@
 import json
-from typing import List, Dict
+from typing import Dict, List
 
 from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
-
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
 from tribler.gui.dialogs.editmetadatadialog import EditMetadataDialog
 from tribler.gui.network.request_manager import request_manager
@@ -213,8 +212,8 @@ class TriblerContentTableView(QTableView):
         # Skip emitting click event when the user clicked on some specific columns
         column_position = self.model().column_position
         if item.column() in (
-            column_position.get(cname, False)
-            for cname in (Column.ACTIONS, Column.STATUS, Column.VOTES, Column.SUBSCRIBED, Column.HEALTH)
+                column_position.get(cname, False)
+                for cname in (Column.ACTIONS, Column.STATUS, Column.VOTES, Column.SUBSCRIBED, Column.HEALTH)
         ):
             return
 
@@ -238,8 +237,8 @@ class TriblerContentTableView(QTableView):
             # Note: this should instead use signal and do not address the widget globally
             # and properly handle entry removal
             self.window().personal_channel_page.channel_dirty = (
-                self.table_view.window().edit_channel_page.channel_dirty
-                or json_result['new_status'] != COMMIT_STATUS_COMMITTED
+                    self.table_view.window().edit_channel_page.channel_dirty
+                    or json_result['new_status'] != COMMIT_STATUS_COMMITTED
             )
             self.window().personal_channel_page.update_channel_commit_views(deleted_index=index)
 

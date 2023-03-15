@@ -1,9 +1,8 @@
 from unittest.mock import Mock
 
+import pytest
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA
 from ipv8.util import succeed
-
-import pytest
 
 from tribler.core.components.tunnel.community.dispatcher import TunnelDispatcher
 

@@ -43,8 +43,8 @@ class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QWidget):
             return
         for channel_info in changed_channels_list:
             if (
-                self.contents_widget.model.channel_info["public_key"] == channel_info["public_key"]
-                and self.contents_widget.model.channel_info["id"] == channel_info["id"]
+                    self.contents_widget.model.channel_info["public_key"] == channel_info["public_key"]
+                    and self.contents_widget.model.channel_info["id"] == channel_info["id"]
             ):
                 self.update_subscribe_button(remote_response=channel_info)
                 return

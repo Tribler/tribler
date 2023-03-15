@@ -1,5 +1,3 @@
-
-
 def is_bencoded(x: bytes) -> bool:
     """
     Returns True is x appears to be valid bencoded byte string.

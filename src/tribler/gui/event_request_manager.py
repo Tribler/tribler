@@ -102,7 +102,7 @@ class EventRequestManager(QNetworkAccessManager):
     def on_remote_query_results(self, data: dict):
         self.received_remote_query_results.emit(data)
 
-    def on_tribler_shutdown_state(self,state: str):
+    def on_tribler_shutdown_state(self, state: str):
         self.tribler_shutdown_signal.emit(state)
 
     def on_report_config_error(self, error):

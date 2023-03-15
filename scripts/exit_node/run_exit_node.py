@@ -16,11 +16,11 @@ from ipv8.taskmanager import TaskManager
 
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler.core.components.session import Session
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
+from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.config.tribler_config import TriblerConfig
@@ -224,7 +224,7 @@ def main():
     parser.add_argument('--log-rejects', action='store_const', default=False, const=True, help='Log rejects')
     parser.add_argument('--log-circuits', action='store_const', default=False, const=True,
                         help='Log information about circuits')
-    parser.add_argument('--fragile', '-f', help='Fail at the first error',  action='store_true')
+    parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
 
     args = parser.parse_args(sys.argv[1:])
     service = TunnelHelperService()

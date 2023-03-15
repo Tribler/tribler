@@ -6,7 +6,7 @@ version: 2
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
-   configuration: doc/conf.py
+  configuration: doc/conf.py
 
 build:
   image: latest
@@ -16,6 +16,6 @@ submodules:
   include: all
 
 python:
-   version: "3.8"
-   install:
-   - requirements: doc/requirements.txt
+  version: "3.8"
+  install:
+    - requirements: doc/requirements.txt

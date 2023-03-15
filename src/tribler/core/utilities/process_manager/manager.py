@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 import sqlite3
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from threading import Lock
 from typing import ContextManager, List, Optional
-
-from contextlib import contextmanager
 
 from tribler.core.utilities.process_manager import sql_scripts
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
@@ -16,7 +15,6 @@ from tribler.core.utilities.process_manager.utils import with_retry
 logger = logging.getLogger(__name__)
 
 DB_FILENAME = 'processes.sqlite'
-
 
 global_process_manager: Optional[ProcessManager] = None
 

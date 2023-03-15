@@ -2,11 +2,8 @@ import base64
 import json
 
 from aiohttp import web
-
 from aiohttp_apispec import docs, json_schema
-
 from ipv8.REST.schema import schema
-
 from marshmallow.fields import String
 
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig

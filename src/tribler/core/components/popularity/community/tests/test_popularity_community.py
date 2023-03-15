@@ -6,7 +6,6 @@ from unittest.mock import Mock
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
-
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -25,6 +24,7 @@ def _generate_single_checked_torrent(status: str = None) -> HealthInfo:
     POPULAR -> Peers: [101, 1000]
     DEFAULT -> peers: [1, 100]  # alive
     """
+
     def get_peers_for(health_status):
         if health_status == 'DEAD':
             return 0

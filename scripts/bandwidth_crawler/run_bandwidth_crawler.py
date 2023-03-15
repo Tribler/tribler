@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--statedir', '-s', default='bw_crawler', type=str, help='Use an alternate statedir')
     parser.add_argument('--restapi', '-p', default=20100, type=int, help='Use an alternate port for the REST API',
                         action=PortAction, metavar='{0..65535}')
-    parser.add_argument('--fragile', '-f', help='Fail at the first error',  action='store_true')
+    parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
     args = parser.parse_args(sys.argv[1:])
 
     logging.basicConfig(level=logging.INFO)

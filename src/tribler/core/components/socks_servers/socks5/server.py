@@ -22,10 +22,12 @@ class Socks5Server:
         """
         Start the socks5 server by listening on the specified TCP ports.
         """
+
         def build_protocol():
             socks5connection = Socks5Connection(self)
             self.sessions.append(socks5connection)
             return socks5connection
+
         self.server = await get_event_loop().create_server(build_protocol, '127.0.0.1', self.port)
         server_socket = self.server.sockets[0]
         _, bind_port = server_socket.getsockname()[:2]

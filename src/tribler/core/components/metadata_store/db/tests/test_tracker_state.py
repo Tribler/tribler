@@ -1,6 +1,5 @@
-from pony.orm import db_session
-
 import pytest
+from pony.orm import db_session
 
 from tribler.core.utilities.tracker_utils import MalformedTrackerURLException
 

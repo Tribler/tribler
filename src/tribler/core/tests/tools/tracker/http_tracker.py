@@ -1,6 +1,4 @@
-
 from aiohttp import web
-
 from libtorrent import bencode
 
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse

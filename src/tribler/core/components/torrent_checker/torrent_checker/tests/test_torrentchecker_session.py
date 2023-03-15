@@ -1,6 +1,5 @@
 import socket
 import struct
-import time
 from asyncio import CancelledError, DatagramProtocol, Future, ensure_future, get_event_loop, sleep, start_server
 from unittest.mock import Mock
 

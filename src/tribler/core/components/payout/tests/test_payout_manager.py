@@ -1,8 +1,7 @@
 from unittest.mock import Mock
 
-from ipv8.util import succeed
-
 import pytest
+from ipv8.util import succeed
 
 from tribler.core.components.payout.payout_manager import PayoutManager
 
@@ -43,6 +42,7 @@ async def test_do_payout_dht_error(payout_manager):
     """
     Test whether we are not doing a payout when the DHT lookup fails
     """
+
     def err_connect_peer(_):
         raise RuntimeError("test")
 
@@ -56,6 +56,7 @@ async def test_do_payout_no_dht_peers(payout_manager):
     """
     Test whether we are not doing a payout when there are no peers returned by the DHT
     """
+
     def connect_peer(_):
         return succeed([])
 
@@ -69,6 +70,7 @@ async def test_do_payout_error(payout_manager):
     """
     Test whether we are not doing a payout when the payout fails
     """
+
     def connect_peer(_):
         return succeed([b"abc"])
 

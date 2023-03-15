@@ -25,6 +25,7 @@ from tribler.core.components.metadata_store.db.serialization import (
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import random_infohash
 
+
 # pylint: disable=too-many-statements
 
 
@@ -46,8 +47,8 @@ def define_binding(db):
         # Special class-level properties
         _payload_class = CollectionNodePayload
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
-            : _payload_class.__init__.__code__.co_argcount
-        ][1:]
+                            : _payload_class.__init__.__code__.co_argcount
+                            ][1:]
         nonpersonal_attributes = db.MetadataNode.nonpersonal_attributes + ('num_entries',)
 
         @property
@@ -58,8 +59,8 @@ def define_binding(db):
 
             toplevel_parent = self.get_parent_nodes()[0]
             if (
-                toplevel_parent.metadata_type == CHANNEL_TORRENT
-                and toplevel_parent.local_version == toplevel_parent.timestamp
+                    toplevel_parent.metadata_type == CHANNEL_TORRENT
+                    and toplevel_parent.local_version == toplevel_parent.timestamp
             ):
                 return CHANNEL_STATE.COMPLETE.value
 
@@ -259,6 +260,7 @@ def define_binding(db):
             db.CollectionNode.collapse_deleted_subtrees()
             upd_dict = {}
             children = {}
+
             # Remark: it should be possible to optimize this by rewriting in pure SQL with recursive CTEs
 
             def update_node_info(n):
@@ -272,8 +274,8 @@ def define_binding(db):
             dead_parents = set()
             # First we traverse the tree upwards from changed leaves to find all nodes affected by changes
             for node in db.ChannelNode.select(
-                lambda g: g.public_key == db.ChannelNode._my_key.pub().key_to_bin()[10:]  # pylint: disable=W0212
-                and g.status in DIRTY_STATUSES
+                    lambda g: g.public_key == db.ChannelNode._my_key.pub().key_to_bin()[10:]  # pylint: disable=W0212
+                              and g.status in DIRTY_STATUSES
             ):
                 update_node_info(node)
                 # This process resolves the parents completely.
@@ -293,7 +295,7 @@ def define_binding(db):
             # Delete orphans
             db.ChannelNode.select(
                 lambda g: db.ChannelNode._my_key.pub().key_to_bin()[10:] == g.public_key  # pylint: disable=W0212
-                and g.origin_id in dead_parents
+                          and g.origin_id in dead_parents
             ).delete()
             orm.flush()  # Just in case...
             if not children or 0 not in children:
@@ -379,6 +381,7 @@ def define_binding(db):
             in the future.
             This procedure should be always run _before_ committing personal channels.
             """
+
             # Remark: it should be possible to optimize this by rewriting in pure SQL with recursive CTEs
 
             def get_highest_deleted_parent(node, highest_deleted_parent=None):
@@ -395,7 +398,7 @@ def define_binding(db):
                 get_highest_deleted_parent(node, highest_deleted_parent=node).rowid
                 for node in db.CollectionNode.select(
                     lambda g: g.public_key == db.CollectionNode._my_key.pub().key_to_bin()[10:]  # pylint: disable=W0212
-                    and g.status == TODELETE
+                              and g.status == TODELETE
                 )
                 if node
             }

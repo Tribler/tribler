@@ -178,7 +178,7 @@ class PonyToPonyMigration:
                 index_percentage = calc_progress(t2 - t1, base_duration / 8.0)
                 total_percentage = (index_num * 100.0 + index_percentage) / index_total
                 self.notification_callback(f"recreating indexes\n"
-                                       f"{total_percentage:.2f}% done")
+                                           f"{total_percentage:.2f}% done")
             except Exception as e:
                 self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{str(e)}")
                 self.shutting_down = True
@@ -208,7 +208,7 @@ class PonyToPonyMigration:
             try:
                 t2 = now()
                 self.notification_callback("adding full text search index...\n"
-                                       f"{calc_progress(t2 - t1, base_duration):.2f}% done")
+                                           f"{calc_progress(t2 - t1, base_duration):.2f}% done")
             except Exception as e:
                 self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{str(e)}")
                 self.shutting_down = True

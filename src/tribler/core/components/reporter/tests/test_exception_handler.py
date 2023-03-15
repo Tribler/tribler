@@ -7,6 +7,7 @@ from tribler.core.components.reporter.exception_handler import CoreExceptionHand
 from tribler.core.sentry_reporter import sentry_reporter
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 
+
 # pylint: disable=protected-access, redefined-outer-name
 # fmt: off
 
