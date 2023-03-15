@@ -64,7 +64,7 @@ def sentinel(
 
 if hasattr(_sys, '_getframe'):
     def _get_parent_frame():
-        return _sys._getframe(2)
+        return _sys._getframe(2)  # pylint: disable=protected-access
 else:  # pragma: no cover
     def _get_parent_frame():
         """Return the frame object for the caller's parent stack frame."""
