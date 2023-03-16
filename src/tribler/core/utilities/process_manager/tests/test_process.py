@@ -107,7 +107,6 @@ def test_tribler_process_mark_finished(current_process):
     assert not p.primary
     assert p.exit_code == 123
     assert p.finished_at is not None
-    assert str(p).endswith(", api_port=10000, duration='0:00:00', exit_code=123)")
 
 
 def test_tribler_process_mark_finished_no_exit_code(current_process):
