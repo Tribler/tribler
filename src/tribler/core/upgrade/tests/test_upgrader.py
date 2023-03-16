@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import Set
 from unittest.mock import patch
@@ -16,6 +17,7 @@ from tribler.core.upgrade.db8_to_db10 import calc_progress
 from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
+from tribler.core.utilities.utilities import random_infohash
 
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -192,6 +194,60 @@ def test_upgrade_pony13to14_no_tags(upgrader: TriblerUpgrader, state_dir, channe
         assert _exists(tags.instance, 'TorrentTagOp', 'auto_generated')
 
         assert mds.get_value('db_version') == '14'
+
+
+def test_upgrade_pony14to15(upgrader: TriblerUpgrader, channels_dir, trustchain_keypair, mds_path):
+    _copy(source_name='pony_v14.db', target=mds_path)
+
+    now = int(time.time())
+    in_the_past = now - 1000
+    in_the_future = now + 1000
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
+
+    def _add_torrent_state(self_checked, last_check):
+        mds.TorrentState(infohash=random_infohash(), seeders=1, leechers=1,
+                         self_checked=self_checked, last_check=last_check)
+
+    with db_session:
+        mds.TorrentState(infohash=random_infohash())  # a TorrentState for an infohash that was never checked
+        _add_torrent_state(self_checked=0, last_check=in_the_past)
+        _add_torrent_state(self_checked=1, last_check=in_the_past)
+        _add_torrent_state(self_checked=0, last_check=in_the_future)
+        _add_torrent_state(self_checked=1, last_check=in_the_future)
+
+    def _execute(sql, **kwargs):
+        return mds.db.execute(sql, kwargs).fetchone()[0]
+
+    with db_session:
+        assert mds.get_value('db_version') == '14'
+        # Total number of records should not be changed after the upgrade
+        assert _execute('select count(*) from TorrentState') == 5
+        # There will be fewer records with nonzero seeders/leechers after the upgrade
+        assert _execute('select count(*) from TorrentState where seeders > 0 or leechers > 0') == 4
+        # Before the upgrade, the database contained several corrupted records, and SQL queries were able to find them
+        assert _execute('select count(*) from TorrentState where self_checked > 0') == 2
+        assert _execute('select count(*) from TorrentState where last_check > $x', x=now) == 2
+
+    mds.shutdown()
+
+    # The upgrade should clear the self_checked flag for all records, as due to a bug, we cannot be sure they are
+    # really self-checked. Also, it should clear all records with the future last_check timestamp value, resetting
+    # their seeders/leechers values
+    upgrader.upgrade_pony_db_14to15()
+
+    mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False)
+    with db_session:
+        assert mds.get_value('db_version') == '15'
+        # After the upgrade, the same SQL queries found the same total number of records
+        assert _execute('select count(*) from TorrentState') == 5
+        # Records with correct last_check values still have their seeders/leechers values;
+        # only the records with incorrect last_check values were cleared
+        assert _execute('select count(*) from TorrentState where seeders > 0 or leechers > 0') == 2
+        # After the upgrade, the same SQL queries found no corrupted records
+        assert _execute('select count(*) from TorrentState where self_checked > 0') == 0
+        assert _execute('select count(*) from TorrentState where last_check > $x', x=now) == 0
+
+    mds.shutdown()
 
 
 def test_upgrade_pony12to13(upgrader, channels_dir, mds_path, trustchain_keypair):  # pylint: disable=W0621

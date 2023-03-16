@@ -54,7 +54,7 @@ from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
-CURRENT_DB_VERSION = 14
+CURRENT_DB_VERSION = 15
 
 MIN_BATCH_SIZE = 10
 MAX_BATCH_SIZE = 1000
