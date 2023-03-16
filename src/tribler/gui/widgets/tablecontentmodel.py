@@ -534,7 +534,7 @@ class ChannelContentModel(RemoteTableModel):
             time_without_microseconds = str(td).partition('.')[0]
             return f'Checked: {time_without_microseconds} ago'
 
-        if role == Qt.ToolTipRole and column_type == Column.NAME:
+        if role == Qt.ToolTipRole and column_type == Column.NAME and "infohash" in item:
             return f'{item["infohash"][:8]}'
 
         # The 'name' column is special in a sense that we want to draw the title and tags ourselves.
