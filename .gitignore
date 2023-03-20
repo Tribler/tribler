@@ -94,3 +94,6 @@ _build/
 .Tribler/
 
 .mailmap
+
+# this folder is dedicated to storing local experimental code that don't want to be committed
+local/
