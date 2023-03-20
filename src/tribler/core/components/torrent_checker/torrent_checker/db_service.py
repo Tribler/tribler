@@ -16,9 +16,6 @@ from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import is_valid_url
 
-TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
-TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
-USER_CHANNEL_TORRENT_SELECTION_INTERVAL = 10 * 60  # The interval for checking the health of torrents in user's channel.
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50

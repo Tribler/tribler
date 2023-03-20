@@ -6,9 +6,10 @@ import pytest
 from ipv8.util import succeed
 from pony.orm import db_session
 
-import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.db_service import USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE, \
+    TORRENT_SELECTION_POOL_SIZE
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     HttpTrackerSession
@@ -183,14 +184,14 @@ async def test_check_local_torrents(torrent_checker):
 
     # Now check that all torrents selected for check are stale torrents.
     selected_torrents, _ = await torrent_checker.check_local_torrents()
-    assert len(selected_torrents) <= torrent_checker_module.TORRENT_SELECTION_POOL_SIZE
+    assert len(selected_torrents) <= TORRENT_SELECTION_POOL_SIZE
 
     # In the above setup, both seeder (popularity) count and last_check are decreasing so,
     # 1. Popular torrents are in the front, and
     # 2. Older torrents are towards the back
     # Therefore the selection range becomes:
-    selection_range = stale_infohashes[0: torrent_checker_module.TORRENT_SELECTION_POOL_SIZE] \
-                      + stale_infohashes[- torrent_checker_module.TORRENT_SELECTION_POOL_SIZE:]
+    selection_range = stale_infohashes[0: TORRENT_SELECTION_POOL_SIZE] \
+                      + stale_infohashes[- TORRENT_SELECTION_POOL_SIZE:]
 
     for t in selected_torrents:
         assert t.infohash in selection_range
@@ -240,7 +241,7 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
 
     # Now check that only outdated torrents are selected for check
     selected_torrents = torrent_checker.db_service.torrents_to_check_in_user_channel()
-    assert len(selected_torrents) <= torrent_checker_module.USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE
+    assert len(selected_torrents) <= USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE
     for torrent in selected_torrents:
         assert torrent.infohash in outdated_torrents
 

@@ -20,13 +20,6 @@ from tribler.core.utilities.unicode import hexlify
 TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
 USER_CHANNEL_TORRENT_SELECTION_INTERVAL = 10 * 60  # The interval for checking the health of torrents in user's channel.
-MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
-TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
-MAX_TORRENTS_CHECKED_PER_SESSION = 50
-
-TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
-USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
-TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
 
 
 class TorrentChecker(TaskManager):
@@ -160,6 +153,3 @@ class TorrentChecker(TaskManager):
             health.last_check = int(time.time())
             health.self_checked = True
             self.db_service.update_torrent_health(health)
-
-    # def update_torrent_health(self, health):
-    #     self.db_service.update_torrent_health(health)

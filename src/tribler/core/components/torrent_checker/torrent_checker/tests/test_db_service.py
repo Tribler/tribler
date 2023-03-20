@@ -8,10 +8,9 @@ from unittest.mock import MagicMock, Mock
 import pytest
 from pony.orm import db_session
 
-import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TOLERABLE_TIME_DRIFT, \
     TrackerResponse, HEALTH_FRESHNESS_SECONDS
-from tribler.core.components.torrent_checker.torrent_checker.db_service import DbService
+from tribler.core.components.torrent_checker.torrent_checker.db_service import DbService, TORRENTS_CHECKED_RETURN_SIZE
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash
@@ -92,7 +91,7 @@ def test_load_torrents_check_from_db(db_service):  # pylint: disable=unused-argu
     # and save freshly self checked torrents more than max return size (10 more).
     # Expected: max (return size) torrents, since limit is placed on how many to load.
     db_service._torrents_checked = None  # pylint: disable=protected-access
-    return_size = torrent_checker_module.TORRENTS_CHECKED_RETURN_SIZE
+    return_size = TORRENTS_CHECKED_RETURN_SIZE
     save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=return_size + 10)
     assert len(db_service.torrents_checked) == return_size
 
