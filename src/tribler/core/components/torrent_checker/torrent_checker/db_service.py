@@ -3,7 +3,7 @@ import random
 import time
 from typing import Optional, Dict
 
-from pony.orm import db_session, desc
+from pony.orm import db_session, desc, select
 from pony.utils import between
 
 from tribler.core import notifications
@@ -109,6 +109,20 @@ class DbService:
 
         return None
 
+    def get_next_tracker_and_infohashes(self):
+        tracker = self.get_next_tracker()
+        if not tracker:
+            return None, None
+
+        # get the torrents that should be checked
+        url = tracker.url
+        with db_session:
+            dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
+            torrents = select(ts for ts in tracker.torrents if ts.last_check + dynamic_interval < int(time.time()))
+            infohashes = [t.infohash for t in torrents[:MAX_TORRENTS_CHECKED_PER_SESSION]]
+
+        return url, infohashes
+
     @db_session
     def torrents_to_check_in_user_channel(self):
         """
@@ -133,6 +147,15 @@ class DbService:
         db_tracker_list = self.mds.TorrentState.get(infohash=infohash).trackers
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
+
+    @db_session
+    def get_recent_health_result_if_exists(self, infohash):
+        torrent_state = self.mds.TorrentState.get(infohash=infohash)
+        if torrent_state:
+            last_check = torrent_state.last_check
+            time_diff = time.time() - last_check
+            if time_diff < MIN_TORRENT_CHECK_INTERVAL:
+                return torrent_state.to_health()
 
     def update_torrent_health(self, health: HealthInfo) -> bool:
         """

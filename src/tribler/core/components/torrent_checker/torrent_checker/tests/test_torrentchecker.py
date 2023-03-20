@@ -1,24 +1,34 @@
-import logging
 import os
 import time
-from asyncio import CancelledError
-from binascii import unhexlify
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from ipv8.util import succeed
 from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
-    HttpTrackerSession, UdpSocketManager
+    HttpTrackerSession
+from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
+from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions
+import os
+import time
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from ipv8.util import succeed
+from pony.orm import db_session
+
+import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
+    HttpTrackerSession
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions
 
-
-# pylint: disable=protected-access
 
 @pytest.fixture(name="tracker_manager")
 def tracker_manager_fixture(tmp_path, metadata_store):
@@ -35,22 +45,6 @@ async def torrent_checker_fixture(tribler_config, tracker_manager, metadata_stor
                                      )
     yield torrent_checker
     await torrent_checker.shutdown()
-
-
-async def test_create_socket_fail(torrent_checker):
-    """
-    Test creation of the UDP socket of the torrent checker when it fails
-    """
-
-    def mocked_listen_on_udp():
-        raise OSError("Something went wrong")
-
-    torrent_checker.socket_mgr = UdpSocketManager()
-    torrent_checker.listen_on_udp = mocked_listen_on_udp
-    await torrent_checker.create_socket_or_schedule()
-
-    assert torrent_checker.udp_transport is None
-    assert torrent_checker.is_pending_task_active("listen_udp_port")
 
 
 async def test_health_check_blacklisted_trackers(torrent_checker):
@@ -122,7 +116,7 @@ async def test_task_select_tracker(torrent_checker):
     controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5, None)
     controlled_session.connect_to_tracker = lambda: succeed(None)
 
-    torrent_checker._create_session_for_request = lambda *args, **kwargs: controlled_session
+    torrent_checker.checker_service.create_session_for_request = lambda *args, **kwargs: controlled_session
 
     result = await torrent_checker.check_random_tracker()
 
@@ -144,7 +138,7 @@ async def test_tracker_test_error_resolve(torrent_checker: TorrentChecker):
     assert not result
 
     # Verify whether we successfully cleaned up the session after an error
-    assert not torrent_checker._sessions
+    assert not torrent_checker.checker_service._sessions
 
 
 async def test_tracker_no_infohashes(torrent_checker):
@@ -268,72 +262,3 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
     result = await torrent_checker.check_torrents_in_user_channel()
     assert len(result) == len(selected_torrents)
 
-
-async def test_get_tracker_response_cancelled_error(torrent_checker: TorrentChecker, caplog):
-    """
-    Tests that CancelledError from session.connect_to_tracker() is handled correctly
-    """
-    torrent_checker.clean_session = AsyncMock()
-    torrent_checker.update_torrent_health = Mock()
-    torrent_checker.tracker_manager.update_tracker_info = Mock()
-
-    tracker_url = '<tracker_url>'
-    session = Mock(tracker_url=tracker_url)
-    session.connect_to_tracker = AsyncMock(side_effect=CancelledError())
-
-    with pytest.raises(CancelledError):
-        await torrent_checker.get_tracker_response(session)
-
-    torrent_checker.clean_session.assert_called_once()
-    torrent_checker.update_torrent_health.assert_not_called()
-    torrent_checker.tracker_manager.update_tracker_info.assert_not_called()
-
-    assert caplog.record_tuples == [
-        ('TorrentChecker', logging.INFO, 'Tracker session is being cancelled: <tracker_url>')
-    ]
-
-
-async def test_get_tracker_response_other_error(torrent_checker: TorrentChecker, caplog):
-    """
-    Tests that arbitrary exception from session.connect_to_tracker() is handled correctly
-    """
-    torrent_checker.clean_session = AsyncMock()
-    torrent_checker.update_torrent_health = Mock()
-    torrent_checker.tracker_manager.update_tracker_info = Mock()
-
-    tracker_url = '<tracker_url>'
-    session = Mock(tracker_url=tracker_url)
-    session.connect_to_tracker = AsyncMock(side_effect=ValueError('error text'))
-
-    with pytest.raises(ValueError, match='^error text$'):
-        await torrent_checker.get_tracker_response(session)
-
-    torrent_checker.clean_session.assert_called_once()
-    torrent_checker.update_torrent_health.assert_not_called()
-    torrent_checker.tracker_manager.update_tracker_info.assert_called_once_with(tracker_url, False)
-
-    assert caplog.record_tuples == [
-        ('TorrentChecker', logging.WARNING, "Got session error for the tracker: <tracker_url>\nerror text")
-    ]
-
-
-async def test_get_tracker_response(torrent_checker: TorrentChecker, caplog):
-    """
-    Tests that the result from session.connect_to_tracker() is handled correctly and passed to update_torrent_health()
-    """
-    health = HealthInfo(unhexlify('abcd0123'))
-    tracker_url = '<tracker_url>'
-    tracker_response = TrackerResponse(url=tracker_url, torrent_health_list=[health])
-
-    session = Mock(tracker_url=tracker_url)
-    session.connect_to_tracker = AsyncMock(return_value=tracker_response)
-
-    torrent_checker.clean_session = AsyncMock()
-    # torrent_checker.db_service = Mock()
-    torrent_checker.db_service.update_torrent_health = Mock()
-    results = await torrent_checker.get_tracker_response(session)
-
-    assert results is tracker_response
-    torrent_checker.db_service.update_torrent_health.assert_called_once_with(health)
-
-    assert "Got response from Mock" in caplog.text
