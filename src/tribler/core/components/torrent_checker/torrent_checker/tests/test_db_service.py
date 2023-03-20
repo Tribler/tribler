@@ -10,7 +10,7 @@ from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TOLERABLE_TIME_DRIFT, \
-    TrackerResponse
+    TrackerResponse, HEALTH_FRESHNESS_SECONDS
 from tribler.core.components.torrent_checker.torrent_checker.db_service import DbService
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
@@ -61,7 +61,7 @@ def test_load_torrents_check_from_db(db_service):  # pylint: disable=unused-argu
                                              self_checked=self_checked)
 
     now = int(time.time())
-    freshness_threshold = now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
+    freshness_threshold = now - HEALTH_FRESHNESS_SECONDS
     before_threshold = freshness_threshold - 100  # considered not-fresh
     after_threshold = freshness_threshold + 100  # considered fresh
 

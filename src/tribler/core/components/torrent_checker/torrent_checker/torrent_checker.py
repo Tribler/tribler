@@ -36,7 +36,7 @@ class TorrentChecker(TaskManager):
                  notifier: Notifier,
                  tracker_manager: TrackerManager,
                  metadata_store: MetadataStore,
-                 socks_listen_ports: Optional[List[int]] = None):
+                 socks_proxy: Optional[Tuple[str, int]] = None):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tracker_manager = tracker_manager
@@ -45,18 +45,8 @@ class TorrentChecker(TaskManager):
         self.notifier = notifier
         self.config = config
 
-        self.socks_listen_ports = socks_listen_ports
-
         self.db_service = DbService(download_manager, tracker_manager, metadata_store, notifier)
-
-        required_hops = 0 #self.config.download_defaults.number_hops
-        actual_hops = len(self.socks_listen_ports or [])
-        if required_hops > actual_hops:
-            self._logger.warning(f"Dropping the request. Required amount of hops doesn't reached. "
-                                 f'Required hops: {required_hops}. Actual hops: {actual_hops}')
-            # raise RuntimeError("Required amount of hops doesn't reached")
-        proxy = ('127.0.0.1', self.socks_listen_ports[required_hops - 1]) if required_hops > 0 else None
-        self.checker_service = CheckerService(download_manager, proxy)
+        self.checker_service = CheckerService(download_manager, socks_proxy)
 
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)

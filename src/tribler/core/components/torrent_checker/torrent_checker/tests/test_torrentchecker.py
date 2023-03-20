@@ -7,21 +7,7 @@ from ipv8.util import succeed
 from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse
-from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
-    HttpTrackerSession
-from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
-from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions
-import os
-import time
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
-from ipv8.util import succeed
-from pony.orm import db_session
-
-import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
@@ -184,7 +170,7 @@ async def test_check_local_torrents(torrent_checker):
             fresh_infohashes.append(infohash)
 
     # Add some stale (old) checked torrents
-    time_stale = time_fresh - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
+    time_stale = time_fresh - HEALTH_FRESHNESS_SECONDS
     stale_infohashes = []
     max_seeder = 10000  # some random value
     for index in range(0, num_torrents):
@@ -239,7 +225,7 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
 
     num_torrents = 20
     timestamp_now = int(time.time())
-    timestamp_outdated = timestamp_now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
+    timestamp_outdated = timestamp_now - HEALTH_FRESHNESS_SECONDS
 
     # Add some recently checked and outdated torrents to the channel
     fresh_torrents = []
