@@ -1,7 +1,5 @@
 import logging
 import os
-import random
-import secrets
 import time
 from asyncio import CancelledError
 from binascii import unhexlify
@@ -12,14 +10,12 @@ from ipv8.util import succeed
 from pony.orm import db_session
 
 import tribler.core.components.torrent_checker.torrent_checker.torrent_checker as torrent_checker_module
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TOLERABLE_TIME_DRIFT, \
-    TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     HttpTrackerSession, UdpSocketManager
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
-from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
-    filter_non_exceptions
+from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions
 
 
 # pylint: disable=protected-access
@@ -84,58 +80,6 @@ async def test_health_check_cached(torrent_checker):
     result = await torrent_checker.check_torrent_health(b'a' * 20)
     assert result.seeders == 5
     assert result.leechers == 10
-
-
-def test_load_torrents_check_from_db(torrent_checker):  # pylint: disable=unused-argument
-    """
-    Test if the torrents_checked set is properly initialized based on the last_check
-    and self_checked values from the database.
-    """
-
-    @db_session
-    def save_random_torrent_state(last_checked=0, self_checked=False, count=1):
-        for _ in range(count):
-            torrent_checker.mds.TorrentState(infohash=secrets.token_bytes(20),
-                                             seeders=random.randint(1, 100),
-                                             leechers=random.randint(1, 100),
-                                             last_check=last_checked,
-                                             self_checked=self_checked)
-
-    now = int(time.time())
-    freshness_threshold = now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
-    before_threshold = freshness_threshold - 100  # considered not-fresh
-    after_threshold = freshness_threshold + 100  # considered fresh
-
-    # Case 1: Save random 10 non-self checked torrents
-    # Expected: empty set, since only self checked torrents are considered.
-    save_random_torrent_state(last_checked=now, self_checked=False, count=10)
-    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
-    assert not torrent_checker.torrents_checked
-
-    # Case 2: Save 10 self checked torrent but not within the freshness period
-    # Expected: empty set, since only self checked fresh torrents are considered.
-    save_random_torrent_state(last_checked=before_threshold, self_checked=True, count=10)
-    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
-    assert not torrent_checker.torrents_checked
-
-    # Case 3: Save 10 self checked fresh torrents
-    # Expected: 10 torrents, since there are 10 self checked and fresh torrents
-    save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=10)
-    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
-    assert len(torrent_checker.torrents_checked) == 10
-
-    # Case 4: Save some more self checked fresh torrents
-    # Expected: 10 torrents, since torrent_checked set should already be initialized above.
-    save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=10)
-    assert len(torrent_checker.torrents_checked) == 10
-
-    # Case 5: Clear the torrent_checked set (private variable),
-    # and save freshly self checked torrents more than max return size (10 more).
-    # Expected: max (return size) torrents, since limit is placed on how many to load.
-    torrent_checker._torrents_checked = None  # pylint: disable=protected-access
-    return_size = torrent_checker_module.TORRENTS_CHECKED_RETURN_SIZE
-    save_random_torrent_state(last_checked=after_threshold, self_checked=True, count=return_size + 10)
-    assert len(torrent_checker.torrents_checked) == return_size
 
 
 async def test_task_select_no_tracker(torrent_checker):
@@ -212,70 +156,11 @@ async def test_tracker_no_infohashes(torrent_checker):
     assert not result
 
 
-def test_get_valid_next_tracker_for_auto_check(torrent_checker):
-    """
-    Test if only valid tracker url are used for auto check
-    """
-    mock_tracker_state_invalid = MagicMock(
-        url="http://anno nce.torrentsmd.com:8080/announce",
-        failures=0
-    )
-    mock_tracker_state_valid = MagicMock(
-        url="http://announce.torrentsmd.com:8080/announce",
-        failures=0
-    )
-    tracker_states = [mock_tracker_state_invalid, mock_tracker_state_valid]
-
-    def get_next_tracker_for_auto_check():
-        return tracker_states[0] if tracker_states else None
-
-    def remove_tracker(_):
-        tracker_states.remove(mock_tracker_state_invalid)
-
-    torrent_checker.tracker_manager.get_next_tracker = get_next_tracker_for_auto_check
-    torrent_checker.tracker_manager.remove_tracker = remove_tracker
-    next_tracker = torrent_checker.get_next_tracker()
-    assert len(tracker_states) == 1
-    assert next_tracker.url == "http://announce.torrentsmd.com:8080/announce"
-
-
 def test_filter_non_exceptions():
     response = TrackerResponse(url='url', torrent_health_list=[])
     responses = [response, Exception()]
 
     assert filter_non_exceptions(responses) == [response]
-
-
-def test_update_health(torrent_checker: TorrentChecker):
-    infohash = b'\xee' * 20
-
-    now = int(time.time())
-    responses = [
-        TrackerResponse(
-            url='udp://localhost:2801',
-            torrent_health_list=[HealthInfo(infohash, last_check=now, leechers=1, seeders=2)]
-        ),
-        TrackerResponse(
-            url='DHT',
-            torrent_health_list=[HealthInfo(infohash, last_check=now, leechers=12, seeders=13)]
-        ),
-    ]
-
-    health = aggregate_responses_for_infohash(infohash, responses)
-    health.self_checked = True
-
-    # Check that everything works fine even if the database contains no proper infohash
-    updated = torrent_checker.update_torrent_health(health)
-    assert not updated
-
-    with db_session:
-        ts = torrent_checker.mds.TorrentState(infohash=infohash)
-        updated = torrent_checker.update_torrent_health(health)
-        assert updated
-        assert len(torrent_checker.torrents_checked) == 1
-        assert ts.leechers == 12
-        assert ts.seeders == 13
-        assert ts.last_check == now
 
 
 async def test_check_local_torrents(torrent_checker):
@@ -351,7 +236,7 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
     torrent_checker.check_torrent_health = lambda _: check_torrent_health_mock()
 
     # No torrents yet in channel, the selected channel torrents to check should be empty
-    selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
+    selected_torrents = torrent_checker.db_service.torrents_to_check_in_user_channel()
     assert len(selected_torrents) == 0
 
     # No health check call are done
@@ -374,7 +259,7 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
         outdated_torrents.append(torrent.infohash)
 
     # Now check that only outdated torrents are selected for check
-    selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
+    selected_torrents = torrent_checker.db_service.torrents_to_check_in_user_channel()
     assert len(selected_torrents) <= torrent_checker_module.USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE
     for torrent in selected_torrents:
         assert torrent.infohash in outdated_torrents
@@ -444,59 +329,11 @@ async def test_get_tracker_response(torrent_checker: TorrentChecker, caplog):
     session.connect_to_tracker = AsyncMock(return_value=tracker_response)
 
     torrent_checker.clean_session = AsyncMock()
-    torrent_checker.update_torrent_health = Mock()
+    # torrent_checker.db_service = Mock()
+    torrent_checker.db_service.update_torrent_health = Mock()
     results = await torrent_checker.get_tracker_response(session)
 
     assert results is tracker_response
-    torrent_checker.update_torrent_health.assert_called_once_with(health)
+    torrent_checker.db_service.update_torrent_health.assert_called_once_with(health)
 
     assert "Got response from Mock" in caplog.text
-
-
-def test_update_torrent_health_invalid_health(torrent_checker: TorrentChecker, caplog):
-    """
-    Tests that invalid health is ignored in TorrentChecker.update_torrent_health()
-    """
-    caplog.set_level(logging.WARNING)
-    now = int(time.time())
-    health = HealthInfo(unhexlify('abcd0123'), last_check=now + TOLERABLE_TIME_DRIFT + 2)
-    assert not torrent_checker.update_torrent_health(health)
-    assert "Invalid health info ignored: " in caplog.text
-
-
-def test_update_torrent_health_not_self_checked(torrent_checker: TorrentChecker, caplog):
-    """
-    Tests that non-self-checked health is ignored in TorrentChecker.update_torrent_health()
-    """
-    caplog.set_level(logging.ERROR)
-    health = HealthInfo(unhexlify('abcd0123'))
-    assert not torrent_checker.update_torrent_health(health)
-    assert "Self-checked torrent health expected" in caplog.text
-
-
-def test_update_torrent_health_unknown_torrent(torrent_checker: TorrentChecker, caplog):
-    """
-    Tests that unknown torrent's health is ignored in TorrentChecker.update_torrent_health()
-    """
-    caplog.set_level(logging.WARNING)
-    health = HealthInfo(unhexlify('abcd0123'), 1, 2, self_checked=True)
-    assert not torrent_checker.update_torrent_health(health)
-    assert "Unknown torrent: abcd0123" in caplog.text
-
-
-async def test_update_torrent_health_no_replace(torrent_checker, caplog):
-    """
-    Tests that the TorrentChecker.notify() method is called even if the new health does not replace the old health
-    """
-    now = int(time.time())
-    torrent_checker.notify = Mock()
-
-    with db_session:
-        torrent_state = torrent_checker.mds.TorrentState(infohash=unhexlify('abcd0123'), seeders=2, leechers=1,
-                                                         last_check=now, self_checked=True)
-        prev_health = torrent_state.to_health()
-
-    health = HealthInfo(unhexlify('abcd0123'), 1, 2, self_checked=True, last_check=now)
-    assert not torrent_checker.update_torrent_health(health)
-    assert "Skip health update, the health in the database is fresher or have more seeders" in caplog.text
-    torrent_checker.notify.assert_called_with(prev_health)

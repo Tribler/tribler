@@ -17,6 +17,7 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
     TrackerResponse
+from tribler.core.components.torrent_checker.torrent_checker.db_service import DbService
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
     FakeBep33DHTSession, FakeDHTSession, TrackerSession, UdpSocketManager, create_tracker_session
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
@@ -67,6 +68,8 @@ class TorrentChecker(TaskManager):
         # The popularity community gossips this information around.
         self._torrents_checked: Optional[Dict[bytes, HealthInfo]] = None
 
+        self.db_service = DbService(download_manager, tracker_manager, metadata_store, notifier)
+
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
@@ -93,7 +96,6 @@ class TorrentChecker(TaskManager):
     async def shutdown(self):
         """
         Shutdown the torrent health checker.
-
         Once shut down it can't be started again.
         :returns A deferred that will fire once the shutdown has completed.
         """
@@ -115,7 +117,7 @@ class TorrentChecker(TaskManager):
             self._logger.warning("Not performing tracker check since we are shutting down")
             return
 
-        tracker = self.get_next_tracker()
+        tracker = self.db_service.get_next_tracker()
         if not tracker:
             self._logger.warning("No tracker to select from to check torrent health, skip")
             return
@@ -179,119 +181,35 @@ class TorrentChecker(TaskManager):
 
         with db_session:
             for health in result.torrent_health_list:
-                self.update_torrent_health(health)
+                self.db_service.update_torrent_health(health)
 
         return result
 
     @property
     def torrents_checked(self) -> Dict[bytes, HealthInfo]:
-        if self._torrents_checked is None:
-            self._torrents_checked = self.load_torrents_checked_from_db()
-            lines = '\n'.join(f'    {health}' for health in sorted(self._torrents_checked.values(),
-                                                                   key=lambda health: -health.last_check))
-            self._logger.info(f'Initially loaded self-checked torrents:\n{lines}')
-        return self._torrents_checked
-
-    @db_session
-    def load_torrents_checked_from_db(self) -> Dict[bytes, HealthInfo]:
-        result = {}
-        now = int(time.time())
-        last_fresh_time = now - HEALTH_FRESHNESS_SECONDS
-        checked_torrents = list(self.mds.TorrentState
-                                .select(lambda g: g.has_data and g.self_checked
-                                                  and between(g.last_check, last_fresh_time, now))
-                                .order_by(lambda g: (desc(g.seeders), g.last_check))
-                                .limit(TORRENTS_CHECKED_RETURN_SIZE))
-
-        for torrent in checked_torrents:
-            result[torrent.infohash] = HealthInfo(torrent.infohash, torrent.seeders, torrent.leechers,
-                                                  last_check=torrent.last_check, self_checked=True)
-        return result
-
-    @db_session
-    def torrents_to_check(self):
-        """
-        Two categories of torrents are selected (popular & old). From the pool of selected torrents, a certain
-        number of them are submitted for health check. The torrents that are within the freshness window are
-        excluded from the selection considering the health information is still fresh.
-
-        1. Popular torrents (50%)
-        The indicator for popularity here is considered as the seeder count with direct proportionality
-        assuming more seeders -> more popular. There could be other indicators to be introduced later.
-
-        2. Old torrents (50%)
-        By old torrents, we refer to those checked quite farther in the past, sorted by the last_check value.
-        """
-        last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        popular_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
-                                order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
-
-        old_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
-                            order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
-
-        selected_torrents = popular_torrents + old_torrents
-        selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
-        return selected_torrents
+        return self.db_service.torrents_checked
 
     async def check_local_torrents(self) -> Tuple[List, List]:
         """
         Perform a full health check on a few popular and old torrents in the database.
         """
-        selected_torrents = self.torrents_to_check()
+        selected_torrents = self.db_service.torrents_to_check()
         self._logger.info(f'Check {len(selected_torrents)} local torrents')
         coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
         results = await gather_coros(coros)
         self._logger.info(f'Results for local torrents check: {results}')
         return selected_torrents, results
 
-    @db_session
-    def torrents_to_check_in_user_channel(self):
-        """
-        Returns a list of outdated torrents of user's channel which
-        has not been checked recently.
-        """
-        last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        channel_torrents = list(self.mds.TorrentMetadata.select(
-            lambda g: g.public_key == self.mds.my_public_key_bin
-                      and g.metadata_type == REGULAR_TORRENT
-                      and g.health.last_check < last_fresh_time)
-                                .order_by(lambda g: g.health.last_check)
-                                .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
-        return channel_torrents
-
     async def check_torrents_in_user_channel(self) -> List[Union[HealthInfo, BaseException]]:
         """
         Perform a full health check of torrents in user's channel
         """
-        selected_torrents = self.torrents_to_check_in_user_channel()
+        selected_torrents = self.db_service.torrents_to_check_in_user_channel()
         self._logger.info(f'Check {len(selected_torrents)} torrents in user channel')
         coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
         results = await gather_coros(coros)
         self._logger.info(f'Results for torrents in user channel: {results}')
         return results
-
-    def get_next_tracker(self):
-        while tracker := self.tracker_manager.get_next_tracker():
-            url = tracker.url
-
-            if not is_valid_url(url):
-                self.tracker_manager.remove_tracker(url)
-            elif tracker.failures >= MAX_TRACKER_FAILURES:
-                self.tracker_manager.update_tracker_info(url, is_successful=False)
-            else:
-                return tracker
-
-        return None
-
-    def is_blacklisted_tracker(self, tracker_url):
-        return tracker_url in self.tracker_manager.blacklist
-
-    @db_session
-    def get_valid_trackers_of_torrent(self, infohash):
-        """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
-        db_tracker_list = self.mds.TorrentState.get(infohash=infohash).trackers
-        return {tracker.url for tracker in db_tracker_list
-                if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
     async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False) -> HealthInfo:
         """
@@ -315,7 +233,7 @@ class TorrentChecker(TaskManager):
                     return torrent_state.to_health()
 
                 # get torrent's tracker list from DB
-                tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)
+                tracker_set = self.db_service.get_valid_trackers_of_torrent(torrent_state.infohash)
                 self._logger.info(f'Trackers for {infohash_hex}: {tracker_set}')
 
         coros = []
@@ -339,7 +257,7 @@ class TorrentChecker(TaskManager):
         if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
             health.last_check = int(time.time())
             health.self_checked = True
-            self.update_torrent_health(health)
+            self.db_service.update_torrent_health(health)
 
     def _create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
         self._logger.debug(f'Creating a session for the request: {tracker_url}')
@@ -368,49 +286,5 @@ class TorrentChecker(TaskManager):
         await session.cleanup()
         self._logger.debug('Session has been cleaned up')
 
-    def update_torrent_health(self, health: HealthInfo) -> bool:
-        """
-        Updates the torrent state in the database if it already exists, otherwise do nothing.
-        Returns True if the update was successful, False otherwise.
-        """
-        if not health.is_valid():
-            self._logger.warning(f'Invalid health info ignored: {health}')
-            return False
-
-        if not health.self_checked:
-            self._logger.error(f'Self-checked torrent health expected. Got: {health}')
-            return False
-
-        self._logger.debug(f'Update torrent health: {health}')
-        with db_session:
-            # Update torrent state
-            torrent_state = self.mds.TorrentState.get_for_update(infohash=health.infohash)
-            if not torrent_state:
-                self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
-                return False
-
-            prev_health = torrent_state.to_health()
-            if not health.should_replace(prev_health):
-                self._logger.info("Skip health update, the health in the database is fresher or have more seeders")
-                self.notify(prev_health)  # to update UI state from "Checking..."
-                return False
-
-            torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
-                              self_checked=True)
-
-        if health.seeders > 0 or health.leechers > 0:
-            self.torrents_checked[health.infohash] = health
-        else:
-            self.torrents_checked.pop(health.infohash, None)
-
-        self.notify(health)
-        return True
-
-    def notify(self, health: HealthInfo):
-        self.notifier[notifications.channel_entity_updated]({
-            'infohash': health.infohash_hex,
-            'num_seeders': health.seeders,
-            'num_leechers': health.leechers,
-            'last_tracker_check': health.last_check,
-            'health': 'updated'
-        })
+    def update_torrent_health(self, health):
+        self.db_service.update_torrent_health(health)
