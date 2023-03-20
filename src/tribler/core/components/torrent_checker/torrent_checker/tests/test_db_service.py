@@ -11,7 +11,6 @@ from pony.orm import db_session
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TOLERABLE_TIME_DRIFT, \
     TrackerResponse, HEALTH_FRESHNESS_SECONDS
 from tribler.core.components.torrent_checker.torrent_checker.db_service import DbService, TORRENTS_CHECKED_RETURN_SIZE
-from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash
 
@@ -21,18 +20,6 @@ from tribler.core.components.torrent_checker.torrent_checker.utils import aggreg
 @pytest.fixture(name="tracker_manager")
 def tracker_manager_fixture(tmp_path, metadata_store):
     return TrackerManager(state_dir=tmp_path, metadata_store=metadata_store)
-
-
-@pytest.fixture(name="torrent_checker")
-async def torrent_checker_fixture(tribler_config, tracker_manager, metadata_store):
-    torrent_checker = TorrentChecker(config=tribler_config,
-                                     download_manager=MagicMock(),
-                                     notifier=MagicMock(),
-                                     metadata_store=metadata_store,
-                                     tracker_manager=tracker_manager
-                                     )
-    yield torrent_checker
-    await torrent_checker.shutdown()
 
 
 @pytest.fixture(name="db_service")
