@@ -34,7 +34,7 @@ async def torrent_checker(mock_dlmgr, metadata_store):
         tracker_manager=tracker_manager,
         metadata_store=metadata_store,
         notifier=notifier,
-        socks_listen_ports=[2000, 3000],
+        socks_proxy=('127.0.0.1', 2000)
     )
     await torrent_checker.initialize()
     yield torrent_checker
