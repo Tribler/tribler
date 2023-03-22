@@ -17,7 +17,7 @@ pyasn1==0.4.8
 pydantic==1.9.0
 PyOpenSSL==21.0.0
 pyyaml==6.0
-sentry-sdk==1.5.0
+sentry-sdk==1.14.0
 service-identity==21.1.0
 yappi==1.4.0
 yarl==1.7.2 # keep this dependency higher than 1.6.3. See: https://github.com/aio-libs/yarl/issues/517
