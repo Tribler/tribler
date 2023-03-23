@@ -3,6 +3,8 @@ import pytest
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
 def tracker_manager(tmp_path, metadata_store):
     return TrackerManager(state_dir=tmp_path, metadata_store=metadata_store)

@@ -16,6 +16,9 @@ from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.utilities import random_infohash
 
+# pylint: disable=redefined-outer-name
+
+
 update_metainfo = None
 
 

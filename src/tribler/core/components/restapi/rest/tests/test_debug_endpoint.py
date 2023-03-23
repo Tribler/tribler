@@ -12,13 +12,16 @@ from tribler.core.components.restapi.rest.debug_endpoint import DebugEndpoint
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 
 
+# pylint: disable=redefined-outer-name, unused-argument, protected-access
+
+
 @pytest.fixture
 def mock_tunnel_community():
     return MagicMock()
 
 
 @pytest.fixture
-def endpoint(tmp_path, mock_tunnel_community, core_resource_monitor):  # pylint: disable=W0621
+def endpoint(tmp_path, mock_tunnel_community, core_resource_monitor):
     return DebugEndpoint(tmp_path, tmp_path / 'logs',
                          tunnel_community=mock_tunnel_community,
                          resource_monitor=core_resource_monitor)
@@ -36,7 +39,7 @@ async def core_resource_monitor(tmp_path):
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, mock_tunnel_community, endpoint):  # pylint: disable=unused-argument
+def rest_api(event_loop, aiohttp_client, mock_tunnel_community, endpoint):
     endpoint.tunnel_community = mock_tunnel_community
 
     app = Application(middlewares=[error_middleware])

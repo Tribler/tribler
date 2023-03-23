@@ -63,7 +63,7 @@ class TorrentDef:
                 try:
                     lt.torrent_info(metainfo)
                 except RuntimeError as exc:
-                    raise ValueError(str(exc))
+                    raise ValueError from exc
             self.metainfo = metainfo
             self.infohash = sha1(lt.bencode(self.metainfo[b'info'])).digest()
             self.copy_metainfo_to_torrent_parameters()
@@ -489,7 +489,7 @@ class TorrentDefNoMetainfo:
     def get_infohash(self):
         return self.infohash
 
-    def get_length(self, selectedfiles=None):
+    def get_length(self, selectedfiles=None):  # pylint: disable=unused-argument
         return 0
 
     def get_metainfo(self):

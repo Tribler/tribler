@@ -161,13 +161,10 @@ class DownloadsDetailsTabWidget(QTabWidget):
         )
         self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
         self.window().download_detail_destination_label.setText(self.current_download["destination"])
+        up = format_size(self.current_download['total_up'])
+        down = format_size(self.current_download['total_down'])
         self.window().download_detail_ratio_label.setText(
-            "%.3f, up: %s, down: %s"
-            % (
-                self.current_download["ratio"],
-                format_size(self.current_download["total_up"]),
-                format_size(self.current_download["total_down"]),
-            )
+            f"{self.current_download['ratio']:.3f}, up: {up}, down: {down}"
         )
         self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")
 

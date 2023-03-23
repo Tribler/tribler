@@ -16,6 +16,8 @@ from tribler.core.conftest import TEST_PERSONAL_KEY
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.utilities import random_infohash
 
+# pylint: disable=protected-access
+
 EMPTY_BLOB = b""
 
 
