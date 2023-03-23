@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import time
+from asyncio import Future
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Union, Tuple
 
 import human_readable
 
@@ -98,3 +99,14 @@ class HealthInfo:
 class TrackerResponse:
     url: str
     torrent_health_list: List[HealthInfo]
+
+
+@dataclass
+class UdpRequest:
+    transaction_id: Union[int, bytes]
+    receiver: Tuple[str, int]
+    data: bytes = field(repr=False)
+    connection_id: str = None
+    socks_proxy: Tuple[str, int] = None
+    infohashes: List[str] = None
+    response: Future = Future()

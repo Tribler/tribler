@@ -5,11 +5,13 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from ipv8.taskmanager import TaskManager
 
+from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker.checker_service import CheckerService
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.components.torrent_checker.torrent_checker.db_service import DbService
+from tribler.core.components.torrent_checker.torrent_checker.health_checker import TorrentHealthChecker
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import TrackerManager
 from tribler.core.components.torrent_checker.torrent_checker.utils import gather_coros
 from tribler.core.config.tribler_config import TriblerConfig
@@ -39,7 +41,8 @@ class TorrentChecker(TaskManager):
         self.config = config
 
         self.db_service = DbService(download_manager, tracker_manager, metadata_store, notifier)
-        self.checker_service = CheckerService(download_manager, socks_proxy)
+        # self.checker_service = CheckerService(download_manager, socks_proxy)
+        self.health_checker = TorrentHealthChecker(proxy=socks_proxy)
 
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
@@ -47,7 +50,8 @@ class TorrentChecker(TaskManager):
         self.register_task("check channel torrents", self.check_torrents_in_user_channel,
                            interval=USER_CHANNEL_TORRENT_SELECTION_INTERVAL)
 
-        await self.checker_service.initialize()
+        # await self.checker_service.initialize()
+        await self.health_checker.initialize()
 
     async def shutdown(self):
         """
@@ -55,7 +59,8 @@ class TorrentChecker(TaskManager):
         Once shut down it can't be started again.
         :returns A deferred that will fire once the shutdown has completed.
         """
-        await self.checker_service.shutdown()
+        # await self.checker_service.shutdown()
+        await self.health_checker.shutdown()
         await self.shutdown_task_manager()
 
     async def check_random_tracker(self):
@@ -64,10 +69,6 @@ class TorrentChecker(TaskManager):
         tracker, and perform a request to these trackers.
         Return whether the check was successful.
         """
-        if self.checker_service.should_stop():
-            self._logger.warning("Not performing tracker check since we are shutting down")
-            return
-
         url, infohashes = self.db_service.get_next_tracker_and_infohashes()
         if not url:
             self._logger.warning("No tracker to select from to check torrent health, skip")
@@ -81,7 +82,9 @@ class TorrentChecker(TaskManager):
 
         self._logger.info(f"Selected {len(infohashes)} new torrents to check on random tracker: {url}")
         try:
-            response = await self.checker_service.check_tracker_with_infohashes(url, infohashes)
+            # response = await self.checker_service.check_tracker_with_infohashes(url, infohashes)
+            response = await self.health_checker.get_tracker_response(url, infohashes)
+            # response = await self.health_checker.get_tracker_response(url, infohashes)
 
             health_list = response.torrent_health_list
             self._logger.info(f"Received {len(health_list)} health info results from tracker: {url}")
@@ -148,8 +151,20 @@ class TorrentChecker(TaskManager):
         tracker_set = self.db_service.get_valid_trackers_of_torrent(infohash)
         self._logger.info(f'Trackers for {infohash_hex}: {tracker_set}')
 
-        health = await self.checker_service.check_torrent_health(infohash, tracker_set, timeout=timeout)
+        health = await self.health_checker.get_health_info(infohash, trackers=['dht'], timeout=5)
         if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
             health.last_check = int(time.time())
-            health.self_checked = True
-            self.db_service.update_torrent_health(health)
+        health.self_checked = True
+        self.db_service.update_torrent_health(health)
+
+        self.notify(health)
+        return health
+
+    def notify(self, health: HealthInfo):
+        self.notifier[notifications.channel_entity_updated]({
+            'infohash': health.infohash_hex,
+            'num_seeders': health.seeders,
+            'num_leechers': health.leechers,
+            'last_tracker_check': health.last_check,
+            'health': 'updated'
+        })
