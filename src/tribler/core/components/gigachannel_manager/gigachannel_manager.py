@@ -220,25 +220,11 @@ class GigaChannelManager(TaskManager):
 
         # TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
 
-        """
-        files_to_remove = []
-        for download in to_remove_list:
-            files_to_remove.extend(self.safe_files_to_remove(download))
-        """
-
         d, remove_content = to_remove
         try:
             await self.download_manager.remove_download(d, remove_content=remove_content)
         except Exception as e:
             self._logger.error("Error when removing the channel download: %s", e)
-
-        """
-        def _on_torrents_removed(torrent):
-            print files_to_remove
-        dl = DeferredList(removed_list)
-        dl.addCallback(_on_torrents_removed)
-        self.register_task(u'remove_channels_files-' + "_".join([d.tdef.get_name_utf8() for d in to_remove_list]), dl)
-        """
 
     @task
     async def download_channel(self, channel):

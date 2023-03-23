@@ -17,8 +17,7 @@ from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
 
 
-# pylint: disable=unused-argument
-
+# pylint: disable=unused-argument, redefined-outer-name
 
 @pytest.fixture
 async def torrent_checker(mock_dlmgr, metadata_store):
@@ -42,7 +41,7 @@ async def torrent_checker(mock_dlmgr, metadata_store):
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
+def rest_api(event_loop, aiohttp_client, torrent_checker, metadata_store):
     endpoint = MetadataEndpoint(torrent_checker, metadata_store)
 
     app = Application(middlewares=[error_middleware])

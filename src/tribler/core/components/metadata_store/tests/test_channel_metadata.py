@@ -29,8 +29,7 @@ from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import random_infohash
 
 
-# pylint: disable=protected-access
-
+# pylint: disable=protected-access, redefined-outer-name
 
 @pytest.fixture
 def my_key():

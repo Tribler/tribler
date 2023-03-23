@@ -432,7 +432,7 @@ class DownloadManager(TaskManager):
                 self.lt_session_shutdown_ready[hops] = True
 
             if self.session_stats_callback:
-                self.session_stats_callback(alert)
+                self.session_stats_callback(alert)  # pylint: disable=not-callable
 
         elif alert_type == "dht_pkt_alert":
             # Unfortunately, the Python bindings don't have a direction attribute.

@@ -53,7 +53,7 @@ def sentinel(
 
     sentinel = cls()
 
-    def __new__(cls):
+    def __new__(_):
         return sentinel
 
     __new__.__qualname__ = f'{class_name}.__new__'

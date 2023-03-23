@@ -9,6 +9,8 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
 
+# pylint: disable=redefined-outer-name, unused-argument
+
 @pytest.fixture
 def tribler_config(tmp_path):
     config = TriblerConfig(tmp_path)
@@ -21,7 +23,7 @@ def endpoint(tribler_config):
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+def rest_api(event_loop, aiohttp_client, endpoint):
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/settings', endpoint.app)
     yield event_loop.run_until_complete(aiohttp_client(app))

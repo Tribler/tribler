@@ -307,9 +307,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             versions_info = tr("Versions: \n- %s") % version_dirs_str
 
             title = tr("Confirm delete older versions?")
-            message_body = tr("Are you sure to remove the selected versions? " "\nYou can not undo this action.") + (
-                    "\n\n %s" % versions_info
-            )
+            message_body = tr("Are you sure to remove the selected versions? \nYou can not undo this action.")
+            message_body += f"\n\n {versions_info}"
 
             message_buttons = QMessageBox.No | QMessageBox.Yes
         else:
@@ -417,11 +416,10 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         else:
             settings_data['libtorrent']['proxy_server'] = ":"
 
-        if self.window().lt_proxy_username_input.text() and self.window().lt_proxy_password_input.text():
-            settings_data['libtorrent']['proxy_auth'] = "{}:{}".format(
-                self.window().lt_proxy_username_input.text(),
-                self.window().lt_proxy_password_input.text(),
-            )
+        username = self.window().lt_proxy_username_input.text()
+        password = self.window().lt_proxy_password_input.text()
+        if username and password:
+            settings_data['libtorrent']['proxy_auth'] = f"{username}:{password}"
         else:
             settings_data['libtorrent']['proxy_auth'] = ":"
 
