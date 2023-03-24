@@ -48,21 +48,29 @@ class UdpSocketManager(DatagramProtocol):
             return RuntimeError("Unable to write to socket - " + str(e))
 
     def datagram_received(self, data, _):
-        # If the incoming data is valid, find the tracker session and give it the data and origin request
-        if data and len(data) >= 4:
-            transaction_id = struct.unpack_from('!i', data, 4)[0]
+        transaction_id = self.get_transaction_id_from_response(data)
+        if transaction_id:
+            udp_request, response_callback = self.requests.pop(transaction_id)
+            asyncio.ensure_future(response_callback(udp_request, data))
 
-            # if the transaction id is not in the requests, try decoding using bdecode
-            if transaction_id not in self.requests:
-                decoded = libtorrent.bdecode(data)
-                if not decoded or b't' not in decoded:
-                    return
+    def get_transaction_id_from_response(self, response_data: bytes):
+        if not response_data or len(response_data) < 4:
+            return None
 
-                transaction_id = decoded[b't']
-                if transaction_id not in self.requests:
-                    return
+        transaction_id = struct.unpack_from('!i', response_data, 4)[0]
+        if transaction_id in self.requests:
+            return transaction_id
 
-            udp_request, response_callback = self.requests.pop(transaction_id, None)
-            if response_callback:
-                # pass
-                asyncio.ensure_future(response_callback(udp_request, data))
+        # if the transaction id is not in the requests, try decoding using bdecode
+        try:
+            decoded = libtorrent.bdecode(response_data)
+            if not decoded or b't' not in decoded:
+                return None
+
+            transaction_id = decoded[b't']
+            if transaction_id in self.requests:
+                return transaction_id
+
+        except RuntimeError:
+            self._logger.error("Invalid response; Cannot bdecode response.")
+        return None
