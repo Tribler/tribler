@@ -82,8 +82,15 @@ class UdpTracker(Tracker):
 
     async def connect_to_tracker(self, ip_address, port):
         connection_request = self.compose_connect_request(ip_address, port)
-        await self.socket_mgr.send(connection_request, response_callback=self.process_connection_response)
+        await self.socket_mgr.send(connection_request, response_callback=self.await_process_connection_response)
         return await connection_request.response
+
+    async def await_process_connection_response(self, connection_request: UdpRequest, response):
+        response_future = connection_request.response
+        try:
+            await self.process_scrape_response(connection_request, response)
+        except Exception as ex:
+            response_future.set_exception(ex)
 
     async def process_connection_response(self, connection_request: UdpRequest, response):
         if len(response) < 16:
@@ -127,8 +134,15 @@ class UdpTracker(Tracker):
 
     async def scrape_response(self, ip_address, port, connection_id, infohash_list):
         scrape_request = self.compose_scrape_request(ip_address, port, connection_id, infohash_list)
-        await self.socket_mgr.send(scrape_request, response_callback=self.process_scrape_response)
+        await self.socket_mgr.send(scrape_request, response_callback=self.await_process_scrape_response)
         return await scrape_request.response
+
+    async def await_process_scrape_response(self, scrape_request: UdpRequest, response):
+        response_future = scrape_request.response
+        try:
+            await self.process_scrape_response(scrape_request, response)
+        except Exception as ex:
+            response_future.set_exception(ex)
 
     async def process_scrape_response(self, scrape_request: UdpRequest, response):
         if len(response) < 8:
