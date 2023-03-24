@@ -11,7 +11,9 @@ from tribler.core.components.torrent_checker.torrent_checker.dataclasses import 
 
 class UdpSocketManager(DatagramProtocol):
     """
-    The UdpSocketManager ensures that the network packets are forwarded to the right UdpTrackerSession.
+    The UdpSocketManager is essentially a UDP service which provides the methods for sending and receiving UDP
+    request and response packets. This also ensures that the packets are properly passed through socks proxy,
+    which in turn makes the packet go through Tunnels.
     """
 
     def __init__(self):
@@ -72,5 +74,5 @@ class UdpSocketManager(DatagramProtocol):
                 return transaction_id
 
         except RuntimeError:
-            self._logger.error("Invalid response; Cannot bdecode response.")
+            self._logger.error(f"Invalid response; Cannot bdecode response: {response_data}")
         return None

@@ -82,7 +82,8 @@ class CheckerService(TaskManager):
             tracker_response = await self.udp_tracker.get_tracker_response(tracker, infohashes, timeout=timeout)
         elif tracker.startswith('http'):
             tracker_response = await self.http_tracker.get_tracker_response(tracker, infohashes, timeout=timeout)
-        elif tracker.upper() == 'DHT' or not tracker:
+        elif infohashes and (tracker.upper() == 'DHT' or not tracker):
+            # For DHT, only one torrent is handled at a time.
             tracker_response = await self.dht_tracker.get_health(infohashes[0], timeout=timeout)
         else:
             raise TrackerException(f"Unknown tracker: {tracker}")
