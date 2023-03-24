@@ -279,7 +279,9 @@ class TriblerContentTableView(QTableView):
         self.edited_metadata.emit(data_item)
 
     def save_edited_metadata(self, index: QModelIndex, statements: List[Dict]):
+        def on_success(_):
+            self.on_metadata_edited(index, statements)
+
         data_item = self.model().data_items[index.row()]
-        request_manager.patch(f"knowledge/{data_item['infohash']}",
-                              on_finish=lambda _, ind=index, stmts=statements: self.on_metadata_edited(ind, statements),
+        request_manager.patch(f"knowledge/{data_item['infohash']}", on_success=on_success,
                               data=json.dumps({"statements": statements}))

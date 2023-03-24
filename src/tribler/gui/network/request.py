@@ -34,7 +34,7 @@ class Request(QObject):
     def __init__(
             self,
             endpoint: str,
-            on_finish: Callable = lambda _: None,
+            on_success: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
             data: DATA_TYPE = None,
             method: str = GET,
@@ -61,7 +61,7 @@ class Request(QObject):
             raw_data = data
         self.raw_data: Optional[bytes] = raw_data
 
-        connect(self.on_finished_signal, on_finish)
+        connect(self.on_finished_signal, on_success)
 
         self.reply: Optional[QNetworkReply] = None  # to hold the associated QNetworkReply object
         self.manager: Optional[RequestManager] = None

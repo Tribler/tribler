@@ -115,7 +115,7 @@ class CreateTorrentDialog(DialogContainer):
         is_seed = self.dialog_widget.seed_after_adding_checkbox.isChecked()
         self.rest_request1 = request_manager.post(
             endpoint='createtorrent',
-            on_finish=self.on_torrent_created,
+            on_success=self.on_torrent_created,
             url_params={'download': 1} if is_seed else None,
             data={"name": self.name, "description": description, "files": files_list, "export_dir": export_dir},
         )

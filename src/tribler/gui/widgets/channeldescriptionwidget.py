@@ -144,7 +144,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         if self.description_text is not None:
             descr_changed = True
             request_manager.put(f'channels/{self.channel_pk}/{self.channel_id}/description',
-                                on_finish=self._on_description_received,
+                                on_success=self._on_description_received,
                                 data={"description_text": self.description_text})
 
         if self.channel_thumbnail_bytes is not None:
@@ -154,7 +154,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
                 pass
 
             request_manager.put(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
-                                on_finish=_on_thumbnail_updated,
+                                on_success=_on_thumbnail_updated,
                                 data=self.channel_thumbnail_bytes,
                                 raw_response=True)
 
@@ -232,7 +232,7 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
             self.description_text_preview.setMarkdown("")
 
         request_manager.get(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
-                            on_finish=self._on_thumbnail_received,
+                            on_success=self._on_thumbnail_received,
                             raw_response=True)
 
     def set_widget_visible(self, show):

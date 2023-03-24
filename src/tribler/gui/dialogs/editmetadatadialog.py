@@ -70,7 +70,7 @@ class EditMetadataDialog(DialogContainer):
         self.dialog_widget.content_name_label.setText(self.data_item["name"])
 
         # Fetch suggestions
-        request_manager.get(f"knowledge/{self.infohash}/tag_suggestions", on_finish=self.on_received_tag_suggestions)
+        request_manager.get(f"knowledge/{self.infohash}/tag_suggestions", on_success=self.on_received_tag_suggestions)
 
         self.update_window()
 

@@ -905,7 +905,7 @@ class DebugWindow(QMainWindow):
 
     def load_libtorrent_settings_tab(self, hop, export=False):
         request_manager.get(endpoint=f"libtorrent/settings?hop={hop}",
-                            on_finish=lambda data: self.on_libtorrent_settings_received(data, export=export))
+                            on_success=lambda data: self.on_libtorrent_settings_received(data, export=export))
         self.window().libtorrent_settings_tree_widget.clear()
 
     def on_libtorrent_settings_received(self, data, export=False):
@@ -921,7 +921,7 @@ class DebugWindow(QMainWindow):
 
     def load_libtorrent_sessions_tab(self, hop, export=False):
         request_manager.get(endpoint=f"libtorrent/session?hop={hop}",
-                            on_finish=lambda data: self.on_libtorrent_session_received(data, export=export))
+                            on_success=lambda data: self.on_libtorrent_session_received(data, export=export))
         self.window().libtorrent_session_tree_widget.clear()
 
     def on_libtorrent_session_received(self, data, export=False):

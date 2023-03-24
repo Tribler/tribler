@@ -241,7 +241,7 @@ class ContextMenuMixin:
         def on_add_to_channel(_):
             def on_confirm_clicked(channel_id):
                 request_manager.post(f"collections/mychannel/{channel_id}/copy",
-                                     on_finish=lambda _: self.table_view.window().tray_show_message(
+                                     on_success=lambda _: self.table_view.window().tray_show_message(
                                          tr("Channel update"), tr("Torrent(s) added to your channel")
                                      ),
                                      data=json.dumps(entries))
