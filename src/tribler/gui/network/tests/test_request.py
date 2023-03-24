@@ -39,8 +39,8 @@ def test_str_data_constructor():
 
 
 def test_on_finished():
-    # Test that if 'request.reply' is empty, the `on_finish` method is called with an empty dict.
-    # see: https://github.com/Tribler/tribler/issues/7297
+    # Test that if 'request.reply' is empty, the `on_success` callback is not called
+    # see: https://github.com/Tribler/tribler/issues/7333
     on_success = MagicMock()
     request = Request(endpoint='endpoint', on_success=on_success)
     request.manager = MagicMock()
@@ -48,4 +48,4 @@ def test_on_finished():
 
     request.on_finished()
 
-    on_success.assert_called_once_with({})
+    on_success.assert_not_called()

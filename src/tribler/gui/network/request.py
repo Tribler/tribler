@@ -104,7 +104,7 @@ class Request(QObject):
                 return
 
             if not data:
-                self.on_finished_signal.emit({})
+                self.logger.error(f'No data received in the reply for {self}')
                 return
 
             self.logger.debug('Create a json response')
