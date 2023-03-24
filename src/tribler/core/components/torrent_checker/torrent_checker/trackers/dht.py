@@ -4,6 +4,7 @@ import math
 import random
 import time
 from asyncio import Future
+from asyncio.exceptions import TimeoutError
 from binascii import hexlify
 from typing import List, Tuple
 
@@ -149,7 +150,7 @@ class DHTTracker(TaskManager, Tracker):
         seeders = DHTTracker.get_size_from_bloomfilter(bf_seeders)
         peers = DHTTracker.get_size_from_bloomfilter(bf_peers)
 
-        health = HealthInfo(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers)
+        health = HealthInfo(infohash, last_check=int(time.time()), seeders=seeders, leechers=peers, self_checked=True)
         self.health_result[infohash] = health
 
         tracker_response = TrackerResponse('DHT', [health])
@@ -185,7 +186,6 @@ class DHTTracker(TaskManager, Tracker):
 
                 seeders_bloom_filter = dht_response[b'BFsd']
                 peers_bloom_filter = dht_response[b'BFpe']
-                # print(f">> [{received_responses + 1}] got dht response with BFsd:{len(seeders_bloom_filter)} and BFpe:{len(peers_bloom_filter)}")
                 self.received_bloomfilters(transaction_id,
                                            bytearray(seeders_bloom_filter),
                                            bytearray(peers_bloom_filter))

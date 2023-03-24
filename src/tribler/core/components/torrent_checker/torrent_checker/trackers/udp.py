@@ -3,6 +3,7 @@ import socket
 import struct
 import time
 from asyncio import get_event_loop, Future
+from asyncio.exceptions import TimeoutError
 
 import async_timeout
 
@@ -37,7 +38,7 @@ class UdpTracker(Tracker):
 
         try:
             async with async_timeout.timeout(timeout):
-                ip_address = await self.resolve_ip(tracker_address, timeout)
+                ip_address = await self.resolve_ip(tracker_address)
                 port = int(tracker_address[1])
 
                 connection_id = await self.connect_to_tracker(ip_address, port)
@@ -47,15 +48,16 @@ class UdpTracker(Tracker):
         except TimeoutError as e:
             raise TrackerException("Request timeout resolving tracker ip") from e
 
-    async def resolve_ip(self, tracker_address, timeout):
+    async def resolve_ip(self, tracker_address):
+        # We only resolve the hostname if we're not using a proxy.
+        # If a proxy is used, the TunnelCommunity will resolve the hostname at the exit nodes.
+        if self.proxy:
+            return tracker_address[0]
+
         try:
-            # We only resolve the hostname if we're not using a proxy.
-            # If a proxy is used, the TunnelCommunity will resolve the hostname at the exit nodes.
-            if not self.proxy:
-                # Resolve the hostname to an IP address if not done already
-                infos = await get_event_loop().getaddrinfo(tracker_address[0], 0, family=socket.AF_INET)
-                ip_address = infos[0][-1][0]
-                return ip_address
+            infos = await get_event_loop().getaddrinfo(tracker_address[0], 0, family=socket.AF_INET)
+            ip_address = infos[0][-1][0]
+            return ip_address
         except socket.gaierror as e:
             raise TrackerException("Socket error resolving tracker ip") from e
 
@@ -156,7 +158,8 @@ class UdpTracker(Tracker):
 
         for infohash in infohash_list:
             complete, _downloaded, incomplete = struct.unpack_from('!iii', response, offset)
-            response_list.append(HealthInfo(infohash, last_check=now, seeders=complete, leechers=incomplete))
+            healthinfo = HealthInfo(infohash, last_check=now, seeders=complete, leechers=incomplete, self_checked=True)
+            response_list.append(healthinfo)
             offset += 12
 
         response_future = scrape_request.response

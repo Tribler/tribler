@@ -10,10 +10,10 @@ from tribler.core.components.torrent_checker.torrent_checker.trackers.dht import
 from tribler.core.components.torrent_checker.torrent_checker.trackers.http import HttpTracker
 from tribler.core.components.torrent_checker.torrent_checker.trackers.udp import UdpTracker
 from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions, \
-    aggregate_responses_for_infohash
+    aggregate_responses_for_infohash, gather_coros
 
 
-class TorrentHealthChecker(TaskManager):
+class CheckerService(TaskManager):
 
     def __init__(self, proxy=None):
         super().__init__()
@@ -60,14 +60,18 @@ class TorrentHealthChecker(TaskManager):
         await self.shutdown_task_manager()
 
     async def get_health_info(self, infohash, trackers=None, timeout=20) -> HealthInfo:
+        if not trackers:
+            trackers = ['DHT']
+
         tracker_response_coros = []
         for tracker_url in trackers:
             tracker_response_coro = self.get_tracker_response(tracker_url, [infohash], timeout=timeout)
             if tracker_response_coro:
                 tracker_response_coros.append(tracker_response_coro)
 
-        responses = await asyncio.gather(*tracker_response_coros)
+        responses = await gather_coros(tracker_response_coros)
         self._logger.info(f'{len(responses)} responses have been received: {responses}')
+
         successful_responses = filter_non_exceptions(responses)
         health = aggregate_responses_for_infohash(infohash, successful_responses)
         return health

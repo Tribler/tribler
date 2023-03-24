@@ -3,6 +3,7 @@ import time
 from typing import List
 
 import async_timeout
+from asyncio.exceptions import TimeoutError
 from aiohttp import ClientSession, ClientTimeout, ClientResponseError
 from libtorrent import bdecode
 
@@ -69,7 +70,8 @@ class HttpTracker(Tracker):
                     seeders = file_info.get(b'complete', 0)
                     leechers = file_info.get(b'incomplete', 0)
 
-                health_list.append(HealthInfo(infohash, last_check=now, seeders=seeders, leechers=leechers))
+                healthinfo = HealthInfo(infohash, last_check=now, seeders=seeders, leechers=leechers, self_checked=True)
+                health_list.append(healthinfo)
 
         elif b'failure reason' in response_dict:
             raise TrackerException(repr(response_dict[b'failure reason']))
