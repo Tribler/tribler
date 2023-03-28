@@ -1,3 +1,4 @@
+import time
 from collections import deque
 
 import pytest
@@ -33,10 +34,10 @@ def test_title_rank_range():
 
 
 def test_freshness_rank_range():
-    assert freshness_rank(-1) == 0
-    assert freshness_rank(0) == 0
-    assert freshness_rank(0.001) == pytest.approx(1.0)
-    assert freshness_rank(1000000000) == pytest.approx(0.0025852989)
+    assert freshness_rank(-1) == freshness_rank(None) == 0  # Invalid or unknown freshness has the lowest rank
+    assert freshness_rank(0) == 1  # Maximum freshness has the highest rank
+    assert freshness_rank(0.001) == pytest.approx(1.0)  # Very fresh torrent
+    assert freshness_rank(1000000000) == pytest.approx(0.0025852989)  # Very old torrent
 
 
 def test_seeders_rank_range():
@@ -147,8 +148,14 @@ def test_title_rank():
 
 
 def test_item_rank():
+    item = dict(name="abc", num_seeders=10, num_leechers=20, updated=time.time() - 10 * DAY)
+    assert item_rank("abc", item) == pytest.approx(0.88794642)  # Torrent created ten days ago
+
+    item = dict(name="abc", num_seeders=10, num_leechers=20, updated=0)
+    assert item_rank("abc", item) == pytest.approx(0.81964285)  # Torrent creation date is unknown
+
     item = dict(name="abc", num_seeders=10, num_leechers=20)
-    assert item_rank("abc", item) == pytest.approx(0.819784)
+    assert item_rank("abc", item) == pytest.approx(0.81964285)  # Torrent creation date is unknown
 
 
 def test_find_word():
