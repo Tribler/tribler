@@ -47,11 +47,13 @@ def item_rank(query: str, item: dict) -> float:
     title = item['name']
     seeders = item.get('num_seeders', 0)
     leechers = item.get('num_leechers', 0)
-    freshness = time.time() - item.get('updated', 0)
+    updated = item.get('updated', 0)
+    freshness = None if updated <= 0 else time.time() - updated
     return torrent_rank(query, title, seeders, leechers, freshness)
 
 
-def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0, freshness: Optional[float] = 0) -> float:
+def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0,
+                 freshness: Optional[float] = None) -> float:
     """
     Calculates search rank for a torrent.
 
@@ -108,12 +110,13 @@ def seeders_rank(seeders: int, leechers: int = 0) -> float:
     return sl / (100 + sl)
 
 
-def freshness_rank(freshness: Optional[float] = 0) -> float:
+def freshness_rank(freshness: Optional[float]) -> float:
     """
     Calculates a rank value based on the torrent freshness. The result is normalized to the range [0, 1]
 
     :param freshness: number of seconds since the torrent creation.
-                      Zero or negative values means the actual torrent creation date is unknown.
+                      None means the actual torrent creation date is unknown.
+                      Negative values treated as invalid values and give the same result as None
     :return: the torrent rank based on freshness. The result is normalized to the range [0, 1]
 
     Example results:
@@ -123,9 +126,9 @@ def freshness_rank(freshness: Optional[float] = 0) -> float:
     30 days since torrent creation -> freshness rank 0.5
     1 year since torrent creation -> freshness rank 0.0759
     """
-    freshness = max(0, freshness or 0)
-    if not freshness:
-        return 0  # for freshness <= 0 the rank value is 0 because of an incorrect freshness value
+    if freshness is None or freshness < 0:
+        # for freshness <= 0 the rank value is 0 because of an incorrect freshness value
+        return 0
 
     # The function declines from 1.0 to 0.0 on range (0..Infinity], with the following properties:
     #   *  for just created torrents the rank value is close to 1.0
