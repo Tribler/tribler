@@ -17,6 +17,19 @@ if TYPE_CHECKING:
 DATA_TYPE = Optional[Union[bytes, str, Dict, List]]
 
 
+def make_reply_errors_map() -> Dict[int, str]:
+    errors_map = {}
+    for attr_name in dir(QNetworkReply):
+        if attr_name[0].isupper() and attr_name.endswith('Error'):  # SomeError, but not the `setError` method
+            error_code = getattr(QNetworkReply, attr_name)
+            if isinstance(error_code, int):  # an additional safety check, just for case
+                errors_map[error_code] = attr_name
+    return errors_map
+
+
+reply_errors = make_reply_errors_map()
+
+
 class Request(QObject):
     GET = 'GET'
     POST = 'POST'
@@ -93,6 +106,13 @@ class Request(QObject):
 
         self.logger.info(f'Finished: {self}')
         try:
+            error_code = self.reply.error()
+            if error_code != QNetworkReply.NoError:
+                error_name = reply_errors.get(error_code, '<unknown error>')
+                self.logger.warning(f'Request {self} finished with error: {error_code} ({error_name})')
+                self.update_status(-1)
+                return
+
             if status_code := self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute):
                 self.update_status(status_code)
 
