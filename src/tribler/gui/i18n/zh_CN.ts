@@ -19,6 +19,11 @@
     </message>
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="56"/>
+        <source>Created</source>
+        <translation>创建时间</translation>
+    </message>
+    <message>
+        <location filename="../widgets/tablecontentmodel.py" line="56"/>
         <source>Updated</source>
         <translation>更新时间</translation>
     </message>

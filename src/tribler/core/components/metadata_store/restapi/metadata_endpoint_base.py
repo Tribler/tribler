@@ -19,7 +19,7 @@ json2pony_columns = {
     'size': "size",
     'infohash': "infohash",
     'date': "torrent_date",
-    'updated': "torrent_date",
+    'created': "torrent_date",
     'status': 'status',
     'torrents': 'num_entries',
     'votes': 'votes',

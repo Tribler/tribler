@@ -40,15 +40,15 @@ def item_rank(query: str, item: dict) -> float:
 
     :param query: a user-defined query string
     :param item: a dict with torrent info.
-                 Should include key `name`, can include `num_seeders`, `num_leechers`, `updated`
+                 Should include key `name`, can include `num_seeders`, `num_leechers`, `created`
     :return: the torrent rank value in range [0, 1]
     """
 
     title = item['name']
     seeders = item.get('num_seeders', 0)
     leechers = item.get('num_leechers', 0)
-    updated = item.get('updated', 0)
-    freshness = None if updated <= 0 else time.time() - updated
+    created = item.get('created', 0)
+    freshness = None if created <= 0 else time.time() - created
     return torrent_rank(query, title, seeders, leechers, freshness)
 
 
