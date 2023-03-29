@@ -283,3 +283,6 @@ class DHTTracker(TaskManager, Tracker):
 
         self.bf_seeders[infohash] = DHTTracker.combine_bloomfilters(self.bf_seeders[infohash], bf_seeds)
         self.bf_peers[infohash] = DHTTracker.combine_bloomfilters(self.bf_peers[infohash], bf_peers)
+
+    async def shutdown(self):
+        await self.shutdown_task_manager()

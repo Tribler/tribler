@@ -53,6 +53,9 @@ class CheckerService(TaskManager):
         Once shut down it can't be started again.
         :returns A deferred that will fire once the shutdown has completed.
         """
+        if self.dht_tracker:
+            await self.dht_tracker.shutdown()
+
         if self.udp_transport:
             self.udp_transport.close()
             self.udp_transport = None
