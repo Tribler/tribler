@@ -17,6 +17,19 @@ if TYPE_CHECKING:
 DATA_TYPE = Optional[Union[bytes, str, Dict, List]]
 
 
+def make_reply_errors_map() -> Dict[int, str]:
+    errors_map = {}
+    for attr_name in dir(QNetworkReply):
+        if attr_name[0].isupper() and attr_name.endswith('Error'):  # SomeError, but not the `setError` method
+            error_code = getattr(QNetworkReply, attr_name)
+            if isinstance(error_code, int):  # an additional safety check, just for case
+                errors_map[error_code] = attr_name
+    return errors_map
+
+
+reply_errors = make_reply_errors_map()
+
+
 class Request(QObject):
     GET = 'GET'
     POST = 'POST'
@@ -34,7 +47,7 @@ class Request(QObject):
     def __init__(
             self,
             endpoint: str,
-            on_finish: Callable = lambda _: None,
+            on_success: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
             data: DATA_TYPE = None,
             method: str = GET,
@@ -61,7 +74,7 @@ class Request(QObject):
             raw_data = data
         self.raw_data: Optional[bytes] = raw_data
 
-        connect(self.on_finished_signal, on_finish)
+        connect(self.on_finished_signal, on_success)
 
         self.reply: Optional[QNetworkReply] = None  # to hold the associated QNetworkReply object
         self.manager: Optional[RequestManager] = None
@@ -69,6 +82,7 @@ class Request(QObject):
 
         self.time = time()
         self.status_code = 0
+        self.status_text = "unknown"
         self.cancellable = True
 
     def set_manager(self, manager: RequestManager):
@@ -86,6 +100,10 @@ class Request(QObject):
     def update_status(self, status_code: int):
         self.logger.debug(f'Update {self}: {status_code}')
         self.status_code = status_code
+        if status_code > 0:  # positive codes are HTTP response codes
+            self.status_text = str(status_code)
+        else:  # negative codes represent QNetworkReply error codes
+            self.status_text = f'{status_code}: {reply_errors.get(-status_code, "<unknown error code>")}'
 
     def on_finished(self):
         if not self.reply or not self.manager:
@@ -93,6 +111,13 @@ class Request(QObject):
 
         self.logger.info(f'Finished: {self}')
         try:
+            error_code = self.reply.error()
+            if error_code != QNetworkReply.NoError:
+                error_name = reply_errors.get(error_code, '<unknown error>')
+                self.logger.warning(f'Request {self} finished with error: {error_code} ({error_name})')
+                self.update_status(-error_code)
+                return
+
             if status_code := self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute):
                 self.update_status(status_code)
 
@@ -104,7 +129,7 @@ class Request(QObject):
                 return
 
             if not data:
-                self.on_finished_signal.emit({})
+                self.logger.error(f'No data received in the reply for {self}')
                 return
 
             self.logger.debug('Create a json response')

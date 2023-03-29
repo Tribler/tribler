@@ -92,7 +92,7 @@ class AddToChannelDialog(DialogContainer):
 
     def load_channel(self, channel_id):
         request = request_manager.get(f"channels/mychannel/{channel_id}",
-                                      on_finish=lambda result: self.on_channel_contents(result, channel_id),
+                                      on_success=lambda result: self.on_channel_contents(result, channel_id),
                                       url_params={
                                           "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
                                           "first": 1,

@@ -144,7 +144,7 @@ class StartDownloadDialog(DialogContainer):
         params = {'uri': self.download_uri}
         if direct:
             params['hops'] = 0
-        self.rest_request = request_manager.get('torrentinfo', on_finish=self.on_received_metainfo,
+        self.rest_request = request_manager.get('torrentinfo', on_success=self.on_received_metainfo,
                                                 url_params=params, capture_errors=False)
 
         if self.metainfo_retries <= METAINFO_MAX_RETRIES:

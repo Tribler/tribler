@@ -40,14 +40,14 @@ class RequestManager(QNetworkAccessManager):
 
     def get(self,
             endpoint: str,
-            on_finish: Callable = lambda _: None,
+            on_success: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
             data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
             raw_response: bool = False) -> Request:
 
-        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
                           method=Request.GET)
         self.add(request)
@@ -55,14 +55,14 @@ class RequestManager(QNetworkAccessManager):
 
     def post(self,
              endpoint: str,
-             on_finish: Callable = lambda _: None,
+             on_success: Callable = lambda _: None,
              url_params: Optional[Dict] = None,
              data: DATA_TYPE = None,
              capture_errors: bool = True,
              priority: int = QNetworkRequest.NormalPriority,
              raw_response: bool = False) -> Request:
 
-        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
                           method=Request.POST)
         self.add(request)
@@ -70,14 +70,14 @@ class RequestManager(QNetworkAccessManager):
 
     def put(self,
             endpoint: str,
-            on_finish: Callable = lambda _: None,
+            on_success: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
             data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
             raw_response: bool = False) -> Request:
 
-        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
                           method=Request.PUT)
         self.add(request)
@@ -85,14 +85,14 @@ class RequestManager(QNetworkAccessManager):
 
     def patch(self,
               endpoint: str,
-              on_finish: Callable = lambda _: None,
+              on_success: Callable = lambda _: None,
               url_params: Optional[Dict] = None,
               data: DATA_TYPE = None,
               capture_errors: bool = True,
               priority: int = QNetworkRequest.NormalPriority,
               raw_response: bool = False) -> Request:
 
-        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
                           method=Request.PATCH)
         self.add(request)
@@ -100,14 +100,14 @@ class RequestManager(QNetworkAccessManager):
 
     def delete(self,
                endpoint: str,
-               on_finish: Callable = lambda _: None,
+               on_success: Callable = lambda _: None,
                url_params: Optional[Dict] = None,
                data: DATA_TYPE = None,
                capture_errors: bool = True,
                priority: int = QNetworkRequest.NormalPriority,
                raw_response: bool = False) -> Request:
 
-        request = Request(endpoint=endpoint, on_finish=on_finish, url_params=url_params, data=data,
+        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
                           method=Request.DELETE)
         self.add(request)

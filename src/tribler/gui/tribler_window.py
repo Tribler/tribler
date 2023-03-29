@@ -675,7 +675,7 @@ class TriblerWindow(QMainWindow):
         anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
         request_manager.put("downloads",
-                            on_finish=callback if callback else self.on_download_added,
+                            on_success=callback if callback else self.on_download_added,
                             data={
                                 "uri": uri,
                                 "anon_hops": anon_hops,
@@ -702,8 +702,8 @@ class TriblerWindow(QMainWindow):
 
             if post_data:
                 request_manager.put(f"channels/mychannel/{channel_id}/torrents",
-                                    on_finish=lambda _: self.tray_show_message(tr("Channel update"),
-                                                                               tr("Torrent(s) added to your channel")),
+                                    on_success=lambda _: self.tray_show_message(tr("Channel update"),
+                                                                                tr("Torrent(s) added to your channel")),
                                     data=post_data)
 
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
@@ -714,8 +714,8 @@ class TriblerWindow(QMainWindow):
 
             if post_data:
                 request_manager.put(f"channels/mychannel/{channel_id}/torrents",
-                                    on_finish=lambda _: self.tray_show_message(tr("Channel update"),
-                                                                               tr("Torrent(s) added to your channel")),
+                                    on_success=lambda _: self.tray_show_message(tr("Channel update"),
+                                                                                tr("Torrent(s) added to your channel")),
                                     data=post_data)
 
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
@@ -979,7 +979,7 @@ class TriblerWindow(QMainWindow):
 
                     request_manager.put(
                         endpoint=f"collections/mychannel/{channel_id}/torrents",
-                        on_finish=lambda _: self.tray_show_message(
+                        on_success=lambda _: self.tray_show_message(
                             tr("Channels update"), tr("%s added to your channel") % self.chosen_dir
                         ),
                         data={"torrents_dir": self.chosen_dir}

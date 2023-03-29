@@ -398,7 +398,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         _name = self.selected_items[0].download_info["name"]
 
         request_manager.patch(f"downloads/{_infohash}",
-                              on_finish=lambda res: self.on_files_moved(res, _name, dest_dir),
+                              on_success=lambda res: self.on_files_moved(res, _name, dest_dir),
                               data={"state": "move_storage", "dest_dir": dest_dir})
 
     def on_files_moved(self, response, name, dest_dir):
@@ -428,7 +428,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.dialog.show()
 
     def on_export_download_dialog_done(self, action):
-        def on_finish(result: Tuple):
+        def on_success(result: Tuple):
             data, _ = result
             self.on_export_download_request_done(filename, data)
 
@@ -436,7 +436,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if action == 0 and selected_item:
             filename = self.dialog.dialog_widget.dialog_input.text()
             request_manager.get(f"downloads/{selected_item[0].download_info['infohash']}/torrent",
-                                on_finish, priority=QNetworkRequest.LowPriority, raw_response=True)
+                                on_success=on_success, priority=QNetworkRequest.LowPriority, raw_response=True)
 
         self.dialog.close_dialog()
         self.dialog = None
@@ -464,7 +464,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 infohash = selected_item.download_info["infohash"]
                 name = selected_item.download_info["name"]
                 request_manager.put(f"channels/mychannel/{channel_id}/torrents",
-                                    on_finish=lambda _: self.window().tray_show_message(
+                                    on_success=lambda _: self.window().tray_show_message(
                                         tr("Channel update"), tr("Torrent(s) added to your channel")
                                     ),
                                     data={"uri": compose_magnetlink(infohash, name=name)})
