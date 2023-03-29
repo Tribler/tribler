@@ -1,16 +1,16 @@
 import logging
 import time
+from asyncio.exceptions import TimeoutError
 from typing import List
 
 import async_timeout
-from asyncio.exceptions import TimeoutError
 from aiohttp import ClientSession, ClientTimeout, ClientResponseError
-from libtorrent import bdecode
 
 from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse, HealthInfo
 from tribler.core.components.torrent_checker.torrent_checker.trackers import Tracker, TrackerException
 from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
+from tribler.core.utilities.utilities import bdecode_compat
 
 
 class HttpTracker(Tracker):
@@ -32,13 +32,10 @@ class HttpTracker(Tracker):
                 session = ClientSession(connector=proxy_connector,
                                         raise_for_status=True,
                                         timeout=ClientTimeout(total=timeout))
-
-                async with session:
-                    scrape_url = scrape_url.encode('ascii').decode('utf-8')
-                    async with session.get(scrape_url) as response:
-                        body = await response.read()
-                        health_list = self._process_body(body)
-                        return TrackerResponse(url=tracker_url, torrent_health_list=health_list)
+                scrape_url = scrape_url.encode('ascii').decode('utf-8')
+                body = await self._get_url_response(session, scrape_url)
+                health_list = self._process_body(body)
+                return TrackerResponse(url=tracker_url, torrent_health_list=health_list)
 
         except TimeoutError as e:
             raise TrackerException("Request timeout resolving tracker ip") from e
@@ -49,11 +46,16 @@ class HttpTracker(Tracker):
         except Exception as other_exceptions:
             raise TrackerException(f"Failed to get tracker response") from other_exceptions
 
+    async def _get_url_response(self, session, url):
+        async with session:
+            async with session.get(url) as response:
+                return await response.read()
+
     def _process_body(self, body) -> List[HealthInfo]:
         if body is None:
             raise TrackerException("No response body")
 
-        response_dict = bdecode(body)
+        response_dict = bdecode_compat(body)
         if not response_dict:
             raise TrackerException("Invalid bencoded response")
 
