@@ -17,6 +17,11 @@
         <source>Health</source>
         <translation>Состояние</translation>
     </message>
+        <message>
+        <location filename="../widgets/tablecontentmodel.py" line="64"/>
+        <source>Created</source>
+        <translation>Создан</translation>
+    </message>
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="64"/>
         <source>Updated</source>

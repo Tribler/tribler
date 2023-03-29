@@ -475,6 +475,11 @@ Tenga en cuenta que los valores decimales están truncados.</translation>
     </message>
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="57"/>
+        <source>Created</source>
+        <translation>Creado</translation>
+    </message>
+    <message>
+        <location filename="../widgets/tablecontentmodel.py" line="57"/>
         <source>Updated</source>
         <translation>Actualizado</translation>
     </message>
