@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import time
 from asyncio import Future
 from dataclasses import dataclass, field
@@ -101,8 +102,15 @@ class TrackerResponse:
     torrent_health_list: List[HealthInfo]
 
 
+class UdpRequestType(enum.IntEnum):
+    CONNECTION_REQUEST = 1
+    SCRAPE_REQUEST = 2
+    DHT_REQUEST = 3
+
+
 @dataclass
 class UdpRequest:
+    request_type: UdpRequestType
     transaction_id: Union[int, bytes]
     receiver: Tuple[str, int]
     data: bytes = field(repr=False)
@@ -110,3 +118,12 @@ class UdpRequest:
     socks_proxy: Tuple[str, int] = None
     infohashes: List[str] = None
     response: Future = Future()
+
+    def is_connection_request(self):
+        return self.request_type == UdpRequestType.CONNECTION_REQUEST
+
+    def is_scrape_request(self):
+        return self.request_type == UdpRequestType.SCRAPE_REQUEST
+
+    def is_dht_request(self):
+        return self.request_type == UdpRequestType.DHT_REQUEST

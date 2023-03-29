@@ -11,7 +11,8 @@ from typing import List, Tuple
 import libtorrent as lt
 from ipv8.taskmanager import TaskManager
 
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse, UdpRequest, HealthInfo
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse, UdpRequest, HealthInfo, \
+    UdpRequestType
 from tribler.core.components.torrent_checker.torrent_checker.socket_manager import UdpSocketManager
 from tribler.core.components.torrent_checker.torrent_checker.trackers import Tracker
 
@@ -91,6 +92,7 @@ class DHTTracker(TaskManager, Tracker):
         self.requesting_bloomfilters(transaction_id, infohash)
 
         udp_request = UdpRequest(
+            request_type=UdpRequestType.DHT_REQUEST,
             transaction_id=transaction_id,
             receiver=(host, port),
             data=payload,

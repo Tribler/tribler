@@ -7,7 +7,8 @@ from asyncio.exceptions import TimeoutError
 
 import async_timeout
 
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse, UdpRequest, HealthInfo
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import TrackerResponse, UdpRequest, HealthInfo, \
+    UdpRequestType
 from tribler.core.components.torrent_checker.torrent_checker.socket_manager import UdpSocketManager
 from tribler.core.components.torrent_checker.torrent_checker.trackers import Tracker, TrackerException
 from tribler.core.utilities.tracker_utils import parse_tracker_url
@@ -72,6 +73,7 @@ class UdpTracker(Tracker):
         receiver = (host, port)
 
         udp_request = UdpRequest(
+            request_type=UdpRequestType.CONNECTION_REQUEST,
             transaction_id=transaction_id,
             receiver=receiver,
             data=message,
@@ -122,6 +124,7 @@ class UdpTracker(Tracker):
         receiver = (host, port)
 
         udp_request = UdpRequest(
+            request_type=UdpRequestType.SCRAPE_REQUEST,
             transaction_id=transaction_id,
             receiver=receiver,
             data=message,
