@@ -31,7 +31,7 @@ class Column(Enum):
     NAME = auto()
     SIZE = auto()
     HEALTH = auto()
-    UPDATED = auto()
+    CREATED = auto()
     VOTES = auto()
     STATUS = auto()
     STATE = auto()
@@ -62,7 +62,7 @@ def define_columns():
                        display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
         Column.HEALTH: d('health', tr("Health"), width=120, tooltip_filter=lambda data: f"{data}" + (
             '' if data == HEALTH_CHECKING else '\n(Click to recheck)'), ),
-        Column.UPDATED: d('updated', tr("Updated"), width=120, display_filter=lambda timestamp: pretty_date(
+        Column.CREATED: d('updated', tr("Created"), width=120, display_filter=lambda timestamp: pretty_date(
             timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else "", ),
         Column.VOTES: d('votes', tr("Popularity"), width=120, display_filter=format_votes,
                         tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None, ),
@@ -407,7 +407,7 @@ class RemoteTableModel(QAbstractTableModel):
 
 
 class ChannelContentModel(RemoteTableModel):
-    columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.UPDATED)
+    columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.CREATED)
 
     def __init__(
             self,
@@ -705,7 +705,7 @@ class SearchResultsModel(ChannelContentModel):
 
 
 class PopularTorrentsModel(ChannelContentModel):
-    columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.UPDATED)
+    columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.CREATED)
 
     def __init__(self, *args, **kwargs):
         kwargs["endpoint_url"] = 'channels/popular_torrents'
@@ -713,7 +713,7 @@ class PopularTorrentsModel(ChannelContentModel):
 
 
 class DiscoveredChannelsModel(ChannelContentModel):
-    columns_shown = (Column.SUBSCRIBED, Column.NAME, Column.STATE, Column.TORRENTS, Column.VOTES, Column.UPDATED)
+    columns_shown = (Column.SUBSCRIBED, Column.NAME, Column.STATE, Column.TORRENTS, Column.VOTES, Column.CREATED)
 
     @property
     def default_sort_column(self):
@@ -732,7 +732,7 @@ class PersonalChannelsModel(ChannelContentModel):
         Column.NAME,
         Column.SIZE,
         Column.HEALTH,
-        Column.UPDATED,
+        Column.CREATED,
         Column.STATUS,
     )
 
@@ -791,7 +791,7 @@ class PersonalChannelsModel(ChannelContentModel):
 
 
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
-    columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.UPDATED)
+    columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.CREATED)
 
     def __init__(self, *args, **kwargs):
         kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
