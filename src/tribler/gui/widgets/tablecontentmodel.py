@@ -62,7 +62,7 @@ def define_columns():
                        display_filter=lambda data: (format_size(float(data)) if data != "" else "")),
         Column.HEALTH: d('health', tr("Health"), width=120, tooltip_filter=lambda data: f"{data}" + (
             '' if data == HEALTH_CHECKING else '\n(Click to recheck)'), ),
-        Column.CREATED: d('updated', tr("Created"), width=120, display_filter=lambda timestamp: pretty_date(
+        Column.CREATED: d('created', tr("Created"), width=120, display_filter=lambda timestamp: pretty_date(
             timestamp) if timestamp and timestamp > BITTORRENT_BIRTHDAY else "", ),
         Column.VOTES: d('votes', tr("Popularity"), width=120, display_filter=format_votes,
                         tooltip_filter=lambda data: get_votes_rating_description(data) if data is not None else None, ),
