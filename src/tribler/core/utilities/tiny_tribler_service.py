@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+import tempfile
 from pathlib import Path
 from typing import List, Optional
 
@@ -20,15 +21,17 @@ class TinyTriblerService:
     All overlays are disabled by default.
     """
 
-    def __init__(self, components: List[Component], timeout_in_sec=None, state_dir=Path('/tmp/tribler')):
+    def __init__(self, components: Optional[List[Component]] = None, timeout_in_sec: Optional[int] = None,
+                 state_dir: Path = Path(tempfile.gettempdir())):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
         self.process_manager: Optional[ProcessManager] = None
         self.config = TriblerConfig(state_dir=state_dir.absolute())
         self.timeout_in_sec = timeout_in_sec
-        self.components = components
+        self.components = components or []
         self.async_group = AsyncGroup()
+        self.on_started_event = asyncio.Event()
         self._main_task = None
 
     async def on_tribler_started(self):
@@ -48,6 +51,7 @@ class TinyTriblerService:
                 self.async_group.add_task(self._terminate_by_timeout())
 
             self._enable_graceful_shutdown()
+            self.on_started_event.set()
             await self.on_tribler_started()
 
         loop = asyncio.get_event_loop()
@@ -102,8 +106,7 @@ class TinyTriblerService:
 
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
-        tasks = self.async_group.add_task(self.session.shutdown())
-        shutdown_task = tasks[0]
+        shutdown_task = self.async_group.add_task(self.session.shutdown())
         shutdown_task.add_done_callback(lambda result: self._stop_event_loop())
 
     def _stop_event_loop(self):
