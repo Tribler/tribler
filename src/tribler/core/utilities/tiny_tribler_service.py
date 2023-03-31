@@ -40,11 +40,21 @@ class TinyTriblerService:
         It is good place to add a custom code.
         """
 
-    def run(self, fragile: bool = False):
+    def run(self, fragile: bool = False, check_already_running: bool = True):
+        """ Run the service
+
+        Args:
+            fragile: if True, the loop will be made fragile (fail on a first exception)
+            check_already_running: if True, verifies no other Tribler instance is running to prevent parallel
+                instances from writing to the same state directory or log files. It is necessary for components
+                such as MetadataStoreComponent and KnowledgeComponent.
+        """
+
         async def start_tribler():
             self.logger.info(f'Starting tribler instance in directory: {self.config.state_dir}')
 
-            self._check_already_running()
+            if check_already_running:
+                self._check_already_running()
             await self._start_session()
 
             if self.timeout_in_sec:
