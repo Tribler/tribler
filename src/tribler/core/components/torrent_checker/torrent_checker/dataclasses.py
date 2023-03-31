@@ -116,7 +116,7 @@ class UdpRequest:
     data: bytes = field(repr=False)
     connection_id: str = None
     socks_proxy: Tuple[str, int] = None
-    infohashes: List[str] = None
+    infohashes: List[bytes] = None
     response: Future = Future()
 
     def is_connection_request(self):
