@@ -122,9 +122,7 @@ class UdpTracker(Tracker):
         return action, transaction_id, connection_id
 
     def compose_scrape_request(self, host, port, transaction_id, connection_id, infohash_list):
-        action = TRACKER_ACTION_SCRAPE
-        fmt = '!qii' + ('20s' * len(infohash_list))
-        message = struct.pack(fmt, connection_id, action, transaction_id, *infohash_list)
+        message = self.pack_scrape_request(transaction_id, connection_id, infohash_list)
         receiver = (host, port)
 
         udp_request = UdpRequest(
@@ -178,8 +176,10 @@ class UdpTracker(Tracker):
         if not response_future.done():
             scrape_request.response.set_result(response_list)
 
-    def pack_scrape_request(self):
-        pass
+    def pack_scrape_request(self, transaction_id, connection_id, infohash_list):
+        action = TRACKER_ACTION_SCRAPE
+        fmt = '!qii' + ('20s' * len(infohash_list))
+        return struct.pack(fmt, connection_id, action, transaction_id, *infohash_list)
 
     def unpack_scrape_response(self, response):
         if len(response) < 8:
