@@ -6,137 +6,74 @@ from tribler.core.utilities.tracker_utils import (
     parse_tracker_url,
 )
 
+TRACKER_HOST = 'tracker.example.com'
 
-def test_uniform_scheme_correct_udp():
-    result = get_uniformed_tracker_url("udp://tracker.openbittorrent.com:80")
-    assert result == "udp://tracker.openbittorrent.com:80"
+EXPECTED_UNIFORM_URLS = [
+    (f'udp://{TRACKER_HOST}:80', f'udp://{TRACKER_HOST}:80'),  # Proper UDP URL
+    (f'udp://{TRACKER_HOST}', None),  # UDP no port
+    (f'udp://{TRACKER_HOST}:6969/announce', f'udp://{TRACKER_HOST}:6969'),  # UDP remove path
+    (f'udp://{TRACKER_HOST}:80\x00', f'udp://{TRACKER_HOST}:80'),  # Trailing zero hex
+    (f'udp://{TRACKER_HOST}:80\xff', None),  # Trailing non-zero hex
 
+    (f'http://{TRACKER_HOST}:6969/announce', f'http://{TRACKER_HOST}:6969/announce'),  # Correct HTTP URL
+    (f'http://{TRACKER_HOST}:6969/announce/', f'http://{TRACKER_HOST}:6969/announce'),  # Trailing /
+    (f'http://{TRACKER_HOST}', None),  # HTTP no path
+    (f'http://{TRACKER_HOST}\xa0', None),  # HTTP no path nbsp
+    (f'http://{TRACKER_HOST}/announce', f'http://{TRACKER_HOST}/announce'),  # HTTP default port
+    (f'http://{TRACKER_HOST}:80/announce', f'http://{TRACKER_HOST}/announce'),  # HTTP default port given
+    (f'http://{TRACKER_HOST}/?do=upload', None),  # Bad URL encoding
+    (f'http://{TRACKER_HOST}:80/anno...', None),  # Truncated URL
 
-def test_uniform_scheme_correct_http():
-    result = get_uniformed_tracker_url("http://torrent.ubuntu.com:6969/announce")
-    assert result == "http://torrent.ubuntu.com:6969/announce"
+    (f'https://{TRACKER_HOST}/announce', f'https://{TRACKER_HOST}/announce'),  # HTTPS default port
+    (f'https://{TRACKER_HOST}:443/announce', f'https://{TRACKER_HOST}/announce'),  # HTTPS default port given
 
-
-def test_uniform_scheme_correct_http_training_slash():
-    result = get_uniformed_tracker_url("http://torrent.ubuntu.com:6969/announce/")
-    assert result == "http://torrent.ubuntu.com:6969/announce"
-
-
-def test_uniform_scheme_unknown():
-    result = get_uniformed_tracker_url("unknown://tracker.openbittorrent.com/announce")
-    assert not result
-
-
-def test_uniform_http_no_path():
-    result = get_uniformed_tracker_url("http://tracker.openbittorrent.com")
-    assert not result
-
-
-def test_uniform_udp_no_port():
-    result = get_uniformed_tracker_url("udp://tracker.openbittorrent.com")
-    assert not result
+    (f'unknown://{TRACKER_HOST}/announce', None),  # Unknown scheme
+    (f'wss://{TRACKER_HOST}:80/announce', None),  # Wrong URL scheme
+    ('ftp://tracker.examp\xffle.org:80/announce', None),  # Wrong URL scheme
+    (';', None),  # Split error
+    ('', None),  # Empty URL
+]
 
 
-def test_uniform_udp_remove_path():
-    result = get_uniformed_tracker_url("udp://tracker.openbittorrent.com:6969/announce")
-    assert result == "udp://tracker.openbittorrent.com:6969"
+@pytest.mark.parametrize("given_url, expected_uniform_url", EXPECTED_UNIFORM_URLS)
+def test_get_uniformed_tracker_url(given_url, expected_uniform_url):
+    uniform_url = get_uniformed_tracker_url(given_url)
+    assert uniform_url == expected_uniform_url
 
 
-def test_uniform_http_no_path_nbsp():
-    result = get_uniformed_tracker_url("http://google.nl\xa0")
-    assert not result
+PARSED_TRACKER_URLS = [
+    # UDP with port
+    (f'udp://{TRACKER_HOST}:80', ("udp", (f"{TRACKER_HOST}", 80), '')),
+    # HTTP(S) with port
+    (f'http://{TRACKER_HOST}:6969/announce', ("http", (f"{TRACKER_HOST}", 6969), "/announce")),
+    (f'https://{TRACKER_HOST}:6969/announce', ("https", (f"{TRACKER_HOST}", 6969), "/announce")),
+    # HTTP(S) no port
+    (f'http://{TRACKER_HOST}/announce', ("http", (f"{TRACKER_HOST}", 80), "/announce")),
+    (f'https://{TRACKER_HOST}/announce', ("https", (f"{TRACKER_HOST}", 443), "/announce")),
+    # HTTP(S) non-standard port
+    (f'http://ipv6.{TRACKER_HOST}:6969/announce', ("http", (f"ipv6.{TRACKER_HOST}", 6969), "/announce")),
+    (f'https://ipv6.{TRACKER_HOST}:6969/announce', ("https", (f"ipv6.{TRACKER_HOST}", 6969), "/announce"))
+]
 
 
-def test_uniform_http_default_port():
-    result = get_uniformed_tracker_url("http://torrent.ubuntu.com/announce")
-    assert result == "http://torrent.ubuntu.com/announce"
+@pytest.mark.parametrize("given_url, expected_parsed_url_tuple", PARSED_TRACKER_URLS)
+def test_parse_tracker_url(given_url, expected_parsed_url_tuple):
+    parsed_url_tuple = parse_tracker_url(given_url)
+    assert parsed_url_tuple == expected_parsed_url_tuple
 
 
-def test_uniform_http_default_port_given():
-    result = get_uniformed_tracker_url("http://torrent.ubuntu.com:80/announce")
-    assert result == "http://torrent.ubuntu.com/announce"
+PARSED_TRACKER_URLS_WITH_FAILURE = [
+    f'unknown://ipv6.{TRACKER_HOST}:6969/announce',  # Unknown scheme
+    f'http://{TRACKER_HOST}:6969/announce( %(',  # Bad URL
+    f'https://{TRACKER_HOST}:6969/announce( %(',  # Bad URL
+    f'unknown://{TRACKER_HOST}:80',  # Unknown scheme, no announce path
+    f'http://ipv6.{TRACKER_HOST}:6969',  # HTTP no announce path
+    f'https://ipv6.{TRACKER_HOST}:6969',  # HTTPS no announce path
+    f'udp://{TRACKER_HOST}',  # UDP no port
+]
 
 
-def test_uniform_trailing_zero_hex():
-    result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\x00")
-    assert result == "udp://tracker.1337x.org:80"
-
-
-def test_uniform_trailing_hex():
-    result = get_uniformed_tracker_url("udp://tracker.1337x.org:80\xff")
-    assert not result
-
-
-def test_uniform_bad_urlenc():
-    result = get_uniformed_tracker_url("http://btjunkie.org/?do=upload")
-    assert not result
-
-
-def test_uniform_empty():
-    result = get_uniformed_tracker_url('')
-    assert not result
-
-
-def test_skip_truncated_url():
-    result = get_uniformed_tracker_url("http://tracker.1337x.org:80/anno...")
-    assert not result
-
-
-def test_skip_wrong_url_scheme():
-    result = get_uniformed_tracker_url("wss://tracker.1337x.org:80/announce")
-    assert not result
-
-
-def test_skip_value_error():
-    result = get_uniformed_tracker_url("ftp://tracker.1337\xffx.org:80/announce")
-    assert not result
-
-
-def test_skip_split_error():
-    result = get_uniformed_tracker_url(";")
-    assert not result
-
-
-def test_parse_scheme_correct_udp():
-    result = parse_tracker_url("udp://tracker.openbittorrent.com:80")
-    assert result == ("udp", ("tracker.openbittorrent.com", 80), '')
-
-
-def test_parse_scheme_correct_http():
-    result = parse_tracker_url("http://torrent.ubuntu.com:6969/announce")
-    assert result == ("http", ("torrent.ubuntu.com", 6969), "/announce")
-
-
-def test_parse_scheme_unknown():
+@pytest.mark.parametrize("given_url", PARSED_TRACKER_URLS_WITH_FAILURE)
+def test_parse_tracker_url_with_error(given_url):
     with pytest.raises(MalformedTrackerURLException):
-        parse_tracker_url("unknown://ipv6.torrent.ubuntu.com:6969/announce")
-
-
-def test_parse_bad_url():
-    with pytest.raises(MalformedTrackerURLException):
-        parse_tracker_url("http://foo.com:6969/announce( %(")
-
-
-def test_parse_scheme():
-    with pytest.raises(MalformedTrackerURLException):
-        parse_tracker_url("http://torrent.ubuntu.com:80")
-
-
-def test_parse_http_no_announce_path():
-    with pytest.raises(MalformedTrackerURLException):
-        parse_tracker_url("unknown://ipv6.torrent.ubuntu.com:6969")
-
-
-def test_parse_udp_no_port():
-    with pytest.raises(MalformedTrackerURLException):
-        parse_tracker_url("udp://tracker.openbittorrent.com")
-
-
-def test_parse_http_no_port():
-    result = parse_tracker_url("http://tracker.openbittorrent.com/announce")
-    assert result == ("http", ("tracker.openbittorrent.com", 80), "/announce")
-
-
-def test_parse_http_non_standard_port():
-    result = parse_tracker_url("http://ipv6.torrent.ubuntu.com:6969/announce")
-    assert result == ("http", ("ipv6.torrent.ubuntu.com", 6969), "/announce")
+        parse_tracker_url(given_url)

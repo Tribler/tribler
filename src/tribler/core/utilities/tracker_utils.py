@@ -1,5 +1,5 @@
 import re
-from http.client import HTTP_PORT
+from http.client import HTTP_PORT, HTTPS_PORT
 from json import dumps
 from urllib.parse import ParseResult, parse_qsl, unquote, urlencode, urlparse
 
@@ -62,7 +62,7 @@ def get_uniformed_tracker_url(tracker_url):
         # accessing urlparse attributes may throw UnicodeError's or ValueError's
         try:
             # scheme must be either UDP or HTTP
-            if url.scheme == 'udp' or url.scheme == 'http':
+            if url.scheme == 'udp' or url.scheme == 'http' or url.scheme == 'https':
                 uniformed_scheme = url.scheme
             else:
                 continue
@@ -76,6 +76,9 @@ def get_uniformed_tracker_url(tracker_url):
                 # HTTP trackers default to port HTTP_PORT
                 elif url.scheme == 'http':
                     uniformed_port = HTTP_PORT
+                # HTTPS trackers default to port HTTPS_PORT
+                elif url.scheme == 'https':
+                    uniformed_port = HTTPS_PORT
             else:
                 uniformed_port = url.port
 
@@ -89,6 +92,8 @@ def get_uniformed_tracker_url(tracker_url):
                 continue
 
             if url.scheme == 'http' and uniformed_port == HTTP_PORT:
+                uniformed_url = f'{uniformed_scheme}://{uniformed_hostname}{uniformed_path}'
+            elif url.scheme == 'https' and uniformed_port == HTTPS_PORT:
                 uniformed_url = f'{uniformed_scheme}://{uniformed_hostname}{uniformed_path}'
             else:
                 uniformed_url = '%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
@@ -116,11 +121,14 @@ def parse_tracker_url(tracker_url):
     if tracker_url.lower().startswith('http://') and ':80/' in tracker_url:
         tracker_url = tracker_url.replace(':80/', '/', 1)
 
+    if tracker_url.lower().startswith('https://') and ':443/' in tracker_url:
+        tracker_url = tracker_url.replace(':443/', '/', 1)
+
     if tracker_url != get_uniformed_tracker_url(tracker_url):
         raise MalformedTrackerURLException(f'Could not sanitize url ({tracker_url}).')
 
     url = urlparse(tracker_url)
-    if not (url.scheme == 'udp' or url.scheme == 'http'):
+    if url.scheme not in ('udp', 'http', 'https'):
         raise MalformedTrackerURLException(f'Unexpected tracker type ({url.scheme}).')
 
     if url.scheme == 'udp' and not url.port:
@@ -131,6 +139,12 @@ def parse_tracker_url(tracker_url):
 
     if url.scheme == 'http' and not url.path:
         raise MalformedTrackerURLException(f'Missing announce path for HTTP tracker url ({tracker_url}).')
+
+    if url.scheme == 'https' and not url.port:
+        return url.scheme, (url.hostname, 443), url.path
+
+    if url.scheme == 'https' and not url.path:
+        raise MalformedTrackerURLException(f'Missing announce path for HTTPS tracker url ({tracker_url}).')
 
     return url.scheme, (url.hostname, url.port), url.path
 
