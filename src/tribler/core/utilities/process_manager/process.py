@@ -4,9 +4,9 @@ import logging
 import os
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional, TYPE_CHECKING, Union
+from typing import List, Optional, TYPE_CHECKING, Union
 
 import psutil
 
@@ -86,23 +86,45 @@ class TriblerProcess:
 
     def __str__(self) -> str:
         kind = self.kind.value.capitalize()
-        flags = f"{'primary, ' if self.primary else ''}{'canceled, ' if self.canceled else ''}"
-        result = [f'{kind}Process({flags}pid={self.pid}']
+        elements: List[str] = []
+        append = elements.append
+        append('finished' if self.finished_at or self.exit_code is not None else 'running')
+
+        if self.is_current_process():
+            append('current process')
+
+        if self.primary:
+            append('primary')
+
+        if self.canceled:
+            append('canceled')
+
+        append(f'pid={self.pid}')
+
         if self.creator_pid is not None:
-            result.append(f', gui_pid={self.creator_pid}')
+            append(f'gui_pid={self.creator_pid}')
+
         started = datetime.utcfromtimestamp(self.started_at)
-        result.append(f", version='{self.app_version}', started='{started.strftime('%Y-%m-%d %H:%M:%S')}'")
+        append(f"version='{self.app_version}'")
+        append(f"started='{started.strftime('%Y-%m-%d %H:%M:%S')}'")
+
         if self.api_port is not None:
-            result.append(f', api_port={self.api_port}')
+            append(f'api_port={self.api_port}')
+
         if self.finished_at:
             finished = datetime.utcfromtimestamp(self.finished_at)
             duration = finished - started
-            result.append(f", duration='{duration}'")
+        else:
+            duration = timedelta(seconds=int(time.time()) - self.started_at)
+        append(f"duration='{duration}'")
+
         if self.exit_code is not None:
-            result.append(f', exit_code={self.exit_code}')
+            append(f'exit_code={self.exit_code}')
+
         if self.error_msg:
-            result.append(f', error={repr(self.error_msg)}')
-        result.append(')')
+            append(f'error={repr(self.error_msg)}')
+
+        result = f'{kind}Process({", ".join(elements)})'
         return ''.join(result)
 
     @classmethod
