@@ -558,6 +558,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.save_language_selection()
         self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
 
-        self.window().fetch_settings()
+        def on_receive_settings(response):
+            self.window().tribler_settings = response['settings']
+
+        request_manager.get("settings", on_receive_settings, capture_errors=False)
 
         self.settings_edited.emit()

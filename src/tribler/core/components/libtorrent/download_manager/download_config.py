@@ -4,11 +4,10 @@ from typing import Dict, Optional
 from configobj import ConfigObj
 from validate import Validator
 
-from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
+from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, get_default_download_dir
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.exceptions import InvalidConfigException
 from tribler.core.utilities.install_dir import get_lib_path
-from tribler.core.utilities.osutils import get_home_dir
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import bdecode_compat
 
@@ -61,12 +60,7 @@ class DownloadConfig:
 
         config.set_hops(settings.number_hops)
         config.set_safe_seeding(settings.safeseeding_enabled)
-
-        destination_directory = settings.saveas
-        if destination_directory is None:
-            destination_directory = get_default_dest_dir()
-
-        config.set_dest_dir(destination_directory)
+        config.set_dest_dir(settings.saveas)
 
         return config
 
@@ -91,7 +85,7 @@ class DownloadConfig:
         """
         dest_dir = self.config['download_defaults']['saveas']
         if not dest_dir:
-            dest_dir = get_default_dest_dir()
+            dest_dir = get_default_download_dir()
             self.set_dest_dir(dest_dir)
 
         # This is required to support relative paths
@@ -176,19 +170,3 @@ class DownloadConfig:
 
     def get_engineresumedata(self) -> Optional[Dict]:
         return _to_dict(self.config['state']['engineresumedata'])
-
-
-def get_default_dest_dir():
-    """
-    Returns the default dir to save content to.
-    """
-    tribler_downloads = Path("TriblerDownloads")
-    if tribler_downloads.is_dir():
-        return tribler_downloads.resolve()
-
-    home = get_home_dir()
-    downloads = home / "Downloads"
-    if downloads.is_dir():
-        return (downloads / tribler_downloads).resolve()
-
-    return (home / tribler_downloads).resolve()

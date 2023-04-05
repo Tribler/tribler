@@ -546,19 +546,23 @@ class TriblerWindow(QMainWindow):
             return
 
         self._logger.info("Core connected")
-
         self.tribler_started = True
         self.tribler_version = version
 
+        request_manager.get("settings", self.on_receive_settings, capture_errors=False)
+
+    def on_receive_settings(self, settings):
+        self.tribler_settings = settings['settings']
+        self.start_ui()
+
+    def start_ui(self):
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
         # self.token_balance_widget.setHidden(False)  # restore it after the token balance calculation is fixed
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
-
-        self.fetch_settings()
-
+        self.process_uri_request()
         self.downloads_page.start_loading_downloads()
 
         self.setAcceptDrops(True)
@@ -739,33 +743,6 @@ class TriblerWindow(QMainWindow):
         if completions_list:
             self.search_completion_model.setStringList(completions_list)
 
-    def fetch_settings(self):
-        request_manager.get("settings", self.received_settings, capture_errors=False)
-
-    def received_settings(self, settings):
-        if not settings:
-            return
-        # If we cannot receive the settings, stop Tribler with an option to send the crash report.
-        if 'error' in settings:
-            raise RuntimeError(RequestManager.get_message_from_error(settings))
-
-        # If there is any pending dialog (likely download dialog or error dialog of setting not available),
-        # close the dialog
-        if self.dialog:
-            self.dialog.close_dialog()
-            self.dialog = None
-
-        self.tribler_settings = settings['settings']
-
-        self.downloads_all_button.click()
-
-        # process pending file requests (i.e. someone clicked a torrent file when Tribler was closed)
-        # We do this after receiving the settings so we have the default download location.
-        self.process_uri_request()
-
-        if self.token_balance_widget.isVisible():
-            self.enable_token_balance_refresh()
-
     def on_settings_button_click(self):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
@@ -879,20 +856,8 @@ class TriblerWindow(QMainWindow):
     def start_download_from_uri(self, uri):
         uri = uri.decode('utf-8') if isinstance(uri, bytes) else uri
 
-        if get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True):
-            # FIXME: instead of using this workaround, make sure the settings are _available_ by this moment
-            # If tribler settings is not available, fetch the settings and inform the user to try again.
-            if not self.tribler_settings:
-                self.fetch_settings()
-                self.dialog = ConfirmationDialog.show_error(
-                    self,
-                    tr("Download Error"),
-                    tr("Tribler settings is not available yet. Fetching it now. Please try again later."),
-                )
-                # By re-adding the download uri to the pending list, the request is re-processed
-                # when the settings is received
-                self.pending_uri_requests.append(uri)
-                return
+        ask_download_settings = get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True)
+        if ask_download_settings:
             # Clear any previous dialog if exists
             if self.dialog:
                 self.dialog.close_dialog()
@@ -903,15 +868,6 @@ class TriblerWindow(QMainWindow):
             self.dialog.show()
             self.start_download_dialog_active = True
         else:
-            # FIXME: instead of using this workaround, make sure the settings are _available_ by this moment
-            # In the unlikely scenario that tribler settings are not available yet, try to fetch settings again and
-            # add the download uri back to self.pending_uri_requests to process again.
-            if not self.tribler_settings:
-                self.fetch_settings()
-                if uri not in self.pending_uri_requests:
-                    self.pending_uri_requests.append(uri)
-                return
-
             self.window().perform_start_download_request(
                 uri,
                 self.window().tribler_settings['download_defaults']['anonymity_enabled'],
@@ -1114,7 +1070,7 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
     def clicked_debug_panel_button(self, *_):
-        if not self.tribler_settings or not self.gui_settings:
+        if not self.gui_settings:
             self._logger.info("Tribler settings (Core and/or GUI) is not available yet.")
             return
         if not self.debug_window:
