@@ -75,6 +75,11 @@ def test_load_write_nonascii(tmpdir):
     assert config.file == tmpdir / filename
 
 
+def test_load_default_saveas(tmpdir):
+    config = TriblerConfig(state_dir=tmpdir)
+    assert config.download_defaults.saveas
+
+
 def test_copy(tmpdir):
     config = TriblerConfig(state_dir=tmpdir, file=tmpdir / '1.txt')
     config.api.http_port = 42
