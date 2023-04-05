@@ -59,7 +59,7 @@ def get_uniformed_tracker_url(tracker_url: str):
             if scheme == UDP:
                 return f"{scheme}://{host}:{port}"
 
-            elif scheme in {HTTP, HTTPS}:
+            if scheme in {HTTP, HTTPS}:
                 # HTTP(S) trackers must have a path
                 path = path.rstrip('/')
                 if not path:
@@ -81,10 +81,10 @@ def parse_tracker_url(tracker_url):
     :param tracker_url the URL of the tracker
     :returns: Tuple (scheme, (host, port), announce_path)
     """
-    http_prefix = 'http://'
-    http_port_suffix = ':80/'
-    https_prefix = 'https://'
-    https_port_suffix = ':443/'
+    http_prefix = f'{HTTP}://'
+    http_port_suffix = f':{HTTP_PORT}/'
+    https_prefix = f'{HTTPS}://'
+    https_port_suffix = f':{HTTPS_PORT}/'
 
     url = tracker_url.lower()
 
@@ -95,7 +95,7 @@ def parse_tracker_url(tracker_url):
         tracker_url = tracker_url.replace(https_port_suffix, '/', 1)
 
     if tracker_url != get_uniformed_tracker_url(tracker_url):
-        raise MalformedTrackerURLException(f'Could not sanitize url ({tracker_url}).')
+        raise MalformedTrackerURLException(f'Tracker URL is not sanitized ({tracker_url}).')
 
     return _parse_tracker_url(tracker_url)
 
