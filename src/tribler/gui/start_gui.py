@@ -63,16 +63,10 @@ def run_gui(api_port, api_key, root_state_dir, parsed_args):
         translator = get_translator(settings.value('translation', None))
         app.installTranslator(translator)
 
-        if not current_process_is_primary and app.connected_to_previous_instance:
-            # if an application is already running, then send the command line
-            # argument to it and close the current instance
-            logger.info('GUI Application is already running. Passing a torrent file path to it.')
-            for arg in sys.argv[1:]:
-                if os.path.exists(arg) and arg.endswith(".torrent"):
-                    app.send_message(path_to_url(arg))
-                elif arg.startswith('magnet'):
-                    app.send_message(arg)
-            logger.info('Close the current application.')
+        if not current_process_is_primary:
+            logger.info('GUI Application is already running.')
+            app.send_torrent_file_path_to_primary_process()
+            logger.info('Close the current GUI application.')
             process_manager.sys_exit(1, 'Tribler GUI application is already running')
 
         logger.info('Start Tribler Window')

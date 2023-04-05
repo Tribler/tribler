@@ -1,6 +1,8 @@
+import logging
 import os
 import os.path
 import sys
+from typing import List
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
@@ -25,6 +27,7 @@ class TriblerApplication(QtSingleApplication):
 
     def __init__(self, app_name: str, args: list, start_local_server: bool = False):
         QtSingleApplication.__init__(self, app_name, start_local_server, args)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.code_executor = None
         connect(self.message_received, self.on_app_message)
 
@@ -61,6 +64,30 @@ class TriblerApplication(QtSingleApplication):
             os.environ['CHANT_TESTNET'] = "YES"
         if '--tunnel-testnet' in sys.argv[1:]:
             os.environ['TUNNEL_TESTNET'] = "YES"
+
+    @staticmethod
+    def get_urls_from_sys_args() -> List[str]:
+        urls = []
+        for arg in sys.argv[1:]:
+            if os.path.exists(arg) and arg.endswith(".torrent"):
+                urls.append((path_to_url(arg)))
+            elif arg.startswith('magnet'):
+                urls.append(arg)
+        return urls
+
+    def send_torrent_file_path_to_primary_process(self):
+        urls_to_send = self.get_urls_from_sys_args()
+        if not urls_to_send:
+            return
+
+        if not self.connected_to_previous_instance:
+            self._logger.warning("Can't send torrent url: do not have a connection to a primary process")
+            return
+
+        count = len(urls_to_send)
+        self._logger.info(f'Sending {count} torrent file{"s" if count > 1 else ""} to a primary process')
+        for url in urls_to_send:
+            self.send_message(url)
 
     def event(self, event):
         if event.type() == QEvent.FileOpen and event.file().endswith(".torrent"):
