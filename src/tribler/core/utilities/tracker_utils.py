@@ -1,7 +1,13 @@
 import re
-from http.client import HTTP_PORT
+from http.client import HTTP_PORT, HTTPS_PORT
 from json import dumps
 from urllib.parse import ParseResult, parse_qsl, unquote, urlencode, urlparse
+
+UDP = 'udp'
+HTTP = 'http'
+HTTPS = 'https'
+SUPPORTED_SCHEMES = {UDP, HTTP, HTTPS}
+DEFAULT_PORTS = {HTTP: HTTP_PORT, HTTPS: HTTPS_PORT}
 
 
 class MalformedTrackerURLException(Exception):
@@ -22,24 +28,12 @@ remove_trailing_junk = re.compile(r'[,*.:]+\Z')
 truncated_url_detector = re.compile(r'\.\.\.')
 
 
-def get_uniformed_tracker_url(tracker_url):
+def get_uniformed_tracker_url(tracker_url: str):
     """
-    Parse a tracker url of str type.
+    Parses the given tracker URL and returns in a uniform URL format.
+    It uses regex to sanitize the URL.
 
-    The following checks and transformations are applied to the url:
-        - Check if the url is valid unicode data
-        - Strip whitespaces
-        - Strip a trailing '/'
-        - Check that the port is
-            - provided in case of UDP
-            - in range in case of HTTP (implicitly done in the `urlparse` function)
-        - If it is a url for a HTTP tracker, don't include the default port HTTP_PORT
-
-    Examples:
-        udp://tracker.openbittorrent.com:80
-        http://tracker.openbittorrent.com:80/announce
-
-    :param tracker_url: a str url for either a UDP or HTTP tracker
+    :param tracker_url: Tracker URL
     :return: the tracker in a uniform format <type>://<host>:<port>/<page>
     """
     assert isinstance(tracker_url, str), f"tracker_url is not a str: {type(tracker_url)}"
@@ -49,90 +43,94 @@ def get_uniformed_tracker_url(tracker_url):
         # Rule out the case where the regex returns None
         if not tracker_url:
             continue
+
         # Rule out truncated URLs
         if re.search(truncated_url_detector, tracker_url):
             continue
+
         # Try to match it against a simple regexp
         if not re.match(url_regex, tracker_url):
             continue
 
         tracker_url = re.sub(remove_trailing_junk, '', tracker_url)
-        url = urlparse(tracker_url)
 
-        # accessing urlparse attributes may throw UnicodeError's or ValueError's
         try:
-            # scheme must be either UDP or HTTP
-            if url.scheme == 'udp' or url.scheme == 'http':
-                uniformed_scheme = url.scheme
-            else:
-                continue
+            scheme, (host, port), path = _parse_tracker_url(tracker_url)
+            if scheme == UDP:
+                return f"{scheme}://{host}:{port}"
 
-            uniformed_hostname = url.hostname
-
-            if not url.port:
-                # UDP trackers must have a port
-                if url.scheme == 'udp':
+            if scheme in {HTTP, HTTPS}:
+                # HTTP(S) trackers must have a path
+                path = path.rstrip('/')
+                if not path:
                     continue
-                # HTTP trackers default to port HTTP_PORT
-                elif url.scheme == 'http':
-                    uniformed_port = HTTP_PORT
-            else:
-                uniformed_port = url.port
 
-            # UDP trackers have no path
-            if url.scheme == 'udp':
-                uniformed_path = ''
-            else:
-                uniformed_path = url.path.rstrip('/')
-            # HTTP trackers must have a path
-            if url.scheme == 'http' and not uniformed_path:
-                continue
+                uniformed_port = '' if port == DEFAULT_PORTS[scheme] else f':{port}'
+                return f"{scheme}://{host}{uniformed_port}{path}"
 
-            if url.scheme == 'http' and uniformed_port == HTTP_PORT:
-                uniformed_url = f'{uniformed_scheme}://{uniformed_hostname}{uniformed_path}'
-            else:
-                uniformed_url = '%s://%s:%d%s' % (uniformed_scheme, uniformed_hostname, uniformed_port, uniformed_path)
-        except ValueError:
+        except MalformedTrackerURLException:
             continue
-        else:
-            return uniformed_url
     return None
 
 
 def parse_tracker_url(tracker_url):
     """
-    Parse the tracker url and check whether it satisfies certain constraints:
+    Parses the tracker URL and checks whether it satisfies tracker URL constraints.
+    Additionally, it also checks if the tracker URL is a uniform and valid URL.
 
-        - The tracker type must be either http or udp
-        - HTTP trackers need a path
-        - UDP trackers need a port
-
-    Note that HTTP trackers default to HTTP_PORT if none is given.
-
-    :param tracker_url the url of the tracker
-    :returns: a tuple of size 3 containing the scheme, a tuple of hostname and port,
-        and path of the url
+    :param tracker_url the URL of the tracker
+    :returns: Tuple (scheme, (host, port), announce_path)
     """
-    if tracker_url.lower().startswith('http://') and ':80/' in tracker_url:
-        tracker_url = tracker_url.replace(':80/', '/', 1)
+    http_prefix = f'{HTTP}://'
+    http_port_suffix = f':{HTTP_PORT}/'
+    https_prefix = f'{HTTPS}://'
+    https_port_suffix = f':{HTTPS_PORT}/'
+
+    url = tracker_url.lower()
+
+    if url.startswith(http_prefix) and http_port_suffix in url:
+        tracker_url = tracker_url.replace(http_port_suffix, '/', 1)
+
+    if url.startswith(https_prefix) and https_port_suffix in url:
+        tracker_url = tracker_url.replace(https_port_suffix, '/', 1)
 
     if tracker_url != get_uniformed_tracker_url(tracker_url):
-        raise MalformedTrackerURLException(f'Could not sanitize url ({tracker_url}).')
+        raise MalformedTrackerURLException(f'Tracker URL is not sanitized ({tracker_url}).')
 
-    url = urlparse(tracker_url)
-    if not (url.scheme == 'udp' or url.scheme == 'http'):
-        raise MalformedTrackerURLException(f'Unexpected tracker type ({url.scheme}).')
+    return _parse_tracker_url(tracker_url)
 
-    if url.scheme == 'udp' and not url.port:
-        raise MalformedTrackerURLException(f'No port number for UDP tracker URL ({tracker_url}).')
 
-    if url.scheme == 'http' and not url.port:
-        return url.scheme, (url.hostname, 80), url.path
+def _parse_tracker_url(tracker_url):
+    """
+    Parses the tracker URL and check whether it satisfies certain constraints:
 
-    if url.scheme == 'http' and not url.path:
-        raise MalformedTrackerURLException(f'Missing announce path for HTTP tracker url ({tracker_url}).')
+        - The tracker type must be one of the supported types (udp, http, https).
+        - UDP trackers requires a port.
+        - HTTP(s) trackers requires an announce path.
+        - HTTP(S) trackers default to HTTP(S)_PORT if port is not present on the URL.
 
-    return url.scheme, (url.hostname, url.port), url.path
+    :param tracker_url the URL of the tracker
+    :returns: Tuple (scheme, (host, port), announce_path)
+    """
+    parsed_url = urlparse(tracker_url)
+    host = parsed_url.hostname
+    path = parsed_url.path
+    scheme = parsed_url.scheme
+    port = parsed_url.port
+
+    if scheme not in SUPPORTED_SCHEMES:
+        raise MalformedTrackerURLException(f'Unsupported tracker type ({scheme}).')
+
+    if scheme == UDP and not port:
+        raise MalformedTrackerURLException(f'Missing port for UDP tracker URL ({tracker_url}).')
+
+    if scheme in {HTTP, HTTPS}:
+        if not path:
+            raise MalformedTrackerURLException(f'Missing announce path for HTTP(S) tracker URL ({tracker_url}).')
+        if not port:
+            port = DEFAULT_PORTS[scheme]
+
+    return scheme, (host, port), path
 
 
 def add_url_params(url, params):
