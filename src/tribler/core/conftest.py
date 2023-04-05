@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import platform
 import sys
@@ -30,6 +31,11 @@ from tribler.core.utilities.unicode import hexlify
 # Note that the error can happen in an unrelated test where the unhandled task from the previous test
 # was garbage collected. Without the origin tracking, it may be hard to see the test that created the task.
 sys.set_coroutine_origin_tracking_depth(10)
+
+
+def pytest_configure(config):  # pylint: disable=unused-argument
+    # Disable logging from faker for all tests
+    logging.getLogger('faker.factory').propagate = False
 
 
 @pytest.fixture(name="tribler_root_dir")
