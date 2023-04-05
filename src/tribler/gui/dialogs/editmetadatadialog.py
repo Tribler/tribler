@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QComboBox, QSizePolicy, QWidget
 
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
+from tribler.core.utilities.path_util import Path
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
 from tribler.gui.network.request_manager import request_manager
@@ -45,8 +46,9 @@ class EditMetadataDialog(DialogContainer):
         connect(self.dialog_widget.edit_metadata_table.doubleClicked, self.on_edit_metadata_table_item_clicked)
 
         # Load the languages
-        with open(get_ui_file_path("languages.json"), "r") as languages_file:
-            self.languages = json.loads(languages_file.read())
+        languages_path = get_ui_file_path("languages.json")
+        content = Path(languages_path).read_text(encoding='utf-8')
+        self.languages = json.loads(content)
 
         # Fill in the metadata table and make the items in the 2nd column editable
         for ind in range(self.dialog_widget.edit_metadata_table.topLevelItemCount()):
