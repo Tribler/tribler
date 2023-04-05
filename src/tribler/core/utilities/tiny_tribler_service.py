@@ -102,9 +102,8 @@ class TinyTriblerService:
 
     def _graceful_shutdown(self):
         self.logger.info("Shutdown gracefully")
-        tasks = self.async_group.add_task(self.session.shutdown())
-        shutdown_task = tasks[0]
-        shutdown_task.add_done_callback(lambda result: self._stop_event_loop())
+        if task := self.async_group.add_task(self.session.shutdown()):
+            task.add_done_callback(lambda result: self._stop_event_loop())
 
     def _stop_event_loop(self):
         asyncio.get_running_loop().stop()

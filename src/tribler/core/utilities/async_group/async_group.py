@@ -55,10 +55,15 @@ class AsyncGroup:
         self.futures: Set[Future] = set()
         self._done = False
 
-    def add_task(self, coroutine: Coroutine) -> Task:
+    def add_task(self, coroutine: Coroutine) -> Optional[Task]:
         """Add a coroutine to the group.
         """
-        task = asyncio.create_task(coroutine)
+        try:
+            task = asyncio.create_task(coroutine)
+        except RuntimeError:
+            # most likely, the event loop is closed
+            self._logger.warning("Cannot add a task to the group: the event loop is closed")
+            return None
 
         if self._done:
             task.cancel()

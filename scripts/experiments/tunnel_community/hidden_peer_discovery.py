@@ -28,8 +28,8 @@ class Service(TinyTriblerService, TaskManager):
         self.register_task('_graceful_shutdown', self._graceful_shutdown, delay=EXPERIMENT_RUN_TIME)
 
     def _graceful_shutdown(self):
-        task = self.async_group.add_task(self.on_tribler_shutdown())
-        task.add_done_callback(lambda result: TinyTriblerService._graceful_shutdown(self))
+        if task := self.async_group.add_task(self.on_tribler_shutdown()):
+            task.add_done_callback(lambda result: TinyTriblerService._graceful_shutdown(self))
 
     async def on_tribler_shutdown(self):
         await self.shutdown_task_manager()

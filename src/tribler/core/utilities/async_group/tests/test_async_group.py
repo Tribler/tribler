@@ -1,7 +1,7 @@
 import asyncio
 import gc
 from contextlib import suppress
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 from weakref import ref
 
 import pytest
@@ -226,3 +226,10 @@ async def test_add_task_during_wait(group: AsyncGroup):
     await group.wait()  # here `async_mock` should be added to the group
 
     async_mock.assert_awaited()
+
+
+async def test_add_task_event_loop_is_closed(group: AsyncGroup):
+    # Ensure that there is no exception when we add a task to the group when the event loop is closed
+    with patch('asyncio.events.get_running_loop', Mock(side_effect=RuntimeError)):
+        task = group.add_task(void())
+    assert not task
