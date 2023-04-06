@@ -119,6 +119,10 @@ class EventsEndpoint(RESTEndpoint):
     # An exception has occurred in Tribler. The event includes a readable
     # string of the error and a Sentry event.
     def on_tribler_exception(self, reported_error: ReportedError):
+        if self._shutdown:
+            self._logger.warning('Ignoring tribler exception, because the endpoint is shutting down.')
+            return
+
         message = self.error_message(reported_error)
         if self.has_connection_to_gui():
             self.async_group.add_task(self.write_data(message))
