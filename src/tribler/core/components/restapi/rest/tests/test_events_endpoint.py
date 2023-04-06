@@ -114,18 +114,18 @@ async def test_events(rest_manager, notifier: Notifier):
         await event_socket_task
 
 
-@patch.object(EventsEndpoint, 'write_data')
+@patch.object(EventsEndpoint, '_write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=True))
 async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, events_endpoint, reported_error):
     # test that in case of established connection to GUI, `on_tribler_exception` will work
-    # as a normal events_endpoint function, that is call `write_data`
+    # as a normal events_endpoint function, that is call `_write_data`
     events_endpoint.on_tribler_exception(reported_error)
 
     mocked_write_data.assert_called_once()
     assert not events_endpoint.undelivered_error
 
 
-@patch.object(EventsEndpoint, 'write_data')
+@patch.object(EventsEndpoint, '_write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
 async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, events_endpoint, reported_error):
     # test that if no connection to GUI, then `on_tribler_exception` will store
@@ -136,7 +136,7 @@ async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, even
     assert events_endpoint.undelivered_error == events_endpoint.error_message(reported_error)
 
 
-@patch.object(EventsEndpoint, 'write_data', new=MagicMock())
+@patch.object(EventsEndpoint, '_write_data', new=MagicMock())
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
 async def test_on_tribler_exception_stores_only_first_error(events_endpoint, reported_error):
     # test that if no connection to GUI, then `on_tribler_exception` will store
