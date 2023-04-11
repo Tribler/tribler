@@ -1,7 +1,7 @@
 import json
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from aiohttp import ClientSession
@@ -163,3 +163,15 @@ async def test_get_events_has_undelivered_error(mocked_encode_message, mocked_wr
     mocked_write.assert_called()
     mocked_encode_message.assert_called_with({'undelivered': 'error'})
     assert not endpoint.undelivered_error
+
+
+async def test_on_tribler_exception_shutdown():
+    # test that `on_tribler_exception` will not send any error message if endpoint is shutting down
+    endpoint = EventsEndpoint(Mock())
+    endpoint.error_message = Mock()
+
+    await endpoint.shutdown()
+
+    endpoint.on_tribler_exception(ReportedError('', '', {}))
+
+    assert not endpoint.error_message.called
