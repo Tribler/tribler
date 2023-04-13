@@ -1,3 +1,4 @@
+import asyncio
 import json
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
@@ -120,6 +121,7 @@ async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, eve
     # test that in case of established connection to GUI, `on_tribler_exception` will work
     # as a normal events_endpoint function, that is call `_write_data`
     events_endpoint.on_tribler_exception(reported_error)
+    await asyncio.sleep(0.01)
 
     mocked_write_data.assert_called_once()
     assert not events_endpoint.undelivered_error

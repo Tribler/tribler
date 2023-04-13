@@ -1,7 +1,7 @@
 import asyncio
 import json
 import time
-from asyncio import CancelledError
+from asyncio import CancelledError, Queue
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
@@ -55,6 +55,8 @@ class EventsEndpoint(RESTEndpoint):
         self.undelivered_error: Optional[MessageDict] = None
         self.public_key = public_key
         self.notifier = notifier
+        self.queue = Queue()
+        self.async_group.add_task(self.process_queue())
         notifier.add_observer(notifications.circuit_removed, self.on_circuit_removed)
         notifier.add_generic_observer(self.on_notification)
 
@@ -117,16 +119,22 @@ class EventsEndpoint(RESTEndpoint):
         return False
 
     def send_event(self, message: MessageDict):
+        """
+        Put event message to a queue to be sent to GUI
+        """
         if not self.should_skip_message(message):
-            self.async_group.add_task(self._write_data(message))
+            self.queue.put_nowait(message)
+
+    async def process_queue(self):
+        while True:
+            message = await self.queue.get()
+            if not self.should_skip_message(message):
+                await self._write_data(message)
 
     async def _write_data(self, message: MessageDict):
         """
         Write data over the event socket if it's open.
         """
-        if self.should_skip_message(message):
-            return
-
         self._logger.debug(f'Write message: {message}')
         try:
             message_bytes = self.encode_message(message)
