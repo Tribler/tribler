@@ -265,7 +265,7 @@ def test_send_sys_info(sentry_reporter):
 
 
 def test_send_additional_tags(sentry_reporter):
-    actual = sentry_reporter.send_event(event={}, additional_tags={'tag_key': 'tag_value'})
+    actual = sentry_reporter.send_event(event={}, additional_tags={'tag_key': 'tag_value', 'numeric_tag_key': 1})
     expected = {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
@@ -286,6 +286,7 @@ def test_send_additional_tags(sentry_reporter):
             'platform.details': None,
             'version': None,
             'tag_key': 'tag_value',
+            'numeric_tag_key': 1,
         },
     }
     assert actual == expected
