@@ -175,3 +175,20 @@ async def test_on_tribler_exception_shutdown():
     events_endpoint.on_tribler_exception(ReportedError('', '', {}))
 
     assert not events_endpoint.error_message.called
+
+
+async def test_should_skip_message(events_endpoint):
+    assert not events_endpoint._shutdown and not events_endpoint.events_responses  # pylint: disable=protected-access
+    message = Mock()
+
+    # Initially the events endpoint is not in shutdown state, but it does not have any connection,
+    # so it should skip message as nobody is listen to it
+    assert events_endpoint.should_skip_message(message)
+
+    with patch.object(events_endpoint, 'events_responses', new=[Mock()]):
+        # We add a mocked connection to GUI, and now the events endpoint should not skip a message
+        assert not events_endpoint.should_skip_message(message)
+
+        with patch.object(events_endpoint, '_shutdown', new=True):
+            # But, if it is in shutdown state, it should always skip a message
+            assert events_endpoint.should_skip_message(message)

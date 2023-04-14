@@ -99,17 +99,33 @@ class EventsEndpoint(RESTEndpoint):
             message = json.dumps(fix_unicode_dict(message))
         return b'data: ' + message.encode('utf-8') + b'\n\n'
 
-    def has_connection_to_gui(self):
+    def has_connection_to_gui(self) -> bool:
         return bool(self.events_responses)
+
+    def should_skip_message(self, message: MessageDict) -> bool:
+        """
+        Returns True if EventsEndpoint should skip sending message to GUI due to a shutdown or no connection to GUI.
+        Issue an appropriate warning if the message cannot be sent.
+        """
+        if self._shutdown:
+            self._logger.warning(f"Shutdown is in progress, skip message: {message}")
+            return True
+
+        if not self.has_connection_to_gui():
+            self._logger.warning(f"No connections to GUI, skip message: {message}")
+            return True
+
+        return False
 
     async def write_data(self, message: MessageDict):
         """
         Write data over the event socket if it's open.
         """
-        if not self.has_connection_to_gui():
+        if self.should_skip_message(message):
             return
+
+        self._logger.debug(f'Write message: {message}')
         try:
-            self._logger.debug(f'Write message: {message}')
             message_bytes = self.encode_message(message)
         except Exception as e:  # pylint: disable=broad-except
             # if a notification arguments contains non-JSON-serializable data, the exception should be logged
