@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import Enum, auto
 from hashlib import md5
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import sentry_sdk
 from faker import Faker
@@ -147,7 +147,7 @@ class SentryReporter:
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
     def send_event(self, event: Dict = None, post_data: Dict = None, sys_info: Dict = None,
-                   additional_tags: List[str] = None, last_core_output: Optional[str] = None,
+                   additional_tags: Dict[str, Any] = None, last_core_output: Optional[str] = None,
                    last_processes: List[str] = None):
         """Send the event to the Sentry server
 
