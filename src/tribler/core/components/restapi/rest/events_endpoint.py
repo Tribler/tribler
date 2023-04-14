@@ -3,13 +3,13 @@ import json
 import time
 from asyncio import CancelledError
 from dataclasses import asdict
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
+import marshmallow.fields
 from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
-from marshmallow.fields import Dict, String
 
 from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
@@ -38,6 +38,9 @@ topics_to_send_to_gui = [
 ]
 
 
+MessageDict = Dict[str, Any]
+
+
 @froze_it
 class EventsEndpoint(RESTEndpoint):
     """
@@ -49,7 +52,7 @@ class EventsEndpoint(RESTEndpoint):
     def __init__(self, notifier: Notifier, public_key: str = None):
         super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
-        self.undelivered_error: Optional[dict] = None
+        self.undelivered_error: Optional[MessageDict] = None
         self.public_key = public_key
         self.notifier = notifier
         notifier.add_observer(notifications.circuit_removed, self.on_circuit_removed)
@@ -75,19 +78,19 @@ class EventsEndpoint(RESTEndpoint):
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_events)])
 
-    def initial_message(self) -> dict:
+    def initial_message(self) -> MessageDict:
         return {
             "topic": notifications.events_start.__name__,
             "kwargs": {"public_key": self.public_key, "version": version_id}
         }
 
-    def error_message(self, reported_error: ReportedError) -> dict:
+    def error_message(self, reported_error: ReportedError) -> MessageDict:
         return {
             "topic": notifications.tribler_exception.__name__,
             "kwargs": {"error": asdict(reported_error)},
         }
 
-    def encode_message(self, message: dict) -> bytes:
+    def encode_message(self, message: MessageDict) -> bytes:
         try:
             message = json.dumps(message)
         except UnicodeDecodeError:
@@ -99,7 +102,7 @@ class EventsEndpoint(RESTEndpoint):
     def has_connection_to_gui(self):
         return bool(self.events_responses)
 
-    async def write_data(self, message):
+    async def write_data(self, message: MessageDict):
         """
         Write data over the event socket if it's open.
         """
@@ -135,8 +138,7 @@ class EventsEndpoint(RESTEndpoint):
         summary="Open an EventStream for receiving Tribler events.",
         responses={
             200: {
-                "schema": schema(EventsResponse={'type': String,
-                                                 'event': Dict})
+                "schema": schema(EventsResponse={'type': marshmallow.fields.String, 'event': marshmallow.fields.Dict})
             }
         }
     )
