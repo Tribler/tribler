@@ -37,7 +37,11 @@ NUM_VOTES_BARS = 8
 
 
 def tr(key):
-    return f"{QCoreApplication.translate('@default', key)}"
+    try:
+        return str(QCoreApplication.translate('@default', key))
+    except KeyError as e:
+        logger.warning(f'{type(e).__name__}: {e} in "{key}"')
+        return key
 
 
 VOTES_RATING_DESCRIPTIONS = (

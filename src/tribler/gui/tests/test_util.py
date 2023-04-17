@@ -1,10 +1,11 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import unquote_plus
 
 import pytest
 
-from tribler.gui.utilities import compose_magnetlink, create_api_key, dict_item_is_any_of, format_api_key, \
-    quote_plus_unicode, set_api_key, unicode_quoter
+from tribler.gui.utilities import compose_magnetlink, create_api_key, dict_item_is_any_of, duration_to_string, \
+    format_api_key, \
+    quote_plus_unicode, set_api_key, tr, unicode_quoter
 
 
 def test_quoter_char():
@@ -154,3 +155,27 @@ def test_set_api_key():
     gui_settings = MagicMock()
     set_api_key(gui_settings, "abcdef")
     gui_settings.setValue.assert_called_once_with("api_key", b"abcdef")
+
+
+TRANSLATIONS = [
+    (0, '0s'),
+    (61, '1m 1s'),
+    (3800, '1h 3m'),
+    (110000, '1d 6h'),
+    (1110000, '1w 5d'),
+    (91110000, '2y 46w'),
+    (11191110000, 'Forever'),
+]
+
+
+@pytest.mark.parametrize('seconds, translation', TRANSLATIONS)
+@patch('tribler.gui.utilities.tr', new=Mock(side_effect=lambda x: x))
+def test_duration_to_string(seconds, translation):
+    # test if the duration_to_string function returns the correct translation for all possible formats
+    assert duration_to_string(seconds) == translation
+
+
+@patch('tribler.gui.utilities.QCoreApplication.translate', new=Mock(side_effect=KeyError('key is invalid')))
+def test_tr_exception():
+    # test if the tr function returns the key if the translation is not found
+    assert tr('0s') == '0s'
