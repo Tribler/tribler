@@ -1,8 +1,12 @@
 import shutil
-from unittest.mock import patch
+from asyncio import CancelledError
+from unittest.mock import Mock, patch
 
 import pytest
+from aiohttp import ServerDisconnectedError
+from aiohttp.web_protocol import RequestHandler
 
+from tribler.core.components.restapi.rest.aiohttp_patch import get_transport_is_none_counter, patch_make_request
 from tribler.core.components.restapi.rest.base_api_test import do_real_request
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_UNAUTHORIZED
 from tribler.core.components.restapi.rest.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
@@ -12,18 +16,22 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DIR
 
 
-@pytest.fixture()
-def tribler_config():
+# pylint: disable=unused-argument  # because the `rest_manager` argument is syntactically unused in tests
+# pylint: disable=protected-access
+
+
+@pytest.fixture(name='tribler_config')
+def tribler_config_fixture():
     return TriblerConfig()
 
 
-@pytest.fixture()
-def api_port(free_port):
+@pytest.fixture(name='api_port')
+def api_port_fixture(free_port):
     return free_port
 
 
-@pytest.fixture
-async def rest_manager(request, tribler_config, api_port, tmp_path):
+@pytest.fixture(name='rest_manager')
+async def rest_manager_fixture(request, tribler_config, api_port, tmp_path):
     config = tribler_config
     api_key_marker = request.node.get_closest_marker("api_key")
     if api_key_marker is not None:
@@ -91,3 +99,55 @@ async def test_unhandled_exception(rest_manager, api_port):
     assert response_dict
     assert not response_dict['error']['handled']
     assert response_dict['error']['code'] == "TypeError"
+
+
+async def test_patch_make_request():
+    app = Mock()
+
+    app._make_request.patched = None  # to avoid returning a mock when the patched attribute is accessed
+
+    # The first call returns True as the patch is successful
+    assert patch_make_request(app)
+    make_request = app._make_request
+    assert make_request.patched
+
+    # The second call is unsuccessful, as the Application class is already patched
+    assert not patch_make_request(app)
+    assert app._make_request is make_request
+
+
+async def test_aiohttp_assertion_patched(rest_manager, api_port):
+    # The test checks that when the request handler is forced to close transport before calling
+    # `self._make_request(..)`, the monkey-patched version of `_make_request` handles this situation
+    # and increments the number of cases when the transport was None at that stage of the request processing.
+    original_start = RequestHandler.start
+
+    async def new_start(self: RequestHandler) -> None:
+        original_request_factory = self._request_factory
+
+        # it should be the monkey-patched version of `_make_request`
+        assert getattr(original_request_factory, 'patched', False)  # should be True
+
+        def new_request_factory(*args):
+            self.force_close()
+            return original_request_factory(*args)
+
+        # monkey-patch it the second time and add the force closing of the transport
+        with patch.object(self, '_request_factory', new=new_request_factory):
+
+            # the start method should correctly raise `CancelledError` in case the transport is force closed
+            with pytest.raises(CancelledError):
+                await original_start(self)
+
+            raise CancelledError  # re-raise it to propagate the exception further
+
+    # the main monkey-patch should handle the closed transport and increment the counter during the request handling
+    counter_before = get_transport_is_none_counter()
+
+    with pytest.raises(ServerDisconnectedError):
+        # The server is disconnected, because the transport is closed and the start() coroutine is canceled
+        with patch('aiohttp.web_protocol.RequestHandler.start', new=new_start):
+            await do_real_request(api_port, 'settings')
+
+    counter_after = get_transport_is_none_counter()
+    assert counter_before + 1 == counter_after
