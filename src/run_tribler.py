@@ -68,6 +68,7 @@ def init_sentry_reporter(reporter: SentryReporter):
         logger.info('Sentry has been initialised in debug mode')
 
 
+
 def init_boot_logger():
     # this logger config will be used before Core and GUI
     #  set theirs configs explicitly
