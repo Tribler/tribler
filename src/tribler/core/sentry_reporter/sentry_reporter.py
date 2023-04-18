@@ -218,9 +218,7 @@ class SentryReporter:
         reporter[OS_ENVIRON] = parse_os_environ(get_value(sys_info, OS_ENVIRON))
         delete_item(sys_info, OS_ENVIRON)
 
-        reporter['events'] = extract_dict(sys_info, r'^(event|request)')
-        reporter[SYSINFO] = {key: sys_info[key] for key in sys_info if key not in reporter['events']}
-
+        reporter[SYSINFO] = sys_info
         if last_processes:
             reporter['last_processes'] = last_processes
 
