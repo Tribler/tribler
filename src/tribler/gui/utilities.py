@@ -36,12 +36,26 @@ logger = logging.getLogger(__name__)
 NUM_VOTES_BARS = 8
 
 
+class TranslatedString(str):
+    def __new__(cls, translation, original_string):
+        return super().__new__(cls, translation)
+
+    def __init__(self, translation: str, original_string: str):  # pylint: disable=unused-argument
+        super().__init__()
+        self.original_string = original_string
+
+    def __mod__(self, other):
+        try:
+            return str.__mod__(self, other)
+        except KeyError as e:
+            msg = f'No value provided for {e} in translation "{self}", original string: "{self.original_string}"'
+            logger.warning(f'{type(e).__name__}: {msg}')
+            return self.original_string % other
+
+
 def tr(key):
-    try:
-        return str(QCoreApplication.translate('@default', key))
-    except KeyError as e:
-        logger.warning(f'{type(e).__name__}: {e} in "{key}"')
-        return key
+    translated_string = QCoreApplication.translate('@default', key)
+    return TranslatedString(translated_string, original_string=key)
 
 
 VOTES_RATING_DESCRIPTIONS = (
