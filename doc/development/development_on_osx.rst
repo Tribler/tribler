@@ -19,6 +19,12 @@ If you wish to run the Tribler Graphical User Interface, PyQt5 should be availab
     qmake --version # test whether qt is installed correctly
 
 
+Add `qt@5/bin` to the PATH environment variable, e.g.:
+
+.. code-block:: bash
+
+    export PATH="/usr/local/opt/qt@5/bin:$PATH"
+
 Other Packages
 ~~~~~~~~~~~~~~
 
