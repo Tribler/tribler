@@ -137,6 +137,9 @@ class EditMetadataDialog(DialogContainer):
         self.save_button_clicked.emit(self.index, statements)
 
     def on_received_tag_suggestions(self, data: Dict) -> None:
+        if self.closed:  # The dialog was closed before the request finished
+            return
+
         self.suggestions_loaded.emit()
         if data["suggestions"]:
             self.dialog_widget.suggestions_container.show()
