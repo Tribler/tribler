@@ -125,11 +125,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.downloads_timeout_timer.stop()
 
     def load_downloads(self):
-        url = "downloads?get_pieces=1"
+        url_params = {'get_pieces': 1}
         if self.window().download_details_widget.currentIndex() == 3:
-            url += "&get_peers=1"
+            url_params['get_peers'] = 1
         elif self.window().download_details_widget.currentIndex() == 1:
-            url += "&get_files=1"
+            url_params['get_files'] = 1
 
         isactive = not self.isHidden()
 
@@ -139,7 +139,14 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             priority = QNetworkRequest.LowPriority if not isactive else QNetworkRequest.HighPriority
             if self.rest_request:
                 self.rest_request.cancel()
-            request_manager.get(url, self.on_received_downloads, priority=priority)
+
+            request_manager.get(
+                endpoint="downloads",
+                url_params=url_params,
+                on_success=self.on_received_downloads,
+                priority=priority,
+                logger_message_level=logging.DEBUG
+            )
 
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads:

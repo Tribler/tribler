@@ -27,7 +27,6 @@ class RequestManager(QNetworkAccessManager):
     def __init__(self, limit: int = 50, timeout_interval: int = 15):
         QNetworkAccessManager.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
-
         self.active_requests: Set[Request] = set()
         self.performed_requests: deque[Request] = deque(maxlen=200)
 
@@ -38,78 +37,93 @@ class RequestManager(QNetworkAccessManager):
         self.limit = limit
         self.timeout_interval = timeout_interval
 
-    def get(self,
+    def get(
+            self,
             endpoint: str,
             on_success: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
             data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
-            raw_response: bool = False) -> Request:
+            raw_response: bool = False,
+            logger_message_level: int = logging.INFO,
+    ) -> Request:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
-                          method=Request.GET)
+                          method=Request.GET, logger_message_level=logger_message_level)
         self.add(request)
         return request
 
-    def post(self,
-             endpoint: str,
-             on_success: Callable = lambda _: None,
-             url_params: Optional[Dict] = None,
-             data: DATA_TYPE = None,
-             capture_errors: bool = True,
-             priority: int = QNetworkRequest.NormalPriority,
-             raw_response: bool = False) -> Request:
-
-        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
-                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
-                          method=Request.POST)
-        self.add(request)
-        return request
-
-    def put(self,
+    def post(
+            self,
             endpoint: str,
             on_success: Callable = lambda _: None,
             url_params: Optional[Dict] = None,
             data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
-            raw_response: bool = False) -> Request:
+            raw_response: bool = False,
+            logger_message_level: int = logging.INFO,
+    ) -> Request:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
-                          method=Request.PUT)
+                          method=Request.POST, logger_message_level=logger_message_level)
         self.add(request)
         return request
 
-    def patch(self,
-              endpoint: str,
-              on_success: Callable = lambda _: None,
-              url_params: Optional[Dict] = None,
-              data: DATA_TYPE = None,
-              capture_errors: bool = True,
-              priority: int = QNetworkRequest.NormalPriority,
-              raw_response: bool = False) -> Request:
+    def put(
+            self,
+            endpoint: str,
+            on_success: Callable = lambda _: None,
+            url_params: Optional[Dict] = None,
+            data: DATA_TYPE = None,
+            capture_errors: bool = True,
+            priority: int = QNetworkRequest.NormalPriority,
+            raw_response: bool = False,
+            logger_message_level: int = logging.INFO,
+    ) -> Request:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
-                          method=Request.PATCH)
+                          method=Request.PUT, logger_message_level=logger_message_level)
         self.add(request)
         return request
 
-    def delete(self,
-               endpoint: str,
-               on_success: Callable = lambda _: None,
-               url_params: Optional[Dict] = None,
-               data: DATA_TYPE = None,
-               capture_errors: bool = True,
-               priority: int = QNetworkRequest.NormalPriority,
-               raw_response: bool = False) -> Request:
+    def patch(
+            self,
+            endpoint: str,
+            on_success: Callable = lambda _: None,
+            url_params: Optional[Dict] = None,
+            data: DATA_TYPE = None,
+            capture_errors: bool = True,
+            priority: int = QNetworkRequest.NormalPriority,
+            raw_response: bool = False,
+            logger_message_level: int = logging.INFO,
+    ) -> Request:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
-                          method=Request.DELETE)
+                          method=Request.PATCH, logger_message_level=logger_message_level)
+        self.add(request)
+        return request
+
+    def delete(
+            self,
+            endpoint: str,
+            on_success: Callable = lambda _: None,
+            url_params: Optional[Dict] = None,
+            data: DATA_TYPE = None,
+            capture_errors: bool = True,
+            priority: int = QNetworkRequest.NormalPriority,
+            raw_response: bool = False,
+            logger_level: int = logging.INFO,
+    ) -> Request:
+
+        request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
+                          capture_errors=capture_errors, priority=priority, raw_response=raw_response,
+                          method=Request.DELETE, logger_message_level=logger_level)
         self.add(request)
         return request
 
@@ -120,8 +134,6 @@ class RequestManager(QNetworkAccessManager):
         self.active_requests.add(request)
         self.performed_requests.append(request)
         request.set_manager(self)
-        self.logger.info(f'Request: {request}')
-
         qt_request = QNetworkRequest(QUrl(request.url))
         qt_request.setPriority(request.priority)
         qt_request.setHeader(QNetworkRequest.ContentTypeHeader, 'application/x-www-form-urlencoded')

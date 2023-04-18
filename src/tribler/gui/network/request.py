@@ -52,11 +52,13 @@ class Request(QObject):
             data: DATA_TYPE = None,
             method: str = GET,
             capture_errors: bool = True,
+            logger_message_level: int = logging.INFO,
             priority=QNetworkRequest.NormalPriority,
             raw_response: bool = False,
     ):
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger_message_level = logger_message_level
 
         self.endpoint = endpoint
         self.url_params = url_params
@@ -88,6 +90,7 @@ class Request(QObject):
     def set_manager(self, manager: RequestManager):
         self.manager = manager
         self._set_url(manager.get_base_url())
+        self._log(str(self))
 
     def _set_url(self, base_url: str):
         self.url = base_url + self.endpoint
@@ -109,7 +112,7 @@ class Request(QObject):
         if not self.reply or not self.manager:
             return
 
-        self.logger.info(f'Finished: {self}')
+        self._log(f'Finished: {self}')
         try:
             error_code = self.reply.error()
             if error_code != QNetworkReply.NoError:
@@ -171,6 +174,9 @@ class Request(QObject):
         if self.reply:
             self.reply.deleteLater()
             self.reply = None
+
+    def _log(self, message: str):
+        self.logger.log(level=self.logger_message_level, msg=message)
 
     def __str__(self):
         return f'{self.method} {self.url}'
