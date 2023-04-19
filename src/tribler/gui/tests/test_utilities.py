@@ -6,7 +6,7 @@ import pytest
 from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
     duration_to_string, \
     format_api_key, \
-    quote_plus_unicode, set_api_key, tr, unicode_quoter
+    quote_plus_unicode, set_api_key, unicode_quoter
 
 
 def test_quoter_char():
@@ -211,7 +211,7 @@ def test_missed_key_in_both_translated_and_original_strings(warning: Mock):
         # Then, the original string tries to interpolate params and again gets a KeyError because 'key1'
         # is also missed. This second exception is propagated because the main reason for the error is
         # in the outside code that passes an incorrect parameter.
-        s % {'key3': '123'}
+        _ = s % {'key3': '123'}
 
     warning.assert_called_once_with('KeyError: No value provided for \'key2\' in translation "translated %(key2)s", '
                                     'original string: "original %(key1)s"')

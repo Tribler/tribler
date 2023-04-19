@@ -41,7 +41,7 @@ class TranslatedString(str):
         Thanks to this class no `KeyError` exceptions are raised when a translation is missing.
     """
 
-    def __new__(cls, translation, original_string):
+    def __new__(cls, translation, original_string):  # pylint: disable=unused-argument
         return super().__new__(cls, translation)
 
     def __init__(self, translation: str, original_string: str):  # pylint: disable=unused-argument
