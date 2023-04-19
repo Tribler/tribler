@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import platform
 import sys
@@ -15,8 +14,6 @@ from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
-from tribler.gui.event_request_manager import received_events
-from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, get_ui_file_path, tr
@@ -98,23 +95,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', f'{key}: {os.environ[key]}')
-
-        # Add recent requests to feedback dialog
-        request_ind = 1
-
-        for request in request_manager.performed_requests:
-            add_item_to_info_widget(
-                'request_%d' % request_ind,
-                '%s %s %s (time: %s, code: %s)'
-                % (request.endpoint, request.method, request.data, request.time, request.status_code),
-            )
-            request_ind += 1
-
-        # Add recent events to feedback dialog
-        events_ind = 1
-        for event, event_time in received_events[:30][::-1]:
-            add_item_to_info_widget('event_%d' % events_ind, f'{json.dumps(event)} (time: {event_time})')
-            events_ind += 1
 
         # Users can remove specific lines in the report
         connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)

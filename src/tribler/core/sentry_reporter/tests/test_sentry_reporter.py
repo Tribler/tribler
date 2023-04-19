@@ -208,7 +208,6 @@ def test_send_defaults(sentry_reporter):
                 'comments': None,
                 OS_ENVIRON: {},
                 'sysinfo': {},
-                'events': {},
             },
         },
         'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
@@ -231,7 +230,6 @@ def test_send_post_data(sentry_reporter):
                 'comments': 'comment',
                 'os.environ': {},
                 'sysinfo': {},
-                'events': {},
             },
         },
         'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, PLATFORM_DETAILS: None,
@@ -241,10 +239,11 @@ def test_send_post_data(sentry_reporter):
 
 
 def test_send_sys_info(sentry_reporter):
-    actual = sentry_reporter.send_event(event={}, sys_info={'platform': ['darwin'], PLATFORM_DETAILS: ['details'],
-                                                            OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
-                                                            'event_1': [{'type': ''}], 'request_1': [{}], 'event_2': [],
-                                                            'request_2': [], }, )
+    sys_info = {
+        'platform': ['darwin'],
+        PLATFORM_DETAILS: ['details'],
+        OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
+    }
     expected = {
         'contexts': {
             'browser': {'name': 'Tribler', 'version': None},
@@ -255,12 +254,12 @@ def test_send_sys_info(sentry_reporter):
                 'comments': None,
                 OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
                 'sysinfo': {'platform': ['darwin'], PLATFORM_DETAILS: ['details']},
-                'events': {'event_1': [{'type': ''}], 'request_1': [{}], 'event_2': [], 'request_2': []},
             },
         },
         'tags': {'machine': None, 'os': None, 'platform': 'darwin', 'platform.details': 'details',
                  'version': None},
     }
+    actual = sentry_reporter.send_event(event={}, sys_info=sys_info)
     assert actual == expected
 
 
@@ -276,7 +275,6 @@ def test_send_additional_tags(sentry_reporter):
                 'comments': None,
                 OS_ENVIRON: {},
                 'sysinfo': {},
-                'events': {},
             },
         },
         'tags': {
@@ -407,7 +405,6 @@ Press Ctrl-C to quit
                 'comments': None,
                 OS_ENVIRON: {},
                 'sysinfo': {},
-                'events': {},
             },
         },
         'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
