@@ -27,6 +27,13 @@ from tribler.gui.utilities import compose_magnetlink, connect, format_speed, tr
 from tribler.gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDownloadWidgetItem
 from tribler.gui.widgets.loading_list_item import LoadingListItem
 
+# keeping the event loop busy with a zero-timer is bound to cause trouble and highly erratic behavior of the UI.
+REFRESH_DOWNLOADS_NOW_INTERVAL_MSEC = 10  # 0.01s
+REFRESH_DOWNLOADS_INTERVAL_MSEC = 5000  # 5s
+WAITING_TIME_BEFORE_THE_TIMEOUT_MSEC = 10000  # 10s
+# the real timeout will calculate as follows:
+#   real_timeout = REFRESH_DOWNLOADS_INTERVAL_MSEC + WAITING_TIME_BEFORE_THE_TIMEOUT_MSEC
+
 button_name2filter = {
     "downloads_all_button": DOWNLOADS_FILTER_ALL,
     "downloads_downloading_button": DOWNLOADS_FILTER_DOWNLOADING,
@@ -93,8 +100,10 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
 
+        # A single-shot timer fires only once:
         self.downloads_timeout_timer.setSingleShot(True)
         self.downloads_timer.setSingleShot(True)
+
         connect(self.downloads_timer.timeout, self.load_downloads)
         connect(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
 
@@ -109,13 +118,16 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.loading_list_item = LoadingListItem(self.window().downloads_list)
         self.window().downloads_list.addTopLevelItem(self.loading_message_widget)
         self.window().downloads_list.setItemWidget(self.loading_message_widget, 2, self.loading_list_item)
-        self.schedule_downloads_timer(now=True)
 
     def schedule_downloads_timer(self, now=False):
-        self.downloads_timer.start(0 if now else 1000)
-        self.downloads_timeout_timer.start(16000)
+        interval_msec = REFRESH_DOWNLOADS_NOW_INTERVAL_MSEC if now else REFRESH_DOWNLOADS_INTERVAL_MSEC
+        self.downloads_timer.start(interval_msec)
+
+        # we also start a timer to reschedule the `downloads_timer` after timed out.
+        self.downloads_timeout_timer.start(interval_msec + WAITING_TIME_BEFORE_THE_TIMEOUT_MSEC)
 
     def on_downloads_request_timeout(self):
+        self._logger.warning("Downloads request timed out, retrying...")
         if self.rest_request:
             self.rest_request.cancel()
         self.schedule_downloads_timer()
@@ -125,11 +137,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.downloads_timeout_timer.stop()
 
     def load_downloads(self):
-        url = "downloads?get_pieces=1"
+        url_params = {'get_pieces': 1}
         if self.window().download_details_widget.currentIndex() == 3:
-            url += "&get_peers=1"
+            url_params['get_peers'] = 1
         elif self.window().download_details_widget.currentIndex() == 1:
-            url += "&get_files=1"
+            url_params['get_files'] = 1
 
         isactive = not self.isHidden()
 
@@ -139,7 +151,13 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             priority = QNetworkRequest.LowPriority if not isactive else QNetworkRequest.HighPriority
             if self.rest_request:
                 self.rest_request.cancel()
-            request_manager.get(url, self.on_received_downloads, priority=priority)
+
+            request_manager.get(
+                endpoint="downloads",
+                url_params=url_params,
+                on_success=self.on_received_downloads,
+                priority=priority,
+            )
 
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads:
