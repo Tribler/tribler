@@ -36,8 +36,30 @@ logger = logging.getLogger(__name__)
 NUM_VOTES_BARS = 8
 
 
+class TranslatedString(str):
+    """ This class is used to wrap translated strings to be able to log untranslated strings in case of errors.
+        Thanks to this class no `KeyError` exceptions are raised when a translation is missing.
+    """
+
+    def __new__(cls, translation, original_string):  # pylint: disable=unused-argument
+        return super().__new__(cls, translation)
+
+    def __init__(self, translation: str, original_string: str):  # pylint: disable=unused-argument
+        super().__init__()
+        self.original_string = original_string
+
+    def __mod__(self, other):
+        try:
+            return str.__mod__(self, other)
+        except KeyError as e:
+            msg = f'No value provided for {e} in translation "{self}", original string: "{self.original_string}"'
+            logger.warning(f'{type(e).__name__}: {msg}')
+            return self.original_string % other
+
+
 def tr(key):
-    return f"{QCoreApplication.translate('@default', key)}"
+    translated_string = QCoreApplication.translate('@default', key)
+    return TranslatedString(translated_string, original_string=key)
 
 
 VOTES_RATING_DESCRIPTIONS = (

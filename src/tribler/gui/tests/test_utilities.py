@@ -1,9 +1,11 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import unquote_plus
 
 import pytest
 
-from tribler.gui.utilities import compose_magnetlink, create_api_key, dict_item_is_any_of, format_api_key, \
+from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
+    duration_to_string, \
+    format_api_key, \
     quote_plus_unicode, set_api_key, unicode_quoter
 
 
@@ -154,3 +156,62 @@ def test_set_api_key():
     gui_settings = MagicMock()
     set_api_key(gui_settings, "abcdef")
     gui_settings.setValue.assert_called_once_with("api_key", b"abcdef")
+
+
+TRANSLATIONS = [
+    (0, '0s'),
+    (61, '1m 1s'),
+    (3800, '1h 3m'),
+    (110000, '1d 6h'),
+    (1110000, '1w 5d'),
+    (91110000, '2y 46w'),
+    (11191110000, 'Forever'),
+]
+
+
+@pytest.mark.parametrize('seconds, translation', TRANSLATIONS)
+@patch('tribler.gui.utilities.tr', new=Mock(side_effect=lambda x: x))
+def test_duration_to_string(seconds, translation):
+    # test if the duration_to_string function returns the correct translation for all possible formats
+    assert duration_to_string(seconds) == translation
+
+
+def test_correct_translation():
+    original_string = 'original %(key1)s'
+    translated_string = 'translated %(key1)s'
+    s = TranslatedString(translated_string, original_string)
+    assert s % {'key1': '123'} == 'translated 123'
+
+
+@patch('tribler.gui.utilities.logger.warning')
+def test_missed_key_in_translated_string(warning: Mock):
+    original_string = 'original %(key1)s'
+    translated_string = 'translated %(key2)s'
+    s = TranslatedString(translated_string, original_string)
+
+    # In this test, we pass the correct param 'key1' presented in the original string but missed in the translation.
+    # The KeyError is intercepted, the original string is used instead of the translation, and the error is logged
+    # as a warning.
+    assert s % {'key1': '123'} == 'original 123'
+
+    warning.assert_called_once_with('KeyError: No value provided for \'key2\' in translation "translated %(key2)s", '
+                                    'original string: "original %(key1)s"')
+
+
+@patch('tribler.gui.utilities.logger.warning')
+def test_missed_key_in_both_translated_and_original_strings(warning: Mock):
+    original_string = 'original %(key1)s'
+    translated_string = 'translated %(key2)s'
+    s = TranslatedString(translated_string, original_string)
+
+    with pytest.raises(KeyError, match=r"^'key1'$"):
+        # In this test, we pass an incorrect param 'key3' for interpolation, and also, the translation
+        # string (with param 'key2') differs from the original string (with param 'key1'). First,
+        # translated string tries to interpolate params and issues a warning that 'key2' is missed.
+        # Then, the original string tries to interpolate params and again gets a KeyError because 'key1'
+        # is also missed. This second exception is propagated because the main reason for the error is
+        # in the outside code that passes an incorrect parameter.
+        _ = s % {'key3': '123'}
+
+    warning.assert_called_once_with('KeyError: No value provided for \'key2\' in translation "translated %(key2)s", '
+                                    'original string: "original %(key1)s"')

@@ -1123,32 +1123,32 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
     <message>
         <location filename="../utilities.py" line="157"/>
         <source>%(years)iy %(weeks)iw</source>
-        <translation>%(años)iy %(semanas)iw</translation>
+        <translation>%(years)ia %(weeks)is</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="159"/>
         <source>%(weeks)iw %(days)id</source>
-        <translation>%(semanas)iw %(días)id</translation>
+        <translation>%(weeks)is %(days)id</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="161"/>
         <source>%(days)id %(hours)ih</source>
-        <translation>%(días)id %(horas)ih</translation>
+        <translation>%(days)id %(hours)ih</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="163"/>
         <source>%(hours)ih %(minutes)im</source>
-        <translation>%(horas)ih %(minutos)im</translation>
+        <translation>%(hours)ih %(minutes)im</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="165"/>
         <source>%(minutes)im %(seconds)is</source>
-        <translation>%(minutos)im %(segundos)is</translation>
+        <translation>%(minutes)im %(seconds)is</translation>
     </message>
     <message>
         <location filename="../utilities.py" line="166"/>
         <source>%(seconds)is</source>
-        <translation>%(segundos)is</translation>
+        <translation>%(seconds)is</translation>
     </message>
 </context>
 <context>
