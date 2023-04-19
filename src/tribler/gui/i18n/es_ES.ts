@@ -1148,7 +1148,7 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
     <message>
         <location filename="../utilities.py" line="166"/>
         <source>%(seconds)is</source>
-        <translation>%(segundos)is</translation>
+        <translation>%(seconds)is</translation>
     </message>
 </context>
 <context>
