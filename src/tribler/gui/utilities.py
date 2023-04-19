@@ -37,6 +37,10 @@ NUM_VOTES_BARS = 8
 
 
 class TranslatedString(str):
+    """ This class is used to wrap translated strings to be able to log untranslated strings in case of errors.
+        Thanks to this class no `KeyError` exceptions are raised when a translation is missing.
+    """
+
     def __new__(cls, translation, original_string):
         return super().__new__(cls, translation)
 
