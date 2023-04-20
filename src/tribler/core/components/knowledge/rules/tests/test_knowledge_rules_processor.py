@@ -5,7 +5,7 @@ import pytest
 
 from tribler.core import notifications
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
-from tribler.core.components.knowledge.rules.tag_rules_processor import KnowledgeRulesProcessor, \
+from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor, \
     LAST_PROCESSED_TORRENT_ID
 
 TEST_BATCH_SIZE = 100
