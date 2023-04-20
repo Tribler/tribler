@@ -1,12 +1,17 @@
-from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+import os
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+from pony.orm import db_session
 
 from tribler.core import notifications
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
-from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor, \
-    LAST_PROCESSED_TORRENT_ID
+from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import MEMORY_DB
 
 TEST_BATCH_SIZE = 100
 TEST_INTERVAL = 0.1
@@ -14,8 +19,9 @@ TEST_INTERVAL = 0.1
 
 # pylint: disable=redefined-outer-name, protected-access
 @pytest.fixture
-async def tag_rules_processor():
-    processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=MagicMock(), mds=MagicMock(),
+async def tag_rules_processor(tmp_path: Path):
+    mds = MetadataStore(db_filename=MEMORY_DB, channels_dir=tmp_path, my_key=LibNaCLSK())
+    processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=MagicMock(), mds=mds,
                                         batch_size=TEST_BATCH_SIZE,
                                         interval=TEST_INTERVAL)
     yield processor
@@ -63,43 +69,81 @@ def test_save_tags(tag_rules_processor: KnowledgeRulesProcessor):
     assert [c for c in actual_calls if c not in expected_calls] == []
 
 
+@db_session
 @patch.object(KnowledgeRulesProcessor, 'process_torrent_title', new=MagicMock(return_value=1))
-def test_process_batch_within_the_boundary(tag_rules_processor: KnowledgeRulesProcessor):
-    # test inner logic of `process_batch` in case this batch located within the boundary
-    returned_batch_size = TEST_BATCH_SIZE // 2  # let's return a half of requested items
+@patch.object(KnowledgeRulesProcessor, 'cancel_pending_task')
+def test_process_batch(mocked_cancel_pending_task: Mock, tag_rules_processor: KnowledgeRulesProcessor):
+    # test the correctness of the inner logic of process_batch.
 
-    def select(_):
-        return [SimpleNamespace(infohash=i, title=i) for i in range(returned_batch_size)]
+    # fill the db with 50 torrents
+    for _ in range(50):
+        tag_rules_processor.mds.TorrentMetadata(infohash=os.urandom(20), metadata_type=REGULAR_TORRENT)
 
-    tag_rules_processor.mds.TorrentMetadata.select = select
-    tag_rules_processor.mds.get_value = lambda *_, **__: 0  # let's start from 0 for LAST_PROCESSED_TORRENT_ID
+    tag_rules_processor.set_last_processed_torrent_id(10)  # batch should start from 11
+    tag_rules_processor.batch_size = 30  # and process 30 entities
 
-    # let's specify `max_rowid` in such a way that it is far more than end of the current batch
-    tag_rules_processor.mds.get_max_rowid = lambda: TEST_BATCH_SIZE * 10
+    # first iteration
+    assert tag_rules_processor.process_batch() == 30
+    assert tag_rules_processor.get_last_processed_torrent_id() == 40
+    assert not mocked_cancel_pending_task.called  # it should not be the last batch in the db
 
-    # assert that actually returned count of processed items is equal to `returned_batch_size`
-    assert tag_rules_processor.process_batch() == returned_batch_size
+    # second iteration
+    assert tag_rules_processor.process_batch() == 10
+    assert tag_rules_processor.get_last_processed_torrent_id() == 50
+    assert mocked_cancel_pending_task.called  # it should  be the last batch in the db
 
-    # assert that actually stored last_processed_torrent_id is equal to `TEST_BATCH_SIZE`
-    tag_rules_processor.mds.set_value.assert_called_with(LAST_PROCESSED_TORRENT_ID, str(TEST_BATCH_SIZE))
+
+@db_session
+@patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
+def test_start_no_previous_version(tag_rules_processor: KnowledgeRulesProcessor):
+    # test that if there is no previous version of the rules processor, it will be created
+    assert tag_rules_processor.get_rules_processor_version() == 0
+    assert tag_rules_processor.get_rules_processor_version() != tag_rules_processor.version
+
+    tag_rules_processor.start()
+
+    # version should be set to the current version
+    assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
+    # last processed torrent id should be set to 0
+    assert tag_rules_processor.get_last_processed_torrent_id() == 0
 
 
-@patch.object(KnowledgeRulesProcessor, 'process_torrent_title', new=MagicMock(return_value=1))
-def test_process_batch_beyond_the_boundary(tag_rules_processor: KnowledgeRulesProcessor):
-    # test inner logic of `process_batch` in case this batch located on a border
-    returned_batch_size = TEST_BATCH_SIZE // 2  # let's return a half of requested items
+@db_session
+@patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
+def test_start_previous_version(tag_rules_processor: KnowledgeRulesProcessor):
+    # test that if there is a previous version of the rules processor, it will be updated to the current
+    tag_rules_processor.set_rules_processor_version(tag_rules_processor.version - 1)
+    tag_rules_processor.set_last_processed_torrent_id(100)
 
-    # let's specify `max_rowid` in such a way that it is less than end of the current batch
-    max_rowid = returned_batch_size // 2
+    tag_rules_processor.start()
 
-    def select(_):
-        return [SimpleNamespace(infohash=i, title=i) for i in range(returned_batch_size)]
+    # version should be set to the current version
+    assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
+    # last processed torrent id should be set to 0
+    assert tag_rules_processor.get_last_processed_torrent_id() == 0
 
-    tag_rules_processor.mds.get_value = lambda *_, **__: 0  # let's start from 0 for LAST_PROCESSED_TORRENT_ID
-    tag_rules_processor.mds.TorrentMetadata.select = select
 
-    tag_rules_processor.mds.get_max_rowid = lambda: max_rowid
+@db_session
+@patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
+def test_start_current_version(tag_rules_processor: KnowledgeRulesProcessor):
+    # test that if there is a current version of the rules processor, it will process the database from
+    # the last processed torrent id
+    tag_rules_processor.set_rules_processor_version(tag_rules_processor.version)
+    tag_rules_processor.set_last_processed_torrent_id(100)
 
-    # assert that actually returned count of processed items is equal to `max_rowid`
-    assert tag_rules_processor.process_batch() == returned_batch_size
-    tag_rules_processor.mds.set_value.assert_called_with(LAST_PROCESSED_TORRENT_ID, str(max_rowid))
+    tag_rules_processor.start()
+
+    # version should be the same
+    assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
+    # last processed torrent id should be the same
+    assert tag_rules_processor.get_last_processed_torrent_id() == 100
+
+
+@db_session
+@patch.object(KnowledgeRulesProcessor, 'register_task')
+def test_start_batch_processing(mocked_register_task: Mock, tag_rules_processor: KnowledgeRulesProcessor):
+    # test that if there are torrents in the database, the batch processing will be started
+    tag_rules_processor.mds.TorrentMetadata(infohash=os.urandom(20), metadata_type=REGULAR_TORRENT)
+    tag_rules_processor.start()
+
+    assert mocked_register_task.called

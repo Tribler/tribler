@@ -23,7 +23,7 @@ RULES_PROCESSOR_VERSION = 'rules_processor_version'
 
 class KnowledgeRulesProcessor(TaskManager):
     # this value must be incremented in the case of new rules set has been applied
-    version: int = 3
+    version: int = 4
 
     def __init__(self, notifier: Notifier, db: KnowledgeDatabase, mds: MetadataStore,
                  batch_size: int = DEFAULT_BATCH_SIZE, interval: float = DEFAULT_INTERVAL):
@@ -49,7 +49,8 @@ class KnowledgeRulesProcessor(TaskManager):
         rules_processor_version = self.get_rules_processor_version()
         if rules_processor_version < self.version:
             # the database was processed by the previous version of the rules processor
-            self.set_last_processed_torrent_id(0)  # reset the last processed torrent id
+            self.logger.info('New version of rules processor is available. Starting knowledge generation from scratch.')
+            self.set_last_processed_torrent_id(0)
             self.set_rules_processor_version(self.version)
 
         max_row_id = self.mds.get_max_rowid()
@@ -58,6 +59,8 @@ class KnowledgeRulesProcessor(TaskManager):
         if not is_finished:
             self.logger.info(f'Register process_batch task with interval: {self.interval} sec')
             self.register_task(name=self.process_batch.__name__, interval=self.interval, task=self.process_batch)
+        else:
+            self.logger.info(f'Database processing is finished. Last processed torrent id: {max_row_id}')
 
     async def shutdown(self):
         await self.shutdown_task_manager()
