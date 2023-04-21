@@ -208,10 +208,9 @@ class GigaChannelManager(TaskManager):
                         channel.timestamp,
                     )
                     self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
-            except Exception:
-                self._logger.exception(
-                    "Error when tried to download a newer version of channel %s", hexlify(channel.public_key)
-                )
+            except Exception as e:
+                self._logger.exception("Error when tried to download a newer version of channel "
+                                       f"{hexlify(channel.public_key)}: {type(e).__name__}: {e}")
 
     async def remove_channel_download(self, to_remove):
         """
