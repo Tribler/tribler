@@ -18,11 +18,12 @@ DEFAULT_INTERVAL = 10
 DEFAULT_BATCH_SIZE = 1000
 
 LAST_PROCESSED_TORRENT_ID = 'last_processed_torrent_id'
+RULES_PROCESSOR_VERSION = 'rules_processor_version'
 
 
 class KnowledgeRulesProcessor(TaskManager):
     # this value must be incremented in the case of new rules set has been applied
-    version: int = 2
+    version: int = 4
 
     def __init__(self, notifier: Notifier, db: KnowledgeDatabase, mds: MetadataStore,
                  batch_size: int = DEFAULT_BATCH_SIZE, interval: float = DEFAULT_INTERVAL):
@@ -45,14 +46,21 @@ class KnowledgeRulesProcessor(TaskManager):
     def start(self):
         self.logger.info('Start')
 
+        rules_processor_version = self.get_rules_processor_version()
+        if rules_processor_version < self.version:
+            # the database was processed by the previous version of the rules processor
+            self.logger.info('New version of rules processor is available. Starting knowledge generation from scratch.')
+            self.set_last_processed_torrent_id(0)
+            self.set_rules_processor_version(self.version)
+
         max_row_id = self.mds.get_max_rowid()
         is_finished = self.get_last_processed_torrent_id() >= max_row_id
 
         if not is_finished:
             self.logger.info(f'Register process_batch task with interval: {self.interval} sec')
-            self.register_task(name=self.process_batch.__name__,
-                               interval=self.interval,
-                               task=self.process_batch)
+            self.register_task(name=self.process_batch.__name__, interval=self.interval, task=self.process_batch)
+        else:
+            self.logger.info(f'Database processing is finished. Last processed torrent id: {max_row_id}')
 
     async def shutdown(self):
         await self.shutdown_task_manager()
@@ -77,7 +85,7 @@ class KnowledgeRulesProcessor(TaskManager):
             torrent.tag_processor_version = self.version
             processed += 1
 
-        self.mds.set_value(LAST_PROCESSED_TORRENT_ID, str(end))
+        self.set_last_processed_torrent_id(end)
         self.logger.info(f'Processed: {processed} titles. Added {added} tags.')
 
         is_finished = end >= max_row_id
@@ -108,3 +116,12 @@ class KnowledgeRulesProcessor(TaskManager):
 
     def get_last_processed_torrent_id(self) -> int:
         return int(self.mds.get_value(LAST_PROCESSED_TORRENT_ID, default='0'))
+
+    def set_last_processed_torrent_id(self, value: int):
+        self.mds.set_value(LAST_PROCESSED_TORRENT_ID, str(value))
+
+    def get_rules_processor_version(self) -> int:
+        return int(self.mds.get_value(RULES_PROCESSOR_VERSION, default='0'))
+
+    def set_rules_processor_version(self, version: int):
+        self.mds.set_value(RULES_PROCESSOR_VERSION, str(version))
