@@ -1,4 +1,13 @@
+import logging
+
 import pytest
+
+
+def pytest_configure(config):  # pylint: disable=unused-argument
+    # Disable logging from faker for all tests
+    logging.getLogger('faker.factory').propagate = False
+    # Disable logging from PyQt5.uic for all tests
+    logging.getLogger('PyQt5.uic').propagate = False
 
 
 def pytest_addoption(parser):
