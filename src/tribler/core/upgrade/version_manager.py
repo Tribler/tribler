@@ -187,6 +187,9 @@ class TriblerVersion:
         self.logger.info(f"Rename state directory for version {self.version_str} to {dirname}")
         return self.directory.rename(self.root_state_dir / dirname)
 
+    def is_ancient(self, last_supported_version: str):
+        return self.version < LooseVersion(last_supported_version)
+
 
 class VersionHistory:
     """
@@ -229,11 +232,11 @@ class VersionHistory:
         self.logger.info(f"Current Tribler version is {code_version.version_str}")
 
         if not last_run_version:
-            self.logger.info(f"No previous version found")
+            self.logger.info("No previous version found")
         elif last_run_version.version_str == code_version.version_str:
             # Previously we started the same version, nothing to upgrade
             code_version = last_run_version
-            self.logger.info(f"The previously started version is the same as the current one")
+            self.logger.info("The previously started version is the same as the current one")
         elif last_run_version.major_minor == code_version.major_minor:
             # Previously we started version from the same directory and can continue use this directory
             self.logger.info(f"The previous version {last_run_version.version_str} "

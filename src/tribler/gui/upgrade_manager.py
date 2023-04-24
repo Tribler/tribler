@@ -5,7 +5,7 @@ import webbrowser
 from typing import List, Optional, TYPE_CHECKING
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.config.tribler_config import TriblerConfig
@@ -27,6 +27,7 @@ class StateDirUpgradeWorker(QObject):
 
     def __init__(self, version_history: VersionHistory):
         super().__init__()
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.version_history = version_history
         self._upgrade_interrupted = False
         connect(self.stop_upgrade, self._stop_upgrade)
@@ -42,21 +43,22 @@ class StateDirUpgradeWorker(QObject):
 
     def run(self):
         try:
+            self.logger.info('Run')
             self.upgrade_state_dir(
                 self.version_history,
                 update_status_callback=self._update_status_callback,
                 interrupt_upgrade_event=self.upgrade_interrupted,
             )
         except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception(exc)
             self.finished.emit(exc)
         else:
+            self.logger.info('Finished')
             self.finished.emit(None)
 
-    @staticmethod
-    def upgrade_state_dir(version_history: VersionHistory,
-                          update_status_callback=None,
+    def upgrade_state_dir(self, version_history: VersionHistory, update_status_callback=None,
                           interrupt_upgrade_event=None):
-        logging.info('Upgrade state dir')
+        self.logger.info(f'Upgrade state dir for {version_history}')
         # Before any upgrade, prepare a separate state directory for the update version so it does not
         # affect the older version state directory. This allows for safe rollback.
         version_history.fork_state_directory_if_necessary()
@@ -88,11 +90,12 @@ class UpgradeManager(QObject):
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
 
-    def __init__(self, version_history: VersionHistory):
+    def __init__(self, version_history: VersionHistory, last_supported_version: str = '7.5'):
         QObject.__init__(self, None)
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.last_supported_version = last_supported_version
         self.version_history = version_history
         self.new_version_dialog_postponed: bool = False
         self.dialog: Optional[ConfirmationDialog] = None
@@ -130,25 +133,27 @@ class UpgradeManager(QObject):
         connect(self.dialog.button_clicked, on_button_clicked)
         self.dialog.show()
 
-    def _show_question_box(self, title, body, additional_text, default_button=None):
+    @staticmethod
+    def _show_message_box(title, body, icon, standard_buttons, default_button, additional_text=''):
         message_box = QMessageBox()
-        message_box.setIcon(QMessageBox.Question)
+        message_box.setIcon(icon)
         message_box.setWindowTitle(title)
         message_box.setText(body)
         message_box.setInformativeText(additional_text)
-        message_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
-        if default_button:
-            message_box.setDefaultButton(default_button)
+        message_box.setStandardButtons(standard_buttons)
+        message_box.setDefaultButton(default_button)
         return message_box.exec_()
 
     def should_cleanup_old_versions(self) -> List[TriblerVersion]:
-        self._logger.info('Getting old versions...')
+        self._logger.info('Should cleanup old versions')
 
         if self.version_history.last_run_version == self.version_history.code_version:
+            self._logger.info('Last run version is the same as the current version. Exit cleanup procedure.')
             return []
 
         disposable_versions = self.version_history.get_disposable_versions(skip_versions=2)
         if not disposable_versions:
+            self._logger.info('No disposable versions. Exit cleanup procedure.')
             return []
 
         storage_info = ""
@@ -157,9 +162,9 @@ class UpgradeManager(QObject):
             state_size = version.calc_state_size()
             claimable_storage += state_size
             storage_info += f"{version.version_str} \t {format_size(state_size)}\n"
-
+        self._logger.info(f'Storage info: {storage_info}')
         # Show a question to the user asking if the user wants to remove the old data.
-        title = "Delete state directories for old versions?"
+        title = tr("Delete state directories for old versions?")
         message_body = tr(
             "Press 'Yes' to remove state directories for older versions of Tribler "
             "and reclaim %s of storage space. "
@@ -169,13 +174,37 @@ class UpgradeManager(QObject):
             "You will be able to remove those directories from the Settings->Data page later."
         ) % format_size(claimable_storage)
 
-        user_choice = self._show_question_box(title, message_body, storage_info, default_button=QMessageBox.Yes)
+        user_choice = self._show_message_box(
+            title,
+            message_body,
+            additional_text=storage_info,
+            icon=QMessageBox.Question,
+            standard_buttons=QMessageBox.No | QMessageBox.Yes,
+            default_button=QMessageBox.Yes
+        )
         if user_choice == QMessageBox.Yes:
+            self._logger.info('User decided to delete old versions. Start cleanup procedure.')
             return disposable_versions
         return []
 
     def start(self):
         self._logger.info('Start upgrade process')
+        last_version = self.version_history.last_run_version
+        if last_version and last_version.is_ancient(self.last_supported_version):
+            self._logger.info('Ancient version detected. Quitting Tribler.')
+            self._show_message_box(
+                tr("Ancient version detected"),
+                body=tr("You are running an old version of Tribler. "
+                        "It is not possible to upgrade from this version to the most recent one."
+                        "Please do upgrade incrementally (download Tribler 7.10, upgrade, "
+                        "then download the most recent one, upgrade)."),
+                icon=QMessageBox.Warning,
+                standard_buttons=QMessageBox.Yes,
+                default_button=QMessageBox.Yes
+            )
+            QApplication.quit()
+            return
+
         versions_to_delete = self.should_cleanup_old_versions()
         if versions_to_delete:
             for version in versions_to_delete:
