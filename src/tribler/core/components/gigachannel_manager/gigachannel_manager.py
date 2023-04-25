@@ -201,8 +201,8 @@ class GigaChannelManager(TaskManager):
                     self.download_channel(channel)
                     continue
 
-                status = self.download_manager.get_download(infohash).get_state().get_status()
-                if status == DownloadStatus.SEEDING:
+                channel_download = self.download_manager.get_download(infohash)
+                if channel_download and channel_download.get_state().get_status() == DownloadStatus.SEEDING:
                     self._logger.info(
                         "Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
                         channel.dirname,
