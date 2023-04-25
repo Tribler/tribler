@@ -129,7 +129,7 @@ class ErrorHandler:
         self.tribler_window.delete_tray_icon()
 
         # Stop the download loop
-        self.tribler_window.downloads_page.stop_loading_downloads()
+        self.tribler_window.downloads_page.stop_refreshing_downloads()
 
         # Add info about whether we are stopping Tribler or not
         self.tribler_window.core_manager.stop(quit_app_on_core_finished=False)

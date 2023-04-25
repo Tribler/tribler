@@ -487,7 +487,7 @@ class TriblerWindow(QMainWindow):
             # So, we quit the GUI separately here.
             self.app_manager.quit_application()
 
-        self.downloads_page.stop_loading_downloads()
+        self.downloads_page.stop_refreshing_downloads()
         self.core_manager.stop(quit_app_on_core_finished=False)
         close_dialog = ConfirmationDialog(
             self.window(),
@@ -1109,7 +1109,7 @@ class TriblerWindow(QMainWindow):
             self.app_manager.quit_application()
 
         self.core_manager.stop()
-        self.downloads_page.stop_loading_downloads()
+        self.downloads_page.stop_refreshing_downloads()
         request_manager.clear()
 
         # Stop the token balance timer

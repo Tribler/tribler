@@ -61,11 +61,13 @@ class DownloadWidgetItem(QTreeWidgetItem):
     def __init__(self):
         QTreeWidgetItem.__init__(self)
         self.download_info: Optional[Dict] = None
+        self.infohash: Optional[str] = None
         self._logger = logging.getLogger('TriblerGUI')
         self.bar_container, self.progress_slider = create_progress_bar_widget()
 
     def update_with_download(self, download: Dict):
         self.download_info = download
+        self.infohash = download["infohash"]
         self.update_item()
 
     def get_status(self) -> DownloadStatus:

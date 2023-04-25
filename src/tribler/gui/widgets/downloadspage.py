@@ -1,13 +1,13 @@
 import logging
 import os
-import time
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
+from tribler.core.sentry_reporter.sentry_tools import get_first_item
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
@@ -24,15 +24,13 @@ from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import compose_magnetlink, connect, format_speed, tr
+from tribler.gui.widgets.downloadsdetailstabwidget import DownloadDetailsTabs
 from tribler.gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDownloadWidgetItem
 from tribler.gui.widgets.loading_list_item import LoadingListItem
 
-# keeping the event loop busy with a zero-timer is bound to cause trouble and highly erratic behavior of the UI.
-REFRESH_DOWNLOADS_NOW_INTERVAL_MSEC = 10  # 0.01s
-REFRESH_DOWNLOADS_INTERVAL_MSEC = 5000  # 5s
-WAITING_TIME_BEFORE_THE_TIMEOUT_MSEC = 10000  # 10s
-# the real timeout will calculate as follows:
-#   real_timeout = REFRESH_DOWNLOADS_INTERVAL_MSEC + WAITING_TIME_BEFORE_THE_TIMEOUT_MSEC
+REFRESH_DOWNLOADS_SOON_INTERVAL_MSEC = 10  # 0.01s
+REFRESH_DOWNLOADS_UI_CHANGE_INTERVAL_MSEC = 2000  # 2s
+REFRESH_DOWNLOADS_BACKGROUND_INTERVAL_MSEC = 5000  # 5s
 
 button_name2filter = {
     "downloads_all_button": DOWNLOADS_FILTER_ALL,
@@ -54,31 +52,31 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     received_downloads = pyqtSignal(object)
 
     def __init__(self):
-        QWidget.__init__(self)
+        super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.export_dir = None
         self.filter = DOWNLOADS_FILTER_ALL
         self.download_widgets = {}  # key: infohash, value: QTreeWidgetItem
         self.downloads = None
-        self.downloads_timer = QTimer()
-        self.downloads_timeout_timer = QTimer()
+        self.background_refresh_downloads_timer = QTimer()
         self.downloads_last_update = 0
-        self.selected_items = []
+        self.selected_items: List[DownloadWidgetItem] = []
         self.dialog = None
         self.loading_message_widget: Optional[LoadingDownloadWidgetItem] = None
         self.loading_list_item: Optional[LoadingListItem] = None
         self.total_download = 0
         self.total_upload = 0
 
-        self.rest_request = None
-
     def showEvent(self, QShowEvent):
         """
         When the downloads tab is clicked, we want to update the downloads list immediately.
         """
         super().showEvent(QShowEvent)
-        self.stop_loading_downloads()
-        self.schedule_downloads_timer(True)
+        self.schedule_downloads_refresh(REFRESH_DOWNLOADS_SOON_INTERVAL_MSEC)
+
+    def hideEvent(self, QHideEvent):
+        super().hideEvent(QHideEvent)
+        self.stop_refreshing_downloads()
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
@@ -88,7 +86,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().stop_download_button.clicked, self.on_stop_download_clicked)
         connect(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
 
-        connect(self.window().downloads_list.itemSelectionChanged, self.update_downloads)
+        connect(self.window().downloads_list.itemSelectionChanged, self.on_selection_change)
 
         connect(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
 
@@ -100,12 +98,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
         self.window().downloads_list.header().resizeSection(12, 146)
 
-        # A single-shot timer fires only once:
-        self.downloads_timeout_timer.setSingleShot(True)
-        self.downloads_timer.setSingleShot(True)
-
-        connect(self.downloads_timer.timeout, self.load_downloads)
-        connect(self.downloads_timeout_timer.timeout, self.on_downloads_request_timeout)
+        self.background_refresh_downloads_timer.setSingleShot(True)
+        connect(self.background_refresh_downloads_timer.timeout, self.on_background_refresh_downloads_timer)
 
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
@@ -119,45 +113,34 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().downloads_list.addTopLevelItem(self.loading_message_widget)
         self.window().downloads_list.setItemWidget(self.loading_message_widget, 2, self.loading_list_item)
 
-    def schedule_downloads_timer(self, now=False):
-        interval_msec = REFRESH_DOWNLOADS_NOW_INTERVAL_MSEC if now else REFRESH_DOWNLOADS_INTERVAL_MSEC
-        self.downloads_timer.start(interval_msec)
+    def schedule_downloads_refresh(self, interval_msec=REFRESH_DOWNLOADS_BACKGROUND_INTERVAL_MSEC):
+        timer = self.background_refresh_downloads_timer
+        remaining = timer.remainingTime()
+        if timer.isActive():
+            interval_msec = min(remaining, interval_msec)
+        timer.start(interval_msec)
 
-        # we also start a timer to reschedule the `downloads_timer` after timed out.
-        self.downloads_timeout_timer.start(interval_msec + WAITING_TIME_BEFORE_THE_TIMEOUT_MSEC)
+    def on_background_refresh_downloads_timer(self):
+        self.refresh_downloads()
+        self.schedule_downloads_refresh()
 
-    def on_downloads_request_timeout(self):
-        self._logger.warning("Downloads request timed out, retrying...")
-        if self.rest_request:
-            self.rest_request.cancel()
-        self.schedule_downloads_timer()
+    def stop_refreshing_downloads(self):
+        self.background_refresh_downloads_timer.stop()
 
-    def stop_loading_downloads(self):
-        self.downloads_timer.stop()
-        self.downloads_timeout_timer.stop()
+    def refresh_downloads(self):
+        index = self.window().download_details_widget.currentIndex()
 
-    def load_downloads(self):
         url_params = {'get_pieces': 1}
-        if self.window().download_details_widget.currentIndex() == 3:
+        if index == DownloadDetailsTabs.PEERS:
             url_params['get_peers'] = 1
-        elif self.window().download_details_widget.currentIndex() == 1:
+        elif index == DownloadDetailsTabs.FILES:
             url_params['get_files'] = 1
 
-        isactive = not self.isHidden()
-
-        if isactive or (time.time() - self.downloads_last_update > 30):
-            # Update if the downloads page is visible or if we haven't updated for longer than 30 seconds
-            self.downloads_last_update = time.time()
-            priority = QNetworkRequest.LowPriority if not isactive else QNetworkRequest.HighPriority
-            if self.rest_request:
-                self.rest_request.cancel()
-
-            request_manager.get(
-                endpoint="downloads",
-                url_params=url_params,
-                on_success=self.on_received_downloads,
-                priority=priority,
-            )
+        request_manager.get(
+            endpoint="downloads",
+            url_params=url_params,
+            on_success=self.on_received_downloads,
+        )
 
     def on_received_downloads(self, downloads):
         if not downloads or "downloads" not in downloads:
@@ -173,7 +156,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 message = f'{loaded}/{total} checkpoints'
                 self._logger.info(f'Loading checkpoints: {message}')
                 self.loading_list_item.textlabel.setText(message)
-                self.schedule_downloads_timer()
+                self.schedule_downloads_refresh()
                 return
 
         loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)
@@ -233,11 +216,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             f"Down: {format_speed(self.total_download)}, Up: {format_speed(self.total_upload)}"
         )
         self.update_download_visibility()
-        self.schedule_downloads_timer()
-
-        # Update the top download management button if we have a row selected
-        if len(self.window().downloads_list.selectedItems()) > 0:
-            self.update_downloads()
+        self.refresh_top_panel()
 
         self.received_downloads.emit(downloads)
 
@@ -278,58 +257,66 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         recheck = {DownloadStatus.METADATA, DownloadStatus.HASHCHECKING, DownloadStatus.WAITING_FOR_HASHCHECK}
         return any(dw.get_status() not in recheck for dw in download_widgets)
 
-    def update_downloads(self):
-        selected = self.window().downloads_list.selectedItems()
-        selected_count = len(selected)
-        if selected_count == 0:
-            self.window().remove_download_button.setEnabled(False)
-            self.window().start_download_button.setEnabled(False)
-            self.window().stop_download_button.setEnabled(False)
-            self.window().download_details_widget.hide()
-            return
+    def on_selection_change(self):
+        self.selected_items = self.window().downloads_list.selectedItems()
 
-        self.selected_items = selected
-        self.window().remove_download_button.setEnabled(True)
-        self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
-        self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
-
-        if selected_count == 1:
-            self.window().download_details_widget.update_with_download(selected[0].download_info)
+        # refresh bottom detailed info panel
+        if len(self.selected_items) == 1:
+            self.window().download_details_widget.update_with_download(self.selected_items[0].download_info)
             self.window().download_details_widget.show()
         else:
             self.window().download_details_widget.hide()
 
+        self.refresh_top_panel()
+
+    def refresh_top_panel(self):
+        if len(self.selected_items) == 0:
+            self.window().remove_download_button.setEnabled(False)
+            self.window().start_download_button.setEnabled(False)
+            self.window().stop_download_button.setEnabled(False)
+            return
+
+        self.window().remove_download_button.setEnabled(True)
+        self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
+        self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
+
+
     def on_start_download_clicked(self, checked):
-        for selected_item in self.selected_items:
-            infohash = selected_item.download_info["infohash"]
-            request_manager.patch(f"downloads/{infohash}", self.on_download_resumed, data={"state": "resume"})
+        for item in self.selected_items:
+            request_manager.patch(
+                f"downloads/{item.infohash}",
+                on_success=self.on_download_resumed,
+                data={"state": "resume"}
+            )
+
+    def find_item_in_selected(self, infohash) -> Optional[DownloadWidgetItem]:
+        return next((it for it in self.selected_items if it.infohash == infohash), None)
 
     def on_download_resumed(self, json_result):
         if not json_result or 'modified' not in json_result:
             return
 
-        for selected_item in self.selected_items:
-            if selected_item.download_info["infohash"] != json_result["infohash"]:
-                continue
+        self.schedule_downloads_refresh(REFRESH_DOWNLOADS_UI_CHANGE_INTERVAL_MSEC)
 
-            selected_item.update_item()
-            self.update_downloads()
+        if item := self.find_item_in_selected(json_result["infohash"]):
+            item.update_item()
 
     def on_stop_download_clicked(self, checked):
-        for selected_item in self.selected_items:
-            infohash = selected_item.download_info["infohash"]
-            request_manager.patch(f"downloads/{infohash}", self.on_download_stopped, data={"state": "stop"})
+        for item in self.selected_items:
+            request_manager.patch(
+                f"downloads/{item.infohash}",
+                on_success=self.on_download_stopped,
+                data={"state": "stop"}
+            )
 
     def on_download_stopped(self, json_result):
         if not json_result or "modified" not in json_result:
             return
 
-        for selected_item in self.selected_items:
-            if selected_item.download_info["infohash"] != json_result["infohash"]:
-                continue
+        self.schedule_downloads_refresh(REFRESH_DOWNLOADS_UI_CHANGE_INTERVAL_MSEC)
 
-            selected_item.update_item()
-            self.update_downloads()
+        if item := self.find_item_in_selected(json_result["infohash"]):
+            item.update_item()
 
     def on_remove_download_clicked(self, checked):
         self.dialog = ConfirmationDialog(
@@ -347,46 +334,56 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_remove_download_dialog(self, action):
         if action != 2:
-            for selected_item in self.selected_items:
-                infohash = selected_item.download_info["infohash"]
+            for item in self.selected_items:
                 current_download = self.window().download_details_widget.current_download
-                if current_download and current_download.get(infohash) == infohash:
+                if current_download and current_download.get('infohash') == item.infohash:
                     self.window().download_details_widget.current_download = None
 
-                request_manager.delete(f"downloads/{infohash}", self.on_download_removed,
-                                       data={"remove_data": bool(action)})
+                request_manager.delete(
+                    f"downloads/{item.infohash}",
+                    on_success=self.on_download_removed,
+                    data={"remove_data": bool(action)}
+                )
+
         if self.dialog:
             self.dialog.close_dialog()
             self.dialog = None
 
     def on_download_removed(self, json_result):
         if json_result and "removed" in json_result:
-            self.load_downloads()
+            self.schedule_downloads_refresh(REFRESH_DOWNLOADS_SOON_INTERVAL_MSEC)
             self.window().download_details_widget.hide()
             self.window().core_manager.events_manager.node_info_updated.emit(
                 {"infohash": json_result["infohash"], "progress": None}
             )
 
     def on_force_recheck_download(self, checked):
-        for selected_item in self.selected_items:
-            infohash = selected_item.download_info["infohash"]
-            request_manager.patch(f"downloads/{infohash}", self.on_forced_recheck, data={"state": "recheck"})
+        for item in self.selected_items:
+            request_manager.patch(
+                f"downloads/{item.infohash}",
+                on_success=self.on_forced_recheck,
+                data={"state": "recheck"}
+            )
 
     def on_forced_recheck(self, result):
-        if result and "modified" in result:
-            for selected_item in self.selected_items:
-                if selected_item.download_info["infohash"] == result["infohash"]:
-                    selected_item.download_info['status'] = DownloadStatus.HASHCHECKING.name
-                    selected_item.update_item()
-                    self.update_downloads()
+        if not result or "modified" not in result:
+            return
+
+        self.schedule_downloads_refresh(REFRESH_DOWNLOADS_UI_CHANGE_INTERVAL_MSEC)
+
+        if item := self.find_item_in_selected(result["infohash"]):
+            item.update_item()
 
     def on_change_anonymity(self, result):
         pass
 
     def change_anonymity(self, hops):
-        for selected_item in self.selected_items:
-            infohash = selected_item.download_info["infohash"]
-            request_manager.patch(f"downloads/{infohash}", self.on_change_anonymity, data={"anon_hops": hops})
+        for item in self.selected_items:
+            request_manager.patch(
+                f"downloads/{item.infohash}",
+                on_success=self.on_change_anonymity,
+                data={"anon_hops": hops}
+            )
 
     def on_explore_files(self, checked):
         # ACHTUNG! To whomever might stumble upon here intending to debug the case
@@ -412,12 +409,14 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if not dest_dir:
             return
 
-        _infohash = self.selected_items[0].download_info["infohash"]
+        _infohash = self.selected_items[0].infohash
         _name = self.selected_items[0].download_info["name"]
 
-        request_manager.patch(f"downloads/{_infohash}",
-                              on_success=lambda res: self.on_files_moved(res, _name, dest_dir),
-                              data={"state": "move_storage", "dest_dir": dest_dir})
+        request_manager.patch(
+            f"downloads/{_infohash}",
+            on_success=lambda res: self.on_files_moved(res, _name, dest_dir),
+            data={"state": "move_storage", "dest_dir": dest_dir}
+        )
 
     def on_files_moved(self, response, name, dest_dir):
         if "modified" in response and response["modified"]:
@@ -450,11 +449,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             data, _ = result
             self.on_export_download_request_done(filename, data)
 
-        selected_item = self.selected_items[:1]
-        if action == 0 and selected_item:
+        item = get_first_item(self.selected_items)
+        if action == 0 and item:
             filename = self.dialog.dialog_widget.dialog_input.text()
-            request_manager.get(f"downloads/{selected_item[0].download_info['infohash']}/torrent",
-                                on_success=on_success, priority=QNetworkRequest.LowPriority, raw_response=True)
+            request_manager.get(
+                f"downloads/{item.infohash}/torrent",
+                on_success=on_success,
+                priority=QNetworkRequest.LowPriority,
+                raw_response=True
+            )
 
         self.dialog.close_dialog()
         self.dialog = None
@@ -478,14 +481,17 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def on_add_to_channel(self, checked):
         def on_add_button_pressed(channel_id):
-            for selected_item in self.selected_items:
-                infohash = selected_item.download_info["infohash"]
-                name = selected_item.download_info["name"]
-                request_manager.put(f"channels/mychannel/{channel_id}/torrents",
-                                    on_success=lambda _: self.window().tray_show_message(
-                                        tr("Channel update"), tr("Torrent(s) added to your channel")
-                                    ),
-                                    data={"uri": compose_magnetlink(infohash, name=name)})
+            for item in self.selected_items:
+                infohash = item.infohash
+                name = item.download_info["name"]
+                request_manager.put(
+                    f"channels/mychannel/{channel_id}/torrents",
+                    on_success=lambda _: self.window().tray_show_message(
+                        tr("Channel update"),
+                        tr("Torrent(s) added to your channel")
+                    ),
+                    data={"uri": compose_magnetlink(infohash, name=name)}
+                )
 
         self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text=tr("Add torrent(s)"))
 
