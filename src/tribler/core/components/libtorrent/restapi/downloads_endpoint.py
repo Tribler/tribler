@@ -517,8 +517,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 
-        if parameters.get('state'):
-            state = parameters['state']
+        if state := parameters.get('state'):
             if state == "resume":
                 download.resume()
             elif state == "stop":

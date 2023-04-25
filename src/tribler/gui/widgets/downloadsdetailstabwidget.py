@@ -1,4 +1,6 @@
+from enum import IntEnum
 from pathlib import PurePosixPath
+from typing import Dict, Optional
 
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
@@ -13,6 +15,13 @@ INCLUDED_FILES_CHANGE_DELAY = 1000  # milliseconds
 # Disabled, because drawing progress bars with setItemWidget is horribly slow on some systems.
 # We must use delegate-based drawing instead
 PROGRESS_BAR_DRAW_LIMIT = 0  # Don't draw progress bars for files in torrents that have more than this many files
+
+
+class DownloadDetailsTabs(IntEnum):
+    DETAILS = 0
+    FILES = 1
+    TRACKERS = 2
+    PEERS = 3
 
 
 def convert_to_files_tree_format(download_info):
@@ -45,7 +54,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
 
     def __init__(self, parent):
         QTabWidget.__init__(self, parent)
-        self.current_download = None
+        self.current_download: Optional[Dict] = None
         self.selected_files_info = []
 
         # This timer is used to apply files selection changes in batches, to avoid multiple requests to the Core
