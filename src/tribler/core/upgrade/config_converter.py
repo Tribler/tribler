@@ -9,6 +9,7 @@ def convert_config_to_tribler76(state_dir):
     """
     Convert the download config files from Tribler 7.5 to 7.6 format.
     """
+    logger.info('Upgrade config to 7.6')
     config = ConfigObj(infile=(str(state_dir / 'triblerd.conf')), default_encoding='utf-8')
     if 'http_api' in config:
         logger.info('Convert config')

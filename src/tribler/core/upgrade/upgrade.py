@@ -127,10 +127,12 @@ class TriblerUpgrader:
         return removed_files, left_files
 
     def upgrade_tags_to_knowledge(self):
+        self._logger.info('Upgrade tags to knowledge')
         migration = MigrationTagsToKnowledge(self.state_dir, self.secondary_key)
         migration.run()
 
     def upgrade_pony_db_14to15(self):
+        self._logger.info('Upgrade Pony DB from version 14 to version 15')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
 
         mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
@@ -141,6 +143,7 @@ class TriblerUpgrader:
             mds.shutdown()
 
     def upgrade_pony_db_13to14(self):
+        self._logger.info('Upgrade Pony DB from version 13 to version 14')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         tagdb_path = self.state_dir / STATEDIR_DB_DIR / 'tags.db'
 
@@ -160,6 +163,7 @@ class TriblerUpgrader:
         Upgrade GigaChannel DB from version 12 (7.9.x) to version 13 (7.11.x).
         Version 12 adds index for TorrentState.last_check attribute.
         """
+        self._logger.info('Upgrade Pony DB 12 to 13')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if database_path.exists():
@@ -174,6 +178,7 @@ class TriblerUpgrader:
         Version 12 adds a `json_text`, `binary_data` and `data_type` fields
         to TorrentState table if it already does not exist.
         """
+        self._logger.info('Upgrade Pony DB 11 to 12')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
@@ -189,10 +194,12 @@ class TriblerUpgrader:
         Version 11 adds a `self_checked` field to TorrentState table if it
         already does not exist.
         """
+        self._logger.info('Upgrade Pony DB 10 to 11')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists():
             return
+        # code of the migration
         mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
@@ -204,6 +211,7 @@ class TriblerUpgrader:
         Specifically, this upgrade wipes all transactions and addresses an issue where payouts with the wrong amount
         were made. Also see https://github.com/Tribler/tribler/issues/5789.
         """
+        self._logger.info('Upgrade bandwidth accounting DB 8 to 9')
         to_version = 9
 
         database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
@@ -367,6 +375,7 @@ class TriblerUpgrader:
         Upgrade GigaChannel DB from version 8 (7.5.x) to version 10 (7.6.x).
         This will recreate the database anew, which can take quite some time.
         """
+        self._logger.info('Upgrading GigaChannel DB from version 8 to 10')
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         if not database_path.exists() or get_db_version(database_path) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do

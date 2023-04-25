@@ -72,14 +72,14 @@ class TriblerVersion:
     should_recreate_directory: bool
     deleted: bool
 
-    def __init__(self, root_state_dir: Path, version_str: str, files_to_copy: List[str],
+    def __init__(self, root_state_dir: Path, version_str: str, files_to_copy: List[str] = None,
                  last_launched_at: Optional[float] = None):
         if last_launched_at is None:
             last_launched_at = time.time()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.version_str = version_str
-        self.version_tuple = tuple(LooseVersion(version_str).version)
-        self.major_minor = self.version_tuple[:2]
+        self.version = LooseVersion(version_str)
+        self.major_minor = tuple(self.version.version[:2])
         self.last_launched_at = last_launched_at
         self.root_state_dir = root_state_dir
         self.directory = self.get_directory()
@@ -90,7 +90,7 @@ class TriblerVersion:
         self.should_be_copied = False
         self.should_recreate_directory = False
         self.deleted = False
-        self.files_to_copy = files_to_copy
+        self.files_to_copy = files_to_copy or []
 
     def __repr__(self):
         return f'<{self.__class__.__name__}{{{self.version_str}}}>'
@@ -187,6 +187,9 @@ class TriblerVersion:
         self.logger.info(f"Rename state directory for version {self.version_str} to {dirname}")
         return self.directory.rename(self.root_state_dir / dirname)
 
+    def is_ancient(self, last_supported_version: str):
+        return self.version < LooseVersion(last_supported_version)
+
 
 class VersionHistory:
     """
@@ -201,7 +204,7 @@ class VersionHistory:
     versions_by_number: List[TriblerVersion]
     versions_by_time: List[TriblerVersion]
     last_run_version: Optional[TriblerVersion]
-    code_version: TriblerVersion
+    code_version: TriblerVersion  # current Tribler's version
 
     # pylint: disable=too-many-branches
     def __init__(self, root_state_dir: Path, code_version_id: Optional[str] = None):
@@ -226,15 +229,14 @@ class VersionHistory:
                 versions_by_time[i].prev_version_by_time = versions_by_time[i + 1]
 
         code_version = TriblerVersion(root_state_dir, code_version_id, self.files_to_copy)
+        self.logger.info(f"Current Tribler version is {code_version.version_str}")
 
         if not last_run_version:
-            # No previous versions found
-            self.logger.info(f"No previous version found, current Tribler version is {code_version.version_str}")
+            self.logger.info("No previous version found")
         elif last_run_version.version_str == code_version.version_str:
             # Previously we started the same version, nothing to upgrade
             code_version = last_run_version
-            self.logger.info(
-                f"The previously started version is the same as the current one: {code_version.version_str}")
+            self.logger.info("The previously started version is the same as the current one")
         elif last_run_version.major_minor == code_version.major_minor:
             # Previously we started version from the same directory and can continue use this directory
             self.logger.info(f"The previous version {last_run_version.version_str} "
@@ -333,9 +335,9 @@ class VersionHistory:
 
     def fork_state_directory_if_necessary(self) -> Optional[TriblerVersion]:
         """Returns version string from which the state directory was forked"""
-        self.logger.info('Fork state directory')
         code_version = self.code_version
         if code_version.should_recreate_directory:
+            self.logger.info('State directory should be recreated')
             code_version.rename_directory()
 
         if code_version.should_be_copied:
@@ -344,6 +346,7 @@ class VersionHistory:
             if prev_version:  # should always be True here
                 code_version.copy_state_from(prev_version)
                 return prev_version
+        self.logger.info('State directory should not be copied')
         return None
 
     def get_installed_versions(self, with_code_version=True) -> List[TriblerVersion]:
