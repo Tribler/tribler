@@ -65,7 +65,7 @@ class KnowledgeRulesProcessor(TaskManager):
     async def shutdown(self):
         await self.shutdown_task_manager()
 
-    @db_session
+    @db_session(serializable=True)
     def process_batch(self) -> int:
         def query(_start, _end):
             return lambda t: _start < t.rowid and t.rowid <= _end and \
