@@ -247,8 +247,7 @@ async def test_check_channel_updates_for_different_states(gigachannel_manager, m
         def mock_get_metainfo(infohash):
             return MagicMock() if infohash == channel_with_metainfo.infohash else None
 
-        gigachannel_manager.download_manager.metainfo_requests = MagicMock()
-        gigachannel_manager.download_manager.metainfo_requests.get = mock_get_metainfo
+        gigachannel_manager.download_manager.metainfo_requests = MagicMock(get=mock_get_metainfo)
 
         # Setup 2: Only one specific channel torrent is already downloaded.
         def mock_download_exists(infohash):
@@ -265,12 +264,8 @@ async def test_check_channel_updates_for_different_states(gigachannel_manager, m
             if infohash != already_downloaded_channel.infohash:
                 return None
 
-            seeding_state = MagicMock()
-            seeding_state.get_status = lambda: DownloadStatus.SEEDING
-
-            mock_download = MagicMock()
-            mock_download.get_state = lambda: seeding_state
-            return mock_download
+            seeding_state = MagicMock(get_status=lambda: DownloadStatus.SEEDING)
+            return MagicMock(get_state=lambda: seeding_state)
 
         gigachannel_manager.download_manager.get_download = mock_get_download
 
