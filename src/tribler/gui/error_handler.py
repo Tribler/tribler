@@ -103,6 +103,7 @@ class ErrorHandler:
             self._stop_tribler(error_text)
 
         SentryScrubber.remove_breadcrumbs(reported_error.event)
+        gui_sentry_reporter.additional_information.update(reported_error.additional_information)
 
         additional_tags = {
             'source': 'core',

@@ -7,7 +7,7 @@ from socket import gaierror
 from traceback import print_exception
 from typing import Callable, Optional
 
-from tribler.core.components.component import ComponentStartupException
+from tribler.core.components.exceptions import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.utilities.process_manager import get_global_process_manager
@@ -110,7 +110,10 @@ class CoreExceptionHandler:
                 long_text=long_text,
                 context=str(context),
                 event=self.sentry_reporter.event_from_exception(exception) or {},
-                should_stop=should_stop
+                should_stop=should_stop,
+                # `additional_information` should be converted to dict
+                # see: https://github.com/python/cpython/pull/32056
+                additional_information=dict(self.sentry_reporter.additional_information)
             )
             self.logger.error(f"Unhandled exception occurred! {reported_error}\n{reported_error.long_text}")
             if process_manager:
