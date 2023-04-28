@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 import pytest
 
 from tribler.gui.network.request_manager import RequestManager
@@ -42,3 +44,13 @@ def test_get_message_from_error_any_dict(request_manager: RequestManager):
         }
     )
     assert message == '{"key": "value"}'
+
+
+@patch('tribler.gui.network.request_manager.QBuffer', Mock())
+@patch.object(RequestManager, 'sendCustomRequest', Mock())
+def test_request_id(request_manager: RequestManager):
+    request = request_manager.get('endpoint')
+    assert request.id == 1
+
+    request = request_manager.delete('endpoint')
+    assert request.id == 2

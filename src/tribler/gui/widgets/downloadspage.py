@@ -20,6 +20,7 @@ from tribler.gui.defs import (
     DOWNLOADS_FILTER_DOWNLOADING,
     DOWNLOADS_FILTER_INACTIVE, )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
+from tribler.gui.network.request import REQUEST_ID
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -66,6 +67,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.loading_list_item: Optional[LoadingListItem] = None
         self.total_download = 0
         self.total_upload = 0
+
+        # Used to keep track of the last processed request with a purpose of ignoring old requests
+        self.last_processed_request_id = 0
 
     def showEvent(self, QShowEvent):
         """
@@ -142,11 +146,19 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             on_success=self.on_received_downloads,
         )
 
-    def on_received_downloads(self, downloads):
-        if not downloads or "downloads" not in downloads:
+    def on_received_downloads(self, result):
+        if not result or "downloads" not in result:
             return  # This might happen when closing Tribler
+        request_id = result[REQUEST_ID]
+        if self.last_processed_request_id >= request_id:
+            # This is an old request, ignore it.
+            # It could happen because some of requests processed a bit longer than others
+            msg = f'Ignoring old request {request_id} (last processed request id: {self.last_processed_request_id})'
+            self._logger.warning(msg)
+            return
+        self.last_processed_request_id = request_id
 
-        checkpoints = downloads.get('checkpoints', {})
+        checkpoints = result.get('checkpoints', {})
         if checkpoints and self.loading_message_widget:
             # If not all checkpoints are loaded, display the number of the loaded checkpoints
             total = checkpoints['total']
@@ -164,7 +176,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().downloads_list.takeTopLevelItem(loading_widget_index)
             self.window().downloads_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        self.downloads = downloads
+        self.downloads = result
 
         self.total_download = 0
         self.total_upload = 0
@@ -172,7 +184,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         download_infohashes = set()
 
         items = []
-        for download in downloads["downloads"]:
+        for download in result["downloads"]:
             # Update download progress information for torrents in the Channels GUI.
             # We skip updating progress information for ChannelTorrents because otherwise it interferes
             # with channel processing progress updates
@@ -218,7 +230,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.update_download_visibility()
         self.refresh_top_panel()
 
-        self.received_downloads.emit(downloads)
+        self.received_downloads.emit(result)
 
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
@@ -279,7 +291,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().remove_download_button.setEnabled(True)
         self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
         self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
-
 
     def on_start_download_clicked(self, checked):
         for item in self.selected_items:

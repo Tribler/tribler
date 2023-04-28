@@ -34,9 +34,10 @@ class RequestManager(QNetworkAccessManager):
         self.protocol = DEFAULT_API_PROTOCOL
         self.host = DEFAULT_API_HOST
         self.port = DEFAULT_API_PORT
-        self.key = b""
+        self.key = ''
         self.limit = limit
         self.timeout_interval = timeout_interval
+        self.last_request_id = 0
 
     def get(self,
             endpoint: str,
@@ -114,6 +115,10 @@ class RequestManager(QNetworkAccessManager):
         return request
 
     def add(self, request: Request):
+        # Set last request id
+        self.last_request_id += 1
+        request.id = self.last_request_id
+
         if len(self.active_requests) > self.limit:
             self._drop_timed_out_requests()
 

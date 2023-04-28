@@ -11,6 +11,8 @@ from PyQt5.QtNetwork import QNetworkReply, QNetworkRequest
 
 from tribler.gui.utilities import connect
 
+REQUEST_ID = '_request_id'
+
 if TYPE_CHECKING:
     from tribler.gui.network.request_manager import RequestManager
 
@@ -84,6 +86,7 @@ class Request(QObject):
         self.status_code = 0
         self.status_text = "unknown"
         self.cancellable = True
+        self.id = 0
 
     def set_manager(self, manager: RequestManager):
         self.manager = manager
@@ -134,6 +137,8 @@ class Request(QObject):
 
             self.logger.debug('Create a json response')
             result = json.loads(data)
+            if isinstance(result, dict):
+                result[REQUEST_ID] = self.id
             is_error = 'error' in result
             if is_error and self.capture_errors:
                 text = self.manager.show_error(self, result)
