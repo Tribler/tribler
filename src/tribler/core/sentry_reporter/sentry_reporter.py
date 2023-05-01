@@ -217,9 +217,9 @@ class SentryReporter:
         # context
         context = event[CONTEXTS]
         reporter = context[REPORTER]
-        version = get_value(post_data, VERSION)
+        tribler_version = get_value(post_data, VERSION)
 
-        context[BROWSER] = {VERSION: version, NAME: TRIBLER}
+        context[BROWSER] = {VERSION: tribler_version, NAME: TRIBLER}
 
         stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
         reporter[STACKTRACE] = next(stacktrace_parts, [])
