@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from collections import defaultdict
 from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import Enum, auto
@@ -15,17 +16,28 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
-    extract_dict,
     get_first_item,
     get_last_item, get_value,
     parse_last_core_output, parse_os_environ,
     parse_stacktrace,
 )
 
-# fmt: off
-
+VALUE = 'value'
+TYPE = 'type'
+LAST_CORE_OUTPUT = 'last_core_output'
+LAST_PROCESSES = 'last_processes'
+PLATFORM = 'platform'
+OS = 'os'
+MACHINE = 'machine'
+COMMENTS = 'comments'
+TRIBLER = 'Tribler'
+NAME = 'name'
+VERSION = 'version'
+BROWSER = 'browser'
 PLATFORM_DETAILS = 'platform.details'
 STACKTRACE = '_stacktrace'
+STACKTRACE_EXTRA = f'{STACKTRACE}_extra'
+STACKTRACE_CONTEXT = f'{STACKTRACE}_context'
 SYSINFO = 'sysinfo'
 OS_ENVIRON = 'os.environ'
 SYS_ARGV = 'sys.argv'
@@ -38,6 +50,7 @@ REPORTER = 'reporter'
 VALUES = 'values'
 RELEASE = 'release'
 EXCEPTION = 'exception'
+ADDITIONAL_INFORMATION = 'additional_information'
 
 
 class SentryStrategy(Enum):
@@ -77,6 +90,7 @@ class SentryReporter:
         # SentryReporter.get_actual_strategy()
         self.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
         self.thread_strategy = ContextVar('context_strategy', default=None)
+        self.additional_information = defaultdict(dict)  # dict that will be added to a Sentry event
 
         self._sentry_logger_name = 'SentryReporter'
         self._logger = logging.getLogger(self._sentry_logger_name)
@@ -193,45 +207,47 @@ class SentryReporter:
 
         # tags
         tags = event[TAGS]
-        tags['version'] = get_value(post_data, 'version')
-        tags['machine'] = get_value(post_data, 'machine')
-        tags['os'] = get_value(post_data, 'os')
-        tags['platform'] = get_first_item(get_value(sys_info, 'platform'))
-        tags[f'{PLATFORM_DETAILS}'] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
+        tags[VERSION] = get_value(post_data, VERSION)
+        tags[MACHINE] = get_value(post_data, MACHINE)
+        tags[OS] = get_value(post_data, OS)
+        tags[PLATFORM] = get_first_item(get_value(sys_info, PLATFORM))
+        tags[PLATFORM_DETAILS] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
         tags.update(additional_tags)
 
         # context
         context = event[CONTEXTS]
         reporter = context[REPORTER]
-        version = get_value(post_data, 'version')
+        tribler_version = get_value(post_data, VERSION)
 
-        context['browser'] = {'version': version, 'name': 'Tribler'}
+        context[BROWSER] = {VERSION: tribler_version, NAME: TRIBLER}
 
         stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
         reporter[STACKTRACE] = next(stacktrace_parts, [])
         stacktrace_extra = next(stacktrace_parts, [])
-        reporter[f'{STACKTRACE}_extra'] = stacktrace_extra
-        reporter[f'{STACKTRACE}_context'] = next(stacktrace_parts, [])
+        reporter[STACKTRACE_EXTRA] = stacktrace_extra
+        reporter[STACKTRACE_CONTEXT] = next(stacktrace_parts, [])
 
-        reporter['comments'] = get_value(post_data, 'comments')
+        reporter[COMMENTS] = get_value(post_data, COMMENTS)
 
         reporter[OS_ENVIRON] = parse_os_environ(get_value(sys_info, OS_ENVIRON))
         delete_item(sys_info, OS_ENVIRON)
 
         reporter[SYSINFO] = sys_info
         if last_processes:
-            reporter['last_processes'] = last_processes
+            reporter[LAST_PROCESSES] = last_processes
+
+        reporter[ADDITIONAL_INFORMATION] = self.additional_information
 
         # try to retrieve an error from the last_core_output
         if last_core_output:
             # split for better representation in the web view
-            reporter['last_core_output'] = last_core_output.split('\n')
+            reporter[LAST_CORE_OUTPUT] = last_core_output.split('\n')
             if last_core_exception := parse_last_core_output(last_core_output):
                 exceptions = event.get(EXCEPTION, {})
                 gui_exception = get_last_item(exceptions.get(VALUES, []), {})
 
                 # create a core exception extracted from the last core output
-                core_exception = {'type': last_core_exception.type, 'value': last_core_exception.message}
+                core_exception = {TYPE: last_core_exception.type, VALUE: last_core_exception.message}
 
                 # remove the stacktrace field as it doesn't give any useful information for the further investigation
                 delete_item(gui_exception, 'stacktrace')

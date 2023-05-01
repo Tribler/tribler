@@ -1,16 +1,33 @@
+from copy import deepcopy
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 from tribler.core.sentry_reporter.sentry_reporter import (
-    OS_ENVIRON,
-    PLATFORM_DETAILS,
-    SentryReporter,
+    ADDITIONAL_INFORMATION, BROWSER, COMMENTS, CONTEXTS, LAST_CORE_OUTPUT, MACHINE, NAME, OS, OS_ENVIRON,
+    PLATFORM, PLATFORM_DETAILS,
+    REPORTER, STACKTRACE, STACKTRACE_CONTEXT, STACKTRACE_EXTRA, SYSINFO, SentryReporter,
     SentryStrategy,
-    this_sentry_strategy,
+    TAGS, TRIBLER, TYPE, VALUE, VERSION, this_sentry_strategy,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.utilities.patch_import import patch_import
+
+DEFAULT_EVENT = {
+    CONTEXTS: {
+        BROWSER: {NAME: TRIBLER, VERSION: None},
+        REPORTER: {
+            STACKTRACE: [],
+            STACKTRACE_CONTEXT: [],
+            STACKTRACE_EXTRA: [],
+            COMMENTS: None,
+            OS_ENVIRON: {},
+            SYSINFO: {},
+            ADDITIONAL_INFORMATION: {},
+        },
+    },
+    TAGS: {MACHINE: None, OS: None, PLATFORM: None, PLATFORM_DETAILS: None, VERSION: None},
+}
 
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -119,7 +136,7 @@ def test_get_actual_strategy(sentry_reporter):
     assert sentry_reporter.get_actual_strategy() == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
 
 
-@patch('os.environ', {})
+@patch(OS_ENVIRON, {})
 def test_get_sentry_url_not_specified():
     assert not SentryReporter.get_sentry_url()
 
@@ -129,18 +146,18 @@ def test_get_sentry_url_from_version_file():
     assert SentryReporter.get_sentry_url() == 'sentry_url'
 
 
-@patch('os.environ', {'TRIBLER_SENTRY_URL': 'env_url'})
+@patch(OS_ENVIRON, {'TRIBLER_SENTRY_URL': 'env_url'})
 def test_get_sentry_url_from_env():
     assert SentryReporter.get_sentry_url() == 'env_url'
 
 
-@patch('os.environ', {})
+@patch(OS_ENVIRON, {})
 def test_is_not_in_test_mode():
     assert SentryReporter.get_test_sentry_url() is None
     assert not SentryReporter.is_in_test_mode()
 
 
-@patch('os.environ', {'TRIBLER_TEST_SENTRY_URL': 'url'})
+@patch(OS_ENVIRON, {'TRIBLER_TEST_SENTRY_URL': 'url'})
 def test_is_in_test_mode():
     assert SentryReporter.get_test_sentry_url() == 'url'
     assert SentryReporter.is_in_test_mode()
@@ -197,96 +214,63 @@ def test_before_send_scrubber_doesnt_exists(sentry_reporter: SentryReporter):
 
 def test_send_defaults(sentry_reporter):
     assert sentry_reporter.send_event(None, None, None) is None
+    assert sentry_reporter.send_event(event={}) == DEFAULT_EVENT
 
-    assert sentry_reporter.send_event(event={}) == {
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {
-                '_stacktrace': [],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': [],
-                'comments': None,
-                OS_ENVIRON: {},
-                'sysinfo': {},
-            },
-        },
-        'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
-    }
+
+def test_send_additional_information(sentry_reporter):
+    # test that additional information is added to the event
+    sentry_reporter.additional_information = {'some': 'information'}
+
+    actual = sentry_reporter.send_event(event={})
+    expected = deepcopy(DEFAULT_EVENT)
+    expected[CONTEXTS][REPORTER][ADDITIONAL_INFORMATION] = {'some': 'information'}
+    assert actual == expected
 
 
 def test_send_post_data(sentry_reporter):
-    actual = sentry_reporter.send_event(event={'a': 'b'},
-                                        post_data={"version": '0.0.0', "machine": 'x86_64', "os": 'posix',
-                                                   "timestamp": 42, "sysinfo": '', "comments": 'comment',
-                                                   "stack": 'l1\nl2--LONG TEXT--l3\nl4', }, )
-    expected = {
-        'a': 'b',
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': '0.0.0'},
-            'reporter': {
-                '_stacktrace': ['l1', 'l2'],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': ['l3', 'l4'],
-                'comments': 'comment',
-                'os.environ': {},
-                'sysinfo': {},
-            },
-        },
-        'tags': {'machine': 'x86_64', 'os': 'posix', 'platform': None, PLATFORM_DETAILS: None,
-                 'version': '0.0.0'},
+    # test that post data is added to the event
+    event = {'a': 'b'}
+    post_data = {
+        "version": '0.0.0', "machine": 'x86_64', "os": 'posix',
+        "timestamp": 42, "sysinfo": '', "comments": 'comment',
+        "stack": 'l1\nl2--LONG TEXT--l3\nl4',
     }
+    actual = sentry_reporter.send_event(event=event, post_data=post_data)
+    expected = deepcopy(DEFAULT_EVENT)
+    expected['a'] = 'b'
+    expected[CONTEXTS][BROWSER][VERSION] = '0.0.0'
+    expected[CONTEXTS][REPORTER][STACKTRACE] = ['l1', 'l2']
+    expected[CONTEXTS][REPORTER][STACKTRACE_EXTRA] = ['l3', 'l4']
+    expected[CONTEXTS][REPORTER][COMMENTS] = 'comment'
+    expected[TAGS] = {MACHINE: 'x86_64', OS: 'posix', PLATFORM: None, PLATFORM_DETAILS: None,
+                      VERSION: '0.0.0'}
+
     assert actual == expected
 
 
 def test_send_sys_info(sentry_reporter):
+    # test that sys_info is added to the event
     sys_info = {
-        'platform': ['darwin'],
+        PLATFORM: ['darwin'],
         PLATFORM_DETAILS: ['details'],
         OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
     }
-    expected = {
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {
-                '_stacktrace': [],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': [],
-                'comments': None,
-                OS_ENVIRON: {'KEY': 'VALUE', 'KEY1': 'VALUE1'},
-                'sysinfo': {'platform': ['darwin'], PLATFORM_DETAILS: ['details']},
-            },
-        },
-        'tags': {'machine': None, 'os': None, 'platform': 'darwin', 'platform.details': 'details',
-                 'version': None},
-    }
     actual = sentry_reporter.send_event(event={}, sys_info=sys_info)
+    expected = deepcopy(DEFAULT_EVENT)
+    expected[CONTEXTS][REPORTER][OS_ENVIRON] = {'KEY': 'VALUE', 'KEY1': 'VALUE1'}
+    expected[CONTEXTS][REPORTER][SYSINFO] = {PLATFORM: ['darwin'], PLATFORM_DETAILS: ['details']}
+    expected[TAGS][PLATFORM] = 'darwin'
+    expected[TAGS]['platform.details'] = 'details'
+
     assert actual == expected
 
 
 def test_send_additional_tags(sentry_reporter):
-    actual = sentry_reporter.send_event(event={}, additional_tags={'tag_key': 'tag_value', 'numeric_tag_key': 1})
-    expected = {
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {
-                '_stacktrace': [],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': [],
-                'comments': None,
-                OS_ENVIRON: {},
-                'sysinfo': {},
-            },
-        },
-        'tags': {
-            'machine': None,
-            'os': None,
-            'platform': None,
-            'platform.details': None,
-            'version': None,
-            'tag_key': 'tag_value',
-            'numeric_tag_key': 1,
-        },
-    }
+    # test that additional tags are added to the event
+    tags = {'tag_key': 'tag_value', 'numeric_tag_key': 1}
+    actual = sentry_reporter.send_event(event={}, additional_tags=tags)
+    expected = deepcopy(DEFAULT_EVENT)
+    expected[TAGS].update(tags)
     assert actual == expected
 
 
@@ -317,8 +301,8 @@ def test_before_send(sentry_reporter):
     assert sentry_reporter._before_send({'a': 'b'}, {'exc_info': [KeyboardInterrupt]}) is None
 
     # check information has been scrubbed
-    assert sentry_reporter._before_send({'contexts': {'reporter': {'_stacktrace': ['/Users/username/']}}}, None) == {
-        'contexts': {'reporter': {'_stacktrace': ['/Users/<highlight>/']}}
+    assert sentry_reporter._before_send({CONTEXTS: {REPORTER: {STACKTRACE: ['/Users/username/']}}}, None) == {
+        CONTEXTS: {REPORTER: {STACKTRACE: ['/Users/<highlight>/']}}
     }
 
     # check release
@@ -356,14 +340,14 @@ def test_send_last_core_output(sentry_reporter):
             'values': [
                 {
                     'module': 'tribler.gui.utilities',
-                    'type': 'CreationTraceback',
-                    'value': '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
+                    TYPE: 'CreationTraceback',
+                    VALUE: '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
                     'mechanism': None
                 },
                 {
                     'module': 'tribler.gui.exceptions',
-                    'type': 'CoreCrashedError',
-                    'value': 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
+                    TYPE: 'CoreCrashedError',
+                    VALUE: 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
                     'mechanism': None,
                     'stacktrace': {
                         'frames': []
@@ -380,34 +364,22 @@ Waiting up to 2 seconds
 Press Ctrl-C to quit
     '''
     actual = sentry_reporter.send_event(event=event, last_core_output=last_core_output)
-    expected = {
-        'exception': {
-            'values': [
-                {
-                    'module': 'tribler.gui.exceptions',
-                    'type': 'CoreCrashedError',
-                    'value': 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
-                    'mechanism': None
-                },
-                {
-                    'type': 'OverflowError',
-                    'value': 'bind(): port must be 0-65535.'
-                }
-            ]
-        },
-        'contexts': {
-            'browser': {'name': 'Tribler', 'version': None},
-            'reporter': {
-                'last_core_output': last_core_output.split('\n'),
-                '_stacktrace': [],
-                '_stacktrace_context': [],
-                '_stacktrace_extra': [],
-                'comments': None,
-                OS_ENVIRON: {},
-                'sysinfo': {},
+    expected = deepcopy(DEFAULT_EVENT)
+
+    expected['exception'] = {
+        'values': [
+            {
+                'module': 'tribler.gui.exceptions',
+                TYPE: 'CoreCrashedError',
+                VALUE: 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
+                'mechanism': None
             },
-        },
-        'tags': {'machine': None, 'os': None, 'platform': None, PLATFORM_DETAILS: None, 'version': None},
+            {
+                TYPE: 'OverflowError',
+                VALUE: 'bind(): port must be 0-65535.'
+            }
+        ]
     }
+    expected[CONTEXTS][REPORTER][LAST_CORE_OUTPUT] = last_core_output.split('\n')
 
     assert actual == expected

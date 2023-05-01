@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from socket import gaierror
 from unittest.mock import MagicMock, Mock, patch
 
@@ -91,6 +92,7 @@ def test_unhandled_error_observer_only_message(exception_handler):
     assert not reported_error.event
     assert reported_error.context == '{}'
     assert reported_error.should_stop
+    assert reported_error.additional_information == {}
 
 
 def test_unhandled_error_observer_store_unreported_error(exception_handler):
@@ -104,6 +106,18 @@ def test_unhandled_error_observer_false_should_stop(exception_handler):
     context = {'message': 'Any', 'should_stop': False}
     exception_handler.unhandled_error_observer(None, context)
     assert exception_handler.unreported_error.should_stop is False
+
+
+def test_unhandled_error_observer_additional_information(exception_handler):
+    # test that additional information is passed to the `report_callback`
+    exception_handler.report_callback = MagicMock()
+    exception_handler.sentry_reporter.additional_information['a'] = 1
+    exception_handler.unhandled_error_observer(None, {})
+
+    reported_error = exception_handler.report_callback.call_args_list[-1][0][0]
+
+    assert reported_error.additional_information == {'a': 1}
+    assert asdict(reported_error)  # default dict could produce TypeError: first argument must be callable or None
 
 
 def test_unhandled_error_observer_ignored(exception_handler):
