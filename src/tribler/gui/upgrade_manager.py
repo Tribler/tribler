@@ -147,10 +147,6 @@ class UpgradeManager(QObject):
     def should_cleanup_old_versions(self) -> List[TriblerVersion]:
         self._logger.info('Should cleanup old versions')
 
-        if self.version_history.last_run_version == self.version_history.code_version:
-            self._logger.info('Last run version is the same as the current version. Exit cleanup procedure.')
-            return []
-
         disposable_versions = self.version_history.get_disposable_versions(skip_versions=2)
         if not disposable_versions:
             self._logger.info('No disposable versions. Exit cleanup procedure.')
@@ -188,6 +184,11 @@ class UpgradeManager(QObject):
         return []
 
     def start(self):
+        if self.version_history.last_run_version == self.version_history.code_version:
+            self._logger.info('Last run version is the same as the current version. Skip upgrade.')
+            self.upgrader_finished.emit()
+            return
+
         self._logger.info('Start upgrade process')
         last_version = self.version_history.last_run_version
         if last_version and last_version.is_ancient(self.last_supported_version):
