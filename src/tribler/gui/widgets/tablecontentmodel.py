@@ -460,7 +460,8 @@ class ChannelContentModel(RemoteTableModel):
 
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self.columns[num].header
+            header_text = self.columns[num].header
+            return str(header_text)  # convert TranslatedString to str as Qt can't handle str subclasses here
         if role == Qt.InitialSortOrderRole and num != self.column_position.get(Column.NAME):
             return Qt.DescendingOrder
         if role == Qt.TextAlignmentRole:
