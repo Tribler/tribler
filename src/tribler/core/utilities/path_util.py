@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import itertools
+import os
 import pathlib
 import sys
 import tempfile
@@ -36,8 +38,26 @@ class Path(type(pathlib.Path())):
 
         return self
 
-    def size(self) -> int:
-        return self.stat().st_size
+    def size(self, include_dir_sizes: bool = True) -> int:
+        """ Return the size of this file or directory (recursively).
+
+        Args:
+            include_dir_sizes: If True, return the size of files and directories, not the size of files only.
+
+        Returns: The size of this file or directory.
+        """
+        if not self.exists():
+            return 0
+
+        if self.is_file():
+            return self.stat().st_size
+
+        size = os.path.getsize(self.absolute()) if include_dir_sizes else 0  # get root dir size
+        for root, dir_names, file_names in os.walk(self):
+            names = itertools.chain(dir_names, file_names) if include_dir_sizes else file_names
+            paths = (os.path.join(root, name) for name in names)
+            size += sum(os.path.getsize(p) for p in paths if os.path.exists(p))
+        return size
 
     def startswith(self, text: str) -> bool:
         return self.match(f"{text}*")
