@@ -5,6 +5,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
 
 from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler.gui.defs import (
     DARWIN,
@@ -245,8 +246,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().settings_stacked_widget.setCurrentIndex(0)
 
     def _version_dir_checkbox(self, state_dir, enabled=True):
-        dir_size = sum(f.stat().st_size for f in state_dir.glob('**/*'))
-        text = f"{state_dir}   {format_size(dir_size)}"
+        path = Path(state_dir)
+        text = f"{state_dir}   {format_size(path.size())}"
         checkbox = QCheckBox(text)
         checkbox.setEnabled(enabled)
         return checkbox
