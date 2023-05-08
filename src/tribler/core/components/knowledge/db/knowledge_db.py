@@ -2,7 +2,7 @@ import datetime
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Callable, Iterator, List, Optional, Set
+from typing import Any, Callable, Iterator, List, Optional, Set
 
 from pony import orm
 from pony.orm import raw_sql
@@ -138,6 +138,10 @@ class KnowledgeDatabase:
             auto_generated = orm.Required(bool, default=False)
 
             orm.composite_key(statement, peer)
+
+        class Misc(db.Entity):
+            name = orm.PrimaryKey(str)
+            value = orm.Optional(str)
 
     def add_operation(self, operation: StatementOperation, signature: bytes, is_local_peer: bool = False,
                       is_auto_generated: bool = False, counter_increment: int = 1) -> bool:
@@ -441,3 +445,11 @@ class KnowledgeDatabase:
                     operations.add(operation)
 
         return operations
+
+    def get_misc(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        data = self.instance.Misc.get(name=key)
+        return data.value if data else default
+
+    def set_misc(self, key: str, value: Any):
+        key_value = get_or_create(self.instance.Misc, name=key)
+        key_value.value = str(value)
