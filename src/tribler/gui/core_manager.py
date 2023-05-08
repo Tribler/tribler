@@ -15,7 +15,7 @@ from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
-from tribler.gui.network.request_manager import request_manager
+from tribler.gui.network.request_manager import SHUTDOWN_ENDPOINT, request_manager
 from tribler.gui.utilities import connect
 
 API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core API port
@@ -229,17 +229,21 @@ class CoreManager(QObject):
             self.events_manager.shutting_down = True
 
             def shutdown_request_processed(response):
-                self._logger.info(f"Shutdown request was processed by Core. Response: {response}")
+                self._logger.info(f"{SHUTDOWN_ENDPOINT} request was processed by Core. Response: {response}")
 
             def send_shutdown_request(initial=False):
                 if initial:
-                    self._logger.info("Sending shutdown request to Tribler Core")
+                    self._logger.info(f"Sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
                 else:
-                    self._logger.warning("Re-sending shutdown request to Tribler Core")
+                    self._logger.warning(f"Re-sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
 
-                request = request_manager.put("shutdown", shutdown_request_processed,
-                                              priority=QNetworkRequest.HighPriority)
-                request.cancellable = False
+                request = request_manager.put(
+                    endpoint=SHUTDOWN_ENDPOINT,
+                    on_success=shutdown_request_processed,
+                    priority=QNetworkRequest.HighPriority
+                )
+                if request:
+                    request.cancellable = False
 
             send_shutdown_request(initial=True)
 
