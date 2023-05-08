@@ -184,7 +184,7 @@ class Download(TaskManager):
         return atp
 
     def on_add_torrent_alert(self, alert: lt.add_torrent_alert):
-        self._logger.info(f'On add torrent alert: {alert}')
+        self._safe_log(logging.INFO, 'On add torrent alert', alert)
 
         if hasattr(alert, 'error') and alert.error.value():
             self._logger.error("Failed to add torrent (%s)", self.tdef.get_name_as_unicode())
@@ -241,7 +241,7 @@ class Download(TaskManager):
     def process_alert(self, alert: lt.torrent_alert, alert_type: str):
         try:
             if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
-                self._logger.debug("Got alert: %s", alert)
+                self._safe_log(logging.DEBUG, 'Got alert', alert)
 
             for handler in self.alert_handlers.get(alert_type, []):
                 handler(alert)
@@ -250,14 +250,14 @@ class Download(TaskManager):
                 if not future.done():
                     future_setter(getter(alert) if getter else alert)
         except Exception as e:
-            self._logger.exception(f'Failed process alert: {e}')
+            self._safe_log(logging.ERROR, 'Failed process alert', alert, exc_info=True)
             raise NoCrashException from e
 
     def on_torrent_error_alert(self, alert: lt.torrent_error_alert):
-        self._logger.error(f'On torrent error alert: {alert}')
+        self._safe_log(logging.ERROR, 'On torrent error alert', alert)
 
     def on_state_changed_alert(self, alert: lt.state_changed_alert):
-        self._logger.info(f'On state changed alert: {alert}')
+        self._safe_log(logging.INFO, 'On state changed alert', alert)
 
         if not self.handle:
             return
@@ -276,7 +276,7 @@ class Download(TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
-        self._logger.debug('On save resume data alert: %s', alert)
+        self._safe_log(logging.DEBUG, 'On save resume data alert', alert)
         if self.checkpoint_disabled:
             return
 
@@ -307,12 +307,12 @@ class Download(TaskManager):
             self._logger.debug(f'Resume data has been saved to: {filename}')
 
     def on_tracker_reply_alert(self, alert: lt.tracker_reply_alert):
-        self._logger.info(f'On tracker reply alert: {alert}')
+        self._safe_log(logging.INFO, 'On tracker reply alert', alert)
 
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
     def on_tracker_error_alert(self, alert: lt.tracker_error_alert):
-        self._logger.error(f'On tracker error alert: {alert}')
+        self._safe_log(logging.ERROR, 'On torrent error alert', alert)
 
         # try-except block here is a workaround and has been added to solve
         # the issue: "UnicodeDecodeError: invalid continuation byte"
@@ -334,7 +334,7 @@ class Download(TaskManager):
             return
 
     def on_tracker_warning_alert(self, alert: lt.tracker_warning_alert):
-        self._logger.warning(f'On tracker warning alert: {alert}')
+        self._safe_log(logging.WARNING, 'On tracker warning alert', alert)
 
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
         status = 'Warning: ' + str(alert.message())
@@ -343,7 +343,7 @@ class Download(TaskManager):
 
     @check_handle()
     def on_metadata_received_alert(self, alert: lt.metadata_received_alert):
-        self._logger.info(f'On metadata received alert: {alert}')
+        self._safe_log(logging.INFO, 'On metadata received alert', alert)
 
         torrent_info = get_info_from_handle(self.handle)
         if not torrent_info:
@@ -379,7 +379,7 @@ class Download(TaskManager):
         self.checkpoint()
 
     def on_performance_alert(self, alert: lt.performance_alert):
-        self._logger.info(f'On performance alert: {alert}')
+        self._safe_log(logging.INFO, 'On performance alert', alert)
 
         if self.get_anon_mode() or self.download_manager.ltsessions is None:
             return
@@ -402,13 +402,13 @@ class Download(TaskManager):
                 self.download_manager.set_session_settings(self.download_manager.get_session(), settings)
 
     def on_torrent_removed_alert(self, alert: lt.torrent_removed_alert):
-        self._logger.info(f'On torrent remove alert: {alert}')
+        self._safe_log(logging.INFO, 'On torrent remove alert', alert)
 
         self._logger.debug("Removing %s", self.tdef.get_name())
         self.handle = None
 
     def on_torrent_checked_alert(self, alert: lt.torrent_checked_alert):
-        self._logger.info(f'On torrent checked alert: {alert}')
+        self._safe_log(logging.INFO, 'On torrent checked alert', alert)
 
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
@@ -419,7 +419,7 @@ class Download(TaskManager):
 
     @check_handle()
     def on_torrent_finished_alert(self, alert: lt.torrent_finished_alert):
-        self._logger.info(f'On torrent finished alert: {alert}')
+        self._safe_log(logging.INFO, 'On torrent finished alert', alert)
         self.update_lt_status(self.handle.status())
         self.checkpoint()
         downloaded = self.get_state().get_total_transferred(DOWNLOAD)
@@ -782,3 +782,16 @@ class Download(TaskManager):
     @check_handle([])
     def get_file_priorities(self):
         return self.handle.file_priorities()
+
+    def _safe_log(self, level: int, message: str, alert: lt.tracker_error_alert, **kwargs) -> bool:
+        """ Log a message with a tracker error alert. In case of a conversion error
+        from alert to string, only the message will be logged.
+
+        Returns: True if the alert was logged, False if only the message was logged.
+        """
+        try:
+            self._logger.log(level, f'{message}: {alert}', **kwargs)
+            return True
+        except Exception:  # pylint: disable=broad-except
+            self._logger.log(level, message, **kwargs)
+            return False

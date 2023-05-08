@@ -1,3 +1,4 @@
+import logging
 from asyncio import Future, sleep
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
@@ -17,6 +18,8 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
+
+# pylint: disable= protected-access
 
 def test_download_properties(test_download, test_tdef):
     assert not test_download.get_magnet_link()
@@ -465,3 +468,14 @@ def test_get_tracker_status_get_peer_info_error(test_download: Download):
     )
     status = test_download.get_tracker_status()
     assert status
+
+
+def test_safe_log_no_exception(test_download: Download):
+    # Test that the method `safe_log` doesn't raise an exception in case of a correct alert
+    assert test_download._safe_log(logging.INFO, 'message', alert=Mock())
+
+
+def test_safe_log_known_exceptions(test_download: Download):
+    # Test that the method `safe_log` doesn't raise an exception in case of an incorrect alert
+    alert = Mock(__str__=Mock(side_effect=UnicodeDecodeError))
+    assert not test_download._safe_log(logging.INFO, 'message', alert)
