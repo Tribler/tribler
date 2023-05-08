@@ -37,7 +37,6 @@ topics_to_send_to_gui = [
     notifications.report_config_error,
 ]
 
-
 MessageDict = Dict[str, Any]
 
 
@@ -143,8 +142,17 @@ class EventsEndpoint(RESTEndpoint):
             self._logger.exception(e)
             return
 
+        processed_responses = []
         for response in self.events_responses:
-            await response.write(message_bytes)
+            try:
+                await response.write(message_bytes)
+                # by creating the list with processed responses we want to remove responses with
+                # ConnectionResetError from `self.events_responses`:
+                processed_responses.append(response)
+            except ConnectionResetError as e:
+                # The connection was closed by GUI
+                self._logger.warning(e, exc_info=True)
+        self.events_responses = processed_responses
 
     # An exception has occurred in Tribler. The event includes a readable
     # string of the error and a Sentry event.

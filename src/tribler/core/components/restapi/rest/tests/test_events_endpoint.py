@@ -1,10 +1,12 @@
 import asyncio
 import json
+import logging
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 from aiohttp import ClientSession
 
 from tribler.core import notifications
@@ -20,7 +22,7 @@ from tribler.core.version import version_id
 messages_to_wait_for = set()
 
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture(name='api_port')
 def fixture_api_port(free_port):
@@ -194,3 +196,19 @@ async def test_should_skip_message(events_endpoint):
         with patch.object(events_endpoint, '_shutdown', new=True):
             # But, if it is in shutdown state, it should always skip a message
             assert events_endpoint.should_skip_message(message)
+
+
+async def test_write_data(events_endpoint: EventsEndpoint, caplog: LogCaptureFixture):
+    # Test that write_data will call write methods for all responses, even if some of them could raise
+    # a ConnectionResetError exception.
+
+    bad_response = AsyncMock(write=AsyncMock(side_effect=ConnectionResetError))
+    good_response = AsyncMock()
+
+    events_endpoint.events_responses = [bad_response, good_response]
+    await events_endpoint._write_data({'any': 'data'})
+
+    assert bad_response.write.called
+    assert good_response.write.called
+    last_log_record = caplog.records[-1]
+    assert last_log_record.levelno == logging.WARNING
