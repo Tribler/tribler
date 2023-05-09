@@ -9,6 +9,7 @@ from libtorrent import bencode
 
 from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.components.libtorrent.torrentdef import TorrentDefNoMetainfo
 from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
 from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.exceptions import SaveResumeDataError
@@ -407,6 +408,21 @@ def test_on_state_changed(mock_handle, test_download):
 
     test_download.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=5)))
     test_download.apply_ip_filter.assert_called_with(False)
+
+
+async def test_apply_ip_filter(test_download, mock_handle):
+    test_download.handle.status = lambda: Mock(error=None)
+    test_download.tdef.get_infohash = lambda: b'a' * 20
+    test_download.config.set_hops(1)
+
+    assert not isinstance(test_download.tdef, TorrentDefNoMetainfo)
+    await test_download.apply_ip_filter(True)
+    test_download.handle.apply_ip_filter.assert_called_with(True)
+
+    test_download.tdef = TorrentDefNoMetainfo(b'a' * 20, 'metainfo request')
+    test_download.handle.reset_mock()
+    test_download.apply_ip_filter(False)
+    test_download.handle.apply_ip_filter.assert_not_called()
 
 
 async def test_checkpoint_timeout(test_download):
