@@ -139,7 +139,7 @@ class KnowledgeDatabase:
 
             orm.composite_key(statement, peer)
 
-        class Misc(db.Entity):
+        class Misc(db.Entity):  # pylint: disable=unused-variable
             name = orm.PrimaryKey(str)
             value = orm.Optional(str)
 
