@@ -39,6 +39,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
+from tribler.core.utilities import slow_coro_detection
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
     set_global_process_manager
 
@@ -132,6 +133,9 @@ def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_t
     logger.info(f'Start tribler core. API port: "{api_port}". '
                 f'API key: "{api_key}". State dir: "{state_dir}". '
                 f'Core test mode: "{gui_test_mode}"')
+
+    slow_coro_detection.patch_asyncio()  # Track the current coroutine handled by asyncio
+    slow_coro_detection.start_watching_thread()  # Run a separate thread to watch for the main thread asyncio freezes
 
     config = TriblerConfig.load(state_dir=state_dir, reset_config_on_error=True)
     config.gui_test_mode = gui_test_mode

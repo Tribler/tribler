@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import time
 from asyncio import Event, create_task, gather, get_event_loop
 from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar
@@ -79,7 +80,8 @@ class Session:
         component.session = self
 
     async def start_components(self):
-        self.logger.info('Start components...')
+        t = time.time()
+        self.logger.info('Starting components...')
         self.logger.info(f'State directory: "{self.config.state_dir}"')
         create_state_directory_structure(self.config.state_dir)
         patch_crypto_be_discovery()
@@ -90,8 +92,12 @@ class Session:
 
         coros = [comp.start() for comp in self.components.values()]
         await gather(*coros, return_exceptions=not self.failfast)
-        if self._startup_exception:
+        duration = time.time() - t
+        if e := self._startup_exception:
+            self.logger.warning(f'Components started in {duration:.3f} seconds with exception: {type(e).__name__}: {e}')
             self._reraise_startup_exception_in_separate_task()
+        else:
+            self.logger.info(f'All components started in {duration:.3f} seconds')
 
     def _reraise_startup_exception_in_separate_task(self):
         self.logger.info('Reraise startup exception in separate task')
