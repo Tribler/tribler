@@ -5,7 +5,6 @@ import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
 
-from tribler.core import notifications
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
@@ -24,7 +23,7 @@ async def tag_rules_processor(tmp_path: Path):
     knowledge_db = KnowledgeDatabase(filename=':memory:')
     processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=knowledge_db, mds=mds,
                                         batch_size=TEST_BATCH_SIZE,
-                                        interval=TEST_INTERVAL)
+                                        batch_interval=TEST_INTERVAL)
     yield processor
     await processor.shutdown()
 
@@ -32,11 +31,7 @@ async def tag_rules_processor(tmp_path: Path):
 def test_constructor(tag_rules_processor: KnowledgeRulesProcessor):
     # test that constructor of TagRulesProcessor works as expected
     assert tag_rules_processor.batch_size == TEST_BATCH_SIZE
-    assert tag_rules_processor.interval == TEST_INTERVAL
-
-    m: MagicMock = tag_rules_processor.notifier.add_observer
-    m.assert_called_with(notifications.new_torrent_metadata_created, tag_rules_processor.process_torrent_title,
-                         synchronous=True)
+    assert tag_rules_processor.batch_interval == TEST_INTERVAL
 
 
 @patch.object(KnowledgeRulesProcessor, 'save_statements')
@@ -149,3 +144,22 @@ def test_start_batch_processing(mocked_register_task: Mock, tag_rules_processor:
     tag_rules_processor.start()
 
     assert mocked_register_task.called
+
+
+def test_add_to_queue(tag_rules_processor: KnowledgeRulesProcessor):
+    """Test that add_to_queue adds the title to the queue"""
+    tag_rules_processor.put_entity_to_the_queue(b'infohash', 'title')
+
+    assert tag_rules_processor.queue.qsize() == 1
+    title = tag_rules_processor.queue.get_nowait()
+    assert title.infohash == b'infohash'
+    assert title.title == 'title'
+
+
+def test_process_queue(tag_rules_processor: KnowledgeRulesProcessor):
+    """Test that process_queue processes the queue"""
+    tag_rules_processor.put_entity_to_the_queue(b'infohash', 'title')
+    tag_rules_processor.put_entity_to_the_queue(b'infohash2', 'title2')
+
+    assert tag_rules_processor.process_queue() == 2  # two titles were processed
+    assert tag_rules_processor.process_queue() == 0  # queue is empty

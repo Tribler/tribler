@@ -1,4 +1,7 @@
 import logging
+import queue
+from asyncio import Event
+from dataclasses import dataclass
 from typing import Optional, Set
 
 from ipv8.taskmanager import TaskManager
@@ -14,11 +17,19 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.unicode import hexlify
 
-DEFAULT_INTERVAL = 10
+DEFAULT_BATCH_INTERVAL = 10
 DEFAULT_BATCH_SIZE = 1000
+
+DEFAULT_QUEUE_INTERVAL = 10
 
 LAST_PROCESSED_TORRENT_ID = 'last_processed_torrent_id'
 RULES_PROCESSOR_VERSION = 'rules_processor_version'
+
+
+@dataclass
+class TorrentTitle:
+    infohash: bytes
+    title: str
 
 
 class KnowledgeRulesProcessor(TaskManager):
@@ -26,7 +37,8 @@ class KnowledgeRulesProcessor(TaskManager):
     version: int = 4
 
     def __init__(self, notifier: Notifier, db: KnowledgeDatabase, mds: MetadataStore,
-                 batch_size: int = DEFAULT_BATCH_SIZE, interval: float = DEFAULT_INTERVAL):
+                 batch_size: int = DEFAULT_BATCH_SIZE, batch_interval: float = DEFAULT_BATCH_INTERVAL,
+                 queue_interval: float = DEFAULT_QUEUE_INTERVAL):
         """
         Default values for batch_size and interval are chosen so that tag processing is not too heavy
         fot CPU and with this values 360k items will be processed within the hour.
@@ -38,14 +50,23 @@ class KnowledgeRulesProcessor(TaskManager):
         self.db = db
         self.mds = mds
         self.batch_size = batch_size
-        self.interval = interval
-        self.notifier.add_observer(notifications.new_torrent_metadata_created, self.process_torrent_title,
-                                   synchronous=True)
+        self.batch_interval = batch_interval
+        self.queue_interval = queue_interval
+
+        # this queue is used to be able to process entities supplied from another thread.
+        self.event = Event()
+        self.queue: queue.Queue[TorrentTitle] = queue.Queue()
 
     @db_session
     def start(self):
         self.logger.info('Start')
+        self.start_batch_processing()
+        self.start_queue_processing()
 
+    async def shutdown(self):
+        await self.shutdown_task_manager()
+
+    def start_batch_processing(self):
         rules_processor_version = self.get_rules_processor_version()
         if rules_processor_version < self.version:
             # the database was processed by the previous version of the rules processor
@@ -57,13 +78,29 @@ class KnowledgeRulesProcessor(TaskManager):
         is_finished = self.get_last_processed_torrent_id() >= max_row_id
 
         if not is_finished:
-            self.logger.info(f'Register process_batch task with interval: {self.interval} sec')
-            self.register_task(name=self.process_batch.__name__, interval=self.interval, task=self.process_batch)
+            self.logger.info(f'Register process_batch task with interval: {self.batch_interval} sec')
+            self.register_task(
+                name=self.process_batch.__name__,
+                interval=self.batch_interval,
+                task=self.process_batch
+            )
         else:
             self.logger.info(f'Database processing is finished. Last processed torrent id: {max_row_id}')
 
-    async def shutdown(self):
-        await self.shutdown_task_manager()
+    def start_queue_processing(self):
+        # note that this notification can come from different threads
+        self.notifier.add_observer(
+            topic=notifications.new_torrent_metadata_created,
+            observer=self.put_entity_to_the_queue,
+            synchronous=True
+        )
+        self.logger.info(f'Register process_queue task with interval: {self.queue_interval} sec')
+        # register the task with a delay to prevent simultaneous calls for batch processing and queue processing.
+        self.register_task(
+            name=self.process_queue.__name__,
+            delay=self.queue_interval / 2,
+            interval=self.queue_interval, task=self.process_queue
+        )
 
     @db_session(serializable=True)
     def process_batch(self) -> int:
@@ -94,6 +131,27 @@ class KnowledgeRulesProcessor(TaskManager):
             self.cancel_pending_task(name=self.process_batch.__name__)
         return processed
 
+    @db_session(serializable=True)
+    def process_queue(self) -> int:
+        processed = 0
+        try:
+            while title := self.queue.get_nowait():
+                self.process_torrent_title(title.infohash, title.title)
+                processed += 1
+        except queue.Empty:
+            pass
+        if processed:
+            self.logger.info(f'Processed {processed} titles from the queue')
+        return processed
+
+    def put_entity_to_the_queue(self, infohash: Optional[bytes] = None, title: Optional[str] = None):
+        """ Put entity to the queue to be processed by the rules processor.
+        This method is prepared for use from a different thread.
+        """
+        if not infohash or not title:
+            return
+        self.queue.put_nowait(TorrentTitle(infohash, title))
+
     def process_torrent_title(self, infohash: Optional[bytes] = None, title: Optional[str] = None) -> int:
         if not infohash or not title:
             return 0
@@ -108,7 +166,6 @@ class KnowledgeRulesProcessor(TaskManager):
 
         return len(tags) + len(content_items)
 
-    @db_session
     def save_statements(self, subject_type: ResourceType, subject: str, predicate: ResourceType, objects: Set[str]):
         self.logger.debug(f'Save: {len(objects)} objects for "{subject}" with predicate={predicate}')
         for obj in objects:
