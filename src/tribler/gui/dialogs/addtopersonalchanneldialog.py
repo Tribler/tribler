@@ -91,15 +91,18 @@ class AddToChannelDialog(DialogContainer):
             self.load_channel(channel_id)
 
     def load_channel(self, channel_id):
-        request = request_manager.get(f"channels/mychannel/{channel_id}",
-                                      on_finish=lambda result: self.on_channel_contents(result, channel_id),
-                                      url_params={
-                                          "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
-                                          "first": 1,
-                                          "last": 1000,
-                                          "exclude_deleted": True,
-                                      })
-        self.root_requests_list.append(request)
+        request = request_manager.get(
+            f"channels/mychannel/{channel_id}",
+            on_success=lambda result: self.on_channel_contents(result, channel_id),
+            url_params={
+                "metadata_type": [CHANNEL_TORRENT, COLLECTION_NODE],
+                "first": 1,
+                "last": 1000,
+                "exclude_deleted": True,
+            }
+        )
+        if request:
+            self.root_requests_list.append(request)
 
     def get_selected_channel_id(self):
         selected = self.dialog_widget.channels_tree_wt.selectedItems()

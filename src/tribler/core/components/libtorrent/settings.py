@@ -5,6 +5,10 @@ from pydantic import validator
 
 from tribler.core.config.tribler_config_section import TriblerConfigSection
 from tribler.core.utilities.network_utils import NetworkUtils
+from tribler.core.utilities.osutils import get_home_dir
+from tribler.core.utilities.path_util import Path
+
+TRIBLER_DOWNLOADS_DEFAULT = "TriblerDownloads"
 
 
 # pylint: disable=no-self-argument
@@ -47,11 +51,31 @@ class SeedingMode(str, Enum):
     time = 'time'
 
 
+def get_default_download_dir(home: Optional[Path] = None, tribler_downloads_name=TRIBLER_DOWNLOADS_DEFAULT) -> Path:
+    """
+    Returns the default dir to save content to.
+    Could be one of:
+        - TriblerDownloads
+        - $HOME/Downloads/TriblerDownloads
+        - $HOME/TriblerDownloads
+    """
+    path = Path(tribler_downloads_name)
+    if path.is_dir():
+        return path.resolve()
+
+    home = home or get_home_dir()
+    downloads = home / "Downloads"
+    if downloads.is_dir():
+        return downloads.resolve() / tribler_downloads_name
+
+    return home.resolve() / tribler_downloads_name
+
+
 class DownloadDefaultsSettings(TriblerConfigSection):
     anonymity_enabled: bool = True
     number_hops: int = 1
     safeseeding_enabled: bool = True
-    saveas: Optional[str] = None
+    saveas: str = str(get_default_download_dir())
     seeding_mode: SeedingMode = SeedingMode.forever
     seeding_ratio: float = 2.0
     seeding_time: float = 60

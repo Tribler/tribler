@@ -191,7 +191,6 @@ class GigaChannelManager(TaskManager):
                 infohash = bytes(channel.infohash)
                 if self.download_manager.metainfo_requests.get(infohash):
                     continue
-                status = self.download_manager.get_download(infohash).get_state().get_status()
                 if not self.download_manager.download_exists(infohash):
                     self._logger.info(
                         "Downloading new channel version %s ver %i->%i",
@@ -200,7 +199,10 @@ class GigaChannelManager(TaskManager):
                         channel.timestamp,
                     )
                     self.download_channel(channel)
-                elif status == DownloadStatus.SEEDING:
+                    continue
+
+                channel_download = self.download_manager.get_download(infohash)
+                if channel_download and channel_download.get_state().get_status() == DownloadStatus.SEEDING:
                     self._logger.info(
                         "Processing previously downloaded, but unprocessed channel torrent %s ver %i->%i",
                         channel.dirname,
@@ -208,10 +210,9 @@ class GigaChannelManager(TaskManager):
                         channel.timestamp,
                     )
                     self.channels_processing_queue[channel.infohash] = (PROCESS_CHANNEL_DIR, channel)
-            except Exception:
-                self._logger.exception(
-                    "Error when tried to download a newer version of channel %s", hexlify(channel.public_key)
-                )
+            except Exception as e:
+                self._logger.exception("Error when tried to download a newer version of channel "
+                                       f"{hexlify(channel.public_key)}: {type(e).__name__}: {e}")
 
     async def remove_channel_download(self, to_remove):
         """

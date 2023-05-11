@@ -1,7 +1,7 @@
 from tribler.core import notifications
 from tribler.core.components.component import Component
 from tribler.core.components.key.key_component import KeyComponent
-from tribler.core.components.knowledge.rules.tag_rules_processor import KnowledgeRulesProcessor
+from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 

@@ -324,11 +324,10 @@ class DebugWindow(QMainWindow):
             method = request.method
             data = request.data
             timestamp = request.time
-            status_code = request.status_code
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
             item.setText(0, f"{method} {repr(endpoint)} {repr(data)}")
-            item.setText(1, str(status_code or "unknown"))
+            item.setText(1, request.status_text)
             item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
 
@@ -905,7 +904,7 @@ class DebugWindow(QMainWindow):
 
     def load_libtorrent_settings_tab(self, hop, export=False):
         request_manager.get(endpoint=f"libtorrent/settings?hop={hop}",
-                            on_finish=lambda data: self.on_libtorrent_settings_received(data, export=export))
+                            on_success=lambda data: self.on_libtorrent_settings_received(data, export=export))
         self.window().libtorrent_settings_tree_widget.clear()
 
     def on_libtorrent_settings_received(self, data, export=False):
@@ -921,7 +920,7 @@ class DebugWindow(QMainWindow):
 
     def load_libtorrent_sessions_tab(self, hop, export=False):
         request_manager.get(endpoint=f"libtorrent/session?hop={hop}",
-                            on_finish=lambda data: self.on_libtorrent_session_received(data, export=export))
+                            on_success=lambda data: self.on_libtorrent_session_received(data, export=export))
         self.window().libtorrent_session_tree_widget.clear()
 
     def on_libtorrent_session_received(self, data, export=False):

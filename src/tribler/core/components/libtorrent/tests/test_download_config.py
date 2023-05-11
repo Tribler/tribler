@@ -3,8 +3,7 @@ from pathlib import Path
 import pytest
 from configobj import ConfigObjError
 
-from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig, _from_dict, _to_dict, \
-    get_default_dest_dir
+from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig, _from_dict, _to_dict
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 CONFIG_FILES_DIR = TESTS_DATA_DIR / "config_files"
@@ -50,10 +49,6 @@ def test_download_save_load(download_config, tmpdir):
 def test_download_load_corrupt(download_config):
     with pytest.raises(ConfigObjError):
         download_config.load(CONFIG_FILES_DIR / "corrupt_download_config.conf")
-
-
-def test_get_default_dest_dir():
-    assert isinstance(get_default_dest_dir(), Path)
 
 
 def test_default_download_config_load(tmpdir):

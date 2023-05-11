@@ -7,7 +7,7 @@ from hashlib import sha1
 import aiohttp
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler.core.components.libtorrent.utils.torrent_utils import create_torrent_file
+from tribler.core.components.libtorrent.utils import torrent_utils
 from tribler.core.utilities import maketorrent, path_util
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import INFOHASH_LENGTH
@@ -317,7 +317,8 @@ class TorrentDef:
         Generate the metainfo and save the torrent file.
         :param torrent_filepath: An optional absolute path to where to save the generated .torrent file.
         """
-        torrent_dict = create_torrent_file(self.files_list, self.torrent_parameters, torrent_filepath=torrent_filepath)
+        torrent_dict = torrent_utils.create_torrent_file(self.files_list, self.torrent_parameters,
+                                                         torrent_filepath=torrent_filepath)
         self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']

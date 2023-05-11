@@ -19,6 +19,11 @@
     </message>
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="56"/>
+        <source>Created</source>
+        <translation>Criado</translation>
+    </message>
+    <message>
+        <location filename="../widgets/tablecontentmodel.py" line="56"/>
         <source>Updated</source>
         <translation>Atualizado</translation>
     </message>

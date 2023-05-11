@@ -72,6 +72,11 @@ class ErrorHandler:
         if self.app_manager.quitting_app:
             return
 
+        additional_tags = {
+            'source': 'gui',
+            'tribler_stopped': self._tribler_stopped
+        }
+
         FeedbackDialog(
             parent=self.tribler_window,
             sentry_reporter=gui_sentry_reporter,
@@ -79,7 +84,7 @@ class ErrorHandler:
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
             stop_application_on_close=self._tribler_stopped,
-            additional_tags={'source': 'gui'},
+            additional_tags=additional_tags,
         ).show()
 
     def core_error(self, reported_error: ReportedError):
@@ -98,6 +103,12 @@ class ErrorHandler:
             self._stop_tribler(error_text)
 
         SentryScrubber.remove_breadcrumbs(reported_error.event)
+        gui_sentry_reporter.additional_information.update(reported_error.additional_information)
+
+        additional_tags = {
+            'source': 'core',
+            'tribler_stopped': self._tribler_stopped
+        }
 
         FeedbackDialog(
             parent=self.tribler_window,
@@ -106,7 +117,7 @@ class ErrorHandler:
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
             stop_application_on_close=self._tribler_stopped,
-            additional_tags={'source': 'core'}
+            additional_tags=additional_tags,
         ).show()
 
     def _stop_tribler(self, text):
@@ -119,7 +130,7 @@ class ErrorHandler:
         self.tribler_window.delete_tray_icon()
 
         # Stop the download loop
-        self.tribler_window.downloads_page.stop_loading_downloads()
+        self.tribler_window.downloads_page.stop_refreshing_downloads()
 
         # Add info about whether we are stopping Tribler or not
         self.tribler_window.core_manager.stop(quit_app_on_core_finished=False)

@@ -143,7 +143,7 @@ def define_binding(db, notifier: Notifier, tag_processor_version: int):
                     "num_seeders": self.health.seeders,
                     "num_leechers": self.health.leechers,
                     "last_tracker_check": self.health.last_check,
-                    "updated": int((self.torrent_date - epoch).total_seconds()),
+                    "created": int((self.torrent_date - epoch).total_seconds()),
                     "tag_processor_version": self.tag_processor_version,
                 }
             )

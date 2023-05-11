@@ -1,9 +1,12 @@
+import asyncio
 import json
+import logging
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from _pytest.logging import LogCaptureFixture
 from aiohttp import ClientSession
 
 from tribler.core import notifications
@@ -19,7 +22,7 @@ from tribler.core.version import version_id
 messages_to_wait_for = set()
 
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, protected-access
 
 @pytest.fixture(name='api_port')
 def fixture_api_port(free_port):
@@ -31,8 +34,8 @@ def fixture_notifier(event_loop):
     return Notifier(loop=event_loop)
 
 
-@pytest.fixture
-async def endpoint(notifier):
+@pytest.fixture(name='events_endpoint')
+async def events_endpoint_fixture(notifier):
     events_endpoint = EventsEndpoint(notifier)
     yield events_endpoint
 
@@ -45,12 +48,12 @@ def fixture_reported_error():
 
 
 @pytest.fixture(name="rest_manager")
-async def fixture_rest_manager(api_port, tmp_path, endpoint):
+async def fixture_rest_manager(api_port, tmp_path, events_endpoint):
     config = TriblerConfig()
     config.api.http_enabled = True
     config.api.http_port = api_port
     root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
-    root_endpoint.add_endpoint('/events', endpoint)
+    root_endpoint.add_endpoint('/events', events_endpoint)
     rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=tmp_path)
 
     await rest_manager.start()
@@ -114,52 +117,98 @@ async def test_events(rest_manager, notifier: Notifier):
         await event_socket_task
 
 
-@patch.object(EventsEndpoint, 'write_data')
+@patch.object(EventsEndpoint, '_write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=True))
-async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, endpoint, reported_error):
+async def test_on_tribler_exception_has_connection_to_gui(mocked_write_data, events_endpoint, reported_error):
     # test that in case of established connection to GUI, `on_tribler_exception` will work
-    # as a normal endpoint function, that is call `write_data`
-    endpoint.on_tribler_exception(reported_error)
+    # as a normal events_endpoint function, that is call `_write_data`
+    events_endpoint.on_tribler_exception(reported_error)
+    await asyncio.sleep(0.01)
 
     mocked_write_data.assert_called_once()
-    assert not endpoint.undelivered_error
+    assert not events_endpoint.undelivered_error
 
 
-@patch.object(EventsEndpoint, 'write_data')
+@patch.object(EventsEndpoint, '_write_data')
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
-async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, endpoint, reported_error):
+async def test_on_tribler_exception_no_connection_to_gui(mocked_write_data, events_endpoint, reported_error):
     # test that if no connection to GUI, then `on_tribler_exception` will store
     # reported_error in `self.undelivered_error`
-    endpoint.on_tribler_exception(reported_error)
+    events_endpoint.on_tribler_exception(reported_error)
 
     mocked_write_data.assert_not_called()
-    assert endpoint.undelivered_error == endpoint.error_message(reported_error)
+    assert events_endpoint.undelivered_error == events_endpoint.error_message(reported_error)
 
 
-@patch.object(EventsEndpoint, 'write_data', new=MagicMock())
+@patch.object(EventsEndpoint, '_write_data', new=MagicMock())
 @patch.object(EventsEndpoint, 'has_connection_to_gui', new=MagicMock(return_value=False))
-async def test_on_tribler_exception_stores_only_first_error(endpoint, reported_error):
+async def test_on_tribler_exception_stores_only_first_error(events_endpoint, reported_error):
     # test that if no connection to GUI, then `on_tribler_exception` will store
     # only the very first `reported_error`
     first_reported_error = reported_error
-    endpoint.on_tribler_exception(first_reported_error)
+    events_endpoint.on_tribler_exception(first_reported_error)
 
     second_reported_error = ReportedError('second_type', 'second_text', {})
-    endpoint.on_tribler_exception(second_reported_error)
+    events_endpoint.on_tribler_exception(second_reported_error)
 
-    assert endpoint.undelivered_error == endpoint.error_message(first_reported_error)
+    assert events_endpoint.undelivered_error == events_endpoint.error_message(first_reported_error)
 
 
 @patch('asyncio.sleep', new=AsyncMock(side_effect=CancelledError))
 @patch.object(RESTStreamResponse, 'prepare', new=AsyncMock())
 @patch.object(RESTStreamResponse, 'write', new_callable=AsyncMock)
 @patch.object(EventsEndpoint, 'encode_message')
-async def test_get_events_has_undelivered_error(mocked_encode_message, mocked_write, endpoint):
+async def test_get_events_has_undelivered_error(mocked_encode_message, mocked_write, events_endpoint):
     # test that in case `self.undelivered_error` is not None, then it will be sent
-    endpoint.undelivered_error = {'undelivered': 'error'}
+    events_endpoint.undelivered_error = {'undelivered': 'error'}
 
-    await endpoint.get_events(MagicMock())
+    await events_endpoint.get_events(MagicMock())
 
     mocked_write.assert_called()
     mocked_encode_message.assert_called_with({'undelivered': 'error'})
-    assert not endpoint.undelivered_error
+    assert not events_endpoint.undelivered_error
+
+
+async def test_on_tribler_exception_shutdown():
+    # test that `on_tribler_exception` will not send any error message if events_endpoint is shutting down
+    events_endpoint = EventsEndpoint(Mock())
+    events_endpoint.error_message = Mock()
+
+    await events_endpoint.shutdown()
+
+    events_endpoint.on_tribler_exception(ReportedError('', '', {}))
+
+    assert not events_endpoint.error_message.called
+
+
+async def test_should_skip_message(events_endpoint):
+    assert not events_endpoint._shutdown and not events_endpoint.events_responses  # pylint: disable=protected-access
+    message = Mock()
+
+    # Initially the events endpoint is not in shutdown state, but it does not have any connection,
+    # so it should skip message as nobody is listen to it
+    assert events_endpoint.should_skip_message(message)
+
+    with patch.object(events_endpoint, 'events_responses', new=[Mock()]):
+        # We add a mocked connection to GUI, and now the events endpoint should not skip a message
+        assert not events_endpoint.should_skip_message(message)
+
+        with patch.object(events_endpoint, '_shutdown', new=True):
+            # But, if it is in shutdown state, it should always skip a message
+            assert events_endpoint.should_skip_message(message)
+
+
+async def test_write_data(events_endpoint: EventsEndpoint, caplog: LogCaptureFixture):
+    # Test that write_data will call write methods for all responses, even if some of them could raise
+    # a ConnectionResetError exception.
+
+    bad_response = AsyncMock(write=AsyncMock(side_effect=ConnectionResetError))
+    good_response = AsyncMock()
+
+    events_endpoint.events_responses = [bad_response, good_response]
+    await events_endpoint._write_data({'any': 'data'})
+
+    assert bad_response.write.called
+    assert good_response.write.called
+    last_log_record = caplog.records[-1]
+    assert last_log_record.levelno == logging.WARNING

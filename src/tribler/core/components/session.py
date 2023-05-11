@@ -7,9 +7,11 @@ from asyncio import Event, create_task, gather, get_event_loop
 from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar
 
-from tribler.core.components.component import Component, ComponentError, ComponentStartupException, \
-    MultipleComponentsFound
+from tribler.core.components.component import Component
+from tribler.core.components.exceptions import ComponentError, ComponentStartupException, MultipleComponentsFound
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
@@ -25,8 +27,8 @@ class SessionError(Exception):
 class Session:
     _startup_exception: Optional[Exception] = None
 
-    def __init__(self, config: TriblerConfig = None, components: List[Component] = (),
-                 shutdown_event: Event = None, notifier: Notifier = None, failfast: bool = True):
+    def __init__(self, config: TriblerConfig = None, components: List[Component] = (), shutdown_event: Event = None,
+                 notifier: Notifier = None, failfast: bool = True, reporter: Optional[SentryReporter] = None):
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
         self.exit_code = None
         self.failfast = failfast
@@ -36,6 +38,7 @@ class Session:
         self.notifier: Notifier = notifier or Notifier(loop=get_event_loop())
         self.async_group = AsyncGroup()
         self.components: Dict[Type[Component], Component] = {}
+        self.reporter = reporter or default_core_exception_handler.sentry_reporter
         for component in components:
             self.register(component.__class__, component)
 

@@ -6,11 +6,16 @@ from typing import Dict, TYPE_CHECKING
 
 from aiohttp import web
 
+from tribler.core.components.restapi.rest.aiohttp_patch import patch_make_request
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 if TYPE_CHECKING:
     from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
     from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+
+
+patch_make_request(web.Application)
+
 
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401

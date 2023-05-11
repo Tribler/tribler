@@ -1,4 +1,6 @@
 import asyncio
+import os
+import random
 from asyncio import Future
 from datetime import datetime
 from pathlib import Path
@@ -38,8 +40,8 @@ def personal_channel(metadata_store):
         return chan
 
 
-@pytest.fixture
-async def gigachannel_manager(metadata_store):
+@pytest.fixture(name="gigachannel_manager")
+async def gigachannel_manager_fixture(metadata_store):
     chanman = GigaChannelManager(
         state_dir=metadata_store.channels_dir.parent,
         metadata_store=metadata_store,
@@ -223,6 +225,60 @@ async def test_check_channels_updates(personal_channel, gigachannel_manager, met
 
     # The queue should be empty afterwards
     assert not gigachannel_manager.channels_processing_queue
+
+
+@db_session
+def test_check_channel_updates_for_different_states(gigachannel_manager, metadata_store):
+    def random_subscribed_channel():
+        return metadata_store.ChannelMetadata(
+            title=f"Channel {random.randint(0, 100)}",
+            public_key=os.urandom(32),
+            signature=os.urandom(32),
+            skip_key_check=True,
+            timestamp=123,
+            local_version=122,
+            subscribed=True,
+            infohash=random_infohash(),
+        )
+
+    # Three channels in different states based on the setup
+    channel_with_metainfo = random_subscribed_channel()
+    already_downloaded_channel = random_subscribed_channel()
+    non_downloaded_channel = random_subscribed_channel()
+
+    # Setup 1: metainfo is already available for channel torrent.
+    def mock_get_metainfo(infohash):
+        return MagicMock() if infohash == channel_with_metainfo.infohash else None
+
+    gigachannel_manager.download_manager.metainfo_requests = MagicMock(get=mock_get_metainfo)
+
+    # Setup 2: Only one specific channel torrent is already downloaded.
+    def mock_download_exists(infohash):
+        return infohash == already_downloaded_channel.infohash
+
+    gigachannel_manager.download_manager.download_exists = mock_download_exists
+
+    # Setup 2 (contd): We expect non-downloaded channel to be downloaded
+    # so mocking download_channel() method.
+    gigachannel_manager.download_channel = MagicMock()
+
+    # Setup 3: Downloaded channel torrent is set on Seeding state.
+    def mock_get_download(infohash):
+        if infohash != already_downloaded_channel.infohash:
+            return None
+
+        seeding_state = MagicMock(get_status=lambda: DownloadStatus.SEEDING)
+        return MagicMock(get_state=lambda: seeding_state)
+
+    gigachannel_manager.download_manager.get_download = mock_get_download
+
+    # Act
+    gigachannel_manager.check_channels_updates()
+
+    # Assert
+    gigachannel_manager.download_channel.assert_called_once_with(non_downloaded_channel)
+    assert len(gigachannel_manager.channels_processing_queue) == 1
+    assert already_downloaded_channel.infohash in gigachannel_manager.channels_processing_queue
 
 
 async def test_remove_cruft_channels(torrent_template, personal_channel, gigachannel_manager, metadata_store):

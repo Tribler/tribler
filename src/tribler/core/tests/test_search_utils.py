@@ -148,10 +148,10 @@ def test_title_rank():
 
 
 def test_item_rank():
-    item = dict(name="abc", num_seeders=10, num_leechers=20, updated=time.time() - 10 * DAY)
+    item = dict(name="abc", num_seeders=10, num_leechers=20, created=time.time() - 10 * DAY)
     assert item_rank("abc", item) == pytest.approx(0.88794642)  # Torrent created ten days ago
 
-    item = dict(name="abc", num_seeders=10, num_leechers=20, updated=0)
+    item = dict(name="abc", num_seeders=10, num_leechers=20, created=0)
     assert item_rank("abc", item) == pytest.approx(0.81964285)  # Torrent creation date is unknown
 
     item = dict(name="abc", num_seeders=10, num_leechers=20)
