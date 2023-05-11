@@ -633,3 +633,18 @@ class TestTagDB(TestTagDBBase):
         assert _subjects(obj='linux') == {'infohash1', 'infohash2', 'infohash3'}
         assert _subjects(predicate=ResourceType.TAG, obj='linux') == {'infohash3'}
         assert _subjects(predicate=ResourceType.TITLE) == {'infohash1', 'infohash2'}
+
+    @db_session
+    def test_non_existent_misc(self):
+        """Test that get_misc returns proper values"""
+        # None if the key does not exist
+        assert not self.db.get_misc(key='non existent')
+
+        # A value if the key does exist
+        assert self.db.get_misc(key='non existent', default=42) == 42
+
+    @db_session
+    def test_set_misc(self):
+        """Test that set_misc works as expected"""
+        self.db.set_misc(key='key', value='value')
+        assert self.db.get_misc(key='key') == 'value'

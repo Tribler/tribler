@@ -115,13 +115,13 @@ class KnowledgeRulesProcessor(TaskManager):
             self.db.add_auto_generated(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
 
     def get_last_processed_torrent_id(self) -> int:
-        return int(self.mds.get_value(LAST_PROCESSED_TORRENT_ID, default='0'))
+        return int(self.db.get_misc(LAST_PROCESSED_TORRENT_ID, default='0'))
 
     def set_last_processed_torrent_id(self, value: int):
-        self.mds.set_value(LAST_PROCESSED_TORRENT_ID, str(value))
+        self.db.set_misc(LAST_PROCESSED_TORRENT_ID, str(value))
 
     def get_rules_processor_version(self) -> int:
-        return int(self.mds.get_value(RULES_PROCESSOR_VERSION, default='0'))
+        return int(self.db.get_misc(RULES_PROCESSOR_VERSION, default='0'))
 
     def set_rules_processor_version(self, version: int):
-        self.mds.set_value(RULES_PROCESSOR_VERSION, str(version))
+        self.db.set_misc(RULES_PROCESSOR_VERSION, str(version))

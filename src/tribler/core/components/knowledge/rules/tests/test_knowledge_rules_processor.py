@@ -6,7 +6,7 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
 
 from tribler.core import notifications
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -21,7 +21,8 @@ TEST_INTERVAL = 0.1
 @pytest.fixture
 async def tag_rules_processor(tmp_path: Path):
     mds = MetadataStore(db_filename=MEMORY_DB, channels_dir=tmp_path, my_key=LibNaCLSK())
-    processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=MagicMock(), mds=mds,
+    knowledge_db = KnowledgeDatabase(filename=':memory:')
+    processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=knowledge_db, mds=mds,
                                         batch_size=TEST_BATCH_SIZE,
                                         interval=TEST_INTERVAL)
     yield processor
@@ -60,6 +61,7 @@ def test_save_tags(tag_rules_processor: KnowledgeRulesProcessor):
         {'obj': 'tag2', 'predicate': ResourceType.TAG, 'subject': 'infohash', 'subject_type': ResourceType.TORRENT},
         {'obj': 'tag1', 'predicate': ResourceType.TAG, 'subject': 'infohash', 'subject_type': ResourceType.TORRENT}
     ]
+    tag_rules_processor.db.add_auto_generated = Mock()
     tag_rules_processor.save_statements(subject_type=ResourceType.TORRENT, subject='infohash',
                                         predicate=ResourceType.TAG,
                                         objects={'tag1', 'tag2'})
