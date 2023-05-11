@@ -410,7 +410,7 @@ def test_on_state_changed(mock_handle, test_download):
     test_download.apply_ip_filter.assert_called_with(False)
 
 
-async def test_apply_ip_filter(test_download, mock_handle):
+async def test_apply_ip_filter(test_download, mock_handle):  # pylint: disable=unused-argument
     test_download.handle.status = lambda: Mock(error=None)
     test_download.tdef.get_infohash = lambda: b'a' * 20
     test_download.config.set_hops(1)
