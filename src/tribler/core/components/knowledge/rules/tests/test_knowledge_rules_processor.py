@@ -156,6 +156,13 @@ def test_add_to_queue(tag_rules_processor: KnowledgeRulesProcessor):
     assert title.title == 'title'
 
 
+def test_add_empty_to_queue(tag_rules_processor: KnowledgeRulesProcessor):
+    """Test that add_to_queue does not add the empty title to the queue"""
+    tag_rules_processor.put_entity_to_the_queue(b'infohash', None)
+
+    assert tag_rules_processor.queue.qsize() == 0
+
+
 def test_process_queue(tag_rules_processor: KnowledgeRulesProcessor):
     """Test that process_queue processes the queue"""
     tag_rules_processor.put_entity_to_the_queue(b'infohash', 'title')

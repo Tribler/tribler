@@ -161,6 +161,9 @@ class SearchEndpoint(MetadataEndpointBase):
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
+        if self.tag_rules_processor:
+            self.tag_rules_processor.process_queue()
+
         self.add_statements_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
 
         if sanitized["first"] == 1:  # Only show a snippet on top

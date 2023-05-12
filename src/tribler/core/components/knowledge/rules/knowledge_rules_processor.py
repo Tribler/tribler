@@ -119,7 +119,6 @@ class KnowledgeRulesProcessor(TaskManager):
         added = 0
         for torrent in batch:
             added += self.process_torrent_title(torrent.infohash, torrent.title)
-            torrent.tag_processor_version = self.version
             processed += 1
 
         self.set_last_processed_torrent_id(end)
@@ -134,14 +133,15 @@ class KnowledgeRulesProcessor(TaskManager):
     @db_session(serializable=True)
     def process_queue(self) -> int:
         processed = 0
+        added = 0
         try:
             while title := self.queue.get_nowait():
-                self.process_torrent_title(title.infohash, title.title)
+                added += self.process_torrent_title(title.infohash, title.title)
                 processed += 1
         except queue.Empty:
             pass
         if processed:
-            self.logger.info(f'Processed {processed} titles from the queue')
+            self.logger.info(f'Processed: {processed} titles from the queue. Added {added} tags.')
         return processed
 
     def put_entity_to_the_queue(self, infohash: Optional[bytes] = None, title: Optional[str] = None):
