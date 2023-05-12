@@ -11,7 +11,9 @@ import encodings.idna  # pylint: disable=unused-import
 
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.utilities import is_frozen
 from tribler.core.version import version_id
 
 logger = logging.getLogger(__name__)
@@ -94,6 +96,13 @@ if __name__ == "__main__":
         from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 
         init_sentry_reporter(default_core_exception_handler.sentry_reporter)
+
+        slow_coro_stack_tracking = os.environ.get('SLOW_CORO_STACK_TRACING', '0' if is_frozen() else '1')
+        # By default, the stack tracking of slow coroutines is enabled when running the Tribler from sources
+        # and disabled in the compiled version, as it makes the Python code of Core work slower.
+        if slow_coro_stack_tracking == '1':
+            start_main_thread_stack_tracing()
+
         run_core(api_port, api_key, root_state_dir, parsed_args)
     else:  # GUI
         from tribler.gui.start_gui import run_gui
