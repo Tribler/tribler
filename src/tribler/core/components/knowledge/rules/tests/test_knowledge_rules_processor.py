@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
@@ -35,17 +35,17 @@ def test_constructor(tag_rules_processor: KnowledgeRulesProcessor):
 
 
 @patch.object(KnowledgeRulesProcessor, 'save_statements')
-def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: KnowledgeRulesProcessor):
+async def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: KnowledgeRulesProcessor):
     # test on None
-    assert not tag_rules_processor.process_torrent_title(infohash=None, title='title')
-    assert not tag_rules_processor.process_torrent_title(infohash=b'infohash', title=None)
+    assert not await tag_rules_processor.process_torrent_title(infohash=None, title='title')
+    assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title=None)
 
     # test that process_torrent_title doesn't find any tags in the title
-    assert not tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title')
+    assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title')
     mocked_save_tags.assert_not_called()
 
     # test that process_torrent_title does find tags in the title
-    assert tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
+    assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
     mocked_save_tags.assert_called_with(subject_type=ResourceType.TORRENT, subject='696e666f68617368', objects={'tag'},
                                         predicate=ResourceType.TAG)
 
@@ -66,26 +66,26 @@ def test_save_tags(tag_rules_processor: KnowledgeRulesProcessor):
     assert [c for c in actual_calls if c not in expected_calls] == []
 
 
-@db_session
-@patch.object(KnowledgeRulesProcessor, 'process_torrent_title', new=MagicMock(return_value=1))
+@patch.object(KnowledgeRulesProcessor, 'process_torrent_title', new=AsyncMock(return_value=1))
 @patch.object(KnowledgeRulesProcessor, 'cancel_pending_task')
-def test_process_batch(mocked_cancel_pending_task: Mock, tag_rules_processor: KnowledgeRulesProcessor):
+async def test_process_batch(mocked_cancel_pending_task: Mock, tag_rules_processor: KnowledgeRulesProcessor):
     # test the correctness of the inner logic of process_batch.
 
     # fill the db with 50 torrents
-    for _ in range(50):
-        tag_rules_processor.mds.TorrentMetadata(infohash=os.urandom(20), metadata_type=REGULAR_TORRENT)
+    with db_session:
+        for _ in range(50):
+            tag_rules_processor.mds.TorrentMetadata(infohash=os.urandom(20), metadata_type=REGULAR_TORRENT)
 
     tag_rules_processor.set_last_processed_torrent_id(10)  # batch should start from 11
     tag_rules_processor.batch_size = 30  # and process 30 entities
 
     # first iteration
-    assert tag_rules_processor.process_batch() == 30
+    assert await tag_rules_processor.process_batch() == 30
     assert tag_rules_processor.get_last_processed_torrent_id() == 40
     assert not mocked_cancel_pending_task.called  # it should not be the last batch in the db
 
     # second iteration
-    assert tag_rules_processor.process_batch() == 10
+    assert await tag_rules_processor.process_batch() == 10
     assert tag_rules_processor.get_last_processed_torrent_id() == 50
     assert mocked_cancel_pending_task.called  # it should  be the last batch in the db
 
@@ -163,10 +163,31 @@ def test_add_empty_to_queue(tag_rules_processor: KnowledgeRulesProcessor):
     assert tag_rules_processor.queue.qsize() == 0
 
 
-def test_process_queue(tag_rules_processor: KnowledgeRulesProcessor):
+async def test_process_queue(tag_rules_processor: KnowledgeRulesProcessor):
     """Test that process_queue processes the queue"""
     tag_rules_processor.put_entity_to_the_queue(b'infohash', 'title')
     tag_rules_processor.put_entity_to_the_queue(b'infohash2', 'title2')
+    tag_rules_processor.put_entity_to_the_queue(b'infohash3', 'title3')
 
-    assert tag_rules_processor.process_queue() == 2  # two titles were processed
-    assert tag_rules_processor.process_queue() == 0  # queue is empty
+    assert await tag_rules_processor.process_queue() == 3  # three titles were processed
+    assert await tag_rules_processor.process_queue() == 0  # queue is empty
+
+
+async def test_process_queue_out_of_limit(tag_rules_processor: KnowledgeRulesProcessor):
+    """Test that process_queue processes the queue by using batch size"""
+    tag_rules_processor.queue_batch_size = 2
+    tag_rules_processor.put_entity_to_the_queue(b'infohash', 'title')
+    tag_rules_processor.put_entity_to_the_queue(b'infohash2', 'title2')
+    tag_rules_processor.put_entity_to_the_queue(b'infohash3', 'title3')
+
+    assert await tag_rules_processor.process_queue() == 2  # two titles were processed
+    assert await tag_rules_processor.process_queue() == 1  # one title was processed
+
+
+async def test_put_entity_to_the_queue_out_of_limit(tag_rules_processor: KnowledgeRulesProcessor):
+    """ Test that put_entity_to_the_queue does not add the title to the queue if the queue is full"""
+    tag_rules_processor.queue.maxsize = 1
+    tag_rules_processor.put_entity_to_the_queue(b'infohash', 'title')
+    tag_rules_processor.put_entity_to_the_queue(b'infohash2', 'title2')
+
+    assert tag_rules_processor.queue.qsize() == 1

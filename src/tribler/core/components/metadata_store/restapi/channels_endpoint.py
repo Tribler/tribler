@@ -193,7 +193,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 total = self.mds.get_total_count(**sanitized) if include_total else None
 
         if self.tag_rules_processor:
-            self.tag_rules_processor.process_queue()
+            await self.tag_rules_processor.process_queue()
 
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_statements_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
@@ -503,7 +503,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 contents_list.append(entry.to_simple_dict())
 
         if self.tag_rules_processor:
-            self.tag_rules_processor.process_queue()
+            await self.tag_rules_processor.process_queue()
 
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_statements_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
