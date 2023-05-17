@@ -207,7 +207,6 @@ def test_scrub_event(scrubber):
         BREADCRUMBS: {
             'values': [
                 {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/', 'timestamp': '1'},
-                {'type': 'log', 'message': 'Traceback File: /Users/username/Tribler/', 'timestamp': '1'},
                 {'type': 'log', 'message': 'IP: 192.168.1.1', 'timestamp': '2'},
             ]
         },
