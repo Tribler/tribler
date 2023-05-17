@@ -90,6 +90,7 @@ class SentryReporter:
         # SentryReporter.get_actual_strategy()
         self.global_strategy = SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
         self.thread_strategy = ContextVar('context_strategy', default=None)
+        self.collecting_breadcrumbs_allowed = True
         self.additional_information = defaultdict(dict)  # dict that will be added to a Sentry event
 
         self._sentry_logger_name = 'SentryReporter'
@@ -134,6 +135,7 @@ class SentryReporter:
                 ThreadingIntegration(propagate_hub=True),
             ],
             before_send=self._before_send,
+            before_breadcrumb=self._before_breadcrumb,
             ignore_errors=[KeyboardInterrupt],
         )
 
@@ -410,3 +412,12 @@ class SentryReporter:
             event = self.scrubber.scrub_event(event)
 
         return event
+
+    # pylint: disable=unused-argument
+    def _before_breadcrumb(self, breadcrumb: Optional[Dict], hint: Optional[Dict]) -> Optional[Dict]:
+        """This function is called with an SDK-specific breadcrumb object before the breadcrumb is added to the scope.
+         When nothing is returned from the function, the breadcrumb is dropped. To pass the breadcrumb through, return
+         the first argument, which contains the breadcrumb object"""
+        if not self.collecting_breadcrumbs_allowed:
+            return None
+        return breadcrumb
