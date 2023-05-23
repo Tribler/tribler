@@ -15,8 +15,11 @@ def format_info(handle: Handle, include_stack: bool = False) -> str:
     """
     func = handle._callback
     task: Task = getattr(func, '__self__', None)
-    if not isinstance(task, Task) or not include_stack:
+    if not isinstance(task, Task):
         return repr(func)
+
+    if not include_stack:
+        return repr(task)
 
     if not main_stack_tracking_is_activated():
         stream = io.StringIO()
