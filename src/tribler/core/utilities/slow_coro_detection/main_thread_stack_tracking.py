@@ -1,5 +1,6 @@
 import linecache
 import sys
+import time
 from types import FrameType
 from typing import Callable, List, Optional, Tuple
 
@@ -17,19 +18,19 @@ _main_thread_stack_tracking_is_enabled: bool = False
 
 # If the main thread stack tracing is enabled, the list contains frames for stack of the main thread.
 # The second element of a tuple is a frame's start time. We use tuple and not dataclass here for performance reasons.
-_main_thread_stack: List[FrameType] = []
+_main_thread_stack: List[Tuple[FrameType, float]] = []
 
 
 def main_stack_tracking_is_enabled() -> bool:
     return _main_thread_stack_tracking_is_enabled
 
 
-def main_thread_profile(frame: FrameType, event: str, _):
+def main_thread_profile(frame: FrameType, event: str, _, now=time.time):
     """
     A hook that calls before and after a function call in the main thread if the stack tracking is activated
     """
     if event == 'call':
-        _main_thread_stack.append(frame)
+        _main_thread_stack.append((frame, now()))
     elif event == 'return' and _main_thread_stack:
         # Usually, 'call' and 'return' are always paired, so 'return' removes the frame added by the previous 'call'.
         # But at the very beginning, when the `start_main_thread_stack_tracing` function is called, we are already
@@ -65,7 +66,7 @@ def stop_main_thread_stack_tracing() -> Callable:
     return previous_profiler
 
 
-def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int]]]:
+def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float]]:
     """
     Quickly copies necessary information from the main thread stack, so it is possible later to format a usual
     traceback in a separate thread.
@@ -76,8 +77,8 @@ def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int]]]:
     previous_switch_interval = sys.getswitchinterval()
     sys.setswitchinterval(SWITCH_INTERVAL)
     try:
-        stack_info = [(frame.f_code.co_name, frame.f_code.co_filename, frame.f_lineno)
-                      for frame in _main_thread_stack]
+        stack_info = [(frame.f_code.co_name, frame.f_code.co_filename, frame.f_lineno, start_time)
+                      for frame, start_time in _main_thread_stack]
     finally:
         sys.setswitchinterval(previous_switch_interval)
     return stack_info
@@ -89,8 +90,11 @@ def get_main_thread_stack() -> str:
     """
     lines = ['Traceback (most recent call last):']
     stack_info = _get_main_thread_stack_info()
-    for func_name, file_name, line_number in stack_info:
-        line = f'  File "{file_name}", line {line_number or "?"}, in {func_name}'
+    now = time.time()
+    for func_name, file_name, line_number, start_time in stack_info:
+        duration = now - start_time
+        line = f'  File "{file_name}", line {line_number or "?"}' \
+               f', in {func_name} (function started {duration:.3f} seconds ago)'
         lines.append(line)
         if line_number:
             source_line = linecache.getline(file_name, line_number)
