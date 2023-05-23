@@ -84,19 +84,39 @@ def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float]]
     return stack_info
 
 
-def get_main_thread_stack() -> str:
+def get_main_thread_stack(stack_cut_duration: Optional[float] = None, limit: Optional[int] = None) -> str:
     """
     Obtains the main thread stack and format it in a usual way.
     """
-    lines = ['Traceback (most recent call last):']
+    traceback_items = []
     stack_info = _get_main_thread_stack_info()
     now = time.time()
     for func_name, file_name, line_number, start_time in stack_info:
         duration = now - start_time
-        line = f'  File "{file_name}", line {line_number or "?"}' \
-               f', in {func_name} (function started {duration:.3f} seconds ago)'
-        lines.append(line)
-        if line_number:
-            source_line = linecache.getline(file_name, line_number)
-            lines.append('    ' + (source_line.strip() or '?'))
-    return '\n'.join(lines) + '\n'
+        source_line = (linecache.getline(file_name, line_number).strip() if line_number else '') or '?'
+        traceback_item = f'  File "{file_name}", line {line_number or "?"}' \
+                         f', in {func_name} (function started {duration:.3f} seconds ago)\n' \
+                         f'    {source_line}'
+
+        if stack_cut_duration is not None and duration < stack_cut_duration:
+            # On this stack level, the function's call duration is insignificant, indicating that it isn't related
+            # to the current freeze. Thus, this stack level and the nested ones are omitted from the traceback
+            # to prevent any misinterpretation.
+
+            # The execution time of the previous frame is significantly long. However, the exact code line
+            # being executed within the function isn't as relevant and may misdirect the reader. Hence,
+            # the last stack frame is removed. The final line in the traceback will then display the code line
+            # that initiated the current function rather than the specific line within it. As a result,
+            # in the last code line, a reader sees the name of the function that should be optimized.
+            if traceback_items:
+                traceback_items.pop()
+
+            break
+
+        traceback_items.append(traceback_item)
+
+    if limit:
+        traceback_items = traceback_items[-limit:]
+
+    traceback_str = '\n'.join(traceback_items) + '\n'
+    return f"Traceback (most recent call last):\n{traceback_str}"

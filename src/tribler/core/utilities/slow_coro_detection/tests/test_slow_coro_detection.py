@@ -1,5 +1,7 @@
 from unittest.mock import Mock, patch
 
+import pytest
+
 from tribler.core.utilities.slow_coro_detection.patch import _report_long_duration, patched_handle_run
 from tribler.core.utilities.slow_coro_detection.watching_thread import SlowCoroWatchingThread, _report_freeze
 
@@ -82,7 +84,7 @@ def test__report_freeze_first_report(logger, format_info):
     duration = 10
 
     _report_freeze(handle, duration, first_report=True)
-    format_info.assert_called_with(handle, include_stack=True)
+    format_info.assert_called_with(handle, include_stack=True, stack_cut_duration=pytest.approx(8.0))
     logger.error.assert_called_with(
         'Slow coroutine is occupying the loop for 10.000 seconds already: <formatted handle>')
 
@@ -94,5 +96,5 @@ def test__report_freeze_not_first_report(logger, format_info):
     duration = 10
 
     _report_freeze(handle, duration, first_report=False)
-    format_info.assert_called_with(handle, include_stack=False)
+    format_info.assert_called_with(handle, include_stack=True, stack_cut_duration=pytest.approx(8.0), limit=2)
     logger.error.assert_called_with('Still executing <formatted handle>')

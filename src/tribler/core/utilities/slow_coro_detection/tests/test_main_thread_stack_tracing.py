@@ -62,15 +62,23 @@ def test_get_main_thread_stack_info():
 
 def test_get_main_thread_stack():
     t = time.time()
-    stack_info = [('CO_NAME1', 'CO_FILENAME1', 111, t-2), ('CO_NAME2', 'CO_FILENAME2', 222, t-1)]
+    stack_info = [
+        ('CO_NAME1', 'CO_FILENAME1', 111, t-4),  # This line is cut from the output because of limit=2
+        ('CO_NAME2', 'CO_FILENAME2', 222, t-3),
+        ('CO_NAME3', 'CO_FILENAME3', 333, t-2),
+        ('CO_NAME4', 'CO_FILENAME4', 444, t-1),  # This line is cut because we want to see the line where the last
+                                                 # slow function is called, not the line inside the last slow function
+        ('CO_NAME5', 'CO_FILENAME5', 555, t-0.02),  # This function is fast and not added to the stack
+        ('CO_NAME6', 'CO_FILENAME6', 666, t-0.01)   # This function is fast and not added to the stack
+    ]
     with patch('tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking._get_main_thread_stack_info',
                return_value=stack_info):
-        with patch('linecache.getline', side_effect=['line1', 'line2']):
-            stack_str = get_main_thread_stack()
+        with patch('linecache.getline', side_effect=['line1', 'line2', 'line3', 'line4', 'line5']):
+            stack_str = get_main_thread_stack(stack_cut_duration=0.5, limit=2)
 
     traceback_re = re.compile(r'Traceback \(most recent call last\):\n'
-                              r'  File "CO_FILENAME1", line 111, in CO_NAME1 \(function started [0-9.]* seconds ago\)\n'
-                              r'    line1\n'
                               r'  File "CO_FILENAME2", line 222, in CO_NAME2 \(function started [0-9.]* seconds ago\)\n'
-                              r'    line2\n')
+                              r'    line2\n'
+                              r'  File "CO_FILENAME3", line 333, in CO_NAME3 \(function started [0-9.]* seconds ago\)\n'
+                              r'    line3\n')
     assert traceback_re.match(stack_str)
