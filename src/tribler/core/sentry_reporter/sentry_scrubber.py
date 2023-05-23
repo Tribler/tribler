@@ -4,9 +4,8 @@ from typing import Any, Dict, List, Union
 from tribler.core.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
     RELEASE,
-    VALUES,
 )
-from tribler.core.sentry_reporter.sentry_tools import delete_item, distinct_by, format_version, modify_value, \
+from tribler.core.sentry_reporter.sentry_tools import delete_item, format_version, modify_value, \
     obfuscate_string
 
 
@@ -75,13 +74,6 @@ class SentryScrubber:
         # remove unnecessary fields
         for field_name in self.event_fields_to_cut:
             delete_item(event, field_name)
-
-        # remove duplicates from breadcrumbs
-        # duplicates will be identifiers by the `timestamp` field
-        def _remove_duplicates_from_breadcrumbs(breadcrumbs):
-            return modify_value(breadcrumbs, VALUES, lambda values: distinct_by(values, 'timestamp'))
-
-        modify_value(event, BREADCRUMBS, _remove_duplicates_from_breadcrumbs)
 
         # skip dev version
         modify_value(event, RELEASE, format_version)

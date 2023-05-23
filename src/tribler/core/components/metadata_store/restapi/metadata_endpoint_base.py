@@ -9,9 +9,9 @@ from tribler.core.components.metadata_store.category_filter.family_filter import
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
+
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
-from tribler.core.utilities.unicode import hexlify
 
 json2pony_columns = {
     'category': "tags",
@@ -71,18 +71,6 @@ class MetadataEndpointBase(RESTEndpoint):
                 mtypes.extend(metadata_type_to_search_scope[arg])
             sanitized['metadata_type'] = frozenset(mtypes)
         return sanitized
-
-    def extract_tags(self, entry):
-        is_torrent = entry.get_type() == REGULAR_TORRENT
-        if not is_torrent or not self.tag_rules_processor:
-            return
-
-        is_auto_generated_tags_not_created = entry.tag_processor_version is None or \
-                                             entry.tag_processor_version < self.tag_rules_processor.version
-        if is_auto_generated_tags_not_created:
-            generated = self.tag_rules_processor.process_torrent_title(infohash=entry.infohash, title=entry.title)
-            entry.tag_processor_version = self.tag_rules_processor.version
-            self._logger.info(f'Generated {generated} tags for {hexlify(entry.infohash)}')
 
     @db_session
     def add_statements_to_metadata_list(self, contents_list, hide_xxx=False):

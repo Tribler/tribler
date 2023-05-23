@@ -46,7 +46,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.sentry_reporter = sentry_reporter
         self.stop_application_on_close = stop_application_on_close
         self.additional_tags = additional_tags
-
+        sentry_reporter.collecting_breadcrumbs_allowed = False  # stop collecting breadcrumbs while the dialog is open
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
             placeholder = tr(
@@ -178,6 +178,9 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.close()
 
     def closeEvent(self, close_event):
+        # start collecting breadcrumbs while the dialog is closed
+        self.sentry_reporter.collecting_breadcrumbs_allowed = True
+
         if self.stop_application_on_close:
             self.core_manager.stop()
             if self.core_manager.shutting_down and self.core_manager.core_running:

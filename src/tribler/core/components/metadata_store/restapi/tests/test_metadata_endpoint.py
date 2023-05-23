@@ -1,14 +1,12 @@
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from aiohttp.web_app import Application
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
-from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
-from tribler.core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
@@ -219,22 +217,3 @@ async def test_check_torrent_query(rest_api, udp_tracker, metadata_store):
     """
     infohash = b'a' * 20
     await do_request(rest_api, f"metadata/torrents/{infohash}/health?timeout=wrong_value&refresh=1", expected_code=400)
-
-
-@patch('tribler.core.components.metadata_store.restapi.metadata_endpoint_base.hexlify', new=Mock())
-def test_extract_tags():
-    # Test that in the case of empty `tag_processor_version` no NPE raise
-    # see: https://github.com/Tribler/tribler/issues/6986
-    mds_endpoint = MetadataEndpointBase(
-        MagicMock(),
-        knowledge_db=MagicMock(),
-        tag_rules_processor=MagicMock(
-            version=1
-        )
-    )
-    entry = MagicMock(
-        get_type=Mock(return_value=REGULAR_TORRENT),
-        tag_processor_version=None
-    )
-    mds_endpoint.extract_tags(entry)
-    assert entry.tag_processor_version == 1

@@ -19,7 +19,7 @@ from tribler.gui.network.request_manager import SHUTDOWN_ENDPOINT, request_manag
 from tribler.gui.utilities import connect
 
 API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core API port
-API_PORT_CHECK_TIMEOUT = 30  # Stop trying to determine API port after 30 seconds
+API_PORT_CHECK_TIMEOUT = 120  # Stop trying to determine API port after this number of seconds
 
 CORE_OUTPUT_DEQUE_LENGTH = 10
 
