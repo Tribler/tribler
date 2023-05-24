@@ -2,7 +2,7 @@ name: windows_dependencies
 description: Setup windows dependencies for Tribler
 inputs:
   libsodium-version:
-    default: '1.0.17'
+    default: '1.0.18'
     description: 'Libsodium version'
     required: false
 
