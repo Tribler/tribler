@@ -3,6 +3,7 @@ import logging.config
 import os
 import sys
 
+
 # A fix for "LookupError: unknown encoding: idna" error.
 # Adding encodings.idna to hiddenimports is not enough.
 # https://github.com/pyinstaller/pyinstaller/issues/1113
