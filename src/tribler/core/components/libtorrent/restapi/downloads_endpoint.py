@@ -50,7 +50,7 @@ def _safe_extended_peer_info(ext_peer_info):
         return ensure_unicode(ext_peer_info, "utf8")
     except UnicodeDecodeError:
         # We might have some special unicode characters in here
-        return ''.join([chr(c) for c in ext_peer_info])
+        return ''.join(map(chr, ext_peer_info))
 
 
 def get_extended_status(tunnel_community, download) -> DownloadStatus:

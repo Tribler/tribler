@@ -102,7 +102,7 @@ class PayloadChecker:
         """
         if is_forbidden(
                 " ".join(
-                    [getattr(self.payload, attr) for attr in ("title", "tags", "text") if hasattr(self.payload, attr)])
+                    getattr(self.payload, attr) for attr in ("title", "tags", "text") if hasattr(self.payload, attr))
         ):
             return []
         return CONTINUE

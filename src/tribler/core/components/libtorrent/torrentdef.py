@@ -15,6 +15,25 @@ from tribler.core.utilities.unicode import ensure_unicode
 from tribler.core.utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
 
 
+def _filter_characters(name: str) -> str:
+    """Sanitize the names in path to unicode by replacing out all
+    characters that may -even remotely- cause problems with the '?'
+    character.
+
+    :param name: the name to sanitize
+    :type name: str
+    :return: the sanitized string
+    :rtype: str
+    """
+    def filter_character(char: str) -> str:
+        if 0 < char < 128:
+            return chr(char)
+        self._logger.debug("Bad character 0x%X", char)
+        return "?"
+
+    return "".join(map(filter_character, name))
+
+
 def escape_as_utf8(string, encoding='utf8'):
     """
     Make a string UTF-8 compliant, destroying characters if necessary.
@@ -296,16 +315,7 @@ class TorrentDef:
             # all characters that may -even remotely- cause problems
             # with the '?' character
             try:
-                def filter_characters(name):
-                    def filter_character(char):
-                        if 0 < char < 128:
-                            return chr(char)
-                        self._logger.debug("Bad character 0x%X", char)
-                        return "?"
-
-                    return "".join([filter_character(char) for char in name])
-
-                return filter_characters(self.metainfo[b"info"][b"name"])
+                return _filter_characters(self.metainfo[b"info"][b"name"])
             except UnicodeError:
                 pass
 
@@ -376,16 +386,7 @@ class TorrentDef:
                     # replacing out all characters that may -even
                     # remotely- cause problems with the '?' character
                     try:
-                        def filter_characters(name):
-                            def filter_character(char):
-                                if 0 < char < 128:
-                                    return chr(char)
-                                self._logger.debug("Bad character 0x%X", char)
-                                return "?"
-
-                            return "".join([filter_character(char) for char in name])
-
-                        yield (Path(*[filter_characters(element) for element in file_dict[b"path"]]),
+                        yield (Path(*[_filter_characters(element) for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
