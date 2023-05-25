@@ -132,12 +132,40 @@ class DownloadManager(TaskManager):
     def libtorrent_port(self):
         return self._libtorrent_port
 
+    @staticmethod
+    def convert_rate(rate: int) -> int:
+        """
+        Rate conversion due to the fact that we had a different system with Swift
+        and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
+        """
+        if rate == 0:
+            return -1
+        elif rate == -1:
+            return 1
+        else:
+            return rate * 1024
+
+    @staticmethod
+    def reverse_convert_rate(rate: int) -> int:
+        """
+        Rate conversion due to the fact that we had a different system with Swift
+        and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
+        """
+        if rate == -1:
+            return 0
+        elif rate == 1:
+            return -1
+        else:
+            return rate // 1024
+
     async def _check_dht_ready(self, min_dht_peers=60):
-        # Checks whether we got enough DHT peers. If the number of DHT peers is low,
-        # checking for a bunch of torrents in a short period of time may result in several consecutive requests
-        # sent to the same peers. This can trigger those peers' flood protection mechanism,
-        # which results in DHT checks stuck for hours.
-        # See https://github.com/Tribler/tribler/issues/5319
+        """
+        Checks whether we got enough DHT peers. If the number of DHT peers is low,
+        checking for a bunch of torrents in a short period of time may result in several consecutive requests
+        sent to the same peers. This can trigger those peers' flood protection mechanism,
+        which results in DHT checks stuck for hours.
+        See https://github.com/Tribler/tribler/issues/5319
+        """
         while not (self.get_session() and self.get_session().status().dht_nodes > min_dht_peers):
             await asyncio.sleep(1)
 
@@ -248,11 +276,11 @@ class DownloadManager(TaskManager):
         self._logger.info(f'Dummy mode: {self.dummy_mode}. Hops: {hops}.')
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
-        fingerprint = ['TL'] + [int(x) for x in version_id.split('-')[0].split('.')] + [0]
+        fingerprint = ['TL', *map(int, version_id.split('-')[0].split('.')), 0]
         if self.dummy_mode:
             from unittest.mock import Mock
             ltsession = Mock()
-            ltsession.pop_alerts = lambda: {}
+            ltsession.pop_alerts = dict
             ltsession.listen_port = lambda: 123
             ltsession.get_settings = lambda: {"peer_fingerprint": "000"}
         else:
@@ -268,10 +296,10 @@ class DownloadManager(TaskManager):
             settings['enable_incoming_utp'] = enable_utp
 
             settings['prefer_rc4'] = True
-            settings["listen_interfaces"] = "0.0.0.0:%d" % libtorrent_port
+            settings["listen_interfaces"] = f"0.0.0.0:{libtorrent_port}"
 
             settings['peer_fingerprint'] = self.peer_mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(self.peer_mid)
+            settings['handshake_client_version'] = f"Tribler/{version_id}/{hexlify(self.peer_mid)}"
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -281,7 +309,7 @@ class DownloadManager(TaskManager):
             settings['force_proxy'] = True
 
             # Anon listen port is never used anywhere, so we let Libtorrent set it
-            # settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
+            # settings["listen_interfaces"] = f"0.0.0.0:{anon_port}"
 
             # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
             self.update_ip_filter(ltsession, ['1.1.1.1'])
@@ -363,7 +391,7 @@ class DownloadManager(TaskManager):
     def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        libtorrent_rate = self.__class__.convert_rate(rate=rate)
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'upload_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
@@ -374,10 +402,10 @@ class DownloadManager(TaskManager):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = self.get_session(hops).upload_rate_limit()
-        return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
+        return self.__class__.reverse_convert_rate(rate=libtorrent_rate)
 
     def set_download_rate_limit(self, rate, hops=None):
-        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        libtorrent_rate = self.__class__.convert_rate(rate=rate)
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'download_rate_limit': libtorrent_rate}
@@ -385,8 +413,8 @@ class DownloadManager(TaskManager):
             self.set_session_settings(session, settings_dict)
 
     def get_download_rate_limit(self, hops=0):
-        libtorrent_rate = self.get_session(hops).download_rate_limit()
-        return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
+        libtorrent_rate = self.get_session(hops=hops).download_rate_limit()
+        return self.__class__.reverse_convert_rate(rate=libtorrent_rate)
 
     def process_alert(self, alert, hops=0):
         alert_type = alert.__class__.__name__
@@ -791,7 +819,7 @@ class DownloadManager(TaskManager):
             old_def = download.get_def()
             old_trackers = old_def.get_trackers()
             new_trackers = list(set(trackers) - old_trackers)
-            all_trackers = list(old_trackers) + new_trackers
+            all_trackers = [*old_trackers, *new_trackers]
 
             if new_trackers:
                 # Add new trackers to the download

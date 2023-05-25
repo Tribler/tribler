@@ -13,7 +13,7 @@ import requests
 # These env varialble should be set by Jenkins.
 SERVER_URL = os.environ.get('SONAR_SERVER_URL', "https://sonarcloud.io")
 PROJECT_KEY = os.environ.get('PROJECT_KEY', "org.sonarqube:tribler")
-PR_COMMIT = os.environ.get('ghprbActualCommit', u'')
+PR_COMMIT = os.environ.get('ghprbActualCommit', '')
 TASK_PATH = os.path.join(os.environ.get('WORKSPACE', os.getcwd()), '.scannerwork', 'report-task.txt')
 
 task_status_url = None
@@ -56,12 +56,12 @@ try:
     json_response = requests.get(pr_analysis_url)
     data = json.loads(json_response.text)
 
-    for pull_request in data[u'pullRequests']:
-        print("Matching analysis:", pull_request[u'key'], PR_COMMIT, pull_request[u'key'] == PR_COMMIT)
+    for pull_request in data['pullRequests']:
+        print("Matching analysis:", pull_request['key'], PR_COMMIT, pull_request['key'] == PR_COMMIT)
         # If there is analysis result for the PR commit with status OK, then exit with success status (0)
-        if pull_request[u'key'] == PR_COMMIT:
-            print("Quality Gate:", pull_request[u'status'])
-            if pull_request[u'status'][u'qualityGateStatus'] == u'OK':
+        if pull_request['key'] == PR_COMMIT:
+            print("Quality Gate:", pull_request['status'])
+            if pull_request['status']['qualityGateStatus'] == 'OK':
                 print("Status: OK")
                 break
             else:

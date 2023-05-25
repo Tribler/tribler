@@ -79,7 +79,7 @@ VOTES_RATING_DESCRIPTIONS = (
 
 
 def data_item2uri(data_item):
-    return f"magnet:?xt=urn:btih:{data_item[u'infohash']}&dn={data_item[u'name']}"
+    return f"magnet:?xt=urn:btih:{data_item['infohash']}&dn={data_item['name']}"
 
 
 def index2uri(index):
