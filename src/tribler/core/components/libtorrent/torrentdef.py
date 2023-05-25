@@ -15,25 +15,6 @@ from tribler.core.utilities.unicode import ensure_unicode
 from tribler.core.utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
 
 
-def _filter_characters(name: str) -> str:
-    """Sanitize the names in path to unicode by replacing out all
-    characters that may -even remotely- cause problems with the '?'
-    character.
-
-    :param name: the name to sanitize
-    :type name: str
-    :return: the sanitized string
-    :rtype: str
-    """
-    def filter_character(char: str) -> str:
-        if 0 < char < 128:
-            return chr(char)
-        self._logger.debug("Bad character 0x%X", char)
-        return "?"
-
-    return "".join(map(filter_character, name))
-
-
 def escape_as_utf8(string, encoding='utf8'):
     """
     Make a string UTF-8 compliant, destroying characters if necessary.
@@ -153,6 +134,24 @@ class TorrentDef:
             response = await session.get(url)
             body = await response.read()
         return TorrentDef.load_from_memory(body)
+
+    def _filter_characters(self, name: bytes) -> str:
+        """Sanitize the names in path to unicode by replacing out all
+        characters that may -even remotely- cause problems with the '?'
+        character.
+
+        :param name: the name to sanitize
+        :type name: bytes
+        :return: the sanitized string
+        :rtype: str
+        """
+        def filter_character(char: int) -> str:
+            if 0 < char < 128:
+                return chr(char)
+            self._logger.debug("Bad character 0x%X", char)
+            return "?"
+
+        return "".join(map(filter_character, name))
 
     def add_content(self, file_path):
         """
@@ -315,7 +314,7 @@ class TorrentDef:
             # all characters that may -even remotely- cause problems
             # with the '?' character
             try:
-                return _filter_characters(self.metainfo[b"info"][b"name"])
+                return self._filter_characters(self.metainfo[b"info"][b"name"])
             except UnicodeError:
                 pass
 
@@ -349,7 +348,7 @@ class TorrentDef:
                     # We assume that it is correctly encoded and use
                     # it normally
                     try:
-                        yield (Path(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
+                        yield (Path(*(ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"])),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -361,7 +360,7 @@ class TorrentDef:
                     if b"encoding" in self.metainfo:
                         encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
-                            yield (Path(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
+                            yield (Path(*(ensure_unicode(element, encoding) for element in file_dict[b"path"])),
                                    file_dict[b"length"])
                             continue
                         except UnicodeError:
@@ -376,7 +375,7 @@ class TorrentDef:
                     # Try to convert the names in path to unicode,
                     # assuming that it was encoded as utf-8
                     try:
-                        yield (Path(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                        yield (Path(*(ensure_unicode(element, "UTF-8") for element in file_dict[b"path"])),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -386,8 +385,7 @@ class TorrentDef:
                     # replacing out all characters that may -even
                     # remotely- cause problems with the '?' character
                     try:
-                        yield (Path(*[_filter_characters(element) for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+                        yield (Path(*map(self._filter_characters, file_dict[b"path"])), file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
