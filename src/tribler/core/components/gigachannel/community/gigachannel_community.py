@@ -1,3 +1,4 @@
+import operator
 import uuid
 from binascii import unhexlify
 from collections import defaultdict
@@ -47,7 +48,7 @@ class ChannelsPeersMapping:
         self._peers_channels[peer].add(id_tuple)
 
         if len(channel_peers) > self.max_peers_per_channel:
-            removed_peer = min(channel_peers, key=lambda x: x.last_response)
+            removed_peer = min(channel_peers, key=operator.attrgetter("last_response"))
             channel_peers.remove(removed_peer)
             # Maintain the reverse mapping
             self._peers_channels[removed_peer].remove(id_tuple)
@@ -64,7 +65,10 @@ class ChannelsPeersMapping:
     def get_last_seen_peers_for_channel(self, channel_pk: bytes, channel_id: int, limit=None):
         id_tuple = (channel_pk, channel_id)
         channel_peers = self._channels_dict.get(id_tuple, [])
-        return sorted(channel_peers, key=lambda x: x.last_response, reverse=True)[0:limit]
+        last_seen_peers = (
+            sorted(channel_peers, key=operator.attrgetter("last_response"), reverse=True)
+        )
+        return last_seen_peers[0:limit]
 
 
 class GigaChannelCommunity(RemoteQueryCommunity):

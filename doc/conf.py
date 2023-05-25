@@ -26,6 +26,14 @@ logging.info('Start to execute conf.py')
 
 # root_dir = Path(__file__).parent.parent
 
+def _add_root_endpoint(add_endpoint):
+    def _add_endpoint(self, path, ep):
+        if path in ['/ipv8', '/market', '/wallets']:
+            return None
+        return add_endpoint(self, path, ep)
+    
+    return _add_endpoint
+
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__name__), '..'))
 tribler_source_dirs = [
     os.path.join(root_dir, "src"),
@@ -49,8 +57,7 @@ with patch_import(modules):
     from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 
     add_endpoint = RootEndpoint.add_endpoint
-    RootEndpoint.add_endpoint = lambda self, path, ep: add_endpoint(self, path, ep) \
-        if path not in ['/ipv8', '/market', '/wallets'] else None
+    RootEndpoint.add_endpoint = _add_root_endpoint(add_endpoint=add_endpoint)
 
     # Extract Swagger docs
     from extract_swagger import extract_swagger

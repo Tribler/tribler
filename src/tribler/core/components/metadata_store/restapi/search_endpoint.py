@@ -1,3 +1,4 @@
+import operator
 import time
 from collections import defaultdict
 from typing import Dict, List
@@ -57,7 +58,7 @@ class SearchEndpoint(MetadataEndpointBase):
 
         # Sort the search results within each snippet by the number of seeders
         for torrents_list in content_to_torrents.values():
-            torrents_list.sort(key=lambda x: x["num_seeders"], reverse=True)
+            torrents_list.sort(key=operator.itemgetter("num_seeders"), reverse=True)
 
         # Determine the most popular content items - this is the one we show
         sorted_content_info = list(content_to_torrents.items())

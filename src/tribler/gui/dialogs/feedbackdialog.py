@@ -129,8 +129,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText(tr("SENDING..."))
-
-        sys_info = defaultdict(lambda: [])
+        sys_info = defaultdict(list)
         for ind in range(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
             key = item.text(0)

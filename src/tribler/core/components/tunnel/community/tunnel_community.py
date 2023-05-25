@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import math
 import sys
@@ -503,7 +504,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if state_changed and new_state in active:
                 if old_state != DownloadStatus.METADATA or new_state != DownloadStatus.DOWNLOADING:
                     self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DownloadStatus.SEEDING,
-                                    callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
+                                    callback=functools.partial(self.on_e2e_finished, info_hash=info_hash))
             elif state_changed and new_state in [DownloadStatus.STOPPED, None]:
                 self.leave_swarm(info_hash)
 

@@ -252,7 +252,7 @@ class DownloadManager(TaskManager):
         if self.dummy_mode:
             from unittest.mock import Mock
             ltsession = Mock()
-            ltsession.pop_alerts = lambda: {}
+            ltsession.pop_alerts = dict
             ltsession.listen_port = lambda: 123
             ltsession.get_settings = lambda: {"peer_fingerprint": "000"}
         else:

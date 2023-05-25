@@ -1,3 +1,4 @@
+import functools
 import random
 from collections import defaultdict
 
@@ -97,6 +98,11 @@ class TunnelDispatcher(TaskManager):
             tcp_connection.transport.write(response)
         tcp_connection.transport.close()
 
+    def _add_data_if_result(self, result_func, connection, request):
+        if not result_func.result():
+            return None
+        return self.on_socks5_udp_data(connection, request)
+
     def select_circuit(self, connection, request):
         if request.destination[1] == CIRCUIT_ID_PORT:
             circuit = self.tunnels.circuits.get(self.tunnels.ip_to_circuit_id(request.destination[0]))
@@ -120,8 +126,13 @@ class TunnelDispatcher(TaskManager):
                 return None
             self._logger.debug("Creating circuit for data to %s. Retrying later..", request.destination)
             self.cid_to_con[circuit.circuit_id] = connection
-            circuit.ready.add_done_callback(lambda f, c=connection.udp_connection, r=request:
-                                            self.on_socks5_udp_data(c, r) if f.result() else None)
+            circuit.ready.add_done_callback(
+                functools.partial(
+                    self._add_data_if_result,
+                    connection=connection.udp_connection,
+                    request=request
+                )
+            )
             return None
 
         circuit = random.choice(options)
