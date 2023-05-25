@@ -1,6 +1,7 @@
 """
 Author(s): Arno Bakker
 """
+import itertools
 import logging
 from hashlib import sha1
 
@@ -202,12 +203,8 @@ class TorrentDef:
         Returns a flat tuple of all known trackers.
         """
         if self.get_tracker_hierarchy():
-            trackers = []
-            for level in self.get_tracker_hierarchy():
-                for tracker in level:
-                    if tracker and tracker not in trackers:
-                        trackers.append(tracker)
-            return tuple(trackers)
+            trackers = itertools.chain.from_iterable(self.get_tracker_hierarchy())
+            return tuple(set(filter(None, trackers)))
         tracker = self.get_tracker()
         if tracker:
             return tracker,
