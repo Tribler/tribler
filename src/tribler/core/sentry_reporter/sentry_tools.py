@@ -7,71 +7,11 @@ from typing import Optional
 
 from faker import Faker
 
-LONG_TEXT_DELIMITER = '--LONG TEXT--'
-CONTEXT_DELIMITER = '--CONTEXT--'
-
 # Find an exception in the string like: "OverflowError: bind(): port must be 0-65535"
 _re_search_exception = re.compile(r'^(\S+)\s*:\s*(.+)')
 
 # Remove the substring like "Sentry is attempting to send 1 pending error messages"
 _re_remove_sentry = re.compile(r'Sentry is attempting.*')
-
-
-def parse_os_environ(array):
-    """Parse os.environ field.
-
-    Args:
-        array: strings that represents tuples delimited by `:`
-            Example: ["KEY:VALUE", "PATH:~/"]
-
-    Returns:
-        Dictionary that made from given array.
-            Example: {"KEY": "VALUE", "PATH": "~/"}
-
-    """
-    result = {}
-
-    if not array:
-        return result
-
-    for line in array:
-        items = line.split(':', 1)
-        if len(items) < 2:
-            continue
-        result[items[0]] = items[1]
-
-    return result
-
-
-def parse_stacktrace(stacktrace, delimiters=None):
-    """Parse stacktrace field.
-
-    Example of stacktrace:
-        Traceback (most recent call last):,
-              File "src\run_tribler.py", line 179, in <module>,
-            RuntimeError: ('\'utf-8\' codec can\'t decode byte 0xcd in position 0: invalid continuation byte,
-        --LONG TEXT--,
-            Traceback (most recent call last):,
-              File "<user>\\asyncio\\events.py", line 81, in _run,
-            UnicodeDecodeError: \'utf-8\' codec can\'t decode byte 0xcd in position 0: invalid continuation byte,
-        --CONTEXT--,
-            {\'message\': "Exception in callback'
-    Args:
-        stacktrace: the string that represents stacktrace.
-
-        delimiters: hi-level delimiters of the stacktrace.
-            ['--LONG TEXT--', '--CONTEXT--'] by default.
-
-    Returns:
-        The generator of stacktrace parts.
-    """
-    if not stacktrace:
-        return
-
-    delimiters = delimiters or [LONG_TEXT_DELIMITER, CONTEXT_DELIMITER]
-
-    for part in re.split('|'.join(delimiters), stacktrace):
-        yield [line for line in re.split(r'\\n|\n', part) if line]
 
 
 @dataclass
