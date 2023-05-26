@@ -263,7 +263,7 @@ def test_start_download_existing_download(fake_dlmgr):
     infohash = b'a' * 20
 
     mock_download = MagicMock()
-    mock_download.get_def = lambda: MagicMock(get_trackers_as_single_tuple=lambda: ())
+    mock_download.get_def = lambda: MagicMock(get_trackers=set)
 
     mock_ltsession = MagicMock()
 

@@ -198,17 +198,20 @@ class TorrentDef:
         """
         return self.torrent_parameters.get(b'announce-list', [])
 
-    def get_trackers_as_single_tuple(self):
+    def get_trackers(self) -> set:
         """
-        Returns a flat tuple of all known trackers.
+        Returns a flat set of all known trackers.
+
+        :return: all known trackers
+        :rtype: set
         """
         if self.get_tracker_hierarchy():
             trackers = itertools.chain.from_iterable(self.get_tracker_hierarchy())
-            return tuple(set(filter(None, trackers)))
+            return set(filter(None, trackers))
         tracker = self.get_tracker()
         if tracker:
-            return tracker,
-        return ()
+            return {tracker}
+        return set()
 
     def set_piece_length(self, piece_length):
         """
@@ -513,11 +516,17 @@ class TorrentDefNoMetainfo:
     def get_files_with_length(self, exts=None):
         return []
 
-    def get_trackers_as_single_tuple(self):
+    def get_trackers(self) -> set:
+        """
+        Returns a flat set of all known trackers.
+
+        :return: all known trackers
+        :rtype: set
+        """
         if self.url and self.url.startswith('magnet:'):
-            _, _, trs = parse_magnetlink(self.url)
-            return tuple(trs)
-        return ()
+            trackers = parse_magnetlink(self.url)[2]
+            return set(trackers)
+        return set()
 
     def is_private(self):
         return False

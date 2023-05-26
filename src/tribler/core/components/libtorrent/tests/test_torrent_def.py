@@ -154,9 +154,9 @@ def test_set_tracker_strip_slash(tdef):
 
 
 def test_set_tracker(tdef):
-    assert not tdef.get_trackers_as_single_tuple()
+    assert len(tdef.get_trackers()) == 0
     tdef.set_tracker("http://tracker.org")
-    assert tdef.get_trackers_as_single_tuple() == ('http://tracker.org',)
+    assert tdef.get_trackers() == {'http://tracker.org'}
 
 
 def test_get_nr_pieces(tdef):
@@ -207,13 +207,13 @@ def test_torrent_no_metainfo():
     assert tdef.get_name_as_unicode() == VIDEO_FILE_NAME
     assert not tdef.get_files()
     assert tdef.get_files_with_length() == []
-    assert not tdef.get_trackers_as_single_tuple()
+    assert len(tdef.get_trackers()) == 0
     assert not tdef.is_private()
     assert tdef.get_name_utf8() == "video.avi"
     assert tdef.get_nr_pieces() == 0
 
     torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "magnet:")
-    assert not torrent2.get_trackers_as_single_tuple()
+    assert len(torrent2.get_trackers()) == 0
 
 
 def test_get_length(tdef):
