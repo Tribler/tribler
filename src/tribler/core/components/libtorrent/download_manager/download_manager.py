@@ -586,8 +586,7 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
 
         if download and infohash not in self.metainfo_requests:
-            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) -
-                                set(download.get_def().get_trackers_as_single_tuple()))
+            new_trackers = list(tdef.get_trackers() - download.get_def().get_trackers())
             if new_trackers:
                 self.update_trackers(tdef.get_infohash(), new_trackers)
             return download
@@ -779,8 +778,8 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
         if download:
             old_def = download.get_def()
-            old_trackers = old_def.get_trackers_as_single_tuple()
-            new_trackers = list(set(trackers) - set(old_trackers))
+            old_trackers = old_def.get_trackers()
+            new_trackers = list(set(trackers) - old_trackers)
             all_trackers = list(old_trackers) + new_trackers
 
             if new_trackers:

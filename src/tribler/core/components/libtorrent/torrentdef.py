@@ -1,6 +1,7 @@
 """
 Author(s): Arno Bakker
 """
+import itertools
 import logging
 from hashlib import sha1
 
@@ -135,6 +136,25 @@ class TorrentDef:
             body = await response.read()
         return TorrentDef.load_from_memory(body)
 
+    def _filter_characters(self, name: bytes) -> str:
+        """
+        Sanitize the names in path to unicode by replacing out all
+        characters that may -even remotely- cause problems with the '?'
+        character.
+
+        :param name: the name to sanitize
+        :type name: bytes
+        :return: the sanitized string
+        :rtype: str
+        """
+        def filter_character(char: int) -> str:
+            if 0 < char < 128:
+                return chr(char)
+            self._logger.debug("Bad character 0x%X", char)
+            return "?"
+
+        return "".join(map(filter_character, name))
+
     def add_content(self, file_path):
         """
         Add some content to the torrent file.
@@ -179,21 +199,20 @@ class TorrentDef:
         """
         return self.torrent_parameters.get(b'announce-list', [])
 
-    def get_trackers_as_single_tuple(self):
+    def get_trackers(self) -> set:
         """
-        Returns a flat tuple of all known trackers.
+        Returns a flat set of all known trackers.
+
+        :return: all known trackers
+        :rtype: set
         """
         if self.get_tracker_hierarchy():
-            trackers = []
-            for level in self.get_tracker_hierarchy():
-                for tracker in level:
-                    if tracker and tracker not in trackers:
-                        trackers.append(tracker)
-            return tuple(trackers)
+            trackers = itertools.chain.from_iterable(self.get_tracker_hierarchy())
+            return set(filter(None, trackers))
         tracker = self.get_tracker()
         if tracker:
-            return tracker,
-        return ()
+            return {tracker}
+        return set()
 
     def set_piece_length(self, piece_length):
         """
@@ -296,16 +315,7 @@ class TorrentDef:
             # all characters that may -even remotely- cause problems
             # with the '?' character
             try:
-                def filter_characters(name):
-                    def filter_character(char):
-                        if 0 < char < 128:
-                            return chr(char)
-                        self._logger.debug("Bad character 0x%X", char)
-                        return "?"
-
-                    return "".join([filter_character(char) for char in name])
-
-                return filter_characters(self.metainfo[b"info"][b"name"])
+                return self._filter_characters(self.metainfo[b"info"][b"name"])
             except UnicodeError:
                 pass
 
@@ -339,7 +349,7 @@ class TorrentDef:
                     # We assume that it is correctly encoded and use
                     # it normally
                     try:
-                        yield (Path(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
+                        yield (Path(*(ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"])),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -351,7 +361,7 @@ class TorrentDef:
                     if b"encoding" in self.metainfo:
                         encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
-                            yield (Path(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
+                            yield (Path(*(ensure_unicode(element, encoding) for element in file_dict[b"path"])),
                                    file_dict[b"length"])
                             continue
                         except UnicodeError:
@@ -366,7 +376,7 @@ class TorrentDef:
                     # Try to convert the names in path to unicode,
                     # assuming that it was encoded as utf-8
                     try:
-                        yield (Path(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
+                        yield (Path(*(ensure_unicode(element, "UTF-8") for element in file_dict[b"path"])),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -376,17 +386,7 @@ class TorrentDef:
                     # replacing out all characters that may -even
                     # remotely- cause problems with the '?' character
                     try:
-                        def filter_characters(name):
-                            def filter_character(char):
-                                if 0 < char < 128:
-                                    return chr(char)
-                                self._logger.debug("Bad character 0x%X", char)
-                                return "?"
-
-                            return "".join([filter_character(char) for char in name])
-
-                        yield (Path(*[filter_characters(element) for element in file_dict[b"path"]]),
-                               file_dict[b"length"])
+                        yield (Path(*map(self._filter_characters, file_dict[b"path"])), file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
@@ -517,11 +517,17 @@ class TorrentDefNoMetainfo:
     def get_files_with_length(self, exts=None):
         return []
 
-    def get_trackers_as_single_tuple(self):
+    def get_trackers(self) -> set:
+        """
+        Returns a flat set of all known trackers.
+
+        :return: all known trackers
+        :rtype: set
+        """
         if self.url and self.url.startswith('magnet:'):
-            _, _, trs = parse_magnetlink(self.url)
-            return tuple(trs)
-        return ()
+            trackers = parse_magnetlink(self.url)[2]
+            return set(trackers)
+        return set()
 
     def is_private(self):
         return False
