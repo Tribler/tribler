@@ -145,6 +145,14 @@ def test_get_extended_status_circuits(mock_extended_status):
     assert mock_extended_status == DownloadStatus.CIRCUITS
 
 
+@pytest.patch('tribler.core.components.libtorrent.restapi.downloads_endpoint.ensure_unicode',
+       Mock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))
+def test_safe_extended_peer_info():
+    # Test that we return the string mapped by `chr` in the case of `UnicodeDecodeError`
+    extended_peer_info = _safe_extended_peer_info(b'abcd')
+    assert extended_peer_info == 'abcd'
+
+
 async def test_get_downloads_if_checkpoints_are_not_loaded(mock_dlmgr, rest_api):
     mock_dlmgr.checkpoints_count = 10
     mock_dlmgr.checkpoints_loaded = 5
