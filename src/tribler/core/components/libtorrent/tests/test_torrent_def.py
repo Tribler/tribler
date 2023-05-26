@@ -1,4 +1,5 @@
 import shutil
+from unittest.mock import Mock
 
 import pytest
 from aiohttp import ClientResponseError
@@ -158,6 +159,19 @@ def test_set_tracker(tdef):
     tdef.set_tracker("http://tracker.org")
     assert tdef.get_trackers() == {'http://tracker.org'}
 
+
+def test_get_trackers(tdef):
+    """
+    Test that `get_trackers` returns flat set of trackers
+    """
+    tdef.get_tracker_hierarchy = Mock(return_value=[["t1", "t2"], ["t3"], ["t4"]])
+    trackers = tdef.get_trackers()
+    assert trackers == {"t1", "t2", "t3", "t4"}
+
+def test_filter_characters(tdef):
+    """
+    Test `_filter_characters` sanitizes its input
+    """
 
 def test_get_nr_pieces(tdef):
     """

@@ -1,13 +1,15 @@
 import collections
 import os
+import unittest.mock
 from unittest.mock import Mock
 
 import pytest
 from aiohttp.web_app import Application
 from ipv8.util import fail, succeed
 
+import tribler.core.components.libtorrent.restapi.downloads_endpoint as download_endpoint
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
+from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status, _safe_extended_peer_info
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
@@ -145,12 +147,12 @@ def test_get_extended_status_circuits(mock_extended_status):
     assert mock_extended_status == DownloadStatus.CIRCUITS
 
 
-@pytest.patch('tribler.core.components.libtorrent.restapi.downloads_endpoint.ensure_unicode',
-       Mock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))
+@unittest.mock.patch("tribler.core.components.libtorrent.restapi.downloads_endpoint.ensure_unicode",
+       Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
 def test_safe_extended_peer_info():
     # Test that we return the string mapped by `chr` in the case of `UnicodeDecodeError`
-    extended_peer_info = _safe_extended_peer_info(b'abcd')
-    assert extended_peer_info == 'abcd'
+    extended_peer_info = download_endpoint._safe_extended_peer_info(b"abcd")
+    assert extended_peer_info == "abcd"
 
 
 async def test_get_downloads_if_checkpoints_are_not_loaded(mock_dlmgr, rest_api):

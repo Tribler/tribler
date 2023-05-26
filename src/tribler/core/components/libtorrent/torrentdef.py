@@ -137,7 +137,8 @@ class TorrentDef:
         return TorrentDef.load_from_memory(body)
 
     def _filter_characters(self, name: bytes) -> str:
-        """Sanitize the names in path to unicode by replacing out all
+        """
+        Sanitize the names in path to unicode by replacing out all
         characters that may -even remotely- cause problems with the '?'
         character.
 
