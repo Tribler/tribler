@@ -11,9 +11,15 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QDialog, QMessageBox, QTreeWidgetItem
 
 from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.sentry_reporter.sentry_reporter import ADDITIONAL_INFORMATION, COMMENTS, LAST_PROCESSES, MACHINE, \
+    OS, \
+    OS_ENVIRON, PLATFORM, \
+    PLATFORM_DETAILS, \
+    SYSINFO, SentryReporter, \
+    VERSION
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
+from tribler.core.sentry_reporter.sentry_tools import delete_item, \
+    get_first_item
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, get_ui_file_path, tr
@@ -45,7 +51,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.scrubber = SentryScrubber()
         self.sentry_reporter = sentry_reporter
         self.stop_application_on_close = stop_application_on_close
-        self.additional_tags = additional_tags
+        self.additional_tags = additional_tags or {}
         sentry_reporter.collecting_breadcrumbs_allowed = False  # stop collecting breadcrumbs while the dialog is open
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
@@ -64,9 +70,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         text_for_viewing = '\n'.join(
             (
                 reported_error.text,
-                LONG_TEXT_DELIMITER,
                 reported_error.long_text,
-                CONTEXT_DELIMITER,
                 reported_error.context,
             )
         )
@@ -126,40 +130,41 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText(tr("SENDING..."))
 
-        sys_info = ""
-        sys_info_dict = defaultdict(lambda: [])
+        sys_info = defaultdict(lambda: [])
         for ind in range(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
             key = item.text(0)
             value = item.text(1)
 
-            sys_info += f"{key}\t{value}\n"
-            sys_info_dict[key].append(value)
+            sys_info[key].append(value)
 
-        comments = self.comments_text_edit.toPlainText()
-        if len(comments) == 0:
-            comments = tr("Not provided")
-        stack = self.error_text_edit.toPlainText()
+        # tags
+        self.additional_tags[VERSION] = self.tribler_version
+        self.additional_tags[MACHINE] = platform.machine()
+        self.additional_tags[OS] = platform.platform()
+        self.additional_tags[PLATFORM] = get_first_item(sys_info[PLATFORM])
+        self.additional_tags[PLATFORM_DETAILS] = get_first_item(sys_info[PLATFORM_DETAILS])
 
-        post_data = {
-            "version": self.tribler_version,
-            "machine": platform.machine(),
-            "os": platform.platform(),
-            "timestamp": int(time.time()),
-            "sysinfo": sys_info,
-            "comments": comments,
-            "stack": stack,
-        }
+        # info
+        info = {}
 
-        last_processes = [str(p) for p in self.process_manager.get_last_processes()]
+        info['_error_text'] = self.reported_error.text
+        info['_error_long_text'] = self.reported_error.long_text
+        info['_error_context'] = self.reported_error.context
+        info[COMMENTS] = self.comments_text_edit.toPlainText()
+        info[SYSINFO] = sys_info
+        info[OS_ENVIRON] = sys_info[OS_ENVIRON]
+        delete_item(info[SYSINFO], OS_ENVIRON)
+
+        info[ADDITIONAL_INFORMATION] = self.reported_error.additional_information
+        info[LAST_PROCESSES] = [str(p) for p in self.process_manager.get_last_processes()]
 
         self.sentry_reporter.send_event(
             event=self.reported_error.event,
-            post_data=post_data,
-            sys_info=sys_info_dict,
-            additional_tags=self.additional_tags,
+            tags=self.additional_tags,
+            info=info,
             last_core_output=self.reported_error.last_core_output,
-            last_processes=last_processes
+            tribler_version=self.tribler_version
         )
         self.on_report_sent()
 

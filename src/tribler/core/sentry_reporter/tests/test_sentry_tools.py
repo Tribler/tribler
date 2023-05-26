@@ -9,8 +9,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
     get_last_item,
     get_value,
     modify_value,
-    obfuscate_string, parse_last_core_output, parse_os_environ,
-    parse_stacktrace,
+    obfuscate_string, parse_last_core_output,
 )
 
 
@@ -44,46 +43,6 @@ def test_delete():
     assert delete_item({'key': 'value'}, None) == {'key': 'value'}
     assert delete_item({'key': 'value'}, 'missed_key') == {'key': 'value'}
     assert delete_item({'key': 'value'}, 'key') == {}
-
-
-def test_parse_os_environ():
-    # simple tests
-    assert parse_os_environ(None) == {}
-    assert parse_os_environ([]) == {}
-    assert parse_os_environ(['KEY:value']) == {'KEY': 'value'}
-
-    assert parse_os_environ(['KEY:value', 'KEY1:value1', 'KEY2:value2']) == {
-        'KEY': 'value',
-        'KEY1': 'value1',
-        'KEY2': 'value2',
-    }
-
-    # test multiply `:`
-    assert parse_os_environ(['KEY:value:and:some']) == {'KEY': 'value:and:some'}
-
-    # test no `:`
-    assert parse_os_environ(['KEY:value', 'key']) == {'KEY': 'value'}
-
-
-def test_parse_stacktrace():
-    assert list(parse_stacktrace(None)) == []
-    assert list(parse_stacktrace('')) == []
-    assert list(parse_stacktrace('\n')) == [[]]
-    assert list(parse_stacktrace('\n\n')) == [[]]
-    assert list(parse_stacktrace('line1\n\nline2\\nline3')) == [['line1', 'line2', 'line3']]
-
-    # split --LONG TEXT-- and --CONTEXT-- parts
-    assert list(parse_stacktrace('l1\nl2--LONG TEXT--l3\nl4--CONTEXT--l5\nl6')) == [
-        ['l1', 'l2'],
-        ['l3', 'l4'],
-        ['l5', 'l6'],
-    ]
-
-    # split custom parts
-    assert list(parse_stacktrace('l1\nl2customl3\nl4', delimiters=['custom'])) == [
-        ['l1', 'l2'],
-        ['l3', 'l4'],
-    ]
 
 
 def test_modify():

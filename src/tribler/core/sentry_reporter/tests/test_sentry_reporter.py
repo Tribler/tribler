@@ -4,9 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from tribler.core.sentry_reporter.sentry_reporter import (
-    ADDITIONAL_INFORMATION, BROWSER, COMMENTS, CONTEXTS, LAST_CORE_OUTPUT, MACHINE, NAME, OS, OS_ENVIRON,
-    PLATFORM, PLATFORM_DETAILS,
-    REPORTER, STACKTRACE, STACKTRACE_CONTEXT, STACKTRACE_EXTRA, SYSINFO, SentryReporter,
+    BROWSER, CONTEXTS, LAST_CORE_OUTPUT, NAME, OS_ENVIRON,
+    REPORTER, STACKTRACE, SentryReporter,
     SentryStrategy,
     TAGS, TRIBLER, TYPE, VALUE, VERSION, this_sentry_strategy,
 )
@@ -15,18 +14,10 @@ from tribler.core.utilities.patch_import import patch_import
 
 DEFAULT_EVENT = {
     CONTEXTS: {
-        BROWSER: {NAME: TRIBLER, VERSION: None},
-        REPORTER: {
-            STACKTRACE: [],
-            STACKTRACE_CONTEXT: [],
-            STACKTRACE_EXTRA: [],
-            COMMENTS: None,
-            OS_ENVIRON: {},
-            SYSINFO: {},
-            ADDITIONAL_INFORMATION: {},
-        },
+        BROWSER: {NAME: TRIBLER, VERSION: '<not set>'},
+        REPORTER: {},
     },
-    TAGS: {MACHINE: None, OS: None, PLATFORM: None, PLATFORM_DETAILS: None, VERSION: None},
+    TAGS: {},
 }
 
 
@@ -213,62 +204,13 @@ def test_before_send_scrubber_doesnt_exists(sentry_reporter: SentryReporter):
 
 
 def test_send_defaults(sentry_reporter):
-    assert sentry_reporter.send_event(None, None, None) is None
     assert sentry_reporter.send_event(event={}) == DEFAULT_EVENT
-
-
-def test_send_additional_information(sentry_reporter):
-    # test that additional information is added to the event
-    sentry_reporter.additional_information = {'some': 'information'}
-
-    actual = sentry_reporter.send_event(event={})
-    expected = deepcopy(DEFAULT_EVENT)
-    expected[CONTEXTS][REPORTER][ADDITIONAL_INFORMATION] = {'some': 'information'}
-    assert actual == expected
-
-
-def test_send_post_data(sentry_reporter):
-    # test that post data is added to the event
-    event = {'a': 'b'}
-    post_data = {
-        "version": '0.0.0', "machine": 'x86_64', "os": 'posix',
-        "timestamp": 42, "sysinfo": '', "comments": 'comment',
-        "stack": 'l1\nl2--LONG TEXT--l3\nl4',
-    }
-    actual = sentry_reporter.send_event(event=event, post_data=post_data)
-    expected = deepcopy(DEFAULT_EVENT)
-    expected['a'] = 'b'
-    expected[CONTEXTS][BROWSER][VERSION] = '0.0.0'
-    expected[CONTEXTS][REPORTER][STACKTRACE] = ['l1', 'l2']
-    expected[CONTEXTS][REPORTER][STACKTRACE_EXTRA] = ['l3', 'l4']
-    expected[CONTEXTS][REPORTER][COMMENTS] = 'comment'
-    expected[TAGS] = {MACHINE: 'x86_64', OS: 'posix', PLATFORM: None, PLATFORM_DETAILS: None,
-                      VERSION: '0.0.0'}
-
-    assert actual == expected
-
-
-def test_send_sys_info(sentry_reporter):
-    # test that sys_info is added to the event
-    sys_info = {
-        PLATFORM: ['darwin'],
-        PLATFORM_DETAILS: ['details'],
-        OS_ENVIRON: ['KEY:VALUE', 'KEY1:VALUE1'],
-    }
-    actual = sentry_reporter.send_event(event={}, sys_info=sys_info)
-    expected = deepcopy(DEFAULT_EVENT)
-    expected[CONTEXTS][REPORTER][OS_ENVIRON] = {'KEY': 'VALUE', 'KEY1': 'VALUE1'}
-    expected[CONTEXTS][REPORTER][SYSINFO] = {PLATFORM: ['darwin'], PLATFORM_DETAILS: ['details']}
-    expected[TAGS][PLATFORM] = 'darwin'
-    expected[TAGS]['platform.details'] = 'details'
-
-    assert actual == expected
 
 
 def test_send_additional_tags(sentry_reporter):
     # test that additional tags are added to the event
     tags = {'tag_key': 'tag_value', 'numeric_tag_key': 1}
-    actual = sentry_reporter.send_event(event={}, additional_tags=tags)
+    actual = sentry_reporter.send_event(event={}, tags=tags)
     expected = deepcopy(DEFAULT_EVENT)
     expected[TAGS].update(tags)
     assert actual == expected

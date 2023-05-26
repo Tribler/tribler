@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from enum import Enum, auto
 from hashlib import md5
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import sentry_sdk
 from faker import Faker
@@ -18,8 +18,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
     get_first_item,
     get_last_item, get_value,
-    parse_last_core_output, parse_os_environ,
-    parse_stacktrace,
+    parse_last_core_output
 )
 
 VALUE = 'value'
@@ -162,9 +161,8 @@ class SentryReporter:
 
         return sentry_sdk.add_breadcrumb(crumb, **kwargs)
 
-    def send_event(self, event: Dict = None, post_data: Dict = None, sys_info: Dict = None,
-                   additional_tags: Dict[str, Any] = None, last_core_output: Optional[str] = None,
-                   last_processes: List[str] = None):
+    def send_event(self, event: Dict, tags: Optional[Dict[str, Any]] = None, info: Optional[Dict[str, Any]] = None,
+                   last_core_output: Optional[str] = None, tribler_version='<not set>'):
         """Send the event to the Sentry server
 
         This method
@@ -179,25 +177,19 @@ class SentryReporter:
         will be raised, will be sent to Sentry automatically.
 
         Args:
-            event: event to send. It should be taken from SentryReporter at
-            post_data: dictionary made by the feedbackdialog.py
-                previous stages of executing.
-            sys_info: dictionary made by the feedbackdialog.py
-            additional_tags: tags that will be added to the event
+            event: event to send. It should be taken from SentryReporter
+            tags: tags that will be added to the event
+            info: additional information that will be added to the event
             last_core_output: string that represents last core output
-            last_processes: list of strings describing last Tribler GUI/Core processes
+            tribler_version: Tribler version
 
         Returns:
             Event that was sent to Sentry server
         """
-        self._logger.info(f"Send: {post_data}, {event}")
+        self._logger.info(f"Send: {tags}, {info}, {event}")
 
-        if event is None:
-            return event
-
-        post_data = post_data or dict()
-        sys_info = sys_info or dict()
-        additional_tags = additional_tags or dict()
+        tags = tags or {}
+        info = info or {}
 
         if CONTEXTS not in event:
             event[CONTEXTS] = {}
@@ -205,45 +197,13 @@ class SentryReporter:
         if TAGS not in event:
             event[TAGS] = {}
 
-        event[CONTEXTS][REPORTER] = {}
-
         # tags
-        tags = event[TAGS]
-        tags[VERSION] = get_value(post_data, VERSION)
-        tags[MACHINE] = get_value(post_data, MACHINE)
-        tags[OS] = get_value(post_data, OS)
-        tags[PLATFORM] = get_first_item(get_value(sys_info, PLATFORM))
-        tags[PLATFORM_DETAILS] = get_first_item(get_value(sys_info, PLATFORM_DETAILS))
-        tags.update(additional_tags)
-
-        # context
-        context = event[CONTEXTS]
-        reporter = context[REPORTER]
-        tribler_version = get_value(post_data, VERSION)
-
-        context[BROWSER] = {VERSION: tribler_version, NAME: TRIBLER}
-
-        stacktrace_parts = parse_stacktrace(get_value(post_data, 'stack'))
-        reporter[STACKTRACE] = next(stacktrace_parts, [])
-        stacktrace_extra = next(stacktrace_parts, [])
-        reporter[STACKTRACE_EXTRA] = stacktrace_extra
-        reporter[STACKTRACE_CONTEXT] = next(stacktrace_parts, [])
-
-        reporter[COMMENTS] = get_value(post_data, COMMENTS)
-
-        reporter[OS_ENVIRON] = parse_os_environ(get_value(sys_info, OS_ENVIRON))
-        delete_item(sys_info, OS_ENVIRON)
-
-        reporter[SYSINFO] = sys_info
-        if last_processes:
-            reporter[LAST_PROCESSES] = last_processes
-
-        reporter[ADDITIONAL_INFORMATION] = self.additional_information
+        event[TAGS].update(tags)
 
         # try to retrieve an error from the last_core_output
         if last_core_output:
             # split for better representation in the web view
-            reporter[LAST_CORE_OUTPUT] = last_core_output.split('\n')
+            info[LAST_CORE_OUTPUT] = last_core_output.split('\n')
             if last_core_exception := parse_last_core_output(last_core_output):
                 exceptions = event.get(EXCEPTION, {})
                 gui_exception = get_last_item(exceptions.get(VALUES, []), {})
@@ -255,6 +215,10 @@ class SentryReporter:
                 delete_item(gui_exception, 'stacktrace')
 
                 exceptions[VALUES] = [gui_exception, core_exception]
+
+        event[CONTEXTS][REPORTER] = info
+        event[CONTEXTS][BROWSER] = {VERSION: tribler_version, NAME: TRIBLER}
+
         with this_sentry_strategy(self, SentryStrategy.SEND_ALLOWED):
             sentry_sdk.capture_event(event)
         return event
