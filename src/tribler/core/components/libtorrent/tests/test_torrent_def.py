@@ -168,11 +168,6 @@ def test_get_trackers(tdef):
     trackers = tdef.get_trackers()
     assert trackers == {"t1", "t2", "t3", "t4"}
 
-def test_filter_characters(tdef):
-    """
-    Test `_filter_characters` sanitizes its input
-    """
-
 def test_get_nr_pieces(tdef):
     """
     Test getting the number of pieces from a TorrentDef
@@ -264,7 +259,20 @@ def test_get_name_as_unicode(tdef):
     tdef.metainfo = {b'info': {b'name': name_bytes}}
     assert tdef.get_name_as_unicode() == name_unicode
     tdef.metainfo = {b'info': {b'name': b'test\xff' + name_bytes}}
-    assert tdef.get_name_as_unicode() == 'test?????????????'
+    assert tdef.get_name_as_unicode() == 'test' + '?' * len(b'\xff' + name_bytes)
+
+
+def test_filter_characters(tdef):
+    """
+    Test `_filter_characters` sanitizes its input
+    """
+    name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
+    name = name_bytes
+    name_sanitized = "?" * len(name)
+    assert tdef._filter_characters(name) == name_sanitized # pylint: disable=protected-access
+    name = b"test\xff" + name_bytes
+    name_sanitized = "test" + "?" * len(b"\xff" + name_bytes)
+    assert tdef._filter_characters(name) == name_sanitized # pylint: disable=protected-access
 
 
 def test_get_files_with_length(tdef):
