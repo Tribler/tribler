@@ -1,7 +1,7 @@
 import linecache
 import sys
 import time
-from types import FrameType
+from types import FrameType, FunctionType
 from typing import Callable, List, Optional, Tuple
 
 from tribler.core.utilities.slow_coro_detection import logger
@@ -66,7 +66,7 @@ def stop_main_thread_stack_tracing() -> Callable:
     return previous_profiler
 
 
-def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float]]:
+def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float, bool]]:
     """
     Quickly copies necessary information from the main thread stack, so it is possible later to format a usual
     traceback in a separate thread.
@@ -77,24 +77,44 @@ def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float]]
     previous_switch_interval = sys.getswitchinterval()
     sys.setswitchinterval(SWITCH_INTERVAL)
     try:
-        stack_info = [(frame.f_code.co_name, frame.f_code.co_filename, frame.f_lineno, start_time)
-                      for frame, start_time in _main_thread_stack]
+        stack_info = []
+        for frame, start_time in _main_thread_stack:
+            func_name = frame.f_code.co_name
+            if func_name == 'profile_wrapper':
+                func: FunctionType = frame.f_locals.get('func')
+                if func is not None:
+                    func_name = func.__name__
+                    file_name = func.__code__.co_filename
+                    source_line = None
+                    stack_info.append((func_name, file_name, source_line, start_time, True))
+                    break
+            file_name = frame.f_code.co_filename
+            line_number = frame.f_lineno
+            stack_info.append((func_name, file_name, line_number, start_time, False))
     finally:
         sys.setswitchinterval(previous_switch_interval)
     return stack_info
 
 
-def get_main_thread_stack(stack_cut_duration: Optional[float] = None, limit: Optional[int] = None) -> str:
+def get_main_thread_stack(stack_cut_duration: Optional[float] = None,
+                          limit: Optional[int] = None,
+                          enable_profiling_tip: bool = True
+                          ) -> str:
     """
     Obtains the main thread stack and format it in a usual way.
     """
     traceback_items = []
     stack_info = _get_main_thread_stack_info()
     now = time.time()
-    for func_name, file_name, line_number, start_time in stack_info:
+    func_name_for_tip = None
+    for func_name, file_name, line, start_time, is_under_profiling in stack_info:
         duration = now - start_time
-        source_line = (linecache.getline(file_name, line_number).strip() if line_number else '') or '?'
-        traceback_item = f'  File "{file_name}", line {line_number or "?"}' \
+        if is_under_profiling:
+            source_line = '<is currently under profiling>'
+            enable_profiling_tip = False
+        else:
+            source_line = (linecache.getline(file_name, line).strip() if line else '') or '?'
+        traceback_item = f'  File "{file_name}", line {line or "?"}' \
                          f', in {func_name} (function started {duration:.3f} seconds ago)\n' \
                          f'    {source_line}'
 
@@ -113,10 +133,20 @@ def get_main_thread_stack(stack_cut_duration: Optional[float] = None, limit: Opt
 
             break
 
+        func_name_for_tip = func_name
         traceback_items.append(traceback_item)
 
     if limit:
         traceback_items = traceback_items[-limit:]
 
+    if not traceback_items:
+        return '<no traceback found>'
+
     traceback_str = '\n'.join(traceback_items) + '\n'
-    return f"Traceback (most recent call last):\n{traceback_str}"
+
+    tip = ''
+    if enable_profiling_tip and func_name_for_tip is not None:
+        tip = f'\nTip: by applying the `@profile()` decorator to the `{func_name_for_tip}` function, ' \
+              f'you can obtain statistics for its internal calls and see the reason for slowness'
+
+    return f"Traceback (most recent call last):\n{traceback_str}{tip}"

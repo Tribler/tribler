@@ -54,8 +54,8 @@ def test_get_main_thread_stack_info():
     with patch('tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking._main_thread_stack', stack):
         stack_info = _get_main_thread_stack_info()
 
-    assert stack_info == [('CO_NAME1', 'CO_FILENAME1', 111, start_time_1),
-                          ('CO_NAME2', 'CO_FILENAME2', 222, start_time_2)]
+    assert stack_info == [('CO_NAME1', 'CO_FILENAME1', 111, start_time_1, False),
+                          ('CO_NAME2', 'CO_FILENAME2', 222, start_time_2, False)]
     assert sys.getswitchinterval() == pytest.approx(test_switch_interval, abs=0.01)
     sys.setswitchinterval(prev_switch_interval)
 
@@ -63,13 +63,14 @@ def test_get_main_thread_stack_info():
 def test_get_main_thread_stack():
     t = time.time()
     stack_info = [
-        ('CO_NAME1', 'CO_FILENAME1', 111, t-4),  # This line is cut from the output because of limit=2
-        ('CO_NAME2', 'CO_FILENAME2', 222, t-3),
-        ('CO_NAME3', 'CO_FILENAME3', 333, t-2),
-        ('CO_NAME4', 'CO_FILENAME4', 444, t-1),  # This line is cut because we want to see the line where the last
-                                                 # slow function is called, not the line inside the last slow function
-        ('CO_NAME5', 'CO_FILENAME5', 555, t-0.02),  # This function is fast and not added to the stack
-        ('CO_NAME6', 'CO_FILENAME6', 666, t-0.01)   # This function is fast and not added to the stack
+        ('CO_NAME1', 'CO_FILENAME1', 111, t-4, False),  # This line is cut from the output because of limit=2
+        ('CO_NAME2', 'CO_FILENAME2', 222, t-3, False),
+        ('CO_NAME3', 'CO_FILENAME3', 333, t-2, False),
+        ('CO_NAME4', 'CO_FILENAME4', 444, t-1, False),  # This line is cut from the traceback because we want to see
+                                                        # the line where the last slow function is called, not the line
+                                                        # inside the last slow function
+        ('CO_NAME5', 'CO_FILENAME5', 555, t-0.02, False),  # This function is fast and not added to the stack
+        ('CO_NAME6', 'CO_FILENAME6', 666, t-0.01, False)   # This function is fast and not added to the stack
     ]
     with patch('tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking._get_main_thread_stack_info',
                return_value=stack_info):

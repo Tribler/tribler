@@ -10,7 +10,7 @@ from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking impor
 
 
 def format_info(handle: Handle, include_stack: bool = False, stack_cut_duration: Optional[float] = None,
-                limit: Optional[int] = None) -> str:
+                limit: Optional[int] = None, enable_profiling_tip: bool = True) -> str:
     """
     Returns the representation of a task executed by asyncio, with or without the stack.
     """
@@ -27,5 +27,5 @@ def format_info(handle: Handle, include_stack: bool = False, stack_cut_duration:
         task.print_stack(limit=limit, file=stream)
         stack = stream.getvalue()
     else:
-        stack = get_main_thread_stack(stack_cut_duration, limit)
+        stack = get_main_thread_stack(stack_cut_duration, limit, enable_profiling_tip)
     return f"{task}\n{stack}"
