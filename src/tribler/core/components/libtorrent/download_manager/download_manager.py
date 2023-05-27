@@ -248,7 +248,7 @@ class DownloadManager(TaskManager):
         self._logger.info(f'Dummy mode: {self.dummy_mode}. Hops: {hops}.')
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
-        fingerprint = ['TL'] + [int(x) for x in version_id.split('-')[0].split('.')] + [0]
+        fingerprint = ['TL', *map(int, version_id.split('-')[0].split('.')), 0]
         if self.dummy_mode:
             from unittest.mock import Mock
             ltsession = Mock()
@@ -268,10 +268,10 @@ class DownloadManager(TaskManager):
             settings['enable_incoming_utp'] = enable_utp
 
             settings['prefer_rc4'] = True
-            settings["listen_interfaces"] = "0.0.0.0:%d" % libtorrent_port
+            settings["listen_interfaces"] = f"0.0.0.0:{libtorrent_port}"
 
             settings['peer_fingerprint'] = self.peer_mid
-            settings['handshake_client_version'] = 'Tribler/' + version_id + '/' + hexlify(self.peer_mid)
+            settings['handshake_client_version'] = f"Tribler/{version_id}/{hexlify(self.peer_mid)}"
         else:
             settings['enable_outgoing_utp'] = True
             settings['enable_incoming_utp'] = True
@@ -281,7 +281,7 @@ class DownloadManager(TaskManager):
             settings['force_proxy'] = True
 
             # Anon listen port is never used anywhere, so we let Libtorrent set it
-            # settings["listen_interfaces"] = "0.0.0.0:%d" % anon_port
+            # settings["listen_interfaces"] = f"0.0.0.0:{anon_port}"
 
             # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
             self.update_ip_filter(ltsession, ['1.1.1.1'])
@@ -363,7 +363,8 @@ class DownloadManager(TaskManager):
     def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        torrent_rate = {0: -1, -1: 1}
+        libtorrent_rate = torrent_rate.get(rate, rate * 1024)
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'upload_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
@@ -374,10 +375,12 @@ class DownloadManager(TaskManager):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = self.get_session(hops).upload_rate_limit()
-        return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
+        torrent_rate = {-1: 0, 1: -1}
+        return torrent_rate.get(libtorrent_rate, libtorrent_rate // 1024)
 
     def set_download_rate_limit(self, rate, hops=None):
-        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        torrent_rate = {0: -1, -1: 1}
+        libtorrent_rate = torrent_rate.get(rate, rate * 1024)
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'download_rate_limit': libtorrent_rate}
@@ -386,7 +389,8 @@ class DownloadManager(TaskManager):
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
-        return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
+        torrent_rate = {-1: 0, 1: -1}
+        return torrent_rate.get(libtorrent_rate, libtorrent_rate // 1024)
 
     def process_alert(self, alert, hops=0):
         alert_type = alert.__class__.__name__
@@ -780,7 +784,7 @@ class DownloadManager(TaskManager):
             old_def = download.get_def()
             old_trackers = old_def.get_trackers()
             new_trackers = list(set(trackers) - old_trackers)
-            all_trackers = list(old_trackers) + new_trackers
+            all_trackers = [*old_trackers, *new_trackers]
 
             if new_trackers:
                 # Add new trackers to the download

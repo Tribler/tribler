@@ -35,7 +35,7 @@ def escape_as_utf8(string, encoding='utf8'):
             # latin1 and hope for the best (minor corruption).
             return string.decode('latin1').encode('utf8', 'ignore').decode('utf8')
         except (TypeError, ValueError):
-            # This is a very nasty string (e.g. u'\u266b'), remove the illegal entries.
+            # This is a very nasty string (e.g. '\u266b'), remove the illegal entries.
             return string.encode('utf8', 'ignore').decode('utf8')
 
 
