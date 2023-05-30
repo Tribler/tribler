@@ -11,14 +11,17 @@ from tribler.core.utilities.slow_coro_detection import logger
 # without interruption.
 SWITCH_INTERVAL = 0.1
 
+
+_main_thread_stack_tracking_is_enabled: bool = False
+
+
+# If the main thread stack tracing is enabled, the list contains frames for stack of the main thread.
+# The second element of a tuple is a frame's start time. We use tuple and not dataclass here for performance reasons.
 _main_thread_stack: List[FrameType] = []
 
 
-_main_stack_tracking_activated: bool = False
-
-
-def main_stack_tracking_is_activated() -> bool:
-    return _main_stack_tracking_activated
+def main_stack_tracking_is_enabled() -> bool:
+    return _main_thread_stack_tracking_is_enabled
 
 
 def main_thread_profile(frame: FrameType, event: str, _):
@@ -44,8 +47,8 @@ def start_main_thread_stack_tracing() -> Callable:
     Returns the profiler function (for testing purpose)
     """
     logger.info('Start tracing of coroutine stack to show stack for slow coroutines (makes code execution slower)')
-    global _main_stack_tracking_activated  # pylint: disable=global-statement
-    _main_stack_tracking_activated = True
+    global _main_thread_stack_tracking_is_enabled  # pylint: disable=global-statement
+    _main_thread_stack_tracking_is_enabled = True
     sys.setprofile(main_thread_profile)
     return main_thread_profile
 
@@ -57,8 +60,8 @@ def stop_main_thread_stack_tracing() -> Callable:
     """
     previous_profiler = sys.getprofile()
     sys.setprofile(None)
-    global _main_stack_tracking_activated  # pylint: disable=global-statement
-    _main_stack_tracking_activated = False
+    global _main_thread_stack_tracking_is_enabled  # pylint: disable=global-statement
+    _main_thread_stack_tracking_is_enabled = False
     return previous_profiler
 
 

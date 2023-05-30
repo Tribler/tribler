@@ -6,7 +6,7 @@ from asyncio import Handle, Task
 
 
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import get_main_thread_stack, \
-    main_stack_tracking_is_activated
+    main_stack_tracking_is_enabled
 
 
 def format_info(handle: Handle, include_stack: bool = False) -> str:
@@ -21,7 +21,7 @@ def format_info(handle: Handle, include_stack: bool = False) -> str:
     if not include_stack:
         return repr(task)
 
-    if not main_stack_tracking_is_activated():
+    if not main_stack_tracking_is_enabled():
         stream = io.StringIO()
         task.print_stack(limit=3, file=stream)
         stack = stream.getvalue()

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import (
-    _get_main_thread_stack_info, get_main_thread_stack, main_stack_tracking_is_activated, main_thread_profile,
+    _get_main_thread_stack_info, get_main_thread_stack, main_stack_tracking_is_enabled, main_thread_profile,
     start_main_thread_stack_tracing,
     stop_main_thread_stack_tracing
 )
@@ -28,11 +28,11 @@ def test_main_thread_profile():
 
 
 def test_main_stack_tracking_is_activated():
-    assert not main_stack_tracking_is_activated()
+    assert not main_stack_tracking_is_enabled()
     activated_profiler = start_main_thread_stack_tracing()
-    assert main_stack_tracking_is_activated()
+    assert main_stack_tracking_is_enabled()
     deactivated_profiler = stop_main_thread_stack_tracing()
-    assert not main_stack_tracking_is_activated()
+    assert not main_stack_tracking_is_enabled()
     assert activated_profiler is deactivated_profiler
 
 
