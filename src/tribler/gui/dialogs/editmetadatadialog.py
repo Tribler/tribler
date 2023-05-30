@@ -14,7 +14,12 @@ from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, get_objects_with_predicate, get_ui_file_path, tr
 from tribler.gui.widgets.tagbutton import TagButton
 
-METADATA_TABLE_PREDICATES = [ResourceType.TITLE, ResourceType.DESCRIPTION, ResourceType.DATE, ResourceType.LANGUAGE]
+METADATA_TABLE_PREDICATES = [
+    ResourceType.CONTENT_ITEM,
+    ResourceType.DESCRIPTION,
+    ResourceType.DATE,
+    ResourceType.LANGUAGE
+]
 
 
 class EditMetadataDialog(DialogContainer):

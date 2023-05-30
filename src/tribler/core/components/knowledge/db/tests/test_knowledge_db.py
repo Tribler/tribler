@@ -539,24 +539,26 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(predicate=ResourceType.TITLE, name='ubuntu', auto_generated=True),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='ubuntu', auto_generated=True),
                     Resource(predicate=ResourceType.TAG, name='linux', auto_generated=True),
                 ],
                 'infohash2': [
-                    Resource(predicate=ResourceType.TITLE, name='ubuntu', auto_generated=True),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='ubuntu', auto_generated=True),
                     Resource(predicate=ResourceType.TAG, name='linux', auto_generated=True),
                 ],
                 'infohash3': [
-                    Resource(predicate=ResourceType.TITLE, name='debian', auto_generated=True),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='debian', auto_generated=True),
                     Resource(predicate=ResourceType.TAG, name='linux', auto_generated=True),
                 ],
             }
         )
 
-        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TITLE, obj='missed')
+        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.CONTENT_ITEM,
+                                      obj='missed')
         assert actual == []
 
-        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TITLE, obj='ubuntu')
+        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.CONTENT_ITEM,
+                                      obj='ubuntu')
         assert actual == ['infohash1', 'infohash2']
 
         actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TAG, obj='linux')
@@ -568,11 +570,11 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(predicate=ResourceType.TITLE, name='ubuntu', auto_generated=True),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='ubuntu', auto_generated=True),
                     Resource(predicate=ResourceType.TYPE, name='linux', auto_generated=True),
                 ],
                 'infohash2': [
-                    Resource(predicate=ResourceType.TITLE, name='debian', auto_generated=True),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='debian', auto_generated=True),
                     Resource(predicate=ResourceType.TYPE, name='linux', auto_generated=True),
                 ],
                 'INFOHASH1': [
@@ -582,7 +584,7 @@ class TestTagDB(TestTagDBBase):
         )
 
         expected = [
-            SimpleStatement(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.TITLE,
+            SimpleStatement(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.CONTENT_ITEM,
                             object='ubuntu'),
             SimpleStatement(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.TYPE,
                             object='linux')
@@ -600,11 +602,11 @@ class TestTagDB(TestTagDBBase):
             self.db,
             {
                 'infohash1': [
-                    Resource(predicate=ResourceType.TITLE, name='ubuntu'),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='ubuntu'),
                     Resource(predicate=ResourceType.TYPE, name='linux'),
                 ],
                 'infohash2': [
-                    Resource(predicate=ResourceType.TITLE, name='debian'),
+                    Resource(predicate=ResourceType.CONTENT_ITEM, name='debian'),
                     Resource(predicate=ResourceType.TYPE, name='linux'),
                 ],
                 'infohash3': [
@@ -632,7 +634,7 @@ class TestTagDB(TestTagDBBase):
 
         assert _subjects(obj='linux') == {'infohash1', 'infohash2', 'infohash3'}
         assert _subjects(predicate=ResourceType.TAG, obj='linux') == {'infohash3'}
-        assert _subjects(predicate=ResourceType.TITLE) == {'infohash1', 'infohash2'}
+        assert _subjects(predicate=ResourceType.CONTENT_ITEM) == {'infohash1', 'infohash2'}
 
     @db_session
     def test_non_existent_misc(self):
