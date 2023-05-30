@@ -1,6 +1,7 @@
 import linecache
 import sys
 import time
+from dataclasses import dataclass
 from types import FrameType, FunctionType
 from typing import Callable, List, Optional, Tuple
 
@@ -66,7 +67,16 @@ def stop_main_thread_stack_tracing() -> Callable:
     return previous_profiler
 
 
-def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float, bool]]:
+@dataclass
+class StackFrameInfo:
+    func_name: str
+    file_name: str
+    start_time: float
+    line_number: Optional[int] = None
+    is_under_profiling: float = False
+
+
+def _get_main_thread_stack_info() -> List[StackFrameInfo]:
     """
     Quickly copies necessary information from the main thread stack, so it is possible later to format a usual
     traceback in a separate thread.
@@ -80,17 +90,26 @@ def _get_main_thread_stack_info() -> List[Tuple[str, str, Optional[int], float, 
         stack_info = []
         for frame, start_time in _main_thread_stack:
             func_name = frame.f_code.co_name
+
             if func_name == 'profile_wrapper':
-                func: FunctionType = frame.f_locals.get('func')
-                if func is not None:
-                    func_name = func.__name__
-                    file_name = func.__code__.co_filename
-                    source_line = None
-                    stack_info.append((func_name, file_name, source_line, start_time, True))
+                # We have profiler enabled for this function. Do not show nested frames (if present). Instead of
+                # the name `profile_wrapper`, let's show the original function name to make the traceback clearer
+                original_func: FunctionType = frame.f_locals.get('func')
+                if original_func is not None:
+                    stack_info.append(StackFrameInfo(
+                        func_name=original_func.__name__,
+                        file_name=original_func.__code__.co_filename,
+                        start_time=start_time,
+                        is_under_profiling=True
+                    ))
                     break
-            file_name = frame.f_code.co_filename
-            line_number = frame.f_lineno
-            stack_info.append((func_name, file_name, line_number, start_time, False))
+
+            stack_info.append(StackFrameInfo(
+                func_name=func_name,
+                file_name=frame.f_code.co_filename,
+                line_number=frame.f_lineno,
+                start_time=start_time
+            ))
     finally:
         sys.setswitchinterval(previous_switch_interval)
     return stack_info
@@ -107,16 +126,19 @@ def get_main_thread_stack(stack_cut_duration: Optional[float] = None,
     stack_info = _get_main_thread_stack_info()
     now = time.time()
     func_name_for_tip = None
-    for func_name, file_name, line, start_time, is_under_profiling in stack_info:
-        duration = now - start_time
-        if is_under_profiling:
+    for frame_info in stack_info:
+        duration = now - frame_info.start_time
+        if frame_info.is_under_profiling:
             source_line = '<is currently under profiling>'
             enable_profiling_tip = False
+        elif frame_info.line_number:
+            source_line = linecache.getline(frame_info.file_name, frame_info.line_number).strip()
         else:
-            source_line = (linecache.getline(file_name, line).strip() if line else '') or '?'
-        traceback_item = f'  File "{file_name}", line {line or "?"}' \
-                         f', in {func_name} (function started {duration:.3f} seconds ago)\n' \
-                         f'    {source_line}'
+            source_line = ''
+
+        traceback_item = f'  File "{frame_info.file_name}", line {frame_info.line_number or "?"}' \
+                         f', in {frame_info.func_name} (function started {duration:.3f} seconds ago)\n' \
+                         f'    {source_line or "?"}'
 
         if stack_cut_duration is not None and duration < stack_cut_duration:
             # On this stack level, the function's call duration is insignificant, indicating that it isn't related
@@ -133,7 +155,7 @@ def get_main_thread_stack(stack_cut_duration: Optional[float] = None,
 
             break
 
-        func_name_for_tip = func_name
+        func_name_for_tip = frame_info.func_name
         traceback_items.append(traceback_item)
 
     if limit:

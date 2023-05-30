@@ -6,7 +6,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import (
-    _get_main_thread_stack_info, get_main_thread_stack, main_stack_tracking_is_enabled, main_thread_profile,
+    StackFrameInfo, _get_main_thread_stack_info, get_main_thread_stack, main_stack_tracking_is_enabled,
+    main_thread_profile,
     start_main_thread_stack_tracing,
     stop_main_thread_stack_tracing
 )
@@ -54,8 +55,10 @@ def test_get_main_thread_stack_info():
     with patch('tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking._main_thread_stack', stack):
         stack_info = _get_main_thread_stack_info()
 
-    assert stack_info == [('CO_NAME1', 'CO_FILENAME1', 111, start_time_1, False),
-                          ('CO_NAME2', 'CO_FILENAME2', 222, start_time_2, False)]
+    assert stack_info == [StackFrameInfo(func_name='CO_NAME1', file_name='CO_FILENAME1', line_number=111,
+                                         start_time=start_time_1, is_under_profiling=False),
+                          StackFrameInfo(func_name='CO_NAME2', file_name='CO_FILENAME2', line_number=222,
+                                         start_time=start_time_2, is_under_profiling=False)]
     assert sys.getswitchinterval() == pytest.approx(test_switch_interval, abs=0.01)
     sys.setswitchinterval(prev_switch_interval)
 
@@ -63,14 +66,21 @@ def test_get_main_thread_stack_info():
 def test_get_main_thread_stack():
     t = time.time()
     stack_info = [
-        ('CO_NAME1', 'CO_FILENAME1', 111, t-4, False),  # This line is cut from the output because of limit=2
-        ('CO_NAME2', 'CO_FILENAME2', 222, t-3, False),
-        ('CO_NAME3', 'CO_FILENAME3', 333, t-2, False),
-        ('CO_NAME4', 'CO_FILENAME4', 444, t-1, False),  # This line is cut from the traceback because we want to see
-                                                        # the line where the last slow function is called, not the line
-                                                        # inside the last slow function
-        ('CO_NAME5', 'CO_FILENAME5', 555, t-0.02, False),  # This function is fast and not added to the stack
-        ('CO_NAME6', 'CO_FILENAME6', 666, t-0.01, False)   # This function is fast and not added to the stack
+        # This line is cut from the output because of limit=2
+        StackFrameInfo(func_name='CO_NAME1', file_name='CO_FILENAME1', line_number=111, start_time=t-4),
+
+        StackFrameInfo(func_name='CO_NAME2', file_name='CO_FILENAME2', line_number=222, start_time=t-3),
+        StackFrameInfo(func_name='CO_NAME3', file_name='CO_FILENAME3', line_number=333, start_time=t-2),
+
+        # This line is cut from the traceback because we want to see the line where the last slow function is called,
+        # not the line inside the last slow function
+        StackFrameInfo(func_name='CO_NAME4', file_name='CO_FILENAME4', line_number=444, start_time=t-1),
+
+        # This function is fast and not added to the stack
+        StackFrameInfo(func_name='CO_NAME5', file_name='CO_FILENAME5', line_number=555, start_time=t-0.02),
+
+        # This function is fast and not added to the stack
+        StackFrameInfo(func_name='CO_NAME6', file_name='CO_FILENAME6', line_number=666, start_time=t-0.01)
     ]
     with patch('tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking._get_main_thread_stack_info',
                return_value=stack_info):
