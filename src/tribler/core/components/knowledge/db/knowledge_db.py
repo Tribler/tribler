@@ -51,6 +51,7 @@ class ResourceType(IntEnum):
     # this is a section for extra types
     TAG = 101
     TORRENT = 102
+    CONTENT_ITEM = 103
 
 
 @dataclass

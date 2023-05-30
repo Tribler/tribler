@@ -276,7 +276,7 @@ margin: 0px;
         </column>
         <item>
          <property name="text">
-          <string>Title</string>
+          <string>Content Item</string>
          </property>
         </item>
         <item>
