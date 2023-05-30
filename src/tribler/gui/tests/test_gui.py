@@ -696,7 +696,7 @@ def test_tags_dialog(window):
     assert widget.content_table.add_tags_dialog.dialog_widget.error_text_label.isVisible()
 
     QTest.keyClick(tags_input, "c")
-    assert tags_input.tags[-1].text == "aac"
+    assert tags_input.tags[-1].text == "ac"
 
     # Test creating a new tag by clicking to the right of the right-most tag
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=tags_input.tags[-1].rect.topRight().toPoint() + QPoint(10, 0))
