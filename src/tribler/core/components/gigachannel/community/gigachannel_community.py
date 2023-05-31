@@ -1,3 +1,4 @@
+import time
 import uuid
 from binascii import unhexlify
 from collections import defaultdict
@@ -24,6 +25,8 @@ max_entries = maximum_payload_size // minimal_blob_size
 max_search_peers = 5
 
 happy_eyeballs_delay = 0.3  # Send request to another peer if the answer did not arrive in 0.3s
+
+max_address_cache_lifetime = 5.0  # seconds
 
 
 @dataclass
@@ -105,10 +108,30 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         # peer twice. If we do, this should happen really rarely
         self.queried_peers = set()
 
+        self.address_cache = {}
+        self.address_cache_created_at = time.time()
+
         self.discovery_booster = DiscoveryBooster()
         self.discovery_booster.apply(self)
 
         self.channels_peers = ChannelsPeersMapping()
+
+    def guess_address(self, interface):
+        # Address caching allows 100x speedup of EdgeWalk.take_step() in DiscoveryBooster, from 3.0 to 0.03 seconds.
+        # The overridden method can be removed after IPv8 adds internal caching of addresses.
+        now = time.time()
+        cache_lifetime = now - self.address_cache_created_at
+        if cache_lifetime > max_address_cache_lifetime:
+            self.address_cache.clear()
+            self.address_cache_created_at = now
+
+        result = self.address_cache.get(interface)
+        if result is not None:
+            return result
+
+        result = super().guess_address(interface)
+        self.address_cache[interface] = result
+        return result
 
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
