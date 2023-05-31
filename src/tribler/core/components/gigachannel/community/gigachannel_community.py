@@ -105,7 +105,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         # peer twice. If we do, this should happen really rarely
         self.queried_peers = set()
 
-        self.discovery_booster = DiscoveryBooster(timeout_in_sec=60)
+        self.discovery_booster = DiscoveryBooster()
         self.discovery_booster.apply(self)
 
         self.channels_peers = ChannelsPeersMapping()
