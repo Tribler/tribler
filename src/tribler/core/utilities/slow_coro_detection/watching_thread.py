@@ -82,10 +82,15 @@ class SlowCoroWatchingThread(Thread):
 
 
 def _report_freeze(handle: Handle, duration: float, first_report: bool):
+    # When printing the stack, we only want to show the stack frames executing long enough,
+    # as displaying the entire stack can confuse the reader and mislead him regarding what function should be optimized
+    stack_cut_duration = duration * 0.8
+
     if first_report:
-        info_str = format_info(handle, include_stack=True)
+        info_str = format_info(handle, include_stack=True, stack_cut_duration=stack_cut_duration)
         logger.error(f'Slow coroutine is occupying the loop for {duration:.3f} seconds already: {info_str}')
         return
 
-    info_str = format_info(handle, include_stack=False)
+    info_str = format_info(handle, include_stack=True, stack_cut_duration=stack_cut_duration, limit=2,
+                           enable_profiling_tip=False)
     logger.error(f"Still executing {info_str}")

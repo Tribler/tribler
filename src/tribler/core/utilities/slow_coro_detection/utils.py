@@ -1,27 +1,31 @@
 import io
 from asyncio import Handle, Task
-
+from typing import Optional
 
 # pylint: disable=protected-access
 
 
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import get_main_thread_stack, \
-    main_stack_tracking_is_activated
+    main_stack_tracking_is_enabled
 
 
-def format_info(handle: Handle, include_stack: bool = False) -> str:
+def format_info(handle: Handle, include_stack: bool = False, stack_cut_duration: Optional[float] = None,
+                limit: Optional[int] = None, enable_profiling_tip: bool = True) -> str:
     """
     Returns the representation of a task executed by asyncio, with or without the stack.
     """
     func = handle._callback
     task: Task = getattr(func, '__self__', None)
-    if not isinstance(task, Task) or not include_stack:
+    if not isinstance(task, Task):
         return repr(func)
 
-    if not main_stack_tracking_is_activated():
+    if not include_stack:
+        return repr(task)
+
+    if not main_stack_tracking_is_enabled():
         stream = io.StringIO()
-        task.print_stack(limit=3, file=stream)
+        task.print_stack(limit=limit, file=stream)
         stack = stream.getvalue()
     else:
-        stack = get_main_thread_stack()
+        stack = get_main_thread_stack(stack_cut_duration, limit, enable_profiling_tip)
     return f"{task}\n{stack}"
