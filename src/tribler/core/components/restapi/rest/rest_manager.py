@@ -148,8 +148,14 @@ class RESTManager:
                         self._logger.info(f"HTTP REST API server started on port {port}")
                         self.set_api_port(port)
                         break
-                    except OSError:
+
+                    except OSError as e:
+                        self._logger.warning(f"{e.__class__.__name__}: {e}")
                         bind_attempts += 1
+
+                    except BaseException as e:
+                        self._logger.error(f"{e.__class__.__name__}: {e}")
+                        raise  # an unexpected exception; propagate it
 
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
