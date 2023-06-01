@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import ssl
 import traceback
@@ -21,6 +22,7 @@ from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
 
 
+SITE_START_TIMEOUT = 5.0  # seconds
 BIND_ATTEMPTS = 10
 
 
@@ -147,7 +149,15 @@ class RESTManager:
                         self.site = web.TCPSite(self.runner, self.http_host, port,
                                                 shutdown_timeout=self.shutdown_timeout)
                         self._logger.info(f"Starting HTTP REST API server on port {port}...")
-                        await self.site.start()
+
+                        try:
+                            # The self.site.start() is expected to start immediately. It looks like on some machines,
+                            # it hangs. The timeout is added to prevent the hypothetical hanging.
+                            await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
+                        except asyncio.TimeoutError:
+                            self._logger.warning(f"Timeout when starting HTTP REST API server on port {port}")
+                            continue
+
                         self._logger.info(f"HTTP REST API server started on port {port}")
                         self.set_api_port(port)
                         break
