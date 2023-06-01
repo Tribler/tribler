@@ -20,6 +20,10 @@ from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
 
+
+BIND_ATTEMPTS = 10
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -137,10 +141,9 @@ class RESTManager:
                 await self.site.start()
             else:
                 self._logger.info(f"Searching for a free port starting from {api_port}")
-                bind_attempts = 0
-                while bind_attempts < 10:
+                for port in range(api_port, api_port + BIND_ATTEMPTS):
+
                     try:
-                        port = api_port + bind_attempts
                         self.site = web.TCPSite(self.runner, self.http_host, port,
                                                 shutdown_timeout=self.shutdown_timeout)
                         self._logger.info(f"Starting HTTP REST API server on port {port}...")
@@ -151,11 +154,14 @@ class RESTManager:
 
                     except OSError as e:
                         self._logger.warning(f"{e.__class__.__name__}: {e}")
-                        bind_attempts += 1
 
                     except BaseException as e:
                         self._logger.error(f"{e.__class__.__name__}: {e}")
                         raise  # an unexpected exception; propagate it
+
+                else:
+                    raise RuntimeError("Can't start HTTP REST API on any port in range "
+                                       f"{api_port}..{api_port + BIND_ATTEMPTS}")
 
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
