@@ -143,7 +143,9 @@ class RESTManager:
                         port = api_port + bind_attempts
                         self.site = web.TCPSite(self.runner, self.http_host, port,
                                                 shutdown_timeout=self.shutdown_timeout)
+                        self._logger.info(f"Starting HTTP REST API server on port {port}...")
                         await self.site.start()
+                        self._logger.info(f"HTTP REST API server started on port {port}")
                         self.set_api_port(port)
                         break
                     except OSError:
