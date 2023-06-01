@@ -144,23 +144,12 @@ class RESTManager:
             else:
                 self._logger.info(f"Searching for a free port starting from {api_port}")
                 for port in range(api_port, api_port + BIND_ATTEMPTS):
-
                     try:
-                        self.site = web.TCPSite(self.runner, self.http_host, port,
-                                                shutdown_timeout=self.shutdown_timeout)
-                        self._logger.info(f"Starting HTTP REST API server on port {port}...")
-
-                        try:
-                            # The self.site.start() is expected to start immediately. It looks like on some machines,
-                            # it hangs. The timeout is added to prevent the hypothetical hanging.
-                            await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
-                        except asyncio.TimeoutError:
-                            self._logger.warning(f"Timeout when starting HTTP REST API server on port {port}")
-                            continue
-
-                        self._logger.info(f"HTTP REST API server started on port {port}")
-                        self.set_api_port(port)
+                        await self.start_http_site(port)
                         break
+
+                    except asyncio.TimeoutError:
+                        self._logger.warning(f"Timeout when starting HTTP REST API server on port {port}")
 
                     except OSError as e:
                         self._logger.warning(f"{e.__class__.__name__}: {e}")
@@ -188,6 +177,18 @@ class RESTManager:
 
             await self.site_https.start()
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
+
+    async def start_http_site(self, port):
+        self.site = web.TCPSite(self.runner, self.http_host, port, shutdown_timeout=self.shutdown_timeout)
+        self._logger.info(f"Starting HTTP REST API server on port {port}...")
+
+        # The self.site.start() is expected to start immediately. It looks like on some machines,
+        # it hangs. The timeout is added to prevent the hypothetical hanging.
+        await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
+
+        self._logger.info(f"HTTP REST API server started on port {port}")
+        self.set_api_port(port)
+
 
     async def stop(self):
         self._logger.info('Stopping...')
