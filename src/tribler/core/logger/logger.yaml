@@ -18,8 +18,8 @@ handlers:
     level: INFO
     formatter: standard
     filename: TRIBLER_INFO_LOG_FILE
-    maxBytes: 102400 # 100KB
-    backupCount: 1
+    maxBytes: 1048576  # 1 megabyte
+    backupCount: 2
     encoding: utf8
 
   info_memory_handler:
@@ -33,8 +33,8 @@ handlers:
     level: ERROR
     formatter: error
     filename: TRIBLER_ERROR_LOG_FILE
-    maxBytes: 102400 # 100KB
-    backupCount: 1
+    maxBytes: 1048576  # 1 megabyte
+    backupCount: 2
     encoding: utf8
 
   error_memory_handler:
