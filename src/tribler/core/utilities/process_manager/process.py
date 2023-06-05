@@ -160,8 +160,8 @@ class TriblerProcess:
             return False
 
         try:
-            process = psutil.Process(self.pid)
-            status = process.status()
+            psutil_process = psutil.Process(self.pid)
+            status = psutil_process.status()
         except psutil.Error as e:
             self.logger.warning(e)
             return False
@@ -169,7 +169,8 @@ class TriblerProcess:
         if status == psutil.STATUS_ZOMBIE:
             return False
 
-        if process.create_time() > self.started_at:
+        psutil_process_create_time = psutil_process.create_time()
+        if psutil_process_create_time > self.started_at:
             return False
 
         return True
