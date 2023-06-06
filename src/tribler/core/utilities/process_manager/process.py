@@ -132,8 +132,11 @@ class TriblerProcess:
                         creator_pid: Optional[int] = None,
                         manager: Optional[ProcessManager] = None) -> TriblerProcess:
         """Constructs an object for a current process, specifying the PID value of the current process"""
-        return cls(manager=manager, row_version=0, pid=os.getpid(), kind=kind,
-                   app_version=version_id, started_at=int(time.time()), creator_pid=creator_pid)
+        pid = os.getpid()
+        psutil_process = psutil.Process(pid)
+        started_at = int(psutil_process.create_time())
+        return cls(manager=manager, row_version=0, pid=pid, kind=kind,
+                   app_version=version_id, started_at=started_at, creator_pid=creator_pid)
 
     def is_current_process(self) -> bool:
         """Returns True if the object represents the current process"""
@@ -169,8 +172,9 @@ class TriblerProcess:
         if status == psutil.STATUS_ZOMBIE:
             return False
 
-        psutil_process_create_time = psutil_process.create_time()
+        psutil_process_create_time = int(psutil_process.create_time())
         if psutil_process_create_time > self.started_at:
+            # The same PID value was reused for a new process, so the previous process is not running anymore
             return False
 
         return True
