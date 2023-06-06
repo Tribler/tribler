@@ -89,7 +89,7 @@ class QtSingleApplication(QApplication):
         self._incoming_stream.setCodec('UTF-8')
         connect(self._incoming_connection.readyRead, self._on_ready_read)
         if self.tribler_window:
-            self.tribler_window.restore_from_minimised()
+            self.tribler_window.raise_window()
 
     def _on_ready_read(self):
         while True:
