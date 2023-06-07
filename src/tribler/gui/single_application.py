@@ -96,4 +96,5 @@ class QtSingleApplication(QApplication):
             msg = self._incoming_stream.readLine()
             if not msg:
                 break
+            self.logger.info(f'A message received via the local socket: {msg}')
             self.message_received.emit(msg)
