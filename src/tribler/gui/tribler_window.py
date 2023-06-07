@@ -1250,10 +1250,6 @@ class TriblerWindow(QMainWindow):
         if event.key() == Qt.Key_Escape:
             self.escape_pressed.emit()
 
-    def restore_from_minimised(self):
-        self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
-        self.raise_()
-
     def handle_uri(self, uri):
         self.pending_uri_requests.append(uri)
         if self.tribler_started and not self.start_download_dialog_active:
