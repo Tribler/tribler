@@ -104,6 +104,12 @@ hiddenimports = [
                     'typing_extensions',
                 ] + widget_files + pony_deps + get_sentry_hooks()
 
+# Fix for issue: Could not load a pixbuf from icon theme.
+# Unrecognized image file format (gdk-pixbuf-error-quark, 3).
+# See: https://github.com/Tribler/tribler/issues/7457
+if sys.platform.startswith('linux'):
+    hiddenimports += ['gi', 'gi.repository.GdkPixbuf']
+
 # https://github.com/pyinstaller/pyinstaller/issues/5359
 hiddenimports += collect_submodules('pydantic')
 
