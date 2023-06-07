@@ -29,6 +29,9 @@ class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
     def close_dialog(self, checked=False):
+        if self.closed:
+            return
+
         try:
             self.close_event.emit()
             self.setParent(None)
