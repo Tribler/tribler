@@ -312,12 +312,12 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
     def on_tracker_error_alert(self, alert: lt.tracker_error_alert):
-        self._logger.error(f'On tracker error alert: {alert}')
-
-        # try-except block here is a workaround and has been added to solve
-        # the issue: "UnicodeDecodeError: invalid continuation byte"
+        # The try-except block is added as a workaround to suppress UnicodeDecodeError in `repr(alert)`,
+        # `alert.url` and `alert.msg`. See https://github.com/arvidn/libtorrent/issues/143
         try:
+            self._logger.error(f'On tracker error alert: {alert}')
             url = alert.url
+
             peers = self.tracker_status[url][0] if url in self.tracker_status else 0
             if alert.msg:
                 status = 'Error: ' + alert.msg
@@ -330,8 +330,7 @@ class Download(TaskManager):
 
             self.tracker_status[url] = [peers, status]
         except UnicodeDecodeError as e:
-            self._logger.exception(e)
-            return
+            self._logger.warning(f'UnicodeDecodeError in on_tracker_error_alert: {e}')
 
     def on_tracker_warning_alert(self, alert: lt.tracker_warning_alert):
         self._logger.warning(f'On tracker warning alert: {alert}')

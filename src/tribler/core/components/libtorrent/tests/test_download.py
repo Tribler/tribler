@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import libtorrent as lt
 import pytest
+from _pytest.logging import LogCaptureFixture
 from ipv8.util import succeed
 from libtorrent import bencode
 
@@ -236,6 +237,14 @@ def test_process_error_alert(test_download):
     mock_alert.status_code = 0
     test_download.process_alert(mock_alert, 'tracker_error_alert')
     assert test_download.tracker_status[url][1] == 'Timeout'
+
+
+def test_tracker_error_alert_unicode_decode_error(test_download: Download, caplog: LogCaptureFixture):
+    exception = UnicodeDecodeError('utf-8', b'\xc3\x28', 0, 1, 'invalid continuation byte')
+    mock_alert = MagicMock(__repr__=Mock(side_effect=exception))
+    test_download.process_alert(mock_alert, 'tracker_error_alert')
+    assert caplog.messages == ["UnicodeDecodeError in on_tracker_error_alert: "
+                               "'utf-8' codec can't decode byte 0xc3 in position 0: invalid continuation byte"]
 
 
 def test_tracker_warning_alert(test_download):
