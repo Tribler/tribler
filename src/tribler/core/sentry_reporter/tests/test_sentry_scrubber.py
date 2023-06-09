@@ -5,7 +5,6 @@ from tribler.core.sentry_reporter.sentry_reporter import (
     CONTEXTS,
     EXTRA,
     LOGENTRY,
-    OS_ENVIRON,
     REPORTER,
     STACKTRACE,
     SYSINFO,
@@ -188,12 +187,13 @@ def test_scrub_event(scrubber):
         'server_name': 'userhost',
         CONTEXTS: {
             REPORTER: {
-                OS_ENVIRON: {
+                'any': {
                     'USERNAME': 'User Name',
                     'USERDOMAIN_ROAMINGPROFILE': 'userhost',
                     'PATH': '/users/username/apps',
                     'TMP_WIN': r'C:\Users\USERNAM~1\AppData\Local\Temp',
-                    'USERDOMAIN': 'a',
+                    'USERDOMAIN': ' USER-DOMAIN',  # it is a corner case when there is a space before a text
+                    'COMPUTERNAME': 'Computer name',
                 },
                 STACKTRACE: [
                     'Traceback (most recent call last):',
@@ -216,12 +216,13 @@ def test_scrub_event(scrubber):
         'server_name': '<protection>',
         CONTEXTS: {
             REPORTER: {
-                OS_ENVIRON: {
+                'any': {
                     'USERNAME': '<father>',
                     'USERDOMAIN_ROAMINGPROFILE': '<protection>',
                     'PATH': '/users/<highlight>/apps',
                     'TMP_WIN': 'C:\\Users\\<restaurant>\\AppData\\Local\\Temp',
-                    'USERDOMAIN': '<answer>',
+                    'USERDOMAIN': '<marriage>',
+                    'COMPUTERNAME': '<message>',
                 },
                 STACKTRACE: [
                     'Traceback (most recent call last):',
