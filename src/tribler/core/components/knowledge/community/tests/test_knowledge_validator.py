@@ -5,6 +5,7 @@ from tribler.core.components.knowledge.community.knowledge_validator import is_v
 from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType
 
 VALID_TAGS = [
+    'nl',
     'tag',
     'Tag',
     'Тэг',
@@ -13,7 +14,7 @@ VALID_TAGS = [
 
 INVALID_TAGS = [
     '',
-    'ta',  # less than 3
+    't',
     't' * 51,  # more than 50
 ]
 

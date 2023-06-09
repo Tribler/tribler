@@ -120,6 +120,9 @@ class StartDownloadDialog(DialogContainer):
         self.rest_request = None
 
     def close_dialog(self, checked=False):
+        if self.closed:
+            return
+
         if self.rest_request:
             self.rest_request.cancel()
 
@@ -134,6 +137,7 @@ class StartDownloadDialog(DialogContainer):
             except RuntimeError:
                 logging.debug("Deleting loading files widget in the dialog widget failed.")
 
+        self.window().start_download_dialog_active = False
         super().close_dialog()
 
     def perform_files_request(self):

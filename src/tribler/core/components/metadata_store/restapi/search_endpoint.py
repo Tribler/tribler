@@ -50,7 +50,7 @@ class SearchEndpoint(MetadataEndpointBase):
             with db_session:
                 content_items: List[str] = self.knowledge_db.get_objects(subject_type=ResourceType.TORRENT,
                                                                          subject=search_result["infohash"],
-                                                                         predicate=ResourceType.TITLE)
+                                                                         predicate=ResourceType.CONTENT_ITEM)
             if content_items:
                 for content_id in content_items:
                     content_to_torrents[content_id].append(search_result)

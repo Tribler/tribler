@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import ssl
 import traceback
@@ -19,6 +20,11 @@ from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
+
+
+SITE_START_TIMEOUT = 5.0  # seconds
+BIND_ATTEMPTS = 10
+
 
 logger = logging.getLogger(__name__)
 
@@ -137,17 +143,24 @@ class RESTManager:
                 await self.site.start()
             else:
                 self._logger.info(f"Searching for a free port starting from {api_port}")
-                bind_attempts = 0
-                while bind_attempts < 10:
+                for port in range(api_port, api_port + BIND_ATTEMPTS):
                     try:
-                        port = api_port + bind_attempts
-                        self.site = web.TCPSite(self.runner, self.http_host, port,
-                                                shutdown_timeout=self.shutdown_timeout)
-                        await self.site.start()
-                        self.set_api_port(port)
+                        await self.start_http_site(port)
                         break
-                    except OSError:
-                        bind_attempts += 1
+
+                    except asyncio.TimeoutError:
+                        self._logger.warning(f"Timeout when starting HTTP REST API server on port {port}")
+
+                    except OSError as e:
+                        self._logger.warning(f"{e.__class__.__name__}: {e}")
+
+                    except BaseException as e:
+                        self._logger.error(f"{e.__class__.__name__}: {e}")
+                        raise  # an unexpected exception; propagate it
+
+                else:
+                    raise RuntimeError("Can't start HTTP REST API on any port in range "
+                                       f"{api_port}..{api_port + BIND_ATTEMPTS}")
 
             self._logger.info("Started HTTP REST API: %s", self.site.name)
 
@@ -164,6 +177,18 @@ class RESTManager:
 
             await self.site_https.start()
             self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
+
+    async def start_http_site(self, port):
+        self.site = web.TCPSite(self.runner, self.http_host, port, shutdown_timeout=self.shutdown_timeout)
+        self._logger.info(f"Starting HTTP REST API server on port {port}...")
+
+        # The self.site.start() is expected to start immediately. It looks like on some machines,
+        # it hangs. The timeout is added to prevent the hypothetical hanging.
+        await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
+
+        self._logger.info(f"HTTP REST API server started on port {port}")
+        self.set_api_port(port)
+
 
     async def stop(self):
         self._logger.info('Stopping...')

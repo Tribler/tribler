@@ -224,12 +224,8 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
         self.description_page.setHidden(False)
 
     def _on_description_received(self, result):
-        if result:
-            self.description_text = result["description_text"]
-            self.description_text_preview.setMarkdown(self.description_text)
-        else:
-            self.description_text = None
-            self.description_text_preview.setMarkdown("")
+        self.description_text = result.get("description_text") if result else None
+        self.description_text_preview.setMarkdown(self.description_text or "")
 
         request_manager.get(f'channels/{self.channel_pk}/{self.channel_id}/thumbnail',
                             on_success=self._on_thumbnail_received,

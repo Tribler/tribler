@@ -1,7 +1,6 @@
 import logging
 import queue
 import time
-from asyncio import Event
 from dataclasses import dataclass
 from typing import Optional, Set
 
@@ -187,8 +186,8 @@ class KnowledgeRulesProcessor(TaskManager):
                                  objects=tags)
 
         if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TITLE,
-                                 objects=content_items)
+            self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str,
+                                 predicate=ResourceType.CONTENT_ITEM, objects=content_items)
 
         return len(tags) + len(content_items)
 

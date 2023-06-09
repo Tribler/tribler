@@ -4,4 +4,4 @@ from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_
 
 def test_extract_only_valid_tags():
     # test that extract_only_valid_tags extracts only valid tags
-    assert set(extract_only_valid_tags('[valid-tag, in va li d]', rules=general_rules)) == {'valid-tag'}
+    assert set(extract_only_valid_tags('[valid-tag, i n v a l i d]', rules=general_rules)) == {'valid-tag'}

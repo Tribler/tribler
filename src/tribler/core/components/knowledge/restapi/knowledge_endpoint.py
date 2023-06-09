@@ -9,8 +9,8 @@ from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
+from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
-from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.utilities.utilities import froze_it
@@ -65,24 +65,21 @@ class KnowledgeEndpoint(RESTEndpoint):
             return error_response
 
         # Validate whether the size of the tag is within the allowed range and filter out duplicate tags.
-        tags = set()
         statements = []
+        self._logger.info(f'Statements about {infohash}: {params["statements"]}')
         for statement in params["statements"]:
             obj = statement["object"]
-            if statement["predicate"] == ResourceType.TAG and \
-                    (len(obj) < MIN_RESOURCE_LENGTH or len(obj) > MAX_RESOURCE_LENGTH):
+            if not is_valid_resource(obj):
                 return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
 
-            if obj not in tags:
-                tags.add(obj)
-                statements.append(statement)
+            statements.append(statement)
 
         self.modify_statements(infohash, statements)
 
         return RESTResponse({"success": True})
 
     @db_session
-    def modify_statements(self, infohash: str, statements):
+    def modify_statements(self, infohash: str, statements: list):
         """
         Modify the statements of a particular content item.
         """
@@ -92,7 +89,9 @@ class KnowledgeEndpoint(RESTEndpoint):
         # First, get the current statements and compute the diff between the old and new statements
         old_statements = self.db.get_statements(subject_type=ResourceType.TORRENT, subject=infohash)
         old_statements = {(stmt.predicate, stmt.object) for stmt in old_statements}
+        self._logger.info(f'Old statements: {old_statements}')
         new_statements = {(stmt["predicate"], stmt["object"]) for stmt in statements}
+        self._logger.info(f'New statements: {new_statements}')
         added_statements = new_statements - old_statements
         removed_statements = old_statements - new_statements
 
@@ -108,6 +107,9 @@ class KnowledgeEndpoint(RESTEndpoint):
             operation.clock = self.db.get_clock(operation) + 1
             signature = self.community.sign(operation)
             self.db.add_operation(operation, signature, is_local_peer=True)
+
+        self._logger.info(f'Added statements: {added_statements}')
+        self._logger.info(f'Removed statements: {removed_statements}')
 
     @docs(
         tags=["General"],

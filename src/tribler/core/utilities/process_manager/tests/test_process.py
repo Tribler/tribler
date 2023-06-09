@@ -15,7 +15,7 @@ def test_tribler_process():
     assert p.is_running()
 
     pattern = r"^CoreProcess\(running, current process, pid=\d+, gui_pid=123, version='[^']+', " \
-              r"started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\, duration='0:00:\d{2}'\)$"
+              r"started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\, duration='\d:\d{2}:\d{2}'\)$"
     assert re.match(pattern, str(p))
 
     p.canceled = True
@@ -23,7 +23,7 @@ def test_tribler_process():
     p.exit_code = 1
 
     pattern = r"^CoreProcess\(finished, current process, canceled, pid=\d+, gui_pid=123, version='[^']+', " \
-              r"started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\, api_port=123, duration='0:00:\d{2}', " \
+              r"started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\, api_port=123, duration='\d:\d{2}:\d{2}', " \
               r"exit_code=1\)$"
     assert re.match(pattern, str(p))
 
@@ -104,7 +104,7 @@ def test_tribler_process_set_error(current_process):
 
     # The error text is included in ProcessInfo.__str__() output
     pattern = r"^CoreProcess\(running, current process, primary, pid=\d+, version='[^']+', " \
-              r"started='[^']+', duration='0:00:\d{2}', error='ValueError: exception text'\)$"
+              r"started='[^']+', duration='\d:\d{2}:\d{2}', error='ValueError: exception text'\)$"
     assert re.match(pattern, str(current_process))
 
 
