@@ -53,6 +53,11 @@ class ApiKeyMiddleware:
 async def error_middleware(request, handler):
     try:
         response = await handler(request)
+    except ConnectionResetError:
+        # A client closes the connection. It is not the Core error, nothing to handle or report this.
+        # We cannot return response, as the connection is already closed, so we just propagate the exception
+        # without reporting it to Sentry. The exception will be printed to the log by aiohttp.server.log_exception()
+        raise
     except HTTPNotFound:
         return RESTResponse({'error': {
             'handled': True,
