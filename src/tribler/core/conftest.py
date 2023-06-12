@@ -9,7 +9,6 @@ import pytest
 from aiohttp import web
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from ipv8.util import succeed
 
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.components.libtorrent.download_manager.download import Download
@@ -43,34 +42,6 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
     yield
     duration = time.time() - start_time
     print(f' in {duration:.3f}s', end='')
-
-
-@pytest.fixture
-def state_dir(tmp_path):
-    state_dir = tmp_path / 'state_dir'
-    state_dir.mkdir()
-    return state_dir
-
-
-@pytest.fixture
-def mock_dlmgr(state_dir):
-    dlmgr = MagicMock()
-    dlmgr.config = LibtorrentSettings()
-    dlmgr.shutdown = lambda: succeed(None)
-    checkpoints_dir = state_dir / 'dlcheckpoints'
-    checkpoints_dir.mkdir()
-    dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
-    dlmgr.state_dir = state_dir
-    dlmgr.get_downloads = lambda: []
-    dlmgr.checkpoints_count = 1
-    dlmgr.checkpoints_loaded = 1
-    dlmgr.all_checkpoints_are_loaded = True
-    return dlmgr
-
-
-@pytest.fixture
-def mock_dlmgr_get_download(mock_dlmgr):  # pylint: disable=unused-argument, redefined-outer-name
-    mock_dlmgr.get_download = lambda _: None
 
 
 @pytest.fixture
@@ -175,17 +146,6 @@ async def udp_tracker(free_port):
     udp_tracker = UDPTracker(free_port)
     yield udp_tracker
     await udp_tracker.stop()
-
-
-@pytest.fixture
-def test_tdef(state_dir):
-    tdef = TorrentDef()
-    sourcefn = TESTS_DATA_DIR / 'video.avi'
-    tdef.add_content(sourcefn)
-    tdef.set_tracker("http://localhost/announce")
-    torrentfn = state_dir / "gen.torrent"
-    tdef.save(torrentfn)
-    return tdef
 
 
 @pytest.fixture

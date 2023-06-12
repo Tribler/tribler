@@ -1,5 +1,9 @@
-import pytest
+from unittest.mock import MagicMock
 
+import pytest
+from ipv8.util import succeed
+
+from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.path_util import Path
 
@@ -26,3 +30,26 @@ def tribler_config(tmp_path) -> TriblerConfig:
     config.resource_monitor.enabled = False
     config.bootstrap.enabled = False
     return config
+
+
+@pytest.fixture
+def state_dir(tmp_path):
+    state_dir = tmp_path / 'state_dir'
+    state_dir.mkdir()
+    return state_dir
+
+
+@pytest.fixture
+def mock_dlmgr(state_dir):
+    download_manager = MagicMock()
+    download_manager.config = LibtorrentSettings()
+    download_manager.shutdown = lambda: succeed(None)
+    checkpoints_dir = state_dir / 'dlcheckpoints'
+    checkpoints_dir.mkdir()
+    download_manager.get_checkpoint_dir = lambda: checkpoints_dir
+    download_manager.state_dir = state_dir
+    download_manager.get_downloads = lambda: []
+    download_manager.checkpoints_count = 1
+    download_manager.checkpoints_loaded = 1
+    download_manager.all_checkpoints_are_loaded = True
+    return download_manager
