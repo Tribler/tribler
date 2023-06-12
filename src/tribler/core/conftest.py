@@ -48,20 +48,16 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
     print(f' in {duration:.3f}s', end='')
 
 
-@pytest.fixture(name="tribler_state_dir")
-def _tribler_state_dir(tmp_path):
-    return Path(tmp_path) / "dot.Tribler"
-
-
 @pytest.fixture(name="tribler_download_dir")
 def _tribler_download_dir(tmp_path):
     return Path(tmp_path) / "TriblerDownloads"
 
 
 @pytest.fixture(name="tribler_config")
-def _tribler_config(tribler_state_dir, tribler_download_dir) -> TriblerConfig:
-    config = TriblerConfig(state_dir=tribler_state_dir)
-    config.download_defaults.put_path_as_relative('saveas', tribler_download_dir, state_dir=tribler_state_dir)
+def _tribler_config(tmp_path, tribler_download_dir) -> TriblerConfig:
+    state_dir = Path(tmp_path) / "dot.Tribler"
+    config = TriblerConfig(state_dir=state_dir)
+    config.download_defaults.put_path_as_relative('saveas', tribler_download_dir, state_dir=str(state_dir))
     config.torrent_checking.enabled = False
     config.ipv8.enabled = False
     config.ipv8.walk_scaling_enabled = False
@@ -222,9 +218,10 @@ def enable_https(tribler_config, free_port):
 
 
 @pytest.fixture
-def enable_watch_folder(tribler_state_dir, tribler_config):
-    tribler_config.watch_folder.put_path_as_relative('directory', tribler_state_dir / "watch", tribler_state_dir)
-    os.makedirs(tribler_state_dir / "watch")
+def enable_watch_folder(tmp_path, tribler_config):
+    state_dir = Path(tmp_path) / "dot.Tribler"
+    tribler_config.watch_folder.put_path_as_relative('directory', state_dir / "watch", state_dir)
+    os.makedirs(state_dir / "watch")
     tribler_config.watch_folder.enabled = True
 
 
