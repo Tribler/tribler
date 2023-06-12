@@ -8,12 +8,9 @@ from unittest.mock import MagicMock
 import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 
-from tribler.core.components.libtorrent.download_manager.download import Download
-from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.utilities.network_utils import default_network_utils
-from tribler.core.utilities.unicode import hexlify
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
 # some coroutine properly, we can see a traceback with the name of the test which created the coroutine.
@@ -54,16 +51,6 @@ def event_loop():
 
 
 @pytest.fixture
-async def test_download(mock_dlmgr, test_tdef):
-    config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
-    download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
-    download.infohash = hexlify(test_tdef.get_infohash())
-    yield download
-
-    await download.shutdown()
-
-
-@pytest.fixture
 def mock_lt_status():
     lt_status = MagicMock()
     lt_status.upload_rate = 123
@@ -84,11 +71,6 @@ def mock_lt_status():
     lt_status.pieces = []
     lt_status.finished_time = 10
     return lt_status
-
-
-@pytest.fixture
-def mock_handle(mocker, test_download):
-    return mocker.patch.object(test_download, 'handle')
 
 
 @pytest.fixture

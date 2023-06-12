@@ -1,9 +1,11 @@
 import pytest
 from aiohttp import web
 
+from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.utilities.unicode import hexlify
 
 
 # pylint: disable=redefined-outer-name
@@ -41,3 +43,18 @@ async def file_server(tmp_path, free_port):
     await app.shutdown()
     await runner.shutdown()
     await site.stop()
+
+
+@pytest.fixture
+async def test_download(mock_dlmgr, test_tdef):
+    config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
+    download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
+    download.infohash = hexlify(test_tdef.get_infohash())
+    yield download
+
+    await download.shutdown()
+
+
+@pytest.fixture
+def mock_handle(mocker, test_download):
+    return mocker.patch.object(test_download, 'handle')
