@@ -6,7 +6,6 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
-from aiohttp import web
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 
@@ -17,7 +16,6 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
@@ -44,6 +42,11 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
 
 
 @pytest.fixture
+def free_port():
+    return default_network_utils.get_random_free_port(start=1024, stop=50000)
+
+
+@pytest.fixture
 async def video_seeder(tmp_path_factory, video_tdef):
     config = LibtorrentSettings()
     config.dht = False
@@ -64,49 +67,6 @@ async def video_seeder(tmp_path_factory, video_tdef):
     await upload.wait_for_status(DownloadStatus.SEEDING)
     yield dlmgr
     await dlmgr.shutdown()
-
-
-@pytest.fixture(name="free_port")
-def fixture_free_port():
-    return default_network_utils.get_random_free_port(start=1024, stop=50000)
-
-
-@pytest.fixture
-async def file_server(tmp_path, free_port):
-    """
-    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmp_path
-    """
-    app = web.Application()
-    app.add_routes([web.static('/', tmp_path)])
-    runner = web.AppRunner(app, access_log=None)
-    await runner.setup()
-    site = web.TCPSite(runner, 'localhost', free_port)
-    await site.start()
-    yield free_port
-
-    await app.shutdown()
-    await runner.shutdown()
-    await site.stop()
-
-
-@pytest.fixture
-async def magnet_redirect_server(free_port):
-    """
-    Return a HTTP redirect server that redirects to a magnet.
-    """
-    magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-
-    async def redirect_handler(_):
-        return web.HTTPFound(magnet_link)
-
-    app = web.Application()
-    app.add_routes([web.get('/', redirect_handler)])
-    runner = web.AppRunner(app, access_log=None)
-    await runner.setup()
-    http_server = web.TCPSite(runner, 'localhost', free_port)
-    await http_server.start()
-    yield free_port
-    await http_server.stop()
 
 
 TEST_PERSONAL_KEY = LibNaCLSK(
@@ -130,13 +90,6 @@ def knowledge_db():
     db = KnowledgeDatabase()
     yield db
     db.shutdown()
-
-
-@pytest.fixture
-async def udp_tracker(free_port):
-    udp_tracker = UDPTracker(free_port)
-    yield udp_tracker
-    await udp_tracker.stop()
 
 
 @pytest.fixture
