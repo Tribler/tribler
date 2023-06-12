@@ -6,7 +6,6 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
-from ipv8.keyvault.crypto import default_eccrypto
 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
@@ -48,11 +47,6 @@ def event_loop():
     loop = policy.new_event_loop()
     yield loop
     loop.close()
-
-
-@pytest.fixture
-def peer_key():
-    return default_eccrypto.generate_key("curve25519")
 
 
 @pytest.fixture
