@@ -1,10 +1,8 @@
 import asyncio
 import logging
-import os
 import platform
 import sys
 import time
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -20,8 +18,7 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.simpledefs import DownloadStatus
@@ -48,28 +45,6 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
     print(f' in {duration:.3f}s', end='')
 
 
-@pytest.fixture(name="tribler_config")
-def _tribler_config(tmp_path) -> TriblerConfig:
-    state_dir = Path(tmp_path) / "dot.Tribler"
-    download_dir = Path(tmp_path) / "TriblerDownloads"
-    config = TriblerConfig(state_dir=state_dir)
-    config.download_defaults.put_path_as_relative('saveas', download_dir, state_dir=str(state_dir))
-    config.torrent_checking.enabled = False
-    config.ipv8.enabled = False
-    config.ipv8.walk_scaling_enabled = False
-    config.discovery_community.enabled = False
-    config.libtorrent.enabled = False
-    config.libtorrent.dht_readiness_timeout = 0
-    config.tunnel_community.enabled = False
-    config.popularity_community.enabled = False
-    config.dht.enabled = False
-    config.libtorrent.dht = False
-    config.chant.enabled = False
-    config.resource_monitor.enabled = False
-    config.bootstrap.enabled = False
-    return config
-
-
 @pytest.fixture
 def download_config():
     return DownloadConfig()
@@ -80,11 +55,6 @@ def state_dir(tmp_path):
     state_dir = tmp_path / 'state_dir'
     state_dir.mkdir()
     return state_dir
-
-
-@pytest.fixture
-def enable_ipv8(tribler_config):
-    tribler_config.ipv8.enabled = True
 
 
 @pytest.fixture
@@ -203,22 +173,6 @@ def knowledge_db():
     db = KnowledgeDatabase()
     yield db
     db.shutdown()
-
-
-@pytest.fixture
-def enable_https(tribler_config, free_port):
-    tribler_config.api.put_path_as_relative('https_certfile', TESTS_DIR / 'data' / 'certfile.pem',
-                                            tribler_config.state_dir)
-    tribler_config.api.https_enabled = True
-    tribler_config.api.https_port = free_port
-
-
-@pytest.fixture
-def enable_watch_folder(tmp_path, tribler_config):
-    state_dir = Path(tmp_path) / "dot.Tribler"
-    tribler_config.watch_folder.put_path_as_relative('directory', state_dir / "watch", state_dir)
-    os.makedirs(state_dir / "watch")
-    tribler_config.watch_folder.enabled = True
 
 
 @pytest.fixture
