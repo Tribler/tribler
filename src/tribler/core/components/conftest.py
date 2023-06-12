@@ -111,3 +111,22 @@ def knowledge_db():
     db = KnowledgeDatabase()
     yield db
     db.shutdown()
+
+
+@pytest.fixture
+async def download_manager(tmp_path_factory):
+    config = LibtorrentSettings()
+    config.dht = False
+    config.upnp = False
+    config.natpmp = False
+    config.lsd = False
+    download_manager = DownloadManager(
+        config=config,
+        state_dir=tmp_path_factory.mktemp('state_dir'),
+        notifier=MagicMock(),
+        peer_mid=b"0000")
+    download_manager.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
+    download_manager.initialize()
+    yield download_manager
+
+    await download_manager.shutdown()
