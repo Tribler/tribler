@@ -3,6 +3,7 @@ import logging
 import os
 import platform
 import sys
+import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -36,6 +37,15 @@ sys.set_coroutine_origin_tracking_depth(10)
 def pytest_configure(config):  # pylint: disable=unused-argument
     # Disable logging from faker for all tests
     logging.getLogger('faker.factory').propagate = False
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=unused-argument
+    """ Modify the pytest output to include the execution duration for all tests """
+    start_time = time.time()
+    yield
+    duration = time.time() - start_time
+    print(f' in {duration:.3f}s', end='')
 
 
 @pytest.fixture(name="tribler_root_dir")
