@@ -48,19 +48,14 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
     print(f' in {duration:.3f}s', end='')
 
 
-@pytest.fixture(name="tribler_root_dir")
-def _tribler_root_dir(tmp_path):
-    return Path(tmp_path)
-
-
 @pytest.fixture(name="tribler_state_dir")
-def _tribler_state_dir(tribler_root_dir):
-    return tribler_root_dir / "dot.Tribler"
+def _tribler_state_dir(tmp_path):
+    return Path(tmp_path) / "dot.Tribler"
 
 
 @pytest.fixture(name="tribler_download_dir")
-def _tribler_download_dir(tribler_root_dir):
-    return tribler_root_dir / "TriblerDownloads"
+def _tribler_download_dir(tmp_path):
+    return Path(tmp_path) / "TriblerDownloads"
 
 
 @pytest.fixture(name="tribler_config")
