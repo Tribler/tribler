@@ -1,4 +1,5 @@
 import logging
+import time
 
 import pytest
 
@@ -26,3 +27,12 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "guitest" in item.keywords:
             item.add_marker(skip_guitests)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=unused-argument
+    """ Modify the pytest output to include the execution duration for all tests """
+    start_time = time.time()
+    yield
+    duration = time.time() - start_time
+    print(f' in {duration:.3f}s', end='')
