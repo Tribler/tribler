@@ -7,12 +7,12 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony import orm
 from pony.orm import db_session
 
+from tribler.core.components.conftest import TEST_PERSONAL_KEY
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import TODELETE
 from tribler.core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
-from tribler.core.conftest import TEST_PERSONAL_KEY
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.utilities import random_infohash
 
