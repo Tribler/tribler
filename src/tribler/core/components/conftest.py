@@ -4,7 +4,9 @@ import pytest
 from ipv8.util import succeed
 
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path
 
 
@@ -53,3 +55,8 @@ def mock_dlmgr(state_dir):
     download_manager.checkpoints_loaded = 1
     download_manager.all_checkpoints_are_loaded = True
     return download_manager
+
+
+@pytest.fixture
+def video_tdef():
+    return TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')

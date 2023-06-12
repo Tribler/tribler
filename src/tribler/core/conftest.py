@@ -15,7 +15,6 @@ from tribler.core.components.libtorrent.download_manager.download import Downloa
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
-from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.tests.tools.tracker.udp_tracker import UDPTracker
@@ -45,11 +44,6 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
 
 
 @pytest.fixture
-def video_tdef():
-    return TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')
-
-
-@pytest.fixture
 async def video_seeder(tmp_path_factory, video_tdef):
     config = LibtorrentSettings()
     config.dht = False
@@ -70,9 +64,6 @@ async def video_seeder(tmp_path_factory, video_tdef):
     await upload.wait_for_status(DownloadStatus.SEEDING)
     yield dlmgr
     await dlmgr.shutdown()
-
-
-selected_ports = set()
 
 
 @pytest.fixture(name="free_port")
