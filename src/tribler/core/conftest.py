@@ -48,16 +48,12 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
     print(f' in {duration:.3f}s', end='')
 
 
-@pytest.fixture(name="tribler_download_dir")
-def _tribler_download_dir(tmp_path):
-    return Path(tmp_path) / "TriblerDownloads"
-
-
 @pytest.fixture(name="tribler_config")
-def _tribler_config(tmp_path, tribler_download_dir) -> TriblerConfig:
+def _tribler_config(tmp_path) -> TriblerConfig:
     state_dir = Path(tmp_path) / "dot.Tribler"
+    download_dir = Path(tmp_path) / "TriblerDownloads"
     config = TriblerConfig(state_dir=state_dir)
-    config.download_defaults.put_path_as_relative('saveas', tribler_download_dir, state_dir=str(state_dir))
+    config.download_defaults.put_path_as_relative('saveas', download_dir, state_dir=str(state_dir))
     config.torrent_checking.enabled = False
     config.ipv8.enabled = False
     config.ipv8.walk_scaling_enabled = False
