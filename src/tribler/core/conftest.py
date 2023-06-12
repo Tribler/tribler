@@ -46,11 +46,6 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=u
 
 
 @pytest.fixture
-def download_config():
-    return DownloadConfig()
-
-
-@pytest.fixture
 def state_dir(tmp_path):
     state_dir = tmp_path / 'state_dir'
     state_dir.mkdir()
