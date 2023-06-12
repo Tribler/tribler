@@ -1,23 +1,22 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from pony import orm
 from pony.orm import commit, db_session
 
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, \
     PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
 from tribler.core.components.knowledge.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
-from tribler.core.utilities.pony_utils import get_or_create
+from tribler.core.utilities.pony_utils import TriblerDatabase, get_or_create
 
 
 # pylint: disable=protected-access
 class TestTagDB(TestTagDBBase):
-    @patch.object(orm.Database, 'generate_mapping')
+    @patch.object(TriblerDatabase, 'generate_mapping')
     def test_constructor_create_tables_true(self, mocked_generate_mapping: Mock):
         KnowledgeDatabase(':memory:')
         mocked_generate_mapping.assert_called_with(create_tables=True)
 
-    @patch.object(orm.Database, 'generate_mapping')
+    @patch.object(TriblerDatabase, 'generate_mapping')
     def test_constructor_create_tables_false(self, mocked_generate_mapping: Mock):
         KnowledgeDatabase(':memory:', create_tables=False)
         mocked_generate_mapping.assert_called_with(create_tables=False)
