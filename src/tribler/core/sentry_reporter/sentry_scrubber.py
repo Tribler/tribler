@@ -27,7 +27,7 @@ class SentryScrubber:
             'Documents and Settings',
             'Users',
         ]
-        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN', 'server_name']
+        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN', 'server_name', 'COMPUTERNAME']
         self.event_fields_to_cut = []
         self.exclusions = ['local', '127.0.0.1']
 
@@ -173,6 +173,7 @@ class SentryScrubber:
             result = {}
             for key, value in entity.items():
                 if key in self.dict_keys_for_scrub:
+                    value = value.strip()
                     fake_value = obfuscate_string(value)
                     placeholder = self.create_placeholder(fake_value)
                     self.add_sensitive_pair(value, placeholder)

@@ -628,7 +628,10 @@ class ChannelContentModel(RemoteTableModel):
             item_row = self.item_uid_map.get(get_item_uid(item))
             if item_row is None:
                 return
-            data_item_dict = index.model().data_items[item_row]
+            try:
+                data_item_dict = index.model().data_items[item_row]
+            except IndexError:
+                return
             data_item_dict.update(response)
             self.info_changed.emit([data_item_dict])
 

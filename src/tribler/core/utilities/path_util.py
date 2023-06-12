@@ -56,7 +56,14 @@ class Path(type(pathlib.Path())):
         for root, dir_names, file_names in os.walk(self):
             names = itertools.chain(dir_names, file_names) if include_dir_sizes else file_names
             paths = (os.path.join(root, name) for name in names)
-            size += sum(os.path.getsize(p) for p in paths if os.path.exists(p))
+            for p in paths:
+                try:
+                    size += os.path.getsize(p)
+                except OSError:
+                    # It can be FileNotFoundError or PermissionError. We can't use the `os.path.exists` check
+                    # because, in case of a race condition, a file (such as `sqlite/knowledge.db-journal`)
+                    # can be deleted right after the `exists` check.
+                    pass
         return size
 
     def startswith(self, text: str) -> bool:
