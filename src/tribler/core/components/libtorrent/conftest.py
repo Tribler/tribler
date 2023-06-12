@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from aiohttp import web
 
@@ -58,3 +60,26 @@ async def test_download(mock_dlmgr, test_tdef):
 @pytest.fixture
 def mock_handle(mocker, test_download):
     return mocker.patch.object(test_download, 'handle')
+
+
+@pytest.fixture
+def mock_lt_status():
+    lt_status = MagicMock()
+    lt_status.upload_rate = 123
+    lt_status.download_rate = 43
+    lt_status.total_upload = 100
+    lt_status.total_download = 200
+    lt_status.all_time_upload = 100
+    lt_status.total_done = 200
+    lt_status.list_peers = 10
+    lt_status.download_payload_rate = 10
+    lt_status.upload_payload_rate = 30
+    lt_status.list_seeds = 5
+    lt_status.progress = 0.75
+    lt_status.error = False
+    lt_status.paused = False
+    lt_status.state = 3
+    lt_status.num_pieces = 0
+    lt_status.pieces = []
+    lt_status.finished_time = 10
+    return lt_status
