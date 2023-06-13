@@ -74,7 +74,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y install debhelper devscripts
           # for qt:
-          sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5
+          sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5 libgirepository1.0-dev
 
       - name: Run build script
         timeout-minutes: 10
