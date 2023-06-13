@@ -59,6 +59,13 @@ jobs:
           fetch-depth: 0
           ref: ${{inputs.ref || github.ref}}
 
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install debhelper devscripts
+          # for qt:
+          sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5 libgirepository1.0-dev
+
       - name: Create python environment
         id: pyenv
         uses: ./.github/actions/pyenv
@@ -68,13 +75,6 @@ jobs:
           custom_cache_key_element: ${{inputs.ref || github.ref_name}}
 
       - uses: ./.github/actions/save_git_info
-
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install debhelper devscripts
-          # for qt:
-          sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5 libgirepository1.0-dev
 
       - name: Run build script
         timeout-minutes: 10
