@@ -2,7 +2,7 @@ import binascii
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from aiohttp import ClientSession
+from aiohttp import ClientSession, web
 from scipy.stats import shapiro
 
 from tribler.core.logger.logger import load_logger_config
@@ -14,8 +14,28 @@ from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_
                                               parse_query, random_infohash, show_system_popup, to_fts_query)
 
 
-# pylint: disable=import-outside-toplevel, import-error
+# pylint: disable=import-outside-toplevel, import-error, redefined-outer-name
 # fmt: off
+
+@pytest.fixture
+async def magnet_redirect_server(free_port):
+    """
+    Return a HTTP redirect server that redirects to a magnet.
+    """
+    magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
+
+    async def redirect_handler(_):
+        return web.HTTPFound(magnet_link)
+
+    app = web.Application()
+    app.add_routes([web.get('/', redirect_handler)])
+    runner = web.AppRunner(app, access_log=None)
+    await runner.setup()
+    http_server = web.TCPSite(runner, 'localhost', free_port)
+    await http_server.start()
+    yield free_port
+    await http_server.stop()
+
 
 def test_parse_magnetlink_lowercase():
     """
