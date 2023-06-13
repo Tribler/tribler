@@ -14,19 +14,33 @@ from tribler.core.utilities.network_utils import default_network_utils
 # was garbage collected. Without the origin tracking, it may be hard to see the test that created the task.
 sys.set_coroutine_origin_tracking_depth(10)
 
+pytest_start_time = 0  # a time when the test suite started
 
-def pytest_configure(config):  # pylint: disable=unused-argument
+
+# pylint: disable=unused-argument
+
+def pytest_configure(config):
     # Disable logging from faker for all tests
     logging.getLogger('faker.factory').propagate = False
 
 
+@pytest.hookimpl
+def pytest_collection_finish(session):
+    """ Save the start time of the test suite execution"""
+    # Called after collection has been performed and modified.
+    global pytest_start_time  # pylint: disable=global-statement
+    pytest_start_time = time.time()
+
+
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item, log=True, nextitem=None):  # pylint: disable=unused-argument
+def pytest_runtest_protocol(item, log=True, nextitem=None):
     """ Modify the pytest output to include the execution duration for all tests """
+    # Perform the runtest protocol for a single test item.
     start_time = time.time()
     yield
     duration = time.time() - start_time
-    print(f' in {duration:.3f}s', end='')
+    total = time.time() - pytest_start_time
+    print(f' in {duration:.3f}s ({total:.1f}s in total)', end='')
 
 
 @pytest.fixture
