@@ -2,7 +2,9 @@ import logging
 import time
 
 import pytest
+from _pytest.config import Config
 
+enable_extended_logging = False
 pytest_start_time = 0  # a time when the test suite started
 
 
@@ -13,6 +15,14 @@ def pytest_configure(config):  # pylint: disable=unused-argument
     logging.getLogger('faker.factory').propagate = False
     # Disable logging from PyQt5.uic for all tests
     logging.getLogger('PyQt5.uic').propagate = False
+
+
+@pytest.hookimpl
+def pytest_cmdline_main(config: Config):
+    """ Enable extended logging if the verbose option is used """
+    # Called for performing the main command line action.
+    global enable_extended_logging  # pylint: disable=global-statement
+    enable_extended_logging = config.option.verbose > 0
 
 
 def pytest_addoption(parser):
@@ -49,4 +59,5 @@ def pytest_runtest_protocol(item, log=True, nextitem=None):
     yield
     duration = time.time() - start_time
     total = time.time() - pytest_start_time
-    print(f' in {duration:.3f}s ({total:.1f}s in total)', end='')
+    if enable_extended_logging:
+        print(f' in {duration:.3f}s ({total:.1f}s in total)', end='')
