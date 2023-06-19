@@ -53,7 +53,7 @@ class HealthInfo:
         return hexlify(self.infohash)
 
     def is_valid(self) -> bool:
-        return self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
+        return self.seeders >= 0 and self.leechers >= 0 and self.last_check < int(time.time()) + TOLERABLE_TIME_DRIFT
 
     def old(self) -> bool:
         now = int(time.time())
