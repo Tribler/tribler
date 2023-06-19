@@ -44,8 +44,10 @@ class KnowledgeCommunity(TriblerCommunity):
         self.add_message_handler(RawStatementOperationMessage, self.on_message)
         self.add_message_handler(RequestStatementOperationMessage, self.on_request)
 
-        self.register_task("request_operations", self.request_operations, interval=request_interval)
-        self.register_task("clear_requests", self.requests.clear_requests, interval=CLEAR_ALL_REQUESTS_INTERVAL)
+        self.register_task("request_operations", self.request_operations, interval=request_interval,
+                           ignore=(Exception,))
+        self.register_task("clear_requests", self.requests.clear_requests, interval=CLEAR_ALL_REQUESTS_INTERVAL,
+                           ignore=(Exception,))
         self.logger.info('Knowledge community initialized')
 
     def request_operations(self):
