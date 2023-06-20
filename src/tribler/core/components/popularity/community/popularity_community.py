@@ -62,7 +62,8 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
             return []
 
         # Filter torrents that have seeders
-        return [health for health in self.torrent_checker.torrents_checked.values() if health.seeders > 0]
+        return [health for health in self.torrent_checker.torrents_checked.values() if
+                health.seeders > 0 and health.leechers >= 0]
 
     def gossip_random_torrents_health(self):
         """
