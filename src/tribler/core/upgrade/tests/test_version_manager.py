@@ -3,6 +3,7 @@ import json
 import os
 import time
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -12,11 +13,35 @@ from tribler.core.upgrade.version_manager import (
     TriblerVersion,
     VERSION_HISTORY_FILENAME,
     VersionError,
-    VersionHistory,
+    VersionHistory, NoDiskSpaceAvailableError,
 )
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
+
+
+@pytest.fixture(name='version_history')
+def version_history_fixture(tmpdir_factory):
+    installed_version = "120.1.1"
+    installed_ts = time.time() - 100  # somewhere in the past
+
+    code_version = "120.2.0"  # New version than the installed version
+
+    # Setup state directory and version history representative of the installed version.
+    root_state_dir = Path(tmpdir_factory.mktemp("state_dir"))
+    state_dir = root_state_dir / "120.1"
+    state_dir.mkdir()
+
+    version_history_file_content_json = {
+        "last_version": installed_version,
+        "history": {
+            f"{installed_ts}": installed_version
+        }
+    }
+    (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(version_history_file_content_json))
+
+    history = VersionHistory(root_state_dir, code_version)
+    return history
 
 
 def test_version_to_dirname():
@@ -203,6 +228,40 @@ def test_fork_state_directory(tmpdir_factory):
     history2 = VersionHistory(root_state_dir, code_version_id)
     assert history2.last_run_version == history2.code_version
     assert history2.last_run_version.version_str == code_version_id
+
+
+disk_space_testdata = [
+    (100, 99, True),
+    (100, 100, True),
+    (100, 101, False),
+]
+
+
+@pytest.mark.parametrize("space_required, space_available, expected_exception", disk_space_testdata)
+def test_fork_state_directory_with_storage_constraints_param(space_required, space_available, expected_exception,
+                                                             version_history):
+    version_history.code_version.can_be_copied_from.upgrade_size = lambda: space_required
+    version_history.free_disk_space = lambda: space_available
+
+    try:
+        _ = version_history.fork_state_directory_if_necessary()
+    except NoDiskSpaceAvailableError:
+        if not expected_exception:
+            pytest.fail("Did not expect no disk space available error here")
+
+
+@pytest.mark.parametrize("space_required, space_available, expected_exception", disk_space_testdata)
+def test_check_storage_available_to_copy_version(space_required, space_available, expected_exception,
+                                                 version_history):
+    prev_version = Mock()
+    prev_version.upgrade_size = lambda: space_required
+    version_history.free_disk_space = lambda: space_available
+
+    try:
+        _ = version_history.check_storage_available_to_copy_version(prev_version)
+    except NoDiskSpaceAvailableError:
+        if not expected_exception:
+            pytest.fail("Did not expect no disk space available error here")
 
 
 def test_copy_state_directory(tmpdir):

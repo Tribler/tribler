@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple
 import tribler.core.version
 from tribler.core.components.libtorrent.download_manager.download_manager import LTSTATE_FILENAME
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities import osutils
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 VERSION_HISTORY_FILENAME = "version_history.json"
@@ -52,9 +53,23 @@ and "stashes" the state dirs with conflicting names by renaming them.
 Versions prior to 7.5 are not supported.
 """
 
+RESERVED_STORAGE = 100 * 1024 * 1024  # 100MB storage is set for reserve while upgrading between versions for safety.
+
 
 class VersionError(Exception):
     pass
+
+
+class NoDiskSpaceAvailableError(Exception):
+    def __init__(self, required, available):
+        super().__init__()
+        self.space_available = available
+        self.space_required = required
+
+    def __str__(self):
+        return f"No disk space available. " \
+               f"Required: {self.space_required} bytes; " \
+               f"Available: {self.space_available} bytes"
 
 
 # pylint: disable=too-many-instance-attributes
@@ -120,6 +135,10 @@ class TriblerVersion:
             for f in path.glob('**/*'):
                 result += f.stat().st_size
         return result
+
+    def upgrade_size(self, reserved_space=RESERVED_STORAGE) -> int:
+        """Size in bytes required to upgrade from this version. This value includes some reserved storage for safety."""
+        return self.calc_state_size() + reserved_space
 
     def delete_state(self) -> Optional[Path]:
         # Try to delete the directory for the version.
@@ -344,10 +363,21 @@ class VersionHistory:
             self.logger.info('State directory should be copied')
             prev_version = code_version.can_be_copied_from
             if prev_version:  # should always be True here
+                self.check_storage_available_to_copy_version(prev_version)
                 code_version.copy_state_from(prev_version)
                 return prev_version
         self.logger.info('State directory should not be copied')
         return None
+
+    def check_storage_available_to_copy_version(self, version_to_copy):
+        required_space = version_to_copy.upgrade_size()
+        available_space = self.free_disk_space()
+        if available_space <= required_space:
+            raise NoDiskSpaceAvailableError(required_space, available_space)
+
+    def free_disk_space(self) -> int:
+        disk_usage = osutils.get_disk_usage(str(self.root_state_dir))
+        return disk_usage.free
 
     def get_installed_versions(self, with_code_version=True) -> List[TriblerVersion]:
         installed_versions = [
