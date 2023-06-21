@@ -151,7 +151,7 @@ class UpgradeManager(QObject):
             self._logger.info('Last run version is the same as the current version. Exit cleanup procedure.')
             return []
 
-        disposable_versions = self.version_history.get_disposable_versions(skip_versions=2)
+        disposable_versions = self.version_history.get_disposable_versions(skip_versions=1)
         if not disposable_versions:
             self._logger.info('No disposable versions. Exit cleanup procedure.')
             return []
