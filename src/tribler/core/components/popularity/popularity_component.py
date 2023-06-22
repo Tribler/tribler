@@ -5,8 +5,10 @@ from tribler.core.components.gigachannel.community.sync_strategy import RemovePe
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.components.popularity.rendezvous.db.database import RendezvousDatabase
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
+from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
 class PopularityComponent(Component):
@@ -22,6 +24,8 @@ class PopularityComponent(Component):
         metadata_store_component = await self.require_component(MetadataStoreComponent)
         torrent_checker_component = await self.require_component(TorrentCheckerComponent)
 
+        rendezvous_db = RendezvousDatabase(db_path=self.session.config.state_dir / STATEDIR_DB_DIR / "rendezvous.db")
+
         config = self.session.config
         community = PopularityCommunity(self._ipv8_component.peer,
                                         self._ipv8_component.ipv8.endpoint,
@@ -29,6 +33,7 @@ class PopularityComponent(Component):
                                         settings=config.popularity_community,
                                         rqc_settings=config.remote_query_community,
                                         metadata_store=metadata_store_component.mds,
+                                        rendezvous_db=rendezvous_db,
                                         torrent_checker=torrent_checker_component.torrent_checker)
         self.community = community
 
