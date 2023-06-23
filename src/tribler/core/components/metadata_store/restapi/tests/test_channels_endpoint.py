@@ -36,7 +36,7 @@ PNG_DATA = unhexlify(
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):  # pylint: disable=unused-argument
+def rest_api(web_app, event_loop, aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):
     mock_gigachannel_manager = Mock()
     mock_gigachannel_community = Mock()
 
@@ -51,11 +51,9 @@ def rest_api(event_loop, aiohttp_client, mock_dlmgr, metadata_store, knowledge_d
     collections_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
     channels_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
 
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/channels', channels_endpoint.app)
-    app.add_subapp('/collections', collections_endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+    web_app.add_subapp('/channels', channels_endpoint.app)
+    web_app.add_subapp('/collections', collections_endpoint.app)
+    yield event_loop.run_until_complete(aiohttp_client(web_app))
 
 
 async def test_get_channels(rest_api, add_fake_torrents_channels, add_subscribed_and_not_downloaded_channel, mock_dlmgr,

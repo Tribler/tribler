@@ -40,13 +40,11 @@ async def torrent_checker(mock_dlmgr, metadata_store):
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, torrent_checker, metadata_store):  # pylint: disable=unused-argument
+def rest_api(web_app, event_loop, aiohttp_client, torrent_checker, metadata_store):
     endpoint = MetadataEndpoint(torrent_checker, metadata_store)
 
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/metadata', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+    web_app.add_subapp('/metadata', endpoint.app)
+    yield event_loop.run_until_complete(aiohttp_client(web_app))
 
 
 async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrents_channels, rest_api):
