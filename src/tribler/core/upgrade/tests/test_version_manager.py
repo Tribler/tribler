@@ -13,7 +13,7 @@ from tribler.core.upgrade.version_manager import (
     TriblerVersion,
     VERSION_HISTORY_FILENAME,
     VersionError,
-    VersionHistory, NoDiskSpaceAvailableError,
+    VersionHistory, NoDiskSpaceAvailableError, RESERVED_STORAGE,
 )
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
@@ -262,6 +262,13 @@ def test_check_storage_available_to_copy_version(space_required, space_available
     except NoDiskSpaceAvailableError:
         if not expected_exception:
             pytest.fail("Did not expect no disk space available error here")
+
+
+def test_default_upgrade_size(version_history):
+    tribler_version = version_history.last_run_version
+    statedir_size = tribler_version.calc_state_size()
+    upgrade_size = tribler_version.upgrade_size()
+    assert upgrade_size == statedir_size + RESERVED_STORAGE
 
 
 def test_copy_state_directory(tmpdir):
