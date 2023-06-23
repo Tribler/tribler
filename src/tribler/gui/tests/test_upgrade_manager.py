@@ -4,7 +4,7 @@ from tribler.core.upgrade.version_manager import NoDiskSpaceAvailableError
 from tribler.gui.upgrade_manager import StateDirUpgradeWorker, UpgradeManager
 
 
-def test_no_disk_space_available_error_on_upgrade():
+def test_state_dir_upgrader_when_no_disk_space_is_available():
     version_history = Mock()
     version_history.fork_state_directory_if_necessary = Mock(side_effect=NoDiskSpaceAvailableError(1, 2))
 
@@ -16,7 +16,7 @@ def test_no_disk_space_available_error_on_upgrade():
     worker.cancelled.emit.assert_called()
 
 
-def test_no_disk_space_available(qtbot):
+def test_upgrader_when_no_disk_space_is_available(qtbot):
     version_history = Mock(last_run_version=None, get_disposable_versions=lambda _: [])
     version_history.fork_state_directory_if_necessary = Mock(side_effect=NoDiskSpaceAvailableError(1, 2))
 
