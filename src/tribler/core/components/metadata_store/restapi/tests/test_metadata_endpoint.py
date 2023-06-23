@@ -207,7 +207,7 @@ async def test_check_torrent_health(rest_api, mock_dlmgr, udp_tracker, metadata_
     infohash = b'a' * 20
     url = f'metadata/torrents/{hexlify(infohash)}/health?timeout={TORRENT_CHECK_TIMEOUT}'
     json_response = await do_request(rest_api, url)
-    assert json_response == {'checking': '1'}
+    assert json_response == {'checking': True}
 
 
 async def test_check_torrent_query(rest_api, udp_tracker, metadata_store):

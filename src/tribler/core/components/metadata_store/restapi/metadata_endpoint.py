@@ -1,10 +1,11 @@
 from binascii import unhexlify
+from typing import Optional
 
 from aiohttp import ContentTypeError, web
 from aiohttp_apispec import docs
 from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND
 from ipv8.REST.schema import schema
-from marshmallow.fields import Integer, String
+from marshmallow.fields import Boolean
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
@@ -50,7 +51,7 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     #          /<public_key>
     """
 
-    def __init__(self, torrent_checker: TorrentChecker, *args, **kwargs):
+    def __init__(self, torrent_checker: Optional[TorrentChecker], *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
         self.torrent_checker = torrent_checker
 
@@ -195,22 +196,10 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
             200: {
                 'schema': schema(
                     HealthCheckResponse={
-                        'tracker': schema(
-                            HealthCheck={'seeders': Integer, 'leechers': Integer, 'infohash': String, 'error': String}
-                        )
+                        'checking': Boolean()
                     }
                 ),
                 'examples': [
-                    {
-                        "health": {
-                            "http://mytracker.com:80/announce": {
-                                "seeders": 43,
-                                "leechers": 20,
-                                "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
-                            },
-                            "http://nonexistingtracker.com:80/announce": {"error": "timeout"},
-                        }
-                    },
                     {'checking': 1},
                 ],
             }
@@ -223,7 +212,10 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
         except ValueError as e:
             return RESTResponse({"error": f"Error processing timeout parameter: {e}"}, status=HTTP_BAD_REQUEST)
 
+        if self.torrent_checker is None:
+            return RESTResponse({'checking': False})
+
         infohash = unhexlify(request.match_info['infohash'])
         check_coro = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
         self.async_group.add_task(check_coro)
-        return RESTResponse({'checking': '1'})
+        return RESTResponse({'checking': True})
