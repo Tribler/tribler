@@ -30,11 +30,9 @@ def endpoint():
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/statistics', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+def rest_api(web_app, event_loop, aiohttp_client, endpoint):
+    web_app.add_subapp('/statistics', endpoint.app)
+    yield event_loop.run_until_complete(aiohttp_client(web_app))
 
 
 async def test_get_tribler_statistics(rest_api, endpoint, metadata_store):
