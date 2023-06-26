@@ -2,10 +2,13 @@ import asyncio
 import logging
 import platform
 import sys
-import time
+from datetime import datetime
+from typing import Optional
 
+import human_readable
 import pytest
 from _pytest.config import Config
+from _pytest.python import Function
 
 from tribler.core.utilities.network_utils import default_network_utils
 
@@ -16,7 +19,7 @@ from tribler.core.utilities.network_utils import default_network_utils
 sys.set_coroutine_origin_tracking_depth(10)
 
 enable_extended_logging = False
-pytest_start_time = 0  # a time when the test suite started
+pytest_start_time: Optional[datetime] = None  # a time when the test suite started
 
 
 # pylint: disable=unused-argument
@@ -39,19 +42,23 @@ def pytest_collection_finish(session):
     """ Save the start time of the test suite execution"""
     # Called after collection has been performed and modified.
     global pytest_start_time  # pylint: disable=global-statement
-    pytest_start_time = time.time()
+    pytest_start_time = datetime.now()
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item, log=True, nextitem=None):
+def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
     """ Modify the pytest output to include the execution duration for all tests """
     # Perform the runtest protocol for a single test item.
-    start_time = time.time()
-    yield
-    duration = time.time() - start_time
-    total = time.time() - pytest_start_time
-    if enable_extended_logging:
-        print(f' in {duration:.3f}s ({total:.1f}s in total)', end='')
+    if enable_extended_logging and pytest_start_time:
+        start_time = datetime.now()
+        print(f'\n{start_time.strftime("%H:%M:%S.%f")[:-3]} Starting "{item.name}"...', end='', flush=True)
+        yield
+        now = datetime.now()
+        duration = (now - start_time).total_seconds()
+        total = now - pytest_start_time
+        print(f' in {duration:.3f}s ({human_readable.time_delta(total)} in total)', end='')
+    else:
+        yield
 
 
 @pytest.fixture
