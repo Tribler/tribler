@@ -4,6 +4,7 @@ from typing import List
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
+from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
@@ -11,6 +12,8 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.components.popularity.rendezvous.db.database import RendezvousDatabase
+from tribler.core.components.popularity.rendezvous.rendezvous import RendezvousResponsePayload, RendezvousChallenge
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HealthInfo
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.utilities.path_util import Path
@@ -42,6 +45,26 @@ def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInf
 class TestPopularityCommunity(TestBase):
     NUM_NODES = 2
 
+    def initialize(self, overlay_class, node_count, *args, **kwargs):
+        self.overlay_class = overlay_class
+        self.nodes = [self.create_node(*args, **kwargs) for _ in range(node_count)]
+
+        # Add nodes to each other.
+        for node in self.nodes:
+            for other in self.nodes:
+                if other == node:
+                    continue
+                private_peer = other.my_peer
+                private_peer.new_style_intro = True
+                public_peer = Peer(private_peer.public_key, private_peer.address)
+                public_peer.new_style_intro = True
+                node.network.add_verified_peer(public_peer)
+                node.network.discover_services(public_peer, [overlay_class.community_id])
+
+        # Make packet handling fragile.
+        for i in range(len(self.nodes)):
+            self.patch_overlays(i)
+
     def setUp(self):
         super().setUp()
         self.count = 0
@@ -57,6 +80,7 @@ class TestPopularityCommunity(TestBase):
         mds = MetadataStore(Path(self.temporary_directory()) / f"{self.count}",
                             Path(self.temporary_directory()),
                             default_eccrypto.generate_key("curve25519"))
+        rdb = RendezvousDatabase(Path(self.temporary_directory()) / f"{self.count + 1}")
         self.metadata_store_set.add(mds)
         torrent_checker = MockObject()
         torrent_checker.torrents_checked = {}
@@ -65,6 +89,7 @@ class TestPopularityCommunity(TestBase):
 
         rqc_settings = RemoteQueryCommunitySettings()
         return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
+                        rendezvous_db=rdb,
                         torrent_checker=torrent_checker,
                         rqc_settings=rqc_settings
                         )
@@ -210,3 +235,61 @@ class TestPopularityCommunity(TestBase):
         await self.init_first_node_and_gossip(
             HealthInfo(infohash, seeders=200, leechers=0))
         self.nodes[1].overlay.send_remote_select.assert_not_called()
+
+    async def test_introduction_rendezvous_payload(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+        self.nodes[0].overlay.send_introduction_request(self.nodes[1].my_peer)
+        await self.deliver_messages()
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid).counter == 1
+
+        rendezvous_peers = list(self.nodes[1].overlay.rendezvous_cache.get_rendezvous_peers())
+        assert rendezvous_peers[0] == self.nodes[0].my_peer
+
+    async def test_introduction_rendezvous_payload_multiple(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        self.nodes[0].overlay.send_introduction_request(self.nodes[1].my_peer)
+        await self.deliver_messages()
+
+        number_of_introductions = 4
+        for i in range(number_of_introductions):
+            self.nodes[0].overlay.ping_rendezvous()
+            await self.deliver_messages()
+
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(
+                public_key=self.nodes[1].my_peer.mid).counter == number_of_introductions + 1
+
+    async def test_invalid_nonce(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        self.nodes[0].overlay.rendezvous_cache.add_peer(self.nodes[1].my_peer, b'1' * 16)
+
+        payload = self.nodes[1].overlay._create_rendezvous_response(RendezvousChallenge(b'2' * 16))
+        self.nodes[1].overlay.ez_send(self.nodes[0].my_peer, payload)
+        await self.deliver_messages()
+
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid) is None
+
+    async def test_invalid_signature(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        challenge_1 = RendezvousChallenge(b'1' * 16)
+        challenge_2 = RendezvousChallenge(b'2' * 16)
+
+        self.nodes[0].overlay.rendezvous_cache.add_peer(self.nodes[1].my_peer, challenge_1.nonce)
+
+        payload = self.nodes[1].overlay._create_rendezvous_response(challenge_2)
+        payload.challenge = challenge_1
+
+        self.nodes[1].overlay.ez_send(self.nodes[0].my_peer, payload)
+        await self.deliver_messages()
+
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid) is None
