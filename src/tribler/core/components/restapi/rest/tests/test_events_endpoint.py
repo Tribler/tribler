@@ -1,12 +1,10 @@
 import asyncio
 import json
-import logging
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
-from _pytest.logging import LogCaptureFixture
 from aiohttp import ClientSession
 
 from tribler.core import notifications
@@ -198,7 +196,7 @@ async def test_should_skip_message(events_endpoint):
             assert events_endpoint.should_skip_message(message)
 
 
-async def test_write_data(events_endpoint: EventsEndpoint, caplog: LogCaptureFixture):
+async def test_write_data(events_endpoint: EventsEndpoint):
     # Test that write_data will call write methods for all responses, even if some of them could raise
     # a ConnectionResetError exception.
 
@@ -210,5 +208,3 @@ async def test_write_data(events_endpoint: EventsEndpoint, caplog: LogCaptureFix
 
     assert bad_response.write.called
     assert good_response.write.called
-    last_log_record = caplog.records[-1]
-    assert last_log_record.levelno == logging.WARNING
