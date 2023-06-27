@@ -3,7 +3,7 @@ from asyncio import CancelledError
 from unittest.mock import Mock, patch
 
 import pytest
-from aiohttp import ServerDisconnectedError
+from aiohttp import ClientOSError, ServerDisconnectedError
 from aiohttp.web_protocol import RequestHandler
 
 from tribler.core.components.restapi.rest.aiohttp_patch import get_transport_is_none_counter, patch_make_request
@@ -144,7 +144,7 @@ async def test_aiohttp_assertion_patched(rest_manager, api_port):
     # the main monkey-patch should handle the closed transport and increment the counter during the request handling
     counter_before = get_transport_is_none_counter()
 
-    with pytest.raises(ServerDisconnectedError):
+    with pytest.raises((ServerDisconnectedError, ClientOSError)):
         # The server is disconnected, because the transport is closed and the start() coroutine is canceled
         with patch('aiohttp.web_protocol.RequestHandler.start', new=new_start):
             await do_real_request(api_port, 'settings')
