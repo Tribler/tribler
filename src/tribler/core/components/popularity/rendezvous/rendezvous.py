@@ -1,5 +1,6 @@
+import dataclasses
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.payload_dataclass import overwrite_dataclass, type_from_format
@@ -18,6 +19,10 @@ class RendezvousChallenge:
     def sign(self, sk, crypto=default_eccrypto) -> bytes:
         serialized = default_serializer.pack_serializable(self)
         return crypto.create_signature(sk, serialized)
+
+    @staticmethod
+    def create():
+        return RendezvousChallenge(secrets.token_bytes(32))
 
 
 @dataclass

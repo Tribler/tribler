@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import random
-import secrets
 from binascii import unhexlify
 from typing import List, TYPE_CHECKING
 
-from cryptography.exceptions import InvalidSignature
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address, UDPv4LANAddress
 from ipv8.messaging.serialization import PackError
@@ -14,11 +12,11 @@ from pony.orm import db_session
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.popularity.community.payload import PopularTorrentsRequest, TorrentsHealthPayload
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
+from tribler.core.components.popularity.rendezvous.db.database import RendezvousDatabase
 from tribler.core.components.popularity.rendezvous.rendezvous import RendezvousRequestPayload, \
     RendezvousResponsePayload, RawRendezvousResponsePayload, \
     RendezvousChallenge, RendezvousSignature
-from tribler.core.components.popularity.rendezvous.db.database import RendezvousDatabase
-from tribler.core.components.popularity.rendezvous.rendezvous_cache import RendezvousCache
+from tribler.core.components.popularity.rendezvous.rendezvous_cache import RendezvousCache, EMPTY_PEER_CHALLENGE
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
@@ -59,22 +57,27 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
         self.add_message_handler(PopularTorrentsRequest, self.on_popular_torrents_request)
 
+        self.add_message_handler(RendezvousRequestPayload, self.on_rendezvous_request)
+        self.add_message_handler(RendezvousResponsePayload, self.on_rendezvous_response)
+
         self.logger.info('Popularity Community initialized (peer mid %s)', hexlify(self.my_peer.mid))
         self.register_task("gossip_random_torrents", self.gossip_random_torrents_health,
                            interval=PopularityCommunity.GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS)
+        self.register_task("ping_rendezvous", self.ping_rendezvous,
+                           interval=PopularityCommunity.PING_INTERVAL_RENDEZVOUS)
 
         # Init version community message handlers
         self.init_version_community()
         self.rendezvous_cache = RendezvousCache()
 
     def send_introduction_request(self, peer):
-        rendezvous = RendezvousChallenge(secrets.token_bytes(16))
-        extra_payload = self.serializer.pack_serializable(RendezvousRequestPayload(rendezvous))
+        rendezvous_request = self._create_rendezvous_request()
+        extra_payload = self.serializer.pack_serializable(rendezvous_request)
         self.logger.debug("Piggy-backing Rendezvous to %s:%d", peer.address[0], peer.address[1])
         packet = self.create_introduction_request(peer.address, extra_bytes=extra_payload,
                                                   new_style=peer.new_style_intro)
         self.endpoint.send(peer.address, packet)
-        self.rendezvous_cache[peer.mid] = rendezvous.nonce
+        self.rendezvous_cache.add_peer(peer, rendezvous_request.challenge.nonce)
 
     # We override this method to add the rendezvous certificate to the introduction request
     def on_introduction_request(self, peer, dist, payload):
@@ -89,8 +92,10 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
             try:
                 rendezvous_request, _ = self.serializer.unpack_serializable(RendezvousRequestPayload,
                                                                             payload.extra_bytes)
-                extra_payload = self._handle_rendezvous_request(rendezvous_request)
-
+                rendezvous_response = self._create_rendezvous_response(rendezvous_request.challenge)
+                # As we are sending the rendezvous response, we know this peer is interested in rendezvous.
+                self.rendezvous_cache.add_peer(peer)
+                extra_payload = self.serializer.pack_serializable(rendezvous_response)
             except PackError as e:
                 self.logger.warning("Failed to unpack RendezvousRequestPayload: %s", e)
 
@@ -105,6 +110,19 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         self.endpoint.send(peer.address, packet)
         self.introduction_request_callback(peer, dist, payload)
 
+    @lazy_wrapper(RendezvousRequestPayload)
+    def on_rendezvous_request(self, peer, payload: RendezvousRequestPayload):
+        self.logger.debug("Received rendezvous request from %s:%d", peer.address[0], peer.address[1])
+        # As we are sending the rendezvous response, we know this peer is interested in rendezvous.
+        self.rendezvous_cache.add_peer(peer)
+        rendezvous_response = self._create_rendezvous_response(payload.challenge)
+        self.ez_send(peer, rendezvous_response)
+
+    @lazy_wrapper(RawRendezvousResponsePayload)
+    def on_rendezvous_response(self, peer, payload: RawRendezvousResponsePayload):
+        self.logger.debug("Received rendezvous response from %s:%d", peer.address[0], peer.address[1])
+        self._handle_rendezvous_response(peer, payload)
+
     def introduction_response_callback(self, peer, dist, payload):
         super().introduction_response_callback(peer, dist, payload)
         if payload.extra_bytes:
@@ -113,6 +131,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
                 raw_rendezvous_response, _ = self.serializer.unpack_serializable(RawRendezvousResponsePayload,
                                                                                  payload.extra_bytes)
                 self._handle_rendezvous_response(peer, raw_rendezvous_response)
+
             except PackError as e:
                 self.logger.warning("Failed to unpack RendezvousResponsePayload: %s", e)
 
@@ -139,6 +158,15 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         random_peer = random.choice(self.get_peers())
 
         self.ez_send(random_peer, TorrentsHealthPayload.create(random_torrents, {}))
+
+    def ping_rendezvous(self):
+        # Remove peers that haven't replied in a while.
+        self.rendezvous_cache.clear_inactive_peers()
+
+        for peer in self.rendezvous_cache.get_rendezvous_peers():
+            payload = self._create_rendezvous_request()
+            self.rendezvous_cache.set_rendezvous_challenge(peer, payload.challenge.nonce)
+            self.ez_send(peer, payload)
 
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, peer, payload):
@@ -205,31 +233,31 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         random_torrents = random.sample(checked_and_alive, num_torrents_to_send)
         return random_torrents
 
-    def _handle_rendezvous_request(self, payload: RendezvousRequestPayload) -> bytes:
-        if not payload:
-            self.logger.warning("Received invalid rendezvous request")
-            return b''
+    def _create_rendezvous_request(self) -> RendezvousRequestPayload:
+        challenge = RendezvousChallenge.create()
+        payload = RendezvousRequestPayload(challenge)
+        return payload
 
-        signature = payload.challenge.sign(self.my_peer.key)
-        payload = RendezvousResponsePayload(payload.challenge, RendezvousSignature(signature))
-        if not self.crypto.is_valid_signature(self.my_peer.public_key,
-                                              self.serializer.pack_serializable(payload.challenge),
-                                              signature):
-            self.logger.warning("Received rendezvous response with invalid signature")
-
-        return self.serializer.pack_serializable(payload)
+    def _create_rendezvous_response(self, challenge: RendezvousChallenge) -> RendezvousResponsePayload:
+        signature = challenge.sign(self.my_peer.key)
+        payload = RendezvousResponsePayload(challenge, RendezvousSignature(signature))
+        return payload
 
     def _handle_rendezvous_response(self, peer, raw_payload: RawRendezvousResponsePayload):
         signature, _ = self.serializer.unpack_serializable(RendezvousSignature, raw_payload.signature)
         challenge, _ = self.serializer.unpack_serializable(RendezvousChallenge, raw_payload.challenge)
 
-        if not self.rendezvous_cache[peer.mid] == challenge.nonce:
+        expected_nonce = self.rendezvous_cache.get_rendezvous_challenge(peer) or EMPTY_PEER_CHALLENGE
+        if expected_nonce == EMPTY_PEER_CHALLENGE or expected_nonce != challenge.nonce:
             self.logger.warning(f"Received invalid rendezvous response from {peer.mid}")
             return
 
         if not self.crypto.is_valid_signature(peer.key, raw_payload.challenge, signature.signature):
             self.logger.warning(f"Received invalid signature from {peer.mid}")
             return
+        else:
+            # This nonce has been burned.
+            self.rendezvous_cache.clear_peer_challenge(peer)
 
         self.logger.debug(f"Received valid rendezvous response from {peer.mid}")
         with db_session:
@@ -237,3 +265,4 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
             if not certificate:
                 certificate = self.rdb.Certificate(public_key=peer.mid, counter=0)
             certificate.counter += 1
+        return
