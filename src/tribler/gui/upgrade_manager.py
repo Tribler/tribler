@@ -239,6 +239,7 @@ class UpgradeManager(QObject):
         if self._upgrade_thread:
             self._upgrade_thread.deleteLater()
             self._upgrade_thread.quit()
+            self._upgrade_thread.wait()
         if self._upgrade_worker:
             self._upgrade_worker.deleteLater()
 

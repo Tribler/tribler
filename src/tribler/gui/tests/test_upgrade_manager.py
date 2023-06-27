@@ -1,7 +1,23 @@
+import faulthandler
+import sys
+import time
+
 from unittest.mock import Mock
 
+import pytest
+
 from tribler.core.upgrade.version_manager import NoDiskSpaceAvailableError
+from tribler.gui.tests.test_gui import wait_for_signal
 from tribler.gui.upgrade_manager import StateDirUpgradeWorker, UpgradeManager
+
+
+def trace(frame, event, arg):
+    print("%s, %s:%d" % (event, frame.f_code.co_filename, frame.f_lineno))
+    return trace
+
+
+# sys.settrace(trace)
+faulthandler.enable()
 
 
 def test_state_dir_upgrader_when_no_disk_space_is_available():
@@ -28,3 +44,4 @@ def test_upgrader_when_no_disk_space_is_available(qtbot):
         upgrade_manager.start()
 
     upgrade_manager.quit_tribler_with_warning.assert_called()
+
