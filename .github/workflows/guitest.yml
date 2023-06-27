@@ -13,11 +13,6 @@ on:
         type: string
         required: false
 
-      enable-profiling:
-        default: false
-        type: boolean
-        required: false
-
       ref:
         default: ${{ github.ref }}
         type: string
@@ -78,22 +73,20 @@ jobs:
           envFile: ./.github/workflows/vars/pytest.env
           expand: true
 
-      - name: Add --looptime
-        if: runner.os != 'Windows'
+      - name: Run GUI tests (Win)
+        if: runner.os == 'Windows'
         run: |
-          echo "PYTEST_GUI_ARGUMENTS=${PYTEST_GUI_ARGUMENTS} --looptime" >> $GITHUB_ENV
+          pytest ${PYTEST_GUI_ARGUMENTS_WIN}
 
-      - name: Run GUI tests
-        if: ${{!inputs.enable-profiling}}
+      - name: Run GUI tests (Linux)
+        if: runner.os == 'Linux'
         run: |
-          pytest ${PYTEST_GUI_ARGUMENTS}
+          pytest ${PYTEST_GUI_ARGUMENTS_LINUX}
 
-      - name: Run GUI tests (Profiler)
-        if: ${{inputs.enable-profiling}}
-        uses: ./.github/actions/profile
-        with:
-          artifact_name: guitests_prof.svg
-          arguments: ${PYTEST_GUI_ARGUMENTS}
+      - name: Run GUI tests (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          pytest ${PYTEST_GUI_ARGUMENTS_MAC}
 
       - uses: actions/upload-artifact@v3
         if: always()

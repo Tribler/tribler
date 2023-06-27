@@ -48,17 +48,11 @@ jobs:
           envFile: ./.github/workflows/vars/pytest.env
           expand: true
 
-      - name: Add --looptime
-        if: runner.os != 'Windows'
-        run: |
-          echo "PYTEST_CORE_ARGUMENTS=${PYTEST_CORE_ARGUMENTS} --looptime" >> $GITHUB_ENV
-          echo "PYTEST_TUNNELS_ARGUMENTS=${PYTEST_TUNNELS_ARGUMENTS} --looptime" >> $GITHUB_ENV
-
       - name: Run Pytest with Coverage
         timeout-minutes: 10
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_CORE_ARGUMENTS}
-          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_TUNNELS_ARGUMENTS}
+          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_CORE_ARGUMENTS_LINUX}
+          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_TUNNELS_ARGUMENTS_LINUX}
           coverage combine
           coverage xml
 
