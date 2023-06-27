@@ -77,18 +77,33 @@ jobs:
           envFile: ./.github/workflows/vars/pytest.env
           expand: true
 
-      - name: Add --looptime
-        if: runner.os != 'Windows'
+      - name: Run Pytest (Win)
+        if: runner.os == 'Windows'
         run: |
-          echo "PYTEST_CORE_ARGUMENTS=${PYTEST_CORE_ARGUMENTS} --looptime" >> $GITHUB_ENV
-          echo "PYTEST_TUNNELS_ARGUMENTS=${PYTEST_TUNNELS_ARGUMENTS} --looptime" >> $GITHUB_ENV
+          pytest ${PYTEST_CORE_ARGUMENTS_WIN}
 
-      - name: Run Pytest
-        if: ${{!inputs.enable_profiling}}
+      - name: Run Pytest (Linux)
+        if: runner.os == 'Linux'
         run: |
-          pytest ${PYTEST_CORE_ARGUMENTS}
+          pytest ${PYTEST_CORE_ARGUMENTS_LINUX}
 
-      - name: Run Tunnels Tests
-        if: ${{!inputs.enable_profiling}}
+      - name: Run Pytest (Mac)
+        if: runner.os == 'macOS'
         run: |
-          pytest ${PYTEST_TUNNELS_ARGUMENTS}
+          pytest ${PYTEST_CORE_ARGUMENTS_MAC}
+
+      - name: Run Tunnels Tests (Win)
+        if: runner.os == 'Windows'
+        run: |
+          pytest ${PYTEST_TUNNELS_ARGUMENTS_WIN}
+
+      - name: Run Tunnels Tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          pytest ${PYTEST_TUNNELS_ARGUMENTS_LINUX}
+
+      - name: Run Tunnels Tests (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          pytest ${PYTEST_TUNNELS_ARGUMENTS_MAC}
+          
