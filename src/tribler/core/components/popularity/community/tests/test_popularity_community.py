@@ -45,24 +45,6 @@ def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInf
 class TestPopularityCommunity(TestBase):
     NUM_NODES = 2
 
-    def initialize(self, overlay_class, node_count, *args, **kwargs):
-        self.overlay_class = overlay_class
-        self.nodes = [self.create_node(*args, **kwargs) for _ in range(node_count)]
-
-        # Add nodes to each other.
-        for node in self.nodes:
-            for other in self.nodes:
-                if other == node:
-                    continue
-                private_peer = other.my_peer
-                public_peer = Peer(private_peer.public_key, private_peer.address)
-                node.network.add_verified_peer(public_peer)
-                node.network.discover_services(public_peer, [overlay_class.community_id])
-
-        # Make packet handling fragile.
-        for i in range(len(self.nodes)):
-            self.patch_overlays(i)
-
     def setUp(self):
         super().setUp()
         self.count = 0
