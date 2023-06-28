@@ -39,10 +39,11 @@ async def transfer():
     await protocol_task_group.wait()
 
 
-@pytest.mark.looptime(start=42)
 def test_update(transfer: Transfer):
     # In this test we ensure that `transfer.update` method sets `time.time` value
     # to `transfer.updated` property.
+    transfer.loop.time = Mock(return_value=42)
+
     transfer.update()
 
     assert transfer.updated == 42
@@ -252,9 +253,9 @@ async def test_format_attempt(transfer: Transfer):
     assert transfer._format_attempt(remains=0, maximum=3) == '3/3'
 
 
-@pytest.mark.looptime(start=10)
 async def test_remaining(transfer: Transfer):
     # Imagine that now time is `10` and transfer has been updated in `0`
+    transfer.loop.time = Mock(return_value=10)
     transfer.updated = 0
 
     assert transfer._remaining(5) == -5
