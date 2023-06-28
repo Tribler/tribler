@@ -24,7 +24,7 @@ class PopularityComponent(Component):
         metadata_store_component = await self.require_component(MetadataStoreComponent)
         torrent_checker_component = await self.require_component(TorrentCheckerComponent)
 
-        rendezvous_db = RendezvousDatabase(db_path=self.session.config.state_dir / STATEDIR_DB_DIR / "rendezvous.db")
+        rendezvous_db = RendezvousDatabase(db_path=self.session.config.state_dir / STATEDIR_DB_DIR / PopularityCommunity.RENDEZVOUS_DB_NAME)
 
         config = self.session.config
         community = PopularityCommunity(self._ipv8_component.peer,

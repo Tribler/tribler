@@ -42,105 +42,6 @@ def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInf
     return [_generate_single_checked_torrent(status) for _ in range(count)]
 
 
-class TestRendezvousLogic(TestBase):
-    NUM_NODES = 3
-
-    def setUp(self):
-        super().setUp()
-        self.count = 0
-        self.initialize(PopularityCommunity, self.NUM_NODES)
-
-    def create_node(self, *args, **kwargs):
-        rdb = RendezvousDatabase(Path(self.temporary_directory()) / f"{self.count + 1}")
-        torrent_checker = MockObject()
-        torrent_checker.torrents_checked = {}
-        mds = MetadataStore(Path(self.temporary_directory()) / f"{self.count}",
-                            Path(self.temporary_directory()),
-                            default_eccrypto.generate_key("curve25519"))
-        rqc_settings = RemoteQueryCommunitySettings()
-
-        self.count += 1
-        return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
-                        rendezvous_db=rdb,
-                        torrent_checker=torrent_checker,
-                        rqc_settings=rqc_settings
-                        )
-
-    async def test_introduction_rendezvous_payload(self):
-        await self.introduce_nodes()
-        await self.deliver_messages()
-
-        self.nodes[0].overlay.send_introduction_request(self.nodes[1].my_peer)
-        await self.deliver_messages()
-
-        self.nodes[0].overlay.send_introduction_request(self.nodes[2].my_peer)
-        await self.deliver_messages()
-
-        with db_session:
-            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid).counter == 1
-            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[2].my_peer.mid).counter == 1
-
-        # Check if the rendezvous cache is updated
-        rendezvous_peers = list(self.nodes[1].overlay.rendezvous_cache.get_rendezvous_peers())
-        assert rendezvous_peers[0] == self.nodes[0].my_peer
-        rendezvous_peers = list(self.nodes[2].overlay.rendezvous_cache.get_rendezvous_peers())
-        assert rendezvous_peers[0] == self.nodes[0].my_peer
-
-    async def test_rendezvous_payloads(self):
-        await self.introduce_nodes()
-        await self.deliver_messages()
-
-        self.nodes[0].overlay.send_introduction_request(self.nodes[1].my_peer)
-        self.nodes[0].overlay.send_introduction_request(self.nodes[2].my_peer)
-        await self.deliver_messages()
-
-        number_of_rendezvous = 4
-        for i in range(number_of_rendezvous):
-            for j in range(self.count):
-                self.nodes[j].overlay.ping_rendezvous()
-                await self.deliver_messages()
-
-        with db_session:
-            # Peer 0 should have a counter of 1 more
-            assert self.nodes[0].overlay.rdb.Certificate.get(
-                public_key=self.nodes[1].my_peer.mid).counter == number_of_rendezvous + 1
-            assert self.nodes[1].overlay.rdb.Certificate.get(
-                public_key=self.nodes[0].my_peer.mid).counter == number_of_rendezvous
-            assert self.nodes[2].overlay.rdb.Certificate.get(
-                public_key=self.nodes[0].my_peer.mid).counter == number_of_rendezvous
-
-    async def test_invalid_nonce(self):
-        await self.introduce_nodes()
-        await self.deliver_messages()
-
-        self.nodes[0].overlay.rendezvous_cache.add_peer(self.nodes[1].my_peer, b'1' * 16)
-
-        payload = self.nodes[1].overlay._create_rendezvous_response(RendezvousChallenge(b'2' * 16))
-        self.nodes[1].overlay.ez_send(self.nodes[0].my_peer, payload)
-        await self.deliver_messages()
-
-        with db_session:
-            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid) is None
-
-    async def test_invalid_signature(self):
-        await self.introduce_nodes()
-        await self.deliver_messages()
-
-        challenge_1 = RendezvousChallenge(b'1' * 16)
-        challenge_2 = RendezvousChallenge(b'2' * 16)
-
-        self.nodes[0].overlay.rendezvous_cache.add_peer(self.nodes[1].my_peer, challenge_1.nonce)
-
-        payload = self.nodes[1].overlay._create_rendezvous_response(challenge_2)
-        payload.challenge = challenge_1
-
-        self.nodes[1].overlay.ez_send(self.nodes[0].my_peer, payload)
-        await self.deliver_messages()
-
-        with db_session:
-            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid) is None
-
-
 class TestPopularityCommunity(TestBase):
     NUM_NODES = 2
 
@@ -330,3 +231,102 @@ class TestPopularityCommunity(TestBase):
         await self.init_first_node_and_gossip(
             HealthInfo(infohash, seeders=200, leechers=0))
         self.nodes[1].overlay.send_remote_select.assert_not_called()
+
+
+class TestRendezvousLogic(TestBase):
+    NUM_NODES = 3
+
+    def setUp(self):
+        super().setUp()
+        self.count = 0
+        self.initialize(PopularityCommunity, self.NUM_NODES)
+
+    def create_node(self, *args, **kwargs):
+        rdb = RendezvousDatabase(Path(self.temporary_directory()) / f"{self.count + 1}")
+        torrent_checker = MockObject()
+        torrent_checker.torrents_checked = {}
+        mds = MetadataStore(Path(self.temporary_directory()) / f"{self.count}",
+                            Path(self.temporary_directory()),
+                            default_eccrypto.generate_key("curve25519"))
+        rqc_settings = RemoteQueryCommunitySettings()
+
+        self.count += 1
+        return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
+                        rendezvous_db=rdb,
+                        torrent_checker=torrent_checker,
+                        rqc_settings=rqc_settings
+                        )
+
+    async def test_introduction_rendezvous_payload(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        self.nodes[0].overlay.send_introduction_request(self.nodes[1].my_peer)
+        await self.deliver_messages()
+
+        self.nodes[0].overlay.send_introduction_request(self.nodes[2].my_peer)
+        await self.deliver_messages()
+
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid).counter == 1
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[2].my_peer.mid).counter == 1
+
+        # Check if the rendezvous cache is updated
+        rendezvous_peers = list(self.nodes[1].overlay.rendezvous_cache.get_rendezvous_peers())
+        assert rendezvous_peers[0] == self.nodes[0].my_peer
+        rendezvous_peers = list(self.nodes[2].overlay.rendezvous_cache.get_rendezvous_peers())
+        assert rendezvous_peers[0] == self.nodes[0].my_peer
+
+    async def test_rendezvous_payloads(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        self.nodes[0].overlay.send_introduction_request(self.nodes[1].my_peer)
+        self.nodes[0].overlay.send_introduction_request(self.nodes[2].my_peer)
+        await self.deliver_messages()
+
+        number_of_rendezvous = 4
+        for i in range(number_of_rendezvous):
+            for j in range(self.count):
+                self.nodes[j].overlay.ping_rendezvous()
+                await self.deliver_messages()
+
+        with db_session:
+            # Peer 0 should have a counter of 1 more
+            assert self.nodes[0].overlay.rdb.Certificate.get(
+                public_key=self.nodes[1].my_peer.mid).counter == number_of_rendezvous + 1
+            assert self.nodes[1].overlay.rdb.Certificate.get(
+                public_key=self.nodes[0].my_peer.mid).counter == number_of_rendezvous
+            assert self.nodes[2].overlay.rdb.Certificate.get(
+                public_key=self.nodes[0].my_peer.mid).counter == number_of_rendezvous
+
+    async def test_invalid_nonce(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        self.nodes[0].overlay.rendezvous_cache.add_peer(self.nodes[1].my_peer, b'1' * 16)
+
+        payload = self.nodes[1].overlay._create_rendezvous_response(RendezvousChallenge(b'2' * 16))
+        self.nodes[1].overlay.ez_send(self.nodes[0].my_peer, payload)
+        await self.deliver_messages()
+
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid) is None
+
+    async def test_invalid_signature(self):
+        await self.introduce_nodes()
+        await self.deliver_messages()
+
+        challenge_1 = RendezvousChallenge(b'1' * 16)
+        challenge_2 = RendezvousChallenge(b'2' * 16)
+
+        self.nodes[0].overlay.rendezvous_cache.add_peer(self.nodes[1].my_peer, challenge_1.nonce)
+
+        payload = self.nodes[1].overlay._create_rendezvous_response(challenge_2)
+        payload.challenge = challenge_1
+
+        self.nodes[1].overlay.ez_send(self.nodes[0].my_peer, payload)
+        await self.deliver_messages()
+
+        with db_session:
+            assert self.nodes[0].overlay.rdb.Certificate.get(public_key=self.nodes[1].my_peer.mid) is None

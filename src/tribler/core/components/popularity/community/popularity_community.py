@@ -43,7 +43,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     GOSSIP_RANDOM_TORRENT_COUNT = 10
 
     PING_INTERVAL_RENDEZVOUS = 60  # seconds
-    DB_NAME = 'rendezvous.db'
+    RENDEZVOUS_DB_NAME = 'rendezvous.db'
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1649')
 
