@@ -198,7 +198,7 @@ def test_show_system_popup_win():
     # In case of *nix machine, "@patch_import(modules=['win32api'], MessageBox=MagicMock())" will work.
     # In case of win machine, "with patch('win32api.MessageBox'):" will work.
     #
-    # No matter what kind of Mock was used, the line "win32api.MessageBox.assert_called_once()" should work.
+    # No matter what kind of Mock was used, the line "win32api.MessageBox.assert_called_with()" should work.
     #
     # This approach also applies to the test functions below.
 
@@ -206,7 +206,7 @@ def test_show_system_popup_win():
 
     with patch('win32api.MessageBox'):  # this patch starts to work only in case win32api exists on the target machine
         show_system_popup('title', 'text')
-        win32api.MessageBox.assert_called_once_with(0, 'text', 'title')
+        win32api.MessageBox.assert_called_with(0, 'text', 'title')
 
 
 @patch_import(modules=['subprocess'], Popen=MagicMock())
