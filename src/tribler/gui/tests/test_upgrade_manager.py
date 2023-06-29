@@ -31,4 +31,3 @@ def test_upgrader_when_no_disk_space_is_available(qtbot):
         upgrade_manager.start()
 
     upgrade_manager.quit_tribler_with_warning.assert_called()
-

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 class StateDirUpgradeWorker(QObject):
     finished = pyqtSignal(object)
-    cancelled = pyqtSignal(object)
+    cancelled = pyqtSignal(str)
     status_update = pyqtSignal(str)
     stop_upgrade = pyqtSignal()
 
@@ -250,7 +250,7 @@ class UpgradeManager(QObject):
         else:
             raise UpgradeError(f'{exc.__class__.__name__}: {exc}') from exc
 
-    def on_worker_cancelled(self, reason):
+    def on_worker_cancelled(self, reason: str):
         self.stop_worker()
         self.upgrader_cancelled.emit(reason)
         self.quit_tribler_with_warning(

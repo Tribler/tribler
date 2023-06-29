@@ -61,12 +61,12 @@ class VersionError(Exception):
 
 
 class NoDiskSpaceAvailableError(Exception):
-    def __init__(self, required, available):
-        super().__init__()
-        self.space_available = available
+    def __init__(self, required: int, available: int):
+        super().__init__("No disk space available")
         self.space_required = required
+        self.space_available = available
 
-    def __str__(self):
+    def __repr__(self):
         return f"No disk space available. " \
                f"Required: {self.space_required} bytes; " \
                f"Available: {self.space_available} bytes"
@@ -136,7 +136,7 @@ class TriblerVersion:
                 result += f.stat().st_size
         return result
 
-    def upgrade_size(self, reserved_space=RESERVED_STORAGE) -> int:
+    def get_upgrade_size(self, reserved_space=RESERVED_STORAGE) -> int:
         """Size in bytes required to upgrade from this version. This value includes some reserved storage for safety."""
         return self.calc_state_size() + reserved_space
 
@@ -370,7 +370,7 @@ class VersionHistory:
         return None
 
     def check_storage_available_to_copy_version(self, version_to_copy):
-        required_space = version_to_copy.upgrade_size()
+        required_space = version_to_copy.get_upgrade_size()
         available_space = self.free_disk_space()
         if available_space <= required_space:
             raise NoDiskSpaceAvailableError(required_space, available_space)

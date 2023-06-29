@@ -240,7 +240,7 @@ disk_space_testdata = [
 @pytest.mark.parametrize("space_required, space_available, expected_exception", disk_space_testdata)
 def test_fork_state_directory_with_storage_constraints_param(space_required, space_available, expected_exception,
                                                              version_history):
-    version_history.code_version.can_be_copied_from.upgrade_size = lambda: space_required
+    version_history.code_version.can_be_copied_from.get_upgrade_size = lambda: space_required
     version_history.free_disk_space = lambda: space_available
 
     try:
@@ -254,7 +254,7 @@ def test_fork_state_directory_with_storage_constraints_param(space_required, spa
 def test_check_storage_available_to_copy_version(space_required, space_available, expected_exception,
                                                  version_history):
     prev_version = Mock()
-    prev_version.upgrade_size = lambda: space_required
+    prev_version.get_upgrade_size = lambda: space_required
     version_history.free_disk_space = lambda: space_available
 
     try:
@@ -267,7 +267,7 @@ def test_check_storage_available_to_copy_version(space_required, space_available
 def test_default_upgrade_size(version_history):
     tribler_version = version_history.last_run_version
     statedir_size = tribler_version.calc_state_size()
-    upgrade_size = tribler_version.upgrade_size()
+    upgrade_size = tribler_version.get_upgrade_size()
     assert upgrade_size == statedir_size + RESERVED_STORAGE
 
 
@@ -466,3 +466,13 @@ def test_coverage(tmpdir):
     assert not (root_state_dir / "7.6").exists()
     assert not (root_state_dir / "channels").exists()
     assert not (root_state_dir / "sqlite").exists()
+
+
+def test_no_disk_space_available_error():
+    space_available = 100  # bytes
+    space_required = 200  # bytes
+    disk_error = NoDiskSpaceAvailableError(space_required, space_available)
+    expected_formatted_error = f"No disk space available. " \
+                               f"Required: {space_required} bytes; " \
+                               f"Available: {space_available} bytes"
+    assert repr(disk_error) == expected_formatted_error
