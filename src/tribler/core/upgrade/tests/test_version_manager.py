@@ -1,6 +1,7 @@
 import filecmp
 import json
 import os
+import random
 import time
 from pathlib import Path
 from unittest.mock import Mock
@@ -230,38 +231,37 @@ def test_fork_state_directory(tmpdir_factory):
     assert history2.last_run_version.version_str == code_version_id
 
 
-disk_space_testdata = [
-    (100, 99, True),
-    (100, 100, True),
-    (100, 101, False),
-]
-
-
-@pytest.mark.parametrize("space_required, space_available, expected_exception", disk_space_testdata)
-def test_fork_state_directory_with_storage_constraints_param(space_required, space_available, expected_exception,
-                                                             version_history):
+def test_fork_state_directory_with_storage_constraints_param(version_history):
+    space_required = random.randint(100, 1000)
     version_history.code_version.can_be_copied_from.get_upgrade_size = lambda: space_required
+
+    # When space required is less than or equal to the available space, we expect an exception
+    for space_available in [space_required, space_required - random.randint(0, 100)]:
+        version_history.free_disk_space = lambda: space_available
+        with pytest.raises(NoDiskSpaceAvailableError):
+            _ = version_history.fork_state_directory_if_necessary()
+
+    # When space available is more than the required space, all OK to fork state directory for upgrade.
+    space_available = space_required + random.randint(1, 100)
     version_history.free_disk_space = lambda: space_available
-
-    try:
-        _ = version_history.fork_state_directory_if_necessary()
-    except NoDiskSpaceAvailableError:
-        if not expected_exception:
-            pytest.fail("Did not expect no disk space available error here")
+    _ = version_history.fork_state_directory_if_necessary()
 
 
-@pytest.mark.parametrize("space_required, space_available, expected_exception", disk_space_testdata)
-def test_check_storage_available_to_copy_version(space_required, space_available, expected_exception,
-                                                 version_history):
+def test_check_storage_available_to_copy_version(version_history):
+    space_required = random.randint(100, 1000)
+
     prev_version = Mock()
     prev_version.get_upgrade_size = lambda: space_required
-    version_history.free_disk_space = lambda: space_available
 
-    try:
-        _ = version_history.check_storage_available_to_copy_version(prev_version)
-    except NoDiskSpaceAvailableError:
-        if not expected_exception:
-            pytest.fail("Did not expect no disk space available error here")
+    # When space required is less than or equal to the available space, we expect an exception
+    for space_available in [space_required, space_required - random.randint(0, 100)]:
+        version_history.free_disk_space = lambda: space_available
+        with pytest.raises(NoDiskSpaceAvailableError):
+            _ = version_history.check_storage_available_to_copy_version(prev_version)
+
+    # When space available is more than the required space, all OK.
+    space_available = space_required + random.randint(1, 100)
+    _ = version_history.check_storage_available_to_copy_version(prev_version)
 
 
 def test_default_upgrade_size(version_history):
@@ -466,13 +466,3 @@ def test_coverage(tmpdir):
     assert not (root_state_dir / "7.6").exists()
     assert not (root_state_dir / "channels").exists()
     assert not (root_state_dir / "sqlite").exists()
-
-
-def test_no_disk_space_available_error():
-    space_available = 100  # bytes
-    space_required = 200  # bytes
-    disk_error = NoDiskSpaceAvailableError(space_required, space_available)
-    expected_formatted_error = f"No disk space available. " \
-                               f"Required: {space_required} bytes; " \
-                               f"Available: {space_available} bytes"
-    assert repr(disk_error) == expected_formatted_error

@@ -62,14 +62,11 @@ class VersionError(Exception):
 
 class NoDiskSpaceAvailableError(Exception):
     def __init__(self, required: int, available: int):
-        super().__init__("No disk space available")
+        super().__init__(f"No disk space available. "
+                         f"Required: {required} bytes; "
+                         f"Available: {available} bytes")
         self.space_required = required
         self.space_available = available
-
-    def __repr__(self):
-        return f"No disk space available. " \
-               f"Required: {self.space_required} bytes; " \
-               f"Available: {self.space_available} bytes"
 
 
 # pylint: disable=too-many-instance-attributes
