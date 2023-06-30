@@ -208,3 +208,9 @@ TAG_HEIGHT = 22
 TAG_TEXT_HORIZONTAL_PADDING = 10
 TAG_TOP_MARGIN = 32
 TAG_HORIZONTAL_MARGIN = 6
+
+
+UPGRADE_CANCELLED_ERROR_TITLE = "Tribler Upgrade cancelled"
+NO_DISK_SPACE_ERROR_MESSAGE = "Not enough storage space available. \n" \
+                              "Tribler requires at least %s space to continue. \n\n" \
+                              "Please free up the required space and re-run Tribler. "
