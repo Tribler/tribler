@@ -119,19 +119,19 @@ def test_on_core_stderr_read_ready(mocked_print, core_manager):
     mocked_print.assert_called_with('core stderr', file=sys.stderr)
 
 
-@patch('builtins.print', MagicMock(side_effect=OSError()))
-def test_on_core_read_ready_os_error_suppressed(core_manager):
+@patch('builtins.print', new_callable=MagicMock, side_effect=OSError())
+def test_on_core_read_ready_os_error_suppressed(mocked_print: MagicMock, core_manager):
     # OSError exceptions when writing to stdout and stderr are suppressed
     core_manager.app_manager.quitting_app = False
     core_manager.on_core_stdout_read_ready()
     core_manager.on_core_stderr_read_ready()
-    assert print.call_count == 2
+    assert mocked_print.call_count == 2
 
     # if app is quitting, core_manager does not write to stdout/stderr at all, and so the call counter does not grow
     core_manager.app_manager.quitting_app = True
     core_manager.on_core_stdout_read_ready()
     core_manager.on_core_stderr_read_ready()
-    assert print.call_count == 2
+    assert mocked_print.call_count == 2
 
 
 def test_decode_raw_core_output(core_manager):

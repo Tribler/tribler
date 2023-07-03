@@ -16,3 +16,6 @@ coverage==7.2.7
 looptime==0.2
 
 scipy==1.10.1
+
+# for pyqt5 test
+pytest-qt==4.2.0

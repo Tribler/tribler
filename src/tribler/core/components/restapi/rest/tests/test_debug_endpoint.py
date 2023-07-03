@@ -39,13 +39,10 @@ async def core_resource_monitor(tmp_path):
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, mock_tunnel_community, endpoint):
+def rest_api(web_app, event_loop, aiohttp_client, mock_tunnel_community, endpoint):
     endpoint.tunnel_community = mock_tunnel_community
-
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/debug', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+    web_app.add_subapp('/debug', endpoint.app)
+    yield event_loop.run_until_complete(aiohttp_client(web_app))
 
 
 async def test_get_slots(rest_api, mock_tunnel_community):

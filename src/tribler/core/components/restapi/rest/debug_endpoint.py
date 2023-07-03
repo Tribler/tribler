@@ -2,18 +2,19 @@ import datetime
 import logging
 import sys
 from io import StringIO
+from typing import Optional
 
 import psutil
 from aiohttp import web
 from aiohttp.abc import BaseRequest
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
-from ipv8.messaging.anonymization.community import TunnelCommunity
 from marshmallow.fields import Boolean, Float, Integer, String
 
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.components.resource_monitor.implementation.base import ResourceMonitor
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
 from tribler.core.exceptions import TriblerCoreTestException
 from tribler.core.utilities.instrumentation import WatchDog
 from tribler.core.utilities.osutils import get_root_state_directory
@@ -46,9 +47,9 @@ class DebugEndpoint(RESTEndpoint):
     def __init__(self,
                  state_dir: Path,
                  log_dir: Path,
-                 tunnel_community: TunnelCommunity = None,
-                 resource_monitor: ResourceMonitor = None,
-                 core_exception_handler: CoreExceptionHandler = None):
+                 tunnel_community: Optional[TriblerTunnelCommunity] = None,
+                 resource_monitor: Optional[ResourceMonitor] = None,
+                 core_exception_handler: Optional[CoreExceptionHandler] = None):
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
@@ -88,10 +89,12 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_circuit_slots(self, request):
+        random_slots = self.tunnel_community.random_slots if self.tunnel_community else []
+        competing_slots = self.tunnel_community.competing_slots if self.tunnel_community else []
         return RESTResponse({
             "slots": {
-                "random": self.tunnel_community.random_slots,
-                "competing": self.tunnel_community.competing_slots
+                "random": random_slots,
+                "competing": competing_slots
             }
         })
 

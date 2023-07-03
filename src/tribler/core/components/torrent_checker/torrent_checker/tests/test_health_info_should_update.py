@@ -27,6 +27,12 @@ def test_invalid_health():
     assert not health.should_replace(prev_health)
 
 
+def test_health_negative_seeders_or_leechers():
+    """ Test that health with negative seeders or leechers is considered invalid"""
+    assert not HealthInfo(INFOHASH, seeders=-1).is_valid()
+    assert not HealthInfo(INFOHASH, leechers=-1).is_valid()
+
+
 def test_self_checked_health_update_remote_health():
     prev_health = HealthInfo(INFOHASH)
     health = HealthInfo(INFOHASH, self_checked=True)

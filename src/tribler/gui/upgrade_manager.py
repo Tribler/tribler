@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.upgrade.upgrade import TriblerUpgrader
-from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory
-from tribler.gui.defs import BUTTON_TYPE_NORMAL
+from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory, NoDiskSpaceAvailableError
+from tribler.gui.defs import BUTTON_TYPE_NORMAL, NO_DISK_SPACE_ERROR_MESSAGE, UPGRADE_CANCELLED_ERROR_TITLE
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
 from tribler.gui.utilities import connect, format_size, tr
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 class StateDirUpgradeWorker(QObject):
     finished = pyqtSignal(object)
+    cancelled = pyqtSignal(str)
     status_update = pyqtSignal(str)
     stop_upgrade = pyqtSignal()
 
@@ -49,12 +50,20 @@ class StateDirUpgradeWorker(QObject):
                 update_status_callback=self._update_status_callback,
                 interrupt_upgrade_event=self.upgrade_interrupted,
             )
+        except NoDiskSpaceAvailableError as exc:
+            self.logger.exception(exc)
+            self.cancelled.emit(self.format_no_disk_space_available_error(exc))
         except Exception as exc:  # pylint: disable=broad-except
             self.logger.exception(exc)
             self.finished.emit(exc)
         else:
             self.logger.info('Finished')
             self.finished.emit(None)
+
+    def format_no_disk_space_available_error(self, disk_error: NoDiskSpaceAvailableError) -> str:
+        diff_space = format_size(disk_error.space_required - disk_error.space_available)
+        formatted_error = tr(NO_DISK_SPACE_ERROR_MESSAGE) % diff_space
+        return formatted_error
 
     def upgrade_state_dir(self, version_history: VersionHistory, update_status_callback=None,
                           interrupt_upgrade_event=None):
@@ -89,6 +98,7 @@ class UpgradeManager(QObject):
 
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
+    upgrader_cancelled = pyqtSignal(str)
 
     def __init__(self, version_history: VersionHistory, last_supported_version: str = '7.5'):
         QObject.__init__(self, None)
@@ -151,7 +161,7 @@ class UpgradeManager(QObject):
             self._logger.info('Last run version is the same as the current version. Exit cleanup procedure.')
             return []
 
-        disposable_versions = self.version_history.get_disposable_versions(skip_versions=2)
+        disposable_versions = self.version_history.get_disposable_versions(skip_versions=1)
         if not disposable_versions:
             self._logger.info('No disposable versions. Exit cleanup procedure.')
             return []
@@ -192,17 +202,13 @@ class UpgradeManager(QObject):
         last_version = self.version_history.last_run_version
         if last_version and last_version.is_ancient(self.last_supported_version):
             self._logger.info('Ancient version detected. Quitting Tribler.')
-            self._show_message_box(
-                tr("Ancient version detected"),
+            self.quit_tribler_with_warning(
+                title=tr("Ancient version detected"),
                 body=tr("You are running an old version of Tribler. "
-                        "It is not possible to upgrade from this version to the most recent one."
+                        "It is not possible to upgrade from this version to the most recent one. "
                         "Please do upgrade incrementally (download Tribler 7.10, upgrade, "
                         "then download the most recent one, upgrade)."),
-                icon=QMessageBox.Warning,
-                standard_buttons=QMessageBox.Yes,
-                default_button=QMessageBox.Yes
             )
-            QApplication.quit()
             return
 
         versions_to_delete = self.should_cleanup_old_versions()
@@ -225,17 +231,42 @@ class UpgradeManager(QObject):
         # These must be connected directly to prevent problems with disconnecting and thread handling.
         self._upgrade_worker.status_update.connect(self.upgrader_tick.emit)
         self._upgrade_worker.finished.connect(self.on_worker_finished)
+        self._upgrade_worker.cancelled.connect(self.on_worker_cancelled)
 
         self._upgrade_thread.start()
 
+    def stop_worker(self):
+        if self._upgrade_thread:
+            self._upgrade_thread.deleteLater()
+            self._upgrade_thread.quit()
+            self._upgrade_thread.wait()
+        if self._upgrade_worker:
+            self._upgrade_worker.deleteLater()
+
     def on_worker_finished(self, exc):
-        self._upgrade_thread.deleteLater()
-        self._upgrade_thread.quit()
-        self._upgrade_worker.deleteLater()
+        self.stop_worker()
         if exc is None:
             self.upgrader_finished.emit()
         else:
             raise UpgradeError(f'{exc.__class__.__name__}: {exc}') from exc
+
+    def on_worker_cancelled(self, reason: str):
+        self.stop_worker()
+        self.upgrader_cancelled.emit(reason)
+        self.quit_tribler_with_warning(
+            title=tr(UPGRADE_CANCELLED_ERROR_TITLE),
+            body=reason,  # reason should already be translated
+        )
+
+    def quit_tribler_with_warning(self, title, body):
+        self._show_message_box(
+            title,
+            body=body,
+            icon=QMessageBox.Critical,
+            standard_buttons=QMessageBox.Ok,
+            default_button=QMessageBox.Ok
+        )
+        QApplication.quit()
 
     def stop_upgrade(self):
         self._upgrade_worker.stop_upgrade.emit()

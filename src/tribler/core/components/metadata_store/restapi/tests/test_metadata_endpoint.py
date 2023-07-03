@@ -39,13 +39,11 @@ async def torrent_checker(mock_dlmgr, metadata_store):
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, torrent_checker, metadata_store):
+def rest_api(web_app, event_loop, aiohttp_client, torrent_checker, metadata_store):
     endpoint = MetadataEndpoint(torrent_checker, metadata_store)
 
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/metadata', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+    web_app.add_subapp('/metadata', endpoint.app)
+    yield event_loop.run_until_complete(aiohttp_client(web_app))
 
 
 async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrents_channels, rest_api):
@@ -208,7 +206,7 @@ async def test_check_torrent_health(rest_api, mock_dlmgr, udp_tracker, metadata_
     infohash = b'a' * 20
     url = f'metadata/torrents/{hexlify(infohash)}/health?timeout={TORRENT_CHECK_TIMEOUT}'
     json_response = await do_request(rest_api, url)
-    assert json_response == {'checking': '1'}
+    assert json_response == {'checking': True}
 
 
 async def test_check_torrent_query(rest_api, udp_tracker, metadata_store):

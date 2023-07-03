@@ -76,6 +76,11 @@ def fixture_window(tmp_path_factory):
 
     window.close_tribler()
     screenshot(window, name="tribler_closing")
+
+    # Before quitting the application, wait for max 10 seconds until the core process has successfully finished
+    # Otherwise, process exits with non-zero exit code.
+    # See: https://github.com/Tribler/tribler/issues/7500
+    wait_for_signal(window.core_manager.core_process.finished, timeout=10)
     app_manager.quit_application()
 
 

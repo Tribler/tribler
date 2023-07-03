@@ -14,6 +14,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import psutil
+
 from tribler.core.utilities import path_util
 
 logger = logging.getLogger(__name__)
@@ -248,3 +250,11 @@ def get_root_state_directory(home_dir_postfix='.Tribler', create=False) -> Path:
         raise OSError(errno.ENOENT, 'Root directory does not exist', str(root_state_dir))
 
     return root_state_dir
+
+
+def get_disk_usage(state_dir: str):
+    """
+    Get free disk space of the state directory.
+    Useful on deciding whether to continue with the upgrade.
+    """
+    return psutil.disk_usage(state_dir)

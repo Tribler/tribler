@@ -19,14 +19,10 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-def rest_api(event_loop, aiohttp_client, mock_dlmgr, metadata_store):  # pylint: disable=unused-argument
-
+def rest_api(web_app, event_loop, aiohttp_client, mock_dlmgr, metadata_store):
     endpoint = DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
-
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/downloads', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+    web_app.add_subapp('/downloads', endpoint.app)
+    yield event_loop.run_until_complete(aiohttp_client(web_app))
 
 
 def get_hex_infohash(tdef):
