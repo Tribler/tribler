@@ -340,6 +340,8 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def stop_profiler(self, _):
+        if not self.resource_monitor.profiler:
+            return
         file_path = self.resource_monitor.profiler.stop()
         return RESTResponse({"success": True, "profiler_file": str(file_path)})
 

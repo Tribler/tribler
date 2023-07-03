@@ -31,10 +31,15 @@ def needle_in_haystack_mds(metadata_store):
 
 
 @pytest.fixture
-def rest_api(web_app, event_loop, needle_in_haystack_mds, aiohttp_client, knowledge_db):
+async def rest_api(event_loop, needle_in_haystack_mds, aiohttp_client, knowledge_db):
     channels_endpoint = SearchEndpoint(needle_in_haystack_mds, knowledge_db=knowledge_db)
-    web_app.add_subapp('/search', channels_endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+    app = Application()
+    app.add_subapp('/search', channels_endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await channels_endpoint.shutdown()
+    await app.shutdown()
 
 
 async def test_search_wrong_mdtype(rest_api):

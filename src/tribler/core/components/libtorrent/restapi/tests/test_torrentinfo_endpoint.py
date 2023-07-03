@@ -1,7 +1,7 @@
 import json
 import shutil
 from binascii import unhexlify
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 import pytest
@@ -9,6 +9,7 @@ from aiohttp.web_app import Application
 from ipv8.util import succeed
 
 from tribler.core import notifications
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
@@ -24,7 +25,6 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 
 # pylint: disable=redefined-outer-name
-
 
 @pytest.fixture
 def download_manager(state_dir):
@@ -46,14 +46,15 @@ def download_manager(state_dir):
 
 
 @pytest.fixture
-def endpoint(download_manager):
-    return TorrentInfoEndpoint(download_manager)
+async def rest_api(event_loop, aiohttp_client, download_manager: DownloadManager):  # pylint: disable=unused-argument
+    endpoint = TorrentInfoEndpoint(download_manager)
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/torrentinfo', endpoint.app)
 
+    yield await aiohttp_client(app)
 
-@pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/torrentinfo', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+    await endpoint.shutdown()
+    await app.shutdown()
 
 
 async def test_get_torrentinfo_escaped_characters(tmp_path, rest_api):
@@ -67,7 +68,7 @@ async def test_get_torrentinfo_escaped_characters(tmp_path, rest_api):
     assert 'metainfo' in response
 
 
-async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint):
+async def test_get_torrentinfo(tmp_path, rest_api, download_manager: DownloadManager):
     """
     Testing whether the API returns a correct dictionary with torrent info.
     """
@@ -113,27 +114,27 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
         tdef = TorrentDef.load_from_memory(torrent_data)
     metainfo_dict = tdef_to_metadata_dict(TorrentDef.load_from_memory(torrent_data))
 
-    def get_metainfo(infohash, timeout=20, hops=None, url=None):
+    async def get_metainfo(infohash, timeout=20, hops=None, url=None):
         if hops is not None:
             hops_list.append(hops)
         assert url
         assert url == unquote_plus(path)
-        return succeed(tdef.get_metainfo())
+        return tdef.get_metainfo()
 
-    endpoint.download_manager.get_metainfo = get_metainfo
+    download_manager.get_metainfo = get_metainfo
     verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
 
     path = 'magnet:?xt=urn:ed2k:354B15E68FB8F36D7CD88FF94116CDC1'  # No infohash
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=400)
 
     path = quote_plus(f"magnet:?xt=urn:btih:{'a' * 40}&dn=test torrent")
-    endpoint.download_manager.get_metainfo = lambda *_, **__: succeed(None)
+    download_manager.get_metainfo = lambda *_, **__: succeed(None)
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
     # Ensure that correct torrent metadata was sent through notifier (to MetadataStore)
-    endpoint.download_manager.notifier[notifications.torrent_metadata_added].assert_called_with(metainfo_dict)
+    download_manager.notifier[notifications.torrent_metadata_added].assert_called_with(metainfo_dict)
 
-    endpoint.download_manager.get_metainfo = get_metainfo
+    download_manager.get_metainfo = get_metainfo
     verify_valid_dict(await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200))
 
     await do_request(rest_api, f'torrentinfo?uri={path}&hops=0', expected_code=200)
@@ -144,22 +145,25 @@ async def test_get_torrentinfo(tmp_path, rest_api, endpoint: TorrentInfoEndpoint
     path = 'http://fdsafksdlafdslkdksdlfjs9fsafasdf7lkdzz32.n38/324.torrent'
     await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
 
-    mock_download = MagicMock()
+    mock_download = MagicMock(
+        stop=AsyncMock(),
+        shutdown=AsyncMock()
+    )
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn=test torrent')
-    endpoint.download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
+    download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 
     # Check that we do not return "downloads_exists" if the download is metainfo only download
-    endpoint.download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
-    endpoint.download_manager.metainfo_requests = {UBUNTU_1504_INFOHASH: [mock_download]}
+    download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
+    download_manager.metainfo_requests = {UBUNTU_1504_INFOHASH: [mock_download]}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert not result["download_exists"]
 
     # Check that we return "downloads_exists" if there is a metainfo download for the infohash,
     # but there is also a regular download for the same infohash
-    endpoint.download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
-    endpoint.download_manager.metainfo_requests = {UBUNTU_1504_INFOHASH: [MagicMock()]}
+    download_manager.downloads = {UBUNTU_1504_INFOHASH: mock_download}
+    download_manager.metainfo_requests = {UBUNTU_1504_INFOHASH: [MagicMock()]}
     result = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=200)
     assert result["download_exists"]
 

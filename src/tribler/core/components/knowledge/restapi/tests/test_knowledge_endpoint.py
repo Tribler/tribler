@@ -27,9 +27,13 @@ def knowledge_endpoint(knowledge_db):
 
 
 @pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, knowledge_endpoint):
-    web_app.add_subapp('/knowledge', knowledge_endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+async def rest_api(event_loop, aiohttp_client, knowledge_endpoint):  # pylint: disable=unused-argument
+    app = Application()
+    app.add_subapp('/knowledge', knowledge_endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await app.shutdown()
 
 
 def tag_to_statement(tag: str) -> Dict:

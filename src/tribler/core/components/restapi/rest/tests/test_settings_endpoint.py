@@ -17,15 +17,17 @@ def tribler_config(tmp_path):
     return config
 
 
-@pytest.fixture
-def endpoint(tribler_config):
-    return SettingsEndpoint(tribler_config)
-
 
 @pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/settings', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+async def rest_api(event_loop, aiohttp_client, tribler_config):
+    endpoint = SettingsEndpoint(tribler_config)
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/settings', endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await endpoint.shutdown()
+    await app.shutdown()
 
 
 def verify_settings(settings_dict):
