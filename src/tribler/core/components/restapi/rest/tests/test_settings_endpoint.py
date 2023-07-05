@@ -17,9 +17,8 @@ def tribler_config(tmp_path):
     return config
 
 
-
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, tribler_config):
+async def rest_api(aiohttp_client, tribler_config):
     endpoint = SettingsEndpoint(tribler_config)
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/settings', endpoint.app)

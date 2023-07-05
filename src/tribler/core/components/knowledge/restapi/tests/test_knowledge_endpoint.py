@@ -27,7 +27,7 @@ def knowledge_endpoint(knowledge_db):
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, knowledge_endpoint):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, knowledge_endpoint):
     app = Application()
     app.add_subapp('/knowledge', knowledge_endpoint.app)
 

@@ -31,7 +31,7 @@ def needle_in_haystack_mds(metadata_store):
 
 
 @pytest.fixture
-async def rest_api(event_loop, needle_in_haystack_mds, aiohttp_client, knowledge_db):
+async def rest_api(needle_in_haystack_mds, aiohttp_client, knowledge_db):
     channels_endpoint = SearchEndpoint(needle_in_haystack_mds, knowledge_db=knowledge_db)
     app = Application()
     app.add_subapp('/search', channels_endpoint.app)

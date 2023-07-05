@@ -32,7 +32,7 @@ async def core_resource_monitor(tmp_path):
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, mock_tunnel_community, tmp_path, core_resource_monitor):
+async def rest_api(aiohttp_client, mock_tunnel_community, tmp_path, core_resource_monitor):
     endpoint = DebugEndpoint(tmp_path, tmp_path / 'logs',
                              tunnel_community=mock_tunnel_community,
                              resource_monitor=core_resource_monitor)
@@ -41,6 +41,7 @@ async def rest_api(event_loop, aiohttp_client, mock_tunnel_community, tmp_path, 
 
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/debug', endpoint.app)
+
     yield await aiohttp_client(app)
 
     await endpoint.shutdown()

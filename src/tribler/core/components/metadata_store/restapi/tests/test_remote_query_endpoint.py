@@ -24,7 +24,7 @@ def mock_gigachannel_community():
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, metadata_store, mock_gigachannel_community):
+async def rest_api(aiohttp_client, metadata_store, mock_gigachannel_community):
     endpoint = RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/remote_query', endpoint.app)

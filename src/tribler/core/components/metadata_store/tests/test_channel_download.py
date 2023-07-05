@@ -20,13 +20,15 @@ CHANNEL_METADATA = CHANNEL_DIR / 'channel.mdblob'
 CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
 def channel_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
 
 
 @pytest.fixture
-async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unused-argument, redefined-outer-name
+async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unused-argument
     config = LibtorrentSettings()
     config.dht = False
     config.upnp = False

@@ -46,7 +46,7 @@ def download_manager(state_dir):
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, download_manager: DownloadManager):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, download_manager: DownloadManager):
     endpoint = TorrentInfoEndpoint(download_manager)
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/torrentinfo', endpoint.app)
@@ -114,7 +114,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, download_manager: DownloadMan
         tdef = TorrentDef.load_from_memory(torrent_data)
     metainfo_dict = tdef_to_metadata_dict(TorrentDef.load_from_memory(torrent_data))
 
-    async def get_metainfo(infohash, timeout=20, hops=None, url=None):
+    async def get_metainfo(infohash, timeout=20, hops=None, url=None):  # pylint: disable=unused-argument
         if hops is not None:
             hops_list.append(hops)
         assert url

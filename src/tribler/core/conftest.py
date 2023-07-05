@@ -1,6 +1,4 @@
-import asyncio
 import logging
-import platform
 import sys
 from datetime import datetime
 from typing import Optional
@@ -64,15 +62,3 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
 @pytest.fixture
 def free_port():
     return default_network_utils.get_random_free_port(start=1024, stop=50000)
-
-
-@pytest.fixture
-def event_loop():
-    if platform.system() == 'Windows':
-        # to prevent the "Loop is closed" error
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()

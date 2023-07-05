@@ -10,7 +10,7 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, mock_dlmgr, mock_lt_session):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, mock_dlmgr, mock_lt_session):
     endpoint = LibTorrentEndpoint(mock_dlmgr)
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/libtorrent', endpoint.app)

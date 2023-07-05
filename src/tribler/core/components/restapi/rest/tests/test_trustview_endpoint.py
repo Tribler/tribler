@@ -16,15 +16,17 @@ from tribler.core.exceptions import TrustGraphException
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
-async def endpoint(bandwidth_db):  # pylint: disable=W0621
+async def endpoint(bandwidth_db):
     endpoint = TrustViewEndpoint(bandwidth_db)
     yield endpoint
     await endpoint.shutdown()
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, endpoint):
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/trustview', endpoint.app)
 

@@ -12,6 +12,9 @@ from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 
 
+# pylint: disable=redefined-outer-name
+
+
 @pytest.fixture
 async def endpoint(metadata_store):
     ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
@@ -29,7 +32,7 @@ async def endpoint(metadata_store):
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, endpoint):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, endpoint):
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/statistics', endpoint.app)
 

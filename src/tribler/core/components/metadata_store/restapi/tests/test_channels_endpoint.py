@@ -36,8 +36,7 @@ PNG_DATA = unhexlify(
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, mock_dlmgr, metadata_store,
-                   knowledge_db):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):
     mock_gigachannel_manager = Mock()
     mock_gigachannel_community = Mock()
 

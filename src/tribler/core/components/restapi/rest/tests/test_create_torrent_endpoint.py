@@ -11,8 +11,11 @@ from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 
+# pylint: disable=redefined-outer-name
+
+
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, download_manager):  # pylint: disable=unused-argument
+async def rest_api(aiohttp_client, download_manager):
     endpoint = CreateTorrentEndpoint(download_manager)
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/createtorrent', endpoint.app)

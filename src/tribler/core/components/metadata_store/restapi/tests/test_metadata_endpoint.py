@@ -39,7 +39,7 @@ async def torrent_checker(mock_dlmgr, metadata_store):
 
 
 @pytest.fixture
-async def rest_api(event_loop, aiohttp_client, torrent_checker, metadata_store):
+async def rest_api(aiohttp_client, torrent_checker, metadata_store):
     endpoint = MetadataEndpoint(torrent_checker, metadata_store)
 
     app = Application(middlewares=[error_middleware])
