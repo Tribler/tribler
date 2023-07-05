@@ -14,6 +14,7 @@ class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
+    path = '/statistics'
 
     def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None):
         super().__init__()

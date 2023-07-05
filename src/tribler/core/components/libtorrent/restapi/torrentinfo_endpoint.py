@@ -45,6 +45,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding torrent info in Tribler.
     """
+    path = '/torrentinfo'
 
     def __init__(self, download_manager: DownloadManager):
         super().__init__()

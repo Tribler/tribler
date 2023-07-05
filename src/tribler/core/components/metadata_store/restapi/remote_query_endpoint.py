@@ -20,6 +20,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     """
     This endpoint fires a remote search in the IPv8 GigaChannel Community.
     """
+    path = '/remote_query'
 
     def __init__(self, gigachannel_community: GigaChannelCommunity, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)

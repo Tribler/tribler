@@ -37,6 +37,8 @@ async def _fetch_uri(uri):
 
 @froze_it
 class ChannelsEndpoint(MetadataEndpointBase):
+    path = '/channels'
+
     def __init__(self,
                  download_manager: DownloadManager,
                  gigachannel_manager: GigaChannelManager,

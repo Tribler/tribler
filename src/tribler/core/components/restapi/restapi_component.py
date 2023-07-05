@@ -94,26 +94,28 @@ class RESTComponent(Component):
         gigachannel_manager = None if config.gui_test_mode else gigachannel_manager_component.gigachannel_manager
 
         # add endpoints
-        self.root_endpoint.add_endpoint('/events', self._events_endpoint)
-        self.maybe_add('/settings', SettingsEndpoint, config, download_manager=libtorrent_component.download_manager)
-        self.maybe_add('/shutdown', ShutdownEndpoint, shutdown_event.set)
-        self.maybe_add('/debug', DebugEndpoint, config.state_dir, log_dir,
+        self.root_endpoint.add_endpoint(EventsEndpoint.path, self._events_endpoint)
+        self.maybe_add(SettingsEndpoint.path, SettingsEndpoint, config,
+                       download_manager=libtorrent_component.download_manager)
+        self.maybe_add(ShutdownEndpoint.path, ShutdownEndpoint, shutdown_event.set)
+        self.maybe_add(DebugEndpoint.path, DebugEndpoint, config.state_dir, log_dir,
                        tunnel_community=tunnel_community,
                        resource_monitor=resource_monitor_component.resource_monitor,
                        core_exception_handler=self._core_exception_handler)
-        self.maybe_add('/bandwidth', BandwidthEndpoint, bandwidth_accounting_component.community)
-        self.maybe_add('/trustview', TrustViewEndpoint, bandwidth_accounting_component.database)
-        self.maybe_add('/downloads', DownloadsEndpoint, libtorrent_component.download_manager,
+        self.maybe_add(BandwidthEndpoint.path, BandwidthEndpoint, bandwidth_accounting_component.community)
+        self.maybe_add(TrustViewEndpoint.path, TrustViewEndpoint, bandwidth_accounting_component.database)
+        self.maybe_add(DownloadsEndpoint.path, DownloadsEndpoint, libtorrent_component.download_manager,
                        metadata_store=metadata_store_component.mds, tunnel_community=tunnel_community)
-        self.maybe_add('/createtorrent', CreateTorrentEndpoint, libtorrent_component.download_manager)
-        self.maybe_add('/statistics', StatisticsEndpoint, ipv8=ipv8_component.ipv8,
+        self.maybe_add(CreateTorrentEndpoint.path, CreateTorrentEndpoint, libtorrent_component.download_manager)
+        self.maybe_add(StatisticsEndpoint.path, StatisticsEndpoint, ipv8=ipv8_component.ipv8,
                        metadata_store=metadata_store_component.mds)
-        self.maybe_add('/libtorrent', LibTorrentEndpoint, libtorrent_component.download_manager)
-        self.maybe_add('/torrentinfo', TorrentInfoEndpoint, libtorrent_component.download_manager)
-        self.maybe_add('/metadata', MetadataEndpoint, torrent_checker, metadata_store_component.mds,
+        self.maybe_add(LibTorrentEndpoint.path, LibTorrentEndpoint, libtorrent_component.download_manager)
+        self.maybe_add(TorrentInfoEndpoint.path, TorrentInfoEndpoint, libtorrent_component.download_manager)
+        self.maybe_add(MetadataEndpoint.path, MetadataEndpoint, torrent_checker, metadata_store_component.mds,
                        knowledge_db=knowledge_component.knowledge_db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add('/channels', ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
+        self.maybe_add(ChannelsEndpoint.path, ChannelsEndpoint, libtorrent_component.download_manager,
+                       gigachannel_manager,
                        gigachannel_component.community, metadata_store_component.mds,
                        knowledge_db=knowledge_component.knowledge_db,
                        tag_rules_processor=knowledge_component.rules_processor)
@@ -121,11 +123,11 @@ class RESTComponent(Component):
                        gigachannel_component.community, metadata_store_component.mds,
                        knowledge_db=knowledge_component.knowledge_db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add('/search', SearchEndpoint, metadata_store_component.mds,
+        self.maybe_add(SearchEndpoint.path, SearchEndpoint, metadata_store_component.mds,
                        knowledge_db=knowledge_component.knowledge_db)
-        self.maybe_add('/remote_query', RemoteQueryEndpoint, gigachannel_component.community,
+        self.maybe_add(RemoteQueryEndpoint.path, RemoteQueryEndpoint, gigachannel_component.community,
                        metadata_store_component.mds)
-        self.maybe_add('/knowledge', KnowledgeEndpoint, db=knowledge_component.knowledge_db,
+        self.maybe_add(KnowledgeEndpoint.path, KnowledgeEndpoint, db=knowledge_component.knowledge_db,
                        community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):
