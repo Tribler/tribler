@@ -2,7 +2,6 @@ from typing import Dict
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
 from freezegun import freeze_time
 from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
@@ -18,22 +17,8 @@ from tribler.core.utilities.unicode import hexlify
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
-def knowledge_endpoint(knowledge_db):
-    community = Mock()
-    community.key = TEST_PERSONAL_KEY
-    community.sign = Mock(return_value=b'')
-    endpoint = KnowledgeEndpoint(knowledge_db, community)
-    return endpoint
-
-
-@pytest.fixture
-async def rest_api(aiohttp_client, knowledge_endpoint):
-    app = Application()
-    app.add_subapp('/knowledge', knowledge_endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await app.shutdown()
+def endpoint(knowledge_db):
+    return KnowledgeEndpoint(knowledge_db, Mock(key=TEST_PERSONAL_KEY, sign=Mock(return_value=b'')))
 
 
 def tag_to_statement(tag: str) -> Dict:
@@ -86,10 +71,10 @@ async def test_modify_tags(rest_api, knowledge_db):
         assert tags == ["abc"]
 
 
-async def test_modify_tags_no_community(knowledge_db, knowledge_endpoint):
-    knowledge_endpoint.community = None
+async def test_modify_tags_no_community(knowledge_db, endpoint):
+    endpoint.community = None
     infohash = 'a' * 20
-    knowledge_endpoint.modify_statements(infohash, [tag_to_statement("abc"), tag_to_statement("def")])
+    endpoint.modify_statements(infohash, [tag_to_statement("abc"), tag_to_statement("def")])
 
     with db_session:
         tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)

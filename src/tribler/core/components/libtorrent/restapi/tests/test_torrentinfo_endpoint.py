@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 import pytest
-from aiohttp.web_app import Application
 from ipv8.util import succeed
 
 from tribler.core import notifications
@@ -16,7 +15,6 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
@@ -46,15 +44,8 @@ def download_manager(state_dir):
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, download_manager: DownloadManager):
-    endpoint = TorrentInfoEndpoint(download_manager)
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/torrentinfo', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(download_manager: DownloadManager):
+    return TorrentInfoEndpoint(download_manager)
 
 
 async def test_get_torrentinfo_escaped_characters(tmp_path, rest_api):

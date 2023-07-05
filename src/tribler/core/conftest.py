@@ -7,7 +7,10 @@ import human_readable
 import pytest
 from _pytest.config import Config
 from _pytest.python import Function
+from aiohttp.web_app import Application
 
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.utilities.network_utils import default_network_utils
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
@@ -62,3 +65,15 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
 @pytest.fixture
 def free_port():
     return default_network_utils.get_random_free_port(start=1024, stop=50000)
+
+
+@pytest.fixture
+async def rest_api(aiohttp_client, endpoint: RESTEndpoint):
+    # In each test file that requires the use of this fixture, the endpoint fixture needs to be specified.
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp(endpoint.path, endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await endpoint.shutdown()
+    await app.shutdown()

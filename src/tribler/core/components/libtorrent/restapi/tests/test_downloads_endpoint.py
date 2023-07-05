@@ -4,14 +4,12 @@ import unittest.mock
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
 from ipv8.util import fail, succeed
 
 import tribler.core.components.libtorrent.restapi.downloads_endpoint as download_endpoint
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
 from tribler.core.utilities.simpledefs import DownloadStatus
@@ -19,15 +17,8 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, mock_dlmgr, metadata_store):
-    endpoint = DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/downloads', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(mock_dlmgr, metadata_store):
+    return DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
 
 
 def get_hex_infohash(tdef):

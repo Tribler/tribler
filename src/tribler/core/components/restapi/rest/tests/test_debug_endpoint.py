@@ -3,13 +3,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from aiohttp.web_app import Application
 
 from tribler.core.components.resource_monitor.implementation.core import CoreResourceMonitor
 from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.debug_endpoint import DebugEndpoint
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 
 
 # pylint: disable=redefined-outer-name, unused-argument, protected-access
@@ -32,20 +30,9 @@ async def core_resource_monitor(tmp_path):
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, mock_tunnel_community, tmp_path, core_resource_monitor):
-    endpoint = DebugEndpoint(tmp_path, tmp_path / 'logs',
-                             tunnel_community=mock_tunnel_community,
-                             resource_monitor=core_resource_monitor)
-
-    endpoint.tunnel_community = mock_tunnel_community
-
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/debug', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(mock_tunnel_community, tmp_path, core_resource_monitor):
+    return DebugEndpoint(tmp_path, tmp_path / 'logs', tunnel_community=mock_tunnel_community,
+                         resource_monitor=core_resource_monitor)
 
 
 async def test_get_slots(rest_api, mock_tunnel_community):

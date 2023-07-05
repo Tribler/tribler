@@ -1,9 +1,7 @@
 import pytest
-from aiohttp.web_app import Application
 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpoint
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
@@ -18,15 +16,8 @@ def tribler_config(tmp_path):
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, tribler_config):
-    endpoint = SettingsEndpoint(tribler_config)
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/settings', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(tribler_config):
+    return SettingsEndpoint(tribler_config)
 
 
 def verify_settings(settings_dict):

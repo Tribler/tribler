@@ -1,13 +1,11 @@
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
 from ipv8.util import succeed
 
 from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 
@@ -15,15 +13,8 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, download_manager):
-    endpoint = CreateTorrentEndpoint(download_manager)
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/createtorrent', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(download_manager):
+    return CreateTorrentEndpoint(download_manager)
 
 
 async def test_create_torrent(rest_api, tmp_path, download_manager):
