@@ -19,10 +19,15 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, mock_dlmgr, metadata_store):
+async def rest_api(aiohttp_client, mock_dlmgr, metadata_store):
     endpoint = DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
-    web_app.add_subapp('/downloads', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/downloads', endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await endpoint.shutdown()
+    await app.shutdown()
 
 
 def get_hex_infohash(tdef):
@@ -144,12 +149,12 @@ def test_get_extended_status_circuits(mock_extended_status):
 
 
 @unittest.mock.patch("tribler.core.components.libtorrent.restapi.downloads_endpoint.ensure_unicode",
-       Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
+                     Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
 def test_safe_extended_peer_info():
     """
     Test that we return the string mapped by `chr` in the case of `UnicodeDecodeError`
     """
-    extended_peer_info = download_endpoint._safe_extended_peer_info(b"abcd") # pylint: disable=protected-access
+    extended_peer_info = download_endpoint._safe_extended_peer_info(b"abcd")  # pylint: disable=protected-access
     assert extended_peer_info == "abcd"
 
 

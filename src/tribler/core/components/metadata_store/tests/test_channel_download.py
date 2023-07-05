@@ -20,13 +20,15 @@ CHANNEL_METADATA = CHANNEL_DIR / 'channel.mdblob'
 CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
 def channel_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
 
 
 @pytest.fixture
-async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unused-argument, redefined-outer-name
+async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unused-argument
     config = LibtorrentSettings()
     config.dht = False
     config.upnp = False
@@ -45,20 +47,20 @@ async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unu
 
 
 @pytest.fixture
-async def gigachannel_manager(metadata_store, download_manager):
-    gigachannel_manager = GigaChannelManager(
+async def gigachannel_manager(metadata_store, download_manager: DownloadManager):
+    manager = GigaChannelManager(
         state_dir=metadata_store.channels_dir.parent,
         download_manager=download_manager,
         metadata_store=metadata_store,
         notifier=MagicMock(),
     )
-    yield gigachannel_manager
-    await gigachannel_manager.shutdown()
+    yield manager
+    await manager.shutdown()
 
 
-async def test_channel_update_and_download(
-        channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
-):
+async def test_channel_update_and_download(channel_tdef, channel_seeder, metadata_store,
+                                           download_manager: DownloadManager,
+                                           gigachannel_manager: GigaChannelManager):
     """
     Test whether we can successfully update a channel and download the new version
     """

@@ -10,14 +10,15 @@ from tribler.core.utilities.unicode import hexlify
 
 
 @pytest.fixture
-def endpoint(mock_dlmgr, mock_lt_session):
-    return LibTorrentEndpoint(mock_dlmgr)
+async def rest_api(aiohttp_client, mock_dlmgr, mock_lt_session):
+    endpoint = LibTorrentEndpoint(mock_dlmgr)
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/libtorrent', endpoint.app)
 
+    yield await aiohttp_client(app)
 
-@pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/libtorrent', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+    await endpoint.shutdown()
+    await app.shutdown()
 
 
 @pytest.fixture

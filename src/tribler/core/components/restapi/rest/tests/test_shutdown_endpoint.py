@@ -8,15 +8,25 @@ from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
 
 
-@pytest.fixture
-def endpoint():
-    return ShutdownEndpoint(Mock())
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/shutdown', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+async def endpoint():
+    endpoint = ShutdownEndpoint(Mock())
+    yield endpoint
+
+    await endpoint.shutdown()
+
+
+@pytest.fixture
+async def rest_api(aiohttp_client, endpoint):
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/shutdown', endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await app.shutdown()
 
 
 async def test_shutdown(rest_api, endpoint):

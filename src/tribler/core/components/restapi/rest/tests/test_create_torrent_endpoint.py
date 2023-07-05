@@ -11,18 +11,22 @@ from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 
-@pytest.fixture
-def endpoint():
-    return CreateTorrentEndpoint(Mock())
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/createtorrent', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+async def rest_api(aiohttp_client, download_manager):
+    endpoint = CreateTorrentEndpoint(download_manager)
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/createtorrent', endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await endpoint.shutdown()
+    await app.shutdown()
 
 
-async def test_create_torrent(rest_api, tmp_path, endpoint):
+async def test_create_torrent(rest_api, tmp_path, download_manager):
     """
     Testing whether the API returns a proper base64 encoded torrent
     """
@@ -32,9 +36,9 @@ async def test_create_torrent(rest_api, tmp_path, endpoint):
             encoded_metainfo = torrent_file.read()
         return succeed({"metainfo": encoded_metainfo, "base_dir": str(tmp_path)})
 
-    endpoint.download_manager.download_defaults = DownloadDefaultsSettings()
-    endpoint.download_manager.create_torrent_file = fake_create_torrent_file
-    endpoint.download_manager.start_download = start_download = Mock()
+    download_manager.download_defaults = DownloadDefaultsSettings()
+    download_manager.create_torrent_file = fake_create_torrent_file
+    download_manager.start_download = start_download = Mock()
 
     torrent_path = tmp_path / "video.avi.torrent"
     post_data = {
@@ -52,7 +56,7 @@ async def test_create_torrent(rest_api, tmp_path, endpoint):
     ).number_hops  # pylint: disable=unsubscriptable-object
 
 
-async def test_create_torrent_io_error(rest_api, endpoint):
+async def test_create_torrent_io_error(rest_api, download_manager):
     """
     Testing whether the API returns a formatted 500 error if IOError is raised
     """
@@ -60,7 +64,7 @@ async def test_create_torrent_io_error(rest_api, endpoint):
     def fake_create_torrent_file(*_, **__):
         raise OSError("test")
 
-    endpoint.download_manager.create_torrent_file = fake_create_torrent_file
+    download_manager.create_torrent_file = fake_create_torrent_file
 
     post_data = {
         "files": ["non_existing_file.avi"]

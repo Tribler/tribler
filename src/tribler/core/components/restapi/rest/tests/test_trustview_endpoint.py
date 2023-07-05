@@ -16,15 +16,23 @@ from tribler.core.exceptions import TrustGraphException
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
-def endpoint(bandwidth_db):  # pylint: disable=W0621
-    return TrustViewEndpoint(bandwidth_db)
+async def endpoint(bandwidth_db):
+    endpoint = TrustViewEndpoint(bandwidth_db)
+    yield endpoint
+    await endpoint.shutdown()
 
 
 @pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/trustview', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
+async def rest_api(aiohttp_client, endpoint):
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/trustview', endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await app.shutdown()
 
 
 @pytest.fixture
@@ -38,8 +46,10 @@ def mock_bandwidth_community(mock_ipv8, rest_api):
 
 
 @pytest.fixture
-async def bandwidth_db(root_key):
-    return BandwidthDatabase(MEMORY_DB, root_key)
+def bandwidth_db(root_key):
+    database = BandwidthDatabase(MEMORY_DB, root_key)
+    yield database
+    database.shutdown()
 
 
 @pytest.fixture
@@ -128,7 +138,7 @@ def test_add_bandwidth_transactions(trust_graph):
         assert False, "Expected to fail but did not."
 
 
-async def test_trustview_response(rest_api, root_key, bandwidth_db, endpoint):
+async def test_trustview_response(rest_api, root_key, bandwidth_db):
     """
     Test whether the trust graph response is correctly returned.
 

@@ -12,52 +12,57 @@ from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 
 
+# pylint: disable=redefined-outer-name
+
+
 @pytest.fixture
-async def mock_ipv8():
+async def endpoint(metadata_store):
     ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
                     settings=BandwidthAccountingSettings())
     ipv8.overlays = [ipv8.overlay]
     ipv8.endpoint.bytes_up = 100
     ipv8.endpoint.bytes_down = 20
-    yield ipv8
+
+    endpoint = StatisticsEndpoint(ipv8, metadata_store)
+
+    yield endpoint
+
     await ipv8.stop()
+    await endpoint.shutdown()
 
 
 @pytest.fixture
-def endpoint():
-    endpoint = StatisticsEndpoint()
-    return endpoint
+async def rest_api(aiohttp_client, endpoint):
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp('/statistics', endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await app.shutdown()
 
 
-@pytest.fixture
-def rest_api(web_app, event_loop, aiohttp_client, endpoint):
-    web_app.add_subapp('/statistics', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(web_app))
-
-
-async def test_get_tribler_statistics(rest_api, endpoint, metadata_store):
+async def test_get_tribler_statistics(rest_api):
     """
     Testing whether the API returns a correct Tribler statistics dictionary when requested
     """
-    endpoint.mds = metadata_store
     stats = (await do_request(rest_api, 'statistics/tribler', expected_code=200))['tribler_statistics']
     assert 'db_size' in stats
     assert 'num_channels' in stats
     assert 'num_channels' in stats
 
 
-async def test_get_ipv8_statistics(mock_ipv8, rest_api, endpoint):
+async def test_get_ipv8_statistics(rest_api):
     """
     Testing whether the API returns a correct IPv8 statistics dictionary when requested
     """
-    endpoint.ipv8 = mock_ipv8
     json_data = await do_request(rest_api, 'statistics/ipv8', expected_code=200)
     assert json_data["ipv8_statistics"]
 
 
-async def test_get_ipv8_statistics_unavailable(rest_api):
+async def test_get_ipv8_statistics_unavailable(rest_api, endpoint: StatisticsEndpoint):
     """
     Testing whether the API returns error 500 if IPv8 is not available
     """
+    endpoint.ipv8 = None
     json_data = await do_request(rest_api, 'statistics/ipv8', expected_code=200)
     assert not json_data["ipv8_statistics"]

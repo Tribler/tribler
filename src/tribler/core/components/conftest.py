@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-from aiohttp.abc import Application
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 
@@ -11,7 +10,6 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path
@@ -132,10 +130,3 @@ async def download_manager(tmp_path_factory):
     yield download_manager
 
     await download_manager.shutdown()
-
-
-@pytest.fixture(name='web_app')
-async def web_app_fixture():
-    app = Application(middlewares=[error_middleware])
-    yield app
-    await app.shutdown()

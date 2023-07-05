@@ -24,19 +24,18 @@ def mock_gigachannel_community():
 
 
 @pytest.fixture
-def endpoint(mock_gigachannel_community, metadata_store):
-    return RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
-
-
-@pytest.fixture
-def rest_api(event_loop, aiohttp_client, endpoint):
+async def rest_api(aiohttp_client, metadata_store, mock_gigachannel_community):
+    endpoint = RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
     app = Application(middlewares=[error_middleware])
     app.add_subapp('/remote_query', endpoint.app)
-    yield event_loop.run_until_complete(aiohttp_client(app))
-    app.shutdown()
+
+    yield await aiohttp_client(app)
+
+    await endpoint.shutdown()
+    await app.shutdown()
 
 
-async def test_create_remote_search_request(rest_api, endpoint, mock_gigachannel_community):
+async def test_create_remote_search_request(rest_api, mock_gigachannel_community):
     """
     Test that remote search call is sent on a REST API search request
     """
@@ -69,7 +68,7 @@ async def test_create_remote_search_request(rest_api, endpoint, mock_gigachannel
     assert hexlify(sent['channel_pk']) == channel_pk
 
 
-async def test_get_channels_peers(rest_api, endpoint, metadata_store, mock_gigachannel_community):
+async def test_get_channels_peers(rest_api, metadata_store, mock_gigachannel_community):
     """
     Test getting debug info about the state of channels to peers mapping
     """

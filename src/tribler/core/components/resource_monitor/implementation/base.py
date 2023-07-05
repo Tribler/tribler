@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import deque
+from typing import Optional
 
 import psutil
 
@@ -25,6 +26,7 @@ class ResourceMonitor:
 
         self.cpu_data = deque(maxlen=history_size)
         self.memory_data = deque(maxlen=history_size)
+        self.profiler: Optional = None
 
         self.process = psutil.Process()
         self.last_error = None
