@@ -58,9 +58,10 @@ async def gigachannel_manager(metadata_store, download_manager: DownloadManager)
     await manager.shutdown()
 
 
-async def test_channel_update_and_download(channel_tdef, channel_seeder, metadata_store,
-                                           download_manager: DownloadManager,
-                                           gigachannel_manager: GigaChannelManager):
+@pytest.mark.looptime(False)
+async def test_channel_update_and_download(
+        channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
+):
     """
     Test whether we can successfully update a channel and download the new version
     """
