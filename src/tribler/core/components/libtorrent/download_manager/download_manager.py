@@ -140,10 +140,9 @@ class DownloadManager(TaskManager):
         """
         if rate == 0:
             return -1
-        elif rate == -1:
+        if rate == -1:
             return 1
-        else:
-            return rate * 1024
+        return rate * 1024
 
     @staticmethod
     def reverse_convert_rate(rate: int) -> int:
@@ -153,10 +152,9 @@ class DownloadManager(TaskManager):
         """
         if rate == -1:
             return 0
-        elif rate == 1:
+        if rate == 1:
             return -1
-        else:
-            return rate // 1024
+        return rate // 1024
 
     async def _check_dht_ready(self, min_dht_peers=60):
         """
@@ -391,7 +389,7 @@ class DownloadManager(TaskManager):
     def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = self.__class__.convert_rate(rate=rate)
+        libtorrent_rate = self.convert_rate(rate=rate)
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'upload_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
@@ -402,10 +400,10 @@ class DownloadManager(TaskManager):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = self.get_session(hops).upload_rate_limit()
-        return self.__class__.reverse_convert_rate(rate=libtorrent_rate)
+        return self.reverse_convert_rate(rate=libtorrent_rate)
 
     def set_download_rate_limit(self, rate, hops=None):
-        libtorrent_rate = self.__class__.convert_rate(rate=rate)
+        libtorrent_rate = self.convert_rate(rate=rate)
 
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {'download_rate_limit': libtorrent_rate}
@@ -414,7 +412,7 @@ class DownloadManager(TaskManager):
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops=hops).download_rate_limit()
-        return self.__class__.reverse_convert_rate(rate=libtorrent_rate)
+        return self.reverse_convert_rate(rate=libtorrent_rate)
 
     def process_alert(self, alert, hops=0):
         alert_type = alert.__class__.__name__

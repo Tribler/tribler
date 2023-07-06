@@ -170,34 +170,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def on_send_clicked(self, checked):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText(tr("SENDING..."))
-        sys_info = defaultdict(list)
-        for ind in range(self.env_variables_list.topLevelItemCount()):
-            item = self.env_variables_list.topLevelItem(ind)
-            key = item.text(0)
-            value = item.text(1)
-
-            sys_info[key].append(value)
-
-        # tags
-        self.additional_tags[VERSION] = self.tribler_version
-        self.additional_tags[MACHINE] = platform.machine()
-        self.additional_tags[OS] = platform.platform()
-        self.additional_tags[PLATFORM] = get_first_item(sys_info[PLATFORM])
-        self.additional_tags[PLATFORM_DETAILS] = get_first_item(sys_info[PLATFORM_DETAILS])
-
-        # info
-        info = {}
-
-        info['_error_text'] = self.reported_error.text
-        info['_error_long_text'] = self.reported_error.long_text
-        info['_error_context'] = self.reported_error.context
-        info[COMMENTS] = self.comments_text_edit.toPlainText()
-        info[SYSINFO] = sys_info
-        info[OS_ENVIRON] = sys_info[OS_ENVIRON]
-        delete_item(info[SYSINFO], OS_ENVIRON)
-
-        info[ADDITIONAL_INFORMATION] = self.reported_error.additional_information
-        info[LAST_PROCESSES] = [str(p) for p in self.process_manager.get_last_processes()]
 
         self.sentry_reporter.send_event(
             event=self.reported_error.event or {},

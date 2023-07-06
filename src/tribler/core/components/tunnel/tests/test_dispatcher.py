@@ -1,7 +1,9 @@
+import asyncio
+from asyncio import Future
 from unittest.mock import Mock
 
 import pytest
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA, Circuit
 from ipv8.util import succeed
 
 from tribler.core.components.tunnel.community.dispatcher import TunnelDispatcher
@@ -127,3 +129,35 @@ def test_check_connections(dispatcher, mock_circuit):
     assert connection not in dispatcher.con_to_cir
     assert mock_circuit.circuit_id not in dispatcher.cid_to_con
     assert 2 in dispatcher.cid_to_con
+
+
+async def test_on_data_after_select(dispatcher: TunnelDispatcher, mock_circuit: Circuit) -> None:
+    mock_connection = Mock(udp_connection=None)
+    mock_request = Mock(destination=("0.0.0.0", 1024), data=b'a')
+    dispatcher.set_socks_servers([mock_connection.socksserver])
+    dispatcher.tunnels.circuits = {}
+    dispatcher.tunnels.create_circuit = Mock(return_value=mock_circuit)
+    dispatcher.on_socks5_udp_data = Mock(return_value=None)
+    mock_circuit.ready = Future()
+
+    mock_circuit.ready.set_result(True)
+    dispatcher.select_circuit(mock_connection, mock_request)
+    await asyncio.sleep(0)
+
+    assert dispatcher.on_socks5_udp_data.called
+
+
+async def test_on_data_after_select_no_result(dispatcher: TunnelDispatcher, mock_circuit: Circuit) -> None:
+    mock_connection = Mock(udp_connection=None)
+    mock_request = Mock(destination=("0.0.0.0", 1024), data=b'a')
+    dispatcher.set_socks_servers([mock_connection.socksserver])
+    dispatcher.tunnels.circuits = {}
+    dispatcher.tunnels.create_circuit = Mock(return_value=mock_circuit)
+    dispatcher.on_socks5_udp_data = Mock(return_value=None)
+    mock_circuit.ready = Future()
+
+    mock_circuit.ready.set_result(None)
+    dispatcher.select_circuit(mock_connection, mock_request)
+    await asyncio.sleep(0)
+
+    assert not dispatcher.on_socks5_udp_data.called
