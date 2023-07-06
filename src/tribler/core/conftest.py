@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import platform
 import sys
 from datetime import datetime
 from typing import Optional
@@ -68,7 +70,19 @@ def free_port():
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, endpoint: RESTEndpoint):
+def event_loop():
+    if platform.system() == 'Windows':
+        # to prevent the "Loop is closed" error
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture
+async def rest_api(event_loop, aiohttp_client, endpoint: RESTEndpoint):
     # In each test file that requires the use of this fixture, the endpoint fixture needs to be specified.
     app = Application(middlewares=[error_middleware])
     app.add_subapp(endpoint.path, endpoint.app)
