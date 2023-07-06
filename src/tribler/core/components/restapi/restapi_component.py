@@ -49,18 +49,18 @@ class RESTComponent(Component):
     _events_endpoint: EventsEndpoint
     _core_exception_handler: CoreExceptionHandler = default_core_exception_handler
 
-    def maybe_add(self, path: str, endpoint_cls: Type[RESTEndpoint], *args, **kwargs):
+    def maybe_add(self, endpoint_cls: Type[RESTEndpoint], *args, **kwargs):
         """ Add the corresponding endpoint to the path in case there are no `NoneComponent`
         in *args or **kwargs
         """
-        self.logger.info(f'Adding: "{path}"...')
+        self.logger.info(f'Adding: "{endpoint_cls.path}"...')
         arguments_chain = chain(args, kwargs.values())
         need_to_skip = any(isinstance(arg, NoneComponent) for arg in arguments_chain)
         if need_to_skip and not self.swagger_doc_extraction_mode:
             self.logger.warning("Skipped")
             return
 
-        self.root_endpoint.add_endpoint(path, endpoint_cls(*args, **kwargs))
+        self.root_endpoint.add_endpoint(endpoint_cls.path, endpoint_cls(*args, **kwargs))
         self.logger.info("OK")
 
     async def run(self):
@@ -95,36 +95,29 @@ class RESTComponent(Component):
 
         # add endpoints
         self.root_endpoint.add_endpoint(EventsEndpoint.path, self._events_endpoint)
-        self.maybe_add(SettingsEndpoint.path, SettingsEndpoint, config,
-                       download_manager=libtorrent_component.download_manager)
-        self.maybe_add(ShutdownEndpoint.path, ShutdownEndpoint, shutdown_event.set)
-        self.maybe_add(DebugEndpoint.path, DebugEndpoint, config.state_dir, log_dir,
-                       tunnel_community=tunnel_community,
+        self.maybe_add(SettingsEndpoint, config, download_manager=libtorrent_component.download_manager)
+        self.maybe_add(ShutdownEndpoint, shutdown_event.set)
+        self.maybe_add(DebugEndpoint, config.state_dir, log_dir, tunnel_community=tunnel_community,
                        resource_monitor=resource_monitor_component.resource_monitor,
                        core_exception_handler=self._core_exception_handler)
-        self.maybe_add(BandwidthEndpoint.path, BandwidthEndpoint, bandwidth_accounting_component.community)
-        self.maybe_add(TrustViewEndpoint.path, TrustViewEndpoint, bandwidth_accounting_component.database)
-        self.maybe_add(DownloadsEndpoint.path, DownloadsEndpoint, libtorrent_component.download_manager,
+        self.maybe_add(BandwidthEndpoint, bandwidth_accounting_component.community)
+        self.maybe_add(TrustViewEndpoint, bandwidth_accounting_component.database)
+        self.maybe_add(DownloadsEndpoint, libtorrent_component.download_manager,
                        metadata_store=metadata_store_component.mds, tunnel_community=tunnel_community)
-        self.maybe_add(CreateTorrentEndpoint.path, CreateTorrentEndpoint, libtorrent_component.download_manager)
-        self.maybe_add(StatisticsEndpoint.path, StatisticsEndpoint, ipv8=ipv8_component.ipv8,
-                       metadata_store=metadata_store_component.mds)
-        self.maybe_add(LibTorrentEndpoint.path, LibTorrentEndpoint, libtorrent_component.download_manager)
-        self.maybe_add(TorrentInfoEndpoint.path, TorrentInfoEndpoint, libtorrent_component.download_manager)
-        self.maybe_add(MetadataEndpoint.path, MetadataEndpoint, torrent_checker, metadata_store_component.mds,
+        self.maybe_add(CreateTorrentEndpoint, libtorrent_component.download_manager)
+        self.maybe_add(StatisticsEndpoint, ipv8=ipv8_component.ipv8, metadata_store=metadata_store_component.mds)
+        self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
+        self.maybe_add(TorrentInfoEndpoint, libtorrent_component.download_manager)
+        self.maybe_add(MetadataEndpoint, torrent_checker, metadata_store_component.mds,
                        knowledge_db=knowledge_component.knowledge_db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(ChannelsEndpoint.path, ChannelsEndpoint, libtorrent_component.download_manager,
-                       gigachannel_manager,
+        self.maybe_add(ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
                        gigachannel_component.community, metadata_store_component.mds,
                        knowledge_db=knowledge_component.knowledge_db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(SearchEndpoint.path, SearchEndpoint, metadata_store_component.mds,
-                       knowledge_db=knowledge_component.knowledge_db)
-        self.maybe_add(RemoteQueryEndpoint.path, RemoteQueryEndpoint, gigachannel_component.community,
-                       metadata_store_component.mds)
-        self.maybe_add(KnowledgeEndpoint.path, KnowledgeEndpoint, db=knowledge_component.knowledge_db,
-                       community=knowledge_component.community)
+        self.maybe_add(SearchEndpoint, metadata_store_component.mds, knowledge_db=knowledge_component.knowledge_db)
+        self.maybe_add(RemoteQueryEndpoint, gigachannel_component.community, metadata_store_component.mds)
+        self.maybe_add(KnowledgeEndpoint, db=knowledge_component.knowledge_db, community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):
             ipv8_root_endpoint = IPV8RootEndpoint()

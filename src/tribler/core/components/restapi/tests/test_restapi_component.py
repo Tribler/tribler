@@ -58,25 +58,25 @@ def rest_component():
 def test_maybe_add_check_args(rest_component, endpoint_cls):
     # test that in case `*args` in `maybe_add` function contains `NoneComponent` instance
     # no root_endpoint methods are called
-    rest_component.maybe_add('path', endpoint_cls, NoneComponent())
+    rest_component.maybe_add(endpoint_cls, NoneComponent())
     rest_component.root_endpoint.assert_not_called()
 
-    rest_component.maybe_add('path', endpoint_cls, NoneComponent(), 'some arg')
+    rest_component.maybe_add(endpoint_cls, NoneComponent(), 'some arg')
     rest_component.root_endpoint.assert_not_called()
 
 
 def test_maybe_add_check_kwargs(rest_component, endpoint_cls):
     # test that in case `**kwargs` in `maybe_add` function contains `NoneComponent` instance
     # no root_endpoint methods are called
-    rest_component.maybe_add('path', endpoint_cls, component=NoneComponent())
+    rest_component.maybe_add(endpoint_cls, component=NoneComponent())
     rest_component.root_endpoint.assert_not_called()
 
-    rest_component.maybe_add('path', endpoint_cls, component=NoneComponent(), another='kwarg')
+    rest_component.maybe_add(endpoint_cls, component=NoneComponent(), another='kwarg')
     rest_component.root_endpoint.assert_not_called()
 
 
 def test_maybe_add(rest_component, endpoint_cls):
     # test that in case there are no `NoneComponent` instances in `**kwargs` or `*args`
     # root_endpoint methods are called
-    rest_component.maybe_add('path', endpoint_cls, 'arg')
+    rest_component.maybe_add(endpoint_cls, 'arg')
     assert rest_component.root_endpoint.add_endpoint.called_once()
