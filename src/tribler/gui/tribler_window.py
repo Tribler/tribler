@@ -934,7 +934,7 @@ class TriblerWindow(QMainWindow):
                         return
 
                     request_manager.put(
-                        endpoint=f"collections/mychannel/{channel_id}/torrents",
+                        endpoint=f"channels/mychannel/{channel_id}/torrents",
                         on_success=lambda _: self.tray_show_message(
                             tr("Channels update"), tr("%s added to your channel") % self.chosen_dir
                         ),
