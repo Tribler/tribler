@@ -83,26 +83,29 @@ def get_sentry_hooks():
 
 # Hidden imports
 hiddenimports = [
-                    'csv',
-                    'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
-                    'ecdsa',
-                    'ipv8',
-                    'PIL',
-                    'pkg_resources',
-                    # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
-                    'pyaes',
-                    'pydantic',
-                    'pyqtgraph',
-                    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
-                    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
-                    'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
-                    'PyQt5.QtTest',
-                    'requests',
-                    'scrypt', '_scrypt',
-                    'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
-                    'tribler.core.logger.logger_streams',
-                    'typing_extensions',
-                ] + widget_files + pony_deps + get_sentry_hooks()
+    'csv',
+    'dataclasses',  # https://github.com/pyinstaller/pyinstaller/issues/5432
+    'ecdsa',
+    'ipv8',
+    'PIL',
+    'pkg_resources',
+    # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
+    'pyaes',
+    'pydantic',
+    'pyqtgraph',
+    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
+    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
+    'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
+    'PyQt5.QtTest',
+    'requests',
+    'scrypt', '_scrypt',
+    'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
+    'tribler.core.logger.logger_streams',
+    'typing_extensions',
+]
+hiddenimports += widget_files
+hiddenimports += pony_deps
+hiddenimports += get_sentry_hooks()
 
 # Fix for issue: Could not load a pixbuf from icon theme.
 # Unrecognized image file format (gdk-pixbuf-error-quark, 3).
