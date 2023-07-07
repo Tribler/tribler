@@ -490,3 +490,14 @@ def test_get_tracker_status_get_peer_info_error(test_download: Download):
     )
     status = test_download.get_tracker_status()
     assert status
+
+
+async def test_shutdown(test_download: Download):
+    """ Test that the `shutdown` method closes the stream and clears the `futures` list."""
+    test_download.stream = Mock()
+    assert len(test_download.futures) == 4
+
+    await test_download.shutdown()
+
+    assert not test_download.futures
+    assert test_download.stream.close.called
