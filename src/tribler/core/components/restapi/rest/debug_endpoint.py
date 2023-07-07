@@ -43,6 +43,7 @@ class DebugEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
+    path = '/debug'
 
     def __init__(self,
                  state_dir: Path,

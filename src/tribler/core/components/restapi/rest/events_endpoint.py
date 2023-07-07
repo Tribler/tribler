@@ -47,6 +47,7 @@ class EventsEndpoint(RESTEndpoint):
     pushed over this endpoint in the form of a JSON dictionary. Each JSON dictionary contains a type field that
     indicates the type of the event. Individual events are separated by a newline character.
     """
+    path = '/events'
 
     def __init__(self, notifier: Notifier, public_key: str = None):
         super().__init__()

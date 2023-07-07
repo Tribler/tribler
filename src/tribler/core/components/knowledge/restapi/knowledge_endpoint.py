@@ -21,6 +21,7 @@ class KnowledgeEndpoint(RESTEndpoint):
     """
     Top-level endpoint for knowledge management.
     """
+    path = '/knowledge'
 
     def __init__(self, db: KnowledgeDatabase, community: KnowledgeCommunity):
         super().__init__()

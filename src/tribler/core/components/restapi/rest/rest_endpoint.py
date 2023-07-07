@@ -13,9 +13,7 @@ if TYPE_CHECKING:
     from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
     from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 
-
 patch_make_request(web.Application)
-
 
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
@@ -24,6 +22,7 @@ HTTP_INTERNAL_SERVER_ERROR = 500
 
 
 class RESTEndpoint:
+    path = ''
 
     def __init__(self, middlewares=()):
         self._logger = logging.getLogger(self.__class__.__name__)

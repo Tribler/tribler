@@ -2,13 +2,11 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
-from aiohttp.web_app import Application
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, TODELETE, UPDATED
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.unicode import hexlify
@@ -39,15 +37,8 @@ async def torrent_checker(mock_dlmgr, metadata_store):
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, torrent_checker, metadata_store):
-    endpoint = MetadataEndpoint(torrent_checker, metadata_store)
-
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/metadata', endpoint.app)
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(torrent_checker, metadata_store):
+    return MetadataEndpoint(torrent_checker, metadata_store)
 
 
 async def test_update_multiple_metadata_entries(metadata_store, add_fake_torrents_channels, rest_api):

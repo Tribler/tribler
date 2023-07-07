@@ -1,24 +1,17 @@
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
 
 from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.utilities.unicode import hexlify
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
-async def rest_api(aiohttp_client, mock_dlmgr, mock_lt_session):
-    endpoint = LibTorrentEndpoint(mock_dlmgr)
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/libtorrent', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(mock_dlmgr, mock_lt_session):
+    return LibTorrentEndpoint(mock_dlmgr)
 
 
 @pytest.fixture

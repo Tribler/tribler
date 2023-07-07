@@ -23,6 +23,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
     Create a torrent file from local files.
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
+    path = '/createtorrent'
 
     def __init__(self, download_manager: DownloadManager):
         super().__init__()

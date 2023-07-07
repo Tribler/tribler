@@ -28,17 +28,6 @@ async def endpoint(metadata_store):
     yield endpoint
 
     await ipv8.stop()
-    await endpoint.shutdown()
-
-
-@pytest.fixture
-async def rest_api(aiohttp_client, endpoint):
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/statistics', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await app.shutdown()
 
 
 async def test_get_tribler_statistics(rest_api):

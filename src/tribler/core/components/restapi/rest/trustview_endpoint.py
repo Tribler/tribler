@@ -14,6 +14,8 @@ from tribler.core.utilities.utilities import froze_it
 
 @froze_it
 class TrustViewEndpoint(RESTEndpoint):
+    path = '/trustview'
+
     def __init__(self, bandwidth_db: BandwidthDatabase):
         super().__init__()
         self.bandwidth_db = bandwidth_db

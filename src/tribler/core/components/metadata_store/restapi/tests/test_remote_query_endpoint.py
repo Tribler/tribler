@@ -2,7 +2,6 @@ import uuid
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from pony.orm import db_session
@@ -10,7 +9,6 @@ from pony.orm import db_session
 from tribler.core.components.gigachannel.community.gigachannel_community import ChannelsPeersMapping
 from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
 
@@ -24,15 +22,8 @@ def mock_gigachannel_community():
 
 
 @pytest.fixture
-async def rest_api(aiohttp_client, metadata_store, mock_gigachannel_community):
-    endpoint = RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/remote_query', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await endpoint.shutdown()
-    await app.shutdown()
+def endpoint(metadata_store, mock_gigachannel_community):
+    return RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
 
 
 async def test_create_remote_search_request(rest_api, mock_gigachannel_community):

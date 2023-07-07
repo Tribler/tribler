@@ -3,14 +3,12 @@ import secrets
 from binascii import unhexlify
 
 import pytest
-from aiohttp.web_app import Application
 from ipv8.keyvault.crypto import default_eccrypto
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
 from tribler.core.components.bandwidth_accounting.trust_calculation.trust_graph import TrustGraph
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
 from tribler.core.exceptions import TrustGraphException
 from tribler.core.utilities.utilities import MEMORY_DB
@@ -19,20 +17,8 @@ from tribler.core.utilities.utilities import MEMORY_DB
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
-async def endpoint(bandwidth_db):
-    endpoint = TrustViewEndpoint(bandwidth_db)
-    yield endpoint
-    await endpoint.shutdown()
-
-
-@pytest.fixture
-async def rest_api(aiohttp_client, endpoint):
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/trustview', endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await app.shutdown()
+def endpoint(bandwidth_db):
+    return TrustViewEndpoint(bandwidth_db)
 
 
 @pytest.fixture

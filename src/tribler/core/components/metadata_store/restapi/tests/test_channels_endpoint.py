@@ -4,8 +4,6 @@ from binascii import unhexlify
 from unittest.mock import Mock, patch
 
 import pytest
-from aiohttp.web_app import Application
-from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.util import succeed
 from pony.orm import db_session
 
@@ -18,7 +16,6 @@ from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORR
 from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint, ERROR_INVALID_MAGNET_LINK
 from tribler.core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.unicode import hexlify
@@ -34,32 +31,20 @@ PNG_DATA = unhexlify(
 
 # pylint: disable=unused-argument, redefined-outer-name
 
-
 @pytest.fixture
-async def rest_api(aiohttp_client, mock_dlmgr, metadata_store, knowledge_db):
-    mock_gigachannel_manager = Mock()
-    mock_gigachannel_community = Mock()
-
+def endpoint(mock_dlmgr, metadata_store, knowledge_db):
     def return_exc(*args, **kwargs):
         raise RequestTimeoutException
 
     mock_dlmgr.metainfo_requests = {}
 
-    mock_gigachannel_community.remote_select_channel_contents = return_exc
-    ep_args = [mock_dlmgr, mock_gigachannel_manager, mock_gigachannel_community, metadata_store]
-    ep_kwargs = {'knowledge_db': knowledge_db}
-    collections_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
-    channels_endpoint = ChannelsEndpoint(*ep_args, **ep_kwargs)
-
-    app = Application(middlewares=[error_middleware])
-    app.add_subapp('/channels', channels_endpoint.app)
-    app.add_subapp('/collections', collections_endpoint.app)
-
-    yield await aiohttp_client(app)
-
-    await collections_endpoint.shutdown()
-    await channels_endpoint.shutdown()
-    await app.shutdown()
+    return ChannelsEndpoint(
+        mock_dlmgr,
+        Mock(),
+        Mock(remote_select_channel_contents=return_exc),
+        metadata_store,
+        knowledge_db=knowledge_db
+    )
 
 
 async def test_get_channels(rest_api, add_fake_torrents_channels, add_subscribed_and_not_downloaded_channel, mock_dlmgr,
@@ -352,78 +337,6 @@ async def test_get_commit_state(my_channel, rest_api):
     Test getting dirty status of a channel through its commit endpoint
     """
     await do_request(rest_api, 'channels/mychannel/0/commit', expected_json={'dirty': True})
-
-
-async def test_copy_torrents_to_collection(rest_api, metadata_store):
-    """
-    Test if we can copy torrents from an external channel(s) to a personal channel/collection
-    """
-    channel = metadata_store.ChannelMetadata.create_channel('my chan')
-    ext_key = default_eccrypto.generate_key("curve25519")
-    with db_session:
-        external_metadata1 = metadata_store.TorrentMetadata(
-            sign_with=ext_key, id_=111, title="bla1", infohash=random_infohash()
-        )
-        external_metadata2_ffa = metadata_store.TorrentMetadata(
-            public_key=b"", id_=222, title="bla2-ffa", infohash=random_infohash()
-        )
-
-    request_data = [external_metadata1.to_simple_dict(), external_metadata2_ffa.to_simple_dict()]
-    await do_request(
-        rest_api,
-        'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-        post_data=request_data,
-        request_type='POST',
-    )
-    with db_session:
-        assert len(channel.contents) == 2
-
-    await do_request(
-        rest_api,
-        'collections/%s/%i/copy' % (hexlify(b"0" * 64), 777),
-        post_data=request_data,
-        request_type='POST',
-        expected_code=404,
-    )
-
-    request_data = [{'public_key': hexlify(b"1" * 64), 'id': 12333}]
-    await do_request(
-        rest_api,
-        'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-        post_data=request_data,
-        request_type='POST',
-        expected_code=400,
-    )
-
-
-async def test_copy_torrents_to_collection_bad_json(metadata_store, rest_api):
-    """
-    Test whether bad JSON will be rejected with an error 400 when copying torrents to a collection
-    """
-    channel = metadata_store.ChannelMetadata.create_channel('my chan')
-    await do_request(
-        rest_api,
-        'collections/%s/%i/copy' % (hexlify(channel.public_key), channel.id_),
-        post_data='abc',
-        request_type='POST',
-        expected_code=400,
-    )
-
-
-async def test_create_subchannel_and_collection(metadata_store, rest_api):
-    """
-    Test if we can create subchannels/collections in a personal channel
-    """
-    await do_request(rest_api, 'channels/mychannel/0/channels', request_type='POST', expected_code=200)
-    with db_session:
-        channel = metadata_store.ChannelMetadata.get()
-        assert channel
-    await do_request(
-        rest_api, 'channels/mychannel/%i/collections' % channel.id_, request_type='POST', expected_code=200
-    )
-    with db_session:
-        collection = metadata_store.CollectionNode.get(lambda g: g.origin_id == channel.id_)
-        assert collection
 
 
 async def test_add_torrents_no_channel(metadata_store, my_channel, rest_api):

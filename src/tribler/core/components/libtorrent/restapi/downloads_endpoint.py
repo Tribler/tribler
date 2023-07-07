@@ -80,6 +80,7 @@ class DownloadsEndpoint(RESTEndpoint):
     This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
     starting, pausing and stopping downloads.
     """
+    path = '/downloads'
 
     def __init__(self, download_manager: DownloadManager, metadata_store=None, tunnel_community=None):
         super().__init__()

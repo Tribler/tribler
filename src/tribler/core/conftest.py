@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import platform
 import sys
 from datetime import datetime
 from typing import Optional
@@ -7,7 +9,10 @@ import human_readable
 import pytest
 from _pytest.config import Config
 from _pytest.python import Function
+from aiohttp.web_app import Application
 
+from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
+from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.utilities.network_utils import default_network_utils
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
@@ -20,7 +25,7 @@ enable_extended_logging = False
 pytest_start_time: Optional[datetime] = None  # a time when the test suite started
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, redefined-outer-name
 
 def pytest_configure(config):
     # Disable logging from faker for all tests
@@ -62,3 +67,27 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
 @pytest.fixture
 def free_port():
     return default_network_utils.get_random_free_port(start=1024, stop=50000)
+
+
+@pytest.fixture
+def event_loop():
+    if platform.system() == 'Windows':
+        # to prevent the "Loop is closed" error
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture
+async def rest_api(event_loop, aiohttp_client, endpoint: RESTEndpoint):
+    # In each test file that requires the use of this fixture, the endpoint fixture needs to be specified.
+    app = Application(middlewares=[error_middleware])
+    app.add_subapp(endpoint.path, endpoint.app)
+
+    yield await aiohttp_client(app)
+
+    await endpoint.shutdown()
+    await app.shutdown()
