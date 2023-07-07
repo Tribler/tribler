@@ -7,6 +7,8 @@ from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 
 
+# pylint: disable=redefined-outer-name
+
 @pytest.fixture
 def endpoint(mock_dlmgr, mock_lt_session):
     return LibTorrentEndpoint(mock_dlmgr)

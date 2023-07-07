@@ -15,6 +15,7 @@ from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 
+# pylint: disable=redefined-outer-name
 
 @pytest.fixture
 def endpoint(mock_dlmgr, metadata_store):

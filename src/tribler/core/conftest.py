@@ -25,7 +25,7 @@ enable_extended_logging = False
 pytest_start_time: Optional[datetime] = None  # a time when the test suite started
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, redefined-outer-name
 
 def pytest_configure(config):
     # Disable logging from faker for all tests
