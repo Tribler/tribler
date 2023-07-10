@@ -9,7 +9,6 @@ Faker==18.11.2
 libnacl==1.8.0
 lz4==4.3.2
 marshmallow==3.19.0
-netifaces==0.11.0
 networkx==3.1
 pony==0.7.16
 psutil==5.9.5
@@ -22,7 +21,7 @@ service-identity==23.1.0
 yappi==1.4.0
 yarl==1.9.2 # keep this dependency higher than 1.6.3. See: https://github.com/aio-libs/yarl/issues/517
 bitarray==2.7.6
-pyipv8==2.10.0
+pyipv8==2.11.0
 libtorrent==1.2.19
 file-read-backwards==3.0.0
 Brotli==1.0.9 # to prevent AttributeError on macOs: module 'brotli' has no attribute 'error' (in urllib3.response)
