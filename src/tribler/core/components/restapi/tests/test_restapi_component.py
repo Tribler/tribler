@@ -49,7 +49,7 @@ def endpoint_cls():
 
 
 @pytest.fixture
-def rest_component():
+async def rest_component():
     component = RESTComponent()
     component.root_endpoint = MagicMock()
     return component
