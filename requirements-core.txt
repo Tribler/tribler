@@ -12,12 +12,10 @@ marshmallow==3.19.0
 networkx==3.1
 pony==0.7.16
 psutil==5.9.5
-pyasn1==0.4.8
 pydantic==1.10.11
 PyOpenSSL==23.2.0
 pyyaml==6.0
 sentry-sdk==1.27.1
-service-identity==23.1.0
 yappi==1.4.0
 yarl==1.9.2 # keep this dependency higher than 1.6.3. See: https://github.com/aio-libs/yarl/issues/517
 bitarray==2.7.6
