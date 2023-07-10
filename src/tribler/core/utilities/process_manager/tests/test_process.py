@@ -107,6 +107,14 @@ def test_tribler_process_set_error(current_process):
               r"started='[^']+', duration='\d:\d{2}:\d{2}', error='ValueError: exception text'\)$"
     assert re.match(pattern, str(current_process))
 
+    # If the value of another type is specified, the method converts it to str
+    current_process.set_error({1: 2}, replace=True)
+    assert current_process.error_msg == 'dict: {1: 2}'
+
+    # None is not converted to str
+    current_process.set_error(None, replace=True)
+    assert current_process.error_msg is None
+
 
 def test_tribler_process_mark_finished(current_process):
     p = current_process  # for brevity
