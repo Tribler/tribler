@@ -26,6 +26,7 @@ from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorren
 from tribler.core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
 from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.exceptions import SaveResumeDataError
+from tribler.core.utilities.async_force_switch import switch
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.osutils import fix_filebasename
 from tribler.core.utilities.path_util import Path
@@ -138,6 +139,7 @@ class Download(TaskManager):
 
     async def wait_for_status(self, *status):
         while self.get_state().get_status() not in status:
+            await switch()
             await self.wait_for_alert('state_changed_alert')
 
     def get_def(self) -> TorrentDef:
@@ -147,10 +149,12 @@ class Download(TaskManager):
         """
         Returns a deferred that fires with a valid libtorrent download handle.
         """
-        if self.handle and self.handle.is_valid():
+        if self.handle:
+            # This block could be safely omitted because `self.future_added` does the same thing.
+            # However, it is used in tests, therefore it is better to keep it for now.
             return succeed(self.handle)
 
-        return self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
+        return self.future_added
 
     def get_atp(self) -> Dict:
         save_path = self.config.get_dest_dir()
