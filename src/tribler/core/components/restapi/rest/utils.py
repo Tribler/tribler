@@ -1,7 +1,14 @@
 """
 This file contains some utility methods that are used by the API.
 """
+import sys
+import threading
+from types import FrameType
+from typing import Dict, Iterator, List, Optional
+
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
+
+_lock = threading.Lock()
 
 
 def return_handled_exception(request, exception):
@@ -66,3 +73,42 @@ def fix_unicode_array(arr):
             new_arr.append(item)
 
     return new_arr
+
+
+def shorten(s: Optional[str], width: int = 50, placeholder='[...]', cut_at_the_end: bool = True):
+    """ Shorten a string to a given width.
+        Example: shorten('hello world', 5) -> 'hello[...]'
+    """
+    if s and len(s) > width:
+        return f'{s[:width]}{placeholder}' if cut_at_the_end else f'{placeholder}{s[len(s) - width:]}'
+    return s
+
+
+def format_frames(frame: Optional[FrameType], file_width: int = 50, value_width: int = 100) -> Iterator[str]:
+    """ Format a stack trace."""
+    while frame:
+        filename = shorten(frame.f_code.co_filename, width=file_width, cut_at_the_end=False)
+        header = f"{filename}:{frame.f_lineno} {frame.f_code.co_name}"
+        local = ''
+        for key, value in list(frame.f_locals.items()):
+            value = shorten(repr(value), width=value_width)
+            local += f'\n\t{key} = {value}'
+        frame = frame.f_back
+        yield header + local
+
+
+def get_threads_info() -> List[Dict]:
+    """
+    Return information about available threads.
+    """
+
+    result = []
+    for t in threading.enumerate():
+        frame = sys._current_frames().get(t.ident, None)  # pylint: disable=protected-access
+
+        result.append({
+            'thread_id': t.ident,
+            'thread_name': t.name,
+            'frames': list(format_frames(frame)),
+        })
+    return result

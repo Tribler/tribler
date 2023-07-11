@@ -14,7 +14,7 @@ from ipv8.messaging.anonymization.tunnel import Circuit
 from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
-from tribler.core.components.restapi.rest.util import fix_unicode_dict
+from tribler.core.components.restapi.rest.utils import fix_unicode_dict
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.utilities import froze_it
 from tribler.core.version import version_id

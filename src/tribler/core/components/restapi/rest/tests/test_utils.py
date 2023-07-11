@@ -1,6 +1,9 @@
+from types import SimpleNamespace
 from unittest.mock import Mock
 
-from tribler.core.components.restapi.rest.utils import fix_unicode_array, fix_unicode_dict, get_parameter
+from tribler.core.components.restapi.rest.utils import fix_unicode_array, fix_unicode_dict, format_frames, \
+    get_parameter, \
+    shorten
 
 
 def test_get_parameter():
@@ -46,3 +49,43 @@ def test_fix_unicode_dict():
     obj = Mock
     dict8 = {'a': {'b': obj}}
     assert fix_unicode_dict(dict8) == {'a': {'b': obj}}
+
+
+def test_shorten():
+    """ Test that `shorten` returns correct string"""
+    assert not shorten(None)
+    assert shorten('long string', width=100) == 'long string'
+    assert shorten('long string', width=3, placeholder='...') == 'lon...'
+    assert shorten('long string', width=3, placeholder='...', cut_at_the_end=False) == '...ing'
+
+
+def test_format_frames():
+    """ Test that `format_frames` returns correct string"""
+    assert not list(format_frames(None))
+
+    frames = SimpleNamespace(
+        f_code=SimpleNamespace(
+            co_filename='short_file',
+            co_name='function'
+        ),
+        f_lineno=1,
+        f_locals={
+            'key': 'value'
+        },
+        f_back=SimpleNamespace(
+            f_code=SimpleNamespace(
+                co_filename='long_file' * 100,
+                co_name='function'
+            ),
+            f_lineno=1,
+            f_locals={
+                'key': 'long_value' * 100
+            },
+            f_back=None
+        )
+    )
+    expected = [
+        "short_file:1 function\n\tkey = 'valu[...]",
+        "[...]elong_file:1 function\n\tkey = 'long[...]"
+    ]
+    assert list(format_frames(frames, file_width=10, value_width=5)) == expected

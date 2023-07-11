@@ -14,9 +14,9 @@ from marshmallow.fields import Boolean, Float, Integer, String
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.components.resource_monitor.implementation.base import ResourceMonitor
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.components.restapi.rest.utils import get_threads_info
 from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
 from tribler.core.exceptions import TriblerCoreTestException
-from tribler.core.utilities.instrumentation import WatchDog
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.path_util import Path, tail
 
@@ -164,8 +164,7 @@ class DebugEndpoint(RESTEndpoint):
         }
     )
     async def get_threads(self, request):
-        watchdog = WatchDog()
-        return RESTResponse({"threads": watchdog.get_threads_info()})
+        return RESTResponse({"threads": get_threads_info()})
 
     @docs(
         tags=['Debug'],

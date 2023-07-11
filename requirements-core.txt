@@ -4,7 +4,6 @@ anyio==3.7.1
 chardet==5.1.0
 configobj==5.0.8
 cryptography==41.0.1
-decorator==5.1.1
 Faker==18.11.2
 libnacl==1.8.0
 lz4==4.3.2
