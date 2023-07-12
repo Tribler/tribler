@@ -50,7 +50,7 @@ async def fake_dlmgr(tmp_path_factory):
     dlmgr.metadata_tmpdir = tmp_path_factory.mktemp('metadata_tmpdir')
     dlmgr.get_session = lambda *_, **__: MagicMock()
     yield dlmgr
-    await dlmgr.shutdown(timeout=0)
+    await dlmgr.shutdown()
 
 
 async def test_get_metainfo_valid_metadata(fake_dlmgr):
