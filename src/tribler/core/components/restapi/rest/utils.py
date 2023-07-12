@@ -3,12 +3,27 @@ This file contains some utility methods that are used by the API.
 """
 import sys
 import threading
+from contextlib import contextmanager
 from types import FrameType
 from typing import Dict, Iterator, List, Optional
 
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
 
-_lock = threading.Lock()
+ONE_SECOND = 1
+
+_switch_interval_lock = threading.Lock()
+
+
+@contextmanager
+def switch_interval(value):
+    """ Temporarily change the sys.setswitchinterval value."""
+    with _switch_interval_lock:
+        previous_value = sys.getswitchinterval()
+        try:
+            sys.setswitchinterval(value)
+            yield
+        finally:
+            sys.setswitchinterval(previous_value)
 
 
 def return_handled_exception(request, exception):
@@ -84,7 +99,7 @@ def shorten(s: Optional[str], width: int = 50, placeholder='[...]', cut_at_the_e
     return s
 
 
-def format_frames(frame: Optional[FrameType], file_width: int = 50, value_width: int = 100) -> Iterator[str]:
+def _format_frames(frame: Optional[FrameType], file_width: int = 50, value_width: int = 100) -> Iterator[str]:
     """ Format a stack trace."""
     while frame:
         filename = shorten(frame.f_code.co_filename, width=file_width, cut_at_the_end=False)
@@ -103,12 +118,13 @@ def get_threads_info() -> List[Dict]:
     """
 
     result = []
-    for t in threading.enumerate():
-        frame = sys._current_frames().get(t.ident, None)  # pylint: disable=protected-access
+    with switch_interval(ONE_SECOND):
+        for t in threading.enumerate():
+            frame = sys._current_frames().get(t.ident, None)  # pylint: disable=protected-access
 
-        result.append({
-            'thread_id': t.ident,
-            'thread_name': t.name,
-            'frames': list(format_frames(frame)),
-        })
+            result.append({
+                'thread_id': t.ident,
+                'thread_name': t.name,
+                'frames': list(_format_frames(frame)),
+            })
     return result

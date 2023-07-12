@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from tribler.core.components.restapi.rest.utils import fix_unicode_array, fix_unicode_dict, format_frames, \
+from tribler.core.components.restapi.rest.utils import fix_unicode_array, fix_unicode_dict, _format_frames, \
     get_parameter, \
     shorten
 
@@ -61,7 +61,7 @@ def test_shorten():
 
 def test_format_frames():
     """ Test that `format_frames` returns correct string"""
-    assert not list(format_frames(None))
+    assert not list(_format_frames(None))
 
     frames = SimpleNamespace(
         f_code=SimpleNamespace(
@@ -88,4 +88,4 @@ def test_format_frames():
         "short_file:1 function\n\tkey = 'valu[...]",
         "[...]elong_file:1 function\n\tkey = 'long[...]"
     ]
-    assert list(format_frames(frames, file_width=10, value_width=5)) == expected
+    assert list(_format_frames(frames, file_width=10, value_width=5)) == expected
