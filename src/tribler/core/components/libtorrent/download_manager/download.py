@@ -57,16 +57,12 @@ class Download(TaskManager):
         self.download_defaults = download_defaults or DownloadDefaultsSettings()
         self.notifier = notifier
 
-        # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
-        self.hidden = False
-
         # Libtorrent status
         self.lt_status: Optional[lt.torrent_status] = None
         self.error = None
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
-        self.checkpoint_disabled = self.dummy
 
         self.futures = defaultdict(list)
         self.alert_handlers = defaultdict(list)
@@ -93,6 +89,7 @@ class Download(TaskManager):
             self.register_alert_handler(alert_type, alert_handler)
         self.stream: Optional[Stream] = None
 
+        # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = hidden
         self.checkpoint_disabled = checkpoint_disabled or self.dummy
         self.config = config or DownloadConfig(state_dir=self.state_dir)
