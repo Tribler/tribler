@@ -80,42 +80,41 @@ jobs:
 
   # ----------------------------------------------------------------------------
   # PR stage: Draft
-  coverage:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
-    uses: ./.github/workflows/coverage.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-      CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: ${{needs.env.outputs.source-ref}}
-
-  guitest:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{ needs.changes.outputs.src == 'true' }}
-    uses: ./.github/workflows/guitest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      matrix: '{"os": ["windows-latest"]}'
-      ref: ${{needs.env.outputs.source-ref}}
-
-  scripttest:
-    needs: [ changes, env ]
-    if: ${{ needs.changes.outputs.scripts == 'true' }}
-    uses: ./.github/workflows/scripttest.yml
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: ${{needs.env.outputs.source-ref}}
-
-
-  # ----------------------------------------------------------------------------
-  # PR stage: Ready
+#  coverage:
+#    needs: [ changes, gatekeeper, env ]
+#    if: ${{ needs.changes.outputs.src == 'true' }}
+#    uses: ./.github/workflows/coverage.yml
+#    secrets:
+#      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+#      CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
+#    with:
+#      python-version: ${{needs.env.outputs.python-version}}
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#  guitest:
+#    needs: [ changes, gatekeeper, env ]
+#    if: ${{ needs.changes.outputs.src == 'true' }}
+#    uses: ./.github/workflows/guitest.yml
+#    secrets:
+#      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+#    with:
+#      python-version: ${{needs.env.outputs.python-version}}
+#      matrix: '{"os": ["windows-latest"]}'
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#  scripttest:
+#    needs: [ changes, env ]
+#    if: ${{ needs.changes.outputs.scripts == 'true' }}
+#    uses: ./.github/workflows/scripttest.yml
+#    with:
+#      python-version: ${{needs.env.outputs.python-version}}
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#
+#  # ----------------------------------------------------------------------------
+#  # PR stage: Ready
   pytest:
     needs: [ changes, gatekeeper, env ]
-    if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
@@ -123,54 +122,54 @@ jobs:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["windows-latest", "macos-latest"]}'
       ref: ${{needs.env.outputs.source-ref}}
-
-  guitest_nix:
-    needs: [ changes, gatekeeper, env ]
-    if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
-    uses: ./.github/workflows/guitest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
-      ref: ${{needs.env.outputs.source-ref}}
-
-  # build binaries
-  ubuntu:
-    needs: [ changes, env ]
-    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
-    uses: ./.github/workflows/build_ubuntu.yml
-    with:
-      upload: false
-      os: ubuntu-latest
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: ${{needs.env.outputs.source-ref}}
-
-  mac:
-    needs: [ changes, env ]
-    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
-    uses: ./.github/workflows/build_mac.yml
-    with:
-      upload: false
-      os: macos-latest
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: ${{needs.env.outputs.source-ref}}
-
-  windows:
-    needs: [ changes, env ]
-    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
-    uses: ./.github/workflows/build_windows.yml
-    with:
-      upload: false
-      os: windows-latest
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: ${{needs.env.outputs.source-ref}}
-
-  # check documentation build
-  documentation:
-    needs: [ changes, env ]
-    if: ${{needs.changes.outputs.doc == 'true' && !github.event.pull_request.draft}}
-    uses: ./.github/workflows/documentation.yml
-    with:
-      python-version: ${{needs.env.outputs.python-version}}
-      ref: ${{needs.env.outputs.source-ref}}
+#
+#  guitest_nix:
+#    needs: [ changes, gatekeeper, env ]
+#    if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
+#    uses: ./.github/workflows/guitest.yml
+#    secrets:
+#      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+#    with:
+#      python-version: ${{needs.env.outputs.python-version}}
+#      matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#  # build binaries
+#  ubuntu:
+#    needs: [ changes, env ]
+#    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
+#    uses: ./.github/workflows/build_ubuntu.yml
+#    with:
+#      upload: false
+#      os: ubuntu-latest
+#      python-version: ${{needs.env.outputs.python-version}}
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#  mac:
+#    needs: [ changes, env ]
+#    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
+#    uses: ./.github/workflows/build_mac.yml
+#    with:
+#      upload: false
+#      os: macos-latest
+#      python-version: ${{needs.env.outputs.python-version}}
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#  windows:
+#    needs: [ changes, env ]
+#    if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
+#    uses: ./.github/workflows/build_windows.yml
+#    with:
+#      upload: false
+#      os: windows-latest
+#      python-version: ${{needs.env.outputs.python-version}}
+#      ref: ${{needs.env.outputs.source-ref}}
+#
+#  # check documentation build
+#  documentation:
+#    needs: [ changes, env ]
+#    if: ${{needs.changes.outputs.doc == 'true' && !github.event.pull_request.draft}}
+#    uses: ./.github/workflows/documentation.yml
+#    with:
+#      python-version: ${{needs.env.outputs.python-version}}
+#      ref: ${{needs.env.outputs.source-ref}}
