@@ -38,6 +38,7 @@ jobs:
 
     env:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      PYTHONFAULTHANDLER: enable
 
     timeout-minutes: 10
 
