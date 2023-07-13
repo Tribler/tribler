@@ -1,7 +1,16 @@
 """
 This file contains some utility methods that are used by the API.
 """
+import linecache
+import sys
+import threading
+from types import FrameType
+from typing import Dict, Iterator, List, Optional
+
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
+from tribler.core.utilities.utilities import switch_interval
+
+ONE_SECOND = 1
 
 
 def return_handled_exception(request, exception):
@@ -66,3 +75,50 @@ def fix_unicode_array(arr):
             new_arr.append(item)
 
     return new_arr
+
+
+def shorten(s: Optional[str], width: int = 50, placeholder='[...]', cut_at_the_end: bool = True):
+    """ Shorten a string to a given width.
+        Example: shorten('hello world', 5) -> 'hello[...]'
+    """
+    if s and len(s) > width:
+        return f'{s[:width]}{placeholder}' if cut_at_the_end else f'{placeholder}{s[len(s) - width:]}'
+    return s
+
+
+def _format_frames(frame: Optional[FrameType], file_width: int = 50, value_width: int = 100) -> Iterator[str]:
+    """ Format a stack trace."""
+    while frame:
+        filename = shorten(frame.f_code.co_filename, width=file_width, cut_at_the_end=False)
+        header = f"{filename}:, line {frame.f_lineno}, in {frame.f_code.co_name}"
+        source_line = linecache.getline(frame.f_code.co_filename, frame.f_lineno).strip() or "<source is unknown>"
+        local = ''
+        for key, value in list(frame.f_locals.items()):
+            try:
+                value = repr(value)
+            except Exception as e:  # pylint: disable=broad-except
+                value = f'<exception when taking repr: {e.__class__.__name__}: {e}>'
+            value = shorten(value, width=value_width)
+            local += f'\t{key} = {value}\n'
+        frame = frame.f_back
+        yield f'{header}\n' \
+              f'    {source_line}\n' \
+              f'{local}'
+
+
+def get_threads_info() -> List[Dict]:
+    """
+    Return information about available threads.
+    """
+
+    result = []
+    with switch_interval(ONE_SECOND):
+        for t in threading.enumerate():
+            frame = sys._current_frames().get(t.ident, None)  # pylint: disable=protected-access
+
+            result.append({
+                'thread_id': t.ident,
+                'thread_name': t.name,
+                'frames': list(_format_frames(frame)),
+            })
+    return result

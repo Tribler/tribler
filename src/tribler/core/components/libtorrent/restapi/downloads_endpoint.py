@@ -21,7 +21,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
     RESTResponse,
     RESTStreamResponse,
 )
-from tribler.core.components.restapi.rest.util import return_handled_exception
+from tribler.core.components.restapi.rest.utils import return_handled_exception
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DOWNLOAD,

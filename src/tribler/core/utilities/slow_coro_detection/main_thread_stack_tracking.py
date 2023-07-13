@@ -6,6 +6,7 @@ from types import FrameType, FunctionType
 from typing import Callable, List, Optional, Tuple
 
 from tribler.core.utilities.slow_coro_detection import logger
+from tribler.core.utilities.utilities import switch_interval
 
 # The default interval Python uses to switch threads is 0.005 seconds. When obtaining the main stack,
 # the _get_main_thread_stack_info() function temporarily switches it to a much bigger value of 0.1 seconds
@@ -84,9 +85,7 @@ def _get_main_thread_stack_info() -> List[StackFrameInfo]:
     The function temporarily changes the interpreter’s thread switch interval to prevent thread switch during
     the stack copying. It is a lighter analogue of holding the GIL (Global Interpreter Lock).
     """
-    previous_switch_interval = sys.getswitchinterval()
-    sys.setswitchinterval(SWITCH_INTERVAL)
-    try:
+    with switch_interval(SWITCH_INTERVAL):
         stack_info = []
         for frame, start_time in _main_thread_stack:
             func_name = frame.f_code.co_name
@@ -110,8 +109,7 @@ def _get_main_thread_stack_info() -> List[StackFrameInfo]:
                 line_number=frame.f_lineno,
                 start_time=start_time
             ))
-    finally:
-        sys.setswitchinterval(previous_switch_interval)
+
     return stack_info
 
 
