@@ -11,7 +11,9 @@ import platform
 import random
 import re
 import sys
+import threading
 from base64 import b32decode
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
 from typing import Dict, Optional, Set, Tuple
@@ -24,6 +26,20 @@ logger = logging.getLogger(__name__)
 
 # Sentinel representing that SQLite must create database in-memory with ":memory:" argument
 MEMORY_DB = sentinel('MEMORY_DB')
+
+_switch_interval_lock = threading.Lock()
+
+
+@contextmanager
+def switch_interval(value):
+    """ Temporarily change the sys.setswitchinterval value."""
+    with _switch_interval_lock:
+        previous_value = sys.getswitchinterval()
+        sys.setswitchinterval(value)
+        try:
+            yield
+        finally:
+            sys.setswitchinterval(previous_value)
 
 
 # Decorator to prevent creating new object properties at runtime.

@@ -1,29 +1,16 @@
 """
 This file contains some utility methods that are used by the API.
 """
+import linecache
 import sys
 import threading
-from contextlib import contextmanager
 from types import FrameType
 from typing import Dict, Iterator, List, Optional
 
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, RESTResponse
+from tribler.core.utilities.utilities import switch_interval
 
 ONE_SECOND = 1
-
-_switch_interval_lock = threading.Lock()
-
-
-@contextmanager
-def switch_interval(value):
-    """ Temporarily change the sys.setswitchinterval value."""
-    with _switch_interval_lock:
-        previous_value = sys.getswitchinterval()
-        try:
-            sys.setswitchinterval(value)
-            yield
-        finally:
-            sys.setswitchinterval(previous_value)
 
 
 def return_handled_exception(request, exception):
@@ -103,13 +90,20 @@ def _format_frames(frame: Optional[FrameType], file_width: int = 50, value_width
     """ Format a stack trace."""
     while frame:
         filename = shorten(frame.f_code.co_filename, width=file_width, cut_at_the_end=False)
-        header = f"{filename}:{frame.f_lineno} {frame.f_code.co_name}"
+        header = f"{filename}:, line {frame.f_lineno}, in {frame.f_code.co_name}"
+        source_line = linecache.getline(frame.f_code.co_filename, frame.f_lineno).strip() or "<source is unknown>"
         local = ''
         for key, value in list(frame.f_locals.items()):
-            value = shorten(repr(value), width=value_width)
-            local += f'\n\t{key} = {value}'
+            try:
+                value = repr(value)
+            except Exception as e:  # pylint: disable=broad-except
+                value = f'<exception when taking repr: {e.__class__.__name__}: {e}>'
+            value = shorten(value, width=value_width)
+            local += f'\t{key} = {value}\n'
         frame = frame.f_back
-        yield header + local
+        yield f'{header}\n' \
+              f'    {source_line}\n' \
+              f'{local}'
 
 
 def get_threads_info() -> List[Dict]:

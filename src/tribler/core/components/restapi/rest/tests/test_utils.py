@@ -1,9 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from tribler.core.components.restapi.rest.utils import fix_unicode_array, fix_unicode_dict, _format_frames, \
-    get_parameter, \
-    shorten
+from tribler.core.components.restapi.rest.utils import _format_frames, fix_unicode_array, fix_unicode_dict, \
+    get_parameter, shorten
 
 
 def test_get_parameter():
@@ -85,7 +84,12 @@ def test_format_frames():
         )
     )
     expected = [
-        "short_file:1 function\n\tkey = 'valu[...]",
-        "[...]elong_file:1 function\n\tkey = 'long[...]"
+        "short_file:, line 1, in function\n"
+        "    <source is unknown>\n"
+        "\tkey = 'valu[...]\n",
+        '[...]elong_file:, line 1, in function\n'
+        '    <source is unknown>\n'
+        "\tkey = 'long[...]\n"
     ]
+
     assert list(_format_frames(frames, file_width=10, value_width=5)) == expected
