@@ -99,11 +99,13 @@ def _format_frames(frame: Optional[FrameType], file_width: int = 50, value_width
             except Exception as e:  # pylint: disable=broad-except
                 value = f'<exception when taking repr: {e.__class__.__name__}: {e}>'
             value = shorten(value, width=value_width)
-            local += f'\t{key} = {value}\n'
+            local += f'\n\t{key} = {value}'
         frame = frame.f_back
         yield f'{header}\n' \
               f'    {source_line}\n' \
-              f'{local}'
+              f'    {"-" * 20}' \
+              f'{local}\n' \
+              f'    {"-" * 20}'
 
 
 def get_threads_info() -> List[Dict]:
@@ -122,3 +124,15 @@ def get_threads_info() -> List[Dict]:
                 'frames': list(_format_frames(frame)),
             })
     return result
+
+
+def print_threads_info():
+    info = get_threads_info()
+    print('\n\nThreads info:', flush=True)
+    for t in info:
+        print('\n', flush=True)
+        print('=' * 40, flush=True)
+        print(f'{t["thread_id"]}: {t["thread_name"]}', flush=True)
+        print('=' * 40, flush=True)
+        for f in t["frames"]:
+            print(f, flush=True)

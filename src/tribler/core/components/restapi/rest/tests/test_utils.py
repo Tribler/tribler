@@ -84,12 +84,16 @@ def test_format_frames():
         )
     )
     expected = [
-        "short_file:, line 1, in function\n"
-        "    <source is unknown>\n"
-        "\tkey = 'valu[...]\n",
+        'short_file:, line 1, in function\n'
+        '    <source is unknown>\n'
+        '    --------------------\n'
+        "\tkey = 'valu[...]\n"
+        '    --------------------',
         '[...]elong_file:, line 1, in function\n'
         '    <source is unknown>\n'
+        '    --------------------\n'
         "\tkey = 'long[...]\n"
+        '    --------------------'
     ]
 
     assert list(_format_frames(frames, file_width=10, value_width=5)) == expected

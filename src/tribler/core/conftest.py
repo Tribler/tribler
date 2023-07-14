@@ -3,7 +3,10 @@ import gc
 import logging
 import platform
 import sys
-from datetime import datetime
+import threading
+import time
+from datetime import datetime, timedelta
+from threading import Thread
 from typing import Optional
 
 import human_readable
@@ -14,6 +17,7 @@ from aiohttp.web_app import Application
 
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
+from tribler.core.components.restapi.rest.utils import print_threads_info
 from tribler.core.utilities.network_utils import default_network_utils
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
@@ -33,12 +37,37 @@ def pytest_configure(config):
     logging.getLogger('faker.factory').propagate = False
 
 
+event_new_test = threading.Event()
+
+
+def watch_dog():
+    last_time = datetime.now()
+    enable_print = False
+
+    while True:
+        time.sleep(1)
+        if event_new_test.is_set():
+            event_new_test.clear()
+            last_time = datetime.now()
+            enable_print = True
+
+        duration = datetime.now() - last_time
+        if enable_print and duration > timedelta(seconds=15):
+            print(f'Watch Dog: Long duration detected: {human_readable.time_delta(duration)}', flush=True)
+            print_threads_info()
+            enable_print = False
+
+
 @pytest.hookimpl
 def pytest_cmdline_main(config: Config):
     """ Enable extended logging if the verbose option is used """
     # Called for performing the main command line action.
     global enable_extended_logging  # pylint: disable=global-statement
     enable_extended_logging = config.option.verbose > 0
+
+    print('Enable watch dog')
+    thread = Thread(target=watch_dog, daemon=True)
+    thread.start()
 
 
 @pytest.hookimpl
@@ -51,6 +80,7 @@ def pytest_collection_finish(session):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
+    event_new_test.set()
     """ Modify the pytest output to include the execution duration for all tests """
     # Perform the runtest protocol for a single test item.
     if enable_extended_logging and pytest_start_time:
@@ -63,7 +93,6 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
         print(f' in {duration:.3f}s ({human_readable.time_delta(total)} in total)', end='')
     else:
         yield
-
 
 
 @pytest.fixture(autouse=True)
