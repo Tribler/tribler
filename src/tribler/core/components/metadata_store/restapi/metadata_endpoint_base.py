@@ -10,6 +10,8 @@ from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORR
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
 
+from tribler.core.utilities.utilities import parse_bool
+
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
 
@@ -55,16 +57,16 @@ class MetadataEndpointBase(RESTEndpoint):
             "first": int(parameters.get('first', 1)),
             "last": int(parameters.get('last', 50)),
             "sort_by": json2pony_columns.get(parameters.get('sort_by')),
-            "sort_desc": bool(int(parameters.get('sort_desc', 1)) > 0),
+            "sort_desc": parse_bool(parameters.get('sort_desc', True)),
             "txt_filter": parameters.get('txt_filter'),
-            "hide_xxx": bool(int(parameters.get('hide_xxx', 0)) > 0),
+            "hide_xxx": parse_bool(parameters.get('hide_xxx', False)),
             "category": parameters.get('category'),
-            "exclude_deleted": bool(int(parameters.get('exclude_deleted', 0)) > 0),
+            "exclude_deleted": parse_bool(parameters.get('exclude_deleted', False)),
         }
         if 'tags' in parameters:
             sanitized['tags'] = parameters.getall('tags')
         if "remote" in parameters:
-            sanitized["remote"] = (bool(int(parameters.get('remote', 0)) > 0),)
+            sanitized["remote"] = (parse_bool(parameters.get('remote', False)),)
         if 'metadata_type' in parameters:
             mtypes = []
             for arg in parameters.getall('metadata_type'):

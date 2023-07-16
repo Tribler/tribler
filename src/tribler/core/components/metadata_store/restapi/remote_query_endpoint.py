@@ -4,7 +4,7 @@ from binascii import unhexlify
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
-from marshmallow.fields import String
+from marshmallow.fields import String, List
 from pony.orm import db_session
 
 from tribler.core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
@@ -43,7 +43,15 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     @docs(
         tags=['Metadata'],
         summary="Perform a search for a given query.",
-        responses={200: {'schema': schema(RemoteSearchResponse={'request_uuid': String()})}},
+        responses={200: {
+            'schema': schema(RemoteSearchResponse={'request_uuid': String(), 'peers': List(String())})},
+            "examples": {
+                'Success': {
+                    "request_uuid": "268560c0-3f28-4e6e-9d85-d5ccb0269693",
+                    "peers": ["50e9a2ce646c373985a8e827e328830e053025c6", "107c84e5d9636c17b46c88c3ddb54842d80081b0"]
+                }
+            }
+        },
     )
     @querystring_schema(RemoteQueryParameters)
     async def create_remote_search_request(self, request):
