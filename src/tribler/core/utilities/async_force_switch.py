@@ -2,6 +2,11 @@ import asyncio
 import functools
 
 
+async def switch():
+    """ Coroutine that yields control to the event loop."""
+    await asyncio.sleep(0)
+
+
 def force_switch(func):
     """Decorator for forced coroutine switch. The switch will occur before calling the function.
 
@@ -11,7 +16,7 @@ def force_switch(func):
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
-        await asyncio.sleep(0)
+        await switch()
         return await func(*args, **kwargs)
 
     return wrapper

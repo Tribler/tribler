@@ -5,9 +5,11 @@ Author(s): Arno Bakker, Egbert Bouman
 """
 import asyncio
 import base64
+import itertools
 import logging
 from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
 from collections import defaultdict
+from contextlib import suppress
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from bitarray import bitarray
@@ -24,12 +26,15 @@ from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorren
 from tribler.core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
 from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.exceptions import SaveResumeDataError
+from tribler.core.utilities.async_force_switch import switch
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.osutils import fix_filebasename
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat
+
+Getter = Callable[[Any], Any]
 
 
 class Download(TaskManager):
@@ -64,7 +69,7 @@ class Download(TaskManager):
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
 
-        self.futures = defaultdict(list)
+        self.futures: Dict[str, list[tuple[Future, Callable, Optional[Getter]]]] = defaultdict(list)
         self.alert_handlers = defaultdict(list)
 
         self.future_added = self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
@@ -100,7 +105,7 @@ class Download(TaskManager):
 
     def __str__(self):
         return "Download <name: '%s' hops: %d checkpoint_disabled: %d>" % \
-               (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
+            (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
 
     def __repr__(self):
         return self.__str__()
@@ -123,8 +128,8 @@ class Download(TaskManager):
     def register_alert_handler(self, alert_type: str, handler: lt.torrent_handle):
         self.alert_handlers[alert_type].append(handler)
 
-    def wait_for_alert(self, success_type: str, success_getter: Optional[Callable[[Any], Any]] = None,
-                       fail_type: str = None, fail_getter: Optional[Callable[[Any], Any]] = None) -> Future:
+    def wait_for_alert(self, success_type: str, success_getter: Optional[Getter] = None,
+                       fail_type: str = None, fail_getter: Optional[Getter] = None) -> Future:
         future = Future()
         if success_type:
             self.futures[success_type].append((future, future.set_result, success_getter))
@@ -134,6 +139,7 @@ class Download(TaskManager):
 
     async def wait_for_status(self, *status):
         while self.get_state().get_status() not in status:
+            await switch()
             await self.wait_for_alert('state_changed_alert')
 
     def get_def(self) -> TorrentDef:
@@ -143,10 +149,12 @@ class Download(TaskManager):
         """
         Returns a deferred that fires with a valid libtorrent download handle.
         """
-        if self.handle and self.handle.is_valid():
+        if self.handle:
+            # This block could be safely omitted because `self.future_added` does the same thing.
+            # However, it is used in tests, therefore it is better to keep it for now.
             return succeed(self.handle)
 
-        return self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
+        return self.future_added
 
     def get_atp(self) -> Dict:
         save_path = self.config.get_dest_dir()
@@ -631,12 +639,16 @@ class Download(TaskManager):
         return self.register_anonymous_task("downloads_cb", state_callback_loop)
 
     async def shutdown(self):
+        self._logger.info('Shutting down...')
         self.alert_handlers.clear()
         if self.stream is not None:
             self.stream.close()
-        for _, futures in self.futures.items():
-            for future, _, _ in futures:
-                future.cancel()
+
+        active_futures = [f for f, _, _ in itertools.chain(*self.futures.values()) if not f.done()]
+        for future in active_futures:
+            future.cancel()
+        with suppress(CancelledError):
+            await asyncio.gather(*active_futures)  # wait for futures to be actually cancelled
         self.futures.clear()
         await self.shutdown_task_manager()
 

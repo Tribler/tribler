@@ -327,7 +327,7 @@ class DownloadManager(TaskManager):
                 ltsession.add_dht_router(*router)
             ltsession.start_lsd()
 
-        self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
+        self._logger.info(f"Started libtorrent session for {hops} hops on port {ltsession.listen_port()}")
         self.lt_session_shutdown_ready[hops] = False
 
         return ltsession
