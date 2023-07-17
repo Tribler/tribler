@@ -34,7 +34,7 @@ from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
-Getter = Optional[Callable[[Any], Any]]
+Getter = Callable[[Any], Any]
 
 
 class Download(TaskManager):
@@ -69,7 +69,7 @@ class Download(TaskManager):
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
 
-        self.futures: Dict[str, list[tuple[Future, Callable, Getter]]] = defaultdict(list)
+        self.futures: Dict[str, list[tuple[Future, Callable, Optional[Getter]]]] = defaultdict(list)
         self.alert_handlers = defaultdict(list)
 
         self.future_added = self.wait_for_alert('add_torrent_alert', lambda a: a.handle)
@@ -128,8 +128,8 @@ class Download(TaskManager):
     def register_alert_handler(self, alert_type: str, handler: lt.torrent_handle):
         self.alert_handlers[alert_type].append(handler)
 
-    def wait_for_alert(self, success_type: str, success_getter: Getter = None,
-                       fail_type: str = None, fail_getter: Getter = None) -> Future:
+    def wait_for_alert(self, success_type: str, success_getter: Optional[Getter] = None,
+                       fail_type: str = None, fail_getter: Optional[Getter] = None) -> Future:
         future = Future()
         if success_type:
             self.futures[success_type].append((future, future.set_result, success_getter))
