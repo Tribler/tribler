@@ -65,7 +65,6 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
         yield
 
 
-
 @pytest.fixture(autouse=True)
 def ensure_gc():
     """ Ensure that the garbage collector runs after each test.
