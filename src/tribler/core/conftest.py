@@ -3,10 +3,7 @@ import gc
 import logging
 import platform
 import sys
-import threading
-import time
-from datetime import datetime, timedelta
-from threading import Thread
+from datetime import datetime
 from typing import Optional
 
 import human_readable
@@ -17,8 +14,8 @@ from aiohttp.web_app import Application
 
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
-from tribler.core.components.restapi.rest.utils import print_threads_info
 from tribler.core.utilities.network_utils import default_network_utils
+from tribler.core.utilities.pytest_watch_dog import event_new_test, start_watch_dog
 
 # Enable origin tracking for coroutine objects in the current thread, so when a test does not handle
 # some coroutine properly, we can see a traceback with the name of the test which created the coroutine.
@@ -37,37 +34,13 @@ def pytest_configure(config):
     logging.getLogger('faker.factory').propagate = False
 
 
-event_new_test = threading.Event()
-
-
-def watch_dog():
-    last_time = datetime.now()
-    enable_print = False
-
-    while True:
-        time.sleep(1)
-        if event_new_test.is_set():
-            event_new_test.clear()
-            last_time = datetime.now()
-            enable_print = True
-
-        duration = datetime.now() - last_time
-        if enable_print and duration > timedelta(seconds=15):
-            print(f'Watch Dog: Long duration detected: {human_readable.time_delta(duration)}', flush=True)
-            print_threads_info()
-            enable_print = False
-
-
 @pytest.hookimpl
 def pytest_cmdline_main(config: Config):
     """ Enable extended logging if the verbose option is used """
     # Called for performing the main command line action.
     global enable_extended_logging  # pylint: disable=global-statement
     enable_extended_logging = config.option.verbose > 0
-
-    print('Enable watch dog')
-    thread = Thread(target=watch_dog, daemon=True)
-    thread.start()
+    start_watch_dog()
 
 
 @pytest.hookimpl
