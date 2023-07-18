@@ -12,13 +12,3 @@ def test_tdef_no_metainfo(state_dir):
 @pytest.fixture
 def tdef():
     return TorrentDef()
-
-
-@pytest.fixture
-def mock_download_config(mocker, test_download):
-    return mocker.patch.object(test_download, 'config')
-
-
-@pytest.fixture
-def mock_download_state(mocker, test_download):
-    return mocker.patch.object(test_download, 'get_state')

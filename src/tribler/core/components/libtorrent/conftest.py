@@ -58,8 +58,8 @@ async def test_download(mock_dlmgr, test_tdef):
 
 
 @pytest.fixture
-def mock_handle(mocker, test_download):
-    return mocker.patch.object(test_download, 'handle')
+def mock_handle(test_download):
+    test_download.handle = MagicMock()
 
 
 @pytest.fixture
