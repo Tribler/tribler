@@ -9,7 +9,7 @@ from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
+from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, sanitize_filename, tr
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -109,7 +109,9 @@ class CreateTorrentDialog(DialogContainer):
             )
             return
 
-        self.name = self.dialog_widget.create_torrent_name_field.text()
+        torrent_name = self.dialog_widget.create_torrent_name_field.text()
+        self.name = sanitize_filename(torrent_name)
+
         description = self.dialog_widget.create_torrent_description_field.toPlainText()
 
         is_seed = self.dialog_widget.seed_after_adding_checkbox.isChecked()

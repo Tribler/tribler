@@ -6,10 +6,8 @@ from urllib.parse import unquote_plus
 import pytest
 
 from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
-    duration_to_string, \
-    format_api_key, \
-    quote_plus_unicode, set_api_key, unicode_quoter, get_i18n_file_path, I18N_DIR, LANGUAGES_FILE, \
-    get_languages_file_content
+    duration_to_string, format_api_key, get_i18n_file_path, get_languages_file_content, I18N_DIR, LANGUAGES_FILE, \
+    quote_plus_unicode, sanitize_filename, set_api_key, unicode_quoter
 
 
 def test_quoter_char():
@@ -240,3 +238,10 @@ def test_i18n_file_path_and_languages_content(mock_get_base_path, tmp_path):
     language_path.write_text(json.dumps(languages_json))
 
     assert languages_json == get_languages_file_content()
+
+
+def test_sanitize_filename():
+    original_filename = "This \nIs \r\nA \tTorrent Name.torrent"
+    expected_sanitized_filename = "This Is A Torrent Name.torrent"
+    assert sanitize_filename(original_filename) == expected_sanitized_filename
+
