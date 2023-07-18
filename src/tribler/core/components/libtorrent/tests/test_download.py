@@ -29,12 +29,16 @@ def test_download_get_atp(mock_dlmgr, test_download):
     assert isinstance(test_download.get_atp(), dict)
 
 
-def test_download_resume(mock_handle, mock_download_config, test_download):
+def test_download_resume(mock_handle, test_download):
+    test_download.config = MagicMock()
+
     test_download.resume()
     test_download.handle.resume.assert_called()
 
 
-async def test_download_resume_in_upload_mode(mock_handle, mock_download_config, test_download):
+async def test_download_resume_in_upload_mode(mock_handle, test_download):  # pylint: disable=unused-argument
+    test_download.config = MagicMock()
+
     await test_download.set_upload_mode(True)
     test_download.resume()
     test_download.handle.set_upload_mode.assert_called_with(test_download.get_upload_mode())
@@ -44,9 +48,10 @@ async def test_save_resume(mock_handle, test_download: Download, test_tdef):
     """
     testing call resume data alert
     """
-    mock_handle.is_valid = lambda: True
-    mock_handle.save_resume_data = lambda: test_download.register_task('post_alert', test_download.process_alert, alert,
-                                                                       'save_resume_data_alert', delay=0.1)
+    test_download.handle.is_valid = lambda: True
+    test_download.handle.save_resume_data = lambda: test_download.register_task('post_alert',
+                                                                                test_download.process_alert, alert,
+                                                                                'save_resume_data_alert', delay=0.1)
 
     alert = Mock(resume_data={b'info-hash': test_tdef.get_infohash()})
     await test_download.save_resume_data()
