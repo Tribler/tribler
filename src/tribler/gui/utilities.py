@@ -566,4 +566,3 @@ def get_objects_with_predicate(data_item: Dict, predicate: ResourceType) -> List
 def sanitize_filename(filename: str):
     """Removes some selected escape characters from the filename and returns the cleaned value."""
     return re.sub(r'[\n\r\t]', '', filename)
-
