@@ -43,16 +43,13 @@ jobs:
           custom_cache_key_element: ${{inputs.ref}}
 
       - name: Export env
-        uses: cardinalby/export-env-action@v2
-        with:
-          envFile: ./.github/workflows/vars/pytest.env
-          expand: true
+        uses: ./.github/actions/env
 
       - name: Run Pytest with Coverage
         timeout-minutes: 10
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_CORE_ARGUMENTS_LINUX}
-          coverage run --source=./src/tribler/core -p -m pytest ${PYTEST_TUNNELS_ARGUMENTS_LINUX}
+          coverage run --source=./src/tribler/core -p -m pytest "${PYTEST_CORE_ARGUMENTS} {XDIST_ARGUMENTS}"
+          coverage run --source=./src/tribler/core -p -m pytest "${PYTEST_TUNNELS_ARGUMENTS} {XDIST_ARGUMENTS}"
           coverage combine
           coverage xml
 

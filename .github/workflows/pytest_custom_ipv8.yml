@@ -72,25 +72,9 @@ jobs:
         uses: ./.github/actions/windows_dependencies
 
       - name: Export env
-        uses: cardinalby/export-env-action@v2
-        with:
-          envFile: ./.github/workflows/vars/pytest.env
-          expand: true
+        uses: ./.github/actions/env
 
-      - name: Run Pytest (Win)
-        if: runner.os == 'Windows'
+      - name: Run Pytest
         run: |
-          pytest ${PYTEST_CORE_ARGUMENTS_WIN}
-          pytest ${PYTEST_TUNNELS_ARGUMENTS_WIN}
-
-      - name: Run Pytest (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          pytest ${PYTEST_CORE_ARGUMENTS_LINUX}
-          pytest ${PYTEST_TUNNELS_ARGUMENTS_LINUX}
-
-      - name: Run Pytest (Mac)
-        if: runner.os == 'macOS'
-        run: |
-          pytest ${PYTEST_CORE_ARGUMENTS_MAC}
-          pytest ${PYTEST_TUNNELS_ARGUMENTS_MAC}
+          pytest ${PYTEST_CORE_ARGUMENTS}
+          pytest ${PYTEST_TUNNELS_ARGUMENTS}

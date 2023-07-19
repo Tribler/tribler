@@ -68,25 +68,11 @@ jobs:
         uses: pyvista/setup-headless-display-action@v1
 
       - name: Export env
-        uses: cardinalby/export-env-action@v2
-        with:
-          envFile: ./.github/workflows/vars/pytest.env
-          expand: true
+        uses: ./.github/actions/env
 
-      - name: Run GUI tests (Win)
-        if: runner.os == 'Windows'
+      - name: Run GUI tests
         run: |
-          pytest ${PYTEST_GUI_ARGUMENTS_WIN}
-
-      - name: Run GUI tests (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          pytest ${PYTEST_GUI_ARGUMENTS_LINUX}
-
-      - name: Run GUI tests (Mac)
-        if: runner.os == 'macOS'
-        run: |
-          pytest ${PYTEST_GUI_ARGUMENTS_MAC}
+          pytest ${PYTEST_GUI_ARGUMENTS}
 
       - uses: actions/upload-artifact@v3
         if: always()
