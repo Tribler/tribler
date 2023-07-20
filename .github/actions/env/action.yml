@@ -31,5 +31,5 @@ runs:
       shell: bash
       run: |
         cat >> $GITHUB_ENV << EOF
-        XDIST_ARGUMENTS=--tx "2*popen//execmodel=eventlet"
+        XDIST_ARGUMENTS=--tx '2*popen//execmodel=eventlet'
         EOF

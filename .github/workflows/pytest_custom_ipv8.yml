@@ -76,5 +76,5 @@ jobs:
 
       - name: Run Pytest
         run: |
-          pytest ${PYTEST_CORE_ARGUMENTS}
-          pytest ${PYTEST_TUNNELS_ARGUMENTS}
+          pytest ${PYTEST_CORE_ARGUMENTS} ${XDIST_ARGUMENTS}
+          pytest ${PYTEST_TUNNELS_ARGUMENTS} ${XDIST_ARGUMENTS}

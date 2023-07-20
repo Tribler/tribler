@@ -48,10 +48,8 @@ jobs:
       - name: Run Pytest with Coverage
         timeout-minutes: 10
         run: |
-          coverage run --source=./src/tribler/core -p -m pytest "${PYTEST_CORE_ARGUMENTS} {XDIST_ARGUMENTS}"
-          coverage run --source=./src/tribler/core -p -m pytest "${PYTEST_TUNNELS_ARGUMENTS} {XDIST_ARGUMENTS}"
-          coverage combine
-          coverage xml
+          pytest ${PYTEST_CORE_ARGUMENTS} ${XDIST_ARGUMENTS} --cov=./src/tribler/core --cov-report=xml
+          pytest ${PYTEST_TUNNELS_ARGUMENTS} ${XDIST_ARGUMENTS} --cov=./src/tribler/core --cov-report=xml --cov-append
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3

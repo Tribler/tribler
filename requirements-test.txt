@@ -9,8 +9,9 @@ pytest-rerunfailures==12.0
 pytest-sentry==0.1.16
 pytest-freezegun==0.4.2
 pytest-xdist==3.3.1
+pytest-cov==4.1.0
+eventlet==0.33.3; sys_platform == 'linux2' or sys_platform == 'linux'
 
-coverage==7.2.7
 looptime==0.2 ; sys_platform != 'win32'
 
 # for pyqt5 test
