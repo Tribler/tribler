@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import unquote_plus
 
@@ -6,7 +8,8 @@ import pytest
 from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
     duration_to_string, \
     format_api_key, \
-    quote_plus_unicode, set_api_key, unicode_quoter
+    quote_plus_unicode, set_api_key, unicode_quoter, get_i18n_file_path, I18N_DIR, LANGUAGES_FILE, \
+    get_languages_file_content
 
 
 def test_quoter_char():
@@ -215,3 +218,25 @@ def test_missed_key_in_both_translated_and_original_strings(warning: Mock):
 
     warning.assert_called_once_with('KeyError: No value provided for \'key2\' in translation "translated %(key2)s", '
                                     'original string: "original %(key1)s"')
+
+
+@patch("tribler.gui.utilities.get_base_path")
+def test_i18n_file_path_and_languages_content(mock_get_base_path, tmp_path):
+    mock_get_base_path.return_value = tmp_path
+
+    filename = "languages.json"
+    expected_path = Path(tmp_path) / I18N_DIR / filename
+
+    assert get_i18n_file_path(filename) == expected_path
+
+    languages_json = {
+        "unknown": "Unknown",
+        "en": "English",
+        "nl": "Dutch"
+    }
+
+    language_path = get_i18n_file_path(LANGUAGES_FILE)
+    language_path.parents[0].mkdir(parents=True, exist_ok=True)
+    language_path.write_text(json.dumps(languages_json))
+
+    assert languages_json == get_languages_file_content()
