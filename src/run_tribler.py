@@ -11,8 +11,8 @@ import encodings.idna  # pylint: disable=unused-import
 
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.utilities import is_frozen
 from tribler.core.version import version_id
 
@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=import-outside-toplevel, ungrouped-imports
+
+def new_f():
+    ...
 
 
 class RunTriblerArgsParser(argparse.ArgumentParser):
