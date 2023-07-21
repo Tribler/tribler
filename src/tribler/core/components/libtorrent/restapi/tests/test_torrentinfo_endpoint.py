@@ -1,10 +1,13 @@
 import json
 import shutil
 from binascii import unhexlify
-from unittest.mock import AsyncMock, MagicMock, patch
+from ssl import SSLError
+from unittest.mock import AsyncMock, MagicMock, patch, Mock
 from urllib.parse import quote_plus, unquote_plus
 
 import pytest
+from aiohttp import ServerConnectionError, ClientResponseError, ClientConnectorError
+from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from ipv8.util import succeed
 
 from tribler.core import notifications
@@ -168,11 +171,25 @@ async def test_on_got_invalid_metainfo(rest_api):
     res = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
     assert "error" in res
 
+# These are the exceptions that are handled by torrent info endpoint when querying an HTTP URI.
+caught_exceptions = [
+        ServerConnectionError(),
+        ClientResponseError(Mock(), Mock()),
+        SSLError(),
+        ClientConnectorError(Mock(), Mock()),
+        AsyncTimeoutError()
+    ]
 
-async def test_torrentinfo_endpoint_client_error():
-    # Test that in the case of a wrong URI no exception raises
+
+@patch("tribler.core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri")
+@pytest.mark.parametrize("exception", caught_exceptions)
+async def test_torrentinfo_endpoint_timeout_error(mocked_query_http_uri: AsyncMock, exception: Exception):
+    # Test that in the case of exceptions related to querying HTTP URI specified in this tests,
+    # no exception is raised.
+    mocked_query_http_uri.side_effect = exception
+
     endpoint = TorrentInfoEndpoint(MagicMock())
-    request = MagicMock(query={'uri': 'http://wrong_url'})
+    request = MagicMock(query={'uri': 'http://some_torrent_url'})
 
     info = await endpoint.get_torrent_info(request)
 
