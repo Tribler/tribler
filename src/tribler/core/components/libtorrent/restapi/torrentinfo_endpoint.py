@@ -5,7 +5,7 @@ from ssl import SSLError
 
 from aiohttp import ClientConnectorError, ClientResponseError, ClientSession, ServerConnectionError, web
 from aiohttp_apispec import docs
-from asyncio.exceptions import TimeoutError
+from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
@@ -100,7 +100,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             try:
                 response = await query_http_uri(uri)
-            except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, TimeoutError) as e:
+            except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, AsyncTimeoutError) as e:
                 self._logger.warning(f'Error while querying http uri: {e}')
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
