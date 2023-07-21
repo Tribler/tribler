@@ -312,13 +312,16 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
     def on_tracker_error_alert(self, alert: lt.tracker_error_alert):
+        """
+        This alert is generated on tracker timeouts, premature disconnects, invalid response
+        or an HTTP response other than "200 OK". - From Libtorrent documentation.
+        """
         # The try-except block is added as a workaround to suppress UnicodeDecodeError in `repr(alert)`,
         # `alert.url` and `alert.msg`. See https://github.com/arvidn/libtorrent/issues/143
         try:
             self._logger.error(f'On tracker error alert: {alert}')
             url = alert.url
 
-            peers = self.tracker_status[url][0] if url in self.tracker_status else 0
             if alert.msg:
                 status = 'Error: ' + alert.msg
             elif alert.status_code > 0:
@@ -328,6 +331,7 @@ class Download(TaskManager):
             else:
                 status = 'Not working'
 
+            peers = 0  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
             self.tracker_status[url] = [peers, status]
         except UnicodeDecodeError as e:
             self._logger.warning(f'UnicodeDecodeError in on_tracker_error_alert: {e}')
