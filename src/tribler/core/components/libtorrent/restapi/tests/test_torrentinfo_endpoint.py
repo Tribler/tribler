@@ -1,13 +1,13 @@
 import json
 import shutil
+from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import unhexlify
 from ssl import SSLError
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 import pytest
 from aiohttp import ServerConnectionError, ClientResponseError, ClientConnectorError
-from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from ipv8.util import succeed
 
 from tribler.core import notifications

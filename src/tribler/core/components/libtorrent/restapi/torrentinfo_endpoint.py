@@ -1,11 +1,11 @@
 import hashlib
 import json
+from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from copy import deepcopy
 from ssl import SSLError
 
 from aiohttp import ClientConnectorError, ClientResponseError, ClientSession, ServerConnectionError, web
 from aiohttp_apispec import docs
-from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
