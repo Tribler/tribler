@@ -1,14 +1,13 @@
 import json
 import shutil
+from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import unhexlify
 from ssl import SSLError
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 import pytest
 from aiohttp import ServerConnectionError, ClientResponseError, ClientConnectorError
-from asyncio.exceptions import TimeoutError as AsyncTimeoutError
-from aiohttp.web_app import Application
 from ipv8.util import succeed
 
 from tribler.core import notifications
@@ -18,7 +17,6 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_UBUNTU_FILE, UBUNTU_1504_INFOHASH
 from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
