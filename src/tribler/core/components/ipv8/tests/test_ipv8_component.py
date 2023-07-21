@@ -30,3 +30,13 @@ async def test_ipv8_component_discovery_community_enabled(tribler_config):
     async with Session(tribler_config, [KeyComponent(), Ipv8Component()]) as session:
         comp = session.get_instance(Ipv8Component)
         assert comp._peer_discovery_community
+
+
+async def test_ipv8_component_statistics_enabled(tribler_config):
+    tribler_config.ipv8.enabled = True
+    tribler_config.ipv8.statistics = True
+    tribler_config.gui_test_mode = False
+    tribler_config.dht.enabled = True
+    async with Session(tribler_config, [KeyComponent(), Ipv8Component()]) as session:
+        comp = session.get_instance(Ipv8Component)
+        assert comp.dht_discovery_community.get_prefix() in comp.ipv8.endpoint.statistics

@@ -66,11 +66,6 @@ class Ipv8Component(Component):
         key_component = await self.require_component(KeyComponent)
         self.peer = Peer(key_component.primary_key)
 
-        if config.ipv8.statistics and not config.gui_test_mode:
-            # Enable gathering IPv8 statistics
-            for overlay in ipv8.overlays:
-                ipv8.endpoint.enable_community_statistics(overlay.get_prefix(), True)
-
         if config.ipv8.walk_scaling_enabled and not config.gui_test_mode:
             from tribler.core.components.ipv8.ipv8_health_monitor import IPv8Monitor
             IPv8Monitor(ipv8,
@@ -101,6 +96,9 @@ class Ipv8Component(Component):
         # random_walk_max_peers should be greater than 0
         random_walk_max_peers = max(0, random_walk_max_peers)
         self.ipv8.add_strategy(community, RandomWalk(community), random_walk_max_peers)
+
+        if self.session.config.ipv8.statistics and not self.session.config.gui_test_mode:
+            self.ipv8.endpoint.enable_community_statistics(community.get_prefix(), True)
 
     async def unload_community(self, community):
         await self.ipv8.unload_overlay(community)
