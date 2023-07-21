@@ -1,5 +1,6 @@
 import hashlib
 import inspect
+import json
 import logging
 import math
 import os
@@ -34,6 +35,8 @@ from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHE
 logger = logging.getLogger(__name__)
 
 NUM_VOTES_BARS = 8
+I18N_DIR = "i18n"
+LANGUAGES_FILE = "languages.json"
 
 
 class TranslatedString(str):
@@ -221,6 +224,16 @@ AVAILABLE_TRANSLATIONS = get_available_translations()
 
 def get_ui_file_path(filename):
     return os.path.join(get_base_path(), 'qt_resources', filename)
+
+
+def get_i18n_file_path(filename):
+    return Path(get_base_path()) / I18N_DIR / filename
+
+
+def get_languages_file_content():
+    languages_path = get_i18n_file_path(LANGUAGES_FILE)
+    content = Path(languages_path).read_text(encoding='utf-8')
+    return json.loads(content)
 
 
 def get_image_path(filename: str, convert_slashes_to_forward: bool = False) -> str:

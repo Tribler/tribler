@@ -1,55 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="es_ES">
+<!DOCTYPE TS><TS version="2.0" language="es_ES" sourcelanguage="">
 <context>
     <name>@default</name>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="441"/>
+        <location filename="../widgets/channelcontentswidget.py" line="456"/>
         <source>NEW CHANNEL</source>
         <translation>NUEVO CANAL</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="441"/>
+        <location filename="../widgets/channelcontentswidget.py" line="456"/>
         <source>NEW FOLDER</source>
         <translation>NUEVA CARPETA</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="458"/>
+        <location filename="../widgets/channelcontentswidget.py" line="473"/>
         <source>%(total)i/%(torrents)i items</source>
         <translation>Objetos %(total)i/%(torrents)i</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="460"/>
+        <location filename="../widgets/channelcontentswidget.py" line="475"/>
         <source>%(total)i items</source>
         <translation>Objetos %(total)i</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="469"/>
+        <location filename="../widgets/channelcontentswidget.py" line="484"/>
         <source>Add .torrent file</source>
         <translation>Añadir archivo .torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="470"/>
+        <location filename="../widgets/channelcontentswidget.py" line="485"/>
         <source>Add torrent(s) directory</source>
         <translation>Añadir carpeta torrent(s)</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="471"/>
+        <location filename="../widgets/channelcontentswidget.py" line="486"/>
         <source>Add URL/magnet links</source>
         <translation>Añadir enlaces URL/magnet</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="964"/>
+        <location filename="../tribler_window.py" line="907"/>
         <source>Please select the directory containing the .torrent files</source>
         <translation>Seleccione la carpeta que contiene los archivos .torrent</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="973"/>
+        <location filename="../tribler_window.py" line="916"/>
         <source>Add torrents from directory</source>
         <translation>Añadir torrents desde la carpeta</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="495"/>
+        <location filename="../widgets/channelcontentswidget.py" line="510"/>
         <source>Add all torrent files from the following directory to your Tribler channel: 
 
  %s</source>
@@ -58,47 +57,47 @@
  %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="495"/>
+        <location filename="../widgets/channelcontentswidget.py" line="510"/>
         <source>Include subdirectories (recursive mode)</source>
         <translation>Incluir subdirectorios (modo recursivo)</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="884"/>
+        <location filename="../tribler_window.py" line="848"/>
         <source>Please select the .torrent file</source>
         <translation>Por favor, seleccione el archivo .torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/channelcontentswidget.py" line="515"/>
+        <location filename="../widgets/channelcontentswidget.py" line="530"/>
         <source>Torrent files %s</source>
         <translation>Archivos torrent %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1024"/>
+        <location filename="../tribler_window.py" line="969"/>
         <source>Add torrent from URL/magnet link</source>
         <translation>Añadir torrent desde URL/enlace magnet</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1024"/>
+        <location filename="../tribler_window.py" line="969"/>
         <source>Please enter the URL/magnet link in the field below:</source>
         <translation>Introduzca el enlace URL/magnet en el siguiente recuadro:</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1024"/>
+        <location filename="../tribler_window.py" line="969"/>
         <source>ADD</source>
         <translation>AÑADIR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1278"/>
+        <location filename="../tribler_window.py" line="1218"/>
         <source>CANCEL</source>
         <translation>CANCELAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1031"/>
+        <location filename="../tribler_window.py" line="976"/>
         <source>URL/magnet link</source>
         <translation>URL/enlace magnet</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="22"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="21"/>
         <source>Click this to add 
  channel thumbnail 
  (max. 1MB JPG/PNG)</source>
@@ -107,202 +106,202 @@
  (máx. 1MB JPG/PNG)</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="179"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="167"/>
         <source>Please select a thumbnail file</source>
         <translation>Seleccione una miniatura</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="179"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="167"/>
         <source>PNG/XPM/JPG images %s</source>
         <translation>Imágenes PNG/XPM/JPG %s</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="195"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="183"/>
         <source>Image too large error</source>
         <translation>Error de imagen demasiado grande</translation>
     </message>
     <message>
-        <location filename="../widgets/channeldescriptionwidget.py" line="195"/>
+        <location filename="../widgets/channeldescriptionwidget.py" line="183"/>
         <source>Image file you&apos;re trying to upload is too large.</source>
         <translation>El archivo de imagen que intentas subir es demasiado grande.</translation>
     </message>
     <message>
-        <location filename="../widgets/channelsmenulistwidget.py" line="88"/>
+        <location filename="../widgets/channelsmenulistwidget.py" line="81"/>
         <source>Unsubscribe</source>
         <translation>Cancelar suscripción</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1278"/>
+        <location filename="../tribler_window.py" line="1218"/>
         <source>Delete channel</source>
         <translation>Borrar canal</translation>
     </message>
     <message>
-        <location filename="../widgets/channelsmenulistwidget.py" line="99"/>
+        <location filename="../widgets/channelsmenulistwidget.py" line="92"/>
         <source>Rename channel</source>
         <translation>Renombrar canal</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="152"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="161"/>
         <source>%(num_bytes)s in %(num_files)d files</source>
         <translation>%(num_bytes)s en %(num_files)d archivos</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="159"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="168"/>
         <source>%d seeders, %d leechers</source>
         <translation>%d sembradores, %d recolectores</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadsdetailstabwidget.py" line="215"/>
+        <location filename="../widgets/downloadsdetailstabwidget.py" line="218"/>
         <source>Copying magnet link</source>
         <translation>Copiar enlace magnet</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="518"/>
+        <location filename="../widgets/downloadspage.py" line="521"/>
         <source>Remove download</source>
         <translation>Eliminar descarga</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="335"/>
+        <location filename="../widgets/downloadspage.py" line="333"/>
         <source>Are you sure you want to remove this download?</source>
         <translation>¿Está seguro de que desea eliminar esta descarga?</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="335"/>
+        <location filename="../widgets/downloadspage.py" line="333"/>
         <source>remove download</source>
         <translation>eliminar descarga</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="335"/>
+        <location filename="../widgets/downloadspage.py" line="333"/>
         <source>remove download + data</source>
         <translation>eliminar descarga + datos</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="335"/>
+        <location filename="../widgets/downloadspage.py" line="333"/>
         <source>cancel</source>
         <translation>cancelar</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="440"/>
+        <location filename="../widgets/downloadspage.py" line="437"/>
         <source>Please select the destination directory</source>
         <translation>Seleccione la carpeta de destino</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="448"/>
+        <location filename="../widgets/downloadspage.py" line="445"/>
         <source>Export torrent file</source>
         <translation>Exportar archivo torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="448"/>
+        <location filename="../widgets/downloadspage.py" line="445"/>
         <source>Please enter the name of the torrent file:</source>
         <translation>Escriba el nombre del archivo torrent:</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="448"/>
+        <location filename="../widgets/downloadspage.py" line="445"/>
         <source>SAVE</source>
         <translation>GUARDAR</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="455"/>
+        <location filename="../widgets/downloadspage.py" line="452"/>
         <source>Torrent file name</source>
         <translation>Nombre del archivo torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="480"/>
+        <location filename="../widgets/downloadspage.py" line="483"/>
         <source>Error when exporting file</source>
         <translation>Error exportando el archivo</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="480"/>
+        <location filename="../widgets/downloadspage.py" line="483"/>
         <source>An error occurred when exporting the torrent file: %s</source>
         <translation>Se ha producido un error al exportar el archivo torrent: %s</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="486"/>
+        <location filename="../widgets/downloadspage.py" line="489"/>
         <source>Torrent file exported</source>
         <translation>Archivo torrent exportado</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="486"/>
+        <location filename="../widgets/downloadspage.py" line="489"/>
         <source>Torrent file exported to %s</source>
         <translation>Archivo torrent exportado a %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="703"/>
+        <location filename="../tribler_window.py" line="720"/>
         <source>Channel update</source>
         <translation>Actualizar el canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="703"/>
+        <location filename="../tribler_window.py" line="720"/>
         <source>Torrent(s) added to your channel</source>
         <translation>Torrent(s) añadido(s) a su canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1002"/>
+        <location filename="../tribler_window.py" line="944"/>
         <source>Add torrent(s)</source>
         <translation>Añadir torrent(es)</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="516"/>
+        <location filename="../widgets/downloadspage.py" line="519"/>
         <source>Start</source>
         <translation>Iniciar</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="517"/>
+        <location filename="../widgets/downloadspage.py" line="520"/>
         <source>Stop</source>
         <translation>Parar</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="519"/>
+        <location filename="../widgets/downloadspage.py" line="522"/>
         <source>Add to my channel</source>
         <translation>Añadir a mi canal</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="520"/>
+        <location filename="../widgets/downloadspage.py" line="523"/>
         <source>Force recheck</source>
         <translation>Forzar nueva verificación</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="521"/>
+        <location filename="../widgets/downloadspage.py" line="524"/>
         <source>Export .torrent file</source>
         <translation>Exportar archivo .torrent</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="522"/>
+        <location filename="../widgets/downloadspage.py" line="525"/>
         <source>Explore files</source>
         <translation>Buscar archivos</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="523"/>
+        <location filename="../widgets/downloadspage.py" line="526"/>
         <source>Move file storage</source>
         <translation>Establecer destino</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="525"/>
+        <location filename="../widgets/downloadspage.py" line="528"/>
         <source>No anonymity</source>
         <translation>Sin anonimato</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="526"/>
+        <location filename="../widgets/downloadspage.py" line="529"/>
         <source>One hop</source>
         <translation>Un salto</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="527"/>
+        <location filename="../widgets/downloadspage.py" line="530"/>
         <source>Two hops</source>
         <translation>Dos saltos</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="528"/>
+        <location filename="../widgets/downloadspage.py" line="531"/>
         <source>Three hops</source>
         <translation>Tres saltos</translation>
     </message>
     <message>
-        <location filename="../widgets/downloadspage.py" line="572"/>
+        <location filename="../widgets/downloadspage.py" line="575"/>
         <source>Change Anonymity </source>
         <translation>Cambiar la anonimidad </translation>
     </message>
     <message>
-        <location filename="../widgets/searchresultswidget.py" line="26"/>
+        <location filename="../widgets/searchresultswidget.py" line="25"/>
         <source>Remote responses: %(num_complete_peers)i / %(total_peers)i
 New remote results received: %(num_remote_results)i</source>
         <translation>Respuestas remotas: %(num_complete_peers)i / %(total_peers)i
@@ -311,59 +310,59 @@ Nuevos resultados remotos recibidos: %(num_remote_results)i</translation>
     <message>
         <location filename="../widgets/searchresultswidget.py" line="81"/>
         <source>Search results for %s</source>
-        <translation>Resultados de la búsqueda de %s</translation>
+        <translation type="obsolete">Resultados de la búsqueda de %s</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="48"/>
+        <location filename="../widgets/settingspage.py" line="50"/>
         <source>System default</source>
         <translation>Sistema por defecto</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="132"/>
+        <location filename="../widgets/settingspage.py" line="134"/>
         <source>Please select the log directory</source>
         <translation>Seleccione la carpeta del registro</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="285"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="297"/>
         <source>Insufficient Permissions</source>
         <translation>Permisos insuficientes</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="306"/>
+        <location filename="../widgets/settingspage.py" line="308"/>
         <source>Versions: 
 - %s</source>
         <translation>Versiones: 
 - %s</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="308"/>
+        <location filename="../widgets/settingspage.py" line="310"/>
         <source>Confirm delete older versions?</source>
         <translation>¿Confirmar la eliminación de versiones anteriores?</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="309"/>
+        <location filename="../widgets/settingspage.py" line="311"/>
         <source>Are you sure to remove the selected versions? 
 You can not undo this action.</source>
         <translation>¿Está seguro de eliminar las versiones seleccionadas? 
 No puede deshacer esta acción.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="315"/>
+        <location filename="../widgets/settingspage.py" line="316"/>
         <source>No versions selected</source>
         <translation>No hay versiones seleccionadas</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="316"/>
+        <location filename="../widgets/settingspage.py" line="317"/>
         <source>Select a version to delete.</source>
         <translation>Seleccione la versión que desea eliminar.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="331"/>
+        <location filename="../widgets/settingspage.py" line="332"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Descargar con &lt;b&gt;%d&lt;/b&gt; salto(s) de anonimato. Cuando descarga un archivo de 200 Megabyte, usted pagará aproximadamente &lt;b&gt;%d&lt;/b&gt;Megabyte en tokens de ancho de banda.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="338"/>
+        <location filename="../widgets/settingspage.py" line="339"/>
         <source>Current Priority = %s</source>
         <translation>Prioridad actual = %s</translation>
     </message>
@@ -378,22 +377,22 @@ No puede deshacer esta acción.</translation>
         <translation>Ha introducido un formato no válido para el número de puerto proxy. Por favor, introduzca un número entero.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="433"/>
+        <location filename="../widgets/settingspage.py" line="432"/>
         <source>Invalid number of connections</source>
         <translation>Número de conexiones no válido</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="433"/>
+        <location filename="../widgets/settingspage.py" line="432"/>
         <source>You&apos;ve entered an invalid format for the maximum number of connections. Please enter a whole number.</source>
         <translation>Ha introducido un formato no válido para el número máximo de conexiones. Por favor, introduzca un número entero.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="460"/>
+        <location filename="../widgets/settingspage.py" line="459"/>
         <source>Invalid value for bandwidth limit</source>
         <translation>Valor no válido para el límite de ancho de banda</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="460"/>
+        <location filename="../widgets/settingspage.py" line="459"/>
         <source>You&apos;ve entered an invalid value for the maximum upload/download rate. 
 The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.
 Note that the decimal values are truncated.</source>
@@ -402,32 +401,32 @@ La tasa se especifica en KB/s y el valor permitido está entre 0 y %d KB/s.
 Tenga en cuenta que los valores decimales están truncados.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="479"/>
+        <location filename="../widgets/settingspage.py" line="478"/>
         <source>Invalid value for api port</source>
         <translation>Valor no válido para el puerto api</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="479"/>
+        <location filename="../widgets/settingspage.py" line="478"/>
         <source>Please enter a valid port for the api (between 0 and 65536)</source>
         <translation>Por favor, introduzca un puerto válido para la api (entre 0 y 65536)</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="500"/>
+        <location filename="../widgets/settingspage.py" line="499"/>
         <source>Invalid seeding time</source>
         <translation>Tiempo de siembra no válido</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="500"/>
+        <location filename="../widgets/settingspage.py" line="499"/>
         <source>You&apos;ve entered an invalid format for the seeding time (expected HH:MM)</source>
         <translation>Ha introducido un formato no válido para la hora de siembra (esperado HH:MM)</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="560"/>
+        <location filename="../widgets/settingspage.py" line="558"/>
         <source>Tribler settings</source>
         <translation>Configuración de tribler</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="560"/>
+        <location filename="../widgets/settingspage.py" line="558"/>
         <source>Settings saved</source>
         <translation>Configuración guardada</translation>
     </message>
@@ -454,221 +453,221 @@ Tenga en cuenta que los valores decimales están truncados.</translation>
 (Haga clic para darse de baja)</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentdelegate.py" line="371"/>
+        <location filename="../widgets/tablecontentdelegate.py" line="479"/>
         <source>Be the first to suggest tags!</source>
         <translation>¡Sé el primero en sugerir etiquetas!</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="54"/>
+        <location filename="../widgets/tablecontentmodel.py" line="60"/>
         <source>Name</source>
         <translation>Nombre</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="55"/>
+        <location filename="../widgets/tablecontentmodel.py" line="61"/>
         <source>Size</source>
         <translation>Tamaño</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="56"/>
+        <location filename="../widgets/tablecontentmodel.py" line="63"/>
         <source>Health</source>
         <translation>Enlaces</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="57"/>
+        <location filename="../widgets/tablecontentmodel.py" line="65"/>
         <source>Created</source>
         <translation>Creado</translation>
     </message>
     <message>
         <location filename="../widgets/tablecontentmodel.py" line="57"/>
         <source>Updated</source>
-        <translation>Actualizado</translation>
+        <translation type="obsolete">Actualizado</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="58"/>
+        <location filename="../widgets/tablecontentmodel.py" line="67"/>
         <source>Popularity</source>
         <translation>Popularidad</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="61"/>
+        <location filename="../widgets/tablecontentmodel.py" line="71"/>
         <source>Torrents</source>
         <translation>Torrents</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="62"/>
+        <location filename="../widgets/tablecontentmodel.py" line="72"/>
         <source>Subscribed</source>
         <translation>Suscrito</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="425"/>
+        <location filename="../widgets/tablecontentmodel.py" line="515"/>
         <source>Subscribed.%s
 (Click to unsubscribe)</source>
         <translation>Suscrito.%s
 (Haga clic para darse de baja)</translation>
     </message>
     <message>
-        <location filename="../widgets/tablecontentmodel.py" line="425"/>
+        <location filename="../widgets/tablecontentmodel.py" line="515"/>
         <source>Not subscribed.
 (Click to subscribe)</source>
         <translation>No suscrito.
 (Haga clic para suscribirse)</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="261"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="218"/>
         <source> Download </source>
         <translation> Descargar </translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="263"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="220"/>
         <source> Recheck health</source>
         <translation> Volver a comprobar los enlaces</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="272"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="229"/>
         <source>Unsubscribe channel</source>
         <translation>Cancelar la suscripción</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="272"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="229"/>
         <source>Subscribe channel</source>
         <translation>Suscribirse al canal</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="295"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="249"/>
         <source>Copy</source>
         <translation>Copiar</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="307"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="261"/>
         <source>Move</source>
         <translation>Mover</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="313"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="267"/>
         <source> Copy into personal channel</source>
         <translation> Copiar al canal personal</translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="315"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="269"/>
         <source> Move </source>
         <translation> Mover </translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="316"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="270"/>
         <source> Rename </source>
         <translation> Renombrar </translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="317"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="271"/>
         <source> Change category </source>
         <translation> Cambiar de categoráia </translation>
     </message>
     <message>
-        <location filename="../widgets/triblertablecontrollers.py" line="319"/>
+        <location filename="../widgets/triblertablecontrollers.py" line="273"/>
         <source> Remove from channel</source>
         <translation> Borrar del canal</translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="227"/>
+        <location filename="../widgets/trustgraphpage.py" line="224"/>
         <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interactions made by &lt;strong&gt;%(num_users)s&lt;/strong&gt; users.&lt;br/&gt;</source>
         <translation>El siguiente gráfico se basa en sus interacciones históricas con otros usuarios de la red. Muestra las &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interacciones realizadas por &lt;strong&gt;%(num_users)s&lt;/strong&gt; otros usuarios.&lt;br/&gt;</translation>
     </message>
     <message>
         <location filename="../dialogs/addtagsdialog.py" line="51"/>
         <source>Each tag should be at least %d characters and can be at most %d characters.</source>
-        <translation>Cada etiqueta debe tener al menos %d caracteres y puede tener como máximo %d caracteres.</translation>
+        <translation type="obsolete">Cada etiqueta debe tener al menos %d caracteres y puede tener como máximo %d caracteres.</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="81"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="80"/>
         <source>CLOSE</source>
         <translation>CERRAR</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="57"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="56"/>
         <source>Please select the files</source>
         <translation>Seleccione los archivos</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="134"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="136"/>
         <source>Please select the directory containing the files</source>
         <translation>Seleccione la carpeta que contiene los archivos</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="81"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="80"/>
         <source>Warning!</source>
         <translation>¡Atención!</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="81"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="80"/>
         <source>You should add at least one file to your torrent.</source>
         <translation>Debe añadir al menos un archivo a su torrent.</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="108"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="107"/>
         <source>Cannot save torrent file to %s</source>
         <translation>No se puede guardar el archivo torrent en %s</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="101"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="100"/>
         <source>Path does not exist</source>
         <translation>La ruta no existe</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="108"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="107"/>
         <source>Error: %s </source>
         <translation>Error: %s </translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="120"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="122"/>
         <source>Creating torrent. Please wait...</source>
         <translation>Creando torrent. Por favor espere...</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="126"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="128"/>
         <source>Created torrent</source>
         <translation>Torrent creado</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="128"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="130"/>
         <source>Torrent successfully created</source>
         <translation>Torrent creado con éxito</translation>
     </message>
     <message>
-        <location filename="../dialogs/createtorrentdialog.py" line="152"/>
+        <location filename="../dialogs/createtorrentdialog.py" line="154"/>
         <source>Remove file</source>
         <translation>Borrar archivo</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="42"/>
+        <location filename="../dialogs/feedbackdialog.py" line="48"/>
         <source>Unexpected error</source>
         <translation>Error inesperado</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="53"/>
+        <location filename="../dialogs/feedbackdialog.py" line="58"/>
         <source>What were you doing before this crash happened? This information will help Tribler developers to figure out and fix the issue quickly.</source>
         <translation>¿Qué estaba haciendo antes de que se produjera el fallo? Esta información ayudará a los desarrolladores de Tribler a averiguar y solucionar el problema rápidamente.</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="134"/>
+        <location filename="../dialogs/feedbackdialog.py" line="121"/>
         <source>Remove entry</source>
         <translation>Borrar entrada</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="144"/>
+        <location filename="../dialogs/feedbackdialog.py" line="131"/>
         <source>SENDING...</source>
         <translation>ENVIANDO...</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="158"/>
+        <location filename="../dialogs/feedbackdialog.py" line="141"/>
         <source>Not provided</source>
-        <translation>No disponible</translation>
+        <translation type="obsolete">No disponible</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="184"/>
+        <location filename="../dialogs/feedbackdialog.py" line="175"/>
         <source>Successfully sent the report! Thanks for your contribution.</source>
         <translation>El informe se ha enviado correctamente. Gracias por su contribución.</translation>
     </message>
     <message>
-        <location filename="../dialogs/feedbackdialog.py" line="187"/>
+        <location filename="../dialogs/feedbackdialog.py" line="178"/>
         <source>Report Sent</source>
         <translation>Informe enviado</translation>
     </message>
@@ -693,222 +692,222 @@ Tenga en cuenta que los valores decimales están truncados.</translation>
         <translation>Nombre del canal</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="153"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="159"/>
         <source>directly</source>
         <translation>directamente</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="153"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="159"/>
         <source>anonymously</source>
         <translation>anónimamente</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="154"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="160"/>
         <source>Loading torrent files %s...</source>
         <translation>Cargando archivos torrent %s...</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="155"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="161"/>
         <source>Timeout in fetching files %s. Retrying  %i/%i</source>
         <translation>Tiempo de espera para obtener archivos %s. Reintentando  %i/%i</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="179"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="185"/>
         <source>Failed to load files. Click to retry again.</source>
         <translation>No se pudieron cargar los archivos. Haga clic para volver a intentarlo.</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="184"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="190"/>
         <source>Unable to read torrent file data</source>
         <translation>No se pueden leer los datos del archivo torrent</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="186"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="192"/>
         <source>Error: %s</source>
         <translation>Error: %s</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="211"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="217"/>
         <source>Note: this torrent already exists in the Downloads</source>
         <translation>Nota: este torrent ya existe en Descargas</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="224"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="230"/>
         <source>Torrent size: </source>
         <translation>Tamaño de torrente: </translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="226"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="232"/>
         <source>Selected: </source>
         <translation>Seleccionado: </translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="226"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="232"/>
         <source>Total: </source>
         <translation>Total: </translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="248"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="254"/>
         <source>Please select the destination directory of your download</source>
         <translation>Seleccione la carpeta destino de la descarga</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="260"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="266"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory. [%s]</source>
         <translation>Tribler no puede descargar en la carpeta &lt;i&gt;%s&lt;/i&gt; . Por favor, añada permisos de escritura adecuados a la carpeta o elija otra carpeta de descarga. [%s]</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="273"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="279"/>
         <source>No files selected</source>
         <translation>Ningún archivo seleccionado</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="273"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="279"/>
         <source>Please select at least one file to download.</source>
         <translation>Seleccione al menos un archivo para descargar.</translation>
     </message>
     <message>
-        <location filename="../dialogs/startdownloaddialog.py" line="284"/>
+        <location filename="../dialogs/startdownloaddialog.py" line="296"/>
         <source>Tribler cannot download to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions to the directory or choose another download directory and try to download again. [%s]</source>
         <translation>Tribler no puede descargar en la carpeta &lt;i&gt;%s&lt;/i&gt; . Por favor, añada permisos de escritura adecuados a la carpeta o elija otra carpeta de descarga e intente descargar de nuevo. [%s]</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="302"/>
+        <location filename="../tribler_window.py" line="304"/>
         <source>Show Tribler window</source>
         <translation>Mostrar la ventana de Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="306"/>
+        <location filename="../tribler_window.py" line="308"/>
         <source>Show downloads</source>
         <translation>Mostrar las descargas</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="308"/>
+        <location filename="../tribler_window.py" line="310"/>
         <source>Quit Tribler</source>
         <translation>Salir de Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="476"/>
+        <location filename="../tribler_window.py" line="492"/>
         <source>&lt;b&gt;CRITICAL ERROR&lt;/b&gt;</source>
         <translation>&lt;b&gt;ERROR CRITICO&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="476"/>
+        <location filename="../tribler_window.py" line="492"/>
         <source>You are running low on disk space (&lt;100MB). Please make sure to have sufficient free space available and restart Tribler again.</source>
         <translation>Se está quedando sin espacio en disco (&lt;100MB). Por favor, asegúrese de tener suficiente espacio libre disponible y reinicie Tribler de nuevo.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="476"/>
+        <location filename="../tribler_window.py" line="492"/>
         <source>Close Tribler</source>
         <translation>Cerrar Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="490"/>
+        <location filename="../tribler_window.py" line="506"/>
         <source>Download finished</source>
         <translation>Descarga finalizada</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="490"/>
+        <location filename="../tribler_window.py" line="506"/>
         <source>Download of %s has finished.</source>
         <translation>La descarga de %s ha finalizado.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="556"/>
+        <location filename="../tribler_window.py" line="576"/>
         <source>Discovered channels</source>
         <translation>Canales descubiertos</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="563"/>
+        <location filename="../tribler_window.py" line="583"/>
         <source>Popular torrents</source>
         <translation>Torrents populares</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="653"/>
+        <location filename="../tribler_window.py" line="673"/>
         <source>Insufficient write permissions to &lt;i&gt;%s&lt;/i&gt; directory. Please add proper write permissions on the directory and add the torrent again. %s</source>
         <translation>Permisos de escritura insuficientes en la carpeta &lt;i&gt;%s&lt;/i&gt; . Por favor, añada permisos de escritura adecuados en la carpeta y añada el torrent de nuevo. %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="654"/>
+        <location filename="../tribler_window.py" line="674"/>
         <source>Download error &lt;i&gt;%s&lt;/i&gt;</source>
         <translation>Error de descarga &lt;i&gt;%s&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="722"/>
+        <location filename="../upgrade_manager.py" line="124"/>
         <source>New version available</source>
         <translation>Disponible una nueva versión</translation>
     </message>
     <message>
         <location filename="../tribler_window.py" line="722"/>
         <source>Version %s of Tribler is available.Do you want to visit the website to download the newest version?</source>
-        <translation>La versión %s de Tribler está disponible. ¿Quieres visitar la página web para descargar la versión más reciente?</translation>
+        <translation type="obsolete">La versión %s de Tribler está disponible. ¿Quieres visitar la página web para descargar la versión más reciente?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="722"/>
+        <location filename="../upgrade_manager.py" line="124"/>
         <source>IGNORE</source>
         <translation>IGNORAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="722"/>
+        <location filename="../upgrade_manager.py" line="124"/>
         <source>LATER</source>
         <translation>MAS TARDE</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="722"/>
+        <location filename="../upgrade_manager.py" line="124"/>
         <source>OK</source>
         <translation>ACEPTAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="851"/>
+        <location filename="../tribler_window.py" line="815"/>
         <source>Import torrent from file</source>
         <translation>Importar torrent desde archivo</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="852"/>
+        <location filename="../tribler_window.py" line="816"/>
         <source>Import torrent(s) from directory</source>
         <translation>Importar torrent(s) de la carpeta</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="853"/>
+        <location filename="../tribler_window.py" line="817"/>
         <source>Import torrent from magnet/URL</source>
         <translation>Importar un torrent desde un magnet/URL</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="854"/>
+        <location filename="../tribler_window.py" line="818"/>
         <source>Create torrent from file(s)</source>
         <translation>Crear torrent a partir de archivo(s)</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="880"/>
+        <location filename="../tribler_window.py" line="844"/>
         <source>Torrent updates</source>
         <translation>Actualizaciones de torrents</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="884"/>
+        <location filename="../tribler_window.py" line="848"/>
         <source>Torrent files%s</source>
         <translation>Archivos torrent%s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="900"/>
+        <location filename="../tribler_window.py" line="887"/>
         <source>Download Error</source>
-        <translation>Error de descarga</translation>
+        <translation type="obsolete">Error de descarga</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="900"/>
+        <location filename="../tribler_window.py" line="887"/>
         <source>Tribler settings is not available yet. Fetching it now. Please try again later.</source>
-        <translation>La configuración de Tribler aún no está disponible en este momento. Vuelve a intentarlo más tarde.</translation>
+        <translation type="obsolete">La configuración de Tribler aún no está disponible en este momento. Vuelve a intentarlo más tarde.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="949"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>Tribler UI Error</source>
         <translation>Error de IU de Tribler</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="949"/>
+        <location filename="../tribler_window.py" line="892"/>
         <source>Something went wrong. Please try again.</source>
         <translation>Algo ha ido mal. Por favor, inténtelo de nuevo.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="973"/>
+        <location filename="../tribler_window.py" line="916"/>
         <source>Add %s torrent files from the following directory to your Tribler channel: 
 
 %s</source>
@@ -917,92 +916,92 @@ Tenga en cuenta que los valores decimales están truncados.</translation>
 %s</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="973"/>
+        <location filename="../tribler_window.py" line="916"/>
         <source>Add torrents to My Channel</source>
         <translation>Añadir torrents a Mi canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="993"/>
+        <location filename="../tribler_window.py" line="936"/>
         <source>Channels update</source>
         <translation>Actualizar canales</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="993"/>
+        <location filename="../tribler_window.py" line="936"/>
         <source>%s added to your channel</source>
         <translation>%s añadido a su canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1147"/>
+        <location filename="../tribler_window.py" line="1095"/>
         <source>Shutting down...</source>
         <translation>Actualizar canales...</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1213"/>
+        <location filename="../tribler_window.py" line="1161"/>
         <source>Abort the conversion of Channels database</source>
         <translation>Abortar la conversión de la base de datos de los canales</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1213"/>
+        <location filename="../tribler_window.py" line="1161"/>
         <source>The upgrade procedure is now &lt;b&gt;converting your personal channel&lt;/b&gt; and channels collected by the previous installation of Tribler.&lt;br&gt;Are you sure you want to abort the conversion process?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! WARNING !!! &lt;br&gt;You will lose your personal channel and subscribed channels if you ABORT now! &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</source>
         <translation>El procedimiento de actualización &lt;b&gt;está convirtiendo su canal personal&lt;/b&gt; y los canales recopilados por la instalación anterior de Tribler.&lt;br&gt;¿Está seguro de que desea abortar el proceso de conversión?&lt;br&gt;&lt;br&gt;&lt;p style=&apos;color:red&apos;&gt;&lt;b&gt; !!! ADVERTENCIA !!! &lt;br&gt;Si ABORTA ahora, perderá su canal personal y los canales a los que está suscrito. &lt;/b&gt; &lt;/p&gt; &lt;br&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1213"/>
+        <location filename="../tribler_window.py" line="1161"/>
         <source>ABORT</source>
         <translation>ABORTAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1213"/>
+        <location filename="../tribler_window.py" line="1161"/>
         <source>CONTINUE</source>
         <translation>CONTINUAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1251"/>
+        <location filename="../tribler_window.py" line="1196"/>
         <source>Unsubscribe from channel</source>
         <translation>Darse de baja del canal</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1251"/>
+        <location filename="../tribler_window.py" line="1196"/>
         <source>Are you sure you want to &lt;b&gt;unsubscribe&lt;/b&gt; from channel&lt;br/&gt;</source>
         <translation>¿Está seguro que desea &lt;b&gt;darte de baja&lt;/b&gt; del canal?&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1251"/>
+        <location filename="../tribler_window.py" line="1196"/>
         <source>&lt;br/&gt;and remove its contents?</source>
         <translation>&lt;br/&gt;y eliminar su contenido?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1251"/>
+        <location filename="../tribler_window.py" line="1196"/>
         <source>UNSUBSCRIBE</source>
         <translation>DARSE DE BAJA</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1278"/>
+        <location filename="../tribler_window.py" line="1218"/>
         <source>Are you sure you want to &lt;b&gt;delete&lt;/b&gt; your personal channel&lt;br/&gt;</source>
         <translation>¿Está seguro de que desea &lt;b&gt;eliminar&lt;/b&gt; su canal personal?&lt;br/&gt;</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1278"/>
+        <location filename="../tribler_window.py" line="1218"/>
         <source>&lt;br/&gt;and all its contents?</source>
         <translation>&lt;br/&gt;¿y todo su contenido?</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1278"/>
+        <location filename="../tribler_window.py" line="1218"/>
         <source>DELETE</source>
         <translation>BORRAR</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1304"/>
+        <location filename="../tribler_window.py" line="1244"/>
         <source>Tribler recovered from a corrupted config. Please check your settings and update if necessary.</source>
         <translation>Tribler se ha recuperado de una configuración dañada. Compruebe su configuración y actualice si es necesario.</translation>
     </message>
     <message>
-        <location filename="../tribler_window.py" line="1307"/>
+        <location filename="../tribler_window.py" line="1247"/>
         <source>Tribler config error</source>
         <translation>Error de configuración de Tribler</translation>
     </message>
     <message>
-        <location filename="../upgrade_manager.py" line="92"/>
+        <location filename="../upgrade_manager.py" line="178"/>
         <source>Press &apos;Yes&apos; to remove state directories for older versions of Tribler and reclaim %s of storage space. Tribler used those directories during upgrades from previous versions. Now those directories can be safely deleted. 
 
 If unsure, press &apos;No&apos;. You will be able to remove those directories from the Settings-&gt;Data page later.</source>
@@ -1011,144 +1010,174 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
 Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas carpetas desde la pestaña, Configuración-&gt;Datos.</translation>
     </message>
     <message>
-        <location filename="../upgrade_manager.py" line="113"/>
+        <location filename="../upgrade_manager.py" line="220"/>
         <source>Backing up state directory, please wait</source>
         <translation>Haciendo copia de seguridad de las carpetas de estado, por favor espere</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="41"/>
+        <location filename="../utilities.py" line="68"/>
         <source>Zero popularity</source>
         <translation>Cero popularidad</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="41"/>
+        <location filename="../utilities.py" line="68"/>
         <source>Very low popularity</source>
         <translation>Muy baja popularidad</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="41"/>
+        <location filename="../utilities.py" line="68"/>
         <source>3rd tier popularity</source>
         <translation>Popularidad de 3º nivel</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="41"/>
+        <location filename="../utilities.py" line="68"/>
         <source>2nd tier popularity</source>
         <translation>Popularidad de 2º nivel</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="41"/>
+        <location filename="../utilities.py" line="68"/>
         <source>1st tier popularity</source>
         <translation>Popularidad de 1º nivel</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="110"/>
+        <location filename="../utilities.py" line="137"/>
         <source>just now</source>
         <translation>ahora mismo</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="112"/>
+        <location filename="../utilities.py" line="139"/>
         <source> seconds ago</source>
         <translation> hace unos segundos</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="114"/>
+        <location filename="../utilities.py" line="141"/>
         <source>a minute ago</source>
         <translation>hace un minuto</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="116"/>
+        <location filename="../utilities.py" line="143"/>
         <source> minutes ago</source>
         <translation> hace unos minutos</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="118"/>
+        <location filename="../utilities.py" line="145"/>
         <source>an hour ago</source>
         <translation>hace 1 hora</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="120"/>
+        <location filename="../utilities.py" line="147"/>
         <source> hours ago</source>
         <translation> hace unas horas</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="122"/>
+        <location filename="../utilities.py" line="149"/>
         <source>yesterday</source>
         <translation>ayer</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="124"/>
+        <location filename="../utilities.py" line="151"/>
         <source> days ago</source>
         <translation> hace unos días</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="127"/>
+        <location filename="../utilities.py" line="154"/>
         <source>week</source>
         <translation>semana</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="127"/>
+        <location filename="../utilities.py" line="154"/>
         <source>weeks</source>
         <translation>semanas</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="136"/>
+        <location filename="../utilities.py" line="163"/>
         <source> ago</source>
         <translation> hace</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="131"/>
+        <location filename="../utilities.py" line="158"/>
         <source>month</source>
         <translation>mes</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="131"/>
+        <location filename="../utilities.py" line="158"/>
         <source>months</source>
         <translation>meses</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="135"/>
+        <location filename="../utilities.py" line="162"/>
         <source>year</source>
         <translation>año</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="135"/>
+        <location filename="../utilities.py" line="162"/>
         <source>years</source>
         <translation>años</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="155"/>
+        <location filename="../utilities.py" line="182"/>
         <source>Forever</source>
         <translation>Para siempre</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="157"/>
+        <location filename="../utilities.py" line="184"/>
         <source>%(years)iy %(weeks)iw</source>
         <translation>%(years)ia %(weeks)is</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="159"/>
+        <location filename="../utilities.py" line="186"/>
         <source>%(weeks)iw %(days)id</source>
         <translation>%(weeks)is %(days)id</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="161"/>
+        <location filename="../utilities.py" line="188"/>
         <source>%(days)id %(hours)ih</source>
         <translation>%(days)id %(hours)ih</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="163"/>
+        <location filename="../utilities.py" line="190"/>
         <source>%(hours)ih %(minutes)im</source>
         <translation>%(hours)ih %(minutes)im</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="165"/>
+        <location filename="../utilities.py" line="192"/>
         <source>%(minutes)im %(seconds)is</source>
         <translation>%(minutes)im %(seconds)is</translation>
     </message>
     <message>
-        <location filename="../utilities.py" line="166"/>
+        <location filename="../utilities.py" line="193"/>
         <source>%(seconds)is</source>
         <translation>%(seconds)is</translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="286"/>
+        <source>Please specify the path to the download directory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../dialogs/startdownloaddialog.py" line="287"/>
+        <source>The path is not specified</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../upgrade_manager.py" line="124"/>
+        <source>Version %s of Tribler is available. Do you want to visit the website to download the newest version?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../upgrade_manager.py" line="177"/>
+        <source>Delete state directories for old versions?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../upgrade_manager.py" line="205"/>
+        <source>Ancient version detected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../upgrade_manager.py" line="205"/>
+        <source>You are running an old version of Tribler. It is not possible to upgrade from this version to the most recent one. Please do upgrade incrementally (download Tribler 7.10, upgrade, then download the most recent one, upgrade).</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1161,30 +1190,30 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
     <message>
         <location filename="../qt_resources/add_tags_dialog.ui" line="137"/>
         <source>Suggest Tags</source>
-        <translation>Añadir etiquetas</translation>
+        <translation type="obsolete">Añadir etiquetas</translation>
     </message>
     <message>
         <location filename="../qt_resources/add_tags_dialog.ui" line="184"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;To organize the content in Tribler, this item would benefit from tags.&lt;br/&gt;You can help by suggesting several tags below that accurately describe this item (e.g., &lt;span style=&quot; font-style:italic;&quot;&gt;video&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Para organizar el contenido en Tribler, este objeto se beneficiaría de las etiquetas.&lt;br/&gt;Puede ayudar añadiendo a continuación varias etiquetas que describan con precisión este objeto (p.ej, &lt;span style=&quot; font-style:italic;&quot;&gt;vídeo&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation type="obsolete">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Para organizar el contenido en Tribler, este objeto se beneficiaría de las etiquetas.&lt;br/&gt;Puede ayudar añadiendo a continuación varias etiquetas que describan con precisión este objeto (p.ej, &lt;span style=&quot; font-style:italic;&quot;&gt;vídeo&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../qt_resources/add_tags_dialog.ui" line="213"/>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="200"/>
         <source>Content name</source>
         <translation>Nombre del contenido</translation>
     </message>
     <message>
-        <location filename="../qt_resources/add_tags_dialog.ui" line="307"/>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="433"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Need inspiration?&lt;/span&gt; Below are some suggestions (click on a tag to add it).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;¿Necesita inspiración?&lt;/span&gt; A continuación encontrará algunas sugerencias (haga clic en una etiqueta para añadirla).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="../qt_resources/add_tags_dialog.ui" line="359"/>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="485"/>
         <source>Error text here</source>
         <translation>Texto de error</translation>
     </message>
     <message>
-        <location filename="../qt_resources/add_tags_dialog.ui" line="430"/>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="556"/>
         <source>SAVE</source>
         <translation>GUARDAR</translation>
     </message>
@@ -1377,6 +1406,51 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
         <location filename="../qt_resources/trustexplanation.ui" line="172"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;En Tribler, compensas a otros usuarios por el ancho de banda que utilizas al descargar con anonimato. Cuando subes contenidos a otros usuarios (de Tribler), ganas &lt;span style=&quot; font-style:italic;&quot;&gt;tokens de ancho de banda&lt;/span&gt;. Si acumulas más tokens de ancho de banda, obtienes un trato preferente al descargar de forma anónima, lo que se traduce en mayores velocidades de descarga.&lt;/p&gt;&lt;p&gt;La cantidad exacta de tokens de ancho de banda que pagas a los demás, depende del nivel de anonimato. Esto es el número de otros usuarios, o &lt;span style=&quot; font-style:italic;&quot;&gt;saltos&lt;/span&gt;, que utilizas durante una descarga. Si descargas con tres saltos de anonimato, tus datos cifrados se envían a través de las máquinas de otros tres usuarios de Tribler. Aumentar el número de saltos beneficia el anonimato, pero te cuesta más tokens de ancho de banda.&lt;/p&gt;&lt;p&gt;P.ej., si descargas un &lt;span style=&quot; font-weight:600;&quot;&gt;1 gigabyte&lt;/span&gt; de vídeo con un salto de anonimato, pagas con &lt;span style=&quot; font-weight:600;&quot;&gt;1 gigabyte&lt;/span&gt; en tokens de ancho de banda. Cada salto adicional aumenta la cantidad de tokens de ancho de banda que tienes que pagar en &lt;span style=&quot; font-weight:600;&quot;&gt;3 gigabyte&lt;/span&gt; de tokens de ancho de banda en su lugar.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="155"/>
+        <source>Edit metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="228"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;To help organizing the content in Tribler, you can edit this items&apos; data.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="269"/>
+        <source>Property</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="274"/>
+        <source>Value</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="284"/>
+        <source>Description</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="289"/>
+        <source>Year</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="294"/>
+        <source>Language</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="336"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;You can also help by suggesting several tags below that accurately describe this item (e.g., &lt;span style=&quot; font-style:italic;&quot;&gt;video&lt;/span&gt;).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qt_resources/edit_metadata_dialog.ui" line="279"/>
+        <source>Content Item</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1690,7 +1764,7 @@ por descarga</translation>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1826"/>
         <source>Port (defaults to 52194)</source>
-        <translation>Puerto (por defecto el 52194)</translation>
+        <translation type="obsolete">Puerto (por defecto el 52194)</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1864"/>
@@ -2181,6 +2255,11 @@ Alto anonimato</translation>
         <source>Token balance</source>
         <translation>Saldo de Tokens</translation>
     </message>
+    <message>
+        <location filename="../qt_resources/mainwindow.ui" line="1826"/>
+        <source>Port (defaults to 20100)</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>channel_description_widget</name>
@@ -2247,8 +2326,8 @@ Alto anonimato</translation>
     </message>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="588"/>
-        <source>🔍 Filter</source>
-        <translation>🔍 Filtro</translation>
+        <source>?? Filter</source>
+        <translation type="obsolete">🔍 Filtro</translation>
     </message>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="692"/>
@@ -2259,6 +2338,11 @@ Alto anonimato</translation>
         <location filename="../qt_resources/torrents_list.ui" line="719"/>
         <source>APPLY CHANGES</source>
         <translation>APLICAR CAMBIOS</translation>
+    </message>
+    <message encoding="UTF-8">
+        <location filename="../qt_resources/torrents_list.ui" line="588"/>
+        <source>🔍 Filter</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>
