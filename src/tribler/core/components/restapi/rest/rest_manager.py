@@ -5,7 +5,7 @@ import traceback
 from typing import Optional
 
 from aiohttp import web
-from aiohttp.web_exceptions import HTTPNotFound
+from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
 from aiohttp_apispec import AiohttpApiSpec
 from apispec.core import VALID_METHODS_OPENAPI_V2
 
@@ -14,6 +14,8 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_INTERNAL_SERVER_ERROR,
     HTTP_NOT_FOUND,
     HTTP_UNAUTHORIZED,
+    HTTP_REQUEST_ENTITY_TOO_LARGE,
+    MAX_REQUEST_SIZE,
     RESTResponse,
 )
 from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
@@ -63,6 +65,11 @@ async def error_middleware(request, handler):
             'handled': True,
             'message': f'Could not find {request.path}'
         }}, status=HTTP_NOT_FOUND)
+    except HTTPRequestEntityTooLarge:
+        return RESTResponse({'error': {
+            'handled': True,
+            'message': f'Request size is larger than {MAX_REQUEST_SIZE} bytes'
+        }}, status=HTTP_REQUEST_ENTITY_TOO_LARGE)
     except Exception as e:
         logger.exception(e)
         full_exception = traceback.format_exc()
