@@ -1,7 +1,10 @@
 import os
+import re
+import typing
 
 from PyQt5 import uic
 from PyQt5.QtCore import QDir, pyqtSignal
+from PyQt5.QtGui import QValidator
 from PyQt5.QtWidgets import QAction, QFileDialog, QSizePolicy, QTreeWidgetItem
 
 from tribler.gui.defs import BUTTON_TYPE_NORMAL
@@ -17,6 +20,24 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
         QTreeWidgetItem.__init__(self, parent)
 
 
+class TorrentNameValidator(QValidator):
+    """
+    Validator used in Torrent name QLineEdit field to disallow multiline text.
+    If a new line character is detected, then it is converted to space using fixup().
+
+    Docs: https://doc.qt.io/qtforpython-5/PySide2/QtGui/QValidator.html
+    """
+    ESCAPE_CHARS_REGEX = r'[\n\r\t]'
+
+    def validate(self, text: str, pos: int) -> typing.Tuple['QValidator.State', str, int]:
+        if re.search(self.ESCAPE_CHARS_REGEX, text):
+            return QValidator.Intermediate, text, pos
+        return QValidator.Acceptable, text, pos
+
+    def fixup(self, text: str) -> str:
+        return re.sub(self.ESCAPE_CHARS_REGEX, ' ', text)
+
+
 class CreateTorrentDialog(DialogContainer):
     create_torrent_notification = pyqtSignal(dict)
     add_to_channel_selected = pyqtSignal(str)
@@ -27,6 +48,7 @@ class CreateTorrentDialog(DialogContainer):
         uic.loadUi(get_ui_file_path('createtorrentdialog.ui'), self.dialog_widget)
 
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.dialog_widget.create_torrent_name_field.setValidator(TorrentNameValidator(parent=self))
         connect(self.dialog_widget.btn_cancel.clicked, self.close_dialog)
         connect(self.dialog_widget.create_torrent_choose_files_button.clicked, self.on_choose_files_clicked)
         connect(self.dialog_widget.create_torrent_choose_dir_button.clicked, self.on_choose_dir_clicked)
