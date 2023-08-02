@@ -1,3 +1,5 @@
+import random
+import string
 from unittest.mock import Mock
 
 import pytest
@@ -6,6 +8,7 @@ from ipv8.util import succeed
 from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_REQUEST_ENTITY_TOO_LARGE, MAX_REQUEST_SIZE
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 
@@ -67,6 +70,31 @@ async def test_create_torrent_io_error(rest_api, download_manager):
             "code": "OSError",
             "handled": True,
             "message": "test"
+        }
+    }
+    assert expected_response == error_response
+
+
+async def test_create_torrent_of_large_size(rest_api):
+    """
+    Testing whether the API returns a formatted 413 error if request size is above set client size.
+    """
+
+    post_data = {
+        "description": ''.join(random.choice(string.ascii_letters) for _ in range(MAX_REQUEST_SIZE))
+    }
+
+    error_response = await do_request(
+        rest_api, 'createtorrent',
+        expected_code=HTTP_REQUEST_ENTITY_TOO_LARGE,
+        request_type='POST',
+        post_data=post_data
+    )
+
+    expected_response = {
+        "error": {
+            "handled": True,
+            "message": f"Request size is larger than {MAX_REQUEST_SIZE} bytes"
         }
     }
     assert expected_response == error_response
