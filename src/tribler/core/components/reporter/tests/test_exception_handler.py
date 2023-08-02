@@ -27,23 +27,31 @@ def raise_error(error):  # pylint: disable=inconsistent-return-statements
 def test_is_ignored(exception_handler):
     # test that CoreExceptionHandler ignores specific exceptions
 
-    # by type
-    assert exception_handler._is_ignored(OSError(113, 'Any'))
-    assert exception_handler._is_ignored(ConnectionResetError(10054, 'Any'))
+    # by exception type
+    assert exception_handler._is_ignored(gaierror())
+    assert exception_handler._is_ignored(ConnectionResetError())
 
-    # by class
-    assert exception_handler._is_ignored(gaierror('Any'))
+    # by exception type and error code
+    assert exception_handler._is_ignored(OSError(113, 'Arbitrary error message'))
+    assert exception_handler._is_ignored(OSError(0, 'Arbitrary error message'))
 
-    # by class and substring
-    assert exception_handler._is_ignored(RuntimeError('Message that contains invalid info-hash'))
+    # by exception type and regex
+    assert exception_handler._is_ignored(RuntimeError('A message with the following substring: invalid info-hash'))
+    assert not exception_handler._is_ignored(RuntimeError('Another message without a substring'))
 
 
 def test_is_not_ignored(exception_handler):
     # test that CoreExceptionHandler do not ignore exceptions out of
-    # IGNORED_ERRORS_BY_CODE and IGNORED_ERRORS_BY_SUBSTRING
-    assert not exception_handler._is_ignored(OSError(1, 'Any'))
-    assert not exception_handler._is_ignored(RuntimeError('Any'))
+    # IGNORED_ERRORS_BY_TYPE, IGNORED_ERRORS_BY_CODE and IGNORED_ERRORS_BY_SUBSTRING
+
+    # AttributeError is not in the IGNORED_ERRORS_BY_TYPE, IGNORED_ERRORS_BY_CODE or IGNORED_ERRORS_BY_SUBSTRING
     assert not exception_handler._is_ignored(AttributeError())
+
+    # OSError with code 1 is not in the IGNORED_ERRORS_BY_CODE
+    assert not exception_handler._is_ignored(OSError(1, 'Arbitrary error message'))
+
+    # RuntimeError is in IGNORED_ERRORS_BY_REGEX, but the message does not contain "invalid info-hash" substring
+    assert not exception_handler._is_ignored(RuntimeError('Arbitrary error message'))
 
 
 def test_create_exception_from(exception_handler):
