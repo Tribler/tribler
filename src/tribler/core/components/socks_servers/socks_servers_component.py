@@ -18,13 +18,16 @@ class SocksServersComponent(Component):
         self.socks_ports = []
         # Start the SOCKS5 servers
         for _ in range(NUM_SOCKS_PROXIES):
-            # To prevent a once-in-a-blue-moon situation when SOCKS server accidentally occupy
-            # a port reserved by other services (e.g. REST API), we track our ports usage and assign
-            # ports through a single, default NetworkUtils instance
-            socks_server = Socks5Server(port=default_network_utils.get_random_free_port())
+            socks_server = Socks5Server()
             self.socks_servers.append(socks_server)
             await socks_server.start()
-            self.socks_ports.append(socks_server.port)
+            socks_port = socks_server.port
+            self.socks_ports.append(socks_port)
+
+            # To prevent a once-in-a-blue-moon situation when a server accidentally occupies
+            # the port reserved by other services (e.g. REST API), we track our ports usage
+            # and assign ports through a single, default NetworkUtils instance
+            default_network_utils.remember(socks_port)
 
         self.logger.info(f'Socks listen port: {self.socks_ports}')
 
