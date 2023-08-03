@@ -84,7 +84,7 @@ class CoreManager(QObject):
         If so, use that one and don't start a new, fresh Core.
         """
         # Connect to the events manager
-        self.events_manager.connect(reschedule_on_err=False)  # do not retry if tribler Core is not running yet
+        self.events_manager.connect_to_core(reschedule_on_err=False)  # do not retry if tribler Core is not running yet
 
         if run_core:
             self.core_args = core_args
@@ -158,11 +158,12 @@ class CoreManager(QObject):
                 self.api_port = api_port
                 request_manager.port = api_port
                 self.events_manager.set_api_port(api_port)
-            # Previously it was necessary to reschedule on error because `events_manager.connect()` was executed
+
+            # Previously it was necessary to reschedule on error because `events_manager.connect_to_core()` was executed
             # before the REST API was available, so it retried until the REST API was ready. Now the API is ready
-            # to use when we can read the api_port value from the database, so now we can call
-            # events_manager.connect(reschedule_on_err=False). I kept reschedule_on_err=True just for reinsurance.
-            self.events_manager.connect(reschedule_on_err=True)
+            # to use when we can read the api_port value from the database, so now we can call connect_to_core
+            # with reschedule_on_err=False. I kept reschedule_on_err=True just for reinsurance.
+            self.events_manager.connect_to_core(reschedule_on_err=True)
 
         elif time.time() - self.core_started_at > API_PORT_CHECK_TIMEOUT:
             raise CoreConnectTimeoutError(f"Can't get Core API port value within {API_PORT_CHECK_TIMEOUT} seconds")
