@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from tribler.core.utilities.network_utils import default_network_utils
 from tribler.gui.network.request_manager import RequestManager
 
 
@@ -9,12 +10,19 @@ from tribler.gui.network.request_manager import RequestManager
 
 
 @pytest.fixture
-def request_manager():
-    return RequestManager()
+def free_port():
+    return default_network_utils.get_random_free_port()
 
 
-def test_get_base_string(request_manager: RequestManager):
-    assert request_manager.get_base_url() == 'http://localhost:20100/'
+@pytest.fixture
+def request_manager(free_port: int):
+    request_manager = RequestManager()
+    request_manager.set_api_port(free_port)
+    return request_manager
+
+
+def test_get_base_string(free_port: int, request_manager: RequestManager):
+    assert request_manager.get_base_url() == f'http://localhost:{free_port}/'
 
 
 def test_get_message_from_error_string(request_manager: RequestManager):

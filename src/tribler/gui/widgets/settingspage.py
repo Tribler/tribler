@@ -9,7 +9,6 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler.gui.defs import (
     DARWIN,
-    DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
     PAGE_SETTINGS_CONNECTION,
@@ -208,7 +207,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             max_conn_download = 0
         self.window().max_connections_download_input.setText(str(max_conn_download))
 
-        self.window().api_port_input.setText(f"{get_gui_setting(gui_settings, 'api_port', DEFAULT_API_PORT)}")
+        self.window().api_port_input.setText(f"{get_gui_setting(gui_settings, 'api_port', 0)}")
 
         # Bandwidth settings
         self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] // 1024))
