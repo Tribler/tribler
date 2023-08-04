@@ -18,12 +18,12 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
 )
 from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler.core.components.restapi.rest.settings import APISettings
+from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
 
 
 SITE_START_TIMEOUT = 5.0  # seconds
-BIND_ATTEMPTS = 10
 
 
 logger = logging.getLogger(__name__)
@@ -100,8 +100,11 @@ class RESTManager:
         return self.root_endpoint.endpoints.get('/' + name)
 
     def set_api_port(self, api_port: int):
+        default_network_utils.remember(api_port)
+
         if self.config.http_port != api_port:
             self.config.http_port = api_port
+
         process_manager = get_global_process_manager()
         if process_manager:
             process_manager.current_process.set_api_port(api_port)
@@ -110,7 +113,7 @@ class RESTManager:
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
-        self._logger.info(f'An attempt to start REST API on {self.http_host}:{self.config.http_port}')
+        self._logger.info('Starting RESTManager...')
 
         # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
         aiohttp_apispec = AiohttpApiSpec(
@@ -124,12 +127,8 @@ class RESTManager:
             self._logger.info('Set security scheme and apply to all endpoints')
 
             aiohttp_apispec.spec.options['security'] = [{'apiKey': []}]
-            aiohttp_apispec.spec.components.security_scheme('apiKey', {'type': 'apiKey',
-                                                                       'in': 'header',
-                                                                       'name': 'X-Api-Key'})
-
-        self._logger.info(f'Swagger docs: http://{self.http_host}:{self.config.http_port}/docs')
-        self._logger.info(f'Swagger JSON: http://{self.http_host}:{self.config.http_port}/docs/swagger.json')
+            api_key_scheme = {'type': 'apiKey', 'in': 'header', 'name': 'X-Api-Key'}
+            aiohttp_apispec.spec.components.security_scheme('apiKey', api_key_scheme)
 
         if 'head' in VALID_METHODS_OPENAPI_V2:
             self._logger.info('Remove head')
@@ -140,60 +139,47 @@ class RESTManager:
 
         if self.config.http_enabled:
             self._logger.info('Http enabled')
-
-            api_port = self.config.http_port
-            if not self.config.retry_port:
-                self.site = web.TCPSite(self.runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
-                self.set_api_port(api_port)
-                await self.site.start()
-            else:
-                self._logger.info(f"Searching for a free port starting from {api_port}")
-                for port in range(api_port, api_port + BIND_ATTEMPTS):
-                    try:
-                        await self.start_http_site(port)
-                        break
-
-                    except asyncio.TimeoutError:
-                        self._logger.warning(f"Timeout when starting HTTP REST API server on port {port}")
-
-                    except OSError as e:
-                        self._logger.warning(f"{e.__class__.__name__}: {e}")
-
-                    except BaseException as e:
-                        self._logger.error(f"{e.__class__.__name__}: {e}")
-                        raise  # an unexpected exception; propagate it
-
-                else:
-                    raise RuntimeError("Can't start HTTP REST API on any port in range "
-                                       f"{api_port}..{api_port + BIND_ATTEMPTS}")
-
-            self._logger.info("Started HTTP REST API: %s", self.site.name)
+            await self.start_http_site()
 
         if self.config.https_enabled:
             self._logger.info('Https enabled')
+            await self.start_https_site()
 
-            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self._logger.info(f'Swagger docs: http://{self.http_host}:{self.config.http_port}/docs')
+        self._logger.info(f'Swagger JSON: http://{self.http_host}:{self.config.http_port}/docs/swagger.json')
 
-            cert = self.config.get_path_as_absolute('https_certfile', self.state_dir)
-            ssl_context.load_cert_chain(cert)
+    async def start_http_site(self):
+        api_port = max(self.config.http_port, 0)  # if the value in config is -1 we convert it to 0
 
-            port = self.config.https_port
-            self.site_https = web.TCPSite(self.runner, self.https_host, port, ssl_context=ssl_context)
+        self.site = web.TCPSite(self.runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
+        self._logger.info(f"Starting HTTP REST API server on port {api_port}...")
 
-            await self.site_https.start()
-            self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
+        try:
+            # The self.site.start() is expected to start immediately. It looks like on some machines, it hangs.
+            # The timeout is added to prevent the hypothetical hanging.
+            await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
 
-    async def start_http_site(self, port):
-        self.site = web.TCPSite(self.runner, self.http_host, port, shutdown_timeout=self.shutdown_timeout)
-        self._logger.info(f"Starting HTTP REST API server on port {port}...")
+        except BaseException as e:
+            self._logger.exception(f"Can't start HTTP REST API on port {api_port}: {e.__class__.__name__}: {e}")
+            raise
 
-        # The self.site.start() is expected to start immediately. It looks like on some machines,
-        # it hangs. The timeout is added to prevent the hypothetical hanging.
-        await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
+        if not api_port:
+            api_port = self.site._server.sockets[0].getsockname()[1]  # pylint: disable=protected-access
 
-        self._logger.info(f"HTTP REST API server started on port {port}")
-        self.set_api_port(port)
+        self.set_api_port(api_port)
+        self._logger.info(f"HTTP REST API server started on port {api_port}")
 
+    async def start_https_site(self):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+
+        cert = self.config.get_path_as_absolute('https_certfile', self.state_dir)
+        ssl_context.load_cert_chain(cert)
+
+        port = self.config.https_port
+        self.site_https = web.TCPSite(self.runner, self.https_host, port, ssl_context=ssl_context)
+
+        await self.site_https.start()
+        self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
     async def stop(self):
         self._logger.info('Stopping...')
