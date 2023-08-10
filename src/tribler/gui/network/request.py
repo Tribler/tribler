@@ -100,14 +100,6 @@ class Request(QObject):
                           for key, value in self.url_params.items()}
             self.url += '?' + urlencode(url_params, doseq=True)
 
-    def update_status(self, status_code: int):
-        self.logger.debug(f'Update {self}: {status_code}')
-        self.status_code = status_code
-        if status_code > 0:  # positive codes are HTTP response codes
-            self.status_text = str(status_code)
-        else:  # negative codes represent QNetworkReply error codes
-            self.status_text = f'{status_code}: {reply_errors.get(-status_code, "<unknown error code>")}'
-
     def on_finished(self):
         if not self.reply or not self.manager:
             return
@@ -134,11 +126,10 @@ class Request(QObject):
             self._delete()
 
     def _handle_network_reply_errors(self, error_code):
-        self.logger.debug(f'Update {self}: {error_code}')
-        self.status_code = error_code
-        error_name = reply_errors.get(error_code, '<unknown error>')
-        self.status_text = f'{error_name}: {error_code}'
-        self.logger.warning(f'Request {self} finished with error: {error_code} ({error_name})')
+        error_name = reply_errors.get(abs(error_code), '<unknown error>')
+        self.status_code = -error_code  # QNetworkReply errors are set negative to distinguish from HTTP response codes.
+        self.status_text = f'{error_name}: {self.status_code}'
+        self.logger.warning(f'Request {self} finished with error: {self.status_code} ({error_name})')
 
     def _handle_http_response(self, status_code):
         self.logger.debug(f'Update {self}: {status_code}')
