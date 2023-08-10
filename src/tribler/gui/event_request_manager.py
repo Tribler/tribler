@@ -35,11 +35,11 @@ class EventRequestManager(QNetworkAccessManager):
     change_loading_text = pyqtSignal(str)
     config_error_signal = pyqtSignal(str)
 
-    def __init__(self, api_port, api_key, error_handler):
+    def __init__(self, api_port: Optional[int], api_key, error_handler):
         QNetworkAccessManager.__init__(self)
         self.api_port = api_port
         self.api_key = api_key
-        self.request = self.create_request()
+        self.request: Optional[QNetworkRequest] = None
         self.start_time = time.time()
         self.connect_timer = QTimer()
         self.current_event_string = ""
@@ -66,6 +66,9 @@ class EventRequestManager(QNetworkAccessManager):
         notifier.add_observer(notifications.report_config_error, self.on_report_config_error)
 
     def create_request(self) -> QNetworkRequest:
+        if not self.api_port:
+            raise RuntimeError("Can't create a request: api_port is not set")
+
         url = QUrl(f"http://localhost:{self.api_port}/events")
         request = QNetworkRequest(url)
         request.setRawHeader(b'X-Api-Key', self.api_key.encode('ascii'))
@@ -185,22 +188,28 @@ class EventRequestManager(QNetworkAccessManager):
         self.start_time = time.time()
         self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
-    def connect(self, reschedule_on_err=True):
+    def connect_to_core(self, reschedule_on_err=True):
+        if not self.api_port:
+            raise RuntimeError("Can't connect to core: api_port is not set")
+
         if reschedule_on_err:
             self._logger.info(f"Set event request manager timeout to {CORE_CONNECTION_TIMEOUT} seconds")
             self.start_time = time.time()
-        self._connect(reschedule_on_err)
+        self._connect_to_core(reschedule_on_err)
 
     def reconnect(self, reschedule_on_err=True):
-        self._connect(reschedule_on_err)
+        self._connect_to_core(reschedule_on_err)
 
-    def _connect(self, reschedule_on_err):
+    def _connect_to_core(self, reschedule_on_err):
         self._logger.info(f"Connecting to events endpoint ({'with' if reschedule_on_err else 'without'} retrying)")
         if self.reply is not None:
             self.reply.deleteLater()
 
         # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
         self.setNetworkAccessible(QNetworkAccessManager.Accessible)
+
+        if not self.request:
+            self.request = self.create_request()
 
         self.reply = self.get(self.request)
 

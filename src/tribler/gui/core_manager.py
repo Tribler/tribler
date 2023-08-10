@@ -30,7 +30,7 @@ class CoreManager(QObject):
     a fake API will be started.
     """
 
-    def __init__(self, root_state_dir: Path, api_port: int, api_key: str,
+    def __init__(self, root_state_dir: Path, api_port: Optional[int], api_key: str,
                  app_manager: AppManager, process_manager: ProcessManager, events_manager: EventRequestManager):
         QObject.__init__(self, None)
 
@@ -83,16 +83,21 @@ class CoreManager(QObject):
         First test whether we already have a Tribler process listening on port <CORE_API_PORT>.
         If so, use that one and don't start a new, fresh Core.
         """
-        # Connect to the events manager
-        self.events_manager.connect(reschedule_on_err=False)  # do not retry if tribler Core is not running yet
-
         if run_core:
             self.core_args = core_args
             self.core_env = core_env
             self.upgrade_manager = upgrade_manager
-            connect(self.events_manager.reply.error, self.on_event_manager_initial_error)
 
-    def on_event_manager_initial_error(self, _):
+        # Connect to the events manager
+        if self.events_manager.api_port:
+            self.events_manager.connect_to_core(
+                reschedule_on_err=False  # do not retry if tribler Core is not running yet
+            )
+            connect(self.events_manager.reply.error, self.do_upgrade_and_start_core)
+        else:
+            self.do_upgrade_and_start_core()
+
+    def do_upgrade_and_start_core(self, _=None):
         if self.upgrade_manager:
             # Start Tribler Upgrader. When it finishes, start Tribler Core
             connect(self.upgrade_manager.upgrader_finished, self.start_tribler_core)
@@ -106,7 +111,6 @@ class CoreManager(QObject):
         core_env = self.core_env
         if not core_env:
             core_env = QProcessEnvironment.systemEnvironment()
-            core_env.insert("CORE_API_PORT", f"{self.api_port}")
             core_env.insert("CORE_API_KEY", self.api_key)
             core_env.insert("TSTATEDIR", str(self.root_state_dir))
             core_env.insert("TRIBLER_GUI_PID", str(os.getpid()))
@@ -156,13 +160,14 @@ class CoreManager(QObject):
             self._logger.info(f"Got REST API port value from the Core process: {api_port}")
             if api_port != self.api_port:
                 self.api_port = api_port
-                request_manager.port = api_port
+                request_manager.set_api_port(api_port)
                 self.events_manager.set_api_port(api_port)
-            # Previously it was necessary to reschedule on error because `events_manager.connect()` was executed
+
+            # Previously it was necessary to reschedule on error because `events_manager.connect_to_core()` was executed
             # before the REST API was available, so it retried until the REST API was ready. Now the API is ready
-            # to use when we can read the api_port value from the database, so now we can call
-            # events_manager.connect(reschedule_on_err=False). I kept reschedule_on_err=True just for reinsurance.
-            self.events_manager.connect(reschedule_on_err=True)
+            # to use when we can read the api_port value from the database, so now we can call connect_to_core
+            # with reschedule_on_err=False. I kept reschedule_on_err=True just for reinsurance.
+            self.events_manager.connect_to_core(reschedule_on_err=True)
 
         elif time.time() - self.core_started_at > API_PORT_CHECK_TIMEOUT:
             raise CoreConnectTimeoutError(f"Can't get Core API port value within {API_PORT_CHECK_TIMEOUT} seconds")

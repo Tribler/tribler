@@ -9,7 +9,6 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 from tribler.gui.defs import (
     DARWIN,
-    DEFAULT_API_PORT,
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
     PAGE_SETTINGS_CONNECTION,
@@ -207,8 +206,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         if max_conn_download == -1:
             max_conn_download = 0
         self.window().max_connections_download_input.setText(str(max_conn_download))
-
-        self.window().api_port_input.setText(f"{get_gui_setting(gui_settings, 'api_port', DEFAULT_API_PORT)}")
 
         # Bandwidth settings
         self.window().upload_rate_limit_input.setText(str(settings['libtorrent']['max_upload_rate'] // 1024))
@@ -465,20 +462,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
                     "Note that the decimal values are truncated."
                 )
                 % (MAX_LIBTORRENT_RATE_LIMIT / 1024),
-            )
-            return
-
-        try:
-            if self.window().api_port_input.text():
-                api_port = int(self.window().api_port_input.text())
-                if api_port <= 0 or api_port >= 65536:
-                    raise ValueError()
-                self.window().gui_settings.setValue("api_port", api_port)
-        except ValueError:
-            ConfirmationDialog.show_error(
-                self.window(),
-                tr("Invalid value for api port"),
-                tr("Please enter a valid port for the api (between 0 and 65536)"),
             )
             return
 

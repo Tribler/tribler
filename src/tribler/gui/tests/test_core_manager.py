@@ -67,7 +67,7 @@ def test_check_core_api_port_not_set(core_manager):
 
 
 @patch('tribler.gui.core_manager.request_manager')
-def test_check_core_api_port(request_manager: MagicMock, core_manager):
+def test_check_core_api_port(request_manager: MagicMock, core_manager: CoreManager):
     core_manager.core_running = True
     core_manager.core_started_at = time.time()
     api_port = core_manager.process_manager.current_process.get_core_process().api_port
@@ -75,7 +75,7 @@ def test_check_core_api_port(request_manager: MagicMock, core_manager):
     assert core_manager.process_manager.current_process.get_core_process.called
     assert not core_manager.check_core_api_port_timer.start.called
     assert core_manager.api_port == api_port
-    assert request_manager.port == api_port
+    assert request_manager.set_api_port.called_once_with(api_port)
 
 
 def test_check_core_api_port_timeout(core_manager):
