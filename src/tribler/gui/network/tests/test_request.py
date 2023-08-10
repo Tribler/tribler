@@ -60,6 +60,7 @@ def test_on_finished_on_success_http_response():
     Test that if HTTP response is available, it is prioritised for processing
     and any QT NetworkReply errors are ignored.
     """
+    # pylint: disable=protected-access
     request = Request(endpoint='endpoint')
 
     request.manager = MagicMock()
@@ -78,6 +79,7 @@ def test_on_finished_on_network_error():
     Test that if there is no proper HTTP response,
     then QT NetworkReply errors are only handled.
     """
+    # pylint: disable=protected-access
     request = Request(endpoint='endpoint')
 
     request.manager = MagicMock()
