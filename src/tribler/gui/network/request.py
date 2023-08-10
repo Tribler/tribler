@@ -114,42 +114,58 @@ class Request(QObject):
 
         self.logger.info(f'Finished: {self}')
         try:
+            # If HTTP status code is available on the reply, we process that first.
+            # This is because self.reply.error() is not always QNetworkReply.NoError even if there is HTTP response.
+            # One example case is for HTTP Status Code 413 (HTTPRequestEntityTooLarge) for which QNetworkReply
+            # error code is QNetworkReply.UnknownContentError
+            if status_code := self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute):
+                self._handle_http_response(status_code)
+                return
+
+            # Process any other NetworkReply Error response.
             error_code = self.reply.error()
             if error_code != QNetworkReply.NoError:
-                error_name = reply_errors.get(error_code, '<unknown error>')
-                self.logger.warning(f'Request {self} finished with error: {error_code} ({error_name})')
-                self.update_status(-error_code)
-                return
+                self._handle_network_reply_errors(error_code)
 
-            if status_code := self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute):
-                self.update_status(status_code)
-
-            data = bytes(self.reply.readAll())
-            if self.raw_response:
-                self.logger.debug('Create a raw response')
-                header = self.reply.header(QNetworkRequest.ContentTypeHeader)
-                self.on_finished_signal.emit((data, header))
-                return
-
-            if not data:
-                self.logger.error(f'No data received in the reply for {self}')
-                return
-
-            self.logger.debug('Create a json response')
-            result = json.loads(data)
-            if isinstance(result, dict):
-                result[REQUEST_ID] = self.id
-            is_error = 'error' in result
-            if is_error and self.capture_errors:
-                text = self.manager.show_error(self, result)
-                raise Warning(text)
-
-            self.on_finished_signal.emit(result)
         except Exception as e:  # pylint: disable=broad-except
             self.logger.exception(e)
             self.cancel()
         finally:
             self._delete()
+
+    def _handle_network_reply_errors(self, error_code):
+        self.logger.debug(f'Update {self}: {error_code}')
+        self.status_code = error_code
+        error_name = reply_errors.get(error_code, '<unknown error>')
+        self.status_text = f'{error_name}: {error_code}'
+        self.logger.warning(f'Request {self} finished with error: {error_code} ({error_name})')
+
+    def _handle_http_response(self, status_code):
+        self.logger.debug(f'Update {self}: {status_code}')
+        self.status_code = status_code
+        self.status_text = str(status_code)
+
+        data = bytes(self.reply.readAll())
+        if self.raw_response:
+            self.logger.debug('Create a raw response')
+            header = self.reply.header(QNetworkRequest.ContentTypeHeader)
+            self.on_finished_signal.emit((data, header))
+            return
+
+        if not data:
+            self.logger.error(f'No data received in the reply for {self}')
+            return
+
+        self.logger.debug('Create a json response')
+        result = json.loads(data)
+        if isinstance(result, dict):
+            result[REQUEST_ID] = self.id
+        is_error = 'error' in result
+        if is_error and self.capture_errors:
+            text = self.manager.show_error(self, result)
+            raise Warning(text)
+
+        self.on_finished_signal.emit(result)
 
     def cancel(self):
         """
