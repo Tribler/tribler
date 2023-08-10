@@ -1,3 +1,4 @@
+import random
 from typing import Dict
 from unittest.mock import MagicMock, Mock, patch
 
@@ -52,6 +53,46 @@ def test_on_finished():
     request.on_finished()
 
     on_success.assert_not_called()
+
+
+def test_on_finished_on_success_http_response():
+    """
+    Test that if HTTP response is available, it is prioritised for processing
+    and any QT NetworkReply errors are ignored.
+    """
+    request = Request(endpoint='endpoint')
+
+    request.manager = MagicMock()
+    request._handle_http_response = MagicMock()
+    request._handle_network_reply_errors = MagicMock()
+    request.reply = MagicMock(attribute=MagicMock(return_value=random.randint(100, 600)))  # any valid http status code
+
+    request.on_finished()
+
+    request._handle_http_response.assert_called()
+    request._handle_network_reply_errors.assert_not_called()
+
+
+def test_on_finished_on_network_error():
+    """
+    Test that if there is no proper HTTP response,
+    then QT NetworkReply errors are only handled.
+    """
+    request = Request(endpoint='endpoint')
+
+    request.manager = MagicMock()
+    request._handle_http_response = MagicMock()
+    request._handle_network_reply_errors = MagicMock()
+
+    qt_network_error_code = 1  # Any non-zero value
+    http_status_code = None
+    request.reply = MagicMock(error=MagicMock(return_value=qt_network_error_code),
+                              attribute=MagicMock(return_value=http_status_code))
+
+    request.on_finished()
+
+    request._handle_http_response.assert_not_called()
+    request._handle_network_reply_errors.assert_called()
 
 
 @patch.object(Request, 'update_status', Mock())
