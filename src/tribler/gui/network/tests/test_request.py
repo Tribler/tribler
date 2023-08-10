@@ -95,7 +95,6 @@ def test_on_finished_on_network_error():
     request._handle_network_reply_errors.assert_called()
 
 
-@patch.object(Request, 'update_status', Mock())
 def test_set_id():
     # Test that the id is set correctly during `on_finished` callback call
     actual_id = None
