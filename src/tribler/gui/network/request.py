@@ -116,8 +116,7 @@ class Request(QObject):
 
             # Process any other NetworkReply Error response.
             error_code = self.reply.error()
-            if error_code != QNetworkReply.NoError:
-                self._handle_network_reply_errors(error_code)
+            self._handle_network_reply_errors(error_code)
 
         except Exception as e:  # pylint: disable=broad-except
             self.logger.exception(e)
@@ -126,7 +125,7 @@ class Request(QObject):
             self._delete()
 
     def _handle_network_reply_errors(self, error_code):
-        error_name = reply_errors.get(abs(error_code), '<unknown error>')
+        error_name = reply_errors.get(error_code, '<unknown error>')
         self.status_code = -error_code  # QNetworkReply errors are set negative to distinguish from HTTP response codes.
         self.status_text = f'{error_name}: {self.status_code}'
         self.logger.warning(f'Request {self} finished with error: {self.status_code} ({error_name})')
