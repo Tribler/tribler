@@ -5,7 +5,7 @@ import os
 import signal
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from tribler.core import notifications
 from tribler.core.check_os import (
@@ -122,7 +122,8 @@ async def core_session(config: TriblerConfig, components: List[Component]) -> in
     return session.exit_code
 
 
-def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_test_mode: bool = False) -> int:
+def run_tribler_core_session(api_port: Optional[int], api_key: str,
+                             state_dir: Path, gui_test_mode: bool = False) -> int:
     """
     This method will start a new Tribler session.
     Note that there is no direct communication between the GUI process and the core: all communication is performed
@@ -130,7 +131,7 @@ def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_t
 
     Returns an exit code value, which is non-zero if the Tribler session finished with an error.
     """
-    logger.info(f'Start tribler core. API port: "{api_port}". '
+    logger.info(f'Start tribler core. API port: "{api_port or "<not specified>"}". '
                 f'API key: "{api_key}". State dir: "{state_dir}". '
                 f'Core test mode: "{gui_test_mode}"')
 
@@ -143,7 +144,10 @@ def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_t
     if SentryReporter.is_in_test_mode():
         default_core_exception_handler.sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
 
-    config.api.http_port = api_port
+    # The -1 value is assigned for backward compatibility reasons when the port is not specified.
+    # When RESTManager actually uses the value, it converts -1 to zero.
+    # It is possible that later we can directly store zero to config.api.http_port, but I prefer to be safe now.
+    config.api.http_port = api_port or -1
     # If the API key is set to an empty string, it will remain disabled
     if config.api.key not in ('', api_key):
         config.api.key = api_key
@@ -179,7 +183,7 @@ def run_tribler_core_session(api_port: int, api_key: str, state_dir: Path, gui_t
     return exit_code
 
 
-def run_core(api_port, api_key, root_state_dir, parsed_args):
+def run_core(api_port: Optional[int], api_key: Optional[str], root_state_dir, parsed_args):
     logger.info(f"Running Core in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
 
     gui_pid = GuiProcessWatcher.get_gui_pid()
@@ -193,11 +197,6 @@ def run_core(api_port, api_key, root_state_dir, parsed_args):
     if not current_process_is_primary:
         msg = 'Another Core process is already running'
         logger.warning(msg)
-        process_manager.sys_exit(1, msg)
-
-    if api_port is None:
-        msg = 'api_port is not specified for a core process'
-        logger.error(msg)
         process_manager.sys_exit(1, msg)
 
     version_history = VersionHistory(root_state_dir)

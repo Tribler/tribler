@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from typing import Optional
 
 from PyQt5.QtCore import QSettings
 
@@ -25,7 +26,7 @@ from tribler.gui.utilities import get_translator
 logger = logging.getLogger(__name__)
 
 
-def run_gui(api_port, api_key, root_state_dir, parsed_args):
+def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, parsed_args):
     logger.info(f"Running GUI in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
 
     # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728

@@ -5,6 +5,7 @@ import sys
 import time
 from base64 import b64encode
 from pathlib import Path
+from typing import Optional
 
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import (
@@ -63,7 +64,6 @@ from tribler.gui.defs import (
     BUTTON_TYPE_NORMAL,
     CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
     DARWIN,
-    DEFAULT_API_PORT,
     PAGE_CHANNEL_CONTENTS,
     PAGE_DISCOVERED,
     PAGE_DISCOVERING,
@@ -158,8 +158,8 @@ class TriblerWindow(QMainWindow):
             root_state_dir: Path,
             core_args=None,
             core_env=None,
-            api_port=None,
-            api_key=None,
+            api_port: Optional[int] = None,
+            api_key: Optional[str] = None,
             run_core=True,
     ):
         QMainWindow.__init__(self)
@@ -175,20 +175,20 @@ class TriblerWindow(QMainWindow):
 
         self.root_state_dir = root_state_dir
         self.gui_settings = settings
-        api_port = api_port or default_network_utils.get_first_free_port(
-            start=int(get_gui_setting(self.gui_settings, "api_port", DEFAULT_API_PORT))
-        )
-        if not default_network_utils.is_port_free(api_port):
-            raise RuntimeError(
-                "Tribler configuration conflicts with the current OS state: "
-                "REST API port %i already in use" % api_port
-            )
-        process_manager.current_process.set_api_port(api_port)
+
+        if api_port:
+            if not default_network_utils.is_port_free(api_port):
+                raise RuntimeError(
+                    "Tribler configuration conflicts with the current OS state: "
+                    "REST API port %i already in use" % api_port
+                )
+            process_manager.current_process.set_api_port(api_port)
 
         api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
         set_api_key(self.gui_settings, api_key)
 
-        request_manager.port, request_manager.key = api_port, api_key
+        request_manager.set_api_key(api_key)
+        request_manager.set_api_port(api_port)
 
         self.tribler_started = False
         self.tribler_settings = None

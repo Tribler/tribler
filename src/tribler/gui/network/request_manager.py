@@ -9,7 +9,7 @@ from typing import Callable, Dict, Optional, Set
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PORT, DEFAULT_API_PROTOCOL
+from tribler.gui.defs import BUTTON_TYPE_NORMAL, DEFAULT_API_HOST, DEFAULT_API_PROTOCOL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request import DATA_TYPE, Request
 from tribler.gui.utilities import connect
@@ -35,11 +35,17 @@ class RequestManager(QNetworkAccessManager):
 
         self.protocol = DEFAULT_API_PROTOCOL
         self.host = DEFAULT_API_HOST
-        self.port = DEFAULT_API_PORT
+        self.port: Optional[int] = None
         self.key = ''
         self.limit = limit
         self.timeout_interval = timeout_interval
         self.last_request_id = 0
+
+    def set_api_key(self, key: str):
+        self.key = key
+
+    def set_api_port(self, api_port: int):
+        self.port = api_port
 
     def get(self,
             endpoint: str,
@@ -167,6 +173,8 @@ class RequestManager(QNetworkAccessManager):
         return text
 
     def get_base_url(self) -> str:
+        if not self.port:
+            raise RuntimeError("API port is not set")
         return f'{self.protocol}://{self.host}:{self.port}/'
 
     @staticmethod
