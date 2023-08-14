@@ -20,14 +20,17 @@ patch_make_request(web.Application)
 HTTP_BAD_REQUEST = 400
 HTTP_UNAUTHORIZED = 401
 HTTP_NOT_FOUND = 404
+HTTP_REQUEST_ENTITY_TOO_LARGE = 413
 HTTP_INTERNAL_SERVER_ERROR = 500
+
+MAX_REQUEST_SIZE = 16 * 1024 ** 2  # 16 MB
 
 
 class RESTEndpoint:
 
     def __init__(self, middlewares=()):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.app = web.Application(middlewares=middlewares, client_max_size=2 * 1024 ** 2)
+        self.app = web.Application(middlewares=middlewares, client_max_size=MAX_REQUEST_SIZE)
         self.endpoints: Dict[str, RESTEndpoint] = {}
         self.async_group = AsyncGroup()
         self.setup_routes()
