@@ -244,4 +244,3 @@ def test_sanitize_filename():
     original_filename = "This \nIs \r\nA \tTorrent Name.torrent"
     expected_sanitized_filename = "This Is A Torrent Name.torrent"
     assert sanitize_filename(original_filename) == expected_sanitized_filename
-
