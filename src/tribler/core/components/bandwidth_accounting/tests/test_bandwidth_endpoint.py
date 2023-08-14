@@ -7,7 +7,7 @@ from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting
     BandwidthAccountingCommunity,
 )
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.db.transaction import EMPTY_SIGNATURE, BandwidthTransactionData
 from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -15,17 +15,17 @@ from tribler.core.utilities.unicode import hexlify
 
 
 # pylint: disable=redefined-outer-name
-@pytest.fixture
+@pytest.fixture()
 def peer():
     return Peer(default_eccrypto.generate_key("curve25519"), address=("1.2.3.4", 5))
 
 
-@pytest.fixture
+@pytest.fixture()
 def bandwidth_database(tmp_path, peer):
     return BandwidthDatabase(db_path=tmp_path / "bandwidth.db", my_pub_key=peer.public_key.key_to_bin())
 
 
-@pytest.fixture
+@pytest.fixture()
 async def bw_community(bandwidth_database, peer):
     ipv8 = MockIPv8(peer, BandwidthAccountingCommunity,
                     database=bandwidth_database,
@@ -35,7 +35,7 @@ async def bw_community(bandwidth_database, peer):
     await ipv8.stop()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def bw_endpoint(bw_community):
     endpoint = BandwidthEndpoint(bw_community)
     endpoint.setup_routes()
@@ -44,7 +44,7 @@ async def bw_endpoint(bw_community):
 
 async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
     """
-    Testing whether the API returns the correct statistics
+    Testing whether the API returns the correct statistics.
     """
     bw_endpoint.bandwidth_community = bw_community
     my_pk = bw_community.database.my_pub_key
@@ -65,7 +65,7 @@ async def test_get_statistics(bw_endpoint, bw_community, aiohttp_client):
 
 async def test_get_history(bw_endpoint, bw_community, aiohttp_client):
     """
-    Testing whether the API returns the correct bandwidth balance history
+    Testing whether the API returns the correct bandwidth balance history.
     """
     bw_endpoint.bandwidth_community = bw_community
     my_pk = bw_community.my_peer.public_key.key_to_bin()

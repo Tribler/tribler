@@ -2,7 +2,6 @@ from typing import Optional
 
 from ipv8.messaging.anonymization.tunnel import Circuit
 
-
 # pylint: disable=unused-argument
 
 

@@ -15,9 +15,10 @@ class SettingsEndpoint(RESTEndpoint):
     """
     This endpoint is reponsible for handing all requests regarding settings and configuration.
     """
+
     path = '/settings'
 
-    def __init__(self, tribler_config: TriblerConfig, download_manager: DownloadManager = None):
+    def __init__(self, tribler_config: TriblerConfig, download_manager: DownloadManager = None) -> None:
         super().__init__()
         self.tribler_config = tribler_config
         self.download_manager = download_manager

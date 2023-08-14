@@ -60,10 +60,10 @@ class NoAvailableStreamError(Exception):
 
 class Stream:  # pylint: disable=too-many-instance-attributes
     """
-    Holds the streaming status of a specific download
+    Holds the streaming status of a specific download.
     """
 
-    def __init__(self, download):
+    def __init__(self, download) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.infohash = None
         self.filename = None
@@ -132,7 +132,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
 
         # if fileindex not available for torrent raise exception
         if fileindex >= len(self.files):
-            raise NoAvailableStreamError()
+            raise NoAvailableStreamError
 
         # if downlaod is stopped for some reason, resume it.
         self.__resumedownload()
@@ -156,7 +156,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
                 # if the prebuffposiiton is updated, update the static prebuff pieces
                 currrent_prebuf = list(self.prebuffpieces)
                 currrent_prebuf.extend(self.bytestopieces(prebufpos, self.prebuffsize))
-                self.prebuffpieces = sorted(list(set(currrent_prebuf)))
+                self.prebuffpieces = sorted(set(currrent_prebuf))
             return
 
         # update the file name and size with the file index
@@ -182,7 +182,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @property
     def enabled(self):
         """
-        Check if stream is enabled
+        Check if stream is enabled.
         """
         return self.infohash is not None and self.fileindex is not None
 
@@ -190,7 +190,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod(0)
     def headerprogress(self):
         """
-        Get current progress of downloaded header pieces of the enabled stream, if not enabled returns 0
+        Get current progress of downloaded header pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.headerpieces, False)
 
@@ -198,7 +198,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod(0)
     def footerprogress(self):
         """
-        Get current progress of downloaded footer pieces of the enabled stream, if not enabled returns 0
+        Get current progress of downloaded footer pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.footerpieces, False)
 
@@ -206,7 +206,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod(0)
     def prebuffprogress(self):
         """
-        Get current progress of downloaded prebuff pieces of the enabled stream, if not enabled returns 0
+        Get current progress of downloaded prebuff pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.prebuffpieces, False)
 
@@ -214,7 +214,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod(0)
     def prebuffprogress_consec(self):
         """
-        Get current progress of cosequently downloaded prebuff pieces of the enabled stream, if not enabled returns 0
+        Get current progress of cosequently downloaded prebuff pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.prebuffpieces, True)
 
@@ -222,14 +222,14 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod([])
     def pieceshave(self):
         """
-        Get a list of Booleans indicating that individual pieces of the selected fileindex has been downloaded or not
+        Get a list of Booleans indicating that individual pieces of the selected fileindex has been downloaded or not.
         """
         return self.__lt_state().get_pieces_complete()
 
     @check_vod(True)
     def disable(self):
         """
-        Stop Streaming
+        Stop Streaming.
         """
         self.fileindex = None
         self.headerpieces = []
@@ -241,7 +241,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
 
     def close(self):
         """
-        Close this class gracefully
+        Close this class gracefully.
         """
         # Close the coroutine. Unnecessary calls should be harmless.
         self.__prepare_coro.close()
@@ -250,9 +250,8 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod([])
     def bytestopieces(self, bytes_begin, bytes_end):
         """
-        Returns the pieces that represents the given byte range
+        Returns the pieces that represents the given byte range.
         """
-
         bytes_begin = min(self.filesize, bytes_begin) if bytes_begin >= 0 else self.filesize + bytes_begin
         bytes_end = min(self.filesize, bytes_end) if bytes_end > 0 else self.filesize + bytes_end
 
@@ -265,16 +264,15 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     @check_vod(-1)
     def bytetopiece(self, byte_begin):
         """
-        Finds the piece position that begin_bytes is mapped to
+        Finds the piece position that begin_bytes is mapped to.
         """
-        piece = self.mapfile(self.fileindex, byte_begin, 0).piece
-        return piece
+        return self.mapfile(self.fileindex, byte_begin, 0).piece
 
     @check_vod(0)
     def calculateprogress(self, pieces, consec):
         """
         Claculates the download progress of a given piece list.
-        if consec is True, calcaulation is based only the pieces downloaded sequentially
+        if consec is True, calcaulation is based only the pieces downloaded sequentially.
         """
         if not pieces:
             return 1.0
@@ -292,7 +290,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
         Generator function that yield the pieces for the active fileindex
         @param have: None: nofilter, True: only pieces we have, False: only pieces we dont have
         @param consec: True: sequentially, False: all pieces
-        @param startfrom: int: start form index, None: start from first piece
+        @param startfrom: int: start form index, None: start from first piece.
         """
         if have is not None:
             pieces_have = self.pieceshave
@@ -312,16 +310,16 @@ class Stream:  # pylint: disable=too-many-instance-attributes
         """
         This async function controls how the individual piece priority and deadline is configured.
         This method is called when a stream in enabled, and when a chunk reads the stream each time.
-        The performance of this method is crucical since it gets called quite frequently
+        The performance of this method is crucical since it gets called quite frequently.
         """
         if not self.enabled:
             return
 
         def _updateprio(piece, prio, deadline=None):
             """
-            Utility function to update piece priorities
+            Utility function to update piece priorities.
             """
-            if not curr_prio == prio:
+            if curr_prio != prio:
                 piecepriorities[piece] = prio
                 if deadline is not None:
                     # it is cool to step deadlines with 10ms interval but in realty there is no need.
@@ -334,7 +332,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
         def _find_deadline(piece):
             """
             Find the cursor which has this piece closest to its start
-            Returns the deadline for the piece and the cursor startbyte
+            Returns the deadline for the piece and the cursor startbyte.
             """
             # if piece is not in piecemaps, then there is no deadline
             # if piece in piecemaps, then the deadline is the index of the related piecemap
@@ -401,7 +399,7 @@ class Stream:  # pylint: disable=too-many-instance-attributes
     def resetprios(self, pieces=None, prio=None):
         """
         Resets the prios and deadline of the pieces of the active fileindex,
-        If no pieces are provided, resets every piece for the fileindex
+        If no pieces are provided, resets every piece for the fileindex.
         """
         prio = prio if prio is not None else 4
         piecepriorities = self.__getpieceprios()
@@ -415,17 +413,17 @@ class Stream:  # pylint: disable=too-many-instance-attributes
 class StreamChunk:
     """
     This class reprsents the chunk to be read for the torrent file, and controls the dynamic buffer of the
-    stream instance accroding to read positon
+    stream instance accroding to read positon.
     """
 
-    def __init__(self, stream, startpos=0):
+    def __init__(self, stream, startpos=0) -> None:
         """
         Stream: the stream to be read
         startpos: the position offset the the chunk should read from.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         if not stream.enabled:
-            raise NotStreamingError()
+            raise NotStreamingError
         self.stream = stream
         self.file = None
         self.startpos = startpos
@@ -434,7 +432,7 @@ class StreamChunk:
     @property
     def seekpos(self):
         """
-        Current seek position of the actual file on the filesystem
+        Current seek position of the actual file on the filesystem.
         """
         return self.__seekpos
 
@@ -448,7 +446,7 @@ class StreamChunk:
 
     async def open(self):
         """
-        Opens the file in the filesystem until its ready and seeks to the seekpos position
+        Opens the file in the filesystem until its ready and seeks to the seekpos position.
         """
         while not self.stream.filename.exists():
             await sleep(1)
@@ -462,14 +460,14 @@ class StreamChunk:
     @property
     def isstarted(self):
         """
-        Checks if the this chunk has already registered itself to stream instance
+        Checks if the this chunk has already registered itself to stream instance.
         """
         return self.startpos in self.stream.cursorpiecemap
 
     @property
     def ispaused(self):
         """
-        Checks if the chunk is in paused state
+        Checks if the chunk is in paused state.
         """
         if self.isstarted and self.stream.cursorpiecemap[self.startpos][0]:
             return True
@@ -479,7 +477,7 @@ class StreamChunk:
     def shouldpause(self):
         """
         Checks if this chunk should pause, based on the desicion that
-        any other chunks also is streaming the same torrent or not
+        any other chunks also is streaming the same torrent or not.
         """
         for spos in self.stream.cursorpiecemap:
             if spos == self.startpos:
@@ -491,7 +489,7 @@ class StreamChunk:
 
     def pause(self, force=False):
         """
-        Sets the chunk pieces to pause, if not forced, chunk is only paused if other chunks are not paused
+        Sets the chunk pieces to pause, if not forced, chunk is only paused if other chunks are not paused.
         """
         if not self.ispaused and (self.shouldpause or force):
             self.stream.cursorpiecemap[self.startpos][0] = True
@@ -500,7 +498,7 @@ class StreamChunk:
 
     def resume(self, force=False):
         """
-        Sets the chunk pieces to resume, if not forced, chunk is only resume if other chunks are paused
+        Sets the chunk pieces to resume, if not forced, chunk is only resume if other chunks are paused.
         """
         if self.ispaused and (not self.shouldpause or force):
             self.stream.cursorpiecemap[self.startpos][0] = False
@@ -510,7 +508,7 @@ class StreamChunk:
     async def seek(self, positionbyte):
         """
         Seeks the stream to the related picece that represents the position byte
-        Also updates the dynamic buffer accordingly
+        Also updates the dynamic buffer accordingly.
         """
         buffersize = 0
         pospiece = self.stream.bytetopiece(positionbyte)

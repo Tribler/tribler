@@ -1,5 +1,5 @@
 """
-A wrapper around libtorrent
+A wrapper around libtorrent.
 
 Author(s): Egbert Bouman
 """
@@ -29,14 +29,14 @@ from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
-    HTTPS_SCHEME,
     HTTP_SCHEME,
+    HTTPS_SCHEME,
     MAGNET_SCHEME,
     path_to_url,
     scheme_from_url,
     url_to_path,
 )
-from tribler.core.utilities.simpledefs import DownloadStatus, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
+from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR, DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler.core.version import version_id
@@ -79,7 +79,7 @@ class DownloadManager(TaskManager):
                  download_defaults: DownloadDefaultsSettings = None,
                  bootstrap_infohash=None,
                  socks_listen_ports: Optional[List[int]] = None,
-                 dummy_mode: bool = False):
+                 dummy_mode: bool = False) -> None:
         super().__init__()
         self.dummy_mode = dummy_mode
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -471,7 +471,7 @@ class DownloadManager(TaskManager):
         :param timeout: A timeout in seconds.
         :param hops: the number of tunnel hops to use for this lookup. If None, use config default.
         :param url: Optional URL. Can contain trackers info, etc.
-        :return: The metainfo
+        :return: The metainfo.
         """
         infohash_hex = hexlify(infohash)
         if infohash in self.metainfo_cache:
@@ -645,7 +645,7 @@ class DownloadManager(TaskManager):
         if existing_handle:
             # Reuse existing handle
             self._logger.debug("Reusing handle %s", hexlify(infohash))
-            download.post_alert('add_torrent_alert', dict(handle=existing_handle))
+            download.post_alert('add_torrent_alert', {"handle": existing_handle})
         else:
             # Otherwise, add it anew
             self._logger.debug("Adding handle %s", hexlify(infohash))
@@ -676,7 +676,6 @@ class DownloadManager(TaskManager):
         :param lt_session: The libtorrent session to apply the settings to.
         :param new_settings: The new settings to apply.
         """
-
         # Keeping a copy of the settings because subsequent calls to get_settings are likely to fail
         # when libtorrent will try to decode peer_fingerprint to unicode.
         if lt_session not in self.ltsettings:
@@ -771,7 +770,8 @@ class DownloadManager(TaskManager):
         self.start_download(tdef=download.tdef, config=config)
 
     def update_trackers(self, infohash, trackers):
-        """ Update the trackers for a download.
+        """
+        Update the trackers for a download.
         :param infohash: infohash of the torrent that needs to be updated
         :param trackers: A list of tracker urls.
         """

@@ -36,7 +36,7 @@ class ChannelEntry:
 
 
 class ChannelsPeersMapping:
-    def __init__(self, max_peers_per_channel=10):
+    def __init__(self, max_peers_per_channel=10) -> None:
         self.max_peers_per_channel = max_peers_per_channel
         self._channels_dict = defaultdict(set)
         # Reverse mapping from peers to channels
@@ -96,7 +96,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
 
     def __init__(
             self, *args, notifier: Notifier = None, **kwargs
-    ):  # pylint: disable=unused-argument
+    ) -> None:  # pylint: disable=unused-argument
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
         super().__init__(*args, **kwargs)
@@ -187,7 +187,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
     async def remote_select_channel_contents(self, **kwargs):
         peers_to_query = self.get_known_subscribed_peers_for_node(kwargs["channel_pk"], kwargs["origin_id"])
         if not peers_to_query:
-            raise NoChannelSourcesException()
+            raise NoChannelSourcesException
 
         result = []
         async with create_task_group() as tg:
@@ -218,8 +218,7 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             # Cancel the remaining requests so we don't have to wait for them to finish
             tg.cancel_scope.cancel()
 
-        request_results = [r.md_obj.to_simple_dict() for r in result]
-        return request_results
+        return [r.md_obj.to_simple_dict() for r in result]
 
     def send_search_request(self, **kwargs):
         # Send a remote query request to multiple random peers to search for some terms

@@ -15,7 +15,6 @@ from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpo
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DIR
 
-
 # pylint: disable=unused-argument  # because the `rest_manager` argument is syntactically unused in tests
 # pylint: disable=protected-access
 
@@ -54,7 +53,7 @@ async def rest_manager_fixture(request, tribler_config, api_port, tmp_path):
     await rest_manager.stop()
 
 
-@pytest.mark.enable_https
+@pytest.mark.enable_https()
 async def test_https(tribler_config, rest_manager, api_port):
     await do_real_request(api_port, f'https://localhost:{api_port}/settings')
 
@@ -86,7 +85,7 @@ async def test_api_key_fail(rest_manager, api_port):
 async def test_unhandled_exception(rest_manager, api_port):
     """
     Testing whether the API returns a formatted 500 error and
-    calls exception handler if an unhandled Exception is raised
+    calls exception handler if an unhandled Exception is raised.
     """
     with patch('tribler.core.components.restapi.rest.rest_manager.default_core_exception_handler') as handler:
         response_dict = await do_real_request(api_port, 'settings', expected_code=500,

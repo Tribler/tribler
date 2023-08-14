@@ -17,8 +17,9 @@ from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
     delete_item,
     get_first_item,
-    get_last_item, get_value,
-    parse_last_core_output
+    get_last_item,
+    get_value,
+    parse_last_core_output,
 )
 
 VALUE = 'value'
@@ -53,7 +54,8 @@ ADDITIONAL_INFORMATION = 'additional_information'
 
 
 class SentryStrategy(Enum):
-    """Class describes all available Sentry Strategies
+    """
+    Class describes all available Sentry Strategies.
 
     SentryReporter can work with 3 strategies:
     1. Send reports are allowed
@@ -77,11 +79,12 @@ def this_sentry_strategy(reporter, strategy: SentryStrategy):
 
 
 class SentryReporter:
-    """SentryReporter designed for sending reports to the Sentry server from
+    """
+    SentryReporter designed for sending reports to the Sentry server from
     a Tribler Client.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.scrubber = None
         self.last_event = None
         self.ignored_exceptions = [KeyboardInterrupt, SystemExit]
@@ -97,11 +100,13 @@ class SentryReporter:
 
     def init(self, sentry_url='', release_version='', scrubber=None,
              strategy=SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION):
-        """Initialization.
+        """
+        Initialization.
 
         This method should be called in each process that uses SentryReporter.
 
         Args:
+        ----
             sentry_url: URL for Sentry server. If it is empty then Sentry's
                 sending mechanism will not be initialized.
 
@@ -115,7 +120,9 @@ class SentryReporter:
                 See Also: https://docs.sentry.io/platforms/python/configuration/releases/
             strategy: a Sentry strategy for sending events (see class Strategy
                 for more information)
+
         Returns:
+        -------
             Sentry Guard.
         """
         self._logger.debug(f"Init: {sentry_url}")
@@ -147,12 +154,14 @@ class SentryReporter:
         ignore_logger(logger_name)
 
     def add_breadcrumb(self, message='', category='', level='info', **kwargs):
-        """Adds a breadcrumb for current Sentry client.
+        """
+        Adds a breadcrumb for current Sentry client.
 
         It is necessary to specify a message, a category and a level to make this
         breadcrumb visible in Sentry server.
 
         Args:
+        ----
             **kwargs: named arguments that will be added to Sentry event as well
         """
         crumb = {'message': message, 'category': category, 'level': level}
@@ -163,7 +172,8 @@ class SentryReporter:
 
     def send_event(self, event: Dict, tags: Optional[Dict[str, Any]] = None, info: Optional[Dict[str, Any]] = None,
                    last_core_output: Optional[str] = None, tribler_version='<not set>'):
-        """Send the event to the Sentry server
+        """
+        Send the event to the Sentry server.
 
         This method
             1. Enable Sentry's sending mechanism.
@@ -177,6 +187,7 @@ class SentryReporter:
         will be raised, will be sent to Sentry automatically.
 
         Args:
+        ----
             event: event to send. It should be taken from SentryReporter
             tags: tags that will be added to the event
             info: additional information that will be added to the event
@@ -184,6 +195,7 @@ class SentryReporter:
             tribler_version: Tribler version
 
         Returns:
+        -------
             Event that was sent to Sentry server
         """
         self._logger.info(f"Send: {tags}, {info}, {event}")
@@ -224,7 +236,8 @@ class SentryReporter:
         return event
 
     def get_confirmation(self, exception):
-        """Get confirmation on sending exception to the Team.
+        """
+        Get confirmation on sending exception to the Team.
 
         There are two message boxes, that will be triggered:
         1. Message box with the error_text
@@ -232,6 +245,7 @@ class SentryReporter:
             team.
 
         Args:
+        ----
             exception: exception to be sent.
         """
         # pylint: disable=import-outside-toplevel
@@ -263,11 +277,13 @@ class SentryReporter:
         sentry_sdk.capture_exception(exception)
 
     def event_from_exception(self, exception) -> Dict:
-        """This function format the exception by passing it through sentry
+        """
+        This function format the exception by passing it through sentry
         Args:
-            exception: an exception that will be passed to `sentry_sdk.capture_exception(exception)`
+            exception: an exception that will be passed to `sentry_sdk.capture_exception(exception)`.
 
-        Returns:
+        Returns
+        -------
             the event that has been saved in `_before_send` method
         """
         self._logger.debug(f"Event from exception: {exception}")
@@ -280,7 +296,8 @@ class SentryReporter:
             return self.last_event
 
     def set_user(self, user_id):
-        """Set the user to identify the event on a Sentry server
+        """
+        Set the user to identify the event on a Sentry server.
 
         The algorithm is the following:
         1. Calculate hash from `user_id`.
@@ -289,9 +306,11 @@ class SentryReporter:
         No real `user_id` will be used in Sentry.
 
         Args:
+        ----
             user_id: Real user id.
 
         Returns:
+        -------
             Generated user (dictionary: {id, username}).
         """
         # calculate hash to keep real `user_id` in secret
@@ -307,7 +326,8 @@ class SentryReporter:
         return user
 
     def get_actual_strategy(self):
-        """This method is used to determine actual strategy.
+        """
+        This method is used to determine actual strategy.
 
         Strategy can be global: self.strategy
         and local: self._context_strategy.
@@ -330,7 +350,8 @@ class SentryReporter:
         return bool(SentryReporter.get_test_sentry_url())
 
     def _before_send(self, event: Optional[Dict], hint: Optional[Dict]) -> Optional[Dict]:
-        """The method that is called before each send. Both allowed and
+        """
+        The method that is called before each send. Both allowed and
         disallowed.
 
         The algorithm:
@@ -339,10 +360,12 @@ class SentryReporter:
             `self.last_event`
 
         Args:
+        ----
             event: event that generated by Sentry
             hint: root exception (can be used in some cases)
 
         Returns:
+        -------
             The event, prepared for sending, or `None`, if sending is suppressed.
         """
         if not event:
@@ -379,9 +402,11 @@ class SentryReporter:
 
     # pylint: disable=unused-argument
     def _before_breadcrumb(self, breadcrumb: Optional[Dict], hint: Optional[Dict]) -> Optional[Dict]:
-        """This function is called with an SDK-specific breadcrumb object before the breadcrumb is added to the scope.
-         When nothing is returned from the function, the breadcrumb is dropped. To pass the breadcrumb through, return
-         the first argument, which contains the breadcrumb object"""
+        """
+        This function is called with an SDK-specific breadcrumb object before the breadcrumb is added to the scope.
+        When nothing is returned from the function, the breadcrumb is dropped. To pass the breadcrumb through, return
+        the first argument, which contains the breadcrumb object.
+        """
         if not self.collecting_breadcrumbs_allowed:
             return None
         return breadcrumb

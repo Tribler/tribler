@@ -13,8 +13,8 @@ from tribler.core.components.reporter.exception_handler import default_core_exce
 from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_INTERNAL_SERVER_ERROR,
     HTTP_NOT_FOUND,
-    HTTP_UNAUTHORIZED,
     HTTP_REQUEST_ENTITY_TOO_LARGE,
+    HTTP_UNAUTHORIZED,
     MAX_REQUEST_SIZE,
     RESTResponse,
 )
@@ -24,7 +24,6 @@ from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
 
-
 SITE_START_TIMEOUT = 5.0  # seconds
 
 
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 @web.middleware
 class ApiKeyMiddleware:
-    def __init__(self, api_key):
+    def __init__(self, api_key) -> None:
         self.api_key = api_key
 
     async def __call__(self, request, handler):
@@ -43,7 +42,7 @@ class ApiKeyMiddleware:
             return RESTResponse({'error': 'Unauthorized access'}, status=HTTP_UNAUTHORIZED)
 
     def authenticate(self, request):
-        if any([request.path.startswith(path) for path in ['/docs', '/static', '/debug-ui']]):
+        if any(request.path.startswith(path) for path in ['/docs', '/static', '/debug-ui']):
             return True
         # The api key can either be in the headers or as part of the url query
         api_key = request.headers.get('X-Api-Key') or request.query.get('apikey') or request.cookies.get('api_key')
@@ -89,7 +88,7 @@ class RESTManager:
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """
 
-    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None, shutdown_timeout: int = 10):
+    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None, shutdown_timeout: int = 10) -> None:
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = root_endpoint

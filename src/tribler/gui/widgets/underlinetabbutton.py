@@ -9,7 +9,7 @@ class UnderlineTabButton(QToolButton):
 
     clicked_tab_button = pyqtSignal(object)
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QToolButton.__init__(self, parent)
 
     def mouseReleaseEvent(self, _):

@@ -2,7 +2,7 @@ from enum import IntEnum
 from pathlib import PurePosixPath
 from typing import Dict, Optional
 
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
 from tribler.core.utilities.simpledefs import DownloadStatus
@@ -52,7 +52,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
     includes the connected peers, tracker status and file information.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QTabWidget.__init__(self, parent)
         self.current_download: Optional[Dict] = None
         self.selected_files_info = []

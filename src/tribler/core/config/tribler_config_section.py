@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseSettings, Extra, root_validator
 
 
 class TriblerConfigSection(BaseSettings):
-    """Base Class that defines Tribler Config Section
+    """
+    Base Class that defines Tribler Config Section.
 
     We are waiting https://github.com/samuelcolvin/pydantic/pull/2625
     for proper and native manipulations with relative and absolute paths.
@@ -16,8 +16,9 @@ class TriblerConfigSection(BaseSettings):
     class Config:
         extra = Extra.ignore
 
-    def put_path_as_relative(self, property_name: str, value: Path = None, state_dir: str = None):
-        """Save a relative path if 'value' is relative to state_dir.
+    def put_path_as_relative(self, property_name: str, value: Path | None = None, state_dir: str | None = None):
+        """
+        Save a relative path if 'value' is relative to state_dir.
         Save an absolute path otherwise.
         """
         if value is not None:
@@ -31,9 +32,10 @@ class TriblerConfigSection(BaseSettings):
 
         self.__setattr__(property_name, value)
 
-    def get_path_as_absolute(self, property_name: str, state_dir: Path = None) -> Optional[Path]:
-        """ Get path as absolute. If stored value already in absolute form, then it will be returned in "as is".
-           `state_dir / path` will be returned otherwise.
+    def get_path_as_absolute(self, property_name: str, state_dir: Path | None = None) -> Path | None:
+        """
+        Get path as absolute. If stored value already in absolute form, then it will be returned in "as is".
+        `state_dir / path` will be returned otherwise.
         """
         value = self.__getattribute__(property_name)
         if value is None:
@@ -42,7 +44,8 @@ class TriblerConfigSection(BaseSettings):
 
     @root_validator(pre=True)
     def convert_from_none_string_to_none_type(cls, values):  # pylint: disable=no-self-argument
-        """After a convert operation from "ini" to "pydantic", None values
+        """
+        After a convert operation from "ini" to "pydantic", None values
         becomes 'None' string values.
 
         So, we have to convert them from `None` to None which is what happens

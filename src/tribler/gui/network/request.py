@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from time import time
-from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 from urllib.parse import urlencode
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -50,13 +50,13 @@ class Request(QObject):
             self,
             endpoint: str,
             on_success: Callable = lambda _: None,
-            url_params: Optional[Dict] = None,
+            url_params: Dict | None = None,
             data: DATA_TYPE = None,
             method: str = GET,
             capture_errors: bool = True,
             priority=QNetworkRequest.NormalPriority,
             raw_response: bool = False,
-    ):
+    ) -> None:
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -74,12 +74,12 @@ class Request(QObject):
             raw_data = data.encode('utf8')
         else:
             raw_data = data
-        self.raw_data: Optional[bytes] = raw_data
+        self.raw_data: bytes | None = raw_data
 
         connect(self.on_finished_signal, on_success)
 
-        self.reply: Optional[QNetworkReply] = None  # to hold the associated QNetworkReply object
-        self.manager: Optional[RequestManager] = None
+        self.reply: QNetworkReply | None = None  # to hold the associated QNetworkReply object
+        self.manager: RequestManager | None = None
         self.url: str = ''
 
         self.time = time()
@@ -153,7 +153,7 @@ class Request(QObject):
 
     def cancel(self):
         """
-        Cancel the request by aborting the reply handle
+        Cancel the request by aborting the reply handle.
         """
         try:
             self.logger.warning(f'Request was canceled: {self}')
@@ -165,7 +165,7 @@ class Request(QObject):
     def _delete(self):
         """
         Call Qt deletion procedure for the object and its member objects
-        and remove the object from the request_manager's list of requests in flight
+        and remove the object from the request_manager's list of requests in flight.
         """
         self.logger.debug(f'Delete for {self}')
 
@@ -177,5 +177,5 @@ class Request(QObject):
             self.reply.deleteLater()
             self.reply = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.method} {self.url}'

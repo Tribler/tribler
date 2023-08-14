@@ -1,5 +1,4 @@
 import pytest
-
 from tribler.core.components.component import Component
 from tribler.core.components.exceptions import MissedDependency, MultipleComponentsFound, NoneComponent
 from tribler.core.components.session import Session
@@ -12,7 +11,7 @@ class ComponentTestException(Exception):
 
 async def test_session_start_shutdown(tribler_config):
     class TestComponent(Component):
-        def __init__(self):
+        def __init__(self) -> None:
             self.run_was_executed = self.shutdown_was_executed = False
             super().__init__()
 
@@ -69,12 +68,16 @@ async def test_required_dependency(tribler_config):
         a = session.get_instance(ComponentA)
         b = session.get_instance(RequireA)
 
-        assert a in b.dependencies and not b.reverse_dependencies
-        assert not a.dependencies and b in a.reverse_dependencies
-        assert b.unused_event.is_set() and not a.unused_event.is_set()
+        assert a in b.dependencies
+        assert not b.reverse_dependencies
+        assert not a.dependencies
+        assert b in a.reverse_dependencies
+        assert b.unused_event.is_set()
+        assert not a.unused_event.is_set()
 
     for component in a, b:
-        assert not component.dependencies and not component.reverse_dependencies
+        assert not component.dependencies
+        assert not component.reverse_dependencies
         assert component.unused_event.is_set()
 
 

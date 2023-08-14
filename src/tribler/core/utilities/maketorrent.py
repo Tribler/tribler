@@ -8,7 +8,7 @@ from tribler.core.utilities.unicode import ensure_unicode_detect_encoding
 
 
 def pathlist2filename(pathlist):
-    """ Convert a multi-file torrent file 'path' entry to a filename. """
+    """Convert a multi-file torrent file 'path' entry to a filename."""
     return Path(*(ensure_unicode_detect_encoding(x) for x in pathlist))
 
 

@@ -19,7 +19,7 @@ async def fixture_socks5_server(free_port):
 
 async def test_start_server(socks5_server):
     """
-    Test writing an invalid version to the socks5 server
+    Test writing an invalid version to the socks5 server.
     """
     await socks5_server.start()
 

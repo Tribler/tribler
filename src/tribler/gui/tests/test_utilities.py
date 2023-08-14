@@ -5,16 +5,26 @@ from urllib.parse import unquote_plus
 
 import pytest
 
-from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
-    duration_to_string, \
-    format_api_key, \
-    quote_plus_unicode, set_api_key, unicode_quoter, get_i18n_file_path, I18N_DIR, LANGUAGES_FILE, \
-    get_languages_file_content
+from tribler.gui.utilities import (
+    I18N_DIR,
+    LANGUAGES_FILE,
+    TranslatedString,
+    compose_magnetlink,
+    create_api_key,
+    dict_item_is_any_of,
+    duration_to_string,
+    format_api_key,
+    get_i18n_file_path,
+    get_languages_file_content,
+    quote_plus_unicode,
+    set_api_key,
+    unicode_quoter,
+)
 
 
 def test_quoter_char():
     """
-    Test if an ASCII character is quoted correctly
+    Test if an ASCII character is quoted correctly.
     """
     char = 'A'
 
@@ -25,7 +35,7 @@ def test_quoter_char():
 
 def test_quoter_unichar():
     """
-    Test if a unicode character is quoted correctly
+    Test if a unicode character is quoted correctly.
     """
     char = '\u9b54'
 
@@ -36,7 +46,7 @@ def test_quoter_unichar():
 
 def test_quoter_reserved():
     """
-    Test if a URI reserved character is quoted correctly
+    Test if a URI reserved character is quoted correctly.
     """
     char = '+'
 
@@ -48,7 +58,7 @@ def test_quoter_reserved():
 
 def test_quote_plus_unicode_char():
     """
-    Test if a ASCII characters are quoted correctly
+    Test if a ASCII characters are quoted correctly.
     """
     s = 'Ab09'
 
@@ -59,7 +69,7 @@ def test_quote_plus_unicode_char():
 
 def test_quote_plus_unicode_unichar():
     """
-    Test if unicode characters are quoted correctly
+    Test if unicode characters are quoted correctly.
     """
     s = '\u9b54\u11b3\uaf92\u1111'
 
@@ -70,7 +80,7 @@ def test_quote_plus_unicode_unichar():
 
 def test_quote_plus_unicode_reserved():
     """
-    Test if a URI reserved characters are quoted correctly
+    Test if a URI reserved characters are quoted correctly.
     """
     s = '+ &'
 
@@ -82,7 +92,7 @@ def test_quote_plus_unicode_reserved():
 
 def test_quote_plus_unicode_compound():
     """
-    Test if a jumble of unicode, reserved and normal chars are quoted correctly
+    Test if a jumble of unicode, reserved and normal chars are quoted correctly.
     """
     s = '\u9b54\u11b3+ A5&\uaf92\u1111'
 
@@ -137,7 +147,8 @@ def test_is_dict_has():
 
 def test_create_api_key():
     x = create_api_key()
-    assert len(x) == 32 and bytes.fromhex(x).hex() == x
+    assert len(x) == 32
+    assert bytes.fromhex(x).hex() == x
 
 
 def test_format_api_key():
@@ -172,7 +183,7 @@ TRANSLATIONS = [
 ]
 
 
-@pytest.mark.parametrize('seconds, translation', TRANSLATIONS)
+@pytest.mark.parametrize(('seconds', 'translation'), TRANSLATIONS)
 @patch('tribler.gui.utilities.tr', new=Mock(side_effect=lambda x: x))
 def test_duration_to_string(seconds, translation):
     # test if the duration_to_string function returns the correct translation for all possible formats

@@ -13,7 +13,7 @@ REMOTE_DELAY = 0.25
 class SearchProgressBar(QProgressBar):
     ready_to_update_results = pyqtSignal()
 
-    def __init__(self, parent=None, timeout=20):
+    def __init__(self, parent=None, timeout=20) -> None:
         super().__init__(parent)
         self.timeout_interval = timeout
         self.timer = QTimer()

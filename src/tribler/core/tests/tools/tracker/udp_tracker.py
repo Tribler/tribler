@@ -16,7 +16,7 @@ TRACKER_ACTION_ERROR = 3
 
 class UDPTrackerProtocol(DatagramProtocol):
 
-    def __init__(self, tracker_session):
+    def __init__(self, tracker_session) -> None:
         self.transaction_id = -1
         self.connection_id = -1
         self.tracker_session = tracker_session
@@ -83,7 +83,7 @@ class UDPTrackerProtocol(DatagramProtocol):
 
 class UDPTracker:
 
-    def __init__(self, port):
+    def __init__(self, port) -> None:
         super().__init__()
         self.port = port
         self.transport = None
@@ -91,7 +91,7 @@ class UDPTracker:
 
     async def start(self):
         """
-        Start the UDP Tracker
+        Start the UDP Tracker.
         """
         self.transport, _ = await get_event_loop().create_datagram_endpoint(lambda: UDPTrackerProtocol(self),
                                                                             local_addr=('127.0.0.1', self.port))

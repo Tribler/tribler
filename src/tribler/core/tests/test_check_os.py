@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 from tribler.core.check_os import enable_fault_handler, error_and_exit
 from tribler.core.utilities.patch_import import patch_import
 
-
 # pylint: disable=import-outside-toplevel
 # fmt: off
 

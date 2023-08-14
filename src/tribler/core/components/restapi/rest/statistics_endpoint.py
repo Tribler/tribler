@@ -14,9 +14,10 @@ class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
+
     path = '/statistics'
 
-    def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None):
+    def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None) -> None:
         super().__init__()
         self.mds = metadata_store
         self.ipv8 = ipv8
@@ -75,14 +76,14 @@ class StatisticsEndpoint(RESTEndpoint):
     async def get_ipv8_stats(self, request):
         """
 
-            .. sourcecode:: javascript
+        .. sourcecode:: javascript.
 
-                {
-                    "ipv8_statistics": {
-                        "total_up": 3424324,
-                        "total_down": 859484
-                    }
-                }
+        {
+        "ipv8_statistics": {
+        "total_up": 3424324,
+        "total_down": 859484
+        }
+        }
         """
         stats_dict = {}
         if self.ipv8:

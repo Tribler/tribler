@@ -10,5 +10,6 @@ async def test_watch_folder_component(tribler_config):
     components = [KeyComponent(), SocksServersComponent(), LibtorrentComponent(), WatchFolderComponent()]
     async with Session(tribler_config, components) as session:
         comp = session.get_instance(WatchFolderComponent)
-        assert comp.started_event.is_set() and not comp.failed
+        assert comp.started_event.is_set()
+        assert not comp.failed
         assert comp.watch_folder

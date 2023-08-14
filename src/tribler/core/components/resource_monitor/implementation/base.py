@@ -20,7 +20,7 @@ class ResourceMonitor:
     the inheriting class.
     """
 
-    def __init__(self, history_size=1000):
+    def __init__(self, history_size=1000) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.history_size = history_size
 
@@ -51,7 +51,7 @@ class ResourceMonitor:
         # However, on psutil version < 4.0.0, we fallback to use rss (Resident Set Size) which is the non-swapped
         # physical memory a process has used
         success = False
-        if hasattr(self.process, "memory_full_info") and callable(getattr(self.process, "memory_full_info")):
+        if hasattr(self.process, "memory_full_info") and callable(self.process.memory_full_info):
             try:
                 self.memory_data.append((recorded_at, self.process.memory_full_info().uss))
                 success = True
@@ -69,7 +69,7 @@ class ResourceMonitor:
                     self.last_error = last_error_str
 
         # If getting uss failed, fallback to rss
-        if not success and hasattr(self.process, "memory_info") and callable(getattr(self.process, "memory_info")):
+        if not success and hasattr(self.process, "memory_info") and callable(self.process.memory_info):
             self.memory_data.append((recorded_at, self.process.memory_info().rss))
 
     def record_cpu_usage(self, recorded_at=None):

@@ -23,7 +23,7 @@ def infohash_to_id(infohash):
 
 def tdef_to_metadata_dict(tdef, category_filter: Category = None):
     """
-    Helper function to create a TorrentMetadata-compatible dict from TorrentDef
+    Helper function to create a TorrentMetadata-compatible dict from TorrentDef.
     """
     # We only want to determine the type of the data. XXX filtering is done by the receiving side
     category_filter = category_filter or default_category_filter
@@ -76,14 +76,9 @@ def define_binding(db, notifier: Notifier, tag_processor_version: int):
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
                             : _payload_class.__init__.__code__.co_argcount
                             ][1:]
-        nonpersonal_attributes = db.MetadataNode.nonpersonal_attributes + (
-            'infohash',
-            'size',
-            'torrent_date',
-            'tracker_info',
-        )
+        nonpersonal_attributes = (*db.MetadataNode.nonpersonal_attributes, "infohash", "size", "torrent_date", "tracker_info")
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             if "health" not in kwargs and "infohash" in kwargs:
                 infohash = kwargs["infohash"]
                 health = db.TorrentState.get_for_update(infohash=infohash) or db.TorrentState(infohash=infohash)

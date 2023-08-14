@@ -4,7 +4,7 @@ import time
 from asyncio import Future
 from binascii import unhexlify
 from itertools import count
-from typing import Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
@@ -19,12 +19,14 @@ from tribler.core.components.knowledge.community.knowledge_validator import is_v
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
+
+if TYPE_CHECKING:
+    from tribler.core.components.metadata_store.db.store import MetadataStore
 
 BINARY_FIELDS = ("infohash", "channel_pk")
 
@@ -85,7 +87,7 @@ class SelectResponsePayload(VariablePayload):
 
 
 class SelectRequest(RandomNumberCache):
-    def __init__(self, request_cache, prefix, request_kwargs, peer, processing_callback=None, timeout_callback=None):
+    def __init__(self, request_cache, prefix, request_kwargs, peer, processing_callback=None, timeout_callback=None) -> None:
         super().__init__(request_cache, prefix)
         self.request_kwargs = request_kwargs
         # The callback to call on results of processing of the response payload
@@ -106,7 +108,7 @@ class SelectRequest(RandomNumberCache):
 
 
 class EvaSelectRequest(SelectRequest):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # For EVA transfer it is meaningless to send more than one message
@@ -117,7 +119,7 @@ class EvaSelectRequest(SelectRequest):
 
 
 class PushbackWindow(NumberCache):
-    def __init__(self, request_cache, prefix, original_request_id):
+    def __init__(self, request_cache, prefix, original_request_id) -> None:
         super().__init__(request_cache, prefix, original_request_id)
 
         # The maximum number of packets to receive from any given peer from a single request.
@@ -130,14 +132,14 @@ class PushbackWindow(NumberCache):
 
 class RemoteQueryCommunity(TriblerCommunity):
     """
-    Community for general purpose SELECT-like queries into remote Channels database
+    Community for general purpose SELECT-like queries into remote Channels database.
     """
 
     def __init__(self, my_peer, endpoint, network,
                  rqc_settings: RemoteQueryCommunitySettings = None,
                  metadata_store=None,
                  knowledge_db=None,
-                 **kwargs):
+                 **kwargs) -> None:
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
         self.rqc_settings = rqc_settings
@@ -229,13 +231,12 @@ class RemoteQueryCommunity(TriblerCommunity):
         if not tags or not self.knowledge_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_resource(tag)}
-        result = self.knowledge_db.get_subjects_intersection(
+        return self.knowledge_db.get_subjects_intersection(
             subjects_type=ResourceType.TORRENT,
             objects=valid_tags,
             predicate=ResourceType.TAG,
             case_sensitive=False
         )
-        return result
 
     def send_db_results(self, peer, request_payload_id, db_results, force_eva_response=False):
 
@@ -288,7 +289,7 @@ class RemoteQueryCommunity(TriblerCommunity):
         """
         Match the the response that we received from the network to a query cache
         and process it by adding the corresponding entries to the MetadataStore database.
-        This processes both direct responses and pushback (updates) responses
+        This processes both direct responses and pushback (updates) responses.
         """
         self.logger.debug(f"Response from {hexlify(peer.mid)}")
 

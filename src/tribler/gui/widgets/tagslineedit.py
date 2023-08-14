@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
-from PyQt5.QtCore import QLineF, QPoint, QPointF, QRectF, QSizeF, QTimerEvent, Qt, pyqtSignal
+from PyQt5.QtCore import QLineF, QPoint, QPointF, QRectF, QSizeF, Qt, QTimerEvent, pyqtSignal
 from PyQt5.QtGui import (
     QColor,
     QGuiApplication,
@@ -46,7 +46,7 @@ class TagsLineEdit(QLineEdit):
     escape_pressed = pyqtSignal()
     enter_pressed = pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QLineEdit.__init__(self, parent)
         self.tags: List[Tag] = [Tag("", QRectF())]
         self.blink_timer: int = 0
@@ -217,8 +217,7 @@ class TagsLineEdit(QLineEdit):
     def input_field_rect(self) -> QRectF:
         panel = QStyleOptionFrame()
         self.initStyleOption(panel)
-        r = self.style().subElementRect(QStyle.SE_LineEditContents, panel, self)
-        return r
+        return self.style().subElementRect(QStyle.SE_LineEditContents, panel, self)
 
     def compute_tag_rects(self) -> None:
         """

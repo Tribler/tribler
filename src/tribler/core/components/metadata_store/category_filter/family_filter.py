@@ -35,17 +35,14 @@ def initTerms(filename):
 class XXXFilter:
     _logger = logging.getLogger("XXXFilter")
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.xxx_terms, self.xxx_searchterms = initTerms(termfilename)
 
     def _getWords(self, string):
         return [a.lower() for a in WORDS_REGEXP.findall(string)]
 
     def isXXXTorrent(self, files_list, torrent_name, tracker, comment=None):
-        if tracker:
-            tracker = tracker.lower().replace('http://', '').replace('announce', '')
-        else:
-            tracker = ''
+        tracker = tracker.lower().replace('http://', '').replace('announce', '') if tracker else ''
         terms = [a["path"][0] for a in files_list] if files_list else []
         is_xxx = (self.isXXX(torrent_name, False) or
                   self.isXXX(tracker, False) or
@@ -97,7 +94,7 @@ class XXXFilter:
             if s[:-2] in self.xxx_terms:
                 self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-2], title and f' in {title}' or '')
                 return True
-        elif s.endswith('s') or s.endswith('n'):
+        elif s.endswith(('s', 'n')):
             if s[:-1] in self.xxx_terms:
                 self._logger.debug('XXXFilter: "%s" is dirty%s', s[:-1], title and f' in {title}' or '')
                 return True

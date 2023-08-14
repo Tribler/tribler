@@ -10,7 +10,7 @@ class PayoutManager(TaskManager):
     This manager is responsible for keeping track of known Tribler peers and doing (zero-hop) payouts.
     """
 
-    def __init__(self, bandwidth_community, dht):
+    def __init__(self, bandwidth_community, dht) -> None:
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.bandwidth_community = bandwidth_community

@@ -16,9 +16,10 @@ class LibTorrentEndpoint(RESTEndpoint):
     """
     Endpoint for getting information about libtorrent sessions and settings.
     """
+
     path = '/libtorrent'
 
-    def __init__(self, download_manager: DownloadManager):
+    def __init__(self, download_manager: DownloadManager) -> None:
         super().__init__()
         self.download_manager = download_manager
 

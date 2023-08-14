@@ -25,7 +25,7 @@ class LoadingPage(AddBreadcrumbOnShowMixin, QWidget):
     This page is presented when Tribler is starting.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         self.loading_label = None
         self.upgrading = False

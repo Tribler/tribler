@@ -7,17 +7,16 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryS
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 
-
 # pylint: disable=redefined-outer-name, protected-access, function-redefined, unused-argument
 
-@pytest.fixture
+@pytest.fixture()
 def error_handler():
     handler = ErrorHandler(MagicMock())
     handler.app_manager.quitting_app = False
     return handler
 
 
-@pytest.fixture
+@pytest.fixture()
 def reported_error():
     return ReportedError(type='Exception', text='text', event={})
 

@@ -7,7 +7,7 @@ from tribler.core.components.gigachannel.community.sync_strategy import RemovePe
 
 
 class MockCommunity:
-    def __init__(self):
+    def __init__(self) -> None:
         self.fetch_next_called = False
         self.send_random_to_called = []
         self.get_peers_return = []
@@ -60,4 +60,4 @@ class TestRemovePeers(TestBase):
 
         self.strategy.take_step()
 
-        self.assertEqual(20, len(self.community.network.verified_peers))
+        assert len(self.community.network.verified_peers) == 20

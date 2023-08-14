@@ -2,9 +2,12 @@ import time
 
 import pytest
 
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
-    TOLERABLE_TIME_DRIFT, \
-    TORRENT_CHECK_WINDOW
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import (
+    HEALTH_FRESHNESS_SECONDS,
+    TOLERABLE_TIME_DRIFT,
+    TORRENT_CHECK_WINDOW,
+    HealthInfo,
+)
 
 INFOHASH = b'infohash_1'
 
@@ -28,7 +31,7 @@ def test_invalid_health():
 
 
 def test_health_negative_seeders_or_leechers():
-    """ Test that health with negative seeders or leechers is considered invalid"""
+    """Test that health with negative seeders or leechers is considered invalid."""
     assert not HealthInfo(INFOHASH, seeders=-1).is_valid()
     assert not HealthInfo(INFOHASH, leechers=-1).is_valid()
 

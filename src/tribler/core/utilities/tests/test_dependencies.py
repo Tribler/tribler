@@ -9,7 +9,6 @@ from tribler.core.utilities.dependencies import (
 )
 from tribler.core.utilities.path_util import Path
 
-
 # pylint: disable=protected-access
 
 def test_extract_libraries_from_requirements():

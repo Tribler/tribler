@@ -78,8 +78,9 @@ def fix_unicode_array(arr):
 
 
 def shorten(s: Optional[str], width: int = 50, placeholder='[...]', cut_at_the_end: bool = True):
-    """ Shorten a string to a given width.
-        Example: shorten('hello world', 5) -> 'hello[...]'
+    """
+    Shorten a string to a given width.
+    Example: shorten('hello world', 5) -> 'hello[...]'.
     """
     if s and len(s) > width:
         return f'{s[:width]}{placeholder}' if cut_at_the_end else f'{placeholder}{s[len(s) - width:]}'
@@ -87,7 +88,7 @@ def shorten(s: Optional[str], width: int = 50, placeholder='[...]', cut_at_the_e
 
 
 def _format_frames(frame: Optional[FrameType], file_width: int = 50, value_width: int = 100) -> Iterator[str]:
-    """ Format a stack trace."""
+    """Format a stack trace."""
     while frame:
         filename = shorten(frame.f_code.co_filename, width=file_width, cut_at_the_end=False)
         header = f"{filename}:, line {frame.f_lineno}, in {frame.f_code.co_name}"
@@ -110,7 +111,6 @@ def get_threads_info() -> List[Dict]:
     """
     Return information about available threads.
     """
-
     result = []
     with switch_interval(ONE_SECOND):
         for t in threading.enumerate():

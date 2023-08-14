@@ -25,7 +25,6 @@ from types import SimpleNamespace
 import libtorrent
 import sentry_sdk
 from pony.orm import db_session
-
 from tribler.core.components import libtorrent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
@@ -68,7 +67,7 @@ def setup_logger(verbosity):
 
 
 class ChannelHelper:
-    def __init__(self, community, manager):
+    def __init__(self, community, manager) -> None:
         self.community = community
         self.manager = manager
         self.directories = SimpleNamespace(tree={}, directory=None)
@@ -160,7 +159,7 @@ class ChannelHelper:
 
 
 class Service(TinyTriblerService):
-    def __init__(self, source_dir, testnet: bool, *args, **kwargs):
+    def __init__(self, source_dir, testnet: bool, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs,
                          components=[
                              KnowledgeComponent(), MetadataStoreComponent(), KeyComponent(), Ipv8Component(),

@@ -40,8 +40,12 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities import slow_coro_detection
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
+from tribler.core.utilities.process_manager import (
+    ProcessKind,
+    ProcessManager,
+    TriblerProcess,
+    set_global_process_manager,
+)
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -51,7 +55,8 @@ CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 def components_gen(config: TriblerConfig):
-    """This function defines components that will be used in Tibler
+    """
+    This function defines components that will be used in Tibler.
     """
     yield ReporterComponent()
     yield GuiProcessWatcherComponent()

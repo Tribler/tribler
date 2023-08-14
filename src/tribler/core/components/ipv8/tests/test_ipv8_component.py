@@ -7,7 +7,8 @@ from tribler.core.components.session import Session
 async def test_ipv8_component(tribler_config):
     async with Session(tribler_config, [KeyComponent(), Ipv8Component()]) as session:
         comp = session.get_instance(Ipv8Component)
-        assert comp.started_event.is_set() and not comp.failed
+        assert comp.started_event.is_set()
+        assert not comp.failed
         assert comp.ipv8
         assert comp.peer
         assert not comp.dht_discovery_community

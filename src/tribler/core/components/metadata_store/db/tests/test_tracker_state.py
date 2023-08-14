@@ -7,7 +7,7 @@ from tribler.core.utilities.tracker_utils import MalformedTrackerURLException
 @db_session
 def test_create_tracker_state(metadata_store):
     ts = metadata_store.TrackerState(url='http://tracker.tribler.org:80/announce')
-    assert list(metadata_store.TrackerState.select())[0] == ts
+    assert next(iter(metadata_store.TrackerState.select())) == ts
 
 
 @db_session

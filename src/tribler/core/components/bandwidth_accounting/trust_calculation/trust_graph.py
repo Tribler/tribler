@@ -15,7 +15,7 @@ ROOT_NODE_ID = 0
 
 class TrustGraph(nx.DiGraph):
 
-    def __init__(self, root_key, bandwidth_db, max_nodes=MAX_NODES, max_transactions=MAX_TRANSACTIONS):
+    def __init__(self, root_key, bandwidth_db, max_nodes=MAX_NODES, max_transactions=MAX_TRANSACTIONS) -> None:
         nx.DiGraph.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
 

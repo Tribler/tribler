@@ -40,7 +40,7 @@ metadata_type_to_search_scope = {
 
 class MetadataEndpointBase(RESTEndpoint):
     def __init__(self, metadata_store: MetadataStore, *args, knowledge_db: KnowledgeDatabase = None,
-                 tag_rules_processor: KnowledgeRulesProcessor = None, **kwargs):
+                 tag_rules_processor: KnowledgeRulesProcessor = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.mds = metadata_store
         self.knowledge_db: Optional[KnowledgeDatabase] = knowledge_db

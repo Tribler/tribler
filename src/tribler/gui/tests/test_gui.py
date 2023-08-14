@@ -1,10 +1,10 @@
 import os
 import sys
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import pytest
-from PyQt5.QtCore import QMetaObject, QPoint, QSettings, QTimer, Q_ARG, Qt, pyqtSignal
+from PyQt5.QtCore import Q_ARG, QMetaObject, QPoint, QSettings, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QKeySequence, QPixmap, QRegion
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
@@ -96,7 +96,7 @@ class TimeoutException(Exception):
     pass
 
 
-def wait_for_signal(signal: pyqtSignal, timeout: int = 10, condition: Callable = None):
+def wait_for_signal(signal: pyqtSignal, timeout: int = 10, condition: Optional[Callable] = None):
     signal_received = False
 
     def on_signal(*args, **kwargs):
@@ -267,13 +267,13 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
     screenshot(window, name=f"{widget_name}-torrent_details")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_discovered_page(window):
     QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
     tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_popular_page(window):
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
     widget = window.popular_page
@@ -291,7 +291,7 @@ def wait_for_thumbnail(chan_widget):
     raise TimeoutException("The thumbnail was not shown within 10 seconds")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_edit_channel_torrents(window):
     wait_for_list_populated(window.channels_menu_list)
 
@@ -309,7 +309,7 @@ def test_edit_channel_torrents(window):
     screenshot(window, name="edit_channel_thumbnail_description")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_settings(window):
     QTest.mouseClick(window.settings_button, Qt.LeftButton)
     QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
@@ -330,7 +330,7 @@ def test_settings(window):
     wait_for_signal(window.settings_page.settings_edited)
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_downloads(window):
     go_to_and_wait_for_downloads(window)
     screenshot(window, name="downloads_all")
@@ -346,7 +346,7 @@ def test_downloads(window):
     screenshot(window, name="downloads_channels")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_download_start_stop_remove_recheck(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
@@ -357,7 +357,7 @@ def test_download_start_stop_remove_recheck(window):
     QTest.mouseClick(window.downloads_page.dialog.buttons[2], Qt.LeftButton)
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_download_details(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
@@ -386,7 +386,7 @@ def test_download_details(window):
     screenshot(window, name="download_trackers")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_search_suggestions(window):
     QTest.keyClick(window.top_search_bar, 't')
     QTest.keyClick(window.top_search_bar, 'o')
@@ -394,7 +394,7 @@ def test_search_suggestions(window):
     screenshot(window, name="search_suggestions")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_search(window):
     window.top_search_bar.setText("torrent")  # This is likely to trigger some search results
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
@@ -410,7 +410,7 @@ def test_search(window):
     )
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
@@ -439,7 +439,7 @@ def test_add_download_url(window):
     wait_for_signal(window.downloads_page.received_downloads)
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_add_deeptorrent(window):
     # Test that the `deeptorrent.torrent` file doesn't cause the RecursionError
     #
@@ -463,7 +463,7 @@ def test_add_deeptorrent(window):
     assert not window.error_handler._handled_exceptions
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_feedback_dialog(window):
     def screenshot_dialog():
         screenshot(dialog, name="feedback_dialog")
@@ -477,7 +477,7 @@ def test_feedback_dialog(window):
     dialog.exec_()
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_feedback_dialog_report_sent(window):
     def screenshot_dialog():
         screenshot(dialog, name="feedback_dialog")
@@ -498,7 +498,7 @@ def test_feedback_dialog_report_sent(window):
     assert on_report_sent.did_send_report
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_debug_pane(window):
     wait_for_variable(window, "tribler_settings")
     QTest.mouseClick(window.settings_button, Qt.LeftButton)
@@ -607,14 +607,14 @@ def test_debug_pane(window):
     window.debug_window.close()
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_trust_page(window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
     screenshot(window, name="trust_page_values")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_big_negative_token_balance(window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
@@ -623,7 +623,7 @@ def test_big_negative_token_balance(window):
     screenshot(window, name="big_negative_token_balance")
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_close_dialog_with_esc_button(window):
     QTest.mouseClick(window.left_menu_button_new_channel, Qt.LeftButton)
     screenshot(window, name="create_new_channel_dialog")
@@ -632,7 +632,7 @@ def test_close_dialog_with_esc_button(window):
     assert not window.findChildren(NewChannelDialog)
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_tags_dialog(window):
     """
     Test the behaviour of the dialog where a user can edit tags.
@@ -751,7 +751,7 @@ def test_tags_dialog(window):
     QTest.qWait(200)  # It can take a bit of time to hide the dialog
 
 
-@pytest.mark.guitest
+@pytest.mark.guitest()
 def test_no_tags(window):
     """
     Test removing all tags from a content item.

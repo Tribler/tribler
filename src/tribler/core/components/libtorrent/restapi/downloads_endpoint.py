@@ -1,12 +1,13 @@
-from asyncio import CancelledError, TimeoutError as AsyncTimeoutError, wait_for
+from asyncio import CancelledError, wait_for
+from asyncio import TimeoutError as AsyncTimeoutError
 from binascii import unhexlify
 from contextlib import suppress
 from pathlib import PurePosixPath
 
 from aiohttp import web
 from aiohttp_apispec import docs, json_schema
-from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_BT
+from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
@@ -25,7 +26,8 @@ from tribler.core.components.restapi.rest.utils import return_handled_exception
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DOWNLOAD,
-    DownloadStatus, UPLOAD,
+    UPLOAD,
+    DownloadStatus,
 )
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import froze_it
@@ -80,9 +82,10 @@ class DownloadsEndpoint(RESTEndpoint):
     This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
     starting, pausing and stopping downloads.
     """
+
     path = '/downloads'
 
-    def __init__(self, download_manager: DownloadManager, metadata_store=None, tunnel_community=None):
+    def __init__(self, download_manager: DownloadManager, metadata_store=None, tunnel_community=None) -> None:
         super().__init__()
         self.download_manager = download_manager
         self.mds = metadata_store
@@ -110,7 +113,7 @@ class DownloadsEndpoint(RESTEndpoint):
         Create a download configuration based on some given parameters. Possible parameters are:
         - anon_hops: the number of hops for the anonymous download. 0 hops is equivalent to a plain download
         - safe_seeding: whether the seeding of the download should be anonymous or not (0 = off, 1 = on)
-        - destination: the destination path of the torrent (where it is saved on disk)
+        - destination: the destination path of the torrent (where it is saved on disk).
         """
         download_config = DownloadConfig()
 
@@ -140,7 +143,7 @@ class DownloadsEndpoint(RESTEndpoint):
         Return file information as JSON from a specified download.
         """
         files_json = []
-        files_completion = {name: progress for name, progress in download.get_state().get_files_completion()}
+        files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
@@ -514,7 +517,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if 'selected_files' in parameters:
             selected_files_list = parameters['selected_files']
             num_files = len(download.tdef.get_files())
-            if not all([0 <= index < num_files for index in selected_files_list]):
+            if not all(0 <= index < num_files for index in selected_files_list):
                 return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 

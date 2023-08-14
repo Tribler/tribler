@@ -13,7 +13,7 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint, ERROR_INVALID_MAGNET_LINK
+from tribler.core.components.metadata_store.restapi.channels_endpoint import ERROR_INVALID_MAGNET_LINK, ChannelsEndpoint
 from tribler.core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
@@ -31,7 +31,7 @@ PNG_DATA = unhexlify(
 
 # pylint: disable=unused-argument, redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(mock_dlmgr, metadata_store, knowledge_db):
     def return_exc(*args, **kwargs):
         raise RequestTimeoutException
@@ -50,7 +50,7 @@ def endpoint(mock_dlmgr, metadata_store, knowledge_db):
 async def test_get_channels(rest_api, add_fake_torrents_channels, add_subscribed_and_not_downloaded_channel, mock_dlmgr,
                             metadata_store):
     """
-    Test whether we can query some channels in the database with the REST API
+    Test whether we can query some channels in the database with the REST API.
     """
     mock_dlmgr.download_exists = lambda *args: None
     json_dict = await do_request(rest_api, 'channels')
@@ -86,7 +86,7 @@ async def test_get_channels_sort_by_health(rest_api, add_fake_torrents_channels,
 
 async def test_get_channels_invalid_sort(add_fake_torrents_channels, mock_dlmgr, rest_api):
     """
-    Test whether we can query some channels in the database with the REST API and an invalid sort parameter
+    Test whether we can query some channels in the database with the REST API and an invalid sort parameter.
     """
     json_dict = await do_request(rest_api, 'channels?sort_by=fdsafsdf')
     assert len(json_dict['results']) == 10
@@ -94,7 +94,7 @@ async def test_get_channels_invalid_sort(add_fake_torrents_channels, mock_dlmgr,
 
 async def test_get_subscribed_channels(add_fake_torrents_channels, mock_dlmgr, rest_api):
     """
-    Test whether we can successfully query channels we are subscribed to with the REST API
+    Test whether we can successfully query channels we are subscribed to with the REST API.
     """
     json_dict = await do_request(rest_api, 'channels?subscribed=1')
     assert len(json_dict['results']) == 5
@@ -102,7 +102,7 @@ async def test_get_subscribed_channels(add_fake_torrents_channels, mock_dlmgr, r
 
 async def test_get_channels_count(add_fake_torrents_channels, mock_dlmgr, rest_api):
     """
-    Test getting the total number of channels through the API
+    Test getting the total number of channels through the API.
     """
     json_dict = await do_request(rest_api, 'channels?subscribed=1&include_total=1')
     assert json_dict['total'] == 5
@@ -110,7 +110,7 @@ async def test_get_channels_count(add_fake_torrents_channels, mock_dlmgr, rest_a
 
 async def test_create_channel(rest_api, metadata_store):
     """
-    Test creating a channel in your channel with REST API POST request
+    Test creating a channel in your channel with REST API POST request.
     """
     await do_request(rest_api, 'channels/mychannel/0/channels', request_type='POST', expected_code=200)
     with db_session:
@@ -124,7 +124,7 @@ async def test_create_channel(rest_api, metadata_store):
 
 async def test_get_contents_count(add_fake_torrents_channels, mock_dlmgr, rest_api, metadata_store):
     """
-    Test getting the total number of items in a specific channel
+    Test getting the total number of items in a specific channel.
     """
     mock_dlmgr.get_download = lambda _: None
     with db_session:
@@ -136,7 +136,7 @@ async def test_get_contents_count(add_fake_torrents_channels, mock_dlmgr, rest_a
 
 async def test_get_channel_contents(metadata_store, add_fake_torrents_channels, mock_dlmgr, rest_api):
     """
-    Test whether we can query torrents from a channel
+    Test whether we can query torrents from a channel.
     """
     mock_dlmgr.get_download().get_state().get_progress = lambda: 0.5
     with db_session:
@@ -149,7 +149,7 @@ async def test_get_channel_contents(metadata_store, add_fake_torrents_channels, 
 
 async def test_get_channel_contents_remote(metadata_store, add_fake_torrents_channels, mock_dlmgr, rest_api):
     """
-    Test whether we can query torrents from a channel from a remote peer
+    Test whether we can query torrents from a channel from a remote peer.
     """
     mock_dlmgr.get_download().get_state().get_progress = lambda: 0.5
 
@@ -172,12 +172,12 @@ async def test_get_channel_contents_remote_request_timeout(
 ):
     """
     Test whether we can query torrents from a channel from a remote peer.
-    In case of remote query timeout, the results should still be served from the local DB
+    In case of remote query timeout, the results should still be served from the local DB.
     """
     mock_dlmgr.get_download().get_state().get_progress = lambda: 0.5
 
     async def mock_select(**kwargs):
-        raise RequestTimeoutException()
+        raise RequestTimeoutException
 
     rest_api.gigachannel_community = Mock()
     rest_api.gigachannel_community.remote_select_channel_contents = mock_select
@@ -195,11 +195,11 @@ async def test_get_channel_contents_remote_request_no_peers(
 ):
     """
     Test whether we can query torrents from a channel from a remote peer.
-    In case of zero available remote sources for the channel, the results should still be served from the local DB
+    In case of zero available remote sources for the channel, the results should still be served from the local DB.
     """
 
     async def mock_select(**kwargs):
-        raise NoChannelSourcesException()
+        raise NoChannelSourcesException
 
     rest_api.gigachannel_community = Mock()
     rest_api.gigachannel_community.remote_select_channel_contents = mock_select
@@ -213,7 +213,7 @@ async def test_get_channel_contents_remote_request_no_peers(
 
 async def test_get_channel_description(rest_api, metadata_store):
     """
-    Test getting description of the channel from the database
+    Test getting description of the channel from the database.
     """
     descr_txt = "foobar"
     with db_session:
@@ -229,7 +229,7 @@ async def test_get_channel_description(rest_api, metadata_store):
 
 async def test_put_new_channel_description(rest_api, metadata_store):
     """
-    Test adding description to a channel
+    Test adding description to a channel.
     """
     new_descr = "lalala"
     with db_session:
@@ -259,7 +259,7 @@ async def test_put_new_channel_description(rest_api, metadata_store):
 
 async def test_get_popular_torrents(add_fake_torrents_channels, mock_dlmgr_get_download, mock_dlmgr, rest_api):
     """
-    Test getting the list of popular torrents. The list is served as contents of a pseudo-channel
+    Test getting the list of popular torrents. The list is served as contents of a pseudo-channel.
     """
     json_dict = await do_request(rest_api, 'channels/popular_torrents', expected_code=200)
     # torrents2 & torrent4 in each of 10 channels (but not torrent0, as it has 0 seeders)
@@ -281,7 +281,7 @@ async def test_get_popular_torrents(add_fake_torrents_channels, mock_dlmgr_get_d
 
 async def test_get_popular_torrents_mdtype(add_fake_torrents_channels, mock_dlmgr_get_download, rest_api):
     """
-    It should be not possible to specify metadata_type argument for popular torrents endpoint
+    It should be not possible to specify metadata_type argument for popular torrents endpoint.
     """
     json_dict1 = await do_request(rest_api, 'channels/popular_torrents')
     json_dict2 = await do_request(rest_api, 'channels/popular_torrents?metadata_type=300')
@@ -293,7 +293,7 @@ async def test_get_popular_torrents_mdtype(add_fake_torrents_channels, mock_dlmg
 
 async def test_get_channel_contents_by_type(metadata_store, my_channel, mock_dlmgr_get_download, rest_api):
     """
-    Test filtering channel contents by a list of data types
+    Test filtering channel contents by a list of data types.
     """
     with db_session:
         metadata_store.CollectionNode(title='some_folder', origin_id=my_channel.id_)
@@ -311,14 +311,14 @@ async def test_get_channel_contents_by_type(metadata_store, my_channel, mock_dlm
 
 async def test_commit_no_channel(rest_api):
     """
-    Test whether we get an error if we try to commit a channel without it being created
+    Test whether we get an error if we try to commit a channel without it being created.
     """
     await do_request(rest_api, 'channels/mychannel/123/commit', expected_code=404, request_type='POST')
 
 
 async def test_commit_single_channel(my_channel, mock_dlmgr, rest_api):
     """
-    Test whether we can successfully commit changes to a single personal channel with the REST API
+    Test whether we can successfully commit changes to a single personal channel with the REST API.
     """
     json_dict = await do_request(rest_api, 'channels/mychannel/%i/commit' % my_channel.id_, request_type='POST')
     assert json_dict["success"]
@@ -326,7 +326,7 @@ async def test_commit_single_channel(my_channel, mock_dlmgr, rest_api):
 
 async def test_commit_all_channels(my_channel, mock_dlmgr, rest_api):
     """
-    Test whether we can successfully commit changes to a single personal channel with the REST API
+    Test whether we can successfully commit changes to a single personal channel with the REST API.
     """
     json_dict = await do_request(rest_api, 'channels/mychannel/0/commit', request_type='POST')
     assert json_dict["success"]
@@ -334,14 +334,14 @@ async def test_commit_all_channels(my_channel, mock_dlmgr, rest_api):
 
 async def test_get_commit_state(my_channel, rest_api):
     """
-    Test getting dirty status of a channel through its commit endpoint
+    Test getting dirty status of a channel through its commit endpoint.
     """
     await do_request(rest_api, 'channels/mychannel/0/commit', expected_json={'dirty': True})
 
 
 async def test_add_torrents_no_channel(metadata_store, my_channel, rest_api):
     """
-    Test whether an error is returned when we try to add a torrent to your unexisting channel
+    Test whether an error is returned when we try to add a torrent to your unexisting channel.
     """
     with db_session:
         my_chan = metadata_store.ChannelMetadata.get_my_channels().first()
@@ -356,7 +356,7 @@ async def test_add_torrents_no_channel(metadata_store, my_channel, rest_api):
 
 async def test_add_torrents_no_dir(my_channel, rest_api):
     """
-    Test whether an error is returned when pointing to a file instead of a directory when adding torrents
+    Test whether an error is returned when pointing to a file instead of a directory when adding torrents.
     """
     post_params = {'torrents_dir': 'nonexisting'}
     await do_request(
@@ -370,7 +370,7 @@ async def test_add_torrents_no_dir(my_channel, rest_api):
 
 async def test_add_torrents_recursive_no_dir(my_channel, rest_api):
     """
-    Test whether an error is returned when recursively adding torrents without a specified directory
+    Test whether an error is returned when recursively adding torrents without a specified directory.
     """
     post_params = {'recursive': True}
     await do_request(
@@ -384,7 +384,7 @@ async def test_add_torrents_recursive_no_dir(my_channel, rest_api):
 
 async def test_add_torrents_from_dir(my_channel, state_dir, rest_api):
     """
-    Test whether adding torrents from a directory to your channels works
+    Test whether adding torrents from a directory to your channels works.
     """
     post_params = {'torrents_dir': str(state_dir), 'recursive': True}
     await do_request(
@@ -397,7 +397,7 @@ async def test_add_torrents_from_dir(my_channel, state_dir, rest_api):
 
 async def test_add_torrent_missing_torrent(my_channel, rest_api):
     """
-    Test whether an error is returned when adding a torrent to your channel but with a missing torrent parameter
+    Test whether an error is returned when adding a torrent to your channel but with a missing torrent parameter.
     """
     post_params = {}
     await do_request(
@@ -411,7 +411,7 @@ async def test_add_torrent_missing_torrent(my_channel, rest_api):
 
 async def test_add_invalid_torrent(my_channel, rest_api):
     """
-    Test whether an error is returned when adding an invalid torrent file to your channel
+    Test whether an error is returned when adding an invalid torrent file to your channel.
     """
     post_params = {'torrent': 'bla'}
     await do_request(
@@ -425,7 +425,7 @@ async def test_add_invalid_torrent(my_channel, rest_api):
 
 async def test_add_torrent_duplicate(my_channel, rest_api):
     """
-    Test that adding a duplicate torrent to you channel does not result in an error
+    Test that adding a duplicate torrent to you channel does not result in an error.
     """
     with db_session:
         tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
@@ -446,7 +446,7 @@ async def test_add_torrent_duplicate(my_channel, rest_api):
 
 async def test_add_torrent(my_channel, rest_api):
     """
-    Test adding a torrent to your channel
+    Test adding a torrent to your channel.
     """
     with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
         base64_content = base64.b64encode(torrent_file.read())
@@ -462,7 +462,7 @@ async def test_add_torrent(my_channel, rest_api):
 
 async def test_add_torrent_invalid_uri(my_channel, rest_api):
     """
-    Test whether adding a torrent to your channel with an invalid URI results in an error
+    Test whether adding a torrent to your channel with an invalid URI results in an error.
     """
     post_params = {'uri': 'thisisinvalid'}
     await do_request(
@@ -476,7 +476,7 @@ async def test_add_torrent_invalid_uri(my_channel, rest_api):
 
 async def test_add_torrent_from_url(my_channel, tmpdir, rest_api):
     """
-    Test whether we can add a torrent to your channel from an URL
+    Test whether we can add a torrent to your channel from an URL.
     """
     post_params = {'uri': 'http://localhost:123/ubuntu.torrent'}
 
@@ -495,7 +495,7 @@ async def test_add_torrent_from_url(my_channel, tmpdir, rest_api):
 
 async def test_add_torrent_from_magnet(my_channel, mock_dlmgr, rest_api, metadata_store):
     """
-    Test whether we can add a torrent to your channel from a magnet link
+    Test whether we can add a torrent to your channel from a magnet link.
     """
 
     def fake_get_metainfo(_, **__):
@@ -517,7 +517,7 @@ async def test_add_torrent_from_magnet(my_channel, mock_dlmgr, rest_api, metadat
 
 async def test_add_torrent_from_magnet_error(my_channel, mock_dlmgr, rest_api):
     """
-    Test whether an error while adding magnets to your channel results in a proper 500 error
+    Test whether an error while adding magnets to your channel results in a proper 500 error.
     """
 
     def fake_get_metainfo(*_, **__):
@@ -539,7 +539,7 @@ async def test_add_torrent_from_magnet_error(my_channel, mock_dlmgr, rest_api):
 
 async def test_get_torrents(my_channel, mock_dlmgr_get_download, rest_api, metadata_store):
     """
-    Test whether we can query some torrents in the database with the REST API
+    Test whether we can query some torrents in the database with the REST API.
     """
     with db_session:
         chan = metadata_store.ChannelMetadata.select().first()
@@ -549,7 +549,7 @@ async def test_get_torrents(my_channel, mock_dlmgr_get_download, rest_api, metad
 
 async def test_get_torrents_ffa_channel(my_channel, mock_dlmgr_get_download, rest_api, metadata_store):
     """
-    Test whether we can query channel contents for unsigned (legacy/FFA) channels
+    Test whether we can query channel contents for unsigned (legacy/FFA) channels.
     """
     with db_session:
         channel = metadata_store.ChannelMetadata(title='ffa', infohash=random_infohash(), public_key=b"", id_=123)
@@ -565,7 +565,7 @@ async def test_get_torrents_ffa_channel(my_channel, mock_dlmgr_get_download, res
 
 async def test_put_channel_thumbnail(rest_api, metadata_store):
     """
-    Test adding description to a channel
+    Test adding description to a channel.
     """
     with db_session:
         chan = metadata_store.ChannelMetadata.create_channel(title="bla")
@@ -601,9 +601,8 @@ async def test_put_channel_thumbnail(rest_api, metadata_store):
 
 async def test_get_channel_thumbnail(rest_api, metadata_store):
     """
-    Test getting a channel thumbnail from MetadataStore
+    Test getting a channel thumbnail from MetadataStore.
     """
-
     with db_session:
         chan = metadata_store.ChannelMetadata.create_channel(title="bla")
         metadata_store.ChannelThumbnail(
@@ -621,7 +620,7 @@ async def test_get_channel_thumbnail(rest_api, metadata_store):
 async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_channel,
                                    rest_api):  # pylint: disable=redefined-outer-name
     """
-    Test whether tags are correctly returned over the REST API
+    Test whether tags are correctly returned over the REST API.
     """
     with db_session:
         json_dict = await do_request(
@@ -639,7 +638,7 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
 async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_get_download, my_channel,
                                        rest_api):  # pylint: disable=redefined-outer-name
     """
-    Test whether XXX tags are correctly filtered
+    Test whether XXX tags are correctly filtered.
     """
     with db_session:
         chan = metadata_store.ChannelMetadata.create_channel('test', 'test')

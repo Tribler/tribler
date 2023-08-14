@@ -13,11 +13,10 @@ from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash, to_fts_query
 
-
 # pylint: disable=unused-argument, redefined-outer-name
 
 
-@pytest.fixture
+@pytest.fixture()
 def needle_in_haystack_mds(metadata_store):
     num_hay = 100
     with db_session:
@@ -29,23 +28,22 @@ def needle_in_haystack_mds(metadata_store):
     return metadata_store
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(needle_in_haystack_mds, knowledge_db):
     return SearchEndpoint(needle_in_haystack_mds, knowledge_db=knowledge_db)
 
 
 async def test_search_wrong_mdtype(rest_api):
     """
-    Testing whether the API returns an error 400 if wrong metadata type is passed in the query
+    Testing whether the API returns an error 400 if wrong metadata type is passed in the query.
     """
     await do_request(rest_api, 'search?txt_filter=bla&metadata_type=ddd', expected_code=400)
 
 
 async def test_search(rest_api):
     """
-    Test a search query that should return a few new type channels
+    Test a search query that should return a few new type channels.
     """
-
     parsed = await do_request(rest_api, 'search?txt_filter=needle', expected_code=200)
     assert len(parsed["results"]) == 1
 
@@ -82,9 +80,8 @@ async def test_search_by_tags(rest_api):
 
 async def test_search_with_include_total_and_max_rowid(rest_api):
     """
-    Test search queries with include_total and max_rowid options
+    Test search queries with include_total and max_rowid options.
     """
-
     parsed = await do_request(rest_api, 'search?txt_filter=needle', expected_code=200)
     assert len(parsed["results"]) == 1
     assert "total" not in parsed
@@ -119,14 +116,14 @@ async def test_search_with_include_total_and_max_rowid(rest_api):
 
 async def test_completions_no_query(rest_api):
     """
-    Testing whether the API returns an error 400 if no query is passed when getting search completion terms
+    Testing whether the API returns an error 400 if no query is passed when getting search completion terms.
     """
     await do_request(rest_api, 'search/completions', expected_code=400)
 
 
 async def test_completions(rest_api):
     """
-    Testing whether the API returns the right terms when getting search completion terms
+    Testing whether the API returns the right terms when getting search completion terms.
     """
     json_response = await do_request(rest_api, 'search/completions?q=tribler', expected_code=200)
     assert json_response['completions'] == []

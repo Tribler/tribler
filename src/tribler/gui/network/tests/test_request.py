@@ -14,7 +14,8 @@ def test_default_constructor():
 
 
 def test_dict_data_constructor():
-    """ Test that data becomes raw_data as an encoded json
+    """
+    Test that data becomes raw_data as an encoded json.
     """
     request = Request(
         endpoint='endpoint',

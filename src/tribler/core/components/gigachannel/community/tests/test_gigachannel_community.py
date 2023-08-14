@@ -14,12 +14,17 @@ from tribler.core.components.gigachannel.community.gigachannel_community import 
     ChannelsPeersMapping,
     GigaChannelCommunity,
     NoChannelSourcesException,
-    happy_eyeballs_delay
+    happy_eyeballs_delay,
 )
 from tribler.core.components.gigachannel.community.settings import ChantSettings
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.metadata_store.remote_query_community.remote_query_community import EvaSelectRequest, \
-    SelectRequest, RemoteSelectPayload, RemoteSelectPayloadEva, SelectResponsePayload
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
+    EvaSelectRequest,
+    RemoteSelectPayload,
+    RemoteSelectPayloadEva,
+    SelectRequest,
+    SelectResponsePayload,
+)
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.utilities.notifier import Notifier
@@ -48,7 +53,7 @@ class ChannelKey(Mapping):
     def __getitem__(self, item):
         return getattr(self, item)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(fields(self))
 
 
@@ -111,9 +116,8 @@ class TestGigaChannelUnits(TestBase):
 
     async def test_gigachannel_search(self):
         """
-        Test searching several nodes for metadata entries based on title text
+        Test searching several nodes for metadata entries based on title text.
         """
-
         # We do not want the query back mechanism and introduction callback to interfere with this test
         for node in self.nodes:
             node.overlay.rqc_settings.max_channel_query_back = 0
@@ -145,7 +149,7 @@ class TestGigaChannelUnits(TestBase):
         with self.assertReceivedBy(ID1, [SelectResponsePayload], message_filter=[SelectResponsePayload]):
             self.overlay(ID2).send_introduction_request(self.peer(ID1))
             await self.deliver_messages()
-        self.assertIn(self.mid(ID1), self.overlay(ID2).queried_peers)
+        assert self.mid(ID1) in self.overlay(ID2).queried_peers
 
         # Make sure the same peer will not be queried twice in case the walker returns to it
         with self.assertReceivedBy(ID1, [], message_filter=[SelectResponsePayload]):
@@ -157,25 +161,24 @@ class TestGigaChannelUnits(TestBase):
         with self.assertReceivedBy(ID3, [SelectResponsePayload], message_filter=[SelectResponsePayload]):
             self.overlay(ID2).send_introduction_request(self.peer(ID3))
             await self.deliver_messages()
-        self.assertEqual(len(self.overlay(ID2).queried_peers), 2)
+        assert len(self.overlay(ID2).queried_peers) == 2
 
         self.add_node_to_experiment(self.create_node())
         with self.assertReceivedBy(3, [SelectResponsePayload], message_filter=[SelectResponsePayload]):
             self.overlay(ID2).send_introduction_request(self.peer(3))
             await self.deliver_messages()
         # The set has been cleared, so the number of queried peers must be dropped back to 1
-        self.assertEqual(len(self.overlay(ID2).queried_peers), 1)
+        assert len(self.overlay(ID2).queried_peers) == 1
 
         # Ensure that we're not going to query ourselves
         with self.assertReceivedBy(ID1, [], message_filter=[SelectResponsePayload]):
             self.overlay(ID2).send_introduction_request(self.peer(ID2))
-        self.assertEqual(len(self.overlay(ID2).queried_peers), 1)
+        assert len(self.overlay(ID2).queried_peers) == 1
 
     async def test_remote_select_subscribed_channels(self):
         """
         Test querying remote peers for subscribed channels and updating local votes accordingly.
         """
-
         # We do not want the query back mechanism to interfere with this test
         self.overlay(ID2).rqc_settings.max_channel_query_back = 0
 
@@ -206,20 +209,20 @@ class TestGigaChannelUnits(TestBase):
 
         with db_session:
             received_channels = self.channel_metadata(ID2).select(lambda g: g.title == "channel sub")
-            self.assertEqual(num_channels, received_channels.count())
+            assert num_channels == received_channels.count()
 
             # Only subscribed channels should have been transported
             received_channels_all = self.channel_metadata(ID2).select()
-            self.assertEqual(num_channels, received_channels_all.count())
+            assert num_channels == received_channels_all.count()
 
             # Make sure the subscribed channels transport counted as voting
-            self.assertEqual(self.overlay(ID2).mds.ChannelPeer.select().first().public_key, self.channel_pk(ID1))
+            assert self.overlay(ID2).mds.ChannelPeer.select().first().public_key == self.channel_pk(ID1)
             for chan in self.channel_metadata(ID2).select():
-                self.assertTrue(chan.votes > 0.0)
+                assert chan.votes > 0.0
 
     def test_channels_peers_mapping_drop_excess_peers(self):
         """
-        Test dropping old excess peers from a channel to peers mapping
+        Test dropping old excess peers from a channel to peers mapping.
         """
         mapping = ChannelsPeersMapping()
         key = ChannelKey(self.channel_pk(ID1), CHANNEL_ID)
@@ -326,7 +329,7 @@ class TestGigaChannelUnits(TestBase):
 
     async def test_remote_select_channel_contents(self):
         """
-        Test awaiting for response from remote peer
+        Test awaiting for response from remote peer.
         """
         key = self.generate_torrents(self.overlay(ID2))
         with db_session:
@@ -340,7 +343,7 @@ class TestGigaChannelUnits(TestBase):
 
     async def test_remote_select_channel_contents_empty(self):
         """
-        Test awaiting for response from remote peer and getting empty results
+        Test awaiting for response from remote peer and getting empty results.
         """
         key = ChannelKey(self.channel_pk(ID3), CHANNEL_ID)
         with db_session:
@@ -368,7 +371,7 @@ class TestGigaChannelUnits(TestBase):
 
     async def test_remote_select_channel_contents_happy_eyeballs(self):
         """
-        Test trying to connect to the first server, then timing out and falling back to the second one
+        Test trying to connect to the first server, then timing out and falling back to the second one.
         """
         key = self.generate_torrents(self.overlay(ID3))
         with db_session:

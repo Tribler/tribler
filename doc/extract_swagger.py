@@ -7,7 +7,6 @@ from unittest.mock import Mock
 
 import aiohttp
 import yaml
-
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.session import Session
@@ -16,7 +15,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 
 async def extract_swagger(destination):
     logging.info(f'Extract swagger for "{destination}"')
-    config = TriblerConfig(state_dir=Path('.'))
+    config = TriblerConfig(state_dir=Path())
     config.api.http_enabled = True
     config.api.http_port = 8080
 
@@ -40,9 +39,9 @@ async def extract_swagger(destination):
     logging.debug(f'API spec content: {api_spec}')
 
     # All responses should have a description
-    for _, path in api_spec['paths'].items():
-        for _, spec in path.items():
-            for _, response in spec['responses'].items():
+    for path in api_spec['paths'].values():
+        for spec in path.values():
+            for response in spec['responses'].values():
                 if 'description' not in response:
                     response['description'] = ''
     # Convert to yaml

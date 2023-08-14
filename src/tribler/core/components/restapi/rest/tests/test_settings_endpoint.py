@@ -6,16 +6,14 @@ from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpo
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
 
-
 # pylint: disable=redefined-outer-name, unused-argument
 
-@pytest.fixture
+@pytest.fixture()
 def tribler_config(tmp_path):
-    config = TriblerConfig(tmp_path)
-    return config
+    return TriblerConfig(tmp_path)
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(tribler_config):
     return SettingsEndpoint(tribler_config)
 
@@ -48,7 +46,7 @@ async def test_unicode_chars(rest_api):
 
 async def test_get_settings(rest_api):
     """
-    Testing whether the API returns a correct settings dictionary when the settings are requested
+    Testing whether the API returns a correct settings dictionary when the settings are requested.
     """
     response = await do_request(rest_api, 'settings', expected_code=200)
     verify_settings(response)
@@ -56,7 +54,7 @@ async def test_get_settings(rest_api):
 
 async def test_set_settings_invalid_dict(rest_api):
     """
-    Testing whether an error is returned if we are passing an invalid dictionary that is too deep
+    Testing whether an error is returned if we are passing an invalid dictionary that is too deep.
     """
     post_data = {'a': {'b': {'c': 'd'}}}
     response_dict = await do_request(rest_api, 'settings', expected_code=500, request_type='POST', post_data=post_data)
@@ -65,7 +63,7 @@ async def test_set_settings_invalid_dict(rest_api):
 
 async def test_set_settings_no_key(rest_api):
     """
-    Testing whether an error is returned when we try to set a non-existing key
+    Testing whether an error is returned when we try to set a non-existing key.
     """
 
     def verify_response(response_dict):
@@ -80,9 +78,8 @@ async def test_set_settings_no_key(rest_api):
 
 async def test_set_settings(rest_api, tribler_config):
     """
-    Testing whether settings in the API can be successfully set
+    Testing whether settings in the API can be successfully set.
     """
-
     post_data = {'download_defaults': {'seeding_mode': 'ratio',
                                        'seeding_ratio': 3,
                                        'seeding_time': 123}}
@@ -96,7 +93,6 @@ async def test_set_rate_settings(rest_api, tribler_config):
     """
     Testing whether libtorrent rate limits works for large number without overflow error.
     """
-
     extra_rate = 1024 * 1024 * 1024  # 1GB/s
     post_data = {
         'libtorrent': {

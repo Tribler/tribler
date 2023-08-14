@@ -1,17 +1,15 @@
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from tribler.core.components.ipv8.eva.payload import Data
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol, blank
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 
-
 # pylint: disable=redefined-outer-name, protected-access
 
-@pytest.fixture
+@pytest.fixture()
 async def outgoing_transfer():
     settings = EVASettings(block_size=2)
     eva = EVAProtocol(community=Mock(), settings=settings)

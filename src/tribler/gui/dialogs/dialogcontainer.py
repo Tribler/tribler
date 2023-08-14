@@ -11,7 +11,7 @@ from tribler.gui.utilities import connect
 class DialogContainer(AddBreadcrumbOnShowMixin, QWidget):
     close_event = pyqtSignal()
 
-    def __init__(self, parent, left_right_margin=100):
+    def __init__(self, parent, left_right_margin=100) -> None:
         QWidget.__init__(self, parent)
 
         self.setStyleSheet("background-color: rgba(30, 30, 30, 0.75);")

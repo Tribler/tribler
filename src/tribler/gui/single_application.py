@@ -2,14 +2,16 @@
 
 import logging
 import sys
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from PyQt5.QtCore import QTextStream, pyqtSignal
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtWidgets import QApplication
 
-from tribler.gui.tribler_window import TriblerWindow
 from tribler.gui.utilities import connect, disconnect
+
+if TYPE_CHECKING:
+    from tribler.gui.tribler_window import TriblerWindow
 
 
 class QtSingleApplication(QApplication):
@@ -20,7 +22,7 @@ class QtSingleApplication(QApplication):
 
     message_received = pyqtSignal(str)
 
-    def __init__(self, win_id: str, start_local_server: bool, *argv):
+    def __init__(self, win_id: str, start_local_server: bool, *argv) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f'Start Tribler application. Win id: "{win_id}". '
                          f'Sys argv: "{sys.argv}"')

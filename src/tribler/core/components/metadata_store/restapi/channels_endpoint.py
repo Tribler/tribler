@@ -31,8 +31,7 @@ ERROR_INVALID_MAGNET_LINK = "Invalid magnet link: %s"
 async def _fetch_uri(uri):
     async with ClientSession() as session:
         response = await session.get(uri)
-        data = await response.read()
-    return data
+        return await response.read()
 
 
 @froze_it
@@ -43,7 +42,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                  download_manager: DownloadManager,
                  gigachannel_manager: GigaChannelManager,
                  gigachannel_community: GigaChannelCommunity,
-                 *args, **kwargs):
+                 *args, **kwargs) -> None:
         MetadataEndpointBase.__init__(self, *args, **kwargs)
         self.download_manager = download_manager
         self.gigachannel_manager = gigachannel_manager
@@ -392,7 +391,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
         # First, check whether we did upload a magnet link or URL
         if parameters.get('uri', None):
             uri = parameters['uri']
-            if uri.startswith("http:") or uri.startswith("https:"):
+            if uri.startswith(("http:", "https:")):
                 data = await _fetch_uri(uri)
                 tdef = TorrentDef.load_from_memory(data)
             elif uri.startswith("magnet:"):

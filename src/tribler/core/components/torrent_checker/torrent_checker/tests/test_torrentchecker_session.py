@@ -9,16 +9,20 @@ from ipv8.util import succeed
 from libtorrent import bencode
 
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
-    FakeBep33DHTSession, FakeDHTSession, HttpTrackerSession, UdpSocketManager, UdpTrackerSession
-
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
+    FakeBep33DHTSession,
+    FakeDHTSession,
+    HttpTrackerSession,
+    UdpSocketManager,
+    UdpTrackerSession,
+)
 
 # pylint: disable=redefined-outer-name
 
 class FakeUdpSocketManager:
     transport = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.response = None
         self.tracker_sessions = {}
 
@@ -31,14 +35,14 @@ def fixture_fake_udp_socket_manager():
     return FakeUdpSocketManager()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def bep33_session(mock_dlmgr):
     bep33_dht_session = FakeBep33DHTSession(mock_dlmgr, 10)
     yield bep33_dht_session
     await bep33_dht_session.cleanup()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def fake_dht_session(mock_dlmgr):
     fake_dht_session = FakeDHTSession(mock_dlmgr, 10)
     yield fake_dht_session
@@ -67,7 +71,7 @@ async def test_httpsession_code_not_200():
     session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
 
     def fake_request(_):
-        raise HTTPBadRequest()
+        raise HTTPBadRequest
 
     session._session.get = fake_request
 
@@ -126,7 +130,7 @@ async def test_udpsession_timeout(fake_udp_socket_manager):
 
 async def test_pop_finished_transaction():
     """
-    Test that receiving a datagram for an already finished tracker session does not result in InvalidStateError
+    Test that receiving a datagram for an already finished tracker session does not result in InvalidStateError.
     """
     transaction_id = 123
     mgr = UdpSocketManager()
@@ -144,7 +148,7 @@ async def test_pop_finished_transaction():
 
 async def test_proxy_transport():
     """
-    Test that the UdpSocketManager uses a proxy if specified
+    Test that the UdpSocketManager uses a proxy if specified.
     """
     mgr = UdpSocketManager()
     mgr.connection_made(Mock())
@@ -324,14 +328,14 @@ def test_failed_unicode_udp(fake_udp_socket_manager):
 
 async def test_cleanup(bep33_session):
     """
-    Test the cleanup of a DHT session
+    Test the cleanup of a DHT session.
     """
     await bep33_session.cleanup()
 
 
 async def test_connect_to_tracker(mock_dlmgr, fake_dht_session):
     """
-    Test the metainfo lookup of the DHT session
+    Test the metainfo lookup of the DHT session.
     """
     metainfo = {b'seeders': 42, b'leechers': 42}
     mock_dlmgr.get_metainfo = lambda *_, **__: succeed(metainfo)
@@ -348,7 +352,7 @@ async def test_connect_to_tracker(mock_dlmgr, fake_dht_session):
 
 async def test_connect_to_tracker_fail(mock_dlmgr, fake_dht_session):
     """
-    Test the metainfo lookup of the DHT session when it fails
+    Test the metainfo lookup of the DHT session when it fails.
     """
     mock_dlmgr.get_metainfo = Mock(side_effect=TimeoutError)
     fake_dht_session.add_infohash(b'a' * 20)
@@ -358,7 +362,7 @@ async def test_connect_to_tracker_fail(mock_dlmgr, fake_dht_session):
 
 async def test_connect_to_tracker_bep33(bep33_session, mock_dlmgr):
     """
-    Test the metainfo lookup of the BEP33 DHT session
+    Test the metainfo lookup of the BEP33 DHT session.
     """
     infohash = b'a' * 20
     infohash_health = HealthInfo(infohash, seeders=1, leechers=2)

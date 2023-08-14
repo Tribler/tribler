@@ -40,14 +40,15 @@ LANGUAGES_FILE = "languages.json"
 
 
 class TranslatedString(str):
-    """ This class is used to wrap translated strings to be able to log untranslated strings in case of errors.
-        Thanks to this class no `KeyError` exceptions are raised when a translation is missing.
+    """
+    This class is used to wrap translated strings to be able to log untranslated strings in case of errors.
+    Thanks to this class no `KeyError` exceptions are raised when a translation is missing.
     """
 
     def __new__(cls, translation, original_string):  # pylint: disable=unused-argument
         return super().__new__(cls, translation)
 
-    def __init__(self, translation: str, original_string: str):  # pylint: disable=unused-argument
+    def __init__(self, translation: str, original_string: str) -> None:  # pylint: disable=unused-argument
         super().__init__()
         self.original_string = original_string
 
@@ -75,7 +76,7 @@ VOTES_RATING_DESCRIPTIONS = (
 
 
 def data_item2uri(data_item):
-    return f"magnet:?xt=urn:btih:{data_item[u'infohash']}&dn={data_item[u'name']}"
+    return f"magnet:?xt=urn:btih:{data_item['infohash']}&dn={data_item['name']}"
 
 
 def index2uri(index):
@@ -114,7 +115,7 @@ def pretty_date(time=False):
     """
     Get a datetime object or a int() Epoch timestamp and return a
     pretty string like 'an hour ago', 'Yesterday', '3 months ago',
-    'just now', etc
+    'just now', etc.
     """
     now = datetime.now()
     if isinstance(time, int):
@@ -194,7 +195,7 @@ def duration_to_string(seconds):
 
 
 def get_base_path():
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+    """Get absolute path to resource, works for dev and for PyInstaller."""
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
@@ -267,7 +268,7 @@ def get_gui_setting(gui_settings, value, default, is_bool=False):
     except TypeError:
         val = default
     if is_bool:
-        val = val == True or val == 'true'
+        val = val is True or val == 'true'
     return val
 
 
@@ -288,7 +289,7 @@ def format_api_key(api_key) -> str:
         return api_key
 
     raise ValueError(
-        f'Got unexpected value type of api_key from gui settings ' f'(should be str or bytes): {type(api_key).__name__}'
+        f'Got unexpected value type of api_key from gui settings (should be str or bytes): {type(api_key).__name__}'
     )
 
 
@@ -301,9 +302,8 @@ def is_dir_writable(path):
     """
     Checks if the directory is writable. Creates the directory if one does not exist.
     :param path: absolute path of directory
-    :return: True if writable, False otherwise
+    :return: True if writable, False otherwise.
     """
-
     directory = Path(path)
     random_file = directory / f'tribler_temp_delete_me_{uuid4()}'
     try:
@@ -358,7 +358,7 @@ def compose_magnetlink(infohash, name=None, trackers=None):
     :param infohash: Infohash
     :param name: Display name
     :param trackers: Trackers
-    :return: Magnet link
+    :return: Magnet link.
     """
     if not infohash:
         return ''
@@ -391,8 +391,7 @@ def votes_count(votes=0.0):
     votes = max(0.0, min(votes, 1.0))
     # We add sqrt to flatten the votes curve a bit
     votes = math.sqrt(votes)
-    votes = int(math.ceil(votes * NUM_VOTES_BARS))
-    return votes
+    return int(math.ceil(votes * NUM_VOTES_BARS))
 
 
 def format_votes(votes=0.0):
@@ -403,11 +402,10 @@ def format_votes_rich_text(votes=0.0):
     votes_count_full = votes_count(votes)
     votes_count_empty = votes_count(1.0) - votes_count_full
 
-    rating_rich_text = (
+    return (
             f"<font color=#BBBBBB>{'┃' * votes_count_full}</font>" +
             f"<font color=#444444>{'┃' * votes_count_empty}</font>"
     )
-    return rating_rich_text
 
 
 def get_votes_rating_description(votes=0.0):
@@ -426,7 +424,6 @@ def connect(signal: pyqtSignal, callback: Callable):
     :param signal: the signal to ``connect()`` to.
     :param callback: the callback to connect (will be called after ``signal.emit(...)``.
     """
-
     # Step 1: At time of calling this function: get the stack frames.
     #         We reconstruct the stack as a ``traceback`` object.
     source = None
@@ -451,7 +448,7 @@ def connect(signal: pyqtSignal, callback: Callable):
             raise exc from CreationTraceback(traceback_str)
 
     try:
-        setattr(callback, "tb_wrapper", trackback_wrapper)
+        callback.tb_wrapper = trackback_wrapper
     except AttributeError:
         # This is not a free function, but either an external library or a method bound to an instance.
         if not hasattr(callback, "tb_wrapper") and hasattr(callback, "__self__") and hasattr(callback, "__func__"):
@@ -459,7 +456,7 @@ def connect(signal: pyqtSignal, callback: Callable):
             # Instead, we inject the handlers for each method in a dictionary on the instance.
             bound_obj = callback.__self__
             if not hasattr(bound_obj, "tb_mapping"):
-                setattr(bound_obj, "tb_mapping", {})
+                bound_obj.tb_mapping = {}
             bound_obj.tb_mapping[callback.__func__.__name__] = trackback_wrapper
         else:
             logging.warning(

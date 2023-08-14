@@ -14,7 +14,7 @@ from tribler.core.version import version_id
 class VersionCommunity(VersionCommunityMixin, Community):
     community_id = os.urandom(20)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.init_version_community()
 
@@ -40,10 +40,10 @@ class TestVersionCommunity(TestBase):
         serialized = default_serializer.pack_serializable(version_response)
         deserialized, _ = default_serializer.unpack_serializable(VersionResponse, serialized)
 
-        self.assertEqual(version_response.version, version)
-        self.assertEqual(version_response.platform, platform)
-        self.assertEqual(deserialized.version, version)
-        self.assertEqual(deserialized.platform, platform)
+        assert version_response.version == version
+        assert version_response.platform == platform
+        assert deserialized.version == version
+        assert deserialized.platform == platform
 
     async def test_request_for_version(self):
         """
@@ -54,9 +54,9 @@ class TestVersionCommunity(TestBase):
         on_process_version_response_called = Future()
 
         def on_process_version_response(peer, version, platform):
-            self.assertEqual(peer, self.peer(1))
-            self.assertEqual(version, version_id)
-            self.assertEqual(platform, sys.platform)
+            assert peer == self.peer(1)
+            assert version == version_id
+            assert platform == sys.platform
             on_process_version_response_called.set_result(True)
 
         self.overlay(0).process_version_response = on_process_version_response

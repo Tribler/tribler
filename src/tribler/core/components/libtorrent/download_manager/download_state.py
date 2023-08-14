@@ -6,7 +6,8 @@ Author(s): Arno Bakker
 import logging
 
 from tribler.core.utilities.simpledefs import (
-    DownloadStatus, UPLOAD,
+    UPLOAD,
+    DownloadStatus,
 )
 
 # Map used to convert libtorrent -> Tribler download status
@@ -31,12 +32,12 @@ class DownloadState:
     cf. libtorrent torrent_status
     """
 
-    def __init__(self, download, lt_status, error):
+    def __init__(self, download, lt_status, error) -> None:
         """
         Internal constructor.
         @param download The download this state belongs too.
         @param lt_status The libtorrent status object
-        @param tr_status Any Tribler specific information regarding the download
+        @param tr_status Any Tribler specific information regarding the download.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -45,11 +46,12 @@ class DownloadState:
         self.error = error
 
     def get_download(self):
-        """ Returns the Download object of which this is the state """
+        """Returns the Download object of which this is the state."""
         return self.download
 
     def get_progress(self):
-        """ The general progress of the Download as a percentage. When status is
+        """
+        The general progress of the Download as a percentage. When status is
          * HASHCHECKING it is the percentage of already downloaded
            content checked for integrity.
          * DOWNLOADING/SEEDING it is the percentage downloaded.
@@ -58,9 +60,10 @@ class DownloadState:
         return self.lt_status.progress if self.lt_status else 0
 
     def get_status(self) -> DownloadStatus:
-        """ Returns the status of the torrent.
-        @return DownloadStatus* """
-
+        """
+        Returns the status of the torrent.
+        @return DownloadStatus*.
+        """
         if self.lt_status:
             if self.lt_status.paused:
                 return DownloadStatus.STOPPED
@@ -70,8 +73,9 @@ class DownloadState:
         return DownloadStatus.STOPPED
 
     def get_error(self):
-        """ Returns the Exception that caused the download to be moved to STOPPED_ON_ERROR status.
-        @return An error message
+        """
+        Returns the Exception that caused the download to be moved to STOPPED_ON_ERROR status.
+        @return An error message.
         """
         return self.error or (self.lt_status.error if self.lt_status and self.lt_status.error else None)
 
@@ -128,7 +132,7 @@ class DownloadState:
     def get_num_seeds_peers(self):
         """
         Returns the sum of the number of seeds and peers.
-        @return A tuple (num seeds, num peers)
+        @return A tuple (num seeds, num peers).
         """
         if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0, 0
@@ -138,24 +142,27 @@ class DownloadState:
         return seeds, total - seeds
 
     def get_pieces_complete(self):
-        """ Returns a list of booleans indicating whether we have completely
+        """
+        Returns a list of booleans indicating whether we have completely
         received that piece of the content. The list of pieces for which
         we provide this info depends on which files were selected for download
         using DownloadConfig.set_selected_files().
-        @return A list of booleans
+        @return A list of booleans.
         """
         return self.lt_status.pieces if self.lt_status else []
 
     def get_pieces_total_complete(self):
-        """ Returns the number of total and completed pieces
-        @return A tuple containing two integers, total and completed nr of pieces
+        """
+        Returns the number of total and completed pieces
+        @return A tuple containing two integers, total and completed nr of pieces.
         """
         return (len(self.lt_status.pieces), sum(self.lt_status.pieces)) if self.lt_status else (0, 0)
 
     def get_files_completion(self):
-        """ Returns a list of filename, progress tuples indicating the progress
+        """
+        Returns a list of filename, progress tuples indicating the progress
         for every file selected using set_selected_files. Progress is a float
-        between 0 and 1
+        between 0 and 1.
         """
         completion = []
 
@@ -173,9 +180,11 @@ class DownloadState:
         selected_files = self.download.config.get_selected_files()
         if len(selected_files) > 0:
             return selected_files
+        return None
 
     def get_availability(self):
-        """ Return overall the availability of all pieces, using connected peers
+        """
+        Return overall the availability of all pieces, using connected peers
         Availability is defined as the number of complete copies of a piece, thus seeders
         increment the availability by 1. Leechers provide a subset of piece thus we count the
         overall availability of all pieces provided by the connected peers and use the minimum
@@ -211,7 +220,8 @@ class DownloadState:
         return nr_seeders_complete
 
     def get_peerlist(self):
-        """ Returns a list of dictionaries, one for each connected peer
+        """
+        Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer.
         """
         return self.download.get_peerlist()

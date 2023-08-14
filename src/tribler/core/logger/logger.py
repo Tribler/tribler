@@ -40,7 +40,7 @@ def get_logger_config_path():
     if not hasattr(sys, '_MEIPASS'):
         dirname = Path(__file__).absolute().parent
     else:
-        dirname = Path(getattr(sys, '_MEIPASS')) / "tribler_source/tribler/core/logger"
+        dirname = Path(sys._MEIPASS) / "tribler_source/tribler/core/logger"
     return dirname / LOG_CONFIG_FILENAME
 
 

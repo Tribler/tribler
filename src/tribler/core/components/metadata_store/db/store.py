@@ -23,9 +23,11 @@ from tribler.core.components.metadata_store.db.orm_bindings import (
     metadata_node,
     misc,
     torrent_metadata,
-    torrent_state as torrent_state_,
     tracker_state,
     vsids,
+)
+from tribler.core.components.metadata_store.db.orm_bindings import (
+    torrent_state as torrent_state_,
 )
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import get_mdblob_sequence_number
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY, TODELETE
@@ -37,10 +39,10 @@ from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_THUMBNAIL,
     CHANNEL_TORRENT,
     COLLECTION_NODE,
-    HealthItemsPayload,
     JSON_NODE,
     METADATA_NODE,
     REGULAR_TORRENT,
+    HealthItemsPayload,
     read_payload_with_offset,
 )
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import process_payload
@@ -145,7 +147,7 @@ class MetadataStore:
             check_tables=True,
             db_version: int = CURRENT_DB_VERSION,
             tag_processor_version: int = 0
-    ):
+    ) -> None:
         self.notifier = notifier  # Reference to app-level notification service
         self.db_path = db_filename
         self.channels_dir = channels_dir
@@ -437,7 +439,7 @@ class MetadataStore:
                 through gossip will be ignored. The default value is True.
         :param external_thread: indicate to the lower lever that we're running in the backround thread,
             to possibly pace down the upload process
-        :return: a list of tuples of (<metadata or payload>, <action type>)
+        :return: a list of tuples of (<metadata or payload>, <action type>).
         """
         path = Path.fix_win_long_file(filepath)
         with open(path, 'rb') as f:
@@ -460,7 +462,7 @@ class MetadataStore:
                 decompressed_data = decompressor.decompress(compressed_data)
                 unused_data = decompressor.unused_data
         except RuntimeError as e:
-            self._logger.warning(f"Unable to decompress mdblob: {str(e)}")
+            self._logger.warning(f"Unable to decompress mdblob: {e!s}")
             return []
 
         health_info = None
@@ -468,7 +470,7 @@ class MetadataStore:
             try:
                 health_info = HealthItemsPayload.unpack(unused_data)
             except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
-                self._logger.warning(f"Unable to parse health information: {type(e).__name__}: {str(e)}")
+                self._logger.warning(f"Unable to parse health information: {type(e).__name__}: {e!s}")
 
         return self.process_squashed_mdblob(decompressed_data, health_info=health_info, **kwargs)
 
@@ -476,7 +478,7 @@ class MetadataStore:
         """
         Adds or updates information about a torrent health for the torrent with the specified infohash value
         :param health: a health info of a torrent
-        :return: True if a new TorrentState object was added
+        :return: True if a new TorrentState object was added.
         """
         if not health.is_valid():
             self._logger.warning(f'Invalid health info ignored: {health}')
@@ -509,7 +511,6 @@ class MetadataStore:
             imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
-
         offset = 0
         payload_list = []
         while offset < len(chunk_data):
@@ -581,7 +582,7 @@ class MetadataStore:
         """
         Return True if torrent with given infohash exists in any of user's channels
         :param infohash: The infohash of the torrent
-        :return: True if torrent exists else False
+        :return: True if torrent exists else False.
         """
         return self.TorrentMetadata.exists(
             lambda g: g.public_key == self.my_public_key_bin and g.infohash == infohash and g.status != LEGACY_ENTRY
@@ -632,7 +633,7 @@ class MetadataStore:
                 ) fts
                 LEFT JOIN ChannelNode cn on fts.rowid = cn.rowid
                 LEFT JOIN main.TorrentState ts on cn.health = ts.rowid
-                ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC  
+                ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC
                 LIMIT 1000
             """)
         return left_join(g for g in self.MetadataNode if g.rowid in fts_ids)  # pylint: disable=E1135
@@ -671,10 +672,7 @@ class MetadataStore:
         if cls is None:
             cls = self.ChannelNode
 
-        if txt_filter:
-            pony_query = self.search_keyword(txt_filter, origin_id=origin_id)
-        else:
-            pony_query = left_join(g for g in cls)
+        pony_query = self.search_keyword(txt_filter, origin_id=origin_id) if txt_filter else left_join(g for g in cls)
 
         infohash_set = infohash_set or ({infohash} if infohash else None)
         if popular:
@@ -822,7 +820,7 @@ class MetadataStore:
         """
         Get some torrents. Optionally sort the results by a specific field, or filter the channels based
         on a keyword/whether you are subscribed to it.
-        :return: A list of class members
+        :return: A list of class members.
         """
         pony_query = self.get_entries_query(**kwargs)
         result = pony_query[(first or 1) - 1: last]
@@ -835,7 +833,7 @@ class MetadataStore:
     @db_session
     def get_total_count(self, **kwargs):
         """
-        Get total count of torrents that would be returned if there would be no pagination/limits/sort
+        Get total count of torrents that would be returned if there would be no pagination/limits/sort.
         """
         for p in ["first", "last", "sort_by", "sort_desc"]:
             kwargs.pop(p, None)
@@ -861,7 +859,7 @@ class MetadataStore:
         if not words:
             return ""
 
-        fts_query = '"%s"*' % ' '.join(f'{word}' for word in words)  # pylint: disable=unused-variable
+        '"%s"*' % ' '.join(f'{word}' for word in words)  # pylint: disable=unused-variable
         suggestion_pattern = r'\W+'.join(word for word in words) + r'(\W*)((?:[.-]?\w)*)'
         suggestion_re = re.compile(suggestion_pattern, re.UNICODE)
 

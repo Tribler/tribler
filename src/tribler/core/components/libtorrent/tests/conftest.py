@@ -3,12 +3,11 @@ import pytest
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_tdef_no_metainfo(state_dir):
-    tdef = TorrentDefNoMetainfo(b"1" * 20, "test")
-    return tdef
+    return TorrentDefNoMetainfo(b"1" * 20, "test")
 
 
-@pytest.fixture
+@pytest.fixture()
 def tdef():
     return TorrentDef()

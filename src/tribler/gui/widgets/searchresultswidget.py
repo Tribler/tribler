@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import time
 import uuid
@@ -45,14 +46,13 @@ class SearchRequest:
 
 
 class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         widget_class.__init__(self, parent=parent)
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        try:
+        with contextlib.suppress(SystemError):
             self.setupUi(self)
-        except SystemError:
-            pass
+
 
         self.last_search_time = None
         self.last_search_query = None

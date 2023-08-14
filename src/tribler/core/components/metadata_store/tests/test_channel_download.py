@@ -22,12 +22,12 @@ CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def channel_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
 
 
-@pytest.fixture
+@pytest.fixture()
 async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unused-argument
     config = LibtorrentSettings()
     config.dht = False
@@ -46,7 +46,7 @@ async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unu
     await seeder_dlmgr.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def gigachannel_manager(metadata_store, download_manager: DownloadManager):
     manager = GigaChannelManager(
         state_dir=metadata_store.channels_dir.parent,
@@ -63,9 +63,8 @@ async def test_channel_update_and_download(
         channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
 ):
     """
-    Test whether we can successfully update a channel and download the new version
+    Test whether we can successfully update a channel and download the new version.
     """
-
     # First we have to manually add the old version
     old_payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
     with db_session:

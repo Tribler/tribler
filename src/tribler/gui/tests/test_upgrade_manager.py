@@ -24,7 +24,7 @@ def test_upgrader_when_no_disk_space_is_available(qtbot):
     version_history.fork_state_directory_if_necessary = Mock(side_effect=NoDiskSpaceAvailableError(1, 2))
 
     upgrade_manager = UpgradeManager(version_history)
-    upgrade_manager.should_cleanup_old_versions = lambda: []
+    upgrade_manager.should_cleanup_old_versions = list
     upgrade_manager.quit_tribler_with_warning = Mock()
 
     with qtbot.waitSignal(upgrade_manager.upgrader_cancelled):

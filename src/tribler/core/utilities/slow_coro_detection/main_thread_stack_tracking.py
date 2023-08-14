@@ -29,7 +29,7 @@ def main_stack_tracking_is_enabled() -> bool:
 
 def main_thread_profile(frame: FrameType, event: str, _, now=time.time):
     """
-    A hook that calls before and after a function call in the main thread if the stack tracking is activated
+    A hook that calls before and after a function call in the main thread if the stack tracking is activated.
     """
     if event == 'call':
         _main_thread_stack.append((frame, now()))
@@ -59,7 +59,7 @@ def start_main_thread_stack_tracing() -> Callable:
 def stop_main_thread_stack_tracing() -> Callable:
     """
     Deactivates the profiler hook in the main thread.
-    Returns the previous profiler function (for testing purpose)
+    Returns the previous profiler function (for testing purpose).
     """
     previous_profiler = sys.getprofile()
     sys.setprofile(None)
@@ -82,7 +82,7 @@ def _get_main_thread_stack_info() -> List[StackFrameInfo]:
     Quickly copies necessary information from the main thread stack, so it is possible later to format a usual
     traceback in a separate thread.
 
-    The function temporarily changes the interpreter’s thread switch interval to prevent thread switch during
+    The function temporarily changes the interpreter`s thread switch interval to prevent thread switch during
     the stack copying. It is a lighter analogue of holding the GIL (Global Interpreter Lock).
     """
     with switch_interval(SWITCH_INTERVAL):

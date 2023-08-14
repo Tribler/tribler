@@ -15,8 +15,11 @@ from tribler.core.components.knowledge.community.knowledge_payload import (
     StatementOperationMessage,
     StatementOperationSignature,
 )
-from tribler.core.components.knowledge.community.knowledge_validator import validate_operation, validate_resource, \
-    validate_resource_type
+from tribler.core.components.knowledge.community.knowledge_validator import (
+    validate_operation,
+    validate_resource,
+    validate_resource_type,
+)
 from tribler.core.components.knowledge.community.operations_requests import OperationsRequests, PeerValidationError
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 
@@ -27,7 +30,8 @@ CLEAR_ALL_REQUESTS_INTERVAL = 10 * 60  # 10 minutes
 
 
 class KnowledgeCommunity(TriblerCommunity):
-    """ Community for disseminating tags across the network.
+    """
+    Community for disseminating tags across the network.
 
     Only tags that are older than 1 minute will be gossiped.
     """
@@ -35,7 +39,7 @@ class KnowledgeCommunity(TriblerCommunity):
     community_id = unhexlify('d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0')
 
     def __init__(self, *args, db: KnowledgeDatabase, key: LibNaCLSK, request_interval=REQUEST_INTERVAL,
-                 **kwargs):
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.db = db
         self.key = key

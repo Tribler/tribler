@@ -7,11 +7,14 @@ from pony.orm.core import Database, Entity, select
 
 # pylint: disable=bad-staticmethod-argument
 def get_or_create(cls: Type[Entity], create_kwargs=None, **kwargs) -> Entity:
-    """Get or create db entity.
+    """
+    Get or create db entity.
+
     Args:
+    ----
         cls: Entity's class, eg: `self.instance.Peer`
         create_kwargs: Additional arguments for creating new entity
-        **kwargs: Arguments for selecting or for creating in case of missing entity
+        **kwargs: Arguments for selecting or for creating in case of missing entity.
 
     Returns: Entity's instance
     """
@@ -24,8 +27,11 @@ def get_or_create(cls: Type[Entity], create_kwargs=None, **kwargs) -> Entity:
 
 
 def get_max(cls: Type[Entity], column_name='rowid') -> int:
-    """Get max row ID of an db.Entity.
+    """
+    Get max row ID of an db.Entity.
+
     Args:
+    ----
         cls: Entity's class, eg: `self.instance.Peer`
         column_name: Name of the column to aggregate
     Returns: Max row ID or 0.
@@ -34,9 +40,11 @@ def get_max(cls: Type[Entity], column_name='rowid') -> int:
 
 
 async def run_threaded(db: Database, func: Callable, *args, **kwargs):
-    """Run `func` threaded and close DB connection at the end of the execution.
+    """
+    Run `func` threaded and close DB connection at the end of the execution.
 
     Args:
+    ----
         db: the DB to be closed
         func: the function to be executed threaded
         *args: args for the function call

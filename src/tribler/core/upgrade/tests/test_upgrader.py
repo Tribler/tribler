@@ -19,33 +19,32 @@ from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_c
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.utilities import random_infohash
 
-
 # pylint: disable=redefined-outer-name, protected-access
 
-@pytest.fixture
+@pytest.fixture()
 def state_dir(tmp_path):
     os.makedirs(tmp_path / 'sqlite')
     return tmp_path
 
 
-@pytest.fixture
+@pytest.fixture()
 def channels_dir(state_dir):
     channels_dir = state_dir / 'channels'
     os.makedirs(channels_dir)
     return channels_dir
 
 
-@pytest.fixture
+@pytest.fixture()
 def trustchain_keypair():
     return LibNaCLSK()
 
 
-@pytest.fixture
+@pytest.fixture()
 def upgrader(state_dir, channels_dir, trustchain_keypair):
     return TriblerUpgrader(state_dir, channels_dir, trustchain_keypair, secondary_key=trustchain_keypair)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mds_path(state_dir):
     return state_dir / 'sqlite/metadata.db'
 
@@ -58,7 +57,7 @@ def _copy(source_name, target):
 def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair,
                                   mds_path):  # pylint: disable=W0621
     """
-    Test complete update sequence for Pony DB (e.g. 6->7->8)
+    Test complete update sequence for Pony DB (e.g. 6->7->8).
     """
     tags_path = state_dir / 'sqlite/tags.db'
 
@@ -111,7 +110,7 @@ def test_delete_noncompliant_state(tmpdir):
     dir_listing = list((Path(tmpdir) / "test" / "channels").iterdir())
     assert len(dir_listing) == 3
     for f in (Path(tmpdir) / "test" / "channels").iterdir():
-        assert CHANNEL_DIR_NAME_LENGTH == len(f.stem)
+        assert len(f.stem) == CHANNEL_DIR_NAME_LENGTH
 
     # Check cleanup of torrent state dir
     checkpoints_dir = tmpdir / "test" / "dlcheckpoints"
@@ -120,7 +119,7 @@ def test_delete_noncompliant_state(tmpdir):
     file_path = checkpoints_dir / dir_listing[0]
     pstate = CallbackConfigParser()
     pstate.read_file(file_path)
-    assert CHANNEL_DIR_NAME_LENGTH == len(pstate.get('state', 'metainfo')['info']['name'])
+    assert len(pstate.get('state', 'metainfo')['info']['name']) == CHANNEL_DIR_NAME_LENGTH
 
 
 def test_upgrade_pony_8to10(upgrader, channels_dir, mds_path, trustchain_keypair):  # pylint: disable=W0621
@@ -321,7 +320,7 @@ def test_upgrade_bw_accounting_db_8to9(upgrader, state_dir, trustchain_keypair):
 
 
 def test_remove_old_logs(upgrader: TriblerUpgrader, state_dir: Path, tmp_path):
-    """Ensure that the `remove_old_logs` function removes only logs"""
+    """Ensure that the `remove_old_logs` function removes only logs."""
 
     # create Tribler folder structure
     def _create(path: str) -> Set[Path]:
@@ -358,7 +357,8 @@ def test_remove_old_logs(upgrader: TriblerUpgrader, state_dir: Path, tmp_path):
 
 
 def test_remove_old_logs_with_exception(upgrader: TriblerUpgrader, state_dir: Path, tmp_path):
-    """ Ensure that in the case that one of the files raises OSError during removing procedure,
+    """
+    Ensure that in the case that one of the files raises OSError during removing procedure,
     it is not affect remove procedure of other files.
 
     In this test two files will be created. The normal file and the file that will raise `PermissionError` exception.

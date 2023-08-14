@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import logging
 import os
-import sqlite3
 import time
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, List
 
 import psutil
 
@@ -15,6 +13,9 @@ from tribler.core.utilities.process_manager.utils import with_retry
 from tribler.core.version import version_id
 
 if TYPE_CHECKING:
+    import logging
+    import sqlite3
+
     from tribler.core.utilities.process_manager import ProcessManager
 
 
@@ -25,10 +26,10 @@ class ProcessKind(Enum):
 
 class TriblerProcess:
     def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
-                 row_version: int = 0, rowid: Optional[int] = None, creator_pid: Optional[int] = None,
-                 primary: bool = False, canceled: bool = False, api_port: Optional[int] = None,
-                 finished_at: Optional[int] = None, exit_code: Optional[int] = None, error_msg: Optional[str] = None,
-                 manager: Optional[ProcessManager] = None):
+                 row_version: int = 0, rowid: int | None = None, creator_pid: int | None = None,
+                 primary: bool = False, canceled: bool = False, api_port: int | None = None,
+                 finished_at: int | None = None, exit_code: int | None = None, error_msg: str | None = None,
+                 manager: ProcessManager | None = None) -> None:
         self._manager = manager
         self.rowid = rowid
         self.row_version = row_version
@@ -56,17 +57,17 @@ class TriblerProcess:
 
     @property
     def logger(self) -> logging.Logger:
-        """Used by the `with_retry` decorator"""
+        """Used by the `with_retry` decorator."""
         return self.manager.logger
 
     @property
-    def connection(self) -> Optional[sqlite3.Connection]:
-        """Used by the `with_retry` decorator"""
+    def connection(self) -> sqlite3.Connection | None:
+        """Used by the `with_retry` decorator."""
         return self.manager.connection
 
     @with_retry
     def save(self):
-        """Saves object into the database"""
+        """Saves object into the database."""
         with self.manager.connect() as connection:
             if self.rowid is None:
                 self._insert(connection)
@@ -75,7 +76,7 @@ class TriblerProcess:
 
     @classmethod
     def from_row(cls, manager: ProcessManager, row: tuple) -> TriblerProcess:
-        """Constructs an object from the database row"""
+        """Constructs an object from the database row."""
         rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
         finished_at, exit_code, error_msg = row
 
@@ -122,16 +123,16 @@ class TriblerProcess:
             append(f'exit_code={self.exit_code}')
 
         if self.error_msg:
-            append(f'error={repr(self.error_msg)}')
+            append(f'error={self.error_msg!r}')
 
         result = f'{kind}Process({", ".join(elements)})'
         return ''.join(result)
 
     @classmethod
     def current_process(cls, kind: ProcessKind,
-                        creator_pid: Optional[int] = None,
-                        manager: Optional[ProcessManager] = None) -> TriblerProcess:
-        """Constructs an object for a current process, specifying the PID value of the current process"""
+                        creator_pid: int | None = None,
+                        manager: ProcessManager | None = None) -> TriblerProcess:
+        """Constructs an object for a current process, specifying the PID value of the current process."""
         pid = os.getpid()
         psutil_process = psutil.Process(pid)
         started_at = int(psutil_process.create_time())
@@ -139,13 +140,13 @@ class TriblerProcess:
                    app_version=version_id, started_at=started_at, creator_pid=creator_pid)
 
     def is_current_process(self) -> bool:
-        """Returns True if the object represents the current process"""
+        """Returns True if the object represents the current process."""
         return self.pid == os.getpid() and self.is_running()
 
     @with_retry
     def become_primary(self) -> bool:
         """
-        If there is no primary process already, makes the current process primary and returns the primary status
+        If there is no primary process already, makes the current process primary and returns the primary status.
         """
         with self.manager.connect():
             # for a new process object self.rowid is None
@@ -158,7 +159,7 @@ class TriblerProcess:
         return bool(self.primary)
 
     def is_running(self):
-        """Returns True if the object represents a running process"""
+        """Returns True if the object represents a running process."""
         if not psutil.pid_exists(self.pid):
             return False
 
@@ -183,13 +184,13 @@ class TriblerProcess:
         self.api_port = api_port
         self.save()
 
-    def set_error(self, error: Union[str | Exception], replace: bool = False):
+    def set_error(self, error: str | Exception, replace: bool = False):
         if isinstance(error, Exception):
             error = f"{error.__class__.__name__}: {error}"
         self.error_msg = error if replace else (self.error_msg or error)
         self.save()
 
-    def finish(self, exit_code: Optional[int] = None):
+    def finish(self, exit_code: int | None = None):
         self.primary = False
         self.finished_at = int(time.time())
 
@@ -204,7 +205,7 @@ class TriblerProcess:
         self.save()
 
     def _insert(self, connection: sqlite3.Connection):
-        """Insert a new row into the table"""
+        """Insert a new row into the table."""
         self.row_version = 0
         cursor = connection.cursor()
         cursor.execute("""
@@ -217,7 +218,7 @@ class TriblerProcess:
         self.rowid = cursor.lastrowid
 
     def _update(self, connection: sqlite3.Connection):
-        """Update an existing row in the table"""
+        """Update an existing row in the table."""
         prev_version = self.row_version
         self.row_version += 1
         cursor = connection.cursor()
@@ -232,7 +233,7 @@ class TriblerProcess:
         if cursor.rowcount == 0:
             self.logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
 
-    def get_core_process(self) -> Optional[TriblerProcess]:
+    def get_core_process(self) -> TriblerProcess | None:
         """
         Returns Core process created by the current GUI process, or None if the Core process was not found in the DB.
         """

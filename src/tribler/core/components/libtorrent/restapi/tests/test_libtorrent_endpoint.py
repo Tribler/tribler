@@ -6,15 +6,14 @@ from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTo
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 
-
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(mock_dlmgr, mock_lt_session):
     return LibTorrentEndpoint(mock_dlmgr)
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_lt_session(mock_dlmgr):
     mock_alert = Mock()
     mock_alert.values = {"a": "b"}

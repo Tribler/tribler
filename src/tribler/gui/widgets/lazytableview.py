@@ -1,23 +1,27 @@
 import json
 from typing import Dict, List
 
-from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, QModelIndex, QRect, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    SNIPPET
+from tribler.core.components.metadata_store.db.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    SNIPPET,
+)
 from tribler.gui.defs import COMMIT_STATUS_COMMITTED
 from tribler.gui.dialogs.editmetadatadialog import EditMetadataDialog
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, data_item2uri, get_image_path, index2uri
 from tribler.gui.widgets.tablecontentdelegate import TriblerContentDelegate
-from tribler.gui.widgets.tablecontentmodel import Column, EXPANDING
+from tribler.gui.widgets.tablecontentmodel import EXPANDING, Column
 
 
 class FloatingAnimationWidget(QLabel):
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         super().__init__(parent)
         self.setGeometry(0, 0, 100, 100)
         self.setAttribute(Qt.WA_TranslucentBackground)
@@ -26,10 +30,7 @@ class FloatingAnimationWidget(QLabel):
         self.setMovie(self.qm)
 
     def update_position(self):
-        if hasattr(self.parent(), 'viewport'):
-            parent_rect = self.parent().viewport().rect()
-        else:
-            parent_rect = self.parent().rect()
+        parent_rect = self.parent().viewport().rect() if hasattr(self.parent(), "viewport") else self.parent().rect()
 
         if not parent_rect:
             return
@@ -54,7 +55,7 @@ class TriblerContentTableView(QTableView):
     torrent_doubleclicked = pyqtSignal(dict)
     edited_metadata = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         QTableView.__init__(self, parent)
         self.add_tags_dialog = None
         self.setMouseTracking(True)

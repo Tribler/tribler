@@ -11,18 +11,22 @@ HTTPS_SCHEME = 'https'
 
 
 def path_to_url(file_path: Union[str, Any], _path_cls=Path) -> str:
-    """Convert path to url
+    """
+    Convert path to url.
 
     Example:
+    -------
         '/path/to/file' -> 'file:///path/to/file'
     """
     return _path_cls(file_path).as_uri()
 
 
 def url_to_path(file_url: str, _path_cls=Path) -> str:
-    """Convert url to path
+    """
+    Convert url to path.
 
     Example:
+    -------
         'file:///path/to/file' -> '/path/to/file'
     """
 
@@ -43,9 +47,11 @@ def url_to_path(file_url: str, _path_cls=Path) -> str:
 
 
 def scheme_from_url(url: str) -> str:
-    """Get scheme from URL
+    """
+    Get scheme from URL.
 
-    Examples:
+    Examples
+    --------
         'file:///some/file' -> 'file'
         'magnet:link' -> 'magnet'
         'http://en.wikipedia.org' -> 'http'

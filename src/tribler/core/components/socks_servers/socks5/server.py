@@ -11,7 +11,7 @@ class Socks5Server:
     This object represents a Socks5 server.
     """
 
-    def __init__(self, port=None, output_stream: Optional[TunnelDispatcher] = None):
+    def __init__(self, port=None, output_stream: Optional[TunnelDispatcher] = None) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.port = port
         self.output_stream = output_stream

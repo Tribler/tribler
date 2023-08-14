@@ -12,23 +12,22 @@ from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
 
-
 # pylint: disable=unused-argument,redefined-outer-name,multiple-statements
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_gigachannel_community():
     return Mock()
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(metadata_store, mock_gigachannel_community):
     return RemoteQueryEndpoint(mock_gigachannel_community, metadata_store)
 
 
 async def test_create_remote_search_request(rest_api, mock_gigachannel_community):
     """
-    Test that remote search call is sent on a REST API search request
+    Test that remote search call is sent on a REST API search request.
     """
     sent = {}
     peers = []
@@ -61,9 +60,8 @@ async def test_create_remote_search_request(rest_api, mock_gigachannel_community
 
 async def test_get_channels_peers(rest_api, metadata_store, mock_gigachannel_community):
     """
-    Test getting debug info about the state of channels to peers mapping
+    Test getting debug info about the state of channels to peers mapping.
     """
-
     mapping = mock_gigachannel_community.channels_peers = ChannelsPeersMapping()
 
     peer_key = default_eccrypto.generate_key("curve25519")

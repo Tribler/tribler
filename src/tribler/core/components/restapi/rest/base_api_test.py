@@ -23,7 +23,7 @@ async def do_real_request(port, endpoint, expected_code=200, expected_json=None,
                           request_type='GET', post_data=None, headers=None, json_response=True):
     post_data = post_data or {}
     data = json.dumps(path_to_str(post_data)) if isinstance(post_data, (dict, list)) else post_data
-    is_url = endpoint.startswith('http://') or endpoint.startswith('https://')
+    is_url = endpoint.startswith(('http://', 'https://'))
     url = endpoint if is_url else f'http://localhost:{port}/{endpoint}'
     headers = headers or {'User-Agent': 'Tribler ' + version_id}
 
@@ -65,7 +65,7 @@ async def do_request(test_client, url, expected_code=200, expected_json=None,
 
 def test_get_parameters():
     """
-    Test the get_parameters method
+    Test the get_parameters method.
     """
     parameters = {'abc': [3]}
     assert get_param(parameters, 'abcd') is None

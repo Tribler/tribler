@@ -1,10 +1,10 @@
-import tribler.core.components.metadata_store.metadata_store_component as metadata_store_component
 from tribler.core.components.component import Component
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
+from tribler.core.components.metadata_store import metadata_store_component
 from tribler.core.components.metadata_store.utils import generate_test_channels
 from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 

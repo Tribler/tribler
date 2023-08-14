@@ -3,11 +3,9 @@ from itertools import count
 
 from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
-
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.knowledge.db.knowledge_db import SHOW_THRESHOLD, KnowledgeDatabase, Operation, ResourceType
 from tribler.core.utilities.pony_utils import get_or_create
-
 
 # pylint: disable=protected-access
 
@@ -45,9 +43,8 @@ class TestTagDBBase(TestBase):
                          predicate: ResourceType = ResourceType.TAG, obj='object'):
         subj = get_or_create(self.db.instance.Resource, name=subject, type=subject_type)
         obj = get_or_create(self.db.instance.Resource, name=obj, type=predicate)
-        statement = get_or_create(self.db.instance.Statement, subject=subj, object=obj)
+        return get_or_create(self.db.instance.Statement, subject=subj, object=obj)
 
-        return statement
 
     @staticmethod
     def create_operation(subject_type: ResourceType = ResourceType.TORRENT, subject='subject', obj='object', peer=b'',
@@ -75,7 +72,7 @@ class TestTagDBBase(TestBase):
 
         def generate_n_peer_names(n):
             for _ in range(n):
-                yield f'peer{next(index)}'.encode('utf8')
+                yield f'peer{next(index)}'.encode()
 
         for subject, objects in dictionary.items():
             for obj in objects:

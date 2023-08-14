@@ -6,7 +6,7 @@ from ipv8.util import succeed
 from tribler.core.components.payout.payout_manager import PayoutManager
 
 
-@pytest.fixture
+@pytest.fixture()
 async def payout_manager():
     fake_bw_community = Mock()
 
@@ -23,7 +23,7 @@ async def payout_manager():
 
 async def test_do_payout(payout_manager):
     """
-    Test doing a payout
+    Test doing a payout.
     """
     res = await payout_manager.do_payout(b'a')  # Does not exist
     assert not res
@@ -40,7 +40,7 @@ async def test_do_payout(payout_manager):
 
 async def test_do_payout_dht_error(payout_manager):
     """
-    Test whether we are not doing a payout when the DHT lookup fails
+    Test whether we are not doing a payout when the DHT lookup fails.
     """
 
     def err_connect_peer(_):
@@ -54,7 +54,7 @@ async def test_do_payout_dht_error(payout_manager):
 
 async def test_do_payout_no_dht_peers(payout_manager):
     """
-    Test whether we are not doing a payout when there are no peers returned by the DHT
+    Test whether we are not doing a payout when there are no peers returned by the DHT.
     """
 
     def connect_peer(_):
@@ -68,7 +68,7 @@ async def test_do_payout_no_dht_peers(payout_manager):
 
 async def test_do_payout_error(payout_manager):
     """
-    Test whether we are not doing a payout when the payout fails
+    Test whether we are not doing a payout when the payout fails.
     """
 
     def connect_peer(_):
@@ -86,7 +86,7 @@ async def test_do_payout_error(payout_manager):
 
 def test_update_peer(payout_manager):
     """
-    Test the updating of a specific peer
+    Test the updating of a specific peer.
     """
     payout_manager.update_peer(b'a', b'b', 1337)
     assert b'a' in payout_manager.tribler_peers

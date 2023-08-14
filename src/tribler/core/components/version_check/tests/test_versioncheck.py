@@ -54,7 +54,7 @@ async def version_server(free_port: int, version_check_manager: VersionCheckMana
 
 async def test_start(version_check_manager: VersionCheckManager):
     """
-    Test whether the periodic version lookup works as expected
+    Test whether the periodic version lookup works as expected.
     """
     version_check_manager.start()
     # We only start the version check if GIT is not in the version ID.

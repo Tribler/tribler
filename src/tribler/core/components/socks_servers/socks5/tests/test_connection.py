@@ -13,7 +13,7 @@ class MockTransport(MockObject):
     This object mocks the transport of the socks5 connection.
     """
 
-    def __init__(self, loop):
+    def __init__(self, loop) -> None:
         self.connected = True
         self.written_data = []
         self.host = '123.123.123.123'
@@ -36,7 +36,7 @@ class MockTransport(MockObject):
         await wait_for(self.done, timeout=timeout)
 
 
-@pytest.fixture
+@pytest.fixture()
 def connection(event_loop):
     connection = Socks5Connection(None)
     connection.transport = MockTransport(event_loop)
@@ -47,7 +47,7 @@ def connection(event_loop):
 
 def test_invalid_version(connection):
     """
-    Test passing an invalid version to the socks5 server
+    Test passing an invalid version to the socks5 server.
     """
     connection.data_received(unhexlify('040100'))
     assert not connection.transport.connected
@@ -55,7 +55,7 @@ def test_invalid_version(connection):
 
 def test_method_request(connection):
     """
-    Test sending a method request to the socks5 server
+    Test sending a method request to the socks5 server.
     """
     connection.data_received(unhexlify('050100'))
     assert connection.transport.written_data
@@ -64,7 +64,7 @@ def test_method_request(connection):
 
 async def test_udp_associate(connection):
     """
-    Test sending a udp associate request to the socks5 server
+    Test sending a udp associate request to the socks5 server.
     """
     connection.data_received(unhexlify('050100'))
     connection.data_received(unhexlify('05030001000000000000'))
@@ -74,7 +74,7 @@ async def test_udp_associate(connection):
 
 def test_bind(connection):
     """
-    Test sending a bind request to the socks5 server
+    Test sending a bind request to the socks5 server.
     """
     connection.data_received(unhexlify('050100'))
     connection.data_received(unhexlify('0502000100000000263f'))
@@ -83,7 +83,7 @@ def test_bind(connection):
 
 async def test_connect(connection):
     """
-    Test sending a connect command and proxying data
+    Test sending a connect command and proxying data.
     """
     future = Future()
 
@@ -106,7 +106,7 @@ async def test_connect(connection):
 
 def test_unknown_command(connection):
     """
-    Test sending an unknown command to the socks5 server after handshake
+    Test sending an unknown command to the socks5 server after handshake.
     """
     connection.data_received(unhexlify('050100'))
     connection.data_received(unhexlify('05490003096c6f63616c686f73740050'))
@@ -116,7 +116,7 @@ def test_unknown_command(connection):
 
 def test_invalid_methods(connection):
     """
-    Test sending an invalid methods packet
+    Test sending an invalid methods packet.
     """
     connection.data_received(unhexlify('0501'))
     assert len(connection.buffer) == 2  # We are still waiting for data

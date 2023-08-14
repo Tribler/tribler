@@ -2,17 +2,18 @@ import hashlib
 import math
 import sys
 import time
-from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
+from asyncio import Future, open_connection
+from asyncio import TimeoutError as AsyncTimeoutError
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
-from typing import Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional
 
 import async_timeout
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
+from ipv8.messaging.anonymization.payload import NO_CRYPTO_PACKETS, EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_STATE_READY,
@@ -34,7 +35,6 @@ from pony.orm import OrmError
 
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
-from tribler.core.components.socks_servers.socks5.server import Socks5Server
 from tribler.core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
 from tribler.core.components.tunnel.community.dispatcher import TunnelDispatcher
@@ -48,11 +48,14 @@ from tribler.core.components.tunnel.community.payload import (
     RelayBalanceResponsePayload,
 )
 from tribler.core.utilities.bencodecheck import is_bencoded
-from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DownloadStatus,
 )
 from tribler.core.utilities.unicode import hexlify
+
+if TYPE_CHECKING:
+    from tribler.core.components.socks_servers.socks5.server import Socks5Server
+    from tribler.core.utilities.path_util import Path
 
 DESTROY_REASON_BALANCE = 65535
 
@@ -66,9 +69,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
+
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.bandwidth_community = kwargs.pop('bandwidth_community', None)
         self.exitnode_cache: Optional[Path] = kwargs.pop('exitnode_cache', None)
         self.config = kwargs.pop('config', None)
@@ -551,6 +555,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for download in self.download_manager.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
                 return download
+        return None
 
     @task
     async def create_introduction_point(self, info_hash, required_ip=None):
@@ -674,4 +679,5 @@ class TriblerTunnelTestnetCommunity(TriblerTunnelCommunity):
     """
     This community defines a testnet for the anonymous tunnels.
     """
+
     community_id = unhexlify('b02540cb9d6179d936e1228ff2f6f351f580b542')

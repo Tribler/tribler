@@ -5,7 +5,6 @@ from binascii import hexlify, unhexlify
 from pathlib import Path
 
 from ipv8.taskmanager import TaskManager
-
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
@@ -16,7 +15,7 @@ EXPERIMENT_RUN_TIME = int(os.environ.get('EXPERIMENT_RUN_TIME', 3600 * 3))
 
 
 class Service(TinyTriblerService, TaskManager):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs,
                          components=[Ipv8Component(), KeyComponent(), RESTComponent(), TunnelsComponent()])
         TaskManager.__init__(self)
@@ -44,7 +43,7 @@ class Service(TinyTriblerService, TaskManager):
         community = component.community
         community.join_swarm(info_hash, 1, seeding=False)
         self.swarm = community.swarms[info_hash]
-        print(f'Joining hidden swarm {hexlify(info_hash)}')  # noqa: T001
+        print(f'Joining hidden swarm {hexlify(info_hash)}')
 
     def monitor_swarm(self):
         self.results.append((int(time.time() - self.start),

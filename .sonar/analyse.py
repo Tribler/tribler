@@ -5,6 +5,7 @@ of the quality gate from the server and exits with a non-zero exit code if the q
 """
 import json
 import os
+import sys
 import time
 from traceback import print_exc
 
@@ -13,11 +14,11 @@ import requests
 # These env varialble should be set by Jenkins.
 SERVER_URL = os.environ.get('SONAR_SERVER_URL', "https://sonarcloud.io")
 PROJECT_KEY = os.environ.get('PROJECT_KEY', "org.sonarqube:tribler")
-PR_COMMIT = os.environ.get('ghprbActualCommit', u'')
+PR_COMMIT = os.environ.get('ghprbActualCommit', '')
 TASK_PATH = os.path.join(os.environ.get('WORKSPACE', os.getcwd()), '.scannerwork', 'report-task.txt')
 
 task_status_url = None
-with open(TASK_PATH, 'r') as task_file:
+with open(TASK_PATH) as task_file:
     for line in task_file.readlines():
         parts = line.split("=")
         if not parts:
@@ -28,7 +29,7 @@ with open(TASK_PATH, 'r') as task_file:
 
 if not task_status_url:
     print("Fetching task ID has failed!")
-    exit(1)
+    sys.exit(1)
 
 print("Task status URL: %s" % task_status_url)
 
@@ -44,7 +45,7 @@ for _ in range(0, 30):
         break
 
 # Analysis URL for the project. Check https://sonarcloud.io/web_api/api/project_pull_requests for more info
-pr_analysis_url = "%s/api/project_pull_requests/list?project=%s" % (SERVER_URL, PROJECT_KEY)
+pr_analysis_url = f"{SERVER_URL}/api/project_pull_requests/list?project={PROJECT_KEY}"
 print("Analysis URL:", pr_analysis_url)
 print("PR Commit:", PR_COMMIT)
 
@@ -56,18 +57,18 @@ try:
     json_response = requests.get(pr_analysis_url)
     data = json.loads(json_response.text)
 
-    for pull_request in data[u'pullRequests']:
-        print("Matching analysis:", pull_request[u'key'], PR_COMMIT, pull_request[u'key'] == PR_COMMIT)
+    for pull_request in data['pullRequests']:
+        print("Matching analysis:", pull_request['key'], PR_COMMIT, pull_request['key'] == PR_COMMIT)
         # If there is analysis result for the PR commit with status OK, then exit with success status (0)
-        if pull_request[u'key'] == PR_COMMIT:
-            print("Quality Gate:", pull_request[u'status'])
-            if pull_request[u'status'][u'qualityGateStatus'] == u'OK':
+        if pull_request['key'] == PR_COMMIT:
+            print("Quality Gate:", pull_request['status'])
+            if pull_request['status']['qualityGateStatus'] == 'OK':
                 print("Status: OK")
                 break
             else:
                 print("Status: FAILED")
-                exit(1)
+                sys.exit(1)
 
 except Exception:  # pylint: disable=broad-except
     print_exc()
-    exit(1)
+    sys.exit(1)

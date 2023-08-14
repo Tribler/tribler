@@ -17,7 +17,7 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
     The CreateTorrentPage is the page where users can create torrent files so they can be added to their channel.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         self.channel_identifier = None
         self.dialog = None

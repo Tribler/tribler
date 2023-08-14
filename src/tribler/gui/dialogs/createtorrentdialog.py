@@ -13,7 +13,7 @@ from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QTreeWidgetItem.__init__(self, parent)
 
 
@@ -21,7 +21,7 @@ class CreateTorrentDialog(DialogContainer):
     create_torrent_notification = pyqtSignal(dict)
     add_to_channel_selected = pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         DialogContainer.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('createtorrentdialog.ui'), self.dialog_widget)

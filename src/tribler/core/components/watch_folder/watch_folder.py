@@ -16,7 +16,7 @@ WATCH_FOLDER_CHECK_INTERVAL = 10
 
 class WatchFolder:
     def __init__(self, state_dir: Path, settings: WatchFolderSettings, download_manager: DownloadManager,
-                 notifier: Notifier, check_interval: float = WATCH_FOLDER_CHECK_INTERVAL):
+                 notifier: Notifier, check_interval: float = WATCH_FOLDER_CHECK_INTERVAL) -> None:
         super().__init__()
         self.state_dir = state_dir
         self.settings = settings

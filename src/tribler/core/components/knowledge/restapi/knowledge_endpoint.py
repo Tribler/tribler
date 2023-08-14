@@ -6,7 +6,6 @@ from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, List, String
 from pony.orm import db_session
-
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
@@ -21,9 +20,10 @@ class KnowledgeEndpoint(RESTEndpoint):
     """
     Top-level endpoint for knowledge management.
     """
+
     path = '/knowledge'
 
-    def __init__(self, db: KnowledgeDatabase, community: KnowledgeCommunity):
+    def __init__(self, db: KnowledgeDatabase, community: KnowledgeCommunity) -> None:
         super().__init__()
         self.db: KnowledgeDatabase = db
         self.community: KnowledgeCommunity = community
@@ -126,7 +126,7 @@ class KnowledgeEndpoint(RESTEndpoint):
     )
     async def get_tag_suggestions(self, request):
         """
-        Get suggested tags for a particular torrent
+        Get suggested tags for a particular torrent.
         """
         infohash = request.match_info["infohash"]
         ih_valid, error_response = KnowledgeEndpoint.validate_infohash(infohash)

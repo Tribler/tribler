@@ -5,7 +5,7 @@ from tribler.core.components.metadata_store.db.serialization import EPOCH, int2t
 
 def test_time_convert():
     """
-    Test converting various datetime objects to float
+    Test converting various datetime objects to float.
     """
     test_time_list = [
         datetime.datetime(2005, 7, 14, 12, 30, 12),
@@ -18,14 +18,14 @@ def test_time_convert():
 
 def test_zero_time():
     """
-    Test whether a time of zero converts to the epoch time
+    Test whether a time of zero converts to the epoch time.
     """
     assert int2time(0.0) == EPOCH
 
 
 def test_negative_time():
     """
-    Test whether we are able to deal with time below the epoch time
+    Test whether we are able to deal with time below the epoch time.
     """
     negative_time = EPOCH - datetime.timedelta(1)
     assert negative_time == int2time(time2int(negative_time))

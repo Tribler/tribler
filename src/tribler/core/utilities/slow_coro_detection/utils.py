@@ -3,10 +3,10 @@ from asyncio import Handle, Task
 from typing import Optional
 
 # pylint: disable=protected-access
-
-
-from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import get_main_thread_stack, \
-    main_stack_tracking_is_enabled
+from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import (
+    get_main_thread_stack,
+    main_stack_tracking_is_enabled,
+)
 
 
 def format_info(handle: Handle, include_stack: bool = False, stack_cut_duration: Optional[float] = None,

@@ -8,8 +8,8 @@ from pony.orm.core import DEFAULT, db_session
 from tribler.core.components.metadata_store.db.orm_bindings.discrete_clock import clock
 from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_NODE,
-    ChannelNodePayload,
     DELETED,
+    ChannelNodePayload,
     DeletedMetadataPayload,
 )
 from tribler.core.exceptions import InvalidChannelNodeException, InvalidSignatureException
@@ -34,7 +34,7 @@ CHANNEL_THUMBNAIL_FLAG = 2
 def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
     """
     Note: this is a way to manually define Pony entity default attributes in case we
-    have to generate the signature before creating an object
+    have to generate the signature before creating an object.
     """
     d = {}
     skip_list = skip_list or []
@@ -95,7 +95,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         # ACHTUNG! On object creation, Pony does not check if discriminator is wrong for the created ORM type!
         nonpersonal_attributes = ('metadata_type',)
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             """
             Initialize a metadata object.
             All this dance is required to ensure that the signature is there and it is correct.
@@ -148,7 +148,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
                         self._payload_class(**kwargs)
                     except InvalidSignatureException as e:
                         raise InvalidSignatureException(
-                            f"Attempted to create {str(self.__class__.__name__)} object with invalid signature/PK: "
+                            f"Attempted to create {self.__class__.__name__!s} object with invalid signature/PK: "
                             + (hexlify(kwargs["signature"]) if "signature" in kwargs else "empty signature ")
                             + " / "
                             + (hexlify(kwargs["public_key"]) if "public_key" in kwargs else " empty PK")
@@ -175,7 +175,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             """
             Serializes the object and returns the result with added signature (tuple output)
             :param key: private key to sign object with
-            :return: (serialized_data, signature) tuple
+            :return: (serialized_data, signature) tuple.
             """
             return self._payload_class(  # pylint: disable=W0212
                 key=key, unsigned=(self.signature is None), **self.to_dict()
@@ -185,14 +185,14 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
             """
             Serializes the object and returns the result with added signature (blob output)
             :param key: private key to sign object with
-            :return: serialized_data+signature binary string
+            :return: serialized_data+signature binary string.
             """
             return b''.join(self._serialized(key))
 
         def _serialized_delete(self):
             """
             Create a special command to delete this metadata and encode it for transfer (tuple output).
-            :return: (serialized_data, signature) tuple
+            :return: (serialized_data, signature) tuple.
             """
             my_dict = ChannelNode.to_dict(self)
             my_dict.update({"metadata_type": DELETED, "delete_signature": self.signature})
@@ -201,7 +201,7 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
         def serialized_delete(self):
             """
             Create a special command to delete this metadata and encode it for transfer (blob output).
-            :return: serialized_data+signature binary string
+            :return: serialized_data+signature binary string.
             """
             return b''.join(self._serialized_delete())
 
@@ -302,9 +302,9 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
 
         def to_simple_dict(self):
             """
-            Return a basic dictionary with information about the node
+            Return a basic dictionary with information about the node.
             """
-            simple_dict = {
+            return {
                 "type": self.get_type(),
                 "id": self.id_,
                 "origin_id": self.origin_id,
@@ -312,6 +312,5 @@ def define_binding(db, logger=None, key=None):  # pylint: disable=R0915
                 "status": self.status,
             }
 
-            return simple_dict
 
     return ChannelNode

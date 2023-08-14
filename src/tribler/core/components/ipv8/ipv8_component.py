@@ -1,7 +1,7 @@
 from typing import Optional
 
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
-from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
+from ipv8.configuration import DISPERSY_BOOTSTRAPPER, ConfigBuilder
 from ipv8.dht.churn import PingChurn
 from ipv8.dht.discovery import DHTDiscoveryCommunity
 from ipv8.dht.routing import RoutingTable

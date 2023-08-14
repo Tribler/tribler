@@ -6,13 +6,13 @@ import networkx as nx
 class GraphPositioning:
     """
     This class is for the calculation of the positions of the nodes of
-    a given tree and from the perspective of a given central node
+    a given tree and from the perspective of a given central node.
     """
 
     @staticmethod
     def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
         """
-        Taken from: https://bit.ly/2tetWxf
+        Taken from: https://bit.ly/2tetWxf.
 
         If the graph is a tree this will return the positions to plot this in a
         hierarchical layout.
@@ -36,7 +36,6 @@ class GraphPositioning:
 
         xcenter: horizontal location of root
         """
-
         if not nx.is_tree(G):
             raise TypeError('cannot use hierarchy_pos on a graph that is not a tree')
 
@@ -51,9 +50,8 @@ class GraphPositioning:
             """
             see hierarchy_pos docstring for most arguments
             pos: a dict saying where all nodes go if they have been assigned
-            parent: parent of this branch. - only affects it if non-directed
+            parent: parent of this branch. - only affects it if non-directed.
             """
-
             if pos is None:
                 pos = {root: (xcenter, vert_loc)}
             else:

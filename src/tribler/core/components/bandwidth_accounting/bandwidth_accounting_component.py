@@ -13,7 +13,7 @@ class BandwidthAccountingComponent(Component):
     _ipv8_component: Ipv8Component = None
     database: BandwidthDatabase = None
 
-    def __init__(self, crawler_mode=False):
+    def __init__(self, crawler_mode=False) -> None:
         super().__init__()
         self.crawler_mode = crawler_mode
 

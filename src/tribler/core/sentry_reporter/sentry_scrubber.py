@@ -5,16 +5,16 @@ from tribler.core.sentry_reporter.sentry_reporter import (
     BREADCRUMBS,
     RELEASE,
 )
-from tribler.core.sentry_reporter.sentry_tools import delete_item, format_version, modify_value, \
-    obfuscate_string
+from tribler.core.sentry_reporter.sentry_tools import delete_item, format_version, modify_value, obfuscate_string
 
 
 class SentryScrubber:
-    """This class has been created to be responsible for scrubbing all sensitive
+    """
+    This class has been created to be responsible for scrubbing all sensitive
     and unnecessary information from Sentry event.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # https://en.wikipedia.org/wiki/Home_directory
         self.home_folders = [
             'users',
@@ -60,12 +60,15 @@ class SentryScrubber:
         self.re_hash = re.compile(r'\b[0-9a-f]{40}\b', re.I)
 
     def scrub_event(self, event):
-        """Main method. Removes all sensitive and unnecessary information.
+        """
+        Main method. Removes all sensitive and unnecessary information.
 
         Args:
+        ----
             event: a Sentry event.
 
         Returns:
+        -------
             Scrubbed the Sentry event.
         """
         if not event:
@@ -83,12 +86,12 @@ class SentryScrubber:
 
         # this second call is necessary for complete the entities scrubbing
         # which were found at the end of the previous call
-        scrubbed_event = self.scrub_entity_recursively(scrubbed_event)
+        return self.scrub_entity_recursively(scrubbed_event)
 
-        return scrubbed_event
 
     def scrub_text(self, text):
-        """Replace all sensitive information from `text` by corresponding
+        """
+        Replace all sensitive information from `text` by corresponding
         placeholders.
 
         Sensitive information:
@@ -97,10 +100,13 @@ class SentryScrubber:
             * 40-symbols-long hash
 
         A found user name will be stored and used for further replacements.
+
         Args:
+        ----
             text:
 
         Returns:
+        -------
             The text with removed sensitive information.
         """
         if text is None:
@@ -142,7 +148,8 @@ class SentryScrubber:
         return text
 
     def scrub_entity_recursively(self, entity: Union[str, Dict, List, Any], depth=10):
-        """Recursively traverses entity and remove all sensitive information.
+        """
+        Recursively traverses entity and remove all sensitive information.
 
         Can work with:
             1. Text
@@ -152,10 +159,12 @@ class SentryScrubber:
         All other fields just will be skipped.
 
         Args:
+        ----
             entity: an entity to process.
             depth: depth of recursion.
 
         Returns:
+        -------
             The entity with removed sensitive information.
         """
         if depth < 0 or not entity:

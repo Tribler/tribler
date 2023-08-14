@@ -9,7 +9,7 @@ from tribler.core.components.ipv8.eva.transfer.base import Transfer
 
 
 class OutgoingTransfer(Transfer):
-    def __init__(self, data: bytes, *args, **kwargs):
+    def __init__(self, data: bytes, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.data = data
         self.block_count = math.ceil(self.data_size / self.settings.block_size)

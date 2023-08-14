@@ -12,7 +12,7 @@ class TabButtonPanel(QWidget):
 
     clicked_tab_button = pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QWidget.__init__(self, parent)
         self.buttons = []
 

@@ -14,7 +14,7 @@ class DHTHealthManager(TaskManager):
     This class manages BEP33 health requests to the libtorrent DHT.
     """
 
-    def __init__(self, lt_session):
+    def __init__(self, lt_session) -> None:
         """
         Initialize the DHT health manager.
         :param lt_session: The session used to perform health lookups.

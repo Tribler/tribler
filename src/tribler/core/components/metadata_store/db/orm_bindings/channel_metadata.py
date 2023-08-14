@@ -120,7 +120,7 @@ class MetadataCompressor:
     fashion, and the resulting "compressed" size can be significantly bigger than the original data size.
     """
 
-    def __init__(self, chunk_size: int, include_health: bool = False):
+    def __init__(self, chunk_size: int, include_health: bool = False) -> None:
         """
         :param chunk_size: the desired chunk size limit, in bytes.
         :param include_health: if True, put metadata health information into the chunk.
@@ -253,7 +253,7 @@ def define_binding(db):  # pylint: disable=R0915
             :param title: The title of the channel
             :param description: The description of the channel
             :param origin_id: id_ of the parent channel
-            :return: The channel metadata
+            :return: The channel metadata.
             """
             my_channel = cls(
                 origin_id=origin_id,
@@ -274,9 +274,8 @@ def define_binding(db):  # pylint: disable=R0915
             """
             Delete the channel dir contents and create it anew.
             Use it to consolidate fragmented channel torrent directories.
-            :param key: The public/private key, used to sign the data
+            :param key: The public/private key, used to sign the data.
             """
-
             # Remark: there should be a way to optimize this stuff with SQL and better tree traversal algorithms
             # Cleanup entries marked for deletion
 
@@ -294,7 +293,7 @@ def define_binding(db):  # pylint: disable=R0915
             for filename in os.listdir(folder):
                 file_path = folder / filename
                 # We only remove mdblobs and leave the rest as it is
-                if filename.endswith(BLOB_EXTENSION) or filename.endswith(BLOB_EXTENSION + '.lz4'):
+                if filename.endswith((BLOB_EXTENSION, BLOB_EXTENSION + '.lz4')):
                     os.unlink(Path.fix_win_long_file(file_path))
 
             # Channel should get a new starting timestamp and its contents should get higher timestamps
@@ -319,7 +318,7 @@ def define_binding(db):  # pylint: disable=R0915
             from the same dir and avoid updating already downloaded blobs.
             :param metadata_list: The list of metadata entries to add to the torrent dir.
             ACHTUNG: TODELETE entries _MUST_ be sorted to the end of the list to prevent channel corruption!
-            :return The newly create channel torrent infohash, final timestamp for the channel and torrent date
+            :return The newly create channel torrent infohash, final timestamp for the channel and torrent date.
             """
             # As a workaround for delete entries not having a timestamp in the DB, delete entries should
             # be placed after create/modify entries:
@@ -387,7 +386,7 @@ def define_binding(db):  # pylint: disable=R0915
             remove the obsolete entries if the commit succeeds.
             :param new_start_timestamp: change the start_timestamp of the committed channel entry to this value
             :param commit_list: the list of ORM objects to commit into this channel torrent
-            :return The new infohash, should be used to update the downloads
+            :return The new infohash, should be used to update the downloads.
             """
             md_list = commit_list or self.get_contents_to_commit()
 
@@ -483,7 +482,7 @@ def define_binding(db):  # pylint: disable=R0915
         def state(self):
             """
             This property describes the current state of the channel.
-            :return: Text-based status
+            :return: Text-based status.
             """
             if self.is_personal:
                 return CHANNEL_STATE.PERSONAL.value
@@ -530,7 +529,7 @@ def define_binding(db):  # pylint: disable=R0915
             some channel we already have.
             :param dl_name - name of the download. Should match the directory name of the channel.
             :param infohash - infohash of the download.
-            :return: Channel title as a string, prefixed with 'OLD:' for older versions
+            :return: Channel title as a string, prefixed with 'OLD:' for older versions.
             """
             channel = cls.get_channel_with_infohash(infohash)
             if not channel:

@@ -1,6 +1,6 @@
 import time
 from random import randint
-from typing import List
+from typing import List, Optional
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
@@ -17,12 +17,12 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import random_infohash
 
 
-def _generate_single_checked_torrent(status: str = None) -> HealthInfo:
+def _generate_single_checked_torrent(status: Optional[str] = None) -> HealthInfo:
     """
     Assumptions
     DEAD    -> peers: 0
     POPULAR -> Peers: [101, 1000]
-    DEFAULT -> peers: [1, 100]  # alive
+    DEFAULT -> peers: [1, 100]  # alive.
     """
 
     def get_peers_for(health_status):
@@ -35,7 +35,7 @@ def _generate_single_checked_torrent(status: str = None) -> HealthInfo:
     return HealthInfo(random_infohash(), seeders=get_peers_for(status), leechers=get_peers_for(status))
 
 
-def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInfo]:
+def _generate_checked_torrents(count: int, status: Optional[str] = None) -> List[HealthInfo]:
     return [_generate_single_checked_torrent(status) for _ in range(count)]
 
 
@@ -86,7 +86,7 @@ class TestPopularityCommunity(TestBase):
 
     async def test_torrents_health_gossip(self):
         """
-        Test whether torrent health information is correctly gossiped around
+        Test whether torrent health information is correctly gossiped around.
         """
         checked_torrent_info = HealthInfo(b'a' * 20, seeders=200, leechers=0)
         node0_db = self.nodes[0].overlay.mds.TorrentState
@@ -120,7 +120,7 @@ class TestPopularityCommunity(TestBase):
 
     async def test_torrents_health_gossip_multiple(self):
         """
-        Test whether torrent health information is correctly gossiped around
+        Test whether torrent health information is correctly gossiped around.
         """
         dead_torrents = _generate_checked_torrents(100, 'DEAD')
         popular_torrents = _generate_checked_torrents(100, 'POPULAR')
@@ -175,7 +175,7 @@ class TestPopularityCommunity(TestBase):
 
     async def test_torrents_health_update(self):
         """
-        Test updating the local torrent health information from network
+        Test updating the local torrent health information from network.
         """
         self.fill_database(self.nodes[1].overlay.mds)
 
@@ -185,13 +185,12 @@ class TestPopularityCommunity(TestBase):
         # Check whether node 1 has new torrent health information
         with db_session:
             state = self.nodes[1].overlay.mds.TorrentState.get(infohash=b'0' * 20)
-            self.assertIsNot(state.last_check, 0)
+            assert state.last_check != 0
 
     async def test_unknown_torrent_query_back(self):
         """
-        Test querying sender for metadata upon receiving an unknown torrent
+        Test querying sender for metadata upon receiving an unknown torrent.
         """
-
         infohash = b'1' * 20
         with db_session:
             self.nodes[0].overlay.mds.TorrentMetadata(infohash=infohash)

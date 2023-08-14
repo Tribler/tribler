@@ -5,7 +5,6 @@ import pytest
 from cryptography.exceptions import InvalidSignature
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
-
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
 from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
@@ -14,12 +13,11 @@ from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
 # pylint: disable=redefined-outer-name
-@pytest.fixture
+@pytest.fixture()
 def migration(tmp_path: Path):
     db_dir = tmp_path / STATEDIR_DB_DIR
     db_dir.mkdir()
-    migration = MigrationTagsToKnowledge(tmp_path, LibNaCLSK())
-    return migration
+    return MigrationTagsToKnowledge(tmp_path, LibNaCLSK())
 
 
 def test_no_tags_db(migration: MigrationTagsToKnowledge):

@@ -11,10 +11,12 @@ import pytest
 import tribler.core.version
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.version_manager import (
-    TriblerVersion,
+    RESERVED_STORAGE,
     VERSION_HISTORY_FILENAME,
+    NoDiskSpaceAvailableError,
+    TriblerVersion,
     VersionError,
-    VersionHistory, NoDiskSpaceAvailableError, RESERVED_STORAGE,
+    VersionHistory,
 )
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
@@ -41,8 +43,7 @@ def version_history_fixture(tmpdir_factory):
     }
     (root_state_dir / VERSION_HISTORY_FILENAME).write_text(json.dumps(version_history_file_content_json))
 
-    history = VersionHistory(root_state_dir, code_version)
-    return history
+    return VersionHistory(root_state_dir, code_version)
 
 
 def test_version_to_dirname():
@@ -103,7 +104,7 @@ def test_get_last_upgradable_version_based_on_dir(tmpdir):
     Test that only the most recent lower version will be selected as the upgrade source.
     """
     root_state_dir = Path(tmpdir)
-    json_dict = {"last_version": "100.1.1", "history": dict()}
+    json_dict = {"last_version": "100.1.1", "history": {}}
     json_dict["history"]["1"] = "100.1.1"  # no dir - bad
     json_dict["history"]["2"] = "99.2.3"  # dir in place, earlier than 3 - bad
     (root_state_dir / "102.1").mkdir()
@@ -127,7 +128,7 @@ def test_fork_state_directory(tmpdir_factory):
     # no forking should happen, but version_history should be updated nonetheless
     tmpdir = tmpdir_factory.mktemp("scenario1")
     root_state_dir = Path(tmpdir)
-    json_dict = {"last_version": "120.1.1", "history": dict()}
+    json_dict = {"last_version": "120.1.1", "history": {}}
     json_dict["history"]["2"] = "120.1.1"
     state_dir = root_state_dir / "120.1"
     state_dir.mkdir()
@@ -156,7 +157,7 @@ def test_fork_state_directory(tmpdir_factory):
     # normal upgrade scenario, dir should be forked and version_history should be updated
     tmpdir = tmpdir_factory.mktemp("scenario2")
     root_state_dir = Path(tmpdir)
-    json_dict = {"last_version": "120.1.1", "history": dict()}
+    json_dict = {"last_version": "120.1.1", "history": {}}
     json_dict["history"]["1"] = "120.1.1"
     state_dir = root_state_dir / "120.1"
     state_dir.mkdir()
@@ -175,7 +176,8 @@ def test_fork_state_directory(tmpdir_factory):
 
     forked_from = history.fork_state_directory_if_necessary()
     assert history.code_version.directory.exists()
-    assert forked_from is not None and forked_from.version_str == "120.1.1"
+    assert forked_from is not None
+    assert forked_from.version_str == "120.1.1"
     history_saved = history.save_if_necessary()
     assert history_saved
 
@@ -189,7 +191,7 @@ def test_fork_state_directory(tmpdir_factory):
     # while the previous code version state directory should be renamed to a backup.
     tmpdir = tmpdir_factory.mktemp("scenario4")
     root_state_dir = Path(tmpdir)
-    json_dict = {"last_version": "120.2.1", "history": dict()}
+    json_dict = {"last_version": "120.2.1", "history": {}}
     # The user  was on 120.2
     json_dict["history"]["1"] = "120.2.0"
     state_dir_1 = root_state_dir / "120.2"
@@ -220,7 +222,8 @@ def test_fork_state_directory(tmpdir_factory):
 
     forked_from = history.fork_state_directory_if_necessary()
     assert history.code_version.directory.exists()
-    assert forked_from is not None and forked_from.version_str == "120.2.1"
+    assert forked_from is not None
+    assert forked_from.version_str == "120.2.1"
     history_saved = history.save_if_necessary()
     assert history_saved
     # Check that the older 120.3 directory is not deleted, but instead renamed as a backup
@@ -311,7 +314,7 @@ def test_get_disposable_state_directories(tmpdir_factory):
     last_version_dir = root_state_dir / "8.9"
     second_last_version_dir = root_state_dir / "8.8"
 
-    version_history = {"last_version": last_version, "history": dict()}
+    version_history = {"last_version": last_version, "history": {}}
     base_install_ts = time.time() - 1000  # some timestamp in the past
 
     # Create state directories for all older versions
@@ -366,7 +369,7 @@ def test_installed_versions_and_removal(tmpdir_factory):
     major_versions = [7, 8]
     minor_versions = [5, 6, 7, 8]
 
-    version_history = {"last_version": "7.8", "history": dict()}
+    version_history = {"last_version": "7.8", "history": {}}
     base_install_ts = time.time() - 1000  # some timestamp in the past
 
     for major in major_versions:

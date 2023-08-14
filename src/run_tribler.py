@@ -1,18 +1,18 @@
 import argparse
-import logging.config
-import os
-import sys
 
 # A fix for "LookupError: unknown encoding: idna" error.
 # Adding encodings.idna to hiddenimports is not enough.
 # https://github.com/pyinstaller/pyinstaller/issues/1113
 # noinspection PyUnresolvedReferences
-import encodings.idna  # pylint: disable=unused-import
+import encodings.idna
+import logging.config
+import os
+import sys
 
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.osutils import get_root_state_directory
+from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.utilities import is_frozen
 from tribler.core.version import version_id
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class RunTriblerArgsParser(argparse.ArgumentParser):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         kwargs['description'] = 'Run Tribler BitTorrent client'
         super().__init__(*args, **kwargs)
         self.add_argument('torrent', help='torrent file to download', default='', nargs='?')
@@ -44,7 +44,8 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
 
 
 def init_sentry_reporter(reporter: SentryReporter):
-    """ Initialise sentry reporter
+    """
+    Initialise sentry reporter.
 
     We use `sentry_url` as a URL for normal tribler mode and TRIBLER_TEST_SENTRY_URL
     as a URL for sending sentry's reports while a Tribler client running in
@@ -92,8 +93,8 @@ if __name__ == "__main__":
 
     # Check whether we need to start the core or the user interface
     if parsed_args.core:
-        from tribler.core.start_core import run_core
         from tribler.core.components.reporter.exception_handler import default_core_exception_handler
+        from tribler.core.start_core import run_core
 
         init_sentry_reporter(default_core_exception_handler.sentry_reporter)
 
@@ -105,8 +106,8 @@ if __name__ == "__main__":
 
         run_core(api_port, api_key, root_state_dir, parsed_args)
     else:  # GUI
-        from tribler.gui.start_gui import run_gui
         from tribler.gui import gui_sentry_reporter
+        from tribler.gui.start_gui import run_gui
 
         init_sentry_reporter(gui_sentry_reporter)
         run_gui(api_port, api_key, root_state_dir, parsed_args)

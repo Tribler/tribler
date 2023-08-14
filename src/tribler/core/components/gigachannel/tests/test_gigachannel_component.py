@@ -5,7 +5,6 @@ from tribler.core.components.knowledge.knowledge_component import KnowledgeCompo
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.session import Session
 
-
 # pylint: disable=protected-access
 
 
@@ -17,6 +16,7 @@ async def test_giga_channel_component(tribler_config):
                   GigaChannelComponent()]
     async with Session(tribler_config, components) as session:
         comp = session.get_instance(GigaChannelComponent)
-        assert comp.started_event.is_set() and not comp.failed
+        assert comp.started_event.is_set()
+        assert not comp.failed
         assert comp.community
         assert comp._ipv8_component

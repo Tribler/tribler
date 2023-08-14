@@ -5,7 +5,7 @@ from ipv8.requestcache import NumberCache, RandomNumberCache
 
 class BalanceRequestCache(NumberCache):
 
-    def __init__(self, community, circuit_id, balance_future):
+    def __init__(self, community, circuit_id, balance_future) -> None:
         super().__init__(community.request_cache, "balance-request", circuit_id)
         self.circuit_id = circuit_id
         self.balance_future = balance_future
@@ -17,7 +17,7 @@ class BalanceRequestCache(NumberCache):
 
 class HTTPRequestCache(RandomNumberCache):
 
-    def __init__(self, community, circuit_id):
+    def __init__(self, community, circuit_id) -> None:
         super().__init__(community.request_cache, "http-request")
         self.circuit_id = circuit_id
         self.response = {}

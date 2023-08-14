@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from ipv8.community import Community
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy, EdgeWalk
+
+if TYPE_CHECKING:
+    from ipv8.community import Community
 
 
 class DiscoveryBooster:
-    """This class is designed for increasing the speed of peers' discovery during a limited time.
+    """
+    This class is designed for increasing the speed of peers' discovery during a limited time.
 
     It can be applied to any community.
     """
@@ -15,13 +19,14 @@ class DiscoveryBooster:
     # fmt: off
 
     def __init__(self, timeout_in_sec: float = 120.0, take_step_interval_in_sec: float = 0.5,
-                 walker: DiscoveryStrategy = None):
+                 walker: DiscoveryStrategy = None) -> None:
         """
 
         Args:
+        ----
             timeout_in_sec: DiscoveryBooster work timeout. When this timeout will be reached,
                 `finish` function will be called.
-            take_step_interval_in_sec: Сall frequency of walker's `take_step` function.
+            take_step_interval_in_sec: Call frequency of walker's `take_step` function.
             walker: walker that will be used during boost period.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -35,9 +40,11 @@ class DiscoveryBooster:
         self._take_step_task_name = 'take step'
 
     def apply(self, community: Community):
-        """Apply DiscoveryBooster to the community
+        """
+        Apply DiscoveryBooster to the community.
 
         Args:
+        ----
             community: community to implement DiscoveryBooster
 
         Returns: None
@@ -59,7 +66,8 @@ class DiscoveryBooster:
         community.register_task('finish', self.finish, delay=self.timeout_in_sec)
 
     def finish(self):
-        """Finish DiscoveryBooster work.
+        """
+        Finish DiscoveryBooster work.
 
         This function returns defaults max_peers to the community.
 
@@ -71,7 +79,8 @@ class DiscoveryBooster:
         self.community.cancel_pending_task(self._take_step_task_name)
 
     def take_step(self):
-        """Take a step by invoke `walker.take_step()`
+        """
+        Take a step by invoke `walker.take_step()`.
 
         Will be called automatically from community's task manager.
 

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def is_android():
     """
     This functions checks whether Tribler is running on Android or not,
-    using the system platform name and OS environment variable ANDROID_PRIVATE
+    using the system platform name and OS environment variable ANDROID_PRIVATE.
 
     :return: boolean True if running on Android. False otherwise.
     """
@@ -77,11 +77,7 @@ if sys.platform == "win32":
             # pylint: disable-msg=E1101
             winversion = sys.getwindowsversion()
             # pylint: enable-msg=E1101
-            if winversion[0] == 6:
-                appdir = homedir / "AppData" / "Roaming"
-            else:
-                appdir = homedir / "Application Data"
-            return appdir
+            return homedir / 'AppData' / 'Roaming' if winversion[0] == 6 else homedir / 'Application Data'
 
 
         def get_picture_dir():
@@ -138,9 +134,10 @@ invalidlinuxfilenamechars = '/'
 
 
 def fix_filebasename(name, unit=False, maxlen=255):
-    """Check if str is a valid Windows file name (or unit name if unit is true)
+    """
+    Check if str is a valid Windows file name (or unit name if unit is true)
     * If the filename isn't valid: returns a corrected name
-    * If the filename is valid: returns the filename
+    * If the filename is valid: returns the filename.
     """
     if isinstance(name, Path):
         name = str(name)

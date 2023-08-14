@@ -13,7 +13,6 @@ from ipaddress import AddressValueError, IPv4Address
 
 from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager
-
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -92,7 +91,7 @@ def make_config(options) -> TriblerConfig:
 
 class TunnelHelperService(TaskManager):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._stopping = False
         self.log_circuits = False
@@ -106,7 +105,7 @@ class TunnelHelperService(TaskManager):
 
     def tribler_started(self):
         async def signal_handler(sig):
-            print(f"Received shut down signal {sig}")  # noqa: T001
+            print(f"Received shut down signal {sig}")
             await self.stop()
 
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))

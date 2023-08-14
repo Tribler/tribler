@@ -1,29 +1,34 @@
 from __future__ import annotations
 
-from asyncio import Future
 from binascii import unhexlify
 from random import Random
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 
 from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
-from ipv8.types import Address
 
 from tribler.core.components.bandwidth_accounting.community.cache import BandwidthTransactionSignCache
 from tribler.core.components.bandwidth_accounting.community.payload import (
     BandwidthTransactionPayload,
     BandwidthTransactionQueryPayload,
 )
-from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.db.transaction import EMPTY_SIGNATURE, BandwidthTransactionData
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.utilities.unicode import hexlify
+
+if TYPE_CHECKING:
+    from asyncio import Future
+
+    from ipv8.types import Address
+
+    from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 
 
 class BandwidthAccountingCommunity(TriblerCommunity):
     """
     Community around bandwidth accounting and payouts.
     """
+
     community_id = unhexlify('79b25f2867739261780faefede8f25038de9975d')
     DB_NAME = 'bandwidth'
     version = b'\x02'
@@ -202,5 +207,6 @@ class BandwidthAccountingTestnetCommunity(BandwidthAccountingCommunity):
     """
     This community defines the testnet for bandwidth accounting.
     """
+
     DB_NAME = 'bandwidth_testnet'
     community_id = unhexlify('e7de42f46f9ef225f4a5fc32ed0a0ce9a8ea4af6')

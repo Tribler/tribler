@@ -1,6 +1,7 @@
 import asyncio
 from asyncio import CancelledError, wait_for
 from pathlib import Path
+from typing import Optional
 
 from ipv8.taskmanager import TaskManager, task
 from pony.orm import db_session
@@ -30,11 +31,11 @@ class GigaChannelManager(TaskManager):
 
     def __init__(
             self,
-            state_dir: Path = None,
+            state_dir: Optional[Path] = None,
             metadata_store: MetadataStore = None,
             notifier: Notifier = None,
             download_manager: DownloadManager = None,
-    ):
+    ) -> None:
         super().__init__()
         self.notifier = notifier
         self.download_manager = download_manager
@@ -51,7 +52,6 @@ class GigaChannelManager(TaskManager):
         The Metadata Store checks the database at regular intervals to see if new channels are available for preview
         or subscribed channels require updating.
         """
-
         self.register_task("Check and regen personal channels", self.check_and_regen_personal_channels)
 
         channels_check_interval = 5.0  # seconds
@@ -125,7 +125,7 @@ class GigaChannelManager(TaskManager):
         subscribed to (i.e. we recently unsubscribed from these). The unsubscribed channels are removed completely
         with their contents, while in the case of older versions the files are left in place because the newer version
         possibly uses them.
-        :return: list of tuples (download_to_remove=download, remove_files=Bool)
+        :return: list of tuples (download_to_remove=download, remove_files=Bool).
         """
         with db_session:
             # FIXME: if someone is subscribed to more than 1000 channels, they are in trouble...
@@ -218,7 +218,6 @@ class GigaChannelManager(TaskManager):
         """
         :param to_remove: a tuple (download_to_remove=download, remove_files=Bool)
         """
-
         # TODO: make file removal from older versions safe (i.e. check if it overlaps with newer downloads)
 
         d, remove_content = to_remove
@@ -233,19 +232,18 @@ class GigaChannelManager(TaskManager):
         Download a channel with a given infohash and title.
         :param channel: The channel metadata ORM object.
         """
-
         metainfo = await self.download_manager.get_metainfo(bytes(channel.infohash), timeout=60, hops=0)
         if metainfo is None:
             # Timeout looking for the channel metainfo. Probably, there are no seeds.
             # TODO: count the number of tries we had with the channel, so we can stop trying eventually
-            return
+            return None
         try:
             if metainfo[b'info'][b'name'].decode('utf-8') != channel.dirname:
                 # Malformed channel
                 # TODO: stop trying to download this channel until it is updated with a new infohash
-                return
+                return None
         except (KeyError, TypeError):
-            return
+            return None
 
         dcfg = DownloadConfig(state_dir=self.state_dir)
         dcfg.set_dest_dir(self.mds.channels_dir)
@@ -294,6 +292,7 @@ class GigaChannelManager(TaskManager):
             dcfg.set_dest_dir(self.mds.channels_dir)
             dcfg.set_channel_download(True)
             return self.download_manager.start_download(tdef=tdef, config=dcfg)
+        return None
 
     @db_session
     def clean_unsubscribed_channels(self):

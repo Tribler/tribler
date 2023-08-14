@@ -3,10 +3,10 @@ from unittest.mock import Mock
 import pytest
 
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus, UPLOAD
+from tribler.core.utilities.simpledefs import DOWNLOAD, UPLOAD, DownloadStatus
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_tdef():
     mocked_tdef = Mock()
     mocked_tdef.get_name = lambda: "test"
@@ -14,7 +14,7 @@ def mock_tdef():
     return mocked_tdef
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_download(mock_tdef):
     mock_download = Mock()
     mock_download.get_def = lambda: mock_tdef
@@ -23,9 +23,9 @@ def mock_download(mock_tdef):
 
 def test_getters_setters_1(mock_download):
     """
-    Testing various getters and setters in DownloadState
+    Testing various getters and setters in DownloadState.
     """
-    mock_download.get_peerlist = lambda: []
+    mock_download.get_peerlist = list
     mock_download.dlmgr.tunnel_community.get_candidates = lambda _: []
     mock_download.config.get_hops = lambda: 0
     download_state = DownloadState(mock_download, None, None)
@@ -41,7 +41,7 @@ def test_getters_setters_1(mock_download):
 
 def test_getters_setters_2(mock_download, mock_lt_status):
     """
-    Testing various getters and setters in DownloadState
+    Testing various getters and setters in DownloadState.
     """
     download_state = DownloadState(mock_download, mock_lt_status, None)
 
@@ -69,7 +69,7 @@ def test_getters_setters_2(mock_download, mock_lt_status):
 
 def test_get_files_completion(mock_download, mock_tdef):
     """
-    Testing whether the right completion of files is returned
+    Testing whether the right completion of files is returned.
     """
     mock_tdef.get_files_with_length = lambda: [("test.txt", 100)]
 
@@ -84,7 +84,7 @@ def test_get_files_completion(mock_download, mock_tdef):
     assert download_state.get_files_completion() == [('test.txt', 0.0)]
     handle.file_progress = lambda **_: [100]
     assert download_state.get_files_completion() == [('test.txt', 1.0)]
-    mock_tdef.get_files_with_length = lambda: []
+    mock_tdef.get_files_with_length = list
     handle.file_progress = lambda **_: []
     assert download_state.get_files_completion() == []
 
@@ -101,12 +101,12 @@ def test_get_files_completion(mock_download, mock_tdef):
 
 def test_get_availability(mock_download):
     """
-    Testing whether the right availability of a file is returned
+    Testing whether the right availability of a file is returned.
     """
     mock_ltstate = Mock()
     mock_ltstate.pieces = [True]
     download_state = DownloadState(mock_download, mock_ltstate, 0.6)
-    download_state.get_peerlist = lambda: []
+    download_state.get_peerlist = list
 
     assert download_state.get_availability() == 0
     download_state.get_peerlist = lambda: [{'completed': 1.0}]

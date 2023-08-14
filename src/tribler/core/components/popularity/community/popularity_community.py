@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from binascii import unhexlify
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from ipv8.lazy_community import lazy_wrapper
 from pony.orm import db_session
@@ -31,13 +31,14 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     Gossiping is for checked torrents only.
     """
+
     GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS = 5  # seconds
     GOSSIP_POPULAR_TORRENT_COUNT = 10
     GOSSIP_RANDOM_TORRENT_COUNT = 10
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, *args, torrent_checker=None, **kwargs):
+    def __init__(self, *args, torrent_checker=None, **kwargs) -> None:
         # Creating a separate instance of Network for this community to find more peers
         super().__init__(*args, **kwargs)
         self.torrent_checker: TorrentChecker = torrent_checker
@@ -115,9 +116,8 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         num_torrents_to_send = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, num_torrents)
         likely_popular_indices = self._get_likely_popular_indices(num_torrents_to_send, num_torrents)
 
-        sorted_torrents = sorted(list(checked_and_alive), key=lambda health: -health.seeders)
-        likely_popular_torrents = [sorted_torrents[i] for i in likely_popular_indices]
-        return likely_popular_torrents
+        sorted_torrents = sorted(checked_and_alive, key=lambda health: -health.seeders)
+        return [sorted_torrents[i] for i in likely_popular_indices]
 
     def _get_likely_popular_indices(self, size, limit) -> List[int]:
         """
@@ -139,5 +139,4 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         num_torrents = len(checked_and_alive)
         num_torrents_to_send = min(PopularityCommunity.GOSSIP_RANDOM_TORRENT_COUNT, num_torrents)
 
-        random_torrents = random.sample(checked_and_alive, num_torrents_to_send)
-        return random_torrents
+        return random.sample(checked_and_alive, num_torrents_to_send)

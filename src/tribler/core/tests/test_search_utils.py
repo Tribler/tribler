@@ -2,9 +2,16 @@ import time
 from collections import deque
 
 import pytest
-
-from tribler.core.utilities.search_utils import filter_keywords, find_word_and_rotate_title, freshness_rank, \
-    item_rank, seeders_rank, split_into_keywords, title_rank, torrent_rank
+from tribler.core.utilities.search_utils import (
+    filter_keywords,
+    find_word_and_rotate_title,
+    freshness_rank,
+    item_rank,
+    seeders_rank,
+    split_into_keywords,
+    title_rank,
+    torrent_rank,
+)
 
 DAY = 60 * 60 * 24
 
@@ -148,13 +155,13 @@ def test_title_rank():
 
 
 def test_item_rank():
-    item = dict(name="abc", num_seeders=10, num_leechers=20, created=time.time() - 10 * DAY)
+    item = {"name": "abc", "num_seeders": 10, "num_leechers": 20, "created": time.time() - 10 * DAY}
     assert item_rank("abc", item) == pytest.approx(0.88794642)  # Torrent created ten days ago
 
-    item = dict(name="abc", num_seeders=10, num_leechers=20, created=0)
+    item = {"name": "abc", "num_seeders": 10, "num_leechers": 20, "created": 0}
     assert item_rank("abc", item) == pytest.approx(0.81964285)  # Torrent creation date is unknown
 
-    item = dict(name="abc", num_seeders=10, num_leechers=20)
+    item = {"name": "abc", "num_seeders": 10, "num_leechers": 20}
     assert item_rank("abc", item) == pytest.approx(0.81964285)  # Torrent creation date is unknown
 
 
@@ -166,44 +173,62 @@ def test_find_word():
 
     # Example 1, query "A B C", title "A B C"
     title = deque(["A", "B", "C"])
-    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["B", "C"])
-    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["C"])
-    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque([])
+    assert find_word_and_rotate_title("A", title) == (True, 0)
+    assert title == deque(["B", "C"])
+    assert find_word_and_rotate_title("B", title) == (True, 0)
+    assert title == deque(["C"])
+    assert find_word_and_rotate_title("C", title) == (True, 0)
+    assert title == deque([])
     # Conclusion: exact match.
 
     # Example 2, query "A B C", title "A B C D"
     title = deque(["A", "B", "C", "D"])
-    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["B", "C", "D"])
-    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["C", "D"])
-    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque(["D"])
+    assert find_word_and_rotate_title("A", title) == (True, 0)
+    assert title == deque(["B", "C", "D"])
+    assert find_word_and_rotate_title("B", title) == (True, 0)
+    assert title == deque(["C", "D"])
+    assert find_word_and_rotate_title("C", title) == (True, 0)
+    assert title == deque(["D"])
     # Conclusion: minor penalty for one excess word in the title that is not in the query.
 
     # Example 3, query "A B C", title "X Y A B C"
     title = deque(["X", "Y", "A", "B", "C"])
-    assert find_word_and_rotate_title("A", title) == (True, 2) and title == deque(["B", "C", "X", "Y"])
-    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["C", "X", "Y"])
-    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque(["X", "Y"])
+    assert find_word_and_rotate_title("A", title) == (True, 2)
+    assert title == deque(["B", "C", "X", "Y"])
+    assert find_word_and_rotate_title("B", title) == (True, 0)
+    assert title == deque(["C", "X", "Y"])
+    assert find_word_and_rotate_title("C", title) == (True, 0)
+    assert title == deque(["X", "Y"])
     # Conclusion: major penalty for skipping two words at the beginning of the title plus a minor penalty for two
     # excess words in the title that are not in the query.
 
     # Example 4, query "A B C", title "A B X Y C"
     title = deque(["A", "B", "X", "Y", "C"])
-    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["B", "X", "Y", "C"])
-    assert find_word_and_rotate_title("B", title) == (True, 0) and title == deque(["X", "Y", "C"])
-    assert find_word_and_rotate_title("C", title) == (True, 2) and title == deque(["X", "Y"])
+    assert find_word_and_rotate_title("A", title) == (True, 0)
+    assert title == deque(["B", "X", "Y", "C"])
+    assert find_word_and_rotate_title("B", title) == (True, 0)
+    assert title == deque(["X", "Y", "C"])
+    assert find_word_and_rotate_title("C", title) == (True, 2)
+    assert title == deque(["X", "Y"])
     # Conclusion: average penalty for skipping two words in the middle of the title plus a minor penalty for two
     # excess words in the title that are not in the query.
 
     # Example 5, query "A B C", title "A C B"
     title = deque(["A", "C", "B"])
-    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["C", "B"])
-    assert find_word_and_rotate_title("B", title) == (True, 1) and title == deque(["C"])
-    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque([])
+    assert find_word_and_rotate_title("A", title) == (True, 0)
+    assert title == deque(["C", "B"])
+    assert find_word_and_rotate_title("B", title) == (True, 1)
+    assert title == deque(["C"])
+    assert find_word_and_rotate_title("C", title) == (True, 0)
+    assert title == deque([])
     # Conclusion: average penalty for skipping one word in the middle of the title.
 
     # Example 6, query "A B C", title "A C X"
     title = deque(["A", "C", "X"])
-    assert find_word_and_rotate_title("A", title) == (True, 0) and title == deque(["C", "X"])
-    assert find_word_and_rotate_title("B", title) == (False, 0) and title == deque(["C", "X"])
-    assert find_word_and_rotate_title("C", title) == (True, 0) and title == deque(["X"])
+    assert find_word_and_rotate_title("A", title) == (True, 0)
+    assert title == deque(["C", "X"])
+    assert find_word_and_rotate_title("B", title) == (False, 0)
+    assert title == deque(["C", "X"])
+    assert find_word_and_rotate_title("C", title) == (True, 0)
+    assert title == deque(["X"])
     # Conclusion: huge penalty for missing one query word plus a minor penalty for one excess title word.

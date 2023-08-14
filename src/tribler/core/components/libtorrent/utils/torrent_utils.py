@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def check_handle(default=None):
     """
     Return the libtorrent handle if it's available, else return the default value.
-    Author(s): Egbert Bouman
+    Author(s): Egbert Bouman.
     """
 
     def wrap(f):
@@ -32,7 +32,7 @@ def check_handle(default=None):
 def require_handle(func):
     """
     Invoke the function once the handle is available. Returns a future that will fire once the function has completed.
-    Author(s): Egbert Bouman
+    Author(s): Egbert Bouman.
     """
     def invoke_func(*args, **kwargs):
         result_future = Future()
@@ -58,7 +58,7 @@ def require_handle(func):
 
 def check_vod(default=None):
     """
-    Check if torrent is vod mode, else return default
+    Check if torrent is vod mode, else return default.
     """
 
     def wrap(f):
@@ -105,10 +105,7 @@ def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], to
         relative = path.relative_to(base_dir)
         fs.add_file(str(relative), path.size())
 
-    if params.get(b'piece length'):
-        piece_size = params[b'piece length']
-    else:
-        piece_size = 0
+    piece_size = params[b'piece length'] if params.get(b'piece length') else 0
 
     flags = lt.create_torrent_flags_t.optimize
 
@@ -144,9 +141,8 @@ def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], to
 
     # Web seeding
     # http://www.bittorrent.org/beps/bep_0019.html
-    if len(file_path_list) == 1:
-        if params.get(b'urllist', False):
-            torrent.add_url_seed(params[b'urllist'])
+    if len(file_path_list) == 1 and params.get(b'urllist', False):
+        torrent.add_url_seed(params[b'urllist'])
 
     # read the files and calculate the hashes
     lt.set_piece_hashes(torrent, str(base_dir))

@@ -3,7 +3,8 @@ from typing import List, Optional, Union
 
 from pony.orm import Database, count, db_session, desc, select
 
-from tribler.core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
+from tribler.core.components.bandwidth_accounting.db import history, misc
+from tribler.core.components.bandwidth_accounting.db import transaction as db_transaction
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler.core.utilities.utilities import MEMORY_DB
 
@@ -12,6 +13,7 @@ class BandwidthDatabase:
     """
     Simple database that stores bandwidth transactions in Tribler as a work graph.
     """
+
     CURRENT_DB_VERSION = 9
     MAX_HISTORY_ITEMS = 100  # The maximum number of history items to store.
 

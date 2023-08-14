@@ -23,7 +23,7 @@ class HealthInfo:
     last_check: int = field(default_factory=lambda: int(time.time()))
     self_checked: bool = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         infohash_repr = hexlify(self.infohash[:4])
         status = self._last_check_repr(self.last_check)
         if status == 'just checked' and self.self_checked:

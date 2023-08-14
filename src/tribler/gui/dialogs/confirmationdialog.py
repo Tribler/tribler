@@ -12,7 +12,7 @@ from tribler.gui.widgets.ellipsebutton import EllipseButton
 class ConfirmationDialog(DialogContainer):
     button_clicked = pyqtSignal(int)
 
-    def __init__(self, parent, title, main_text, buttons, show_input=False, checkbox_text=None):
+    def __init__(self, parent, title, main_text, buttons, show_input=False, checkbox_text=None) -> None:
         DialogContainer.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('buttonsdialog.ui'), self.dialog_widget)

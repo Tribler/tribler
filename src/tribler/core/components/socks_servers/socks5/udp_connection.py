@@ -8,7 +8,7 @@ from tribler.core.components.socks_servers.socks5.conversion import UdpPacket, s
 
 class SocksUDPConnection(DatagramProtocol):
 
-    def __init__(self, socksconnection, remote_udp_address):
+    def __init__(self, socksconnection, remote_udp_address) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksconnection = socksconnection
         self.transport = None

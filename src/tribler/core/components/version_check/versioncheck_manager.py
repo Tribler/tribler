@@ -18,7 +18,7 @@ class VersionCheckManager(TaskManager):
                     'https://api.github.com/repos/tribler/tribler/releases/latest']  # Fallback GitHub API
 
     def __init__(self, notifier: Notifier, check_interval: int = six_hours, request_timeout: int = 5,
-                 urls: List[str] = None):
+                 urls: Optional[List[str]] = None) -> None:
         super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -46,6 +46,7 @@ class VersionCheckManager(TaskManager):
         for version_check_url in self.urls:
             if result := await self._request_new_version(version_check_url):
                 return result
+        return None
 
     async def _request_new_version(self, version_check_url: str) -> Optional[ClientResponse]:
         try:
@@ -64,6 +65,7 @@ class VersionCheckManager(TaskManager):
             if LooseVersion(version) > LooseVersion(version_id):
                 self.notifier[notifications.tribler_new_version](version)
                 return response
+            return None
 
     @staticmethod
     def _get_user_agent_string(tribler_version, platform_module):
@@ -73,7 +75,6 @@ class VersionCheckManager(TaskManager):
         python_version = platform_module.python_version()  # like '3.9.1'
         program_achitecture = platform_module.architecture()[0]  # like '64bit'
 
-        user_agent = f'Tribler/{tribler_version} ' \
+        return f'Tribler/{tribler_version} ' \
                      f'(machine={machine}; os={os_name} {os_release}; ' \
                      f'python={python_version}; executable={program_achitecture})'
-        return user_agent

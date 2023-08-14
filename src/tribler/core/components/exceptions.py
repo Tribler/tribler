@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Set, TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, Set, Type
 
 if TYPE_CHECKING:
     from tribler.core.components.component import Component
@@ -11,14 +11,14 @@ class ComponentError(Exception):
 
 
 class ComponentStartupException(ComponentError):
-    def __init__(self, component: Component, cause: Exception):
+    def __init__(self, component: Component, cause: Exception) -> None:
         super().__init__(component.__class__.__name__)
         self.component = component
         self.__cause__ = cause
 
 
 class MissedDependency(ComponentError):
-    def __init__(self, component: Component, dependency: Type[Component]):
+    def __init__(self, component: Component, dependency: Type[Component]) -> None:
         msg = f'Missed dependency: {component.__class__.__name__} requires {dependency.__name__} to be active'
         super().__init__(msg)
         self.component = component
@@ -26,7 +26,7 @@ class MissedDependency(ComponentError):
 
 
 class MultipleComponentsFound(ComponentError):
-    def __init__(self, comp_cls: Type[Component], candidates: Set[Component]):
+    def __init__(self, comp_cls: Type[Component], candidates: Set[Component]) -> None:
         msg = f'Found multiple subclasses for the class {comp_cls}. Candidates are: {candidates}.'
         super().__init__(msg)
 

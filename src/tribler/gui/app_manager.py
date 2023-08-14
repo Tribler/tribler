@@ -7,7 +7,7 @@ from tribler.gui.utilities import connect
 
 class AppManager:
     """
-    A helper class that calls QApplication.quit()
+    A helper class that calls QApplication.quit().
 
     You should never call `QApplication.quit()` directly. Call `app_manager.quit_application()` instead.
     It is necessary to avoid runtime errors like "wrapped C/C++ object of type ... has been deleted".
@@ -17,7 +17,7 @@ class AppManager:
     inside the signal handler to be sure that it is still safe to access Qt objects.
     """
 
-    def __init__(self, app: Optional[QApplication] = None):
+    def __init__(self, app: Optional[QApplication] = None) -> None:
         self.quitting_app = False
         if app is not None:
             # app can be None in tests where Qt application is not created

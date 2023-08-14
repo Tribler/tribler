@@ -4,16 +4,16 @@ from asyncio import Protocol, ensure_future
 from ipv8.messaging.serialization import PackError
 
 from tribler.core.components.socks_servers.socks5.conversion import (
-    CommandRequest,
-    CommandResponse,
-    MethodsRequest,
-    MethodsResponse,
     REP_COMMAND_NOT_SUPPORTED,
     REP_SUCCEEDED,
     REQ_CMD_BIND,
     REQ_CMD_CONNECT,
     REQ_CMD_UDP_ASSOCIATE,
     SOCKS_VERSION,
+    CommandRequest,
+    CommandResponse,
+    MethodsRequest,
+    MethodsResponse,
     socks5_serializer,
 )
 from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDPConnection
@@ -21,7 +21,7 @@ from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDP
 
 class ConnectionState:
     """
-    Enumeration of possible SOCKS5 connection states
+    Enumeration of possible SOCKS5 connection states.
     """
 
     BEFORE_METHOD_REQUEST = 'BEFORE_METHOD_REQUEST'
@@ -33,12 +33,12 @@ class ConnectionState:
 
 class Socks5Connection(Protocol):
     """
-    SOCKS5 TCP Connection handler
+    SOCKS5 TCP Connection handler.
 
     Supports a subset of the SOCKS5 protocol, no authentication and no support for TCP BIND requests
     """
 
-    def __init__(self, socksserver):
+    def __init__(self, socksserver) -> None:
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self._logger.setLevel(logging.WARNING)
@@ -78,7 +78,7 @@ class Socks5Connection(Protocol):
 
     def _try_handshake(self):
         """
-        Try to read a HANDSHAKE request
+        Try to read a HANDSHAKE request.
 
         :return: False if command could not been processes due to lack of bytes, True otherwise
         """
@@ -96,6 +96,7 @@ class Socks5Connection(Protocol):
             self._logger.error("Client has sent INVALID METHOD REQUEST")
             self.buffer = ''
             self.close()
+            return None
         else:
             self._logger.info("Client has sent METHOD REQUEST")
 
@@ -161,7 +162,7 @@ class Socks5Connection(Protocol):
     def deny_request(self, request, reason):
         """
         Deny SOCKS5 request
-        @param Request request: the request to deny
+        @param Request request: the request to deny.
         """
         self.state = ConnectionState.CONNECTED
 
@@ -186,7 +187,7 @@ class Socks5Connection(Protocol):
 
     def circuit_dead(self, broken_circuit):
         """
-        When a circuit breaks and it affects our operation we should re-add the peers when a new circuit is available
+        When a circuit breaks and it affects our operation we should re-add the peers when a new circuit is available.
 
         @param Circuit broken_circuit: the circuit that has been broken
         @return Set with destinations using this circuit

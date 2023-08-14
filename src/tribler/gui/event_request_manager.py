@@ -10,7 +10,7 @@ from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.utilities.notifier import Notifier
 from tribler.gui import gui_sentry_reporter
-from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
+from tribler.gui.exceptions import CoreConnectionError, CoreConnectTimeoutError
 from tribler.gui.utilities import connect, make_network_errors_dict
 
 received_events = []
@@ -35,7 +35,7 @@ class EventRequestManager(QNetworkAccessManager):
     change_loading_text = pyqtSignal(str)
     config_error_signal = pyqtSignal(str)
 
-    def __init__(self, api_port: Optional[int], api_key, error_handler):
+    def __init__(self, api_port: Optional[int], api_key, error_handler) -> None:
         QNetworkAccessManager.__init__(self)
         self.api_port = api_port
         self.api_key = api_key
@@ -97,7 +97,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.discovered_channel.emit(data)
 
     def on_torrent_finished(self, infohash: str, name: str, hidden: bool):
-        self.torrent_finished.emit(dict(infohash=infohash, name=name, hidden=hidden))
+        self.torrent_finished.emit({"infohash": infohash, "name": name, "hidden": hidden})
 
     def on_low_space(self, disk_usage_data: dict):
         self.low_storage_signal.emit(disk_usage_data)

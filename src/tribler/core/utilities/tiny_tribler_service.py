@@ -10,19 +10,24 @@ from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.osutils import get_root_state_directory
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
+from tribler.core.utilities.process_manager import (
+    ProcessKind,
+    ProcessManager,
+    TriblerProcess,
+    set_global_process_manager,
+)
 from tribler.core.utilities.utilities import make_async_loop_fragile
 
 
 class TinyTriblerService:
-    """Lightweight tribler service, that used for experiments.
+    """
+    Lightweight tribler service, that used for experiments.
 
     All overlays are disabled by default.
     """
 
     def __init__(self, components: Optional[List[Component]] = None, timeout_in_sec: Optional[int] = None,
-                 state_dir: Path = Path(tempfile.gettempdir())):
+                 state_dir: Path = Path(tempfile.gettempdir())) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.session = None
@@ -35,15 +40,18 @@ class TinyTriblerService:
         self._main_task = None
 
     async def on_tribler_started(self):
-        """Function will calls after the Tribler session is started
+        """
+        Function will calls after the Tribler session is started.
 
         It is good place to add a custom code.
         """
 
     def run(self, fragile: bool = False, check_already_running: bool = True):
-        """ Run the service
+        """
+        Run the service.
 
         Args:
+        ----
             fragile: if True, the loop will be made fragile (fail on a first exception)
             check_already_running: if True, verifies no other Tribler instance is running to prevent parallel
                 instances from writing to the same state directory or log files. It is necessary for components

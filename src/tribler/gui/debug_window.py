@@ -11,7 +11,7 @@ from typing import Dict
 import libtorrent
 import psutil
 from PyQt5 import QtGui, uic
-from PyQt5.QtCore import QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QTextCursor
 from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem
 
@@ -31,7 +31,7 @@ COLOR_WHITE_HEX = "#FFFFFF"
 
 
 class MemoryPlot(TimeSeriesPlot):
-    def __init__(self, parent, process='CPU', **kargs):
+    def __init__(self, parent, process='CPU', **kargs) -> None:
         series = [
             {'name': f'Memory ({process})', 'pen': COLOR_RGB_BLUE, 'symbolBrush': COLOR_RGB_BLUE, 'symbolPen': 'w'}
         ]
@@ -42,7 +42,7 @@ class MemoryPlot(TimeSeriesPlot):
 
 
 class CPUPlot(TimeSeriesPlot):
-    def __init__(self, parent, process='Core', **kargs):
+    def __init__(self, parent, process='Core', **kargs) -> None:
         series = [{'name': f'CPU ({process})', 'pen': COLOR_RGB_BLUE, 'symbolBrush': COLOR_RGB_BLUE, 'symbolPen': 'w'}]
         super().__init__(parent, f'CPU Usage ({process})', series, **kargs)
         self.setBackground(COLOR_WHITE_HEX)
@@ -58,7 +58,7 @@ class DebugWindow(QMainWindow):
 
     resize_event = pyqtSignal()
 
-    def __init__(self, settings, gui_settings, tribler_version):
+    def __init__(self, settings, gui_settings, tribler_version) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)
 
@@ -326,7 +326,7 @@ class DebugWindow(QMainWindow):
             timestamp = request.time
 
             item = QTreeWidgetItem(self.window().requests_tree_widget)
-            item.setText(0, f"{method} {repr(endpoint)} {repr(data)}")
+            item.setText(0, f"{method} {endpoint!r} {data!r}")
             item.setText(1, request.status_text)
             item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
@@ -359,7 +359,7 @@ class DebugWindow(QMainWindow):
             if key in ('total_up', 'total_down'):
                 value = f"{value / (1024.0 * 1024.0):.2f} MB"
             elif key == 'session_uptime':
-                value = f"{str(datetime.timedelta(seconds=int(value)))}"
+                value = f"{datetime.timedelta(seconds=int(value))!s}"
             self.create_and_add_widget_item(key, value, self.window().ipv8_general_tree_widget)
 
     def load_ipv8_communities_tab(self):
@@ -865,12 +865,12 @@ class DebugWindow(QMainWindow):
         key_content = 'content'
         key_max_lines = 'max_lines'
 
-        if not key_content in data or not data[key_content]:
+        if key_content not in data or not data[key_content]:
             log_display_widget.setPlainText('No logs found')
         else:
             log_display_widget.setPlainText(data[key_content])
 
-        if not key_max_lines in data or not data[key_max_lines]:
+        if key_max_lines not in data or not data[key_max_lines]:
             self.window().max_lines_value.setText('')
         else:
             self.window().max_lines_value.setText(str(data[key_max_lines]))

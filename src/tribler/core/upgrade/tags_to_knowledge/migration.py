@@ -15,7 +15,7 @@ from tribler.core.utilities.unicode import hexlify
 
 
 class MigrationTagsToKnowledge:
-    def __init__(self, state_dir: Path, key: LibNaCLSK):
+    def __init__(self, state_dir: Path, key: LibNaCLSK) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.key = key
@@ -49,7 +49,7 @@ class MigrationTagsToKnowledge:
             operations = list(self._read(tag_db, public_key))
             self._write(knowledge_db, operations)
         finally:
-            self.logger.info(f"Closing DB")
+            self.logger.info("Closing DB")
 
             if tag_db:
                 tag_db.shutdown()

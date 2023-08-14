@@ -1,8 +1,11 @@
 import pytest
-
-from tribler.core.components.knowledge.rules.rules_general_tags import delimiter_re, extension_re, general_rules, \
-    parentheses_re, \
-    square_brackets_re
+from tribler.core.components.knowledge.rules.rules_general_tags import (
+    delimiter_re,
+    extension_re,
+    general_rules,
+    parentheses_re,
+    square_brackets_re,
+)
 from tribler.core.components.knowledge.rules.tag_rules_base import (
     extract_tags,
 )
@@ -34,22 +37,22 @@ EXTENSIONS = [
 ]
 
 
-@pytest.mark.parametrize('text, words', DELIMITERS)
+@pytest.mark.parametrize(('text', 'words'), DELIMITERS)
 def test_delimiter(text, words):
     assert delimiter_re.findall(text) == words
 
 
-@pytest.mark.parametrize('text, words', SQUARE_BRACKETS)
+@pytest.mark.parametrize(('text', 'words'), SQUARE_BRACKETS)
 def test_square_brackets(text, words):
     assert square_brackets_re.findall(text) == words
 
 
-@pytest.mark.parametrize('text, words', PARENTHESES)
+@pytest.mark.parametrize(('text', 'words'), PARENTHESES)
 def test_parentheses(text, words):
     assert parentheses_re.findall(text) == words
 
 
-@pytest.mark.parametrize('text, words', EXTENSIONS)
+@pytest.mark.parametrize(('text', 'words'), EXTENSIONS)
 def test_extension(text, words):
     # test regex
     assert extension_re.findall(text) == words

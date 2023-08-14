@@ -57,7 +57,7 @@ def get_default_download_dir(home: Optional[Path] = None, tribler_downloads_name
     Could be one of:
         - TriblerDownloads
         - $HOME/Downloads/TriblerDownloads
-        - $HOME/TriblerDownloads
+        - $HOME/TriblerDownloads.
     """
     path = Path(tribler_downloads_name)
     if path.is_dir():

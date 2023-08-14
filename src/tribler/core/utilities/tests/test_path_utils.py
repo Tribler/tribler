@@ -4,7 +4,7 @@ from tribler.core.utilities.path_util import Path, tail
 
 
 # pylint: disable=redefined-outer-name
-@pytest.fixture
+@pytest.fixture()
 def tribler_tmp_path(tmp_path):
     return Path(tmp_path)
 
@@ -24,20 +24,20 @@ def test_normalize_to(tmpdir):
 
 
 def test_tail_no_file():
-    """Test that in the case of missed file, an exception raises"""
+    """Test that in the case of missed file, an exception raises."""
     with pytest.raises(FileNotFoundError):
         tail('missed_file.txt')
 
 
 def test_tail_small_file(tribler_tmp_path: Path):
-    """Test that tail works correct with a small file """
+    """Test that tail works correct with a small file."""
     log_file = tribler_tmp_path / 'log.txt'
     log_file.write_text('text', 'utf-8')
     assert tail(log_file) == 'text'
 
 
 def test_tail_count(tribler_tmp_path: Path):
-    """Test that tail returns desired count of lines"""
+    """Test that tail returns desired count of lines."""
     log_file = tribler_tmp_path / 'log.txt'
 
     # add 100 lines
@@ -54,7 +54,7 @@ def test_tail_count(tribler_tmp_path: Path):
 
 
 def test_tail_encodings(tribler_tmp_path: Path):
-    """Test that the `tail` function can read logs with "utf-8", "ascii", "latin-1" encodings """
+    """Test that the `tail` function can read logs with "utf-8", "ascii", "latin-1" encodings."""
     encodings = ["utf-8", "ascii", "latin-1"]
     log_files = []
 

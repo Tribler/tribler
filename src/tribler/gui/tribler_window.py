@@ -7,16 +7,18 @@ from base64 import b64encode
 from pathlib import Path
 from typing import Optional
 
+from psutil import LINUX
 from PyQt5 import QtCore, uic
 from PyQt5.QtCore import (
     QCoreApplication,
     QDir,
     QObject,
     QRect,
-    QSize, QStringListModel,
+    QSize,
+    QStringListModel,
+    Qt,
     QTimer,
     QUrl,
-    Qt,
     pyqtSignal,
     pyqtSlot,
 )
@@ -41,7 +43,6 @@ from PyQt5.QtWidgets import (
     QSystemTrayIcon,
     QTreeWidget,
 )
-from psutil import LINUX
 
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.network_utils import default_network_utils
@@ -119,13 +120,13 @@ from tribler.gui.widgets.triblertablecontrollers import (
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
 CHECKBOX_STYLESHEET = """
-    QCheckBox::indicator { width: 16px; height: 16px;}
-    QCheckBox::indicator:checked { image: url("%s"); }
-    QCheckBox::indicator:unchecked { image: url("%s"); }
-    QCheckBox::indicator:checked::disabled { image: url("%s"); }
-    QCheckBox::indicator:unchecked::disabled { image: url("%s"); }
-    QCheckBox::indicator:indeterminate { image: url("%s"); }
-""" % (
+    QCheckBox::indicator {{ width: 16px; height: 16px;}}
+    QCheckBox::indicator:checked {{ image: url("{}"); }}
+    QCheckBox::indicator:unchecked {{ image: url("{}"); }}
+    QCheckBox::indicator:checked::disabled {{ image: url("{}"); }}
+    QCheckBox::indicator:unchecked::disabled {{ image: url("{}"); }}
+    QCheckBox::indicator:indeterminate {{ image: url("{}"); }}
+""".format(
     get_image_path('toggle-checked.svg', convert_slashes_to_forward=True),
     get_image_path('toggle-unchecked.svg', convert_slashes_to_forward=True),
     get_image_path('toggle-checked-disabled.svg', convert_slashes_to_forward=True),
@@ -135,7 +136,7 @@ CHECKBOX_STYLESHEET = """
 
 
 class MagnetHandler(QObject):
-    def __init__(self, window):
+    def __init__(self, window) -> None:
         QObject.__init__(self)
         self.window = window
 
@@ -161,7 +162,7 @@ class TriblerWindow(QMainWindow):
             api_port: Optional[int] = None,
             api_key: Optional[str] = None,
             run_core=True,
-    ):
+    ) -> None:
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
         self.process_manager = process_manager
@@ -635,7 +636,7 @@ class TriblerWindow(QMainWindow):
 
         uri = self.pending_uri_requests.pop()
 
-        if uri.startswith('file') or uri.startswith('magnet'):
+        if uri.startswith(('file', 'magnet')):
             self.start_download_from_uri(uri)
 
     def update_recent_download_locations(self, destination):

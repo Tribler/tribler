@@ -9,7 +9,7 @@ class TriblerActionMenu(QMenu):
     Overrides QMenu to provide some custom CSS rules.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QMenu.__init__(self, parent)
 
         self.setStyleSheet(

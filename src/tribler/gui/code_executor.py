@@ -1,4 +1,5 @@
 import binascii
+import contextlib
 import logging
 import os
 import sys
@@ -20,12 +21,12 @@ class CodeExecutor:
     string: <code in base64 format> <task_id>\n
     This code will be executed and the result will be sent to the client in the following format:
     result <result> <task_id>\n.
-    If Tribler crashes, the server sends the following result: crash <stack trace in base64 format>
+    If Tribler crashes, the server sends the following result: crash <stack trace in base64 format>.
 
     Note that the socket uses the newline as separator.
     """
 
-    def __init__(self, port, shell_variables=None):
+    def __init__(self, port, shell_variables=None) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.port = port
         self.tcp_server = QTcpServer()
@@ -65,10 +66,9 @@ class CodeExecutor:
         self.logger.info(f"Run code for task {task_id}")
         self.logger.debug(f"Code for execution:\n{code}")
 
-        try:
+        with contextlib.suppress(SystemExit):
             self.shell.runcode(code)
-        except SystemExit:
-            pass
+
 
         if self.shell.last_traceback:
             self.on_crash(f'{self.shell.last_traceback}\n\ntask_id: {task_id!r}\ncode:\n{code}\n\n(end of code)')
@@ -112,7 +112,7 @@ class CodeExecutor:
 class Console(InteractiveConsole):
     last_traceback = None
 
-    def __init__(self, locals, logger):  # pylint: disable=redefined-builtin
+    def __init__(self, locals, logger) -> None:  # pylint: disable=redefined-builtin
         super().__init__(locals=locals)
         self.logger = logger
 

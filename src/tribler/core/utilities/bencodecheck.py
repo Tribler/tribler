@@ -8,7 +8,7 @@ def is_bencoded(x: bytes) -> bool:
 
 
 class BencodeChecker:
-    def __init__(self):
+    def __init__(self) -> None:
         self.check_func = {
             ord('l'): self.check_list,
             ord('i'): self.check_int,

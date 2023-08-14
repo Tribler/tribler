@@ -35,7 +35,7 @@ def pytest_configure(config):
 
 @pytest.hookimpl
 def pytest_cmdline_main(config: Config):
-    """ Enable extended logging if the verbose option is used """
+    """Enable extended logging if the verbose option is used."""
     # Called for performing the main command line action.
     global enable_extended_logging  # pylint: disable=global-statement
     enable_extended_logging = config.option.verbose > 0
@@ -43,7 +43,7 @@ def pytest_cmdline_main(config: Config):
 
 @pytest.hookimpl
 def pytest_collection_finish(session):
-    """ Save the start time of the test suite execution"""
+    """Save the start time of the test suite execution."""
     # Called after collection has been performed and modified.
     global pytest_start_time  # pylint: disable=global-statement
     pytest_start_time = datetime.now()
@@ -51,7 +51,7 @@ def pytest_collection_finish(session):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
-    """ Modify the pytest output to include the execution duration for all tests """
+    """Modify the pytest output to include the execution duration for all tests."""
     # Perform the runtest protocol for a single test item.
     if enable_extended_logging and pytest_start_time:
         start_time = datetime.now()
@@ -68,8 +68,10 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
 
 @pytest.fixture(autouse=True)
 def ensure_gc():
-    """ Ensure that the garbage collector runs after each test.
-    This is critical for test stability as we use Libtorrent and need to ensure all its destructors are called. """
+    """
+    Ensure that the garbage collector runs after each test.
+    This is critical for test stability as we use Libtorrent and need to ensure all its destructors are called.
+    """
     # For this fixture, it is necessary for it to be called as late as possible within the current test's scope.
     # Therefore it should be placed at the first place in the "function" scope.
     # If there are two or more autouse fixtures within this scope, the order should be explicitly set through using
@@ -88,12 +90,12 @@ def ensure_gc():
     gc.collect()
 
 
-@pytest.fixture
+@pytest.fixture()
 def free_port():
     return default_network_utils.get_random_free_port(start=1024, stop=50000)
 
 
-@pytest.fixture
+@pytest.fixture()
 def event_loop():
     if platform.system() == 'Windows':
         # to prevent the "Loop is closed" error
@@ -105,7 +107,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def rest_api(event_loop, aiohttp_client, endpoint: RESTEndpoint):
     # In each test file that requires the use of this fixture, the endpoint fixture needs to be specified.
     app = Application(middlewares=[error_middleware])

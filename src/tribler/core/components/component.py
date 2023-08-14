@@ -4,24 +4,24 @@ import logging
 import sys
 import time
 from asyncio import Event
-from typing import Optional, Set, TYPE_CHECKING, Type, Union
+from typing import TYPE_CHECKING, Set, Type
 
 from tribler.core.components.exceptions import ComponentStartupException, MissedDependency, NoneComponent
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
-from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 
 if TYPE_CHECKING:
     from tribler.core.components.session import Session, T
+    from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 
 
 class Component:
     tribler_should_stop_on_component_error = True
 
-    def __init__(self, reporter: Optional[SentryReporter] = None):
+    def __init__(self, reporter: SentryReporter | None = None) -> None:
         self.name = self.__class__.__name__
         self.logger = logging.getLogger(self.name)
         self.logger.info('__init__')
-        self.session: Optional[Session] = None
+        self.session: Session | None = None
         self.dependencies: Set[Component] = set()
         self.reverse_dependencies: Set[Component] = set()
         self.started_event = Event()
@@ -80,7 +80,8 @@ class Component:
         pass
 
     async def require_component(self, dependency: Type[T]) -> T:
-        """ Resolve the dependency to a component.
+        """
+        Resolve the dependency to a component.
         The method will wait the component to be initialised.
 
         Returns:    The component instance.
@@ -91,8 +92,9 @@ class Component:
             raise MissedDependency(self, dependency)
         return dep
 
-    async def get_component(self, dependency: Type[T]) -> Optional[T]:
-        """ Resolve the dependency to a component.
+    async def get_component(self, dependency: Type[T]) -> T | None:
+        """
+        Resolve the dependency to a component.
         The method will wait the component to be initialised.
 
         Returns:    The component instance.
@@ -115,9 +117,10 @@ class Component:
 
         return dep
 
-    async def maybe_component(self, dependency: Type[T]) -> Union[T, NoneComponent]:
-        """ This method returns instance of the dependency in case this instance can be created
-        otherwise it returns instance of NoneComponent class
+    async def maybe_component(self, dependency: Type[T]) -> T | NoneComponent:
+        """
+        This method returns instance of the dependency in case this instance can be created
+        otherwise it returns instance of NoneComponent class.
 
         Example of using:
 

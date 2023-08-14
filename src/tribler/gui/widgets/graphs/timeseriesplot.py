@@ -10,7 +10,7 @@ from tribler.gui.defs import BITTORRENT_BIRTHDAY
 
 class TimeSeriesPlot(pg.PlotWidget):
 
-    def __init__(self, parent, name, series, **kargs):
+    def __init__(self, parent, name, series, **kargs) -> None:
         axis_items = kargs.pop('axis_items', {'bottom': DateAxisItem('bottom')})
         super().__init__(parent=parent, title=name, axisItems=axis_items, **kargs)
         self.getPlotItem().showGrid(x=True, y=True)

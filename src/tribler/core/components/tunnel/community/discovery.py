@@ -15,7 +15,7 @@ class GoldenRatioStrategy(DiscoveryStrategy):
     the set golden ratio.
     """
 
-    def __init__(self, overlay, golden_ratio=9 / 16, target_peers=23):
+    def __init__(self, overlay, golden_ratio=9 / 16, target_peers=23) -> None:
         """
         Initialize the GoldenRatioStrategy.
 

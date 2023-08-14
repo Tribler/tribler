@@ -3,7 +3,7 @@ import pytest
 from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDPConnection
 
 
-@pytest.fixture
+@pytest.fixture()
 async def connection():
     connection = SocksUDPConnection(None, ("1.1.1.1", 1234))
     await connection.open()
@@ -13,9 +13,8 @@ async def connection():
 
 def test_datagram_received(connection):
     """
-    Test whether the right operations happen when a datagram is received
+    Test whether the right operations happen when a datagram is received.
     """
-
     # We don't support IPV6 data
     assert not connection.datagram_received(b'aaa\x04', ("1.1.1.1", 1234))
 
@@ -32,7 +31,7 @@ def test_datagram_received(connection):
 
 def test_send_diagram(connection):
     """
-    Test sending a diagram over the SOCKS5 UDP connection
+    Test sending a diagram over the SOCKS5 UDP connection.
     """
     assert connection.send_datagram(b'a')
     connection.remote_udp_address = None

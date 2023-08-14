@@ -134,14 +134,15 @@ def _parse_tracker_url(tracker_url):
 
 
 def add_url_params(url, params):
-    """ Add GET params to provided URL being aware of existing.
+    """
+    Add GET params to provided URL being aware of existing.
     :param url: string of target URL
     :param params: dict containing requested params to be added
     :return: string with updated URL
     >> url = 'http://stackoverflow.com/test?answers=true'
     >> new_params = {'answers': False, 'data': ['some','values']}
     >> add_url_params(url, new_params)
-    'http://stackoverflow.com/test?data=some&data=values&answers=false'
+    'http://stackoverflow.com/test?data=some&data=values&answers=false'.
     """
     # Unquoting URL first so we don't loose existing args
     url = unquote(url)
@@ -165,9 +166,8 @@ def add_url_params(url, params):
     encoded_get_args = urlencode(parsed_get_args, doseq=True)
     # Creating new parsed result object based on provided with new
     # URL arguments. Same thing happens inside of urlparse.
-    new_url = ParseResult(
+    return ParseResult(
         parsed_url.scheme, parsed_url.netloc, parsed_url.path,
         parsed_url.params, encoded_get_args, parsed_url.fragment
     ).geturl()
 
-    return new_url

@@ -30,7 +30,6 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import random_infohash
 
-
 # pylint: disable=protected-access,unused-argument
 
 
@@ -55,18 +54,18 @@ def make_wrong_payload(filename):
 
 SAMPLE_DIR = TESTS_DATA_DIR / 'sample_channel'
 # Just get the first and only subdir there, and assume it is the sample channel dir
-CHANNEL_DIR = [
+CHANNEL_DIR = next(
     SAMPLE_DIR / subdir
     for subdir in os.listdir(SAMPLE_DIR)
     if (SAMPLE_DIR / subdir).is_dir() and len(subdir) == CHANNEL_DIR_NAME_LENGTH
-][0]
+)
 CHANNEL_METADATA = TESTS_DATA_DIR / 'sample_channel' / 'channel.mdblob'
 
 
 @db_session
 def test_process_channel_dir_file(tmpdir, metadata_store):
     """
-    Test whether we are able to process files in a directory containing node metadata
+    Test whether we are able to process files in a directory containing node metadata.
     """
     test_node_metadata = metadata_store.TorrentMetadata(title='test', infohash=random_infohash())
     metadata_path = tmpdir / 'metadata.data'
@@ -150,7 +149,7 @@ def test_squash_mdblobs_multiple_chunks(metadata_store):
 @db_session
 def test_multiple_squashed_commit_and_read(metadata_store):
     """
-    Test committing entries into several squashed blobs and reading them back
+    Test committing entries into several squashed blobs and reading them back.
     """
     metadata_store.ChannelMetadata._CHUNK_SIZE_LIMIT = 500
 
@@ -179,7 +178,7 @@ def test_multiple_squashed_commit_and_read(metadata_store):
 @db_session
 def test_skip_processing_of_received_personal_channel_torrents(metadata_store):
     """
-    Test that personal torrent is ignored by default when processing the torrent metadata payload
+    Test that personal torrent is ignored by default when processing the torrent metadata payload.
     """
     channel = metadata_store.ChannelMetadata.create_channel('testchan')
     torrent_md = metadata_store.TorrentMetadata(
@@ -208,7 +207,7 @@ def test_skip_processing_of_received_personal_channel_torrents(metadata_store):
 @db_session
 def test_skip_processing_mdblob_with_forbidden_terms(metadata_store):
     """
-    Test that an mdblob with forbidden terms cannot ever get into the local database
+    Test that an mdblob with forbidden terms cannot ever get into the local database.
     """
     key = default_eccrypto.generate_key("curve25519")
     chan_entry = metadata_store.ChannelMetadata(title="12yo", infohash=random_infohash(), sign_with=key)
@@ -220,7 +219,7 @@ def test_skip_processing_mdblob_with_forbidden_terms(metadata_store):
 @db_session
 def test_process_invalid_compressed_mdblob(metadata_store):
     """
-    Test whether processing an invalid compressed mdblob does not crash Tribler
+    Test whether processing an invalid compressed mdblob does not crash Tribler.
     """
     assert not metadata_store.process_compressed_mdblob(b"abcdefg")
 
@@ -228,7 +227,7 @@ def test_process_invalid_compressed_mdblob(metadata_store):
 @db_session
 def test_process_channel_dir(metadata_store):
     """
-    Test processing a directory containing metadata blobs
+    Test processing a directory containing metadata blobs.
     """
     payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA)
     channel = metadata_store.process_payload(payload)[0].md_obj
@@ -242,7 +241,7 @@ def test_process_channel_dir(metadata_store):
 @db_session
 def test_compute_channel_update_progress(metadata_store, tmpdir):
     """
-    Test estimating progress of channel processing
+    Test estimating progress of channel processing.
     """
     payload = ChannelMetadataPayload.from_file(CHANNEL_METADATA_UPDATED)
     channel = metadata_store.process_payload(payload)[0].md_obj
@@ -296,7 +295,7 @@ def test_process_payload(metadata_store):
 def test_process_payload_ffa(metadata_store):
     infohash = b"1" * 20
     ffa_title = "abcabc"
-    ffa_torrent = metadata_store.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title=ffa_title))
+    ffa_torrent = metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": infohash, "title": ffa_title})
     ffa_payload = metadata_store.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
     ffa_torrent.delete()
 
@@ -387,7 +386,7 @@ def test_process_payload_reject_older(metadata_store):
 def test_process_payload_reject_older_entry(metadata_store):
     """
     Test rejecting and returning LOCAL_VERSION_NEWER upon receiving an older version
-    of an already known metadata entry
+    of an already known metadata entry.
     """
     key = default_eccrypto.generate_key("curve25519")
     torrent_old = metadata_store.TorrentMetadata(

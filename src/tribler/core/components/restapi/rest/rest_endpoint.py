@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from aiohttp import web
 
@@ -10,8 +10,9 @@ from tribler.core.components.restapi.rest.aiohttp_patch import patch_make_reques
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 if TYPE_CHECKING:
-    from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
     from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+
+    from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
 
 patch_make_request(web.Application)
 
@@ -27,7 +28,7 @@ MAX_REQUEST_SIZE = 16 * 1024 ** 2  # 16 MB
 class RESTEndpoint:
     path = ''
 
-    def __init__(self, middlewares=()):
+    def __init__(self, middlewares=()) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.app = web.Application(middlewares=middlewares, client_max_size=MAX_REQUEST_SIZE)
         self.endpoints: Dict[str, RESTEndpoint] = {}
@@ -59,9 +60,9 @@ class RESTEndpoint:
 
 class RESTResponse(web.Response):
 
-    def __init__(self, body=None, headers=None, content_type=None, status=200, **kwargs):
+    def __init__(self, body=None, headers=None, content_type=None, status=200, **kwargs) -> None:
         if not isinstance(status, int):
-            status = getattr(status, 'status_code')
+            status = status.status_code
         if isinstance(body, (dict, list)):
             body = json.dumps(body)
             content_type = 'application/json'
@@ -70,5 +71,5 @@ class RESTResponse(web.Response):
 
 class RESTStreamResponse(web.StreamResponse):
 
-    def __init__(self, headers=None, **kwargs):
+    def __init__(self, headers=None, **kwargs) -> None:
         super().__init__(headers=headers, **kwargs)

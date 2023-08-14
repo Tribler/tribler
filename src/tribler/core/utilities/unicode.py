@@ -9,7 +9,8 @@ import chardet
 
 
 def ensure_unicode(s, encoding, errors='strict'):
-    """Similar to six.ensure_text() except that the encoding parameter is *not* optional
+    """
+    Similar to six.ensure_text() except that the encoding parameter is *not* optional.
     """
     if isinstance(s, bytes):
         return s.decode(encoding, errors)
@@ -20,7 +21,8 @@ def ensure_unicode(s, encoding, errors='strict'):
 
 
 def ensure_unicode_detect_encoding(s):
-    """Similar to ensure_unicode() but use chardet to detect the encoding
+    """
+    Similar to ensure_unicode() but use chardet to detect the encoding.
     """
     if isinstance(s, bytes):
         try:
@@ -38,7 +40,7 @@ def recursive_unicode(obj, ignore_errors=False):
     """
     Converts any bytes within a data structure to unicode strings. Bytes are assumed to be UTF-8 encoded text.
     :param obj: object comprised of lists/dicts/strings/bytes
-    :return: obj: object comprised of lists/dicts/strings
+    :return: obj: object comprised of lists/dicts/strings.
     """
     if isinstance(obj, dict):
         return {recursive_unicode(k, ignore_errors): recursive_unicode(v, ignore_errors) for k, v in obj.items()}
@@ -68,7 +70,7 @@ def recursive_bytes(obj):
     """
     Converts any unicode strings within a Python data structure to bytes. Strings will be encoded using UTF-8.
     :param obj: object comprised of lists/dicts/strings/bytes
-    :return: obj: object comprised of lists/dicts/bytes
+    :return: obj: object comprised of lists/dicts/bytes.
     """
     if isinstance(obj, dict):
         return {recursive_bytes(k): recursive_bytes(v) for k, v in obj.items()}

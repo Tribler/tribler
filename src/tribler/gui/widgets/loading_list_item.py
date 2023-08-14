@@ -8,7 +8,7 @@ class LoadingListItem(QWidget, fc_loading_list_item):
     When data is loading, we show a list widget with some text.
     """
 
-    def __init__(self, parent, label_text=None):
+    def __init__(self, parent, label_text=None) -> None:
         QWidget.__init__(self, parent)
         fc_loading_list_item.__init__(self)
 

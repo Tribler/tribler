@@ -25,7 +25,6 @@ from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
-
 # pylint: disable=protected-access
 
 def cleanup_noncompliant_channel_torrents(state_dir):
@@ -71,7 +70,7 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 class TriblerUpgrader:
 
     def __init__(self, state_dir: Path, channels_dir: Path, primary_key: LibNaCLSK, secondary_key: Optional[LibNaCLSK],
-                 interrupt_upgrade_event=None, update_status_callback=None):
+                 interrupt_upgrade_event=None, update_status_callback=None) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.channels_dir = channels_dir
@@ -106,7 +105,7 @@ class TriblerUpgrader:
         self.upgrade_pony_db_14to15()
 
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
-        self._logger.info(f'Remove old logs')
+        self._logger.info('Remove old logs')
 
         log_files = list(self.state_dir.glob('**/*.log'))
         log_files.extend(self.state_dir.glob('**/*.log.?'))
@@ -291,7 +290,7 @@ class TriblerUpgrader:
             self._logger.info(f'The self_checked flag was cleared in {cursor.rowcount} rows')
 
             self._logger.info('Reset the last_check future timestamps values to zero')
-            now = int(time.time())  # pylint: disable=unused-variable
+            int(time.time())  # pylint: disable=unused-variable
             sql = 'UPDATE "TorrentState" SET "seeders" = 0, "leechers" = 0, "has_data" = 0, "last_check" = 0 ' \
                   ' WHERE "last_check" > $now;'
             cursor = mds.db.execute(sql)

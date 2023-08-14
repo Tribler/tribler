@@ -11,7 +11,7 @@ from tribler.core.utilities.utilities import is_frozen
 
 
 def get_base_path():
-    """ Get absolute path to resource, works for dev and for PyInstaller """
+    """Get absolute path to resource, works for dev and for PyInstaller."""
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = Path(sys._MEIPASS)

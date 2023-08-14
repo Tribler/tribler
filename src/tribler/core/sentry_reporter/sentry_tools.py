@@ -1,4 +1,5 @@
-""" This a collection of tools for SentryReporter and SentryScrubber aimed to
+"""
+This a collection of tools for SentryReporter and SentryScrubber aimed to
 simplify work with several data structures.
 """
 import re
@@ -21,7 +22,8 @@ class LastCoreException:
 
 
 def parse_last_core_output(text: str) -> Optional[LastCoreException]:
-    """ This function tries to find an Exception type and the Exception message in the raw core output
+    """
+    This function tries to find an Exception type and the Exception message in the raw core output.
     """
 
     def _clean_up(s: str):
@@ -57,7 +59,7 @@ def get_value(d, key, default=None):
 
 def extract_dict(d, regex_key_pattern):
     if not d or not regex_key_pattern:
-        return dict()
+        return {}
 
     matched_keys = [key for key in d if re.match(regex_key_pattern, key)]
     return {key: d[key] for key in matched_keys}
@@ -74,20 +76,22 @@ def modify_value(d, key, function):
 
 
 def distinct_by(list_of_dict, key):
-    """This function removes all duplicates from a list of dictionaries. A duplicate
+    """
+    This function removes all duplicates from a list of dictionaries. A duplicate
     here is a dictionary that have the same value of the given key.
 
     If no key field is presented in the item, then the item will not be considered
     as a duplicate.
 
     Args:
+    ----
         list_of_dict: list of dictionaries
         key: a field key that will be used for items comparison
 
     Returns:
+    -------
         Array of distinct items
     """
-
     if not list_of_dict or not key:
         return list_of_dict
 
@@ -131,7 +135,8 @@ def format_version(version: Optional[str]) -> Optional[str]:
 
 
 def obfuscate_string(s: str, part_of_speech: str = 'noun') -> str:
-    """Obfuscate string by replacing it with random word.
+    """
+    Obfuscate string by replacing it with random word.
 
     The same random words will be generated for the same given strings.
     """

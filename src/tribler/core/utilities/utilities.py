@@ -1,7 +1,7 @@
 """
 This module mainly provides validation and correction for urls. This class
 provides a method for HTTP GET requests as well as a function to translate peers into health.
-Author(s): Jie Yang
+Author(s): Jie Yang.
 """
 import binascii
 import itertools
@@ -32,7 +32,7 @@ _switch_interval_lock = threading.Lock()
 
 @contextmanager
 def switch_interval(value):
-    """ Temporarily change the sys.setswitchinterval value."""
+    """Temporarily change the sys.setswitchinterval value."""
     with _switch_interval_lock:
         previous_value = sys.getswitchinterval()
         sys.setswitchinterval(value)
@@ -50,7 +50,7 @@ def froze_it(cls):
 
     def frozensetattr(self, key, value):
         if self.__frozen and not hasattr(self, key):
-            exc_text = "Class {} is frozen. Cannot set {} = {}".format(cls.__name__, key, value)
+            exc_text = f"Class {cls.__name__} is frozen. Cannot set {key} = {value}"
             raise AttributeError(exc_text)
         else:
             object.__setattr__(self, key, value)
@@ -79,7 +79,7 @@ def is_valid_url(url):
     :return: Boolean specifying whether the URL is valid
     """
     if ' ' in url.strip():
-        return
+        return None
     if url.lower().startswith('udp'):
         url = url.lower().replace('udp', 'http', 1)
     split_url = urlsplit(url)
@@ -112,10 +112,7 @@ def parse_magnetlink(url):
         # query part.
         if "?" in path:
             pre, post = path.split("?", 1)
-            if query:
-                query = "&".join((post, query))
-            else:
-                query = post
+            query = f'{post}&{query}' if query else post
 
         for key, value in parse_qsl(query):
             if key == "dn":
@@ -150,16 +147,13 @@ def is_simple_match_query(query):
     """
     pattern = re.compile(r"\"[\\\w]+\"\*", flags=re.UNICODE)
     splits = pattern.split(query)
-    for connector in splits:
-        if connector and connector != " AND ":
-            return False
-    return True
+    return all(not (connector and connector != ' AND ') for connector in splits)
 
 
 def has_bep33_support():
     """
     Return whether our libtorrent version has support for BEP33 (DHT health lookups).
-    Also see https://github.com/devos50/libtorrent/tree/bep33_support
+    Also see https://github.com/devos50/libtorrent/tree/bep33_support.
 
     Previously, to check if BEP33 support is available was done by checking
     'dht_pkt_alert' in dir(lt)
@@ -209,7 +203,7 @@ def random_infohash(random_gen=None) -> bytes:
 
 def is_frozen():
     """
-    Return whether we are running in a frozen environment
+    Return whether we are running in a frozen environment.
     """
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
@@ -235,7 +229,7 @@ def parse_query(query: str) -> Query:
     The query structure:
         query = [tag1][tag2] text
                  ^           ^
-                tags        fts query
+                tags        fts query.
     """
     if not query:
         return Query(original_query=query)
@@ -282,7 +276,7 @@ def show_system_popup(title, text):
     sep = "*" * 80
 
     # pylint: disable=import-outside-toplevel, import-error, broad-except
-    print('\n'.join([sep, title, sep, text, sep]), file=sys.stderr)  # noqa: T001
+    print(f'{sep}\n{title}\n{sep}\n{text}\n{sep}', file=sys.stderr)
     system = platform.system()
     try:
         if system == 'Windows':
@@ -298,12 +292,12 @@ def show_system_popup(title, text):
 
             subprocess.Popen(['/usr/bin/osascript', '-e', text])
         else:
-            print(f'cannot create native pop-up for system {system}')  # noqa: T001
+            print(f'cannot create native pop-up for system {system}')
     except Exception as exception:
         # Use base Exception, because code above can raise many
         # non-obvious types of exceptions:
         # (SubprocessError, ImportError, win32api.error, FileNotFoundError)
-        print(f'Error while showing a message box: {exception}')  # noqa: T001
+        print(f'Error while showing a message box: {exception}')
 
 
 def get_normally_distributed_number_with_zero_mean(upper_limit=100) -> float:

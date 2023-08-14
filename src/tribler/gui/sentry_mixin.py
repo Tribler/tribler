@@ -2,7 +2,8 @@ from tribler.gui import gui_sentry_reporter
 
 
 class AddBreadcrumbOnShowMixin:
-    """This class has been designed for extending QWidget and QDialog instances
+    """
+    This class has been designed for extending QWidget and QDialog instances
     and send breadcrumbs on a show event.
     """
 

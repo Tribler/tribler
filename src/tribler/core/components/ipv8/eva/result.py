@@ -11,5 +11,5 @@ class TransferResult:
 
     nonce: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'TransferResult(peer={self.peer}, info: {self.info}, data hash: {hash(self.data)}, nonce={self.nonce})'

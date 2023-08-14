@@ -18,8 +18,12 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.start_core import components_gen
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
+from tribler.core.utilities.process_manager import (
+    ProcessKind,
+    ProcessManager,
+    TriblerProcess,
+    set_global_process_manager,
+)
 
 
 class IPPortAction(argparse.Action):
@@ -41,7 +45,7 @@ class IPPortAction(argparse.Action):
 
 class TriblerService:
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the variables of the TriblerServiceMaker and the logger.
         """

@@ -8,11 +8,11 @@ from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.gui import gui_sentry_reporter
-from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
 from tribler.gui.exceptions import CoreError
 
 if TYPE_CHECKING:
+    from tribler.gui.app_manager import AppManager
     from tribler.gui.tribler_window import TriblerWindow
 
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class ErrorHandler:
-    def __init__(self, tribler_window: TriblerWindow):
+    def __init__(self, tribler_window: TriblerWindow) -> None:
         logger_name = self.__class__.__name__
         self._logger = logging.getLogger(logger_name)
         gui_sentry_reporter.ignore_logger(logger_name)

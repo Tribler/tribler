@@ -1,10 +1,10 @@
 import asyncio
+from typing import Optional
 from unittest.mock import MagicMock
 
 import pytest
 
 from tribler.core.utilities.notifier import Notifier, NotifierError
-
 
 # pylint: disable=unused-argument
 
@@ -66,7 +66,7 @@ def test_add_remove_observer():
                                         r'does not match the topic signature \(x: int\)$'):
         notifier.add_observer(topic1, observer5)
 
-    def observer6(x: int = None):
+    def observer6(x: Optional[int] = None):
         pass
 
     # Topic and observer functions should have the same argument defaults
@@ -188,10 +188,10 @@ def test_notify():
         calls.append(('b1', x))
 
     def generic_1(*args, **kwargs):
-        calls.append((('generic1',) + args + (repr(kwargs),)))
+        calls.append(("generic1", *args, repr(kwargs)))
 
     def generic_2(*args, **kwargs):
-        calls.append((('generic2',) + args + (repr(kwargs),)))
+        calls.append(("generic2", *args, repr(kwargs)))
 
     notifier = Notifier()
     notifier.add_observer(topic_a, observer_a1)  # add an observer
@@ -259,10 +259,10 @@ async def test_notify_async(event_loop):
         calls.append(('b1', x))
 
     def generic_1(*args, **kwargs):
-        calls.append((('generic1',) + args + (repr(kwargs),)))
+        calls.append(("generic1", *args, repr(kwargs)))
 
     def generic_2(*args, **kwargs):
-        calls.append((('generic2',) + args + (repr(kwargs),)))
+        calls.append(("generic2", *args, repr(kwargs)))
 
     notifier = Notifier(loop=event_loop)
     notifier.add_observer(topic_a, observer_a1)  # add an observer

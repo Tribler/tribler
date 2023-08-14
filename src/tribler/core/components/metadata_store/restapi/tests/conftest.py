@@ -39,18 +39,18 @@ def create_channel(metadata_store, title, torrents_per_channel=5, local_version=
                                self_checked=bool(torrent_i % 2))
 
 
-@pytest.fixture
+@pytest.fixture()
 def add_subscribed_and_not_downloaded_channel(metadata_store):
     create_channel(metadata_store, 'Subscribed and not downloaded', subscribed=True, local_version=0)
 
 
-@pytest.fixture
+@pytest.fixture()
 def add_fake_torrents_channels(metadata_store):
     for i in range(10):
         create_channel(metadata_store, f'channel{i}', subscribed=bool(i % 2), local_version=i)
 
 
-@pytest.fixture
+@pytest.fixture()
 def my_channel(metadata_store, knowledge_db):
     """
     Generate a channel with some torrents. Also add a few (random) tags to these torrents.

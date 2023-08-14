@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import webbrowser
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMessageBox
@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.upgrade.upgrade import TriblerUpgrader
-from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory, NoDiskSpaceAvailableError
+from tribler.core.upgrade.version_manager import NoDiskSpaceAvailableError, TriblerVersion, VersionHistory
 from tribler.gui.defs import BUTTON_TYPE_NORMAL, NO_DISK_SPACE_ERROR_MESSAGE, UPGRADE_CANCELLED_ERROR_TITLE
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
@@ -26,7 +26,7 @@ class StateDirUpgradeWorker(QObject):
     status_update = pyqtSignal(str)
     stop_upgrade = pyqtSignal()
 
-    def __init__(self, version_history: VersionHistory):
+    def __init__(self, version_history: VersionHistory) -> None:
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.version_history = version_history
@@ -62,8 +62,7 @@ class StateDirUpgradeWorker(QObject):
 
     def format_no_disk_space_available_error(self, disk_error: NoDiskSpaceAvailableError) -> str:
         diff_space = format_size(disk_error.space_required - disk_error.space_available)
-        formatted_error = tr(NO_DISK_SPACE_ERROR_MESSAGE) % diff_space
-        return formatted_error
+        return tr(NO_DISK_SPACE_ERROR_MESSAGE) % diff_space
 
     def upgrade_state_dir(self, version_history: VersionHistory, update_status_callback=None,
                           interrupt_upgrade_event=None):
@@ -93,14 +92,14 @@ class StateDirUpgradeWorker(QObject):
 
 class UpgradeManager(QObject):
     """
-    UpgradeManager is responsible for running the Tribler Upgrade process
+    UpgradeManager is responsible for running the Tribler Upgrade process.
     """
 
     upgrader_tick = pyqtSignal(str)
     upgrader_finished = pyqtSignal()
     upgrader_cancelled = pyqtSignal(str)
 
-    def __init__(self, version_history: VersionHistory, last_supported_version: str = '7.5'):
+    def __init__(self, version_history: VersionHistory, last_supported_version: str = '7.5') -> None:
         QObject.__init__(self, None)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -108,7 +107,7 @@ class UpgradeManager(QObject):
         self.last_supported_version = last_supported_version
         self.version_history = version_history
         self.new_version_dialog_postponed: bool = False
-        self.dialog: Optional[ConfirmationDialog] = None
+        self.dialog: ConfirmationDialog | None = None
 
         self._upgrade_worker = None
         self._upgrade_thread = None

@@ -34,7 +34,7 @@ from tribler.core.utilities.simpledefs import DownloadStatus
 logger = logging.getLogger("TunnelTests")
 
 
-@pytest.fixture
+@pytest.fixture()
 def crash_on_error():
     def exception_handler(_, context):
         logger.exception(context.get('exception'))
@@ -44,7 +44,7 @@ def crash_on_error():
 
 
 class ProxyFactory:
-    def __init__(self, temp_path_factory):
+    def __init__(self, temp_path_factory) -> None:
         self.communities = []
         self.temp_path_factory = temp_path_factory
 
@@ -57,7 +57,7 @@ class ProxyFactory:
         return community
 
 
-@pytest.fixture
+@pytest.fixture()
 async def proxy_factory(tmp_path_factory: TempPathFactory):
     factory = ProxyFactory(tmp_path_factory)
     yield factory
@@ -69,7 +69,7 @@ async def proxy_factory(tmp_path_factory: TempPathFactory):
     test_community.global_dht_services = defaultdict(list)  # Reset the global_dht_services variable
 
 
-@pytest.fixture
+@pytest.fixture()
 async def hidden_seeder_comm(proxy_factory: ProxyFactory, video_tdef: TorrentDef) -> TriblerTunnelCommunity:
     # Also load the tunnel community in the seeder session
     community = await proxy_factory.get(start_lt=True)
@@ -88,7 +88,7 @@ async def hidden_seeder_comm(proxy_factory: ProxyFactory, video_tdef: TorrentDef
         community.monitor_downloads([download_state])
         download = download_state.get_download()
         status = download_state.get_status().name
-        logger.info(f"seeder: {repr(download.get_def().get_name())} {status} {download_state.get_progress()}")
+        logger.info(f"seeder: {download.get_def().get_name()!r} {status} {download_state.get_progress()}")
         return 2
 
     upload.set_state_callback(seeder_state_callback)
@@ -183,7 +183,7 @@ async def deliver_messages(timeout: float = .1):
      1. Measure the amount of tasks
      2. After 10 milliseconds, check if we are below 2 twice in a row
      3. If not, go back to handling calls (step 2) or return, if the timeout has been reached
-    :param timeout: the maximum time to wait for messages to be delivered
+    :param timeout: the maximum time to wait for messages to be delivered.
     """
     remaining_time = 0
     probable_exit = False
@@ -213,7 +213,7 @@ async def create_nodes(proxy_factory: ProxyFactory, num_relays: int = 1, num_exi
     return relays, exit_nodes
 
 
-@pytest.fixture
+@pytest.fixture()
 async def tunnel_community(tmp_path_factory: TempPathFactory):
     community = await create_tunnel_community(tmp_path_factory, exit_node_enable=False, start_lt=True)
 
@@ -223,14 +223,14 @@ async def tunnel_community(tmp_path_factory: TempPathFactory):
     await community.unload()
 
 
-@pytest.mark.tunneltest
+@pytest.mark.tunneltest()
 async def test_anon_download(proxy_factory: ProxyFactory, video_seeder: DownloadManager, video_tdef: TorrentDef,
                              tunnel_community: TriblerTunnelCommunity, crash_on_error):
     """
-    Testing whether an anonymous download over our tunnels works
+    Testing whether an anonymous download over our tunnels works.
     """
     relays, exit_nodes = await create_nodes(proxy_factory)
-    await introduce_peers([tunnel_community] + relays + exit_nodes)
+    await introduce_peers([tunnel_community, *relays, *exit_nodes])
     download_manager = tunnel_community.download_manager
 
     download = start_anon_download(tunnel_community, video_seeder.libtorrent_port, video_tdef)
@@ -246,21 +246,21 @@ async def test_anon_download(proxy_factory: ProxyFactory, video_seeder: Download
     assert tunnel_community.find_circuits()[0].bytes_down > 0
 
 
-@pytest.mark.tunneltest
+@pytest.mark.tunneltest()
 async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: TriblerTunnelCommunity,
                                video_tdef: TorrentDef, crash_on_error):
     """
-    Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
+    Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it.
     """
     leecher_community = await proxy_factory.get(exitnode=False, start_lt=True)
 
     hidden_seeder_comm.build_tunnels(hops=1)
 
     relays, exit_nodes = await create_nodes(proxy_factory, num_relays=3, num_exit_nodes=2)
-    await introduce_peers([leecher_community, hidden_seeder_comm] + relays + exit_nodes)
+    await introduce_peers([leecher_community, hidden_seeder_comm, *relays, *exit_nodes])
     await deliver_messages(timeout=1)
 
-    for community in [leecher_community, hidden_seeder_comm] + relays + exit_nodes:
+    for community in [leecher_community, hidden_seeder_comm, *relays, *exit_nodes]:
         assert len(community.get_peers()) == 6
 
     download_finished = asyncio.Event()

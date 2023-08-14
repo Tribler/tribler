@@ -3,16 +3,14 @@ from socket import gaierror
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.sentry_reporter import sentry_reporter
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 
-
 # pylint: disable=protected-access, redefined-outer-name
 # fmt: off
 
-@pytest.fixture
+@pytest.fixture()
 def exception_handler():
     return CoreExceptionHandler()
 

@@ -10,7 +10,7 @@ from tribler.core.components.tunnel.community.discovery import GoldenRatioStrate
 
 class FakeOverlay:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.exit_candidates = []
         self.candidates = {}
         self.network = Network()

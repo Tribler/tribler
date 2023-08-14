@@ -4,17 +4,15 @@ from asyncio import InvalidStateError
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferException
 from tribler.core.components.ipv8.eva.protocol import blank
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 
-
 # pylint: disable=redefined-outer-name, protected-access
 
-@pytest.fixture
+@pytest.fixture()
 async def transfer():
     container = {}
     peer = Mock()

@@ -43,6 +43,7 @@ class DebugEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding debug information in Tribler.
     """
+
     path = '/debug'
 
     def __init__(self,
@@ -50,7 +51,7 @@ class DebugEndpoint(RESTEndpoint):
                  log_dir: Path,
                  tunnel_community: Optional[TriblerTunnelCommunity] = None,
                  resource_monitor: Optional[ResourceMonitor] = None,
-                 core_exception_handler: Optional[CoreExceptionHandler] = None):
+                 core_exception_handler: Optional[CoreExceptionHandler] = None) -> None:
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
@@ -341,7 +342,7 @@ class DebugEndpoint(RESTEndpoint):
     )
     async def stop_profiler(self, _):
         if not self.resource_monitor.profiler:
-            return
+            return None
         file_path = self.resource_monitor.profiler.stop()
         return RESTResponse({"success": True, "profiler_file": str(file_path)})
 
@@ -362,7 +363,7 @@ class DebugEndpoint(RESTEndpoint):
             try:
                 raise TriblerCoreTestException('Tribler Core Test Exception')
             except TriblerCoreTestException as e:
-                context = dict(should_stop=True, message='Test message', exception=e)
+                context = {'should_stop': True, 'message': 'Test message', 'exception': e}
                 self.core_exception_handler.unhandled_error_observer(None, context)
         else:
             self._logger.info('Exception handler is not set in DebugEndpoint')

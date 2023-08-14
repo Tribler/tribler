@@ -6,7 +6,6 @@ from typing import Optional, Set
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session
-
 from tribler.core import notifications
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
 from tribler.core.components.knowledge.rules.rules_content_items import content_items_rules
@@ -42,7 +41,7 @@ class KnowledgeRulesProcessor(TaskManager):
     def __init__(self, notifier: Notifier, db: KnowledgeDatabase, mds: MetadataStore,
                  batch_size: int = DEFAULT_BATCH_SIZE, batch_interval: float = DEFAULT_BATCH_INTERVAL,
                  queue_interval: float = DEFAULT_QUEUE_INTERVAL, queue_batch_size: float = DEFAULT_QUEUE_BATCH_SIZE,
-                 queue_max_size: int = DEFAULT_QUEUE_MAX_SIZE):
+                 queue_max_size: int = DEFAULT_QUEUE_MAX_SIZE) -> None:
         """
         Default values for batch_size and interval are chosen so that tag processing is not too heavy
         fot CPU and with this values 36000 items will be processed within the hour.
@@ -168,7 +167,8 @@ class KnowledgeRulesProcessor(TaskManager):
         return processed
 
     def put_entity_to_the_queue(self, infohash: Optional[bytes] = None, title: Optional[str] = None):
-        """ Put entity to the queue to be processed by the rules processor.
+        """
+        Put entity to the queue to be processed by the rules processor.
         This method is prepared for use from a different thread.
         """
         if not infohash or not title:

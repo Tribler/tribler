@@ -2,7 +2,7 @@ import statistics
 import threading
 import time
 
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QWidget
 
@@ -25,7 +25,7 @@ class MonitorWidget(AddBreadcrumbOnShowMixin, QWidget):
     Drawing finishes at -10% of the left side of the screen to make sure the boops are not cut off.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.is_paused = False
 

@@ -7,7 +7,7 @@ from tribler.core.utilities.pony_utils import get_or_create
 
 
 class TagDatabase:
-    def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
+    def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs) -> None:
         self.instance = orm.Database()
         self.define_binding(self.instance)
         self.instance.bind('sqlite', filename or ':memory:', create_db=True)
@@ -45,7 +45,8 @@ class TagDatabase:
                 return self.added_count - self.removed_count
 
             def update_counter(self, operation: int, increment: int = 1, is_local_peer: bool = False):
-                """ Update TorrentTag's counter
+                """
+                Update TorrentTag's counter
                 Args:
                     operation: Tag operation
                     increment:
@@ -53,7 +54,8 @@ class TagDatabase:
                         a remote user. In case of the local user, his operations will be considered as
                         authoritative for his (only) local Tribler instance.
 
-                Returns:
+                Returns
+                -------
                 """
                 if is_local_peer:
                     self.local_operation = operation
@@ -85,8 +87,11 @@ class TagDatabase:
                           creator_public_key: bytes,
                           is_local_peer: bool = False,
                           is_auto_generated: bool = False, counter_increment: int = 1) -> bool:
-        """ Add the operation that will be applied to the tag.
+        """
+        Add the operation that will be applied to the tag.
+
         Args:
+        ----
             operation: the class describes the adding operation
             signature: the signature of the operation
             is_local_peer: local operations processes differently than remote operations. They affects

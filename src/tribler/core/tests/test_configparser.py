@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from tribler.core.exceptions import OperationNotPossibleAtRuntimeException
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.install_dir import get_lib_path

@@ -11,7 +11,7 @@ from tribler.core.utilities.simpledefs import DownloadStatus
 
 async def test_seeding(download_manager, video_seeder, video_tdef, tmp_path):
     """
-    Test whether a torrent is correctly seeded
+    Test whether a torrent is correctly seeded.
     """
     dscfg = DownloadConfig()
     dscfg.set_dest_dir(tmp_path)

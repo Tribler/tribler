@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import traceback
 from pathlib import Path
-from typing import Optional
 
 import configobj
 from configobj import ParseError
@@ -34,7 +33,7 @@ DEFAULT_CONFIG_NAME = 'triblerd.conf'
 
 
 class TriblerConfig(BaseSettings):
-    """ Tribler config class that contains common logic for manipulating with a config."""
+    """Tribler config class that contains common logic for manipulating with a config."""
 
     class Config:
         extra = Extra.ignore  # ignore extra attributes during model initialization
@@ -62,13 +61,15 @@ class TriblerConfig(BaseSettings):
     gui_test_mode: bool = False
 
     _state_dir: Path = PrivateAttr()
-    _file: Optional[Path] = PrivateAttr()  # a last file saved during write-load operations
-    _error: Optional[Exception] = PrivateAttr()
+    _file: Path | None = PrivateAttr()  # a last file saved during write-load operations
+    _error: Exception | None = PrivateAttr()
 
-    def __init__(self, *args, state_dir: Path = None, file: Path = None, error: str = None, **kwargs):
-        """ Constructor
+    def __init__(self, *args, state_dir: Path | None = None, file: Path | None = None, error: str | None = None, **kwargs) -> None:
+        """
+        Constructor.
 
         Args:
+        ----
             *args: Arguments that will be passed to the `BaseSettings` constructor.
             state_dir: Tribler's state dir. Will be used for calculated relative paths.
             file: A config file.
@@ -86,10 +87,12 @@ class TriblerConfig(BaseSettings):
         logger.info(f'Init. State dir: {state_dir}. File: {file}')
 
     @staticmethod
-    def load(state_dir: Path, file: Path = None, reset_config_on_error: bool = False) -> TriblerConfig:
-        """ Load a config from a file
+    def load(state_dir: Path, file: Path | None = None, reset_config_on_error: bool = False) -> TriblerConfig:
+        """
+        Load a config from a file.
 
         Args:
+        ----
             state_dir: A Tribler's state dir.
             file: A path to the config file.
             reset_config_on_error: a flag that shows whether it is necessary to
@@ -119,10 +122,12 @@ class TriblerConfig(BaseSettings):
 
         return config
 
-    def write(self, file: Path = None):
-        """Save a config to a file
+    def write(self, file: Path | None = None):
+        """
+        Save a config to a file.
 
         Args:
+        ----
             file: Path to the config. In case it is omitted, last file will be used.
         """
         if not file:
@@ -153,18 +158,18 @@ class TriblerConfig(BaseSettings):
         conf.write()
 
     @property
-    def error(self) -> Optional[str]:
+    def error(self) -> str | None:
         return self._error
 
     @property
-    def state_dir(self) -> Optional[Path]:
+    def state_dir(self) -> Path | None:
         return self._state_dir
 
     def set_state_dir(self, val):
         self._state_dir = Path(val) if val is not None else None
 
     @property
-    def file(self) -> Optional[Path]:
+    def file(self) -> Path | None:
         return self._file
 
     def set_file(self, val):

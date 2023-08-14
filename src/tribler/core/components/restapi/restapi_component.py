@@ -50,8 +50,9 @@ class RESTComponent(Component):
     _core_exception_handler: CoreExceptionHandler = default_core_exception_handler
 
     def maybe_add(self, endpoint_cls: Type[RESTEndpoint], *args, **kwargs):
-        """ Add the corresponding endpoint to the path in case there are no `NoneComponent`
-        in *args or **kwargs
+        """
+        Add the corresponding endpoint to the path in case there are no `NoneComponent`
+        in *args or **kwargs.
         """
         self.logger.info(f'Adding: "{endpoint_cls.path}"...')
         arguments_chain = chain(args, kwargs.values())
@@ -121,7 +122,7 @@ class RESTComponent(Component):
 
         if not isinstance(ipv8_component, NoneComponent):
             ipv8_root_endpoint = IPV8RootEndpoint()
-            for _, endpoint in ipv8_root_endpoint.endpoints.items():
+            for endpoint in ipv8_root_endpoint.endpoints.values():
                 endpoint.initialize(ipv8_component.ipv8)
             self.root_endpoint.add_endpoint('/ipv8', ipv8_root_endpoint)
 

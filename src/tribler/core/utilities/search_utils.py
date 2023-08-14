@@ -43,7 +43,6 @@ def item_rank(query: str, item: dict) -> float:
                  Should include key `name`, can include `num_seeders`, `num_leechers`, `created`
     :return: the torrent rank value in range [0, 1]
     """
-
     title = item['name']
     seeders = item.get('num_seeders', 0)
     leechers = item.get('num_leechers', 0)
@@ -74,12 +73,11 @@ def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0,
     tr = title_rank(query or '', title or '')
     sr = (seeders_rank(seeders or 0, leechers or 0) + 9) / 10  # range [0.9, 1]
     fr = (freshness_rank(freshness) + 9) / 10  # range [0.9, 1]
-    result = tr * sr * fr
+    return tr * sr * fr
 
     # uncomment the next line to debug the function inside an SQL query:
     # print(f'*** {result} : {seeders}/{freshness} ({freshness / SECONDS_IN_DAY} days)/{title} | {query}')
 
-    return result
 
 
 LEECHERS_COEFF = 0.1  # How much leechers are less important compared to seeders (ten times less important)
@@ -88,13 +86,12 @@ SEEDERS_HALF_RANK = 100  # The number of seeders at which the seeders rank is 0.
 
 def seeders_rank(seeders: int, leechers: int = 0) -> float:
     """
-    Calculates rank based on the number of torrent's seeders and leechers
+    Calculates rank based on the number of torrent's seeders and leechers.
 
     :param seeders: the number of seeders for the torrent. It is a positive value, usually in the range [0, 1000]
     :param leechers: the number of leechers for the torrent. It is a positive value, usually in the range [0, 1000]
     :return: the torrent rank based on seeders and leechers, normalized to the range [0, 1]
     """
-
     # The leechers are treated as less capable seeders
     sl = seeders + leechers * LEECHERS_COEFF  # Seeders and leechers combined
 
@@ -112,7 +109,7 @@ def seeders_rank(seeders: int, leechers: int = 0) -> float:
 
 def freshness_rank(freshness: Optional[float]) -> float:
     """
-    Calculates a rank value based on the torrent freshness. The result is normalized to the range [0, 1]
+    Calculates a rank value based on the torrent freshness. The result is normalized to the range [0, 1].
 
     :param freshness: number of seconds since the torrent creation.
                       None means the actual torrent creation date is unknown.
@@ -145,7 +142,7 @@ word_re = re.compile(r'\w+', re.UNICODE)
 
 def title_rank(query: str, title: str) -> float:
     """
-    Calculate the similarity of the title string to a query string as a float value in range [0, 1]
+    Calculate the similarity of the title string to a query string as a float value in range [0, 1].
 
     :param query: a user-defined query string
     :param title: a torrent name

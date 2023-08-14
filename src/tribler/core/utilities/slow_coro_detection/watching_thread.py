@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import time
-from asyncio import Handle
 from threading import Event, Lock, Thread
-
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from tribler.core.utilities.slow_coro_detection import logger
 from tribler.core.utilities.slow_coro_detection.utils import format_info
+
+if TYPE_CHECKING:
+    from asyncio import Handle
 
 # How long (in seconds) a coroutine can run before we generate an error.
 # Reduce if you want stricter limits for maximum coroutine step duration.
@@ -19,14 +20,14 @@ WATCHING_THREAD_INTERVAL = 1.0
 
 
 class DebugInfo:
-    def __init__(self):
-        self.handle: Optional[Handle] = None
-        self.start_time: Optional[float] = None
+    def __init__(self) -> None:
+        self.handle: Handle | None = None
+        self.start_time: float | None = None
 
 
 current = DebugInfo()
 lock = Lock()
-_thread: Optional[SlowCoroWatchingThread] = None
+_thread: SlowCoroWatchingThread | None = None
 
 
 def start_watching_thread():
@@ -47,7 +48,8 @@ class SlowCoroWatchingThread(Thread):
     """
     A thread that detects and reports slow coroutines.
     """
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None):
+
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None) -> None:
         super().__init__(group=group, target=target, name=name, args=args, kwargs=kwargs, daemon=daemon)
         self.stop_event = Event()
 

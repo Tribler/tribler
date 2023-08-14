@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, patch
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 
-
 # pylint: disable=protected-access
 
 async def test_shutdown():
@@ -24,7 +23,7 @@ async def test_shutdown():
 
     def total_coro_count():
         count = 0
-        for endpoint in child_endpoints + [root_endpoint]:
+        for endpoint in [*child_endpoints, root_endpoint]:
             count += len(endpoint.async_group.futures)
         return count
 

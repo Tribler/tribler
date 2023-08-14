@@ -39,7 +39,8 @@ def test_become_primary(process_manager: ProcessManager):
     with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where "primary" = 1').fetchall()
         # At the end, the DB should contain only one primary process, namely p3
-        assert len(rows) == 1 and rows[0][0] == p3.rowid
+        assert len(rows) == 1
+        assert rows[0][0] == p3.rowid
 
 
 def test_save(process_manager: ProcessManager):
@@ -54,7 +55,8 @@ def test_set_api_port(process_manager: ProcessManager):
     assert process_manager.current_process.api_port == 12345
     with process_manager.connect() as connection:
         rows = connection.execute('select rowid from processes where api_port = 12345').fetchall()
-        assert len(rows) == 1 and rows[0][0] == process_manager.current_process.rowid
+        assert len(rows) == 1
+        assert rows[0][0] == process_manager.current_process.rowid
 
 
 @patch('sys.exit')
@@ -64,13 +66,16 @@ def test_sys_exit(sys_exit: Mock, process_manager: ProcessManager):
     with process_manager.connect() as connection:
         rows = connection.execute('select "primary", error_msg from processes where rowid = ?',
                                   [process_manager.current_process.rowid]).fetchall()
-        assert len(rows) == 1 and rows[0] == (0, 'Error text')
-    assert sys_exit.called and sys_exit.call_args[0][0] == 123
+        assert len(rows) == 1
+        assert rows[0] == (0, 'Error text')
+    assert sys_exit.called
+    assert sys_exit.call_args[0][0] == 123
 
 
 def test_get_last_processes(process_manager: ProcessManager):
     last_processes = process_manager.get_last_processes()
-    assert len(last_processes) == 1 and last_processes[0].rowid == process_manager.current_process.rowid
+    assert len(last_processes) == 1
+    assert last_processes[0].rowid == process_manager.current_process.rowid
 
     fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1

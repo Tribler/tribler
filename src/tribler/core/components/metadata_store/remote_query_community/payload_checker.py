@@ -39,7 +39,7 @@ class ProcessingResult:
 
 
 class PayloadChecker:
-    def __init__(self, mds, payload, skip_personal_metadata_payload=True, channel_public_key=None):
+    def __init__(self, mds, payload, skip_personal_metadata_payload=True, channel_public_key=None) -> None:
         self.mds = mds
         self.payload = payload
         self.skip_personal_metadata_payload = skip_personal_metadata_payload
@@ -156,7 +156,6 @@ class PayloadChecker:
         In that case, we reject the metadata and return an empty list.
         Otherwise, CONTINUE control to further checks.
         """
-
         # ACHTUNG! Due to deficiencies in the current Channels design, it is impossible to
         # reliably tell if the received entry belongs to a channel we already subscribed,
         # if some of the intermediate folders were deleted earlier.
@@ -348,7 +347,6 @@ def process_payload(metadata_store, payload, skip_personal_metadata_payload=True
 
     :return: a list of ProcessingResult objects
     """
-
     return PayloadChecker(
         metadata_store,
         payload,

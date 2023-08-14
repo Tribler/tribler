@@ -4,40 +4,42 @@ import logging
 import sqlite3
 import sys
 from contextlib import contextmanager
-from pathlib import Path
 from threading import Lock
-from typing import ContextManager, List, Optional
+from typing import TYPE_CHECKING, ContextManager, List
 
 from tribler.core.utilities.process_manager import sql_scripts
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
 from tribler.core.utilities.process_manager.utils import with_retry
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 logger = logging.getLogger(__name__)
 
 DB_FILENAME = 'processes.sqlite'
 
-global_process_manager: Optional[ProcessManager] = None
+global_process_manager: ProcessManager | None = None
 
 _lock = Lock()
 
 
-def set_global_process_manager(process_manager: Optional[ProcessManager]):
+def set_global_process_manager(process_manager: ProcessManager | None):
     global global_process_manager  # pylint: disable=global-statement
     with _lock:
         global_process_manager = process_manager
 
 
-def get_global_process_manager() -> Optional[ProcessManager]:
+def get_global_process_manager() -> ProcessManager | None:
     with _lock:
         return global_process_manager
 
 
 class ProcessManager:
-    def __init__(self, root_dir: Path, current_process: TriblerProcess, db_filename: str = DB_FILENAME):
+    def __init__(self, root_dir: Path, current_process: TriblerProcess, db_filename: str = DB_FILENAME) -> None:
         self.logger = logger  # Used by the `with_retry` decorator
         self.root_dir = root_dir
         self.db_filepath = root_dir / db_filename
-        self.connection: Optional[sqlite3.Connection] = None
+        self.connection: sqlite3.Connection | None = None
         self.current_process = current_process
         current_process.manager = self
 
@@ -52,7 +54,6 @@ class ProcessManager:
         In the case of a sqlite3.DatabaseError exception, the database is deleted to handle possible database
         corruption. The database content is not critical for Tribler's functioning, so its loss is tolerable.
         """
-
         if self.connection is not None:
             yield self.connection
             return
@@ -78,7 +79,7 @@ class ProcessManager:
                 self.db_filepath.unlink(missing_ok=True)
             raise
 
-    def primary_process_rowid(self, kind: ProcessKind) -> Optional[int]:
+    def primary_process_rowid(self, kind: ProcessKind) -> int | None:
         """
         A helper method to load the current primary process of the specified kind from the database.
 
@@ -100,7 +101,7 @@ class ProcessManager:
                 process.save()
             return None
 
-    def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
+    def sys_exit(self, exit_code: int | None = None, error: str | Exception | None = None, replace: bool = False):
         """
         Calls sys.exit(exit_code) and stores exit code & error information (if provided) to the processes' database.
 

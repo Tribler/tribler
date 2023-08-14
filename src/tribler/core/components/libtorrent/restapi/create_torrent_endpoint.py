@@ -21,11 +21,12 @@ from tribler.core.utilities.utilities import bdecode_compat, froze_it
 class CreateTorrentEndpoint(RESTEndpoint):
     """
     Create a torrent file from local files.
-    See: http://www.bittorrent.org/beps/bep_0012.html
+    See: http://www.bittorrent.org/beps/bep_0012.html.
     """
+
     path = '/createtorrent'
 
-    def __init__(self, download_manager: DownloadManager):
+    def __init__(self, download_manager: DownloadManager) -> None:
         super().__init__()
         self.download_manager = download_manager
 

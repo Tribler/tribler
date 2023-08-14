@@ -28,20 +28,19 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import random_infohash
 
-
 # pylint: disable=protected-access, redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def my_key():
     return default_eccrypto.generate_key("curve25519")
 
 
-@pytest.fixture
+@pytest.fixture()
 def torrent_template():
     return {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_torrent_dict(my_key):
     return {
         "infohash": b"1" * 20,
@@ -54,7 +53,7 @@ def sample_torrent_dict(my_key):
     }
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_channel_dict(sample_torrent_dict):
     return dict(sample_torrent_dict, votes=222, subscribed=False, timestamp=1)
 
@@ -83,22 +82,22 @@ def mds_with_some_torrents_fixture(metadata_store):
         dt = datetime.utcnow() - timedelta(days=100)
         for i in range(100):
             yield dt + timedelta(days=i)
-        assert False, "too many values requested"
+        raise AssertionError("too many values requested")
 
     next_datetime = datetime_generator().__next__
 
     def new_channel(**kwargs):
-        params = dict(subscribed=True, share=True, status=NEW, infohash=random_infohash(), torrent_date=next_datetime())
+        params = {"subscribed": True, "share": True, "status": NEW, "infohash": random_infohash(), "torrent_date": next_datetime()}
         params.update(kwargs)
         return metadata_store.ChannelMetadata(**params)
 
     def new_torrent(**kwargs):
-        params = dict(origin_id=channel.id_, staus=NEW, infohash=random_infohash(), torrent_date=next_datetime())
+        params = {"origin_id": channel.id_, "staus": NEW, "infohash": random_infohash(), "torrent_date": next_datetime()}
         params.update(kwargs)
         return metadata_store.TorrentMetadata(**params)
 
     def new_folder(**kwargs):
-        params = dict(origin_id=channel.id_)
+        params = {"origin_id": channel.id_}
         params.update(kwargs)
         return metadata_store.CollectionNode(**params)
 
@@ -131,7 +130,7 @@ def mds_with_some_torrents_fixture(metadata_store):
 @db_session
 def test_serialization(metadata_store):
     """
-    Test converting channel metadata to serialized data
+    Test converting channel metadata to serialized data.
     """
     channel_metadata = metadata_store.ChannelMetadata.from_dict({"infohash": random_infohash()})
     assert channel_metadata.serialized()
@@ -140,7 +139,7 @@ def test_serialization(metadata_store):
 @db_session
 def test_list_contents(metadata_store, torrent_template):
     """
-    Test whether a correct list with channel content is returned from the database
+    Test whether a correct list with channel content is returned from the database.
     """
     metadata_store.ChannelNode._my_key = default_eccrypto.generate_key('low')
     channel1 = metadata_store.ChannelMetadata(infohash=random_infohash())
@@ -159,7 +158,7 @@ def test_list_contents(metadata_store, torrent_template):
 @db_session
 def test_get_dirname(sample_channel_dict, metadata_store):
     """
-    Test whether the correct directory name is returned for channel metadata
+    Test whether the correct directory name is returned for channel metadata.
     """
     channel_metadata = metadata_store.ChannelMetadata.from_dict(sample_channel_dict)
     assert len(channel_metadata.dirname) == CHANNEL_DIR_NAME_LENGTH
@@ -168,7 +167,7 @@ def test_get_dirname(sample_channel_dict, metadata_store):
 @db_session
 def test_get_channel_with_dirname(sample_channel_dict, metadata_store):
     """
-    Test getting a channel with a specific name
+    Test getting a channel with a specific name.
     """
     channel_metadata = metadata_store.ChannelMetadata.from_dict(sample_channel_dict)
     dirname = channel_metadata.dirname
@@ -184,7 +183,7 @@ def test_get_channel_with_dirname(sample_channel_dict, metadata_store):
 @db_session
 def test_add_metadata_to_channel(torrent_template, metadata_store):
     """
-    Test whether adding new torrents to a channel works as expected
+    Test whether adding new torrents to a channel works as expected.
     """
     channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
     original_channel = channel_metadata.to_dict()
@@ -199,7 +198,7 @@ def test_add_metadata_to_channel(torrent_template, metadata_store):
 @db_session
 def test_add_torrent_to_channel(metadata_store):
     """
-    Test adding a torrent to your channel
+    Test adding a torrent to your channel.
     """
     channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
     tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
@@ -258,7 +257,7 @@ def test_restore_torrent_in_channel(metadata_store):
     # Check correct re-add
     md.status = TODELETE
     md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
-    assert UPDATED == md.status
+    assert md.status == UPDATED
     assert md_updated == md
     assert md.has_valid_signature
 
@@ -278,7 +277,7 @@ def test_restore_torrent_in_channel(metadata_store):
 @db_session
 def test_delete_torrent_from_channel(metadata_store):
     """
-    Test deleting a torrent from your channel
+    Test deleting a torrent from your channel.
     """
     channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
     tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
@@ -302,9 +301,8 @@ def test_delete_torrent_from_channel(metadata_store):
 def test_correct_commit_of_delete_entries(metadata_store):
     """
     Test that delete entries are committed to disk within mdblobs with correct filenames.
-    GitHub issue #5295
+    GitHub issue #5295.
     """
-
     channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
     # To trigger the bug we must ensure that the deletion commands will not fit in a single mdblob
     with patch.object(metadata_store.ChannelMetadata, "_CHUNK_SIZE_LIMIT", 300):
@@ -366,7 +364,7 @@ def test_vsids(metadata_store, freezer):
 @db_session
 def test_commit_channel_torrent(metadata_store):
     """
-    Test committing a channel torrent
+    Test committing a channel torrent.
     """
     channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
     tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
@@ -478,7 +476,7 @@ def test_recursive_commit_channel_torrent(metadata_store):
 @db_session
 def test_consolidate_channel_torrent(torrent_template, metadata_store):
     """
-    Test completely re-commit your channel
+    Test completely re-commit your channel.
     """
     channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
     my_dir = Path(metadata_store.ChannelMetadata._channels_dir / channel.dirname).absolute()
@@ -543,9 +541,8 @@ def test_data_dont_fit_in_mdblob(metadata_store):
 @db_session
 def test_get_channels(metadata_store):
     """
-    Test whether we can get channels
+    Test whether we can get channels.
     """
-
     # First we create a few channels
     for ind in range(10):
         metadata_store.ChannelNode._my_key = default_eccrypto.generate_key('low')
@@ -831,7 +828,7 @@ def test_sort_by_health_with_fts(mds_with_some_torrents):
 @db_session
 def test_get_channel_name(metadata_store):
     """
-    Test getting torrent name for a channel to be displayed in the downloads list
+    Test getting torrent name for a channel to be displayed in the downloads list.
     """
     infohash = b"\x00" * 20
     title = "testchan"
@@ -886,7 +883,7 @@ def create_ext_chan(metadata_store, ext_key):
 @db_session
 def test_make_copy(metadata_store):
     """
-    Test copying if recursive copying an external channel to a personal channel works as expected
+    Test copying if recursive copying an external channel to a personal channel works as expected.
     """
     src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
 
@@ -925,7 +922,7 @@ def test_update_properties_move(metadata_store):
 @db_session
 def test_delete_recursive(metadata_store):
     """
-    Test deleting channel and its contents recursively
+    Test deleting channel and its contents recursively.
     """
     src_chan = create_ext_chan(metadata_store, default_eccrypto.generate_key("curve25519"))
     src_chan.delete()
@@ -942,7 +939,7 @@ def test_delete_recursive(metadata_store):
 @db_session
 def test_get_parents(metadata_store):
     """
-    Test the routine that gets the full set (path) of a node's predecessors in the channels tree
+    Test the routine that gets the full set (path) of a node's predecessors in the channels tree.
     """
     key = default_eccrypto.generate_key("curve25519")
     src_chan = create_ext_chan(metadata_store, key)
@@ -957,7 +954,7 @@ def test_get_parents(metadata_store):
 @db_session
 def test_collection_node_state(metadata_store):
     """
-    Test that CollectionNode state is inherited from the top-level parent channel
+    Test that CollectionNode state is inherited from the top-level parent channel.
     """
     key = default_eccrypto.generate_key("curve25519")
     src_chan = create_ext_chan(metadata_store, key)
@@ -1001,7 +998,7 @@ def test_metadata_compressor():
             assert mc.size > prev_size  # with each item the total size should become bigger
             prev_size = mc.size
         else:
-            assert False  # too many items was added, something is wrong
+            raise AssertionError  # too many items was added, something is wrong
 
         assert prev_size < mc.chunk_size  # total size should fit into the chunk
 

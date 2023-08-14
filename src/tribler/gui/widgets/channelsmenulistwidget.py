@@ -16,7 +16,7 @@ def entry_to_tuple(entry):
 class ChannelListItem(QListWidgetItem):
     loading_brush = QBrush(Qt.darkGray)
 
-    def __init__(self, parent=None, channel_info=None):
+    def __init__(self, parent=None, channel_info=None) -> None:
         self.channel_info = channel_info
         title = channel_info.get('name')
         QListWidgetItem.__init__(self, title, parent=parent)
@@ -36,7 +36,7 @@ class ChannelListItem(QListWidgetItem):
 
 
 class ChannelsMenuListWidget(QListWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         QListWidget.__init__(self, parent=parent)
         self.base_url = "channels"
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)

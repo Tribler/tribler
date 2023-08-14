@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.exceptions import NoneComponent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
@@ -26,7 +25,8 @@ async def test_rest_component(tribler_config):
     async with Session(tribler_config, components) as session:
         # Test REST component starts normally
         comp = session.get_instance(RESTComponent)
-        assert comp.started_event.is_set() and not comp.failed
+        assert comp.started_event.is_set()
+        assert not comp.failed
         assert comp.rest_manager
 
         # Test report callback works
@@ -40,7 +40,7 @@ async def test_rest_component(tribler_config):
         comp._events_endpoint.on_tribler_exception.assert_called_with(error)
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint_cls():
     class Endpoint(RESTEndpoint):
         ...
@@ -48,7 +48,7 @@ def endpoint_cls():
     return Endpoint
 
 
-@pytest.fixture
+@pytest.fixture()
 async def rest_component():
     component = RESTComponent()
     component.root_endpoint = MagicMock()

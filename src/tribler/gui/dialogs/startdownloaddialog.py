@@ -29,7 +29,7 @@ class StartDownloadDialog(DialogContainer):
     button_clicked = pyqtSignal(int)
     received_metainfo = pyqtSignal(dict)
 
-    def __init__(self, parent, download_uri):
+    def __init__(self, parent, download_uri) -> None:
         DialogContainer.__init__(self, parent)
 
         torrent_name = download_uri

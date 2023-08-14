@@ -2,10 +2,9 @@ import pytest
 
 from tribler.core.components.knowledge.community.operations_requests import OperationsRequests
 
-
 # pylint: disable=protected-access, redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def operations_requests():
     return OperationsRequests()
 

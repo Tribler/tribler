@@ -4,7 +4,7 @@ import json
 import logging
 from collections import deque
 from time import time
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Set
 
 from PyQt5.QtCore import QBuffer, QIODevice, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
@@ -26,7 +26,7 @@ class RequestManager(QNetworkAccessManager):
 
     window = None
 
-    def __init__(self, limit: int = 50, timeout_interval: int = 15):
+    def __init__(self, limit: int = 50, timeout_interval: int = 15) -> None:
         QNetworkAccessManager.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -35,7 +35,7 @@ class RequestManager(QNetworkAccessManager):
 
         self.protocol = DEFAULT_API_PROTOCOL
         self.host = DEFAULT_API_HOST
-        self.port: Optional[int] = None
+        self.port: int | None = None
         self.key = ''
         self.limit = limit
         self.timeout_interval = timeout_interval
@@ -50,11 +50,11 @@ class RequestManager(QNetworkAccessManager):
     def get(self,
             endpoint: str,
             on_success: Callable = lambda _: None,
-            url_params: Optional[Dict] = None,
+            url_params: Dict | None = None,
             data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
-            raw_response: bool = False) -> Optional[Request]:
+            raw_response: bool = False) -> Request | None:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
@@ -64,11 +64,11 @@ class RequestManager(QNetworkAccessManager):
     def post(self,
              endpoint: str,
              on_success: Callable = lambda _: None,
-             url_params: Optional[Dict] = None,
+             url_params: Dict | None = None,
              data: DATA_TYPE = None,
              capture_errors: bool = True,
              priority: int = QNetworkRequest.NormalPriority,
-             raw_response: bool = False) -> Optional[Request]:
+             raw_response: bool = False) -> Request | None:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
@@ -79,11 +79,11 @@ class RequestManager(QNetworkAccessManager):
     def put(self,
             endpoint: str,
             on_success: Callable = lambda _: None,
-            url_params: Optional[Dict] = None,
+            url_params: Dict | None = None,
             data: DATA_TYPE = None,
             capture_errors: bool = True,
             priority: int = QNetworkRequest.NormalPriority,
-            raw_response: bool = False) -> Optional[Request]:
+            raw_response: bool = False) -> Request | None:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
@@ -93,11 +93,11 @@ class RequestManager(QNetworkAccessManager):
     def patch(self,
               endpoint: str,
               on_success: Callable = lambda _: None,
-              url_params: Optional[Dict] = None,
+              url_params: Dict | None = None,
               data: DATA_TYPE = None,
               capture_errors: bool = True,
               priority: int = QNetworkRequest.NormalPriority,
-              raw_response: bool = False) -> Optional[Request]:
+              raw_response: bool = False) -> Request | None:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
@@ -107,18 +107,18 @@ class RequestManager(QNetworkAccessManager):
     def delete(self,
                endpoint: str,
                on_success: Callable = lambda _: None,
-               url_params: Optional[Dict] = None,
+               url_params: Dict | None = None,
                data: DATA_TYPE = None,
                capture_errors: bool = True,
                priority: int = QNetworkRequest.NormalPriority,
-               raw_response: bool = False) -> Optional[Request]:
+               raw_response: bool = False) -> Request | None:
 
         request = Request(endpoint=endpoint, on_success=on_success, url_params=url_params, data=data,
                           capture_errors=capture_errors, priority=priority, raw_response=raw_response,
                           method=Request.DELETE)
         return self.add(request)
 
-    def add(self, request: Request) -> Optional[Request]:
+    def add(self, request: Request) -> Request | None:
         if self._is_in_shutting_down(request):
             # Do not send requests when Tribler is shutting down
             return None
@@ -194,7 +194,7 @@ class RequestManager(QNetworkAccessManager):
                 request.cancel()
 
     def _is_in_shutting_down(self, request: Request) -> bool:
-        """ Check if the Tribler is in shutting down state."""
+        """Check if the Tribler is in shutting down state."""
         if request.endpoint == SHUTDOWN_ENDPOINT:
             return False
 

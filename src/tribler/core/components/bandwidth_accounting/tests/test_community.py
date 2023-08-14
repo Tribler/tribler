@@ -8,7 +8,7 @@ from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting
 )
 from tribler.core.components.bandwidth_accounting.community.cache import BandwidthTransactionSignCache
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.db.transaction import EMPTY_SIGNATURE, BandwidthTransactionData
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.utilities.utilities import MEMORY_DB
 
@@ -24,9 +24,8 @@ class TestBandwidthAccountingCommunity(TestBase):
     def create_node(self):
         peer = Peer(default_eccrypto.generate_key("curve25519"), address=("1.2.3.4", 5))
         db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=peer.public_key.key_to_bin())
-        ipv8 = MockIPv8(peer, BandwidthAccountingCommunity, database=db,
+        return MockIPv8(peer, BandwidthAccountingCommunity, database=db,
                         settings=BandwidthAccountingSettings())
-        return ipv8
 
     def database(self, i):
         return self.overlay(i).database

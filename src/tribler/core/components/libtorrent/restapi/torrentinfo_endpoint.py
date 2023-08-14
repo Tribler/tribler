@@ -22,8 +22,8 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
 )
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
-    HTTPS_SCHEME,
     HTTP_SCHEME,
+    HTTPS_SCHEME,
     MAGNET_SCHEME,
     scheme_from_url,
     url_to_path,
@@ -37,8 +37,7 @@ async def query_http_uri(uri: str) -> bytes:
     # for compatibility with pytest-aiohttp
     async with ClientSession(raise_for_status=True) as session:
         response = await session.get(uri)
-        response = await response.read()
-        return response
+        return await response.read()
 
 
 @froze_it
@@ -46,9 +45,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding torrent info in Tribler.
     """
+
     path = '/torrentinfo'
 
-    def __init__(self, download_manager: DownloadManager):
+    def __init__(self, download_manager: DownloadManager) -> None:
         super().__init__()
         self.download_manager = download_manager
 

@@ -6,15 +6,16 @@ from tribler.core.components.knowledge.community.knowledge_validator import is_v
 
 @dataclass
 class Rule:
-    patterns: Sequence[Pattern[AnyStr]] = field(default_factory=lambda: [])
-    actions: Sequence[Callable[[str], str]] = field(default_factory=lambda: [])
+    patterns: Sequence[Pattern[AnyStr]] = field(default_factory=list)
+    actions: Sequence[Callable[[str], str]] = field(default_factory=list)
 
 
 RulesList = Sequence[Rule]
 
 
 def extract_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
-    """ Extract tags by using the given rules.
+    """
+    Extract tags by using the given rules.
 
     Rules are represented by an array of an array of regexes.
     Each rule contains one or more regex expressions.

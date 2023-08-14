@@ -20,7 +20,7 @@ class FakeResolver(AbstractResolver):
 
 
 class Socks5Connector(TCPConnector):
-    def __init__(self, proxy_addr, **kwargs):
+    def __init__(self, proxy_addr, **kwargs) -> None:
         kwargs['resolver'] = FakeResolver()
 
         super().__init__(**kwargs)

@@ -13,7 +13,7 @@ class GuiResourceMonitor(ResourceMonitor, QWidget):
     QTimer to implement start() and stop() methods.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         ResourceMonitor.__init__(self, history_size=GUI_RESOURCE_HISTORY_SIZE)
         self.resource_monitor_timer = None

@@ -1,13 +1,18 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from tribler.core.components.restapi.rest.utils import _format_frames, fix_unicode_array, fix_unicode_dict, \
-    get_parameter, shorten
+from tribler.core.components.restapi.rest.utils import (
+    _format_frames,
+    fix_unicode_array,
+    fix_unicode_dict,
+    get_parameter,
+    shorten,
+)
 
 
 def test_get_parameter():
     """
-    Testing the get_parameters method in REST API util class
+    Testing the get_parameters method in REST API util class.
     """
     assert get_parameter({'test': [42]}, 'test') == 42
     assert get_parameter({}, 'test') is None
@@ -15,7 +20,7 @@ def test_get_parameter():
 
 def test_fix_unicode_array():
     """
-    Testing the fix of a unicode array
+    Testing the fix of a unicode array.
     """
     arr1 = ['a', 'b', 'c', 'd']
     assert fix_unicode_array(arr1) == ['a', 'b', 'c', 'd']
@@ -29,7 +34,7 @@ def test_fix_unicode_array():
 
 def test_fix_unicode_dict():
     """
-    Testing the fix of a unicode dictionary
+    Testing the fix of a unicode dictionary.
     """
     dict1 = {'a': 'b', 'c': 'd'}
     assert fix_unicode_dict(dict1) == {'a': 'b', 'c': 'd'}
@@ -43,15 +48,15 @@ def test_fix_unicode_dict():
     assert fix_unicode_dict(dict5) == {'a': ['1', '2']}
     dict6 = {'a': {'b': b'c\xa4'}}
     assert fix_unicode_dict(dict6) == {'a': {'b': 'c'}}
-    dict7 = {'a': 'ѡ'}
-    assert fix_unicode_dict(dict7) == {'a': 'ѡ'}
+    dict7 = {'a': 'w'}
+    assert fix_unicode_dict(dict7) == {'a': 'w'}
     obj = Mock
     dict8 = {'a': {'b': obj}}
     assert fix_unicode_dict(dict8) == {'a': {'b': obj}}
 
 
 def test_shorten():
-    """ Test that `shorten` returns correct string"""
+    """Test that `shorten` returns correct string."""
     assert not shorten(None)
     assert shorten('long string', width=100) == 'long string'
     assert shorten('long string', width=3, placeholder='...') == 'lon...'
@@ -59,7 +64,7 @@ def test_shorten():
 
 
 def test_format_frames():
-    """ Test that `format_frames` returns correct string"""
+    """Test that `format_frames` returns correct string."""
     assert not list(_format_frames(None))
 
     frames = SimpleNamespace(

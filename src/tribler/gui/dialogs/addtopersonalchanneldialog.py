@@ -11,7 +11,7 @@ from tribler.gui.utilities import connect, get_ui_file_path
 
 
 class ChannelQTreeWidgetItem(QtWidgets.QTreeWidgetItem):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.id_ = kwargs.pop("id_") if "id_" in kwargs else 0
         QtWidgets.QTreeWidgetItem.__init__(self, *args, **kwargs)
 
@@ -19,7 +19,7 @@ class ChannelQTreeWidgetItem(QtWidgets.QTreeWidgetItem):
 class AddToChannelDialog(DialogContainer):
     create_torrent_notification = pyqtSignal(dict)
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         DialogContainer.__init__(self, parent)
         uic.loadUi(get_ui_file_path('addtochanneldialog.ui'), self.dialog_widget)
         connect(self.dialog_widget.btn_cancel.clicked, self.close_dialog)

@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
@@ -10,12 +10,14 @@ from pony.orm import db_session
 
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
-from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
+
+if TYPE_CHECKING:
+    from tribler.core.components.metadata_store.db.store import MetadataStore
 
 SNIPPETS_TO_SHOW = 3  # The number of snippets we return from the search results
 MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
@@ -26,6 +28,7 @@ class SearchEndpoint(MetadataEndpointBase):
     """
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
     """
+
     path = '/search'
 
     def setup_routes(self):

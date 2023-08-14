@@ -32,7 +32,7 @@ IGNORED_ERRORS_BY_REGEX = {
 
 
 class NoCrashException(Exception):
-    """Raising exceptions of this type doesn't lead to forced Tribler stop"""
+    """Raising exceptions of this type doesn't lead to forced Tribler stop."""
 
 
 class CoreExceptionHandler:
@@ -41,7 +41,7 @@ class CoreExceptionHandler:
     and sending them to the GUI through the events endpoint. It must be connected to the Asyncio loop.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger("CoreExceptionHandler")
         self.report_callback: Optional[Callable[[ReportedError], None]] = None
         self.unreported_error: Optional[ReportedError] = None

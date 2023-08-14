@@ -50,9 +50,10 @@ class MetadataEndpoint(MetadataEndpointBase, UpdateEntryMixin):
     #          /torrents
     #          /<public_key>
     """
+
     path = '/metadata'
 
-    def __init__(self, torrent_checker: Optional[TorrentChecker], *args, **kwargs):
+    def __init__(self, torrent_checker: Optional[TorrentChecker], *args, **kwargs) -> None:
         MetadataEndpointBase.__init__(self, *args, **kwargs)
         self.torrent_checker = torrent_checker
 

@@ -6,10 +6,9 @@ import pytest
 
 from tribler.core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
 
-
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 async def dht_health_manager():
     manager = DHTHealthManager(lt_session=Mock())
     yield manager
@@ -32,7 +31,7 @@ async def test_existing_get_health(dht_health_manager):
 
 async def test_combine_bloom_filters(dht_health_manager):
     """
-    Test combining two bloom filters
+    Test combining two bloom filters.
     """
     bf1 = bytearray(b'a' * 256)
     bf2 = bytearray(b'a' * 256)
@@ -45,7 +44,7 @@ async def test_combine_bloom_filters(dht_health_manager):
 
 def test_get_size_from_bloom_filter(dht_health_manager):
     """
-    Test whether we can successfully estimate the size from a bloom filter
+    Test whether we can successfully estimate the size from a bloom filter.
     """
     # See http://www.bittorrent.org/beps/bep_0033.html
     bf = bytearray(unhexlify("""F6C3F5EA A07FFD91 BDE89F77 7F26FB2B FF37BDB8 FB2BBAA2 FD3DDDE7 BACFFF75 EE7CCBAE
@@ -65,7 +64,7 @@ def test_get_size_from_bloom_filter(dht_health_manager):
 
 def test_receive_bloomfilters(dht_health_manager):
     """
-    Test whether the right operations happen when receiving a bloom filter
+    Test whether the right operations happen when receiving a bloom filter.
     """
     infohash = b'a' * 20
     transaction_id = '1'

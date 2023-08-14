@@ -8,7 +8,7 @@ class TrackerInfo:
     This class keeps track of info about a tracker. This info is used when a request to a tracker is performed.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.infohashes = {}
 
     def add_info_about_infohash(self, infohash, seeders, leechers, downloaded=0):
@@ -27,6 +27,6 @@ class TrackerInfo:
 
     def has_info_about_infohash(self, infohash):
         """
-        Return True if we have information about a specified infohash
+        Return True if we have information about a specified infohash.
         """
         return infohash in self.infohashes

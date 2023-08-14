@@ -7,14 +7,14 @@ from tribler.core.sentry_reporter.sentry_reporter import (
     LOGENTRY,
     REPORTER,
     STACKTRACE,
-    SYSINFO,
     SYS_ARGV,
+    SYSINFO,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 
 
 # pylint: disable=redefined-outer-name
-@pytest.fixture
+@pytest.fixture()
 def scrubber():
     return SentryScrubber()
 
@@ -41,13 +41,13 @@ FOLDERS_NEGATIVE_MATCH = [
 
 @pytest.mark.parametrize('folder', FOLDERS_NEGATIVE_MATCH)
 def test_patterns_folders_negative_match(folder: str, scrubber: SentryScrubber):
-    """ Test that the scrubber does not match folders """
+    """Test that the scrubber does not match folders."""
     assert not any(regex.search(folder) for regex in scrubber.re_folders)
 
 
 @pytest.mark.parametrize('folder', FOLDERS_POSITIVE_MATCH)
 def test_patterns_folders_positive_match(folder: str, scrubber: SentryScrubber):
-    """ Test that the scrubber matches folders """
+    """Test that the scrubber matches folders."""
     assert any(regex.search(folder) for regex in scrubber.re_folders)
 
 
@@ -71,13 +71,13 @@ IP_NEGATIVE_MATCH = [
 
 @pytest.mark.parametrize('ip', IP_NEGATIVE_MATCH)
 def test_patterns_ip_negative_match(ip: str, scrubber: SentryScrubber):
-    """ Test that the scrubber does not match IPs """
+    """Test that the scrubber does not match IPs."""
     assert not scrubber.re_ip.search(ip)
 
 
 @pytest.mark.parametrize('ip', IP_POSITIVE_MATCH)
 def test_patterns_ip_positive_match(ip: str, scrubber: SentryScrubber):
-    """ Test that the scrubber matches IPs """
+    """Test that the scrubber matches IPs."""
     assert scrubber.re_ip.search(ip)
 
 
@@ -96,18 +96,18 @@ HASH_NEGATIVE_MATCH = [
 
 @pytest.mark.parametrize('h', HASH_NEGATIVE_MATCH)
 def test_patterns_hash_negative_match(h: str, scrubber: SentryScrubber):
-    """ Test that the scrubber does not match hashes """
+    """Test that the scrubber does not match hashes."""
     assert not scrubber.re_hash.search(h)
 
 
 @pytest.mark.parametrize('h', HASH_POSITIVE_MATCH)
 def test_patterns_hash_positive_match(h: str, scrubber: SentryScrubber):
-    """ Test that the scrubber scrub hashes """
+    """Test that the scrubber scrub hashes."""
     assert scrubber.re_hash.search(h)
 
 
 def test_scrub_path_negative_match(scrubber: SentryScrubber):
-    """ Test that the scrubber does not scrub paths """
+    """Test that the scrubber does not scrub paths."""
     assert scrubber.scrub_text('/usr/local/path/') == '/usr/local/path/'
     assert scrubber.scrub_text('some text') == 'some text'
 
@@ -115,7 +115,7 @@ def test_scrub_path_negative_match(scrubber: SentryScrubber):
 
 
 def test_scrub_path_positive_match(scrubber: SentryScrubber):
-    """ Test that the scrubber scrubs paths """
+    """Test that the scrubber scrubs paths."""
     assert scrubber.scrub_text('/users/user/apps') == '/users/<boot>/apps'
     assert 'user' in scrubber.sensitive_occurrences
 
@@ -124,13 +124,13 @@ def test_scrub_path_positive_match(scrubber: SentryScrubber):
 
 
 def test_scrub_text_ip_negative_match(scrubber: SentryScrubber):
-    """ Test that the scrubber does not scrub IPs """
+    """Test that the scrubber does not scrub IPs."""
     assert scrubber.scrub_text('127.0.0.1') == '127.0.0.1'
     assert scrubber.scrub_text('0.0.0') == '0.0.0'
 
 
 def test_scrub_text_ip_positive_match(scrubber: SentryScrubber):
-    """ Test that the scrubber scrubs IPs """
+    """Test that the scrubber scrubs IPs."""
     assert scrubber.scrub_text('0.0.0.1') == '<IP>'
     assert scrubber.scrub_text('0.100.0.1') == '<IP>'
 
@@ -138,7 +138,7 @@ def test_scrub_text_ip_positive_match(scrubber: SentryScrubber):
 
 
 def test_scrub_text_hash_negative_match(scrubber: SentryScrubber):
-    """ Test that the scrubber does not scrub hashes """
+    """Test that the scrubber does not scrub hashes."""
     too_long_hash = '1' * 41
     assert scrubber.scrub_text(too_long_hash) == too_long_hash
     too_short_hash = '2' * 39
@@ -146,7 +146,7 @@ def test_scrub_text_hash_negative_match(scrubber: SentryScrubber):
 
 
 def test_scrub_text_hash_positive_match(scrubber: SentryScrubber):
-    """ Test that the scrubber scrubs hashes """
+    """Test that the scrubber scrubs hashes."""
     assert scrubber.scrub_text('3' * 40) == '<hash>'
     assert scrubber.scrub_text('hash:' + '4' * 40) == 'hash:<hash>'
 
@@ -154,7 +154,7 @@ def test_scrub_text_hash_positive_match(scrubber: SentryScrubber):
 
 
 def test_scrub_text_complex_string(scrubber):
-    """ Test that the scrubber scrubs complex strings """
+    """Test that the scrubber scrubs complex strings."""
     source = (
         'this is a string that has been sent from '
         '192.168.1.1(3030303030303030303030303030303030303030) '
@@ -174,14 +174,14 @@ def test_scrub_text_complex_string(scrubber):
 
 
 def test_scrub_simple_event(scrubber):
-    """ Test that the scrubber scrubs simple events """
+    """Test that the scrubber scrubs simple events."""
     assert scrubber.scrub_event(None) is None
     assert scrubber.scrub_event({}) == {}
     assert scrubber.scrub_event({'some': 'field'}) == {'some': 'field'}
 
 
 def test_scrub_event(scrubber):
-    """ Test that the scrubber scrubs events """
+    """Test that the scrubber scrubs events."""
     event = {
         'the very first item': 'username',
         'server_name': 'userhost',
@@ -256,8 +256,7 @@ def test_scrub_event(scrubber):
 
 
 def test_entities_recursively(scrubber):
-    """ Test that the scrubber scrubs entities recursively """
-
+    """Test that the scrubber scrubs entities recursively."""
     # positive
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively({}) == {}
@@ -283,7 +282,7 @@ def test_entities_recursively(scrubber):
 
 
 def test_scrub_unnecessary_fields(scrubber):
-    """ Test that the scrubber scrubs unnecessary fields """
+    """Test that the scrubber scrubs unnecessary fields."""
     # default
     assert scrubber.scrub_event({'default': 'field'}) == {'default': 'field'}
 
@@ -307,9 +306,9 @@ def test_scrub_dict(scrubber):
                                                         'USERDOMAIN': '<school>',
                                                         'USERNAME': '<night>'}
 
-    assert 'username' in scrubber.sensitive_occurrences.keys()
-    assert 'UD' in scrubber.sensitive_occurrences.keys()
-    assert 'U' in scrubber.sensitive_occurrences.keys()
+    assert 'username' in scrubber.sensitive_occurrences
+    assert 'UD' in scrubber.sensitive_occurrences
+    assert 'U' in scrubber.sensitive_occurrences
 
 
 def test_scrub_list(scrubber):
@@ -321,7 +320,7 @@ def test_scrub_list(scrubber):
 
 
 def test_remove_breadcrumbs():
-    """ Test that the function `SentryScrubber.remove_breadcrumbs` removes breadcrumbs from a dictionary """
+    """Test that the function `SentryScrubber.remove_breadcrumbs` removes breadcrumbs from a dictionary."""
     event = {
         BREADCRUMBS: {
             'values': [

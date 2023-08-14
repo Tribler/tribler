@@ -5,10 +5,10 @@ from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_NODE,
-    ChannelNodePayload,
-    KeysMismatchException,
     NULL_KEY,
     NULL_SIG,
+    ChannelNodePayload,
+    KeysMismatchException,
 )
 from tribler.core.exceptions import InvalidChannelNodeException, InvalidSignatureException
 from tribler.core.utilities.unicode import hexlify
@@ -17,7 +17,7 @@ from tribler.core.utilities.unicode import hexlify
 @db_session
 def test_to_dict(metadata_store):
     """
-    Test whether converting metadata to a dictionary works
+    Test whether converting metadata to a dictionary works.
     """
     metadata = metadata_store.ChannelNode.from_dict({})
     assert metadata.to_dict()
@@ -26,7 +26,7 @@ def test_to_dict(metadata_store):
 @db_session
 def test_serialization(metadata_store):
     """
-    Test converting metadata to serialized data and back
+    Test converting metadata to serialized data and back.
     """
     for md_type in [
         metadata_store.ChannelNode,
@@ -60,7 +60,7 @@ def test_serialization(metadata_store):
 @db_session
 def test_ffa_serialization(metadata_store):
     """
-    Test converting free-for-all (unsigned) torrent metadata to payload and back
+    Test converting free-for-all (unsigned) torrent metadata to payload and back.
     """
     metadata1 = metadata_store.ChannelNode.from_dict({"public_key": b"", "id_": "123"})
     serialized1 = metadata1.serialized()
@@ -95,7 +95,7 @@ def test_key_mismatch_exception(metadata_store):
 @db_session
 def test_to_file(tmpdir, metadata_store):
     """
-    Test writing metadata to a file
+    Test writing metadata to a file.
     """
     metadata = metadata_store.ChannelNode.from_dict({})
     file_path = tmpdir / 'metadata.file'
@@ -106,7 +106,7 @@ def test_to_file(tmpdir, metadata_store):
 @db_session
 def test_has_valid_signature(metadata_store):
     """
-    Test whether a signature can be validated correctly
+    Test whether a signature can be validated correctly.
     """
     metadata = metadata_store.ChannelNode.from_dict({})
     assert metadata.has_valid_signature()
@@ -137,7 +137,7 @@ def test_has_valid_signature(metadata_store):
 @db_session
 def test_from_payload(metadata_store):
     """
-    Test converting a metadata payload to a metadata object
+    Test converting a metadata payload to a metadata object.
     """
     metadata = metadata_store.ChannelNode.from_dict({})
     metadata_dict = metadata.to_dict()

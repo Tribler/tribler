@@ -30,13 +30,13 @@ PROGRESS_COL = 2
  """
 
 TORRENT_FILES_TREE_STYLESHEET_NO_ITEM = """
-    TorrentFileTreeWidget::indicator { width: 18px; height: 18px;}
-    TorrentFileTreeWidget::indicator:checked { image: url("%s"); }
-    TorrentFileTreeWidget::indicator:unchecked { image: url("%s"); }
-    TorrentFileTreeWidget::indicator:indeterminate { image: url("%s"); }
-    TorrentFileTreeWidget { border: none; font-size: 13px; } 
-    TorrentFileTreeWidget::item:hover { background-color: #303030; }
-    """ % (
+    TorrentFileTreeWidget::indicator {{ width: 18px; height: 18px;}}
+    TorrentFileTreeWidget::indicator:checked {{ image: url("{}"); }}
+    TorrentFileTreeWidget::indicator:unchecked {{ image: url("{}"); }}
+    TorrentFileTreeWidget::indicator:indeterminate {{ image: url("{}"); }}
+    TorrentFileTreeWidget {{ border: none; font-size: 13px; }}
+    TorrentFileTreeWidget::item:hover {{ background-color: #303030; }}
+    """.format(
     get_image_path('toggle-checked.svg', convert_slashes_to_forward=True),
     get_image_path('toggle-unchecked.svg', convert_slashes_to_forward=True),
     get_image_path('toggle-undefined.svg', convert_slashes_to_forward=True),
@@ -53,7 +53,7 @@ TORRENT_FILES_TREE_STYLESHEET = (
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, parent, file_size=None, file_index=None, file_progress=None):
+    def __init__(self, parent, file_size=None, file_index=None, file_progress=None) -> None:
         QTreeWidgetItem.__init__(self, parent)
         self.file_size = file_size
         self.file_index = file_index
@@ -113,10 +113,9 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
                 child_changed = True
                 self.progress_bytes = self.progress_bytes - old_bytes + new_bytes
 
-        if child_changed or force_update:
-            if self.progress_bytes is not None and self.file_size:
-                self.file_progress = self.progress_bytes / self.file_size
-                self.setText(PROGRESS_COL, f"{self.file_progress:.1%}")
+        if (child_changed or force_update) and self.progress_bytes is not None and self.file_size:
+            self.file_progress = self.progress_bytes / self.file_size
+            self.setText(PROGRESS_COL, f"{self.file_progress:.1%}")
 
         # ACHTUNG! This can be _very_ slow for torrents with lots of files, hence disabled by default
         # To draw progress bars with acceptable performance we'd have to use QT's MVC stuff
@@ -140,7 +139,7 @@ class DownloadFileTreeWidgetItem(QTreeWidgetItem):
 class TorrentFileTreeWidget(QTreeWidget):
     selected_files_changed = pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.total_files_size = None
         connect(self.itemChanged, self.update_selected_files_size)

@@ -136,14 +136,14 @@ def test_on_core_read_ready_os_error_suppressed(mocked_print: MagicMock, core_ma
 
 def test_decode_raw_core_output(core_manager):
     assert core_manager.decode_raw_core_output(b'test') == 'test'
-    assert core_manager.decode_raw_core_output('test привет'.encode('utf-8')) == 'test привет'
+    assert core_manager.decode_raw_core_output('test привет'.encode()) == 'test привет'
     assert core_manager.decode_raw_core_output('test привет'.encode('cp1251')) == r'test \xef\xf0\xe8\xe2\xe5\xf2'
 
 
 def test_format_error_message():
     actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1)
-    expected = '''The Tribler core has unexpectedly finished with exit code 2 and status: 1.
+    expected = """The Tribler core has unexpectedly finished with exit code 2 and status: 1.
 
-Error message: No such file or directory'''
+Error message: No such file or directory"""
 
     assert actual == expected

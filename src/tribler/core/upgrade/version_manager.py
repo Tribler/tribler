@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -9,14 +10,16 @@ from collections import OrderedDict
 from datetime import datetime
 from distutils.version import LooseVersion
 from operator import attrgetter
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import tribler.core.version
 from tribler.core.components.libtorrent.download_manager.download_manager import LTSTATE_FILENAME
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities import osutils
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 VERSION_HISTORY_FILENAME = "version_history.json"
 STATE_DIRS_TO_COPY = (STATEDIR_DB_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_CHANNELS_DIR)
@@ -61,7 +64,7 @@ class VersionError(Exception):
 
 
 class NoDiskSpaceAvailableError(Exception):
-    def __init__(self, required: int, available: int):
+    def __init__(self, required: int, available: int) -> None:
         super().__init__(f"No disk space available. "
                          f"Required: {required} bytes; "
                          f"Available: {available} bytes")
@@ -77,15 +80,15 @@ class TriblerVersion:
     last_launched_at: float
     root_state_dir: Path
     directory: Path
-    prev_version_by_time: Optional[TriblerVersion]
-    prev_version_by_number: Optional[TriblerVersion]
-    can_be_copied_from: Optional[TriblerVersion]
+    prev_version_by_time: TriblerVersion | None
+    prev_version_by_number: TriblerVersion | None
+    can_be_copied_from: TriblerVersion | None
     should_be_copied: bool
     should_recreate_directory: bool
     deleted: bool
 
-    def __init__(self, root_state_dir: Path, version_str: str, files_to_copy: List[str] = None,
-                 last_launched_at: Optional[float] = None):
+    def __init__(self, root_state_dir: Path, version_str: str, files_to_copy: List[str] | None = None,
+                 last_launched_at: float | None = None) -> None:
         if last_launched_at is None:
             last_launched_at = time.time()
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -104,7 +107,7 @@ class TriblerVersion:
         self.deleted = False
         self.files_to_copy = files_to_copy or []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<{self.__class__.__name__}{{{self.version_str}}}>'
 
     def get_directory(self):
@@ -137,7 +140,7 @@ class TriblerVersion:
         """Size in bytes required to upgrade from this version. This value includes some reserved storage for safety."""
         return self.calc_state_size() + reserved_space
 
-    def delete_state(self) -> Optional[Path]:
+    def delete_state(self) -> Path | None:
         # Try to delete the directory for the version.
         # If directory contains unknown files or folders, then rename the directory instead.
         # Return renamed path or None if the directory was deleted successfully.
@@ -149,10 +152,9 @@ class TriblerVersion:
 
         self.deleted = True
         for filename in self.files_to_copy:
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 (self.directory / filename).unlink()
-            except FileNotFoundError:
-                pass
+
         for dirname in STATE_DIRS_TO_COPY:
             shutil.rmtree(str(self.directory / dirname), ignore_errors=True)
         if self.directory != self.root_state_dir:
@@ -161,8 +163,7 @@ class TriblerVersion:
                 self.directory.rmdir()
             except OSError:
                 # cannot delete, then rename
-                renamed = self.rename_directory("deleted_v")
-                return renamed
+                return self.rename_directory("deleted_v")
         return None
 
     def copy_state_from(self, other: TriblerVersion, overwrite=False):
@@ -219,11 +220,11 @@ class VersionHistory:
     versions: OrderedDict[Tuple[int, int], TriblerVersion]  # pylint: disable=unsubscriptable-object
     versions_by_number: List[TriblerVersion]
     versions_by_time: List[TriblerVersion]
-    last_run_version: Optional[TriblerVersion]
+    last_run_version: TriblerVersion | None
     code_version: TriblerVersion  # current Tribler's version
 
     # pylint: disable=too-many-branches
-    def __init__(self, root_state_dir: Path, code_version_id: Optional[str] = None):
+    def __init__(self, root_state_dir: Path, code_version_id: str | None = None) -> None:
         if code_version_id is None:
             code_version_id = tribler.core.version.version_id
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -306,7 +307,7 @@ class VersionHistory:
         self.logger.info(f'Files to copy: {files_to_copy}')
         return files_to_copy
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = repr([v.major_minor for v in self.versions_by_time])
         return f'<{self.__class__.__name__}{s}>'
 
@@ -337,7 +338,7 @@ class VersionHistory:
         self.versions.move_to_end(version.major_minor)
 
     def save_if_necessary(self) -> bool:
-        """Returns True if state was saved"""
+        """Returns True if state was saved."""
         should_save = self.code_version != self.last_run_version
         if should_save:
             self.logger.info("Save version history")
@@ -349,8 +350,8 @@ class VersionHistory:
         self.file_data["history"][str(self.code_version.last_launched_at)] = self.code_version.version_str
         self.file_path.write_text(json.dumps(self.file_data))
 
-    def fork_state_directory_if_necessary(self) -> Optional[TriblerVersion]:
-        """Returns version string from which the state directory was forked"""
+    def fork_state_directory_if_necessary(self) -> TriblerVersion | None:
+        """Returns version string from which the state directory was forked."""
         code_version = self.code_version
         if code_version.should_recreate_directory:
             self.logger.info('State directory should be recreated')

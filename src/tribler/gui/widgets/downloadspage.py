@@ -2,7 +2,7 @@ import logging
 import os
 from typing import List, Optional, Tuple
 
-from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
@@ -18,7 +18,8 @@ from tribler.gui.defs import (
     DOWNLOADS_FILTER_COMPLETED,
     DOWNLOADS_FILTER_DEFINITION,
     DOWNLOADS_FILTER_DOWNLOADING,
-    DOWNLOADS_FILTER_INACTIVE, )
+    DOWNLOADS_FILTER_INACTIVE,
+)
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request import REQUEST_ID
 from tribler.gui.network.request_manager import request_manager
@@ -52,7 +53,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     received_downloads = pyqtSignal(object)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.export_dir = None

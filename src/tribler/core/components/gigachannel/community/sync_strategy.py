@@ -12,7 +12,7 @@ class RemovePeers(DiscoveryStrategy):
     Remove a random peer, if we have enough peers to walk to.
     """
 
-    def __init__(self, overlay, target_peers_number=TARGET_PEERS_NUMBER):
+    def __init__(self, overlay, target_peers_number=TARGET_PEERS_NUMBER) -> None:
         super().__init__(overlay)
         self.target_peers_number = target_peers_number
 

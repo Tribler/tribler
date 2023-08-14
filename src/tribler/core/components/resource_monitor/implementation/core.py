@@ -21,7 +21,7 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
     """
 
     def __init__(self, state_dir, log_dir, config: ResourceMonitorSettings,
-                 notifier: Notifier, history_size=CORE_RESOURCE_HISTORY_SIZE):
+                 notifier: Notifier, history_size=CORE_RESOURCE_HISTORY_SIZE) -> None:
         TaskManager.__init__(self)
         ResourceMonitor.__init__(self, history_size=history_size)
 
@@ -82,6 +82,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
 
     def get_disk_usage(self):
         """
-        Return a list containing the history of free disk space
+        Return a list containing the history of free disk space.
         """
         return self.disk_usage_data

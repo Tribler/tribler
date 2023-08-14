@@ -8,7 +8,6 @@ from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 
-
 # pylint: disable=protected-access
 
 

@@ -9,7 +9,7 @@ TEST_BOOSTER_TAKE_STEP_INTERVAL_IN_SEC = 1
 @pytest.fixture(name="booster")  # this workaround implemented only for pylint
 def fixture_booster():
     class MockWalker:
-        def __init__(self):
+        def __init__(self) -> None:
             self.take_step_called = False
 
         def take_step(self):
@@ -25,7 +25,7 @@ def fixture_booster():
 @pytest.fixture(name="community")  # this workaround implemented only for pylint
 def fixture_community():
     class MockCommunity:
-        def __init__(self):
+        def __init__(self) -> None:
             self.tasks = []
 
         def register_task(

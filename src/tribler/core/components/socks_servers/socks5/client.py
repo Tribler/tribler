@@ -7,14 +7,14 @@ from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 from ipv8.messaging.serialization import PackError
 
 from tribler.core.components.socks_servers.socks5.conversion import (
-    CommandRequest,
-    CommandResponse,
-    MethodsRequest,
-    MethodsResponse,
     REQ_CMD_CONNECT,
     REQ_CMD_UDP_ASSOCIATE,
     SOCKS_AUTH_ANON,
     SOCKS_VERSION,
+    CommandRequest,
+    CommandResponse,
+    MethodsRequest,
+    MethodsResponse,
     UdpPacket,
     socks5_serializer,
 )
@@ -26,7 +26,7 @@ class Socks5Error(Exception):
 
 class Socks5ClientUDPConnection(DatagramProtocol):
 
-    def __init__(self, callback):
+    def __init__(self, callback) -> None:
         self.callback = callback
         self.transport = None
         self.proxy_udp_addr = None
@@ -57,7 +57,7 @@ class Socks5Client(Protocol):
     This object represents a minimal Socks5 client. Both TCP and UDP are supported.
     """
 
-    def __init__(self, proxy_addr, callback):
+    def __init__(self, proxy_addr, callback) -> None:
         self.proxy_addr = proxy_addr
         self.callback = callback
         self.transport = None

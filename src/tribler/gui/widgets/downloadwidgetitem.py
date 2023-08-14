@@ -12,10 +12,10 @@ from tribler.gui.utilities import duration_to_string, format_size, format_speed
 
 class LoadingDownloadWidgetItem(QTreeWidgetItem):
     """
-    This class is used for the placeholder "Loading" item for the downloads list
+    This class is used for the placeholder "Loading" item for the downloads list.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QTreeWidgetItem.__init__(self)
         self.setFlags(Qt.NoItemFlags)
 
@@ -58,7 +58,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
     This class is responsible for managing the item in the downloads list and fills the item with the relevant data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QTreeWidgetItem.__init__(self)
         self.download_info: Optional[Dict] = None
         self.infohash: Optional[str] = None

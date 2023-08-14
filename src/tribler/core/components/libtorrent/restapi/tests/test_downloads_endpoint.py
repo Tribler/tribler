@@ -17,7 +17,7 @@ from tribler.core.utilities.unicode import hexlify
 
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(mock_dlmgr, metadata_store):
     return DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
 
@@ -31,7 +31,7 @@ ExtendedStatusConfig = collections.namedtuple("ExtendedStatusConfig",
                                               defaults=[0, 0, True])
 
 
-@pytest.fixture(name="mock_extended_status", scope="function")
+@pytest.fixture(name="mock_extended_status")
 def fixture_extended_status(request, mock_lt_status) -> int:
     """
     Fixture to provide an extended status for a DownloadState that uses a mocked TunnelCommunity and a mocked Download.
@@ -144,7 +144,7 @@ def test_get_extended_status_circuits(mock_extended_status):
                      Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
 def test_safe_extended_peer_info():
     """
-    Test that we return the string mapped by `chr` in the case of `UnicodeDecodeError`
+    Test that we return the string mapped by `chr` in the case of `UnicodeDecodeError`.
     """
     extended_peer_info = download_endpoint._safe_extended_peer_info(b"abcd")  # pylint: disable=protected-access
     assert extended_peer_info == "abcd"
@@ -161,7 +161,7 @@ async def test_get_downloads_if_checkpoints_are_not_loaded(mock_dlmgr, rest_api)
 
 async def test_get_downloads_no_downloads(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns an empty list when downloads are fetched but no downloads are active
+    Testing whether the API returns an empty list when downloads are fetched but no downloads are active.
     """
     mock_dlmgr.checkpoints_count = 0
     mock_dlmgr.checkpoints_loaded = 0
@@ -173,7 +173,7 @@ async def test_get_downloads_no_downloads(mock_dlmgr, rest_api):
 
 async def test_get_downloads(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns the right download when a download is added
+    Testing whether the API returns the right download when a download is added.
     """
     mock_dlmgr.get_downloads = lambda: [test_download]
     mock_dlmgr.checkpoints_count = 1
@@ -187,14 +187,14 @@ async def test_get_downloads(mock_dlmgr, test_download, rest_api):
 
 async def test_start_download_no_uri(rest_api):
     """
-    Testing whether an error is returned when we start a torrent download and do not pass any URI
+    Testing whether an error is returned when we start a torrent download and do not pass any URI.
     """
     await do_request(rest_api, 'downloads', expected_code=400, request_type='PUT')
 
 
 async def test_start_download_bad_params(rest_api):
     """
-    Testing whether an error is returned when we start a torrent download and pass wrong data
+    Testing whether an error is returned when we start a torrent download and pass wrong data.
     """
     post_data = {'anon_hops': 1, 'safe_seeding': 0, 'uri': 'abcd'}
     await do_request(rest_api, 'downloads', expected_code=400, request_type='PUT', post_data=post_data)
@@ -202,7 +202,7 @@ async def test_start_download_bad_params(rest_api):
 
 async def test_start_download_from_file(test_download, mock_dlmgr, rest_api):
     """
-    Testing whether we can start a download from a file
+    Testing whether we can start a download from a file.
     """
     mock_dlmgr.start_download_from_uri = lambda *_, **__: succeed(test_download)
     uri = path_to_url(TESTS_DATA_DIR / 'video.avi.torrent')
@@ -213,7 +213,7 @@ async def test_start_download_from_file(test_download, mock_dlmgr, rest_api):
 
 async def test_start_download_with_selected_files(test_download, mock_dlmgr, rest_api):
     """
-    Testing whether we can start a download with the selected_files parameter set
+    Testing whether we can start a download with the selected_files parameter set.
     """
 
     def mocked_start_download(*_, config=None):
@@ -263,7 +263,7 @@ async def test_get_peers_illegal_fields_unknown(test_download, mock_dlmgr, mock_
 
 async def test_start_invalid_download(mock_dlmgr, rest_api):
     """
-    Testing whether an Exception triggered in start_download_from_uri is correctly handled
+    Testing whether an Exception triggered in start_download_from_uri is correctly handled.
     """
 
     def mocked_start_download(*_, **__):
@@ -278,14 +278,14 @@ async def test_start_invalid_download(mock_dlmgr, rest_api):
 
 async def test_remove_no_remove_data_param(rest_api):
     """
-    Testing whether the API returns error 400 if the remove_data parameter is not passed
+    Testing whether the API returns error 400 if the remove_data parameter is not passed.
     """
     await do_request(rest_api, 'downloads/abcd', expected_code=400, request_type='DELETE')
 
 
 async def test_remove_wrong_infohash(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns error 404 if a non-existent download is removed
+    Testing whether the API returns error 404 if a non-existent download is removed.
     """
     mock_dlmgr.get_download = lambda _: None
     await do_request(rest_api, 'downloads/abcd', post_data={"remove_data": True},
@@ -294,7 +294,7 @@ async def test_remove_wrong_infohash(mock_dlmgr, rest_api):
 
 async def test_remove(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 200 if a download is being removed
+    Testing whether the API returns 200 if a download is being removed.
     """
     mock_dlmgr.get_download = lambda _: test_download
     mock_dlmgr.remove_download = lambda *_, **__: succeed(None)
@@ -306,7 +306,7 @@ async def test_remove(mock_dlmgr, test_download, rest_api):
 
 async def test_stop_download_wrong_infohash(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns error 404 if a non-existent download is stopped
+    Testing whether the API returns error 404 if a non-existent download is stopped.
     """
     mock_dlmgr.get_download = lambda _: None
     await do_request(rest_api, 'downloads/abcd', expected_code=404, post_data={"state": "stop"}, request_type='PATCH')
@@ -314,7 +314,7 @@ async def test_stop_download_wrong_infohash(mock_dlmgr, rest_api):
 
 async def test_stop_download(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 200 if a download is being stopped
+    Testing whether the API returns 200 if a download is being stopped.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
@@ -332,7 +332,7 @@ async def test_stop_download(mock_dlmgr, test_download, rest_api):
 
 async def test_select_download_file_range(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether an error is returned when we toggle a file for inclusion out of range
+    Testing whether an error is returned when we toggle a file for inclusion out of range.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
@@ -342,7 +342,7 @@ async def test_select_download_file_range(mock_dlmgr, test_download, rest_api):
 
 async def test_select_download_file(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether files can be correctly toggled in a download
+    Testing whether files can be correctly toggled in a download.
     """
     mock_dlmgr.get_download = lambda _: test_download
     test_download.set_selected_files = Mock()
@@ -355,7 +355,7 @@ async def test_select_download_file(mock_dlmgr, test_download, rest_api):
 
 async def test_load_checkpoint_wrong_infohash(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns error 404 if a non-existent download is resumed
+    Testing whether the API returns error 404 if a non-existent download is resumed.
     """
     mock_dlmgr.get_download = lambda _: None
     await do_request(rest_api, 'downloads/abcd', expected_code=404, post_data={"state": "resume"}, request_type='PATCH')
@@ -363,7 +363,7 @@ async def test_load_checkpoint_wrong_infohash(mock_dlmgr, rest_api):
 
 async def test_resume_download(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 200 if a download is being resumed
+    Testing whether the API returns 200 if a download is being resumed.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
@@ -380,7 +380,7 @@ async def test_resume_download(mock_dlmgr, test_download, rest_api):
 
 async def test_recheck_download(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 200 if a download is being rechecked
+    Testing whether the API returns 200 if a download is being rechecked.
     """
     mock_dlmgr.get_download = lambda _: test_download
     test_download.force_recheck = Mock()
@@ -393,7 +393,7 @@ async def test_recheck_download(mock_dlmgr, test_download, rest_api):
 
 async def test_download_unknown_state(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns error 400 if an unknown state is passed when modifying a download
+    Testing whether the API returns error 400 if an unknown state is passed when modifying a download.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
@@ -404,7 +404,7 @@ async def test_download_unknown_state(mock_dlmgr, test_download, rest_api):
 
 async def test_change_hops_error(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 400 if we supply both anon_hops and another parameter
+    Testing whether the API returns 400 if we supply both anon_hops and another parameter.
     """
     mock_dlmgr.get_download = lambda _: True
     await do_request(rest_api, f'downloads/{test_download.infohash}', post_data={"state": "resume", 'anon_hops': 1},
@@ -445,7 +445,7 @@ async def test_move_to_existing_dir(mock_dlmgr, test_download, rest_api, tmp_pat
 
 async def test_export_unknown_download(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns error 404 if a non-existent download is exported
+    Testing whether the API returns error 404 if a non-existent download is exported.
     """
     mock_dlmgr.get_download = lambda _: None
     await do_request(rest_api, 'downloads/abcd/torrent', expected_code=404, request_type='GET')
@@ -453,7 +453,7 @@ async def test_export_unknown_download(mock_dlmgr, rest_api):
 
 async def test_export_download(mock_dlmgr, mock_handle, test_download, rest_api):
     """
-    Testing whether the API returns the contents of the torrent file if a download is exported
+    Testing whether the API returns the contents of the torrent file if a download is exported.
     """
     test_download.get_torrent_data = lambda: 'a' * 20
     mock_dlmgr.get_download = lambda _: test_download
@@ -463,7 +463,7 @@ async def test_export_download(mock_dlmgr, mock_handle, test_download, rest_api)
 
 async def test_get_files_unknown_download(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns error 404 if the files of a non-existent download are requested
+    Testing whether the API returns error 404 if the files of a non-existent download are requested.
     """
     mock_dlmgr.get_download = lambda _: None
     await do_request(rest_api, 'downloads/abcd/files', expected_code=404, request_type='GET')
@@ -471,7 +471,7 @@ async def test_get_files_unknown_download(mock_dlmgr, rest_api):
 
 async def test_get_download_files(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns file information of a specific download when requested
+    Testing whether the API returns file information of a specific download when requested.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
@@ -483,7 +483,7 @@ async def test_get_download_files(mock_dlmgr, test_download, rest_api):
 
 async def test_stream_unknown_download(mock_dlmgr, rest_api):
     """
-    Testing whether the API returns error 404 if we stream a non-existent download
+    Testing whether the API returns error 404 if we stream a non-existent download.
     """
     mock_dlmgr.get_download = lambda _: None
     await do_request(rest_api, 'downloads/abcd/stream/0',
@@ -492,7 +492,7 @@ async def test_stream_unknown_download(mock_dlmgr, rest_api):
 
 async def test_stream_download_out_of_bounds_file(mock_dlmgr, mock_handle, test_download, rest_api):
     """
-    Testing whether the API returns code 404 if we stream with a file index out of bounds
+    Testing whether the API returns code 404 if we stream with a file index out of bounds.
     """
     mock_dlmgr.get_download = lambda _: test_download
     await do_request(rest_api, f'downloads/{test_download.infohash}/stream/100',
@@ -501,7 +501,7 @@ async def test_stream_download_out_of_bounds_file(mock_dlmgr, mock_handle, test_
 
 async def test_stream_download(mock_dlmgr, mock_handle, test_download, rest_api, tmp_path):
     """
-    Testing whether the API returns code 206 if we stream a non-existent download
+    Testing whether the API returns code 206 if we stream a non-existent download.
     """
     mock_dlmgr.get_download = lambda _: test_download
 
@@ -534,7 +534,7 @@ async def test_stream_download(mock_dlmgr, mock_handle, test_download, rest_api,
 
 async def test_change_hops(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 200 if we change the amount of hops of a download
+    Testing whether the API returns 200 if we change the amount of hops of a download.
     """
     mock_dlmgr.get_download = lambda _: test_download
     mock_dlmgr.update_hops = lambda *_: succeed(None)
@@ -546,7 +546,7 @@ async def test_change_hops(mock_dlmgr, test_download, rest_api):
 
 async def test_change_hops_fail(mock_dlmgr, test_download, rest_api):
     """
-    Testing whether the API returns 500 if changing the number of hops in a download fails
+    Testing whether the API returns 500 if changing the number of hops in a download fails.
     """
     mock_dlmgr.get_download = lambda _: test_download
     mock_dlmgr.update_hops = lambda *_: fail(RuntimeError)

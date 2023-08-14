@@ -30,7 +30,7 @@ def _to_dict(value: str) -> Optional[Dict]:
 
 
 class DownloadConfig:
-    def __init__(self, config=None, state_dir=None):
+    def __init__(self, config=None, state_dir=None) -> None:
         self.config = config or ConfigObj(configspec=str(CONFIG_SPEC_PATH), default_encoding='utf8')
         # Values that should not be stored and should be initialized to some default value
         self.nonpersistent = NONPERSISTENT_DEFAULTS.copy()
@@ -47,7 +47,7 @@ class DownloadConfig:
         validator = Validator()
         validation_result = self.config.validate(validator)
         if validation_result is not True:
-            raise InvalidConfigException(f"DownloadConfig is invalid: {str(validation_result)}")
+            raise InvalidConfigException(f"DownloadConfig is invalid: {validation_result!s}")
 
     @staticmethod
     def load(config_path=None):
@@ -73,7 +73,8 @@ class DownloadConfig:
         self.config.write()
 
     def set_dest_dir(self, path):
-        """ Sets the directory where to save this Download.
+        """
+        Sets the directory where to save this Download.
         @param path A path of a directory.
         """
         # If something is saved inside the Tribler state dir, it should use relative path
@@ -81,7 +82,8 @@ class DownloadConfig:
         self.config['download_defaults']['saveas'] = str(path)
 
     def get_dest_dir(self):
-        """ Gets the directory where to save this Download.
+        """
+        Gets the directory where to save this Download.
         """
         dest_dir = self.config['download_defaults']['saveas']
         if not dest_dir:
@@ -131,14 +133,17 @@ class DownloadConfig:
         return self.config['download_defaults']['time_added']
 
     def set_selected_files(self, file_indexes):
-        """ Select which files in the torrent to download.
-        @param file_indexes List of file indexes as ordered in the torrent (e.g. [0,1])
+        """
+        Select which files in the torrent to download.
+        @param file_indexes List of file indexes as ordered in the torrent (e.g. [0,1]).
         """
         self.config['download_defaults']['selected_file_indexes'] = file_indexes
 
     def get_selected_files(self):
-        """ Returns the list of files selected for download.
-        @return A list of file indexes. """
+        """
+        Returns the list of files selected for download.
+        @return A list of file indexes.
+        """
         return self.config['download_defaults']['selected_file_indexes']
 
     def set_channel_download(self, value):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Dict, TypeVar
 
 from ipv8.types import Peer
 
@@ -13,17 +13,18 @@ T = TypeVar('T', bound=Transfer)
 
 
 class Container(Dict[Peer, T]):
-    """ This class designed as a storage for transfers.
+    """
+    This class designed as a storage for transfers.
 
     Key feature of the Container class is an ability to call
     `self.eva.scheduler.send_scheduled()` for each item deletion.
     """
 
-    def __init__(self, eva: EVAProtocol):
+    def __init__(self, eva: EVAProtocol) -> None:
         super().__init__()
         self.eva = eva
 
-    def pop(self, key: Peer, default: Optional[T] = None) -> T:
+    def pop(self, key: Peer, default: T | None = None) -> T:
         value = super().pop(key, default)
         self.eva.scheduler.send_scheduled()
         return value
@@ -32,12 +33,12 @@ class Container(Dict[Peer, T]):
         super().update(*args, **kwargs)
         self.eva.scheduler.send_scheduled()
 
-    def __setitem__(self, key: Peer, value: T):
+    def __setitem__(self, key: Peer, value: T) -> None:
         if key in self:
             raise KeyError('Peer is already in container')
 
         super().__setitem__(key, value)
 
-    def __delitem__(self, key: Peer):
+    def __delitem__(self, key: Peer) -> None:
         super().__delitem__(key)
         self.eva.scheduler.send_scheduled()

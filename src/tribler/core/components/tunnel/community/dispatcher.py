@@ -19,7 +19,7 @@ class TunnelDispatcher(TaskManager):
     This dispatcher acts as a "secondary" proxy between the SOCKS5 UDP session and the tunnel community.
     """
 
-    def __init__(self, tunnels):
+    def __init__(self, tunnels) -> None:
         super().__init__()
         self.tunnels = tunnels
         self.socks_servers = []

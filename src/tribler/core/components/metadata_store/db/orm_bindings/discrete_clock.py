@@ -10,7 +10,7 @@ from tribler.core.components.metadata_store.db.serialization import time2int
 
 
 class DiscreteClock:
-    def __init__(self):
+    def __init__(self) -> None:
         # We assume people are not adding 1000 torrents per second constantly to their channels
         self.clock = time2int(datetime.utcnow()) * 1000
 

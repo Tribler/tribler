@@ -3,9 +3,14 @@ from unittest.mock import Mock, patch
 
 from pony import orm
 from pony.orm import commit, db_session
-
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, \
-    PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
+from tribler.core.components.knowledge.db.knowledge_db import (
+    PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS,
+    SHOW_THRESHOLD,
+    KnowledgeDatabase,
+    Operation,
+    ResourceType,
+    SimpleStatement,
+)
 from tribler.core.components.knowledge.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
 from tribler.core.utilities.pony_utils import get_or_create
 
@@ -109,8 +114,9 @@ class TestTagDB(TestTagDBBase):
     def test_resource_type(self):
         # Test that resources with different type are stored in separated db entities.
         def resources():
-            """get all resources from self.db.instance.Resource and convert them to the tuples:
-            (type, name)
+            """
+            get all resources from self.db.instance.Resource and convert them to the tuples:
+            (type, name).
             """
             db_entities = self.db.instance.Resource.select()
             return [(r.type, r.name) for r in db_entities]
@@ -409,13 +415,12 @@ class TestTagDB(TestTagDBBase):
 
         # no results
         def _results(objects, predicate=ResourceType.TAG, case_sensitive=True):
-            results = self.db.get_subjects_intersection(
+            return self.db.get_subjects_intersection(
                 subjects_type=ResourceType.TORRENT,
                 objects=objects,
                 predicate=predicate,
                 case_sensitive=case_sensitive
             )
-            return results
 
         assert not _results({'missed tag'})
         assert not _results({'tag1'}, ResourceType.CONTRIBUTOR)
@@ -638,7 +643,7 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_non_existent_misc(self):
-        """Test that get_misc returns proper values"""
+        """Test that get_misc returns proper values."""
         # None if the key does not exist
         assert not self.db.get_misc(key='non existent')
 
@@ -647,6 +652,6 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_set_misc(self):
-        """Test that set_misc works as expected"""
+        """Test that set_misc works as expected."""
         self.db.set_misc(key='key', value='value')
         assert self.db.get_misc(key='key') == 'value'

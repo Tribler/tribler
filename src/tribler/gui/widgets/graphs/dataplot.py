@@ -12,6 +12,6 @@ class DataAxisItem(pg.AxisItem):
 
 class TimeSeriesDataPlot(TimeSeriesPlot):
 
-    def __init__(self, parent, name, series, **kargs):
+    def __init__(self, parent, name, series, **kargs) -> None:
         axis_items = {'bottom': DateAxisItem('bottom'), 'left': DataAxisItem('left')}
         super().__init__(parent, name, series, axis_items=axis_items, **kargs)

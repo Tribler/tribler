@@ -5,16 +5,16 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.db.transaction import EMPTY_SIGNATURE, BandwidthTransactionData
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
-@pytest.fixture
+@pytest.fixture()
 def my_key():
     return default_eccrypto.generate_key('curve25519')
 
 
-@pytest.fixture
+@pytest.fixture()
 def bandwidth_db(tmpdir, my_key):
     db = BandwidthDatabase(MEMORY_DB, my_key.pub().key_to_bin())
     yield db

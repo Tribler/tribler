@@ -2,7 +2,7 @@ from typing import List, Optional
 
 
 class TransferWindow:
-    def __init__(self, start: int, size: int):
+    def __init__(self, start: int, size: int) -> None:
         self.blocks: List[Optional[bytes]] = [None] * size
 
         self.start = start
@@ -23,5 +23,5 @@ class TransferWindow:
                 break
             yield block
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{{start: {self.start}, processed: {self.processed}, size: {len(self.blocks)}}}'

@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 import logging
-from asyncio import Future
-from typing import Dict, Iterable, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Iterable, List
 
-from tribler.core.components.ipv8.eva.result import TransferResult
-from tribler.core.components.ipv8.eva.transfer.base import Transfer
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 
 if TYPE_CHECKING:
+    from asyncio import Future
+
     from tribler.core.components.ipv8.eva.protocol import EVAProtocol
+    from tribler.core.components.ipv8.eva.result import TransferResult
+    from tribler.core.components.ipv8.eva.transfer.base import Transfer
 
 
 class Scheduler:
-    """This class is used for scheduling and sending a scheduled transfers in the EVA protocol"""
+    """This class is used for scheduling and sending a scheduled transfers in the EVA protocol."""
 
-    def __init__(self, eva: EVAProtocol):
+    def __init__(self, eva: EVAProtocol) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.eva = eva
@@ -24,13 +25,14 @@ class Scheduler:
         self.task_group = AsyncGroup()
 
     def can_be_send_immediately(self, transfer: Transfer) -> bool:
-        """Test the transfer and decide can it be sent immediately or not"""
+        """Test the transfer and decide can it be sent immediately or not."""
         peer_is_free = transfer.peer not in transfer.container
         return peer_is_free and not self._is_simultaneously_served_transfers_limit_exceeded()
 
     def schedule(self, transfer: Transfer) -> Future[TransferResult]:
-        """Schedule transfer for the sending. In the case it can be sent immediately, it send immediately,
-        without scheduling
+        """
+        Schedule transfer for the sending. In the case it can be sent immediately, it send immediately,
+        without scheduling.
         """
         if self.eva.shutting_down:
             raise RuntimeError('The protocol is in the shutting down state')
@@ -43,7 +45,7 @@ class Scheduler:
         return transfer.future
 
     def send_scheduled(self) -> List[Transfer]:
-        """Select transfers that can be sent immediately and send them"""
+        """Select transfers that can be sent immediately and send them."""
         started = []
         if self.eva.shutting_down:
             return started

@@ -6,7 +6,7 @@ from tribler.core.components.bandwidth_accounting.trust_calculation.graph_positi
 
 def test_graph_positioning_not_tree():
     """
-    Test whether we get an error if we do not pass a tree to the graph positioning logic
+    Test whether we get an error if we do not pass a tree to the graph positioning logic.
     """
     G = nx.DiGraph()
     G.add_edge("a", "b")
@@ -17,7 +17,7 @@ def test_graph_positioning_not_tree():
 
 def test_graph_positioning():
     """
-    Test whether we get a tree layout
+    Test whether we get a tree layout.
     """
     G = nx.DiGraph()
     G.add_edge("a", "b")

@@ -11,7 +11,7 @@ class DiscoveringPage(AddBreadcrumbOnShowMixin, QWidget):
     five discovered channels.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         self.found_channels = 0
         self.is_discovering = False

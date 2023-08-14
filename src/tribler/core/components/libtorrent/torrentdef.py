@@ -1,5 +1,5 @@
 """
-Author(s): Arno Bakker
+Author(s): Arno Bakker.
 """
 import itertools
 import logging
@@ -7,8 +7,8 @@ from hashlib import sha1
 
 import aiohttp
 
-from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.libtorrent.utils import torrent_utils
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities import maketorrent, path_util
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import INFOHASH_LENGTH
@@ -45,7 +45,7 @@ class TorrentDef:
     It can be used to create new torrents, or analyze existing ones.
     """
 
-    def __init__(self, metainfo=None, torrent_parameters=None, ignore_validation=False):
+    def __init__(self, metainfo=None, torrent_parameters=None, ignore_validation=False) -> None:
         """
         Create a new TorrentDef object, possibly based on existing data.
         :param metainfo: A dictionary with metainfo, i.e. from a .torrent file.
@@ -98,7 +98,7 @@ class TorrentDef:
     def load(filepath):
         """
         Create a TorrentDef object from a .torrent file
-        :param filepath: The path to the .torrent file
+        :param filepath: The path to the .torrent file.
         """
         with open(filepath, "rb") as torrent_file:
             file_content = torrent_file.read()
@@ -108,7 +108,7 @@ class TorrentDef:
     def load_from_memory(bencoded_data):
         """
         Load some bencoded data into a TorrentDef.
-        :param bencoded_data: The bencoded data to decode and use as metainfo
+        :param bencoded_data: The bencoded data to decode and use as metainfo.
         """
         metainfo = bdecode_compat(bencoded_data)
         # Some versions of libtorrent will not raise an exception when providing invalid data.
@@ -121,7 +121,7 @@ class TorrentDef:
     def load_from_dict(metainfo):
         """
         Load a metainfo dictionary into a TorrentDef object.
-        :param metainfo: The metainfo dictionary
+        :param metainfo: The metainfo dictionary.
         """
         return TorrentDef(metainfo=metainfo)
 
@@ -275,13 +275,15 @@ class TorrentDef:
     def set_name(self, name):
         """
         Set the name of this torrent.
-        :param name: The new name of the torrent
+        :param name: The new name of the torrent.
         """
         self.torrent_parameters[b'name'] = name
 
     def get_name_as_unicode(self):
-        """ Returns the info['name'] field as Unicode string.
-        @return Unicode string. """
+        """
+        Returns the info['name'] field as Unicode string.
+        @return Unicode string.
+        """
         if self.metainfo and b"name.utf-8" in self.metainfo[b"info"]:
             # There is an utf-8 encoded name.  We assume that it is
             # correctly encoded and use it normally
@@ -334,7 +336,8 @@ class TorrentDef:
         self.infohash = torrent_dict['infohash']
 
     def _get_all_files_as_unicode_with_length(self):
-        """ Get a generator for files in the torrent def. No filtering
+        """
+        Get a generator for files in the torrent def. No filtering
         is possible and all tricks are allowed to obtain a unicode
         list of filenames.
         @return A unicode filename generator.
@@ -396,7 +399,8 @@ class TorrentDef:
             yield self.get_name_as_unicode(), self.metainfo[b"info"][b"length"]
 
     def get_files_with_length(self, exts=None):
-        """ The list of files in the torrent def.
+        """
+        The list of files in the torrent def.
         @param exts (Optional) list of filename extensions (without leading .)
         to search for.
         @return A list of filenames.
@@ -414,10 +418,11 @@ class TorrentDef:
         return [filename for filename, _ in self.get_files_with_length(exts)]
 
     def get_length(self, selectedfiles=None):
-        """ Returns the total size of the content in the torrent. If the
+        """
+        Returns the total size of the content in the torrent. If the
         optional selectedfiles argument is specified, the method returns
         the total size of only those files.
-        @return A length (long)
+        @return A length (long).
         """
         if self.metainfo:
             return maketorrent.get_length_from_metainfo(self.metainfo, selectedfiles)
@@ -477,7 +482,7 @@ class TorrentDefNoMetainfo:
     implemented.
     """
 
-    def __init__(self, infohash, name, url=None):
+    def __init__(self, infohash, name, url=None) -> None:
         assert isinstance(infohash, bytes), f"INFOHASH has invalid type: {type(infohash)}"
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash

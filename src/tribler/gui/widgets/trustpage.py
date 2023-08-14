@@ -11,7 +11,7 @@ from tribler.gui.widgets.graphs.dataplot import TimeSeriesDataPlot
 
 
 class TrustSeriesPlot(TimeSeriesDataPlot):
-    def __init__(self, parent, **kargs):
+    def __init__(self, parent, **kargs) -> None:
         series = [
             {'name': 'Token balance', 'pen': (224, 94, 0), 'symbolBrush': (224, 94, 0), 'symbolPen': 'w'},
         ]
@@ -25,7 +25,7 @@ class TrustPage(AddBreadcrumbOnShowMixin, QWidget):
     This page shows various trust statistics.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         self.trust_plot = None
         self.history = None

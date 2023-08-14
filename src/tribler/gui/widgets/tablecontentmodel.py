@@ -8,13 +8,17 @@ from datetime import timedelta
 from enum import Enum, auto
 from typing import Callable, Dict, List
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, Qt, QTimerEvent, pyqtSignal
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    SNIPPET
+from tribler.core.components.metadata_store.db.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    SNIPPET,
+)
 from tribler.core.utilities.search_utils import item_rank
-from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
+from tribler.core.utilities.simpledefs import CHANNEL_STATE, CHANNELS_VIEW_UUID
 from tribler.core.utilities.utilities import to_fts_query
 from tribler.gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
 from tribler.gui.network.request_manager import request_manager
@@ -54,7 +58,7 @@ def define_columns():
     d = ColumnDefinition
     # fmt:off
     # pylint: disable=line-too-long
-    columns_dict = {
+    return {
         Column.ACTIONS: d('', "", width=60, sortable=False),
         Column.CATEGORY: d('category', "", width=30, tooltip_filter=lambda data: data),
         Column.NAME: d('name', tr("Name"), width=EXPANDING),
@@ -73,7 +77,6 @@ def define_columns():
     }
     # pylint: enable=line-too-long
     # fmt:on
-    return columns_dict
 
 
 def get_item_uid(item):
@@ -93,7 +96,7 @@ class RemoteTableModel(QAbstractTableModel):
 
     default_sort_column = -1
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
 
         super().__init__(parent)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -197,7 +200,7 @@ class RemoteTableModel(QAbstractTableModel):
         :param new_items: list(item)
         :param on_top: True if new_items should be added on top of the table
         :param remote: True if new_items are from a remote peer. Default: False
-        :return: None
+        :return: None.
         """
         if not new_items:
             return
@@ -215,9 +218,8 @@ class RemoteTableModel(QAbstractTableModel):
                 item['item_added_at'] = now
                 if self.highlight_remote_results:
                     self.highlighted_items.append(item)
-            if self.sort_by_rank:
-                if 'rank' not in item:
-                    item['rank'] = item_rank(self.text_filter, item)
+            if self.sort_by_rank and 'rank' not in item:
+                item['rank'] = item_rank(self.text_filter, item)
 
             item_uid = get_item_uid(item)
             if item_uid not in self.item_uid_map:
@@ -373,12 +375,12 @@ class RemoteTableModel(QAbstractTableModel):
         :param response: List of the items to be added to the model
         :param remote: True if response is from a remote peer. Default: False
         :param on_top: True if items should be added at the top of the list
-        :return: True, if response, False otherwise
+        :return: True, if response, False otherwise.
         """
         if not response or self.qt_object_destroyed:
             return False
         self._logger.info(
-            f'Response. Remote: {remote}, results: {len(response.get("results"))}, ' f'uuid: {response.get("uuid")}'
+            f'Response. Remote: {remote}, results: {len(response.get("results"))}, uuid: {response.get("uuid")}'
         )
 
         # Trigger labels update on the initial table load
@@ -419,7 +421,7 @@ class ChannelContentModel(RemoteTableModel):
             text_filter='',
             tags=None,
             type_filter=None,
-    ):
+    ) -> None:
         RemoteTableModel.__init__(self, parent=None)
 
         self.column_position = {name: i for i, name in enumerate(self.columns_shown)}
@@ -512,12 +514,11 @@ class ChannelContentModel(RemoteTableModel):
         # its tooltip uses information from both 'subscribed' and 'state' keys
         if role == Qt.ToolTipRole and column_type == Column.SUBSCRIBED and 'subscribed' in item and 'state' in item:
             state_message = f" ({item['state']})" if item['state'] != CHANNEL_STATE.COMPLETE.value else ""
-            tooltip_txt = (
+            return (
                 tr("Subscribed.%s\n(Click to unsubscribe)") % state_message
                 if item['subscribed']
                 else tr("Not subscribed.\n(Click to subscribe)")
             )
-            return tooltip_txt
 
         if role == Qt.ToolTipRole and column_type == Column.HEALTH:
             last_tracker_check = item.get('last_tracker_check')
@@ -568,7 +569,6 @@ class ChannelContentModel(RemoteTableModel):
         itself is updated. In that case, info_changed signal is emitted, so the controller/widget knows
         it is time to update the labels.
         """
-
         MISSING = object()  # to avoid false positive comparison with None
         public_key_is_equal = self.channel_info.get("public_key", None) == update_dict.get("public_key", MISSING)
         id_is_equal = self.channel_info.get("id", None) == update_dict.get("id", MISSING)
@@ -587,7 +587,6 @@ class ChannelContentModel(RemoteTableModel):
         """
         Fetch search results.
         """
-
         if self.type_filter is not None:
             kwargs.update({"metadata_type": self.type_filter})
         else:
@@ -653,7 +652,7 @@ class ChannelPreviewModel(ChannelContentModel):
 
 
 class SearchResultsModel(ChannelContentModel):
-    def __init__(self, original_query, **kwargs):
+    def __init__(self, original_query, **kwargs) -> None:
         self.original_query = original_query
         self.remote_results = {}
         title = self.format_title()
@@ -711,7 +710,7 @@ class SearchResultsModel(ChannelContentModel):
 class PopularTorrentsModel(ChannelContentModel):
     columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.CREATED)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         kwargs["endpoint_url"] = 'channels/popular_torrents'
         super().__init__(*args, **kwargs)
 
@@ -723,7 +722,7 @@ class DiscoveredChannelsModel(ChannelContentModel):
     def default_sort_column(self):
         return self.columns_shown.index(Column.VOTES)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # Subscribe to new channels updates notified over the Events endpoint
         self.remote_queries.add(CHANNELS_VIEW_UUID)
@@ -740,7 +739,7 @@ class PersonalChannelsModel(ChannelContentModel):
         Column.STATUS,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         kwargs["hide_xxx"] = kwargs.get("hide_xxx", False)
         super().__init__(*args, **kwargs)
         self.columns[self.column_position[Column.CATEGORY]].qt_flags |= Qt.ItemIsEditable
@@ -788,6 +787,7 @@ class PersonalChannelsModel(ChannelContentModel):
         if not response or self.qt_object_destroyed:
             return False
         self.info_changed.emit(response['results'])
+        return None
 
     @property
     def edit_enabled(self):
@@ -797,6 +797,6 @@ class PersonalChannelsModel(ChannelContentModel):
 class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
     columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.CREATED)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
         super().__init__(*args, **kwargs)

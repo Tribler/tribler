@@ -101,7 +101,7 @@ class Notifier:
     to GUI. EventRequestManager receives messages, deserializes arguments and calls `notifier.notify_by_topic_name`.
     """
 
-    def __init__(self, loop: AbstractEventLoop = None):
+    def __init__(self, loop: Optional[AbstractEventLoop] = None) -> None:
         self.lock = Lock()
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -120,7 +120,8 @@ class Notifier:
         self.loop = loop
 
     def add_observer(self, topic: FuncT, observer: FuncT, synchronous: Optional[bool] = None):
-        """ Add the observer for the topic.
+        """
+        Add the observer for the topic.
         Each callback will be added no more than once. Callbacks are called in the same order as they were added.
 
         topic:
@@ -177,7 +178,8 @@ class Notifier:
         return synchronous
 
     def remove_observer(self, topic: FuncT, observer: FuncT):
-        """ Remove the observer from the topic. In the case of a missed callback no error will be raised.
+        """
+        Remove the observer from the topic. In the case of a missed callback no error will be raised.
         """
         with self.lock:
             observers = self.topics[topic]
@@ -212,9 +214,10 @@ class Notifier:
             self.notify(topic, *args, **kwargs)
 
     def notify(self, topic: Callable, *args, **kwargs):
-        """ Notify all observers about the topic.
+        """
+        Notify all observers about the topic.
 
-        Сan be called from any thread. Observers will be called from the reactor thread during the next iteration
+        Can be called from any thread. Observers will be called from the reactor thread during the next iteration
         of the event loop.  An exception when an observer is invoked will not affect other observers.
         """
         self.logger.debug(f"Notification for topic {topic.__name__}")
@@ -225,7 +228,7 @@ class Notifier:
             generic_observers: List[Tuple[Callable, bool]] = list(self.generic_observers.items())
             observers: List[Tuple[Callable, bool]] = list(self.topics[topic].items())
 
-        generic_observer_args = (topic,) + args
+        generic_observer_args = (topic, *args)
         for observer, synchronous in generic_observers:
             if synchronous:
                 self._notify(topic, observer, generic_observer_args, kwargs)
@@ -242,7 +245,7 @@ class Notifier:
         try:
             self.loop.call_soon_threadsafe(self._notify, topic, observer, args, kwargs)
         except RuntimeError as e:
-            # Raises RuntimeError if called on a loop that’s been closed.
+            # Raises RuntimeError if called on a loop that`s been closed.
             # This can happen on a secondary thread when the main application is shutting down.
             # https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.call_soon_threadsafe
             self.logger.warning(e)

@@ -3,9 +3,15 @@ from unittest.mock import patch
 
 import pytest
 
-from tribler.core.utilities.rest_utils import FILE_SCHEME, HTTP_SCHEME, MAGNET_SCHEME, path_to_url, scheme_from_url, \
-    url_is_valid_file, \
-    url_to_path
+from tribler.core.utilities.rest_utils import (
+    FILE_SCHEME,
+    HTTP_SCHEME,
+    MAGNET_SCHEME,
+    path_to_url,
+    scheme_from_url,
+    url_is_valid_file,
+    url_to_path,
+)
 
 # https://en.wikipedia.org/wiki/File_URI_scheme
 POSIX_PATH_URL = [
@@ -39,34 +45,34 @@ SCHEMES = [
 
 
 # posix
-@pytest.mark.parametrize('path, url', POSIX_PATH_URL)
+@pytest.mark.parametrize(('path', 'url'), POSIX_PATH_URL)
 @patch('os.name', 'posix')
 def test_round_trip_posix(path, url):
     assert path_to_url(path, _path_cls=PurePosixPath) == url
     assert url_to_path(url, _path_cls=PurePosixPath) == path
 
 
-@pytest.mark.parametrize('url, path', POSIX_URL_CORNER_CASES)
+@pytest.mark.parametrize(('url', 'path'), POSIX_URL_CORNER_CASES)
 @patch('os.name', 'posix')
 def test_posix_corner_cases(url, path):
     assert url_to_path(url, _path_cls=PurePosixPath) == path
 
 
 # win
-@pytest.mark.parametrize('path, url', WIN_PATH_URL)
+@pytest.mark.parametrize(('path', 'url'), WIN_PATH_URL)
 @patch('os.name', 'nt')
 def test_round_trip_win(path, url):
     assert path_to_url(path, _path_cls=PureWindowsPath) == url
     assert url_to_path(url, _path_cls=PureWindowsPath) == path
 
 
-@pytest.mark.parametrize('url, path', WIN_URL_CORNER_CASES)
+@pytest.mark.parametrize(('url', 'path'), WIN_URL_CORNER_CASES)
 @patch('os.name', 'nt')
 def test_win_corner_cases(url, path):
     assert url_to_path(url, _path_cls=PureWindowsPath) == path
 
 
-@pytest.mark.parametrize('path, scheme', SCHEMES)
+@pytest.mark.parametrize(('path', 'scheme'), SCHEMES)
 def test_scheme_from_uri(path, scheme):
     assert scheme_from_url(path) == scheme
 

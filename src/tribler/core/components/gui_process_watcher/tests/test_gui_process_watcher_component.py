@@ -11,5 +11,6 @@ async def test_watch_folder_component(tribler_config):
         components = [GuiProcessWatcherComponent()]
         async with Session(tribler_config, components) as session:
             comp = session.get_instance(GuiProcessWatcherComponent)
-            assert comp.started_event.is_set() and not comp.failed
+            assert comp.started_event.is_set()
+            assert not comp.failed
             assert comp.watcher

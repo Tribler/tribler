@@ -23,7 +23,7 @@ from tribler.gui.utilities import connect, format_size, html_label, tr
 
 
 class TrustGraph(pg.GraphItem):
-    def __init__(self):
+    def __init__(self) -> None:
         pg.GraphItem.__init__(self)
         self.data = None
 
@@ -78,11 +78,11 @@ class TrustGraph(pg.GraphItem):
 
 
 class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         self.trust_graph = None
         self.graph_view = None
-        self.selected_node = dict()
+        self.selected_node = {}
 
         self.root_public_key = None
         self.graph_data = None
@@ -126,7 +126,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         clicked_node = self.graph_data['node'][clicked_node_data[0]]
 
         if not self.selected_node:
-            self.selected_node = dict()
+            self.selected_node = {}
         elif 'spot' in self.selected_node and self.selected_node['spot']:
             self.selected_node['spot'].setBrush(self.selected_node['color'])
 
@@ -185,7 +185,7 @@ class TrustGraphPage(AddBreadcrumbOnShowMixin, QWidget):
         self.root_public_key = data['root_public_key']
         self.graph_data = data['graph']
 
-        plot_data = dict()
+        plot_data = {}
         plot_data['pxMode'] = False
         plot_data['pen'] = (100, 100, 100, 150)
         plot_data['brush'] = (255, 0, 0, 255)

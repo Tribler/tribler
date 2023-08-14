@@ -10,21 +10,27 @@ from typing import TYPE_CHECKING
 from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QDialog, QMessageBox, QTreeWidgetItem
 
-from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.sentry_reporter.sentry_reporter import ADDITIONAL_INFORMATION, COMMENTS, LAST_PROCESSES, MACHINE, \
-    OS, \
-    OS_ENVIRON, PLATFORM, \
-    PLATFORM_DETAILS, \
-    SYSINFO, SentryReporter, \
-    VERSION
+from tribler.core.sentry_reporter.sentry_reporter import (
+    ADDITIONAL_INFORMATION,
+    COMMENTS,
+    LAST_PROCESSES,
+    MACHINE,
+    OS,
+    OS_ENVIRON,
+    PLATFORM,
+    PLATFORM_DETAILS,
+    SYSINFO,
+    VERSION,
+    SentryReporter,
+)
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.sentry_reporter.sentry_tools import delete_item, \
-    get_first_item
+from tribler.core.sentry_reporter.sentry_tools import delete_item, get_first_item
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, get_ui_file_path, tr
 
 if TYPE_CHECKING:
+    from tribler.core.components.reporter.reported_error import ReportedError
     from tribler.gui.tribler_window import TriblerWindow
 
 
@@ -38,7 +44,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             start_time,
             stop_application_on_close=True,
             additional_tags=None,
-    ):
+    ) -> None:
         QDialog.__init__(self, parent)
         self.core_manager = parent.core_manager
         self.process_manager = parent.process_manager
@@ -67,13 +73,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             scrubbed_value = self.scrubber.scrub_text(value)
             item.setText(1, scrubbed_value)
 
-        text_for_viewing = '\n'.join(
-            (
-                reported_error.text,
-                reported_error.long_text,
-                reported_error.context,
-            )
-        )
+        text_for_viewing = f'{reported_error.text}\n{reported_error.long_text}\n{reported_error.context}'
         stacktrace = self.scrubber.scrub_text(text_for_viewing.rstrip())
         self.error_text_edit.setPlainText(stacktrace)
         connect(self.cancel_button.clicked, self.on_cancel_clicked)
@@ -97,7 +97,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         for path in sys.path:
             add_item_to_info_widget('sys.path', f'{path}')
 
-        for key in os.environ.keys():
+        for key in os.environ:
             add_item_to_info_widget('os.environ', f'{key}: {os.environ[key]}')
 
         # Users can remove specific lines in the report
@@ -130,7 +130,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText(tr("SENDING..."))
 
-        sys_info = defaultdict(lambda: [])
+        sys_info = defaultdict(list)
         for ind in range(self.env_variables_list.topLevelItemCount()):
             item = self.env_variables_list.topLevelItem(ind)
             key = item.text(0)

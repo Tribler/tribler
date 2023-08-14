@@ -1,3 +1,4 @@
+import contextlib
 from pathlib import Path
 
 from PyQt5 import QtCore, uic
@@ -27,7 +28,7 @@ EDIT_PAGE = 1
 class FloatingButtonWidget(QPushButton):
     # Solution inspired by https://gist.github.com/namuan/floating_button_widget.py
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         super().__init__(QIcon(QPixmap(get_image_path('edit.png'))), "", parent)
 
         self.setGeometry(20, 20, 20, 20)
@@ -37,10 +38,7 @@ class FloatingButtonWidget(QPushButton):
         self.paddingTop = 5
 
     def update_position(self):
-        if hasattr(self.parent(), 'viewport'):
-            parent_rect = self.parent().viewport().rect()
-        else:
-            parent_rect = self.parent().rect()
+        parent_rect = self.parent().viewport().rect() if hasattr(self.parent(), 'viewport') else self.parent().rect()
 
         if not parent_rect:
             return
@@ -58,12 +56,11 @@ class ChannelDescriptionWidget(AddBreadcrumbOnShowMixin, widget_form, widget_cla
     became_hidden = pyqtSignal()
     description_changed = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         widget_class.__init__(self, parent=parent)
-        try:
+        with contextlib.suppress(SystemError):
             self.setupUi(self)
-        except SystemError:
-            pass
+
         self.edit_mode_tab.initialize()
 
         # Set the preview tab and button as default

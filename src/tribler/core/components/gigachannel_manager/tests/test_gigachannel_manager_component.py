@@ -7,7 +7,6 @@ from tribler.core.components.metadata_store.metadata_store_component import Meta
 from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 
-
 # pylint: disable=protected-access
 
 
@@ -17,5 +16,6 @@ async def test_gigachannel_manager_component(tribler_config):
                   LibtorrentComponent(), GigachannelManagerComponent()]
     async with Session(tribler_config, components) as session:
         comp = session.get_instance(GigachannelManagerComponent)
-        assert comp.started_event.is_set() and not comp.failed
+        assert comp.started_event.is_set()
+        assert not comp.failed
         assert comp.gigachannel_manager

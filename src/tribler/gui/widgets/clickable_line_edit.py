@@ -6,6 +6,7 @@ class ClickableLineEdit(QLineEdit):
     """
     Represents a clickable QLineEdit widget.
     """
+
     clicked = pyqtSignal(bool)
 
     def mousePressEvent(self, event):

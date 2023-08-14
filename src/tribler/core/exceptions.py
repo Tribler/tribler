@@ -14,11 +14,11 @@ class OperationNotPossibleAtRuntimeException(TriblerException):
 
 
 class InvalidSignatureException(TriblerException):
-    """Raised when encountering an invalid signature. """
+    """Raised when encountering an invalid signature."""
 
 
 class InvalidChannelNodeException(TriblerException):
-    """Raised when trying to create an inconsistent GigaChannel entry    """
+    """Raised when trying to create an inconsistent GigaChannel entry."""
 
 
 class SaveResumeDataError(TriblerException):
@@ -34,4 +34,4 @@ class TrustGraphException(TriblerException):
 
 
 class TriblerCoreTestException(TriblerException):
-    """Can be intentionally generated in Core by pressing Ctrl+Alt+Shift+C"""
+    """Can be intentionally generated in Core by pressing Ctrl+Alt+Shift+C."""

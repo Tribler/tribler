@@ -65,25 +65,24 @@ async def open_events_socket(rest_manager_, connected_event, events_up):
     url = f'http://localhost:{port}/events'
     headers = {'User-Agent': 'Tribler ' + version_id}
 
-    async with ClientSession() as client:
-        async with client.get(url, headers=headers) as response:
-            # The first event message is always events_start
+    async with ClientSession() as client, client.get(url, headers=headers) as response:
+        # The first event message is always events_start
+        await response.content.readline()
+        await response.content.readline()  # Events are separated by 2 newline characters
+        connected_event.set()
+        while True:
+            msg = await response.content.readline()
             await response.content.readline()
-            await response.content.readline()  # Events are separated by 2 newline characters
-            connected_event.set()
-            while True:
-                msg = await response.content.readline()
-                await response.content.readline()
-                topic_name = json.loads(msg[5:])["topic"]
-                messages_to_wait_for.remove(topic_name)
-                if not messages_to_wait_for:
-                    events_up.set()
-                    break
+            topic_name = json.loads(msg[5:])["topic"]
+            messages_to_wait_for.remove(topic_name)
+            if not messages_to_wait_for:
+                events_up.set()
+                break
 
 
 async def test_events(rest_manager, notifier: Notifier):
     """
-    Testing whether various events are coming through the events endpoints
+    Testing whether various events are coming through the events endpoints.
     """
     global messages_to_wait_for
     connected_event = Event()
@@ -180,7 +179,8 @@ async def test_on_tribler_exception_shutdown():
 
 
 async def test_should_skip_message(events_endpoint):
-    assert not events_endpoint._shutdown and not events_endpoint.events_responses  # pylint: disable=protected-access
+    assert not events_endpoint._shutdown
+    assert not events_endpoint.events_responses
     message = Mock()
 
     # Initially the events endpoint is not in shutdown state, but it does not have any connection,

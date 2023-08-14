@@ -5,16 +5,15 @@ import pytest
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.gui.network.request_manager import RequestManager
 
-
 # pylint: disable=protected-access, redefined-outer-name
 
 
-@pytest.fixture
+@pytest.fixture()
 def free_port():
     return default_network_utils.get_random_free_port()
 
 
-@pytest.fixture
+@pytest.fixture()
 def request_manager(free_port: int):
     request_manager = RequestManager()
     request_manager.set_api_port(free_port)

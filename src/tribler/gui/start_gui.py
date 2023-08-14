@@ -9,13 +9,16 @@ from tribler.core.check_os import (
     check_and_enable_code_tracing,
     check_environment,
     check_free_space,
-    enable_fault_handler
+    enable_fault_handler,
 )
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
-from tribler.core.utilities.rest_utils import path_to_url
+from tribler.core.utilities.process_manager import (
+    ProcessKind,
+    ProcessManager,
+    TriblerProcess,
+    set_global_process_manager,
+)
 from tribler.core.utilities.utilities import show_system_popup
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager

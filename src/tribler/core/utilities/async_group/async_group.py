@@ -4,7 +4,7 @@ import asyncio
 import logging
 from asyncio import CancelledError, Future, Task
 from contextlib import suppress
-from typing import Coroutine, Iterable, List, Optional, Set
+from typing import Coroutine, Iterable, List, Set
 from weakref import ref
 
 from tribler.core.utilities.async_group.exceptions import DoneException
@@ -13,7 +13,7 @@ from tribler.core.utilities.async_group.exceptions import DoneException
 def done_callback(group_ref):
     def actual_callback(future):
         AsyncGroup.global_futures.discard(future)
-        group: Optional[AsyncGroup] = group_ref()
+        group: AsyncGroup | None = group_ref()
         if group is not None:
             group.futures.discard(future)
 
@@ -21,10 +21,12 @@ def done_callback(group_ref):
 
 
 class AsyncGroup:
-    """This class is a little brother of TaskManager and its purpose is only to cancel or to wait a group
+    """
+    This class is a little brother of TaskManager and its purpose is only to cancel or to wait a group
     of asyncio Tasks/Futures.
 
     Example:
+    -------
     >>> from tribler.core.utilities.async_group.async_group import AsyncGroup
     >>> async def void():
     ...     pass
@@ -49,20 +51,21 @@ class AsyncGroup:
     # To prevent this problem all futures stores in the global set.
     global_futures: Set[Future] = set()
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.ref = ref(self)
         self.futures: Set[Future] = set()
         self._done = False
 
     def add_task(self, coroutine: Coroutine) -> Task:
-        """Add a coroutine to the group.
+        """
+        Add a coroutine to the group.
         """
         task = asyncio.create_task(coroutine)
 
         if self._done:
             task.cancel()
-            raise DoneException()
+            raise DoneException
 
         self.futures.add(task)
         self.global_futures.add(task)
@@ -71,7 +74,8 @@ class AsyncGroup:
         return task
 
     async def wait(self):
-        """ Wait for completion of all futures
+        """
+        Wait for completion of all futures.
         """
         while active := set(self._active(self.futures)):
             await asyncio.wait(active)
@@ -79,7 +83,8 @@ class AsyncGroup:
         self._done = True
 
     async def cancel(self) -> List[Future]:
-        """Cancel the group.
+        """
+        Cancel the group.
 
         Only active futures will be cancelled.
         """
@@ -105,7 +110,7 @@ class AsyncGroup:
     def _active(futures: Iterable[Future]) -> Iterable[Future]:
         return (future for future in futures if not future.done())
 
-    def __del__(self):
+    def __del__(self) -> None:
         if active := list(self._active(self.futures)):
             self._logger.error(f'AsyncGroup is destroying but {len(active)} futures are active')
             for future in active:

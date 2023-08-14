@@ -15,7 +15,7 @@ TABLE_NAMES = (
 
 class PonyToPonyMigration:
 
-    def __init__(self, old_db_path, new_db_path, notification_callback=None, logger=None, shutdown_set_callback=None):
+    def __init__(self, old_db_path, new_db_path, notification_callback=None, logger=None, shutdown_set_callback=None) -> None:
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         self.notification_callback = notification_callback
         self.old_db_path = old_db_path
@@ -101,14 +101,11 @@ class PonyToPonyMigration:
 
     def convert_table(self, cursor, table_name, column_names):
         column_names_joined = ", ".join(column_names)
-        if "rowid" in column_names:
-            order_column = "rowid"
-        else:
-            order_column = column_names[0]
+        order_column = "rowid" if "rowid" in column_names else column_names[0]
         sql_command = f"INSERT OR IGNORE INTO {table_name} ({column_names_joined}) " + \
                       f"SELECT {column_names_joined} FROM old_db.{table_name} " + \
                       f"ORDER BY {order_column} " + \
-                      f"LIMIT ? OFFSET ?;"
+                      "LIMIT ? OFFSET ?;"
 
         def convert_command(offset, batch_size):
             try:
@@ -154,7 +151,7 @@ class PonyToPonyMigration:
 
             self.update_status("Synchronizing the upgraded DB to disk, please wait.")
         except Exception as e:
-            self._logger.error(f"Error during database upgrade: {type(e).__name__}:{str(e)}")
+            self._logger.error(f"Error during database upgrade: {type(e).__name__}:{e!s}")
             self.shutting_down = True
         return result
 
@@ -163,7 +160,7 @@ class PonyToPonyMigration:
             if not self.must_shutdown():
                 self.do_recreate_indexes(mds, base_duration)
         except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
-            self._logger.error(f"Error during index re-building: {type(e).__name__}:{str(e)}")
+            self._logger.error(f"Error during index re-building: {type(e).__name__}:{e!s}")
             self.shutting_down = True
 
     def do_recreate_indexes(self, mds: MetadataStore, base_duration):
@@ -180,7 +177,7 @@ class PonyToPonyMigration:
                 self.notification_callback(f"recreating indexes\n"
                                            f"{total_percentage:.2f}% done")
             except Exception as e:
-                self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{str(e)}")
+                self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{e!s}")
                 self.shutting_down = True
 
         # Recreate table indexes
@@ -210,7 +207,7 @@ class PonyToPonyMigration:
                 self.notification_callback("adding full text search index...\n"
                                            f"{calc_progress(t2 - t1, base_duration):.2f}% done")
             except Exception as e:
-                self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{str(e)}")
+                self._logger.error(f"Error in SQLite callback handler: {type(e).__name__}:{e!s}")
                 self.shutting_down = True
 
         # Create FTS index
@@ -229,21 +226,18 @@ class PonyToPonyMigration:
 
 
 def calc_progress(duration_now, duration_half=60.0):
-    result = 100 * (1 - 1 / (1 + duration_now / (duration_half + 1)) ** 2)
-    return result
+    return 100 * (1 - 1 / (1 + duration_now / (duration_half + 1)) ** 2)
 
 
 def get_table_columns(db_path, table_name):
     with contextlib.closing(sqlite3.connect(db_path)) as connection, connection:
         cursor = connection.cursor()
         cursor.execute(f'SELECT * FROM {table_name} LIMIT 1')
-        names = [description[0] for description in cursor.description]
-    return names
+        return [description[0] for description in cursor.description]
 
 
 def get_db_version(db_path):
     with contextlib.closing(sqlite3.connect(db_path)) as connection, connection:
         cursor = connection.cursor()
         cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
-        version = int(cursor.fetchone()[0])
-    return version
+        return int(cursor.fetchone()[0])

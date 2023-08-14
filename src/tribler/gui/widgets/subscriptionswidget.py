@@ -12,7 +12,7 @@ class SubscriptionsWidget(AddBreadcrumbOnShowMixin, QWidget):
     This widget shows a favorite button and the number of subscriptions that a specific channel has.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QWidget.__init__(self, parent)
         self.subscribe_button = None
         self.initialized = False

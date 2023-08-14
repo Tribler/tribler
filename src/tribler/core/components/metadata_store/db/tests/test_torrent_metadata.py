@@ -28,7 +28,7 @@ def rnd_torrent():
 @db_session
 def test_serialization(metadata_store):
     """
-    Test converting torrent metadata to serialized data
+    Test converting torrent metadata to serialized data.
     """
     torrent_metadata = metadata_store.TorrentMetadata.from_dict({"infohash": random_infohash()})
     assert torrent_metadata.serialized()
@@ -37,7 +37,7 @@ def test_serialization(metadata_store):
 @db_session
 def test_create_ffa_from_dict(metadata_store):
     """
-    Test creating a free-for-all torrent entry
+    Test creating a free-for-all torrent entry.
     """
     tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
 
@@ -62,7 +62,7 @@ def test_sanitize_tdef(metadata_store):
 @db_session
 def test_get_magnet(metadata_store):
     """
-    Test converting torrent metadata to a magnet link
+    Test converting torrent metadata to a magnet link.
     """
     torrent_metadata = metadata_store.TorrentMetadata.from_dict({"infohash": random_infohash()})
     assert torrent_metadata.get_magnet()
@@ -73,7 +73,7 @@ def test_get_magnet(metadata_store):
 @db_session
 def test_search_keyword(metadata_store):
     """
-    Test searching in a database with some torrent metadata inserted
+    Test searching in a database with some torrent metadata inserted.
     """
     torrent1 = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo bar 123"))
     torrent2 = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="eee 123"))
@@ -101,7 +101,7 @@ def test_search_keyword(metadata_store):
 @db_session
 def test_search_deduplicated(metadata_store):
     """
-    Test SQL-query base deduplication of search results with the same infohash
+    Test SQL-query base deduplication of search results with the same infohash.
     """
     key2 = default_eccrypto.generate_key("curve25519")
     torrent = rnd_torrent()
@@ -113,7 +113,7 @@ def test_search_deduplicated(metadata_store):
 
 def test_search_empty_query(metadata_store):
     """
-    Test whether an empty query returns nothing
+    Test whether an empty query returns nothing.
     """
     assert not metadata_store.search_keyword(None)[:]
 
@@ -121,7 +121,7 @@ def test_search_empty_query(metadata_store):
 @db_session
 def test_unicode_search(metadata_store):
     """
-    Test searching in the database with unicode characters
+    Test searching in the database with unicode characters.
     """
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="я маленький апельсин"))
     results = metadata_store.search_keyword("маленький")[:]
@@ -131,7 +131,7 @@ def test_unicode_search(metadata_store):
 @db_session
 def test_wildcard_search(metadata_store):
     """
-    Test searching in the database with a wildcard
+    Test searching in the database with a wildcard.
     """
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobar 123"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobla 123"))
@@ -144,7 +144,7 @@ def test_wildcard_search(metadata_store):
 @db_session
 def test_stemming_search(metadata_store):
     """
-    Test searching in the database with stemmed words
+    Test searching in the database with stemmed words.
     """
     torrent = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
 
@@ -160,7 +160,7 @@ def test_stemming_search(metadata_store):
 @db_session
 def test_get_autocomplete_terms(metadata_store):
     """
-    Test fetching autocompletion terms from the database
+    Test fetching autocompletion terms from the database.
     """
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo: bar baz", tags="video"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo - bar, xyz", tags="video"))
@@ -214,7 +214,7 @@ def test_get_autocomplete_terms(metadata_store):
 @db_session
 def test_get_autocomplete_terms_max(metadata_store):
     """
-    Test fetching autocompletion terms from the database with a maximum number of terms
+    Test fetching autocompletion terms from the database with a maximum number of terms.
     """
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheeps wolf", tags="video"))
     metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="lakes sheep", tags="video"))
@@ -253,7 +253,7 @@ def test_get_entries_for_infohashes(metadata_store):
 @db_session
 def test_get_entries(metadata_store):
     """
-    Test base method for getting torrents
+    Test base method for getting torrents.
     """
     clock.clock = 0  # We want deterministic discrete clock values for tests
 
@@ -284,14 +284,14 @@ def test_get_entries(metadata_store):
     # Test fetching torrents in a channel
     channel_pk = metadata_store.ChannelNode._my_key.pub().key_to_bin()[10:]
 
-    args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True, metadata_type=REGULAR_TORRENT)
+    args = {"channel_pk": channel_pk, "hide_xxx": True, "exclude_deleted": True, "metadata_type": REGULAR_TORRENT}
     torrents = metadata_store.get_entries_query(**args)[:]
     assert tlist[-5:-2] == list(torrents)[::-1]
 
     count = metadata_store.get_entries_count(**args)
     assert count == 3
 
-    args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0, metadata_type=REGULAR_TORRENT)
+    args = {"sort_by": 'title', "channel_pk": channel_pk, "origin_id": 0, "metadata_type": REGULAR_TORRENT}
     torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert len(torrents) == 5
 
@@ -299,28 +299,28 @@ def test_get_entries(metadata_store):
     assert count == 5
 
     # Test that channels get priority over torrents when querying for mixed content
-    args = dict(sort_by='size', sort_desc=True, channel_pk=channel_pk, origin_id=0)
+    args = {"sort_by": 'size', "sort_desc": True, "channel_pk": channel_pk, "origin_id": 0}
     torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert torrents[0].metadata_type == CHANNEL_TORRENT
 
-    args = dict(sort_by='size', sort_desc=False, channel_pk=channel_pk, origin_id=0)
+    args = {"sort_by": 'size', "sort_desc": False, "channel_pk": channel_pk, "origin_id": 0}
     torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert torrents[-1].metadata_type == CHANNEL_TORRENT
 
     # Test getting entries by timestamp range
-    args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp", 3, 30),))
+    args = {"channel_pk": channel_pk, "origin_id": 0, "attribute_ranges": (("timestamp", 3, 30),)}
     torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert sorted([t.timestamp for t in torrents]) == list(range(25, 30))
 
     # Test catching SQL injection
-    args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp < 3 and g.timestamp", 3, 30),))
+    args = {"channel_pk": channel_pk, "origin_id": 0, "attribute_ranges": (("timestamp < 3 and g.timestamp", 3, 30),)}
     with pytest.raises(AttributeError):
         metadata_store.get_entries(**args)
 
     # Test getting entry by id_
     with db_session:
         entry = metadata_store.TorrentMetadata(id_=123, infohash=random_infohash())
-    args = dict(channel_pk=channel_pk, id_=123)
+    args = {"channel_pk": channel_pk, "id_": 123}
     torrents = metadata_store.get_entries(first=1, last=10, **args)
     assert list(torrents) == [entry]
 
@@ -329,7 +329,7 @@ def test_get_entries(metadata_store):
         complete_chan = metadata_store.ChannelMetadata(
             infohash=random_infohash(), title='bla', local_version=222, timestamp=222
         )
-        incomplete_chan = metadata_store.ChannelMetadata(
+        metadata_store.ChannelMetadata(
             infohash=random_infohash(), title='bla', local_version=222, timestamp=223
         )
         channels = metadata_store.get_entries(complete_channel=True)
@@ -366,7 +366,7 @@ def test_metadata_conflicting(metadata_store):
 @db_session
 def test_update_properties(metadata_store):
     """
-    Test the updating of several properties of a TorrentMetadata object
+    Test the updating of several properties of a TorrentMetadata object.
     """
     metadata = metadata_store.TorrentMetadata(title='foo', infohash=random_infohash())
     orig_timestamp = metadata.timestamp
@@ -381,9 +381,8 @@ def test_update_properties(metadata_store):
 @db_session
 def test_popular_torrens_with_metadata_type(metadata_store):
     """
-    Test that `popular` argument cannot be combiner with `metadata_type` argument
+    Test that `popular` argument cannot be combiner with `metadata_type` argument.
     """
-
     with pytest.raises(TypeError):
         metadata_store.get_entries(popular=True)
 

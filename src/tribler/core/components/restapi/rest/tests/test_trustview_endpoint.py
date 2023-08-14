@@ -6,39 +6,38 @@ import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
+from tribler.core.components.bandwidth_accounting.db.transaction import EMPTY_SIGNATURE, BandwidthTransactionData
 from tribler.core.components.bandwidth_accounting.trust_calculation.trust_graph import TrustGraph
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
 from tribler.core.exceptions import TrustGraphException
 from tribler.core.utilities.utilities import MEMORY_DB
 
-
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(bandwidth_db):
     return TrustViewEndpoint(bandwidth_db)
 
 
-@pytest.fixture
+@pytest.fixture()
 def root_key():
     return default_eccrypto.generate_key("very-low").pub().key_to_bin()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_bandwidth_community(mock_ipv8, rest_api):
     return rest_api.bandwidth_community
 
 
-@pytest.fixture
+@pytest.fixture()
 def bandwidth_db(root_key):
     database = BandwidthDatabase(MEMORY_DB, root_key)
     yield database
     database.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def trust_graph(root_key, bandwidth_db):
     return TrustGraph(root_key, bandwidth_db, max_nodes=20, max_transactions=200)
 
@@ -96,7 +95,7 @@ def test_maximum_nodes_in_graph(trust_graph):
         exception_msg = getattr(tge, 'message', repr(tge))
         assert f'Max node peers ({trust_graph.max_nodes}) reached in the graph' in exception_msg
     else:
-        assert False, "Expected to fail but did not."
+        raise AssertionError("Expected to fail but did not.")
 
 
 def test_add_bandwidth_transactions(trust_graph):
@@ -104,7 +103,6 @@ def test_add_bandwidth_transactions(trust_graph):
     Tests the maximum blocks/transactions that be be present in the graph.
     :return:
     """
-
     my_pk = trust_graph.root_key
     for _ in range(trust_graph.max_nodes - 1):
         random_node_pk = unhexlify(get_random_node_public_key())
@@ -121,7 +119,7 @@ def test_add_bandwidth_transactions(trust_graph):
         exception_msg = getattr(tge, 'message', repr(tge))
         assert f'Max node peers ({trust_graph.max_nodes}) reached in the graph' in exception_msg
     else:
-        assert False, "Expected to fail but did not."
+        raise AssertionError("Expected to fail but did not.")
 
 
 async def test_trustview_response(rest_api, root_key, bandwidth_db):
@@ -133,7 +131,6 @@ async def test_trustview_response(rest_api, root_key, bandwidth_db):
     number of nodes in the graph = 1 (root node) + 3 (friends) + 3 (fofs) = 7
     number of transactions in the graphs = 3 (root node to friends) + 3 (friends) * 3 (fofs) = 12
     """
-
     friends = [
         "4c69624e61434c504b3a2ee28ce24a2259b4e585b81106cdff4359fcf48e93336c11d133b01613f30b03b4db06df27"
         "80daac2cdf2ee60be611bf7367a9c1071ac50d65ca5858a50e9578",
@@ -199,7 +196,6 @@ async def test_trustview_max_transactions(rest_api, bandwidth_db, root_key, endp
     """
     Test whether the max transactions returned is limited.
     """
-
     max_txn = 10
     endpoint.trust_graph.set_limits(max_transactions=max_txn)
 
@@ -216,7 +212,6 @@ async def test_trustview_max_nodes(rest_api, root_key, bandwidth_db, endpoint):
     """
     Test whether the number of nodes returned is limited.
     """
-
     max_nodes = 10
     endpoint.trust_graph.set_limits(max_nodes=max_nodes)
 
@@ -236,7 +231,6 @@ async def test_trustview_with_refresh(rest_api, root_key, bandwidth_db, endpoint
     If refresh parameter is not set, the cached graph is returned otherwise
     a new graph is computed and returned.
     """
-
     # Insert a set of transactions
     num_tx_set1 = 10
     insert_node_transactions(root_key, bandwidth_db, count=num_tx_set1)

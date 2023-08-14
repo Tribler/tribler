@@ -9,7 +9,7 @@ CONFIG_PATH = TESTS_DATA_DIR / "config_files"
 
 def test_convert_tribler_conf_76(tmpdir):
     """
-    Tests conversion of the Tribler 7.5 config
+    Tests conversion of the Tribler 7.5 config.
     """
     shutil.copy2(CONFIG_PATH / 'triblerd75.conf', tmpdir / 'triblerd.conf')
     convert_config_to_tribler76(tmpdir)

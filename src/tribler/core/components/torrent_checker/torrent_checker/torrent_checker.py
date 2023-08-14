@@ -15,13 +15,24 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
-    TrackerResponse
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import \
-    FakeBep33DHTSession, FakeDHTSession, TrackerSession, UdpSocketManager, create_tracker_session
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import (
+    HEALTH_FRESHNESS_SECONDS,
+    HealthInfo,
+    TrackerResponse,
+)
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import (
+    FakeBep33DHTSession,
+    FakeDHTSession,
+    TrackerSession,
+    UdpSocketManager,
+    create_tracker_session,
+)
 from tribler.core.components.torrent_checker.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
-from tribler.core.components.torrent_checker.torrent_checker.utils import aggregate_responses_for_infohash, \
-    filter_non_exceptions, gather_coros
+from tribler.core.components.torrent_checker.torrent_checker.utils import (
+    aggregate_responses_for_infohash,
+    filter_non_exceptions,
+    gather_coros,
+)
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.tracker_utils import MalformedTrackerURLException
@@ -47,7 +58,7 @@ class TorrentChecker(TaskManager):
                  notifier: Notifier,
                  tracker_manager: TrackerManager,
                  metadata_store: MetadataStore,
-                 socks_listen_ports: Optional[List[int]] = None):
+                 socks_listen_ports: Optional[List[int]] = None) -> None:
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tracker_manager = tracker_manager
@@ -230,8 +241,7 @@ class TorrentChecker(TaskManager):
                             order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
         selected_torrents = popular_torrents + old_torrents
-        selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
-        return selected_torrents
+        return random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
 
     async def check_local_torrents(self) -> Tuple[List, List]:
         """
@@ -251,17 +261,16 @@ class TorrentChecker(TaskManager):
         has not been checked recently.
         """
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        channel_torrents = list(self.mds.TorrentMetadata.select(
+        return list(self.mds.TorrentMetadata.select(
             lambda g: g.public_key == self.mds.my_public_key_bin
                       and g.metadata_type == REGULAR_TORRENT
                       and g.health.last_check < last_fresh_time)
                                 .order_by(lambda g: g.health.last_check)
                                 .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
-        return channel_torrents
 
     async def check_torrents_in_user_channel(self) -> List[Union[HealthInfo, BaseException]]:
         """
-        Perform a full health check of torrents in user's channel
+        Perform a full health check of torrents in user's channel.
         """
         selected_torrents = self.torrents_to_check_in_user_channel()
         self._logger.info(f'Check {len(selected_torrents)} torrents in user channel')
@@ -288,7 +297,7 @@ class TorrentChecker(TaskManager):
 
     @db_session
     def get_valid_trackers_of_torrent(self, infohash):
-        """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
+        """Get a set of valid trackers for torrent. Also remove any invalid torrent."""
         db_tracker_list = self.mds.TorrentState.get(infohash=infohash).trackers
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
@@ -298,7 +307,7 @@ class TorrentChecker(TaskManager):
         Check the health of a torrent with a given infohash.
         :param infohash: Torrent infohash.
         :param timeout: The timeout to use in the performed requests
-        :param scrape_now: Flag whether we want to force scraping immediately
+        :param scrape_now: Flag whether we want to force scraping immediately.
         """
         infohash_hex = hexlify(infohash)
         self._logger.info(f'Check health for the torrent: {infohash_hex}')
@@ -340,6 +349,8 @@ class TorrentChecker(TaskManager):
             health.last_check = int(time.time())
             health.self_checked = True
             self.update_torrent_health(health)
+            return None
+        return None
 
     def _create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
         self._logger.debug(f'Creating a session for the request: {tracker_url}')

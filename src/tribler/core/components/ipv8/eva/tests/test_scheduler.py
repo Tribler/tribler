@@ -3,16 +3,14 @@ from typing import Iterable
 from unittest.mock import MagicMock, Mock
 
 import pytest
-
 from tribler.core.components.ipv8.eva.scheduler import Scheduler
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
 
-
 # pylint: disable=redefined-outer-name, protected-access
 
 
-@pytest.fixture
+@pytest.fixture()
 async def scheduler():
     eva = Mock(
         incoming={},
@@ -137,7 +135,7 @@ def _fill_test_data(scheduler: Scheduler):
 
 
 def _transform_to_str(eva, transfers: Iterable[Transfer]) -> Iterable[str]:
-    """Function transforms transfers to strings like 'peer1_out'"""
+    """Function transforms transfers to strings like 'peer1_out'."""
     for transfer in transfers:
         container = "in" if transfer.container == eva.incoming else "out"
         yield f'{transfer.peer}_{container}'

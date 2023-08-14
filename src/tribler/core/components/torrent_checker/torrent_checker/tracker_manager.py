@@ -1,6 +1,7 @@
 import logging
 import time
 from pathlib import Path
+from typing import Optional
 
 from pony.orm import count, db_session
 
@@ -13,7 +14,7 @@ TRACKER_RETRY_INTERVAL = 60  # A "dead" tracker will be retired every 60 seconds
 
 class TrackerManager:
 
-    def __init__(self, state_dir: Path = None, metadata_store: MetadataStore = None):
+    def __init__(self, state_dir: Optional[Path] = None, metadata_store: MetadataStore = None) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.TrackerState = metadata_store.TrackerState
@@ -98,7 +99,6 @@ class TrackerManager:
         :param tracker_url: The given tracker_url.
         :param is_successful: If the check was successful.
         """
-
         if tracker_url == "DHT":
             return
 

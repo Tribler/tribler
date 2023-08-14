@@ -8,7 +8,7 @@ from tribler.gui.widgets.tablecontentdelegate import TRIBLER_PALETTE
 
 
 class ToggleButton(QAbstractButton):
-    def __init__(self, parent=None, track_radius=10, thumb_radius=8, auto_check_on_click=False):
+    def __init__(self, parent=None, track_radius=10, thumb_radius=8, auto_check_on_click=False) -> None:
         super().__init__(parent=parent)
         self.setCheckable(True)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -124,9 +124,8 @@ class ToggleButton(QAbstractButton):
 
     def mouseReleaseEvent(self, event):  # pylint: disable=invalid-name
         super().mouseReleaseEvent(event)
-        if self.auto_check_on_click:
-            if event.button() == Qt.LeftButton:
-                self.animate_thumb_move(self.isChecked())
+        if self.auto_check_on_click and event.button() == Qt.LeftButton:
+            self.animate_thumb_move(self.isChecked())
 
     def enterEvent(self, event):  # pylint: disable=invalid-name
         self.setCursor(Qt.PointingHandCursor)

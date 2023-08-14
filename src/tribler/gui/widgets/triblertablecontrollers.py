@@ -5,7 +5,7 @@ The responsibility of the controller is to populate the table view with some dat
 import json
 import logging
 
-from PyQt5.QtCore import QObject, QTimer, Qt
+from PyQt5.QtCore import QObject, Qt, QTimer
 from PyQt5.QtGui import QCursor
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAction
@@ -26,7 +26,7 @@ class TriblerTableViewController(QObject):
     Base controller for a table view that displays some data.
     """
 
-    def __init__(self, table_view, *args, filter_input=None, **kwargs):
+    def __init__(self, table_view, *args, filter_input=None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.model = None
@@ -107,7 +107,7 @@ class TableLoadingAnimationMixin:
 
 
 class TableSelectionMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.healthcheck_cooldown = QTimer()
@@ -149,7 +149,7 @@ class TableSelectionMixin:
 
 
 class HealthCheckerMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.health_checker_logger = logging.getLogger('HealthCheckerMixin')
 
@@ -183,7 +183,7 @@ class HealthCheckerMixin:
 
 
 class ContextMenuMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.enable_context_menu(self.table_view)
 

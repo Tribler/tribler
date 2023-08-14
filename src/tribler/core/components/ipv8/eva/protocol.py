@@ -29,24 +29,22 @@ An example of use:
 from __future__ import annotations
 
 import logging
-from asyncio import Future
 from functools import wraps
 from itertools import chain
 from random import SystemRandom
-from typing import Awaitable, Callable, Dict, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Awaitable, Callable, Dict, Type, TypeVar
 
-from ipv8.community import Community
-from ipv8.messaging.lazy_payload import VariablePayload
-from ipv8.types import Peer
-
-from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, TransferErrorCallback, \
-    TransferRequestCallback
 from tribler.core.components.ipv8.eva.container import Container
-from tribler.core.components.ipv8.eva.exceptions import RequestRejected, SizeException, TransferException, \
-    TransferLimitException, \
-    ValueException, to_class, to_code
+from tribler.core.components.ipv8.eva.exceptions import (
+    RequestRejected,
+    SizeException,
+    TransferException,
+    TransferLimitException,
+    ValueException,
+    to_class,
+    to_code,
+)
 from tribler.core.components.ipv8.eva.payload import Acknowledgement, Data, Error, ReadRequest, WriteRequest
-from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.scheduler import Scheduler
 from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.components.ipv8.eva.transfer.base import Transfer
@@ -54,6 +52,20 @@ from tribler.core.components.ipv8.eva.transfer.incoming import IncomingTransfer
 from tribler.core.components.ipv8.eva.transfer.outgoing import OutgoingTransfer
 from tribler.core.components.ipv8.protocol_decorator import make_protocol_decorator
 from tribler.core.utilities.async_group.async_group import AsyncGroup
+
+if TYPE_CHECKING:
+    from asyncio import Future
+
+    from ipv8.community import Community
+    from ipv8.messaging.lazy_payload import VariablePayload
+    from ipv8.types import Peer
+
+    from tribler.core.components.ipv8.eva.aliases import (
+        TransferCompleteCallback,
+        TransferErrorCallback,
+        TransferRequestCallback,
+    )
+    from tribler.core.components.ipv8.eva.result import TransferResult
 
 __version__ = '2.2.0'
 
@@ -86,17 +98,18 @@ async def blank(*_, **__):
 
 
 class EVAProtocol:  # pylint: disable=too-many-instance-attributes
-    """EVAProtocol makes it possible to transfer big binary data over ipv8.
+    """
+    EVAProtocol makes it possible to transfer big binary data over ipv8.
 
-        The protocol based on TFTP with window size (RFC 7440).
-        Features:
-            * timeout
-            * retransmit
-            * dynamic window size
+    The protocol based on TFTP with window size (RFC 7440).
+    Features:
+    * timeout
+    * retransmit
+    * dynamic window size
 
-        The maximum data size that can be transferred through the protocol can be
-        calculated as "block_size * 4294967295" where 4294967295 is the max segment
-        number (4B unsigned int).
+    The maximum data size that can be transferred through the protocol can be
+    calculated as "block_size * 4294967295" where 4294967295 is the max segment
+    number (4B unsigned int).
     """
 
     MIN_WINDOWS_SIZE = 1
@@ -104,16 +117,18 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments
             self,
             community: Community,
-            on_receive: Optional[TransferCompleteCallback] = None,
-            on_send_complete: Optional[TransferCompleteCallback] = None,
-            on_error: Optional[TransferErrorCallback] = None,
-            on_request: Optional[TransferRequestCallback] = None,
+            on_receive: TransferCompleteCallback | None = None,
+            on_send_complete: TransferCompleteCallback | None = None,
+            on_error: TransferErrorCallback | None = None,
+            on_request: TransferRequestCallback | None = None,
             start_message_id: int = 186,
-            settings: Optional[EVASettings] = None
-    ):
-        """Init should be called manually within his parent class.
+            settings: EVASettings | None = None
+    ) -> None:
+        """
+        Init should be called manually within his parent class.
 
         Args:
+        ----
         """
         self.community = community
 
@@ -152,7 +167,8 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         self.last_message_id += 1
 
     def send_binary(self, peer: Peer, info: bytes, data: bytes) -> Future[TransferResult]:
-        """Send a big binary data.
+        """
+        Send a big binary data.
 
         Due to ipv8 specifics, we can use only one socket port per one peer.
         Therefore, at one point in time, the protocol can only transmit one particular
@@ -173,6 +189,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         ...         await self.eva.send_binary(peer, b'binary_info2', b'binary_data2')
 
         Args:
+        ----
             peer: the target peer
             info: a binary info, limited by <block_size> bytes
             data: binary data that will be sent to the target.
@@ -211,29 +228,31 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         return self.scheduler.schedule(transfer)
 
     def get_binary(self, peer: Peer, info: bytes) -> Awaitable[TransferResult]:
-        """Receive a big binary data.
+        """
+        Receive a big binary data.
 
-         Due to ipv8 specifics, we can use only one socket port per one peer.
-         Therefore, at one point in time, the protocol can only transmit one particular
-         piece of data for one particular peer.
+        Due to ipv8 specifics, we can use only one socket port per one peer.
+        Therefore, at one point in time, the protocol can only transmit one particular
+        piece of data for one particular peer.
 
-         In case "get_binary" is invoked multiply times for a single peer, the data
-         transfer will be scheduled and performed when the current sending session is finished.
+        In case "get_binary" is invoked multiply times for a single peer, the data
+        transfer will be scheduled and performed when the current sending session is finished.
 
-         An example:
-         >>> class MyCommunity(Community):
-         ...     def __init__(self, *args, **kwargs):
-         ...         super().__init__(*args, **kwargs)
-         ...         self.eva = EVAProtocol(self)
-         ...
-         ...     async def my_function(self, peer):
-         ...         result = await self.eva.get_binary(peer, b'id: 1')
-         ...         print(result.data)
+        An example:
+        >>> class MyCommunity(Community):
+        ...     def __init__(self, *args, **kwargs):
+        ...         super().__init__(*args, **kwargs)
+        ...         self.eva = EVAProtocol(self)
+        ...
+        ...     async def my_function(self, peer):
+        ...         result = await self.eva.get_binary(peer, b'id: 1')
+        ...         print(result.data)
 
-         Args:
-             peer: the target peer
-             info: a binary info, limited by <block_size> bytes
-         """
+        Args:
+        ----
+        peer: the target peer
+        info: a binary info, limited by <block_size> bytes
+        """
         logger.debug(f'Get binary. Peer: {peer}. Info: {info}.')
 
         if self.shutting_down:
@@ -386,7 +405,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
             transfer.finish(exception=exception_cls(message, transfer, remote=True))
 
     @staticmethod
-    def _get_transfer(peer: Peer, container: Dict[Peer, T], nonce: int) -> Optional[T]:
+    def _get_transfer(peer: Peer, container: Dict[Peer, T], nonce: int) -> T | None:
         transfer = container.get(peer)
         if not transfer:
             logger.warning(f'No transfer found with peer {peer} associated with incoming acknowledgement.')
@@ -399,7 +418,7 @@ class EVAProtocol:  # pylint: disable=too-many-instance-attributes
         return transfer
 
     async def shutdown(self):
-        """This method terminates all current transfers"""
+        """This method terminates all current transfers."""
         logger.info('Shutting down...')
         self.shutting_down = True
 

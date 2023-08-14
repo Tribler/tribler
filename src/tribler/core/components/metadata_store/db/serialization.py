@@ -42,7 +42,6 @@ def time2int(date_time, epoch=EPOCH):
 
     WARNING: TZ-aware timestamps are madhouse...
     """
-
     return int((date_time - epoch).total_seconds())
 
 
@@ -82,7 +81,7 @@ class SignedPayload(Payload):
 
     format_list = ['H', 'H', '64s']
 
-    def __init__(self, metadata_type, reserved_flags, public_key, **kwargs):
+    def __init__(self, metadata_type, reserved_flags, public_key, **kwargs) -> None:
         super().__init__()
         self.metadata_type = metadata_type
         self.reserved_flags = reserved_flags
@@ -121,8 +120,7 @@ class SignedPayload(Payload):
             raise InvalidSignatureException("Tried to create payload without signature")
 
     def to_pack_list(self):
-        data = [('H', self.metadata_type), ('H', self.reserved_flags), ('64s', self.public_key)]
-        return data
+        return [('H', self.metadata_type), ('H', self.reserved_flags), ('64s', self.public_key)]
 
     @classmethod
     def from_unpack_list(cls, metadata_type, reserved_flags, public_key, **kwargs):  # pylint: disable=W0221
@@ -167,13 +165,13 @@ class SignedPayload(Payload):
 
 # fmt: off
 class ChannelNodePayload(SignedPayload):
-    format_list = SignedPayload.format_list + ['Q', 'Q', 'Q']
+    format_list = [*SignedPayload.format_list, 'Q', 'Q', 'Q']
 
     def __init__(
             self,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,  # ChannelNodePayload
-            **kwargs):
+            **kwargs) -> None:
         self.id_ = id_
         self.origin_id = origin_id
         self.timestamp = timestamp
@@ -210,14 +208,14 @@ class ChannelNodePayload(SignedPayload):
 
 
 class JsonNodePayload(ChannelNodePayload):
-    format_list = ChannelNodePayload.format_list + ['varlenI']
+    format_list = [*ChannelNodePayload.format_list, 'varlenI']
 
     def __init__(
             self,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,  # ChannelNodePayload
             json_text,  # JsonNodePayload
-            **kwargs):
+            **kwargs) -> None:
         self.json_text = json_text.decode('utf-8') if isinstance(json_text, bytes) else json_text
         super().__init__(
             metadata_type, reserved_flags, public_key,  # SignedPayload
@@ -252,14 +250,14 @@ class JsonNodePayload(ChannelNodePayload):
 
 
 class BinaryNodePayload(ChannelNodePayload):
-    format_list = ChannelNodePayload.format_list + ['varlenI', 'varlenI']
+    format_list = [*ChannelNodePayload.format_list, 'varlenI', 'varlenI']
 
     def __init__(
             self,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,  # ChannelNodePayload
             binary_data, data_type,  # BinaryNodePayload
-            **kwargs):
+            **kwargs) -> None:
         self.binary_data = binary_data
         self.data_type = data_type.decode('utf-8') if isinstance(data_type, bytes) else data_type
         super().__init__(
@@ -297,14 +295,14 @@ class BinaryNodePayload(ChannelNodePayload):
 
 
 class MetadataNodePayload(ChannelNodePayload):
-    format_list = ChannelNodePayload.format_list + ['varlenI', 'varlenI']
+    format_list = [*ChannelNodePayload.format_list, 'varlenI', 'varlenI']
 
     def __init__(
             self,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,  # ChannelNodePayload
             title, tags,  # MetadataNodePayload
-            **kwargs):
+            **kwargs) -> None:
         self.title = title.decode('utf-8') if isinstance(title, bytes) else title
         self.tags = tags.decode('utf-8') if isinstance(tags, bytes) else tags
         super().__init__(
@@ -344,10 +342,10 @@ class MetadataNodePayload(ChannelNodePayload):
 
 class CollectionNodePayload(MetadataNodePayload):
     """
-    Payload for metadata that stores a collection
+    Payload for metadata that stores a collection.
     """
 
-    format_list = MetadataNodePayload.format_list + ['Q']
+    format_list = [*MetadataNodePayload.format_list, 'Q']
 
     def __init__(
             self,
@@ -356,7 +354,7 @@ class CollectionNodePayload(MetadataNodePayload):
             title, tags,  # MetadataNodePayload
             num_entries,  # CollectionNodePayload
             **kwargs
-    ):
+    ) -> None:
         self.num_entries = num_entries
         super().__init__(
             metadata_type, reserved_flags, public_key,  # SignedPayload
@@ -398,14 +396,14 @@ class TorrentMetadataPayload(ChannelNodePayload):
     Payload for metadata that stores a torrent.
     """
 
-    format_list = ChannelNodePayload.format_list + ['20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
+    format_list = [*ChannelNodePayload.format_list, '20s', 'Q', 'I', 'varlenI', 'varlenI', 'varlenI']
 
     def __init__(
             self,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             id_, origin_id, timestamp,  # ChannelNodePayload
             infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
-            **kwargs):
+            **kwargs) -> None:
         self.infohash = bytes(infohash)
         self.size = size
         self.torrent_date = time2int(torrent_date) if isinstance(torrent_date, datetime) else torrent_date
@@ -466,7 +464,7 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
     Payload for metadata that stores a channel.
     """
 
-    format_list = TorrentMetadataPayload.format_list + ['Q'] + ['Q']
+    format_list = [*TorrentMetadataPayload.format_list, 'Q', 'Q']
 
     def __init__(
             self,
@@ -474,7 +472,7 @@ class ChannelMetadataPayload(TorrentMetadataPayload):
             id_, origin_id, timestamp,  # ChannelNodePayload
             infohash, size, torrent_date, title, tags, tracker_info,  # TorrentMetadataPayload
             num_entries, start_timestamp,  # ChannelMetadataPayload
-            **kwargs):
+            **kwargs) -> None:
         self.num_entries = num_entries
         self.start_timestamp = start_timestamp
         super().__init__(
@@ -518,13 +516,13 @@ class DeletedMetadataPayload(SignedPayload):
     Payload for metadata that stores deleted metadata.
     """
 
-    format_list = SignedPayload.format_list + ['64s']
+    format_list = [*SignedPayload.format_list, '64s']
 
     def __init__(
             self,
             metadata_type, reserved_flags, public_key,  # SignedPayload
             delete_signature,  # DeletedMetadataPayload
-            **kwargs):
+            **kwargs) -> None:
         self.delete_signature = bytes(delete_signature)
         super().__init__(
             metadata_type, reserved_flags, public_key,  # SignedPayload

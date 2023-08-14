@@ -5,7 +5,7 @@ CREATE_TABLES = """
         pid INTEGER NOT NULL, -- process ID
         kind TEXT NOT NULL, -- process type, 'core' or 'gui'
         "primary" INT NOT NULL, -- 1 means the process is considered to be the "main" process of the specified kind
-        canceled INT NOT NULL, -- 1 means that another process is already working as primary, so this process is stopped 
+        canceled INT NOT NULL, -- 1 means that another process is already working as primary, so this process is stopped
         app_version TEXT NOT NULL, -- the Tribler version
         started_at INT NOT NULL, -- unix timestamp of the time when the process was started
         creator_pid INT,  -- for a Core process this is the pid of the corresponding GUI process
@@ -21,8 +21,8 @@ DELETE_OLD_RECORDS = """
     WHERE "primary" = 0  -- never delete current primary processes
       AND (
         finished_at < strftime('%s') - (60 * 60 * 24) * 30 -- delete record if a process finished more than 30 days ago
-        OR rowid NOT IN ( 
-            SELECT rowid FROM processes ORDER BY rowid DESC LIMIT 100 -- only keep last 100 processes  
+        OR rowid NOT IN (
+            SELECT rowid FROM processes ORDER BY rowid DESC LIMIT 100 -- only keep last 100 processes
         )
     )
 """

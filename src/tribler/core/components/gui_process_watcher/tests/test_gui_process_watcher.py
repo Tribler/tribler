@@ -3,9 +3,11 @@ from unittest.mock import Mock, patch
 
 import psutil
 import pytest
-
-from tribler.core.components.gui_process_watcher.gui_process_watcher import GUI_PID_ENV_KEY, GuiProcessNotRunning, \
-    GuiProcessWatcher
+from tribler.core.components.gui_process_watcher.gui_process_watcher import (
+    GUI_PID_ENV_KEY,
+    GuiProcessNotRunning,
+    GuiProcessWatcher,
+)
 
 
 @pytest.fixture(name='watcher')
@@ -47,9 +49,8 @@ def test_get_gui_process():
 
         # Process with the specified pid does not exist
         exception = psutil.NoSuchProcess(pid, name='name', msg='msg')
-        with patch('psutil.Process', side_effect=exception):
-            with pytest.raises(GuiProcessNotRunning):
-                GuiProcessWatcher.get_gui_process()
+        with patch('psutil.Process', side_effect=exception), pytest.raises(GuiProcessNotRunning):
+            GuiProcessWatcher.get_gui_process()
 
 
 def test_check_gui_process_working(watcher):

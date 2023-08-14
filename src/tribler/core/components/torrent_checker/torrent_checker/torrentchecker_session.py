@@ -8,7 +8,7 @@ import sys
 import time
 from abc import ABCMeta, abstractmethod
 from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import async_timeout
 from aiohttp import ClientResponseError, ClientSession, ClientTimeout
@@ -41,7 +41,7 @@ MAX_INFOHASHES_IN_SCRAPE = 60
 class TrackerSession(TaskManager):
     __meta__ = ABCMeta
 
-    def __init__(self, tracker_type, tracker_url, tracker_address, announce_page, timeout):
+    def __init__(self, tracker_type, tracker_url, tracker_address, announce_page, timeout) -> None:
         super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -60,7 +60,7 @@ class TrackerSession(TaskManager):
         self.is_finished = False
         self.is_failed = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}[{self.tracker_type}, {self.tracker_url}]"
 
     async def cleanup(self):
@@ -98,7 +98,7 @@ class TrackerSession(TaskManager):
 
 
 class HttpTrackerSession(TrackerSession):
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout, proxy):
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout, proxy) -> None:
         super().__init__('http', tracker_url, tracker_address, announce_page, timeout)
         self._session = ClientSession(connector=Socks5Connector(proxy) if proxy else None,
                                       raise_for_status=True,
@@ -111,8 +111,7 @@ class HttpTrackerSession(TrackerSession):
         #       which has some sort of 'key' as parameter, so we need to use the add_url_params
         #       utility function to handle such cases.
 
-        url = add_url_params("http://%s:%s%s" %
-                             (self.tracker_address[0], self.tracker_address[1],
+        url = add_url_params("http://{}:{}{}".format(self.tracker_address[0], self.tracker_address[1],
                               self.announce_page.replace('announce', 'scrape')),
                              {"info_hash": self.infohash_list})
 
@@ -122,9 +121,8 @@ class HttpTrackerSession(TrackerSession):
 
         try:
             self._logger.debug("%s HTTP SCRAPE message sent: %s", self, url)
-            async with self._session:
-                async with self._session.get(url.encode('ascii').decode('utf-8')) as response:
-                    body = await response.read()
+            async with self._session, self._session.get(url.encode('ascii').decode('utf-8')) as response:
+                body = await response.read()
         except UnicodeEncodeError as e:
             raise e
         except ClientResponseError as e:
@@ -137,7 +135,7 @@ class HttpTrackerSession(TrackerSession):
 
     def _process_scrape_response(self, body) -> TrackerResponse:
         """
-        This function handles the response body of an HTTP result from an HTTP tracker
+        This function handles the response body of an HTTP result from an HTTP tracker.
         """
         if body is None:
             self.failed(msg="no response body")
@@ -188,7 +186,7 @@ class UdpSocketManager(DatagramProtocol):
     The UdpSocketManager ensures that the network packets are forwarded to the right UdpTrackerSession.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tracker_sessions = {}
         self.transport = None
@@ -236,9 +234,9 @@ class UdpTrackerSession(TrackerSession):
     """
 
     # A list of transaction IDs that have been used in order to avoid conflict.
-    _active_session_dict = dict()
+    _active_session_dict = {}
 
-    def __init__(self, tracker_url, tracker_address, announce_page, timeout, proxy, socket_mgr):
+    def __init__(self, tracker_url, tracker_address, announce_page, timeout, proxy, socket_mgr) -> None:
         super().__init__('udp', tracker_url, tracker_address, announce_page, timeout)
 
         self._logger.setLevel(logging.INFO)
@@ -291,7 +289,7 @@ class UdpTrackerSession(TrackerSession):
     async def connect_to_tracker(self) -> TrackerResponse:
         """
         Connects to the tracker and starts querying for seed and leech data.
-        :return: A dictionary containing seed/leech information per infohash
+        :return: A dictionary containing seed/leech information per infohash.
         """
         # No more requests can be appended to this session
         self.is_initiated = True
@@ -411,10 +409,10 @@ class UdpTrackerSession(TrackerSession):
 
 class FakeDHTSession(TrackerSession):
     """
-    Fake TrackerSession that manages DHT requests
+    Fake TrackerSession that manages DHT requests.
     """
 
-    def __init__(self, download_manager: DownloadManager, timeout: float):
+    def __init__(self, download_manager: DownloadManager, timeout: float) -> None:
         super().__init__(DHT, DHT, DHT, DHT, timeout)
 
         self.download_manager = download_manager

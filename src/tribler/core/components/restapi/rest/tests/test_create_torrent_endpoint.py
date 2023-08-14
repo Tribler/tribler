@@ -11,18 +11,17 @@ from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_REQUEST_ENTITY_TOO_LARGE, MAX_REQUEST_SIZE
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
-
 # pylint: disable=redefined-outer-name
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(download_manager):
     return CreateTorrentEndpoint(download_manager)
 
 
 async def test_create_torrent(rest_api, tmp_path, download_manager):
     """
-    Testing whether the API returns a proper base64 encoded torrent
+    Testing whether the API returns a proper base64 encoded torrent.
     """
 
     def fake_create_torrent_file(*_, **__):
@@ -52,7 +51,7 @@ async def test_create_torrent(rest_api, tmp_path, download_manager):
 
 async def test_create_torrent_io_error(rest_api, download_manager):
     """
-    Testing whether the API returns a formatted 500 error if IOError is raised
+    Testing whether the API returns a formatted 500 error if IOError is raised.
     """
 
     def fake_create_torrent_file(*_, **__):
@@ -79,7 +78,6 @@ async def test_create_torrent_of_large_size(rest_api):
     """
     Testing whether the API returns a formatted 413 error if request size is above set client size.
     """
-
     post_data = {
         "description": ''.join(random.choice(string.ascii_letters) for _ in range(MAX_REQUEST_SIZE))
     }

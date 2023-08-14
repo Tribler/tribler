@@ -6,7 +6,7 @@ from tribler.gui.utilities import connect, get_ui_file_path
 
 
 class TrustExplanationDialog(DialogContainer):
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         DialogContainer.__init__(self, parent)
 
         uic.loadUi(get_ui_file_path('trustexplanation.ui'), self.dialog_widget)

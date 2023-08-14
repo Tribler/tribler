@@ -6,6 +6,7 @@ def define_binding(db):
         """
         This binding is used to store all kinds of values, like DB version, counters, etc.
         """
+
         name = PrimaryKey(str)
         value = Optional(str)
 

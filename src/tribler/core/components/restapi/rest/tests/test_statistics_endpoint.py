@@ -1,21 +1,19 @@
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
 from ipv8.test.mocking.ipv8 import MockIPv8
 
-from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community \
-    import BandwidthAccountingCommunity
+from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+    BandwidthAccountingCommunity,
+)
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
-
 
 # pylint: disable=redefined-outer-name
 
 
-@pytest.fixture
+@pytest.fixture()
 async def endpoint(metadata_store):
     ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
                     settings=BandwidthAccountingSettings())
@@ -32,7 +30,7 @@ async def endpoint(metadata_store):
 
 async def test_get_tribler_statistics(rest_api):
     """
-    Testing whether the API returns a correct Tribler statistics dictionary when requested
+    Testing whether the API returns a correct Tribler statistics dictionary when requested.
     """
     stats = (await do_request(rest_api, 'statistics/tribler', expected_code=200))['tribler_statistics']
     assert 'db_size' in stats
@@ -42,7 +40,7 @@ async def test_get_tribler_statistics(rest_api):
 
 async def test_get_ipv8_statistics(rest_api):
     """
-    Testing whether the API returns a correct IPv8 statistics dictionary when requested
+    Testing whether the API returns a correct IPv8 statistics dictionary when requested.
     """
     json_data = await do_request(rest_api, 'statistics/ipv8', expected_code=200)
     assert json_data["ipv8_statistics"]
@@ -50,7 +48,7 @@ async def test_get_ipv8_statistics(rest_api):
 
 async def test_get_ipv8_statistics_unavailable(rest_api, endpoint: StatisticsEndpoint):
     """
-    Testing whether the API returns error 500 if IPv8 is not available
+    Testing whether the API returns error 500 if IPv8 is not available.
     """
     endpoint.ipv8 = None
     json_data = await do_request(rest_api, 'statistics/ipv8', expected_code=200)

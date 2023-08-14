@@ -16,7 +16,7 @@ VIDEO_FILE_NAME = "video.avi"
 
 def test_tdef_init():
     """
-    Test initializing a TorrentDef object
+    Test initializing a TorrentDef object.
     """
     tdef_params = TorrentDef(torrent_parameters={'announce': 'http://test.com'})
     assert 'announce' in tdef_params.torrent_parameters
@@ -24,7 +24,7 @@ def test_tdef_init():
 
 def test_create_invalid_tdef():
     """
-    Test whether creating invalid TorrentDef objects result in ValueErrors
+    Test whether creating invalid TorrentDef objects result in ValueErrors.
     """
     invalid_metainfo = {}
     with pytest.raises(ValueError):
@@ -37,7 +37,7 @@ def test_create_invalid_tdef():
 
 def test_add_content_dir(tdef):
     """
-    Test whether adding a single content directory with two files is working correctly
+    Test whether adding a single content directory with two files is working correctly.
     """
     torrent_dir = TESTS_DATA_DIR / "contentdir"
     tdef.add_content(torrent_dir / "file.txt")
@@ -50,7 +50,7 @@ def test_add_content_dir(tdef):
 
 def test_add_single_file(tdef):
     """
-    Test whether adding a single file to a torrent is working correctly
+    Test whether adding a single file to a torrent is working correctly.
     """
     torrent_dir = TESTS_DATA_DIR / "contentdir"
     tdef.add_content(torrent_dir / "file.txt")
@@ -62,7 +62,7 @@ def test_add_single_file(tdef):
 
 def test_get_name_utf8_unknown(tdef):
     """
-    Test whether we can succesfully get the UTF-8 name
+    Test whether we can succesfully get the UTF-8 name.
     """
     tdef.set_name(b'\xA1\xC0')
     tdef.torrent_parameters[b'encoding'] = 'euc_kr'
@@ -71,7 +71,7 @@ def test_get_name_utf8_unknown(tdef):
 
 def test_get_name_utf8(tdef):
     """
-    Check whether we can successfully get the UTF-8 encoded torrent name when using a different encoding
+    Check whether we can successfully get the UTF-8 encoded torrent name when using a different encoding.
     """
     tdef.set_name(b'\xA1\xC0')
     assert tdef.get_name_utf8() == '\xa1\xc0'
@@ -79,7 +79,7 @@ def test_get_name_utf8(tdef):
 
 def test_add_content_piece_length(tdef):
     """
-    Add a single file with piece length to a TorrentDef
+    Add a single file with piece length to a TorrentDef.
     """
     fn = TESTS_DATA_DIR / VIDEO_FILE_NAME
     tdef.add_content(fn)
@@ -109,7 +109,7 @@ def test_is_private(tdef):
 
 def test_is_private_loaded_from_existing_torrent():
     """
-    Test whether the private field from an existing torrent is correctly read
+    Test whether the private field from an existing torrent is correctly read.
     """
     privatefn = TESTS_DATA_DIR / "private.torrent"
     publicfn = TESTS_DATA_DIR / "bak_single.torrent"
@@ -162,7 +162,7 @@ def test_set_tracker(tdef):
 
 def test_get_trackers(tdef):
     """
-    Test that `get_trackers` returns flat set of trackers
+    Test that `get_trackers` returns flat set of trackers.
     """
     tdef.get_tracker_hierarchy = Mock(return_value=[["t1", "t2"], ["t3"], ["t4"]])
     trackers = tdef.get_trackers()
@@ -170,7 +170,7 @@ def test_get_trackers(tdef):
 
 def test_get_nr_pieces(tdef):
     """
-    Test getting the number of pieces from a TorrentDef
+    Test getting the number of pieces from a TorrentDef.
     """
     assert tdef.get_nr_pieces() == 0
     tdef.metainfo = {b'info': {b'pieces': b'a' * 40}}
@@ -179,7 +179,7 @@ def test_get_nr_pieces(tdef):
 
 def test_is_multifile(tdef):
     """
-    Test whether a TorrentDef is correctly classified as multifile torrent
+    Test whether a TorrentDef is correctly classified as multifile torrent.
     """
     assert not tdef.is_multifile_torrent()
 
@@ -264,7 +264,7 @@ def test_get_name_as_unicode(tdef):
 
 def test_filter_characters(tdef):
     """
-    Test `_filter_characters` sanitizes its input
+    Test `_filter_characters` sanitizes its input.
     """
     name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
     name = name_bytes

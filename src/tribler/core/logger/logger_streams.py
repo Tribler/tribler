@@ -1,3 +1,4 @@
+import contextlib
 import sys
 from typing import TextIO
 
@@ -7,14 +8,13 @@ class StreamWrapper:
     Used by logger to wrap stderr & stdout streams. Handles UnicodeDecodeError if console encoding is not utf-8.
     """
 
-    def __init__(self, stream: TextIO):
+    def __init__(self, stream: TextIO) -> None:
         self.stream = stream
 
     def flush(self):
-        try:
+        with contextlib.suppress(Exception):
             self.stream.flush()
-        except:
-            pass
+
 
     def write(self, s: str):
         try:
@@ -25,10 +25,9 @@ class StreamWrapper:
             self.stream.write(s2)
 
     def close(self):
-        try:
+        with contextlib.suppress(Exception):
             self.stream.close()
-        except:
-            pass
+
 
 
 stdout_wrapper = StreamWrapper(sys.stdout)  # specified in logger.yaml for `console` handler

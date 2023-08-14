@@ -7,16 +7,25 @@ from aiohttp import ClientSession, web
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.utilities.patch_import import patch_import
 from tribler.core.utilities.tracker_utils import add_url_params
-from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_distributed_positive_integers,
-                                              is_channel_public_key,
-                                              is_infohash, is_simple_match_query, is_valid_url, parse_magnetlink,
-                                              parse_query, random_infohash, show_system_popup, to_fts_query)
-
+from tribler.core.utilities.utilities import (
+    Query,
+    extract_tags,
+    get_normally_distributed_positive_integers,
+    is_channel_public_key,
+    is_infohash,
+    is_simple_match_query,
+    is_valid_url,
+    parse_magnetlink,
+    parse_query,
+    random_infohash,
+    show_system_popup,
+    to_fts_query,
+)
 
 # pylint: disable=import-outside-toplevel, import-error, redefined-outer-name
 # fmt: off
 
-@pytest.fixture
+@pytest.fixture()
 async def magnet_redirect_server(free_port):
     """
     Return a HTTP redirect server that redirects to a magnet.
@@ -38,7 +47,7 @@ async def magnet_redirect_server(free_port):
 
 def test_parse_magnetlink_lowercase():
     """
-    Test if a lowercase magnet link can be parsed
+    Test if a lowercase magnet link can be parsed.
     """
     _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:apctqfwnowubxzoidazgaj2ba6fs6juc')
 
@@ -47,7 +56,7 @@ def test_parse_magnetlink_lowercase():
 
 def test_parse_magnetlink_uppercase():
     """
-    Test if an uppercase magnet link can be parsed
+    Test if an uppercase magnet link can be parsed.
     """
     _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
@@ -56,7 +65,7 @@ def test_parse_magnetlink_uppercase():
 
 def test_parse_invalid_magnetlink_short():
     """
-    Test if a magnet link with invalid and short infohash (v1) can be parsed
+    Test if a magnet link with invalid and short infohash (v1) can be parsed.
     """
     _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDA')
 
@@ -65,7 +74,7 @@ def test_parse_invalid_magnetlink_short():
 
 def test_parse_invalid_magnetlink_long():
     """
-    Test if a magnet link with invalid and long infohash (v1) can be parsed
+    Test if a magnet link with invalid and long infohash (v1) can be parsed.
     """
     _, hashed, _ = parse_magnetlink(
         'magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
@@ -74,7 +83,7 @@ def test_parse_invalid_magnetlink_long():
 
 
 def test_valid_url():
-    """ Test if the URL is valid """
+    """Test if the URL is valid."""
     test_url = "http://anno nce.torrentsmd.com:8080/announce"
     assert not is_valid_url(test_url)
 
@@ -325,7 +334,7 @@ def test_load_logger_no_primary_process(logger: Mock, dict_config: Mock, tmpdir)
 
 def test_get_normally_distributed_positive_integers():
     """
-    Test if the random number returned are all positive integers
+    Test if the random number returned are all positive integers.
     """
     random_integer_numbers = get_normally_distributed_positive_integers()
 

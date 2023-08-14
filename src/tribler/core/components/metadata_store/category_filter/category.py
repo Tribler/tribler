@@ -35,7 +35,7 @@ class Category:
     __size_change = 1024 * 1024
     _logger = logging.getLogger("Category")
 
-    def __init__(self, xxx_filter=default_xxx_filter):
+    def __init__(self, xxx_filter=default_xxx_filter) -> None:
         self.category_info = getCategoryInfo(CATEGORY_CONFIG_FILE)
         self.category_info.sort(key=cmp_to_key(cmp_rank))
         self.xxx_filter = xxx_filter
@@ -95,7 +95,7 @@ class Category:
         factor = 1.0
         fileKeywords = self._getWords(display_name)
 
-        for ikeywords in category['keywords'].keys():
+        for ikeywords in category['keywords']:
             try:
                 fileKeywords.index(ikeywords)
                 factor *= 1 - category['keywords'][ikeywords]
@@ -130,7 +130,7 @@ class Category:
             factor = 1.0
             fileKeywords = self._getWords(name.lower())
 
-            for ikeywords in category['keywords'].keys():
+            for ikeywords in category['keywords']:
                 try:
                     fileKeywords.index(ikeywords)
                     # print ikeywords

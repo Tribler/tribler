@@ -60,7 +60,7 @@ class EditMetadataDialog(DialogContainer):
                 combobox = QComboBox(self)
                 combobox.addItems(self.languages.values())
                 self.dialog_widget.edit_metadata_table.setItemWidget(item, 1, combobox)
-                if objects and objects[0] in self.languages.keys():
+                if objects and objects[0] in self.languages:
                     combobox.setCurrentIndex(list(self.languages.keys()).index(objects[0]))
             else:
                 # Otherwise, we show an editing field

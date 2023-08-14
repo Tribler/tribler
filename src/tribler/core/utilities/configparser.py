@@ -14,7 +14,7 @@ from tribler.core.exceptions import OperationNotPossibleAtRuntimeException
 
 class CallbackConfigParser(RawConfigParser):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         RawConfigParser.__init__(self, *args, **kwargs)
         self.filename = None
         self.callback = None

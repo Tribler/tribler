@@ -17,7 +17,7 @@ class GuiProcessNotRunning(Exception):
 
 class GuiProcessWatcher(TaskManager):
 
-    def __init__(self, gui_process: psutil.Process, shutdown_callback: Callable[[], None]):
+    def __init__(self, gui_process: psutil.Process, shutdown_callback: Callable[[], None]) -> None:
         super().__init__()
         self.gui_process = gui_process
         self.shutdown_callback = shutdown_callback

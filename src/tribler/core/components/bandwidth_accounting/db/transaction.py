@@ -9,14 +9,16 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.keyvault.keys import Key
 from ipv8.messaging.serialization import default_serializer
 from pony.orm import PrimaryKey, Required, db_session
 
 from tribler.core.components.bandwidth_accounting.community.payload import BandwidthTransactionPayload
+
+if TYPE_CHECKING:
+    from ipv8.keyvault.keys import Key
 
 EMPTY_SIGNATURE = b'0' * 64
 
@@ -26,6 +28,7 @@ class BandwidthTransactionData:
     """
     This class defines a data class for a bandwidth transaction.
     """
+
     sequence_number: int
     public_key_a: bytes
     public_key_b: bytes
@@ -64,7 +67,7 @@ class BandwidthTransactionData:
     def is_valid(self) -> bool:
         """
         Validate the signatures in the transaction.
-        return: True if the transaction is valid, False otherwise
+        return: True if the transaction is valid, False otherwise.
         """
         if self.signature_a != EMPTY_SIGNATURE:
             # Verify signature A
@@ -131,6 +134,7 @@ def define_binding(bandwidth_database):
         """
         This class describes a bandwidth transaction that resides in the database.
         """
+
         sequence_number = Required(int)
         public_key_a = Required(bytes, index=True)
         public_key_b = Required(bytes, index=True)
@@ -168,7 +172,7 @@ def define_binding(bandwidth_database):
                 num_entries = db.BandwidthHistory.select().count()
                 if num_entries > bandwidth_database.MAX_HISTORY_ITEMS:
                     # Delete the entry with the lowest timestamp
-                    entry = list(db.BandwidthHistory.select().order_by(db.BandwidthHistory.timestamp))[0]
+                    entry = next(iter(db.BandwidthHistory.select().order_by(db.BandwidthHistory.timestamp)))
                     entry.delete()
 
     return BandwidthTransaction

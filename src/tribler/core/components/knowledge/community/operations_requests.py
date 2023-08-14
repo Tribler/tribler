@@ -6,7 +6,8 @@ class PeerValidationError(ValueError):
 
 
 class OperationsRequests:
-    """ This class is design for controlling requests during pull-based gossip.
+    """
+    This class is design for controlling requests during pull-based gossip.
 
     The main idea:
         * Before a request, a client registered a peer with some number of expected responses
@@ -14,7 +15,7 @@ class OperationsRequests:
         * The controller validates response by checking that expected responses for this peer is greater then 0
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.requests = defaultdict(int)
 
     def register_peer(self, peer, number_of_responses):

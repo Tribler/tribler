@@ -5,7 +5,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
 
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.knowledge.db.knowledge_db import SHOW_THRESHOLD, KnowledgeDatabase, ResourceType
 from tribler.core.components.knowledge.db.tests.test_knowledge_db import Resource, TestTagDB
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -19,8 +19,9 @@ from tribler.core.utilities.unicode import hexlify
 
 
 class TestRemoteSearchByTags(TestBase):
-    """ In this test set we will use only one node's instance as it is sufficient
-    for testing remote search by tags
+    """
+    In this test set we will use only one node's instance as it is sufficient
+    for testing remote search by tags.
     """
 
     def setUp(self):

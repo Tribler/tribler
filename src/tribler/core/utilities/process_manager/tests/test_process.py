@@ -141,12 +141,14 @@ def test_tribler_process_save(logger_error: Mock, current_process):
     p.rowid = None
     p.save()
     assert "INSERT INTO" in cursor.execute.call_args[0][0]
-    assert p.rowid == 123 and p.row_version == 0
+    assert p.rowid == 123
+    assert p.row_version == 0
 
     cursor.rowcount = 1
     p.save()
     assert "UPDATE" in cursor.execute.call_args[0][0]
-    assert p.rowid == 123 and p.row_version == 1
+    assert p.rowid == 123
+    assert p.row_version == 1
 
     assert not logger_error.called
     cursor.rowcount = 0
@@ -187,7 +189,8 @@ def test_get_core_process(gui_process):
     core_process.set_api_port(123)
     p2 = gui_process.get_core_process()
     assert p2 is not None  # the core process was found for this GUI process
-    assert p2 is not core_process and p2 is not p  # it is a new object retrieved from the database
+    assert p2 is not core_process
+    assert p2 is not p
     assert p2.api_port == 123  # it has correct API port value
 
     # Second Core process for the same GUI process should lead to an error

@@ -15,10 +15,15 @@ from ipv8.community import Community
 from ipv8.messaging.lazy_payload import VariablePayload
 from ipv8.test.base import TestBase
 from ipv8.types import Peer
-
-from tribler.core.components.ipv8.eva.exceptions import RequestRejected, SizeException, TimeoutException, \
-    TransferCancelledException, TransferException, \
-    TransferLimitException, ValueException
+from tribler.core.components.ipv8.eva.exceptions import (
+    RequestRejected,
+    SizeException,
+    TimeoutException,
+    TransferCancelledException,
+    TransferException,
+    TransferLimitException,
+    ValueException,
+)
 from tribler.core.components.ipv8.eva.payload import Acknowledgement, Data, Error, WriteRequest
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
@@ -38,7 +43,7 @@ default_settings = EVASettings(
 
 
 async def drain_loop(loop: AbstractEventLoop):
-    """Cool asyncio magic brewed by Vadim"""
+    """Cool asyncio magic brewed by Vadim."""
     while True:
         if not loop._ready or not loop._scheduled:  # pylint: disable=protected-access
             break
@@ -48,10 +53,10 @@ async def drain_loop(loop: AbstractEventLoop):
 class MockCommunity(Community):  # pylint: disable=too-many-ancestors
     community_id = os.urandom(20)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.received_data = defaultdict(lambda: [])
-        self.sent_data = defaultdict(lambda: [])
+        self.received_data = defaultdict(list)
+        self.sent_data = defaultdict(list)
 
         self.data_has_been_sent = asyncio.Event()
         self.error_has_been_raised = asyncio.Event()
@@ -352,7 +357,7 @@ class TestEVA(TestBase):
             community.eva.block_size = 10
 
         data = [
-            (p, list((os.urandom(1), os.urandom(50)) for _ in range(data_set_count)))
+            (p, [(os.urandom(1), os.urandom(50)) for _ in range(data_set_count)])
             for p in permutations(participants, 2)
         ]
 
@@ -575,14 +580,14 @@ class TestEVA(TestBase):
         assert str(exception.value) == 'Data s'
 
 
-@pytest.fixture
+@pytest.fixture()
 async def eva():
     protocol = EVAProtocol(Mock())
     yield protocol
     await protocol.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 def peer():
     return Mock()
 

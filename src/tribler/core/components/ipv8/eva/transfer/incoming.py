@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List, Optional
+from typing import List
 
 from tribler.core.components.ipv8.eva.payload import Acknowledgement
 from tribler.core.components.ipv8.eva.result import TransferResult
@@ -10,14 +10,14 @@ from tribler.core.components.ipv8.eva.transfer.window import TransferWindow
 
 
 class IncomingTransfer(Transfer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.data_list: List[bytes] = []
-        self.window: Optional[TransferWindow] = None
+        self.window: TransferWindow | None = None
         self.last_window = False
         self.background_functions.append(self.send_acknowledge)
 
-    def on_data(self, index: int, data: bytes) -> Optional[Acknowledgement]:
+    def on_data(self, index: int, data: bytes) -> Acknowledgement | None:
         self.request_received = True
         is_final_data_packet = len(data) == 0
         if is_final_data_packet:

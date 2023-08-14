@@ -6,10 +6,13 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import (
-    StackFrameInfo, _get_main_thread_stack_info, get_main_thread_stack, main_stack_tracking_is_enabled,
+    StackFrameInfo,
+    _get_main_thread_stack_info,
+    get_main_thread_stack,
+    main_stack_tracking_is_enabled,
     main_thread_profile,
     start_main_thread_stack_tracing,
-    stop_main_thread_stack_tracing
+    stop_main_thread_stack_tracing,
 )
 
 

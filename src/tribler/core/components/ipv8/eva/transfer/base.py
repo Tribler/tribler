@@ -3,29 +3,30 @@ from __future__ import annotations
 import asyncio
 import logging
 from math import isclose
-from typing import Callable, Dict, Optional
+from typing import TYPE_CHECKING, Callable, Dict
 
-from ipv8.messaging.lazy_payload import VariablePayload
-from ipv8.types import Peer
-
-from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, TransferErrorCallback
 from tribler.core.components.ipv8.eva.exceptions import TimeoutException, TransferCancelledException, TransferException
-from tribler.core.components.ipv8.eva.result import TransferResult
-from tribler.core.components.ipv8.eva.settings import EVASettings
 from tribler.core.utilities.async_group.async_group import AsyncGroup
+
+if TYPE_CHECKING:
+    from ipv8.messaging.lazy_payload import VariablePayload
+    from ipv8.types import Peer
+
+    from tribler.core.components.ipv8.eva.aliases import TransferCompleteCallback, TransferErrorCallback
+    from tribler.core.components.ipv8.eva.result import TransferResult
+    from tribler.core.components.ipv8.eva.settings import EVASettings
 
 
 class Transfer:
-    """The class describes an incoming or an outgoing transfer"""
+    """The class describes an incoming or an outgoing transfer."""
 
     NONE = -1
 
     def __init__(self, container: Dict[Peer, Transfer], peer: Peer, info: bytes, nonce: int, settings: EVASettings,
                  send_message: Callable[[Peer, VariablePayload], None], on_complete: TransferCompleteCallback,
                  on_error: TransferErrorCallback, protocol_task_group: AsyncGroup,
-                 request: Optional[VariablePayload] = None, data_size: int = 0):
-        """ This class has been used internally by the EVA protocol"""
-
+                 request: VariablePayload | None = None, data_size: int = 0) -> None:
+        """This class has been used internally by the EVA protocol."""
         self.container = container
         self.peer = peer
         self.info = info
@@ -79,7 +80,7 @@ class Transfer:
             self.container.pop(self.peer, None)
             self.container = None
 
-    def finish(self, *, result: Optional[TransferResult] = None, exception: Optional[TransferException] = None):
+    def finish(self, *, result: TransferResult | None = None, exception: TransferException | None = None):
         if self.finished or self.future.done():
             return
 

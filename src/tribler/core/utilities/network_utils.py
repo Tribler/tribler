@@ -15,10 +15,11 @@ class NetworkUtils:
     MAX_PORT_FOR_TRIBLER = 32768
     MIN_PORT_FOR_TRIBLER = 1024
 
-    def __init__(self, socket_class_set=None, remember_checked_ports_enabled=False):
+    def __init__(self, socket_class_set=None, remember_checked_ports_enabled=False) -> None:
         """
 
         Args:
+        ----
             socket_class_set: a set of sockets that will be used for checkings
                 port availability. A port is considered free only in case that
                 it is free in all sockets from `socket_class_set`

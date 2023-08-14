@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 
 from ipv8.requestcache import RandomNumberCache
 
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
-
 if TYPE_CHECKING:
-    from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import \
-        BandwidthAccountingCommunity
+    from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
+        BandwidthAccountingCommunity,
+    )
+    from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 
 
 class BandwidthTransactionSignCache(RandomNumberCache):

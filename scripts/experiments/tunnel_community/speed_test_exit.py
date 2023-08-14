@@ -6,7 +6,6 @@ from pathlib import Path
 from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
 from ipv8.messaging.anonymization.utils import run_speed_test
 from ipv8.taskmanager import TaskManager
-
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
@@ -19,7 +18,7 @@ EXPERIMENT_NUM_HOPS = int(os.environ.get('EXPERIMENT_NUM_HOPS', 1))
 
 
 class Service(TinyTriblerService, TaskManager):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs,
                          components=[Ipv8Component(), KeyComponent(), RESTComponent(), TunnelsComponent()])
         TaskManager.__init__(self)

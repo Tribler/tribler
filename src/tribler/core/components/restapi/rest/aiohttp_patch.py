@@ -9,7 +9,6 @@ from aiohttp.web_app import Application
 from aiohttp.web_protocol import RequestHandler
 from aiohttp.web_request import Request
 
-
 transport_is_none_counter = 0
 counter_lock = Lock()
 

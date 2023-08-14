@@ -4,7 +4,7 @@ from tribler.gui.utilities import connect, tr
 
 
 class NewChannelDialog(ConfirmationDialog):
-    def __init__(self, parent, create_channel_callback):
+    def __init__(self, parent, create_channel_callback) -> None:
         super().__init__(
             parent,
             tr("Create new channel"),

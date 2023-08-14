@@ -1,13 +1,12 @@
 from aiohttp import web
 from libtorrent import bencode
-
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.tests.tools.tracker.tracker_info import TrackerInfo
 
 
 class HTTPTracker:
 
-    def __init__(self, port):
+    def __init__(self, port) -> None:
         super().__init__()
         self.listening_port = None
         self.site = None
@@ -16,7 +15,7 @@ class HTTPTracker:
 
     async def start(self):
         """
-        Start the HTTP Tracker
+        Start the HTTP Tracker.
         """
         app = web.Application()
         app.add_routes([web.get('/scrape', self.handle_scrape_request)])
@@ -39,6 +38,7 @@ class HTTPTracker:
         """
         if self.site:
             return await self.site.stop()
+        return None
 
     async def handle_scrape_request(self, request):
         """

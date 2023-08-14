@@ -4,7 +4,6 @@ import pytest
 
 from tribler.core.utilities.patch_import import patch_import
 
-
 # pylint: disable=import-outside-toplevel, import-error, unused-import
 
 @patch_import(['library_that_does_not_exist'])

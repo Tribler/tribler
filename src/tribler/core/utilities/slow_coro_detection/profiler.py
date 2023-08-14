@@ -1,7 +1,7 @@
 import cProfile
+import io
 import logging
 import pstats
-import io
 import sys
 import time
 from functools import wraps
@@ -27,6 +27,7 @@ def profile(func: Optional[FunctionType] = None, /, *,
                 ...
 
     Args:
+    ----
         func: positional-only argument for a function, used when the decorator is specified without parentheses;
         sort_order: how to sort the output, by default it's the time inside the function itself without nested calls;
         threshold_duration: do not print statistics if the function executed faster than the threshold duration.

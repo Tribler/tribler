@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from urllib.parse import quote_plus, unquote_plus
 
 import pytest
-from aiohttp import ServerConnectionError, ClientResponseError, ClientConnectorError
+from aiohttp import ClientConnectorError, ClientResponseError, ServerConnectionError
 from ipv8.util import succeed
 
 from tribler.core import notifications
@@ -27,7 +27,7 @@ SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def download_manager(state_dir):
     dlmgr = MagicMock()
     dlmgr.config = LibtorrentSettings()
@@ -37,16 +37,16 @@ def download_manager(state_dir):
     checkpoints_dir.mkdir()
     dlmgr.get_checkpoint_dir = lambda: checkpoints_dir
     dlmgr.state_dir = state_dir
-    dlmgr.get_downloads = lambda: []
+    dlmgr.get_downloads = list
     dlmgr.downloads = {}
     dlmgr.metainfo_requests = {}
-    dlmgr.get_channel_downloads = lambda: []
+    dlmgr.get_channel_downloads = list
     dlmgr.shutdown = lambda: succeed(None)
     dlmgr.notifier = MagicMock()
     return dlmgr
 
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(download_manager: DownloadManager):
     return TorrentInfoEndpoint(download_manager)
 
@@ -164,9 +164,8 @@ async def test_get_torrentinfo(tmp_path, rest_api, download_manager: DownloadMan
 
 async def test_on_got_invalid_metainfo(rest_api):
     """
-    Test whether the right operations happen when we receive an invalid metainfo object
+    Test whether the right operations happen when we receive an invalid metainfo object.
     """
-
     path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
     res = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=500)
     assert "error" in res

@@ -8,6 +8,7 @@ class BandwidthTransactionPayload(VariablePayload):
     """
     Payload for a message containing a bandwidth transaction.
     """
+
     msg_id = 30
     format_list = ['I', '74s', '74s', '64s', '64s', 'Q', 'Q', 'I', 'I']
     names = ["sequence_number", "public_key_a", "public_key_b", "signature_a", "signature_b", "amount", "timestamp",
@@ -39,6 +40,7 @@ class BalanceResponsePayload(VariablePayload):
     """
     Payload that contains the bandwidth balance of a specific peer.
     """
+
     msg_id = 31
     format_list = ["I", "q"]
     names = ["circuit_id", "balance"]

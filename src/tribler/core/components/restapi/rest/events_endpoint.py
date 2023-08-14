@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional
 import marshmallow.fields
 from aiohttp import web
 from aiohttp_apispec import docs
-from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
+from ipv8.REST.schema import schema
 
 from tribler.core import notifications
 from tribler.core.components.reporter.reported_error import ReportedError
@@ -47,9 +47,10 @@ class EventsEndpoint(RESTEndpoint):
     pushed over this endpoint in the form of a JSON dictionary. Each JSON dictionary contains a type field that
     indicates the type of the event. Individual events are separated by a newline character.
     """
+
     path = '/events'
 
-    def __init__(self, notifier: Notifier, public_key: str = None):
+    def __init__(self, notifier: Notifier, public_key: Optional[str] = None) -> None:
         super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
         self.undelivered_error: Optional[MessageDict] = None
@@ -120,7 +121,7 @@ class EventsEndpoint(RESTEndpoint):
 
     def send_event(self, message: MessageDict):
         """
-        Put event message to a queue to be sent to GUI
+        Put event message to a queue to be sent to GUI.
         """
         if not self.should_skip_message(message):
             self.queue.put_nowait(message)
@@ -180,7 +181,7 @@ class EventsEndpoint(RESTEndpoint):
     )
     async def get_events(self, request):
         """
-        .. http:get:: /events
+        .. http:get:: /events.
 
         A GET request to this endpoint will open the event connection.
 
@@ -190,7 +191,6 @@ class EventsEndpoint(RESTEndpoint):
 
                     curl -X GET http://localhost:20100/events
         """
-
         # Setting content-type to text/event-stream to ensure browsers will handle the content properly
         response = RESTStreamResponse(status=200,
                                       reason='OK',

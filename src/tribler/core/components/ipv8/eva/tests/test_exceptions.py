@@ -2,9 +2,16 @@ import inspect
 import sys
 
 import pytest
-
-from tribler.core.components.ipv8.eva.exceptions import RequestRejected, SizeException, TimeoutException, \
-    TransferException, _class_to_code, codes_for_serialization, to_class, to_code
+from tribler.core.components.ipv8.eva.exceptions import (
+    RequestRejected,
+    SizeException,
+    TimeoutException,
+    TransferException,
+    _class_to_code,
+    codes_for_serialization,
+    to_class,
+    to_code,
+)
 
 # pylint: disable=protected-access
 
@@ -27,12 +34,12 @@ CODE_EXCEPTION = [
 ]
 
 
-@pytest.mark.parametrize('exception, code', EXCEPTION_CODE)
+@pytest.mark.parametrize(('exception', 'code'), EXCEPTION_CODE)
 def test_to_code(exception, code):
     assert to_code(exception) == code
 
 
-@pytest.mark.parametrize('code, exception', CODE_EXCEPTION)
+@pytest.mark.parametrize(('code', 'exception'), CODE_EXCEPTION)
 def test_to_exception(code, exception):
     assert to_class(code) == exception
 

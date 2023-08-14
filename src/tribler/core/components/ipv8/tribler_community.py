@@ -4,10 +4,11 @@ from tribler.core.config.tribler_config_section import TriblerConfigSection
 
 
 class TriblerCommunity(Community):
-    """Base class for Tribler communities.
+    """
+    Base class for Tribler communities.
     """
 
-    def __init__(self, *args, settings: TriblerConfigSection = None, **kwargs):
+    def __init__(self, *args, settings: TriblerConfigSection = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.settings = settings
         self.logger.info(f'Init. Settings: {settings}.')

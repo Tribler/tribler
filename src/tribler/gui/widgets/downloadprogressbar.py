@@ -14,7 +14,7 @@ class DownloadProgressBar(QWidget):
     of various actions such as file checking).
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         QWidget.__init__(self, parent)
         self.show_pieces = False
         self.pieces = []

@@ -1,10 +1,11 @@
+import contextlib
 from base64 import b64encode
 
+from psutil import LINUX
 from PyQt5 import uic
-from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QDir, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
-from psutil import LINUX
 
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
@@ -39,17 +40,16 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     model_query_completed = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         widget_class.__init__(self, parent=parent)
 
         # ACHTUNG! This is a dumb workaround for a bug(?) in PyQT bindings in Python 3.7
         # When more than a single instance of a class is created, every next setupUi
         # triggers connectSlotsByName error. There are some reports that it is specific to
         # 3.7 and there is a fix in the 10.08.2019 PyQt bindings snapshot.
-        try:
+        with contextlib.suppress(SystemError):
             self.setupUi(self)
-        except SystemError:
-            pass
+
 
         # ! ACHTUNG !
         # There is a bug in PyQT bindings that prevents uic.loadUiType from correctly

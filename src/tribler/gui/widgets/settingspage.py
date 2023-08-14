@@ -39,7 +39,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     settings_edited = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self) -> None:
         QWidget.__init__(self)
         self.logger = logging.getLogger(self.__class__.__name__)
 

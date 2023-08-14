@@ -5,14 +5,11 @@ import os
 import sys
 import time
 from asyncio import Event, create_task, gather, get_event_loop
-from pathlib import Path
-from typing import Dict, List, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Dict, List, Type, TypeVar
 
-from tribler.core.components.component import Component
 from tribler.core.components.exceptions import ComponentError, ComponentStartupException, MultipleComponentsFound
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
 from tribler.core.utilities.install_dir import get_lib_path
@@ -20,16 +17,22 @@ from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from tribler.core.components.component import Component
+    from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+
 
 class SessionError(Exception):
     pass
 
 
 class Session:
-    _startup_exception: Optional[Exception] = None
+    _startup_exception: Exception | None = None
 
-    def __init__(self, config: TriblerConfig = None, components: List[Component] = (), shutdown_event: Event = None,
-                 notifier: Notifier = None, failfast: bool = True, reporter: Optional[SentryReporter] = None):
+    def __init__(self, config: TriblerConfig = None, components: List[Component] = (), shutdown_event: Event | None = None,
+                 notifier: Notifier = None, failfast: bool = True, reporter: SentryReporter | None = None) -> None:
         # deepcode ignore unguarded~next~call: not necessary to catch StopIteration on infinite iterator
         self.exit_code = None
         self.failfast = failfast
@@ -57,7 +60,7 @@ class Session:
     async def __aexit__(self, *_):
         await self.shutdown()
 
-    def get_instance(self, comp_cls: Type[T]) -> Optional[T]:
+    def get_instance(self, comp_cls: Type[T]) -> T | None:
         # try to find a direct match
         if direct_match := self.components.get(comp_cls):
             return direct_match

@@ -4,10 +4,21 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from tribler.core.sentry_reporter.sentry_reporter import (
-    BROWSER, CONTEXTS, LAST_CORE_OUTPUT, NAME, OS_ENVIRON,
-    REPORTER, STACKTRACE, SentryReporter,
+    BROWSER,
+    CONTEXTS,
+    LAST_CORE_OUTPUT,
+    NAME,
+    OS_ENVIRON,
+    REPORTER,
+    STACKTRACE,
+    TAGS,
+    TRIBLER,
+    TYPE,
+    VALUE,
+    VERSION,
+    SentryReporter,
     SentryStrategy,
-    TAGS, TRIBLER, TYPE, VALUE, VERSION, this_sentry_strategy,
+    this_sentry_strategy,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.utilities.patch_import import patch_import
@@ -24,7 +35,7 @@ DEFAULT_EVENT = {
 # pylint: disable=redefined-outer-name, protected-access
 
 
-@pytest.fixture
+@pytest.fixture()
 def sentry_reporter():
     return SentryReporter()
 
@@ -298,13 +309,13 @@ def test_send_last_core_output(sentry_reporter):
             ]
         }
     }
-    last_core_output = '''
+    last_core_output = """
 File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.8/lib/python3.8/asyncio/base_events.py", line 1461, in create_server
     sock.bind(sa)
 OverflowError: bind(): port must be 0-65535.Sentry is attempting to send 1 pending error messages
 Waiting up to 2 seconds
 Press Ctrl-C to quit
-    '''
+    """
     actual = sentry_reporter.send_event(event=event, last_core_output=last_core_output)
     expected = deepcopy(DEFAULT_EVENT)
 

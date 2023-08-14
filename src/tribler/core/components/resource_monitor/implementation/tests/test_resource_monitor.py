@@ -22,7 +22,7 @@ async def fixture_resource_monitor(tmp_path):
 
 def test_check_resources(resource_monitor):
     """
-    Test the resource monitor check
+    Test the resource monitor check.
     """
     resource_monitor.write_resource_logs = lambda: None
 
@@ -43,7 +43,7 @@ def test_check_resources(resource_monitor):
 
 def test_get_history_dicts(resource_monitor):
     """
-    Test the CPU/memory/disk usage history dictionary of a resource monitor
+    Test the CPU/memory/disk usage history dictionary of a resource monitor.
     """
     resource_monitor.check_resources()
     cpu_dict = resource_monitor.get_cpu_history_dict()
@@ -58,12 +58,12 @@ def test_get_history_dicts(resource_monitor):
 
 def test_memory_full_error(resource_monitor):
     """
-    Test if check resources completes when memory_full_info fails
+    Test if check resources completes when memory_full_info fails.
     """
     resource_monitor.process.cpu_percent = lambda interval: None
 
     def fail_with_error():
-        raise MemoryError()
+        raise MemoryError
 
     resource_monitor.process.memory_full_info = fail_with_error
 
@@ -74,7 +74,7 @@ def test_memory_full_error(resource_monitor):
 
 def test_low_disk_notification(resource_monitor):
     """
-    Test low disk space notification
+    Test low disk space notification.
     """
 
     def fake_get_free_disk_space():

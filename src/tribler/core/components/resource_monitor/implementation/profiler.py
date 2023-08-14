@@ -6,7 +6,7 @@ import yappi
 
 class YappiProfiler:
 
-    def __init__(self, logs_dir):
+    def __init__(self, logs_dir) -> None:
         self.logs_dir = logs_dir
 
         self._start_time = None

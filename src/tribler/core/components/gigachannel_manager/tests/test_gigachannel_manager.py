@@ -24,12 +24,12 @@ from tribler.core.utilities.utilities import random_infohash
 update_metainfo = None
 
 
-@pytest.fixture
+@pytest.fixture()
 def torrent_template():
     return {"title": "", "infohash": b"", "torrent_date": datetime(1970, 1, 1), "tags": "video"}
 
 
-@pytest.fixture
+@pytest.fixture()
 def personal_channel(metadata_store):
     global update_metainfo
     with db_session:
@@ -54,7 +54,7 @@ async def gigachannel_manager_fixture(metadata_store):
 
 async def test_regen_personal_channel_no_torrent(personal_channel, gigachannel_manager):
     """
-    Test regenerating a non-existing personal channel torrent at startup
+    Test regenerating a non-existing personal channel torrent at startup.
     """
     gigachannel_manager.download_manager.get_download = lambda _: None
     gigachannel_manager.regenerate_channel_torrent = MagicMock()
@@ -64,7 +64,7 @@ async def test_regen_personal_channel_no_torrent(personal_channel, gigachannel_m
 
 async def test_regen_personal_channel_damaged_torrent(personal_channel, gigachannel_manager):
     """
-    Test regenerating a damaged personal channel torrent at startup
+    Test regenerating a damaged personal channel torrent at startup.
     """
     complete = Future()
 
@@ -316,7 +316,7 @@ async def test_remove_cruft_channels(torrent_template, personal_channel, gigacha
         )
 
     class MockDownload(MockObject):
-        def __init__(self, infohash, dirname):
+        def __init__(self, infohash, dirname) -> None:
             self.infohash = infohash
             self.dirname = dirname
             self.tdef = MockObject()

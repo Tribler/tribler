@@ -4,7 +4,7 @@ from tribler.core.components.metadata_store.category_filter.family_filter import
 from tribler.core.components.metadata_store.category_filter.l2_filter import is_forbidden
 
 
-@pytest.fixture
+@pytest.fixture()
 def family_filter():
     family_filter = XXXFilter()
     family_filter.xxx_terms.add("term1")

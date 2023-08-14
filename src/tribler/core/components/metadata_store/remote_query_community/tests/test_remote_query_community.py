@@ -26,7 +26,6 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
 
-
 # pylint: disable=protected-access
 
 
@@ -57,7 +56,7 @@ class TestRemoteQueryCommunity(TestBase):
     Unit tests for the base RemoteQueryCommunity which do not need a real Session.
     """
 
-    def __init__(self, methodName='runTest'):
+    def __init__(self, methodName='runTest') -> None:
         random.seed(123)
         super().__init__(methodName)
 
@@ -95,7 +94,7 @@ class TestRemoteQueryCommunity(TestBase):
 
     async def test_remote_select(self):
         """
-        Test querying metadata entries from a remote machine
+        Test querying metadata entries from a remote machine.
         """
         mds0 = self.nodes[0].overlay.mds
         mds1 = self.nodes[1].overlay.mds
@@ -128,8 +127,8 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             torrents0 = sorted(mds0.get_entries(**kwargs_dict), key=attrgetter('infohash'))
             torrents1 = sorted(mds1.get_entries(**kwargs_dict), key=attrgetter('infohash'))
-            self.assertEqual(len(torrents0), len(torrents1))
-            self.assertEqual(len(torrents0), 20)
+            assert len(torrents0) == len(torrents1)
+            assert len(torrents0) == 20
             for t0, t1 in zip(torrents0, torrents1):
                 assert t0.health.seeders == t1.health.seeders
                 assert t0.health.leechers == t1.health.leechers
@@ -185,7 +184,6 @@ class TestRemoteQueryCommunity(TestBase):
         Upon receiving the response, host 1 sees that it has a newer version of the channel entry,
         so it pushes it back to host 0.
         """
-
         mds0 = self.nodes[0].overlay.mds
         mds1 = self.nodes[1].overlay.mds
 
@@ -224,7 +222,7 @@ class TestRemoteQueryCommunity(TestBase):
 
     async def test_push_entry_update(self):
         """
-        Test if sending back information on updated version of a metadata entry works
+        Test if sending back information on updated version of a metadata entry works.
         """
 
     @pytest.mark.timeout(10)
@@ -301,7 +299,7 @@ class TestRemoteQueryCommunity(TestBase):
         kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
         self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
         # There should be an outstanding request in the list
-        self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
+        assert self.nodes[1].overlay.request_cache._identifiers  # pylint: disable=protected-access
 
         await self.deliver_messages(timeout=1.5)
 
@@ -312,7 +310,7 @@ class TestRemoteQueryCommunity(TestBase):
             assert 40 < received_channels_count < 60
 
             # The list of outstanding requests should be empty
-            self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
+            assert not self.nodes[1].overlay.request_cache._identifiers  # pylint: disable=protected-access
 
     def test_sanitize_query(self):
         req_response_list = [
@@ -354,11 +352,11 @@ class TestRemoteQueryCommunity(TestBase):
             add_random_torrent(self.torrent_metadata(0), name="a torrent", channel=channel)
 
         results = await self.overlay(0).process_rpc_query({})
-        self.assertEqual(2, len(results))
+        assert len(results) == 2
 
         channel_md, torrent_md = results if isinstance(results[0], self.channel_metadata(0)) else results[::-1]
-        self.assertEqual("a channel", channel_md.title)
-        self.assertEqual("a torrent", torrent_md.title)
+        assert channel_md.title == 'a channel'
+        assert torrent_md.title == 'a torrent'
 
     async def test_process_rpc_query_match_one(self):
         """
@@ -368,17 +366,17 @@ class TestRemoteQueryCommunity(TestBase):
             self.channel_metadata(0).create_channel("a channel", "")
 
         results = await self.overlay(0).process_rpc_query({})
-        self.assertEqual(1, len(results))
+        assert len(results) == 1
 
         (channel_md,) = results
-        self.assertEqual("a channel", channel_md.title)
+        assert channel_md.title == 'a channel'
 
     async def test_process_rpc_query_match_none(self):
         """
         Check if a correct query with no match in our database returns no result.
         """
         results = await self.overlay(0).process_rpc_query({})
-        self.assertEqual(0, len(results))
+        assert len(results) == 0
 
     def test_parse_parameters_match_empty_json(self):
         """
@@ -442,7 +440,7 @@ class TestRemoteQueryCommunity(TestBase):
         with db_session:
             torrents0 = mds0.get_entries(**kwargs_dict)
             torrents1 = mds1.get_entries(**kwargs_dict)
-            self.assertEqual(len(torrents0), len(torrents1))
+            assert len(torrents0) == len(torrents1)
 
     async def test_remote_select_query_back_thumbs_and_descriptions(self):
         """
@@ -621,7 +619,8 @@ class TestRemoteQueryCommunity(TestBase):
         torrents2 = list(b.mds.get_entries(**kwargs2))
 
         # Both remote queries should return results to the peer B...
-        assert callback1.called and callback2.called
+        assert callback1.called
+        assert callback2.called
         # ...but one of them should return an empty list, as the database query was not actually executed
         assert bool(torrents1) != bool(torrents2)
 

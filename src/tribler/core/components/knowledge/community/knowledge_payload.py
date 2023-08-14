@@ -7,8 +7,10 @@ dataclass = overwrite_dataclass(dataclass)
 
 @dataclass
 class StatementOperation:
-    """Do not change the format of the StatementOperation, because this will result in an invalid signature.
     """
+    Do not change the format of the StatementOperation, because this will result in an invalid signature.
+    """
+
     subject_type: int  # ResourceType enum
     subject: str
     predicate: int  # ResourceType enum
@@ -17,7 +19,7 @@ class StatementOperation:
     clock: int  # This is the lamport-like clock that unique for each quadruple {public_key, subject, predicate, object}
     creator_public_key: type_from_format('74s')
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'({self.subject} {self.predicate} {self.object}), o:{self.operation}, c:{self.clock}))'
 
 
@@ -32,9 +34,11 @@ class StatementOperationSignature:
 
 @dataclass(msg_id=STATEMENT_OPERATION_MESSAGE_ID)
 class RawStatementOperationMessage:
-    """ RAW payload class is used for reducing ipv8 unpacking operations
-    For more information take a look at: https://github.com/Tribler/tribler/pull/6396#discussion_r728334323
     """
+    RAW payload class is used for reducing ipv8 unpacking operations
+    For more information take a look at: https://github.com/Tribler/tribler/pull/6396#discussion_r728334323.
+    """
+
     operation: RAW_DATA
     signature: RAW_DATA
 

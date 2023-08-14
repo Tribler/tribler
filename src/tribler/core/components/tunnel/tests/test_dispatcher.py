@@ -29,7 +29,7 @@ def fixture_mock_circuit():
 
 def test_on_tunnel_in(dispatcher):
     """
-    Test whether no data is sent to the SOCKS5 server when we receive data from the tunnels
+    Test whether no data is sent to the SOCKS5 server when we receive data from the tunnels.
     """
     origin = ("0.0.0.0", 1024)
 
@@ -55,7 +55,7 @@ def test_on_tunnel_in(dispatcher):
 
 def test_on_socks_in_udp(dispatcher, mock_circuit):
     """
-    Test whether data is correctly dispatched to a circuit
+    Test whether data is correctly dispatched to a circuit.
     """
     mock_circuit.ctype = CIRCUIT_TYPE_DATA
     mock_request = Mock(destination=("0.0.0.0", 1024), data=b'a')
@@ -80,7 +80,7 @@ def test_on_socks_in_udp(dispatcher, mock_circuit):
 
 async def test_on_socks_in_tcp(dispatcher):
     """
-    Test whether TCP connect request are correctly dispatched to the TunnelCommunity
+    Test whether TCP connect request are correctly dispatched to the TunnelCommunity.
     """
     tcp_connection = Mock()
     dispatcher.set_socks_servers([tcp_connection.socksserver])
@@ -96,7 +96,7 @@ async def test_on_socks_in_tcp(dispatcher):
 
 def test_circuit_dead(dispatcher, mock_circuit):
     """
-    Test whether the correct peers are removed when a circuit breaks
+    Test whether the correct peers are removed when a circuit breaks.
     """
     connection = Mock()
 
@@ -114,7 +114,7 @@ def test_circuit_dead(dispatcher, mock_circuit):
 
 def test_check_connections(dispatcher, mock_circuit):
     """
-    Test whether closed connections are cleaned up properly
+    Test whether closed connections are cleaned up properly.
     """
     connection = Mock(udp_connection=None)
 

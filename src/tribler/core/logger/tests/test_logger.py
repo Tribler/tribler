@@ -19,7 +19,8 @@ def test_get_logger_config_path():
 
 @patch('logging.basicConfig')
 def test_setup_logging_no_config(mocked_basic_config: Mock, tmp_path: Path):
-    """Test that in the case of a missed config, the `basicConfig` function is called.
+    """
+    Test that in the case of a missed config, the `basicConfig` function is called.
     """
     config_path = tmp_path / 'non_existent.conf'
     assert not config_path.exists()
@@ -60,7 +61,8 @@ def test_setup_logging(logger: Mock, dict_config: Mock, yaml_safe_load: Mock):
 
 @patch('logging.basicConfig')
 def test_setup_logging_exception(mocked_basic_config: Mock, tmp_path: Path):
-    """Test that in the case of an exception in the `setup_logging` function,
+    """
+    Test that in the case of an exception in the `setup_logging` function,
     the `basicConfig` function is called.
     """
     log_dir = tmp_path

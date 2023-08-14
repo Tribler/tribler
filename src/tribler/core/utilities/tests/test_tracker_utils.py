@@ -35,7 +35,7 @@ EXPECTED_UNIFORM_URLS = [
 ]
 
 
-@pytest.mark.parametrize("given_url, expected_uniform_url", EXPECTED_UNIFORM_URLS)
+@pytest.mark.parametrize(('given_url', 'expected_uniform_url'), EXPECTED_UNIFORM_URLS)
 def test_get_uniformed_tracker_url(given_url, expected_uniform_url):
     uniform_url = get_uniformed_tracker_url(given_url)
     assert uniform_url == expected_uniform_url
@@ -56,7 +56,7 @@ PARSED_TRACKER_URLS = [
 ]
 
 
-@pytest.mark.parametrize("given_url, expected_parsed_url_tuple", PARSED_TRACKER_URLS)
+@pytest.mark.parametrize(('given_url', 'expected_parsed_url_tuple'), PARSED_TRACKER_URLS)
 def test_parse_tracker_url(given_url, expected_parsed_url_tuple):
     parsed_url_tuple = parse_tracker_url(given_url)
     assert parsed_url_tuple == expected_parsed_url_tuple

@@ -16,7 +16,7 @@ TEST_TORRENT = "test.torrent"
 TEST_CHECK_INTERVAL = 0.1
 
 
-@pytest.fixture
+@pytest.fixture()
 async def watch_folder(tmp_path):
     watch = WatchFolder(
         state_dir=tmp_path,

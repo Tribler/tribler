@@ -104,7 +104,7 @@ def check_and_enable_code_tracing(process_name, log_dir):
     """
     Checks and enable trace logging if --trace-exception or --trace-debug system flag is present.
     :param process_name: used as prefix for log file
-    :return: Log file handler
+    :return: Log file handler.
     """
     logger.info(f'Check and enable code tracing. Process name: "{process_name}". '
                 f'Log dir: "{log_dir}"')
@@ -128,10 +128,10 @@ def trace_calls(file_handler, frame, event, args, filter_exceptions_only=False):
     :param frame: Current frame
     :param event: Call event
     :param args: None
-    :return: next trace handler
+    :return: next trace handler.
     """
     if event != 'call' or file_handler.closed:
-        return
+        return None
 
     if not filter_exceptions_only:
         co = frame.f_code
@@ -139,7 +139,7 @@ def trace_calls(file_handler, frame, event, args, filter_exceptions_only=False):
 
         # Ignore write() calls from print statements
         if func_name == 'write':
-            return
+            return None
 
         func_line_no = frame.f_lineno
         func_filename = co.co_filename
@@ -166,7 +166,7 @@ def trace_exceptions(file_handler, frame, event, args):
     :param frame: Current frame
     :param event: Exception event
     :param args: exc_type, exc_value, exc_traceback
-    :return: None
+    :return: None.
     """
     if event != 'exception' or file_handler.closed:
         return

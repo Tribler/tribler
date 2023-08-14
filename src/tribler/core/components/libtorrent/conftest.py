@@ -9,16 +9,15 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.unicode import hexlify
 
-
 # pylint: disable=redefined-outer-name
 
 
-@pytest.fixture
+@pytest.fixture()
 def download_config():
     return DownloadConfig()
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_tdef(state_dir):
     tdef = TorrentDef()
     sourcefn = TESTS_DATA_DIR / 'video.avi'
@@ -29,10 +28,10 @@ def test_tdef(state_dir):
     return tdef
 
 
-@pytest.fixture
+@pytest.fixture()
 async def file_server(tmp_path, free_port):
     """
-    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmp_path
+    Returns a file server that listens in a free port, and serves from the "serve" directory in the tmp_path.
     """
     app = web.Application()
     app.add_routes([web.static('/', tmp_path)])
@@ -47,7 +46,7 @@ async def file_server(tmp_path, free_port):
     await site.stop()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def test_download(mock_dlmgr, test_tdef):
     config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
     download = Download(test_tdef, download_manager=mock_dlmgr, config=config)
@@ -57,12 +56,12 @@ async def test_download(mock_dlmgr, test_tdef):
     await download.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_handle(test_download):
     test_download.handle = MagicMock()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_lt_status():
     lt_status = MagicMock()
     lt_status.upload_rate = 123

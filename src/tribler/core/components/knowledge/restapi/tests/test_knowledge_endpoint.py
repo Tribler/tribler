@@ -5,7 +5,6 @@ import pytest
 from freezegun import freeze_time
 from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
-
 from tribler.core.components.conftest import TEST_PERSONAL_KEY
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType
@@ -13,10 +12,9 @@ from tribler.core.components.knowledge.restapi.knowledge_endpoint import Knowled
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 
-
 # pylint: disable=redefined-outer-name
 
-@pytest.fixture
+@pytest.fixture()
 def endpoint(knowledge_db):
     return KnowledgeEndpoint(knowledge_db, Mock(key=TEST_PERSONAL_KEY, sign=Mock(return_value=b'')))
 
@@ -27,7 +25,7 @@ def tag_to_statement(tag: str) -> Dict:
 
 async def test_add_tag_invalid_infohash(rest_api):
     """
-    Test whether an error is returned if we try to add a tag to content with an invalid infohash
+    Test whether an error is returned if we try to add a tag to content with an invalid infohash.
     """
     post_data = {"knowledge": [tag_to_statement("abc"), tag_to_statement("def")]}
     await do_request(rest_api, 'knowledge/3f3', request_type="PATCH", expected_code=400, post_data=post_data)
@@ -50,7 +48,7 @@ async def test_add_invalid_tag(rest_api):
 
 async def test_modify_tags(rest_api, knowledge_db):
     """
-    Test modifying tags
+    Test modifying tags.
     """
     post_data = {"statements": [tag_to_statement("abc"), tag_to_statement("def")]}
     infohash = 'a' * 40
@@ -84,7 +82,7 @@ async def test_modify_tags_no_community(knowledge_db, endpoint):
 
 async def test_get_suggestions_invalid_infohash(rest_api):
     """
-    Test whether an error is returned if we fetch suggestions from content with an invalid infohash
+    Test whether an error is returned if we fetch suggestions from content with an invalid infohash.
     """
     await do_request(rest_api, 'knowledge/3f3/tag_suggestions', expected_code=400)
     await do_request(rest_api, 'knowledge/3f3f/tag_suggestions', expected_code=400)
@@ -92,7 +90,7 @@ async def test_get_suggestions_invalid_infohash(rest_api):
 
 async def test_get_suggestions(rest_api, knowledge_db):
     """
-    Test whether we can successfully fetch suggestions from content
+    Test whether we can successfully fetch suggestions from content.
     """
     infohash = b'a' * 20
     infohash_str = hexlify(infohash)

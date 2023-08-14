@@ -25,7 +25,6 @@ from tribler.core.components.metadata_store.db.serialization import (
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import random_infohash
 
-
 # pylint: disable=too-many-statements
 
 
@@ -49,7 +48,7 @@ def define_binding(db):
         payload_arguments = _payload_class.__init__.__code__.co_varnames[
                             : _payload_class.__init__.__code__.co_argcount
                             ][1:]
-        nonpersonal_attributes = db.MetadataNode.nonpersonal_attributes + ('num_entries',)
+        nonpersonal_attributes = (*db.MetadataNode.nonpersonal_attributes, 'num_entries')
 
         @property
         @db_session
@@ -96,7 +95,6 @@ def define_binding(db):
             :param infohash:
             :return: New TorrentMetadata signed with your key.
             """
-
             existing = db.TorrentMetadata.select(lambda g: g.infohash == infohash).first()
 
             if not existing:
@@ -150,7 +148,7 @@ def define_binding(db):
             """
             Add a torrent to your channel.
             :param tdef: The torrent definition file of the torrent to add
-            :param extra_info: Optional extra info to add to the torrent
+            :param extra_info: Optional extra info to add to the torrent.
             """
             new_entry_dict = dict(tdef_to_metadata_dict(tdef), status=NEW)
             if extra_info:
@@ -174,7 +172,7 @@ def define_binding(db):
 
         @db_session
         def pprint_tree(self, file=None, _prefix="", _last=True):
-            print(_prefix, "`- " if _last else "|- ", (self.num_entries, self.metadata_type), sep="", file=file)  # noqa
+            print(_prefix, "`- " if _last else "|- ", (self.num_entries, self.metadata_type), sep="", file=file)
             _prefix += "   " if _last else "|  "
             child_count = self.actual_contents.count()
             for i, child in enumerate(list(self.actual_contents)):
@@ -182,7 +180,7 @@ def define_binding(db):
                     _last = i == (child_count - 1)
                     child.pprint_tree(file, _prefix, _last)
                 else:
-                    print(_prefix, "`- " if _last else "|- ", child.metadata_type, sep="", file=file)  # noqa
+                    print(_prefix, "`- " if _last else "|- ", child.metadata_type, sep="", file=file)
 
         @db_session
         def get_contents_recursive(self):
@@ -227,7 +225,7 @@ def define_binding(db):
         def commit_all_channels():
             committed_channels = []
             commit_queues_list = db.ChannelMetadata.get_commit_forest()
-            for _, queue in commit_queues_list.items():
+            for queue in commit_queues_list.values():
                 channel = queue[-1]
                 # Committing empty channels
                 if len(queue) == 1:
@@ -381,7 +379,6 @@ def define_binding(db):
             in the future.
             This procedure should be always run _before_ committing personal channels.
             """
-
             # Remark: it should be possible to optimize this by rewriting in pure SQL with recursive CTEs
 
             def get_highest_deleted_parent(node, highest_deleted_parent=None):

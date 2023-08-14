@@ -1,12 +1,13 @@
 """
 Copy-pasted from https://github.com/taleinat/python-stdlib-sentinels
-(PEP0661 is probably going to be accepted for python 3.9 or later)
+(PEP0661 is probably going to be accepted for python 3.9 or later).
 
 Usage examples:
 sent1 = sentinel('sent1')
 sent2 = sentinel('sent2', repr='test_sentinels.sent2')
 """
 
+import contextlib
 import sys as _sys
 from typing import Optional
 
@@ -18,7 +19,8 @@ def sentinel(
         repr: Optional[str] = None,
         module: Optional[str] = None,
 ):
-    """Create a unique sentinel object.
+    """
+    Create a unique sentinel object.
 
     *name* should be the fully-qualified name of the variable to which the
     return value shall be assigned.
@@ -38,10 +40,9 @@ def sentinel(
     repr = repr or f'<{name.rsplit(".", 1)[-1]}>'
 
     if module is None:
-        try:
+        with contextlib.suppress(AttributeError, ValueError):
             module = _get_parent_frame().f_globals.get('__name__', '__main__')
-        except (AttributeError, ValueError):
-            pass
+
     class_name = _sys.intern(_get_class_name(name, module))
 
     class_namespace = {

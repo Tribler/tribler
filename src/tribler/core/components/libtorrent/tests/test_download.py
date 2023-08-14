@@ -46,7 +46,7 @@ async def test_download_resume_in_upload_mode(mock_handle, test_download):  # py
 
 async def test_save_resume(mock_handle, test_download: Download, test_tdef):
     """
-    testing call resume data alert
+    testing call resume data alert.
     """
     test_download.handle.is_valid = lambda: True
     test_download.handle.save_resume_data = lambda: test_download.register_task('post_alert',
@@ -63,7 +63,7 @@ async def test_save_resume(mock_handle, test_download: Download, test_tdef):
 
 def test_move_storage(mock_handle, test_download, test_tdef, test_tdef_no_metainfo):
     """
-    Test that move_storage method works as expected by Libtorrent
+    Test that move_storage method works as expected by Libtorrent.
     """
     result = []
 
@@ -91,7 +91,7 @@ async def test_save_checkpoint(test_download, test_tdef):
 
 def test_selected_files(mock_handle, test_download):
     """
-    Test whether the selected files are set correctly
+    Test whether the selected files are set correctly.
     """
 
     def mocked_set_file_prios(_):
@@ -144,7 +144,7 @@ def test_selected_files_no_files(mock_handle, test_download):
 
 def test_get_share_mode(test_download):
     """
-    Test whether we return the right share mode when requested in the Download
+    Test whether we return the right share mode when requested in the Download.
     """
     test_download.config.get_share_mode = lambda: False
     assert not test_download.get_share_mode()
@@ -154,7 +154,7 @@ def test_get_share_mode(test_download):
 
 async def test_set_share_mode(mock_handle, test_download):
     """
-    Test whether we set the right share mode in Download
+    Test whether we set the right share mode in Download.
     """
 
     def mocked_set_share_mode(val):
@@ -169,7 +169,7 @@ async def test_set_share_mode(mock_handle, test_download):
 
 def test_get_num_connected_seeds_peers(mock_handle, test_download):
     """
-    Test whether connected peers and seeds are correctly returned
+    Test whether connected peers and seeds are correctly returned.
     """
 
     def get_peer_info(seeders, leechers):
@@ -197,7 +197,7 @@ def test_get_num_connected_seeds_peers(mock_handle, test_download):
 
 async def test_set_priority(mock_handle, test_download):
     """
-    Test whether setting the priority calls the right methods in Download
+    Test whether setting the priority calls the right methods in Download.
     """
 
     def mocked_set_priority(prio):
@@ -212,7 +212,7 @@ async def test_set_priority(mock_handle, test_download):
 
 def test_add_trackers(mock_handle, test_download):
     """
-    Testing whether trackers are added to the libtorrent handler in Download
+    Testing whether trackers are added to the libtorrent handler in Download.
     """
 
     def mocked_add_trackers(tracker_info):
@@ -228,7 +228,7 @@ def test_add_trackers(mock_handle, test_download):
 
 def test_process_error_alert(test_download):
     """
-    Testing whether error alerts are processed correctly
+    Testing whether error alerts are processed correctly.
     """
     url = "http://google.com"
     mock_alert = MockObject()
@@ -254,7 +254,7 @@ def test_tracker_error_alert_unicode_decode_error(test_download: Download, caplo
 
 def test_tracker_warning_alert(test_download):
     """
-    Test whether a tracking warning alert is processed correctly
+    Test whether a tracking warning alert is processed correctly.
     """
     url = "http://google.com"
     mock_alert = MockObject()
@@ -267,15 +267,15 @@ def test_tracker_warning_alert(test_download):
 
 async def test_on_metadata_received_alert(mock_handle, test_download):
     """
-    Testing whether the right operations happen when we receive metadata
+    Testing whether the right operations happen when we receive metadata.
     """
     test_future = Future()
 
     mocked_file = Mock()
     mocked_file.path = 'test'
 
-    test_download.handle.trackers = lambda: []
-    test_download.handle.get_peer_info = lambda: []
+    test_download.handle.trackers = list
+    test_download.handle.get_peer_info = list
     test_download.handle.save_resume_data = lambda: test_future
     test_download.handle.rename_file = lambda *_: None
     with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
@@ -297,7 +297,7 @@ async def test_on_metadata_received_alert(mock_handle, test_download):
 
 def test_metadata_received_invalid_info(mock_handle, test_download):
     """
-    Testing whether the right operations happen when we receive metadata but the torrent info is invalid
+    Testing whether the right operations happen when we receive metadata but the torrent info is invalid.
     """
 
     def mocked_checkpoint():
@@ -311,7 +311,8 @@ def test_metadata_received_invalid_info(mock_handle, test_download):
 @patch('tribler.core.components.libtorrent.download_manager.download.get_info_from_handle', Mock())
 @patch('tribler.core.components.libtorrent.download_manager.download.bdecode_compat', Mock())
 def test_on_metadata_received_alert_unicode_error(test_download):
-    """ Test the the case the field 'url' is not unicode compatible. In this case no exceptions should be raised.
+    """
+    Test the the case the field 'url' is not unicode compatible. In this case no exceptions should be raised.
 
     See: https://github.com/Tribler/tribler/issues/7223
     """
@@ -324,7 +325,7 @@ def test_on_metadata_received_alert_unicode_error(test_download):
 def test_metadata_received_invalid_torrent_with_value_error(mock_handle, test_download):
     """
     Testing whether the right operations happen when we receive metadata but the torrent info is invalid and throws
-    Value Error
+    Value Error.
     """
 
     def mocked_checkpoint():
@@ -335,7 +336,7 @@ def test_metadata_received_invalid_torrent_with_value_error(mock_handle, test_do
 
     # The line below should trigger Value Error
     test_download.handle.trackers = lambda: [{'url': 'no-DHT'}]
-    test_download.handle.get_peer_info = lambda: []
+    test_download.handle.get_peer_info = list
 
     get_info_from_handle(test_download.handle).metadata = lambda: lt.bencode({})
     get_info_from_handle(test_download.handle).files = lambda: [mocked_file]
@@ -346,7 +347,7 @@ def test_metadata_received_invalid_torrent_with_value_error(mock_handle, test_do
 
 def test_torrent_checked_alert(mock_handle, test_download):
     """
-    Testing whether the right operations happen after a torrent checked alert is received
+    Testing whether the right operations happen after a torrent checked alert is received.
     """
 
     def mocked_pause_checkpoint():
@@ -373,7 +374,7 @@ def test_torrent_checked_alert(mock_handle, test_download):
 
 def test_tracker_reply_alert(test_download):
     """
-    Testing the tracker reply alert in Download
+    Testing the tracker reply alert in Download.
     """
     mock_alert = Mock()
     mock_alert.url = 'http://google.com'
@@ -384,7 +385,7 @@ def test_tracker_reply_alert(test_download):
 
 def test_get_pieces_bitmask(mock_handle, test_download):
     """
-    Testing whether a correct pieces bitmask is returned when requested
+    Testing whether a correct pieces bitmask is returned when requested.
     """
     test_download.handle.status().pieces = [True, False, True, False, False]
     assert test_download.get_pieces_base64() == b"oA=="
@@ -395,7 +396,7 @@ def test_get_pieces_bitmask(mock_handle, test_download):
 
 async def test_resume_data_failed(test_download):
     """
-    Testing whether the correct operations happen when an error is raised during resume data saving
+    Testing whether the correct operations happen when an error is raised during resume data saving.
     """
     mock_alert = Mock(msg="test error")
     test_download.register_task('post_alert', test_download.process_alert, mock_alert,
@@ -410,17 +411,17 @@ def test_on_state_changed(mock_handle, test_download):
     test_download.tdef.get_infohash = lambda: b'a' * 20
     test_download.config.set_hops(1)
     test_download.apply_ip_filter = Mock()
-    test_download.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=4)))
+    test_download.on_state_changed_alert(type('state_changed_alert', (object,), {'state': 4}))
     test_download.apply_ip_filter.assert_called_with(False)
 
-    test_download.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=5)))
+    test_download.on_state_changed_alert(type('state_changed_alert', (object,), {'state': 5}))
     test_download.apply_ip_filter.assert_called_with(True)
 
     test_download.config.set_hops(0)
-    test_download.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=4)))
+    test_download.on_state_changed_alert(type('state_changed_alert', (object,), {'state': 4}))
     test_download.apply_ip_filter.assert_called_with(False)
 
-    test_download.on_state_changed_alert(type('state_changed_alert', (object,), dict(state=5)))
+    test_download.on_state_changed_alert(type('state_changed_alert', (object,), {'state': 5}))
     test_download.apply_ip_filter.assert_called_with(False)
 
 
@@ -441,7 +442,7 @@ async def test_apply_ip_filter(test_download, mock_handle):  # pylint: disable=u
 
 async def test_checkpoint_timeout(test_download):
     """
-    Testing whether making a checkpoint times out when we receive no alert from libtorrent
+    Testing whether making a checkpoint times out when we receive no alert from libtorrent.
     """
     test_download.futures['save_resume_data'] = [Future()]
     task = test_download.save_resume_data(timeout=.01)
@@ -455,7 +456,7 @@ async def test_checkpoint_timeout(test_download):
 def test_on_save_resume_data_alert_permission_denied(mocked_write: Mock, test_download):
     """
     Test that the `on_save_resume_data_alert` method doesn't raises an Exception in the case `DownloadConfig.write()`
-    raises a PermissionError
+    raises a PermissionError.
     """
     mocked_write.side_effect = PermissionError()
     test_download.on_save_resume_data_alert(MagicMock())
@@ -467,9 +468,8 @@ def test_get_tracker_status_unicode_decode_error(test_download: Download):
     Sometimes a tracker entry raises UnicodeDecodeError while accessing it's values.
     The reason for this is unknown.
     In this test we ensures that this types of bugs don't affect `get_tracker_status` method.
-    See: https://github.com/Tribler/tribler/issues/7036
+    See: https://github.com/Tribler/tribler/issues/7036.
     """
-
     test_download.handle = MagicMock(trackers=MagicMock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))
     test_download.get_tracker_status()
 
@@ -477,7 +477,7 @@ def test_get_tracker_status_unicode_decode_error(test_download: Download):
 
 
 def test_process_alert_no_crash_exception(test_download: Download):
-    """Test that in the case of an error in the method `process_alert`, NoCrashException raises"""
+    """Test that in the case of an error in the method `process_alert`, NoCrashException raises."""
     with pytest.raises(NoCrashException):
         # `process_alert` raises "AttributeError: 'str' object has no attribute 'category'" first
         # because the alert 'alert' has wrong type.
@@ -485,7 +485,8 @@ def test_process_alert_no_crash_exception(test_download: Download):
 
 
 def test_get_tracker_status_get_peer_info_error(test_download: Download):
-    """ Test that in the case `handle.get_peer_info()` raises an exception, the
+    """
+    Test that in the case `handle.get_peer_info()` raises an exception, the
     result of `download.get_tracker_status()` be returned but without a piece of
     information about peers.
     """
@@ -498,7 +499,7 @@ def test_get_tracker_status_get_peer_info_error(test_download: Download):
 
 
 async def test_shutdown(test_download: Download):
-    """ Test that the `shutdown` method closes the stream and clears the `futures` list."""
+    """Test that the `shutdown` method closes the stream and clears the `futures` list."""
     test_download.stream = Mock()
     assert len(test_download.futures) == 4
 

@@ -23,7 +23,7 @@ TEST_PERSONAL_KEY = LibNaCLSK(
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def tribler_config(tmp_path) -> TriblerConfig:
     state_dir = Path(tmp_path) / "dot.Tribler"
     download_dir = Path(tmp_path) / "TriblerDownloads"
@@ -45,14 +45,14 @@ def tribler_config(tmp_path) -> TriblerConfig:
     return config
 
 
-@pytest.fixture
+@pytest.fixture()
 def state_dir(tmp_path):
     state_dir = tmp_path / 'state_dir'
     state_dir.mkdir()
     return state_dir
 
 
-@pytest.fixture
+@pytest.fixture()
 def mock_dlmgr(state_dir):
     download_manager = MagicMock()
     download_manager.config = LibtorrentSettings()
@@ -61,19 +61,19 @@ def mock_dlmgr(state_dir):
     checkpoints_dir.mkdir()
     download_manager.get_checkpoint_dir = lambda: checkpoints_dir
     download_manager.state_dir = state_dir
-    download_manager.get_downloads = lambda: []
+    download_manager.get_downloads = list
     download_manager.checkpoints_count = 1
     download_manager.checkpoints_loaded = 1
     download_manager.all_checkpoints_are_loaded = True
     return download_manager
 
 
-@pytest.fixture
+@pytest.fixture()
 def video_tdef():
     return TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')
 
 
-@pytest.fixture
+@pytest.fixture()
 async def video_seeder(tmp_path_factory, video_tdef):
     config = LibtorrentSettings()
     config.dht = False
@@ -96,7 +96,7 @@ async def video_seeder(tmp_path_factory, video_tdef):
     await dlmgr.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 def metadata_store(tmp_path):
     mds = MetadataStore(db_filename=tmp_path / 'test.db',
                         channels_dir=tmp_path / 'channels',
@@ -106,14 +106,14 @@ def metadata_store(tmp_path):
     mds.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 def knowledge_db():
     db = KnowledgeDatabase()
     yield db
     db.shutdown()
 
 
-@pytest.fixture
+@pytest.fixture()
 async def download_manager(tmp_path_factory):
     config = LibtorrentSettings()
     config.dht = False

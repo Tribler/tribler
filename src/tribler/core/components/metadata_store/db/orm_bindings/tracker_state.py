@@ -17,7 +17,7 @@ def define_binding(db):
         torrents = orm.Set('TorrentState', reverse='trackers')
         failures = orm.Optional(int, size=32, default=0)
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             # Sanitize and canonicalize the tracker URL
             sanitized = get_uniformed_tracker_url(kwargs['url'])
             if sanitized:

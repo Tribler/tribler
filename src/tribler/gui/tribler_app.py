@@ -25,14 +25,14 @@ class TriblerApplication(QtSingleApplication):
     This class represents the main Tribler application.
     """
 
-    def __init__(self, app_name: str, args: list, start_local_server: bool = False):
+    def __init__(self, app_name: str, args: list, start_local_server: bool = False) -> None:
         QtSingleApplication.__init__(self, app_name, start_local_server, args)
         self._logger = logging.getLogger(self.__class__.__name__)
         self.code_executor = None
         connect(self.message_received, self.on_app_message)
 
     def on_app_message(self, msg):
-        if msg.startswith('file') or msg.startswith('magnet'):
+        if msg.startswith(("file", "magnet")):
             self.handle_uri(msg)
 
     def handle_uri(self, uri):
@@ -70,7 +70,7 @@ class TriblerApplication(QtSingleApplication):
         urls = []
         for arg in sys.argv[1:]:
             if os.path.exists(arg) and arg.endswith(".torrent"):
-                urls.append((path_to_url(arg)))
+                urls.append(path_to_url(arg))
             elif arg.startswith('magnet'):
                 urls.append(arg)
         return urls

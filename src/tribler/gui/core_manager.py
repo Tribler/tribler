@@ -31,7 +31,7 @@ class CoreManager(QObject):
     """
 
     def __init__(self, root_state_dir: Path, api_port: Optional[int], api_key: str,
-                 app_manager: AppManager, process_manager: ProcessManager, events_manager: EventRequestManager):
+                 app_manager: AppManager, process_manager: ProcessManager, events_manager: EventRequestManager) -> None:
         QObject.__init__(self, None)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -117,7 +117,7 @@ class CoreManager(QObject):
 
         core_args = self.core_args
         if not core_args:
-            core_args = sys.argv + ['--core']
+            core_args = [*sys.argv, '--core']
             if getattr(sys, 'frozen', False):
                 # remove duplicate tribler.exe from core_args when running complied binary
                 # https://pyinstaller.org/en/v3.3.1/runtime-information.html#using-sys-executable-and-sys-argv-0
@@ -189,7 +189,7 @@ class CoreManager(QObject):
         )
 
         try:
-            print(output)  # print core output # noqa: T001
+            print(output)  # print core output
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             pass
@@ -209,7 +209,7 @@ class CoreManager(QObject):
         )
 
         try:
-            print(output, file=sys.stderr)  # print core output # noqa: T001
+            print(output, file=sys.stderr)  # print core output
         except OSError:
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             pass

@@ -1,4 +1,5 @@
-""" A helper mocking function to mask ImportError on a scoped code.
+"""
+A helper mocking function to mask ImportError on a scoped code.
 Failed imports will be ignored.
 
 This module has been copied from https://github.com/posener/mock-import and modified by @drew2a
@@ -28,13 +29,13 @@ def patch_import(modules=Union[List[str], str], strict: bool = False, always_rai
     :param always_raise_exception_on_import: if set to True, then the import of the particular module always will raise
         the ImportError
     :param mock_kwargs: kwargs for MagicMock object.
-    :return: patch object
+    :return: patch object.
     """
     if isinstance(modules, str):
         modules = [modules]
 
     def try_import(module_name, *args, **kwargs):
-        is_the_target_module = any((module_name == m or module_name.startswith(m + '.') for m in modules))
+        is_the_target_module = any(module_name == m or module_name.startswith(m + '.') for m in modules)
 
         if not is_the_target_module:
             return _builtins_import(module_name, *args, **kwargs)

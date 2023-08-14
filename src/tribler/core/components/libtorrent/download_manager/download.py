@@ -38,7 +38,7 @@ Getter = Callable[[Any], Any]
 
 
 class Download(TaskManager):
-    """ Download subclass that represents a libtorrent download."""
+    """Download subclass that represents a libtorrent download."""
 
     def __init__(self,
                  tdef: TorrentDef,
@@ -49,7 +49,7 @@ class Download(TaskManager):
                  download_manager=None,
                  checkpoint_disabled=False,
                  hidden=False,
-                 dummy=False):
+                 dummy=False) -> None:
         super().__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -103,11 +103,11 @@ class Download(TaskManager):
 
         self.checkpoint()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Download <name: '%s' hops: %d checkpoint_disabled: %d>" % \
             (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     def add_stream(self):
@@ -129,7 +129,7 @@ class Download(TaskManager):
         self.alert_handlers[alert_type].append(handler)
 
     def wait_for_alert(self, success_type: str, success_getter: Optional[Getter] = None,
-                       fail_type: str = None, fail_getter: Optional[Getter] = None) -> Future:
+                       fail_type: Optional[str] = None, fail_getter: Optional[Getter] = None) -> Future:
         future = Future()
         if success_type:
             self.futures[success_type].append((future, future.set_result, success_getter))
@@ -438,7 +438,7 @@ class Download(TaskManager):
             self.notifier[notifications.torrent_finished](infohash=infohash, name=name, hidden=hidden)
 
     def update_lt_status(self, lt_status: lt.torrent_status):
-        """ Update libtorrent stats and check if the download should be stopped."""
+        """Update libtorrent stats and check if the download should be stopped."""
         self.lt_status = lt_status
         self._stop_if_finished()
 
@@ -470,7 +470,7 @@ class Download(TaskManager):
 
             filepriorities = []
             torrent_storage = torrent_info.files()
-            for index, file_entry in enumerate(torrent_storage):
+            for index, _file_entry in enumerate(torrent_storage):
                 filepriorities.append(prio if index in selected_files or not selected_files else 0)
             self.set_file_priorities(filepriorities)
 
@@ -490,8 +490,9 @@ class Download(TaskManager):
             self.handle.force_recheck()
 
     def get_state(self):
-        """ Returns a snapshot of the current state of the download
-        @return DownloadState
+        """
+        Returns a snapshot of the current state of the download
+        @return DownloadState.
         """
         return DownloadState(self, self.lt_status, self.error)
 
@@ -513,7 +514,8 @@ class Download(TaskManager):
             self._logger.error("Resume data failed to save: %s", e)
 
     def get_peerlist(self) -> List[Dict[Any, Any]]:
-        """ Returns a list of dictionaries, one for each connected peer
+        """
+        Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer. In particular, the
         dictionary contains the keys:
         <pre>
@@ -539,7 +541,7 @@ class Download(TaskManager):
         -- QUESTION(lipu): swift and Bitfield are gone. Does this 'have' thing has anything to do with swift?
         'have' = Bitfield object for this peer if not complete
         'speed' = The peer's current total download speed (estimated)
-        </pre>
+        </pre>.
         """
         peers = []
         peer_infos = self.handle.get_peer_info() if self.handle and self.handle.is_valid() else []
@@ -575,7 +577,7 @@ class Download(TaskManager):
         return peers
 
     def get_num_connected_seeds_peers(self) -> Tuple[int, int]:
-        """ Returns number of connected seeders and leechers """
+        """Returns number of connected seeders and leechers."""
         num_seeds = num_peers = 0
         if not self.handle or not self.handle.is_valid():
             return 0, 0
@@ -677,7 +679,7 @@ class Download(TaskManager):
             self.handle.resume()
 
     def get_content_dest(self) -> Path:
-        """ Returns the file to which the downloaded content is saved. """
+        """Returns the file to which the downloaded content is saved."""
         return self.config.get_dest_dir() / fix_filebasename(self.tdef.get_name_as_unicode())
 
     def checkpoint(self):
@@ -705,7 +707,7 @@ class Download(TaskManager):
                     b'file-version': 1,
                     b'info-hash': self.tdef.get_infohash()
                 }
-                self.post_alert('save_resume_data_alert', dict(resume_data=resume_data))
+                self.post_alert('save_resume_data_alert', {'resume_data': resume_data})
             else:
                 self._logger.warning("Either file does not exist or is not file")
             return succeed(None)
@@ -726,8 +728,9 @@ class Download(TaskManager):
 
     @require_handle
     def add_peer(self, addr):
-        """ Add a peer address from 3rd source (not tracker, not DHT) to this download.
-        @param (hostname_ip,port) tuple
+        """
+        Add a peer address from 3rd source (not tracker, not DHT) to this download.
+        @param (hostname_ip,port) tuple.
         """
         self.handle.connect_peer(addr, 0)
 

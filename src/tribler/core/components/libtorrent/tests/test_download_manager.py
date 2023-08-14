@@ -42,7 +42,7 @@ def create_fake_download_and_state():
     return fake_download, dl_state
 
 
-@pytest.fixture
+@pytest.fixture()
 async def fake_dlmgr(tmp_path_factory):
     config = LibtorrentSettings(dht_readiness_timeout=0)
     dlmgr = DownloadManager(config=config, state_dir=tmp_path_factory.mktemp('state_dir'), notifier=MagicMock(),
@@ -55,7 +55,7 @@ async def fake_dlmgr(tmp_path_factory):
 
 async def test_get_metainfo_valid_metadata(fake_dlmgr):
     """
-    Testing the get_metainfo method when the handle has valid metadata immediately
+    Testing the get_metainfo method when the handle has valid metadata immediately.
     """
     infohash = b"a" * 20
     metainfo = {b'info': {b'pieces': [b'a']}, b'leechers': 0, b'nodes': [], b'seeders': 0}
@@ -76,7 +76,7 @@ async def test_get_metainfo_valid_metadata(fake_dlmgr):
 
 async def test_get_metainfo_add_fail(fake_dlmgr):
     """
-    Test whether we try to add a torrent again if the atp is rejected
+    Test whether we try to add a torrent again if the atp is rejected.
     """
     infohash = b"a" * 20
     metainfo = {'pieces': ['a']}
@@ -98,7 +98,7 @@ async def test_get_metainfo_add_fail(fake_dlmgr):
 
 async def test_get_metainfo_duplicate_request(fake_dlmgr):
     """
-    Test whether the same request is returned when invoking get_metainfo twice with the same infohash
+    Test whether the same request is returned when invoking get_metainfo twice with the same infohash.
     """
     infohash = b"a" * 20
     metainfo = {'pieces': ['a']}
@@ -121,7 +121,7 @@ async def test_get_metainfo_duplicate_request(fake_dlmgr):
 
 async def test_get_metainfo_cache(fake_dlmgr):
     """
-    Testing whether cached metainfo is returned, if available
+    Testing whether cached metainfo is returned, if available.
     """
     fake_dlmgr.initialize()
     fake_dlmgr.metainfo_cache[b"a" * 20] = {'meta_info': 'test', 'time': 0}
@@ -155,7 +155,7 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
     infohash = b"a" * 20
 
     metainfo_session = MagicMock()
-    metainfo_session.get_torrents = lambda: []
+    metainfo_session.get_torrents = list
 
     metainfo_dl = MagicMock()
     metainfo_dl.get_def = lambda: MagicMock(get_infohash=lambda: infohash)
@@ -176,7 +176,7 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
 
 async def test_start_download(fake_dlmgr):
     """
-    Testing the addition of a torrent to the libtorrent manager
+    Testing the addition of a torrent to the libtorrent manager.
     """
     infohash = b'a' * 20
 
@@ -187,12 +187,12 @@ async def test_start_download(fake_dlmgr):
     mock_error = MagicMock()
     mock_error.value = lambda: None
 
-    mock_alert = type('add_torrent_alert', (object,), dict(handle=mock_handle,
-                                                           error=mock_error,
-                                                           category=lambda _: None))()
+    mock_alert = type('add_torrent_alert', (object,), {'handle': mock_handle,
+                                                           'error': mock_error,
+                                                           'category': lambda _: None})()
 
     mock_ltsession = MagicMock()
-    mock_ltsession.get_torrents = lambda: []
+    mock_ltsession.get_torrents = list
     mock_ltsession.async_add_torrent = lambda _: fake_dlmgr.register_task('post_alert',
                                                                           fake_dlmgr.process_alert,
                                                                           mock_alert, delay=0.1)
@@ -277,7 +277,7 @@ def test_start_download_existing_download(fake_dlmgr):
 
 def test_start_download_no_ti_url(fake_dlmgr):
     """
-    Test whether a ValueError is raised if we try to add a torrent without infohash or url
+    Test whether a ValueError is raised if we try to add a torrent without infohash or url.
     """
     fake_dlmgr.initialize()
     with pytest.raises(ValueError):
@@ -286,12 +286,12 @@ def test_start_download_no_ti_url(fake_dlmgr):
 
 def test_remove_unregistered_torrent(fake_dlmgr):
     """
-    Tests a successful removal status of torrents which aren't known
+    Tests a successful removal status of torrents which aren't known.
     """
     fake_dlmgr.initialize()
     mock_handle = MagicMock()
     mock_handle.is_valid = lambda: False
-    alert = type('torrent_removed_alert', (object,), dict(handle=mock_handle, info_hash='0' * 20))
+    alert = type('torrent_removed_alert', (object,), {'handle': mock_handle, 'info_hash': '0' * 20})
     fake_dlmgr.process_alert(alert())
 
     assert '0' * 20 not in fake_dlmgr.downloads
@@ -299,7 +299,7 @@ def test_remove_unregistered_torrent(fake_dlmgr):
 
 def test_set_proxy_settings(fake_dlmgr):
     """
-    Test setting the proxy settings
+    Test setting the proxy settings.
     """
 
     def on_proxy_set(settings):
@@ -327,9 +327,9 @@ def test_set_proxy_settings(fake_dlmgr):
 
 def test_payout_on_disconnect(fake_dlmgr):
     """
-    Test whether a payout is initialized when a peer disconnects
+    Test whether a payout is initialized when a peer disconnects.
     """
-    disconnect_alert = type('peer_disconnected', (object,), dict(pid=MagicMock(to_bytes=lambda: b'a' * 20)))()
+    disconnect_alert = type('peer_disconnected', (object,), {'pid': MagicMock(to_bytes=lambda: b'a' * 20)})()
     fake_dlmgr.payout_manager = MagicMock()
     fake_dlmgr.initialize()
     fake_dlmgr.get_session(0).pop_alerts = lambda: [disconnect_alert]
@@ -373,7 +373,7 @@ def test_load_checkpoint(fake_dlmgr):
     assert not good
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_download_manager_start(fake_dlmgr):
     fake_dlmgr.start()
     await asyncio.sleep(0.01)
@@ -398,7 +398,7 @@ def test_load_empty_checkpoint(fake_dlmgr, tmpdir):
 
 async def test_load_checkpoints(fake_dlmgr, tmpdir):
     """
-    Test whether we are resuming downloads after loading checkpoints
+    Test whether we are resuming downloads after loading checkpoints.
     """
 
     def mocked_load_checkpoint(filename):
@@ -426,7 +426,7 @@ async def test_load_checkpoints(fake_dlmgr, tmpdir):
 
 async def test_readd_download_safe_seeding(fake_dlmgr):
     """
-    Test whether a download is re-added when doing safe seeding
+    Test whether a download is re-added when doing safe seeding.
     """
     fake_dlmgr.bootstrap = None
     readd_future = Future()

@@ -1,22 +1,25 @@
 from math import floor
 from typing import Dict
 
+from psutil import LINUX
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
-from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
-from psutil import LINUX
+from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QToolTip
 
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    SNIPPET
+from tribler.core.components.metadata_store.db.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    REGULAR_TORRENT,
+    SNIPPET,
+)
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
     COMMIT_STATUS_TODELETE,
     COMMIT_STATUS_UPDATED,
-    ContentCategories,
     DARWIN,
     HEALTH_CHECKING,
     HEALTH_DEAD,
@@ -32,9 +35,17 @@ from tribler.gui.defs import (
     TAG_TEXT_HORIZONTAL_PADDING,
     TAG_TOP_MARGIN,
     WINDOWS,
+    ContentCategories,
 )
-from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, \
-    get_objects_with_predicate, tr
+from tribler.gui.utilities import (
+    format_votes,
+    get_color,
+    get_gui_setting,
+    get_health,
+    get_image_path,
+    get_objects_with_predicate,
+    tr,
+)
 from tribler.gui.widgets.tablecontentmodel import Column, RemoteTableModel
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -98,7 +109,7 @@ def draw_progress_bar(painter, rect, progress=0.0):
     p.setPen(TRIBLER_PALETTE.light().color())
     font = p.font()
     p.setFont(font)
-    p.drawText(bg_rect, Qt.AlignCenter, f"{str(floor(progress * 100))}%")
+    p.drawText(bg_rect, Qt.AlignCenter, f"{floor(progress * 100)!s}%")
 
     painter.restore()
 
@@ -133,7 +144,7 @@ class CheckClickedMixin:
 class TriblerButtonsDelegate(QStyledItemDelegate):
     redraw_required = pyqtSignal(QModelIndex, bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         QStyledItemDelegate.__init__(self, parent)
         self.no_index = QModelIndex()
         self.hover_index = self.no_index
@@ -220,12 +231,11 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         if (
                 self.hover_index != self.no_index
                 and self.hover_index.column() == index.model().column_position[Column.NAME]
-        ):
-            if index in index.model().edit_tags_rects:
-                rect = index.model().edit_tags_rects[index]
-                if rect.contains(pos):
-                    QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
-                    new_hovering_state = True
+        ) and index in index.model().edit_tags_rects:
+            rect = index.model().edit_tags_rects[index]
+            if rect.contains(pos):
+                QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
+                new_hovering_state = True
 
         if new_hovering_state != self.hovering_over_tag_edit_button:
             self.redraw_required.emit(index, False)
@@ -236,12 +246,11 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         if (
                 self.hover_index != self.no_index
                 and self.hover_index.column() == index.model().column_position[Column.NAME]
-        ):
-            if index in index.model().download_popular_content_rects:
-                for ind, rect in enumerate(index.model().download_popular_content_rects[index]):
-                    if rect.contains(pos):
-                        QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
-                        new_hovering_state = ind
+        ) and index in index.model().download_popular_content_rects:
+            for ind, rect in enumerate(index.model().download_popular_content_rects[index]):
+                if rect.contains(pos):
+                    QApplication.setOverrideCursor(QCursor(Qt.PointingHandCursor))
+                    new_hovering_state = ind
 
         if new_hovering_state != self.hovering_over_download_popular_torrent_button:
             self.redraw_required.emit(index, False)
@@ -293,7 +302,7 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         # Add null editor to action buttons column
         if index.column() == index.model().column_position[Column.ACTIONS]:
-            return
+            return None
         if index.column() == index.model().column_position[Column.CATEGORY]:
             cbox = QComboBox(parent)
             cbox.addItems(ContentCategories.codes)
@@ -316,8 +325,7 @@ class ChannelStateMixin:
         x = r.left() + indicator_border
         w = indicator_side
         h = indicator_side
-        indicator_rect = QRect(x, y, w, h)
-        return indicator_rect
+        return QRect(x, y, w, h)
 
     def draw_channel_state(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -621,7 +629,7 @@ class TriblerContentDelegate(
     SubscribedControlMixin,
     TagsMixin,
 ):
-    def __init__(self, table_view, parent=None):
+    def __init__(self, table_view, parent=None) -> None:
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
         self.subscribe_control = SubscribeToggleControl(Column.SUBSCRIBED)
@@ -668,7 +676,7 @@ class CategoryLabel(QObject):
     A label that indicates the category of some metadata.
     """
 
-    def __init__(self, category, parent=None):
+    def __init__(self, category, parent=None) -> None:
         QObject.__init__(self, parent=parent)
         self.category = category
 
@@ -708,7 +716,7 @@ class CategoryLabel(QObject):
 class SubscribeToggleControl(QObject, CheckClickedMixin):
     clicked = pyqtSignal(QModelIndex)
 
-    def __init__(self, column_name, parent=None):
+    def __init__(self, column_name, parent=None) -> None:
         QObject.__init__(self, parent=parent)
         self.column_name = column_name
         self.last_index = QModelIndex()
@@ -811,7 +819,7 @@ class CommitStatusControl(QObject, CheckClickedMixin):
 
     restore_action_icon = QIcon(get_image_path("undo.svg"))
 
-    def __init__(self, column_name, parent=None):
+    def __init__(self, column_name, parent=None) -> None:
         QObject.__init__(self, parent=parent)
         self.column_name = column_name
         self.rect = QRect()
@@ -918,7 +926,7 @@ class HealthStatusDisplay(QObject):
 class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
     clicked = pyqtSignal(QModelIndex)
 
-    def __init__(self, column_name, parent=None):
+    def __init__(self, column_name, parent=None) -> None:
         QObject.__init__(self, parent=parent)
         self.column_name = column_name
         self.last_index = QModelIndex()
@@ -937,7 +945,7 @@ class RatingControl(QObject, CheckClickedMixin):
 
     clicked = pyqtSignal(QModelIndex)
 
-    def __init__(self, column_name, parent=None):
+    def __init__(self, column_name, parent=None) -> None:
         QObject.__init__(self, parent=parent)
         self.column_name = column_name
         self.last_index = QModelIndex()

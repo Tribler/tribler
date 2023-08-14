@@ -94,7 +94,7 @@ class Socks5Address:
             offset += domain_length + 2
             address = DomainAddress(host, port)
         elif address_type == ADDRESS_TYPE_IPV6:
-            raise IPv6AddressError()
+            raise IPv6AddressError
         else:
             raise InvalidAddressException(f'Could not unpack address type {address_type}')
 
@@ -107,7 +107,7 @@ class InvalidAddressException(Exception):
 
 
 class IPv6AddressError(NotImplementedError):
-    def __str__(self):
+    def __str__(self) -> str:
         return "IPV6 support not implemented"
 
 
