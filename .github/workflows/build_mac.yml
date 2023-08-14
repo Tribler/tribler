@@ -68,7 +68,7 @@ jobs:
           python ./build/update_version.py -r .
 
       - name: Run build script
-        timeout-minutes: 10
+        timeout-minutes: 15
         env:
           QT_QPA_PLATFORM: offscreen
           QT_ACCESSIBILITY: 1
