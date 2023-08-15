@@ -12,7 +12,7 @@ from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, sanitize_filename, tr
+from tribler.gui.utilities import connect, get_ui_file_path, is_dir_writable, tr
 
 
 class DownloadFileTreeWidgetItem(QTreeWidgetItem):
@@ -36,6 +36,11 @@ class TorrentNameValidator(QValidator):
 
     def fixup(self, text: str) -> str:
         return re.sub(self.ESCAPE_CHARS_REGEX, ' ', text)
+
+
+def sanitize_filename(filename: str) -> str:
+    """Removes some selected escape characters from the filename and returns the cleaned value."""
+    return re.sub(r'[\n\r\t]', '', filename)
 
 
 class CreateTorrentDialog(DialogContainer):

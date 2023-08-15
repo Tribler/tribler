@@ -4,7 +4,6 @@ import json
 import logging
 import math
 import os
-import re
 import sys
 import time
 import traceback
@@ -561,8 +560,3 @@ def get_objects_with_predicate(data_item: Dict, predicate: ResourceType) -> List
     Extract the objects that have a particular predicate from a particular data item.
     """
     return [stmt["object"] for stmt in data_item.get("statements", ()) if stmt["predicate"] == predicate]
-
-
-def sanitize_filename(filename: str) -> str:
-    """Removes some selected escape characters from the filename and returns the cleaned value."""
-    return re.sub(r'[\n\r\t]', '', filename)
