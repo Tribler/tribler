@@ -113,7 +113,7 @@ async def wait_for(fut, timeout, *, loop=None, lost_result_handler=None):
             await _cancel_and_wait(fut, loop=loop)
             raise
 
-        if fut.done():
+        if fut.done():  # pylint: disable=no-else-return
             return fut.result()
         else:
             fut.remove_done_callback(cb)

@@ -65,7 +65,7 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
         try:
             await asyncio.wait_for(t.run(), t.TASK_TIMEOUT / 2)
         except asyncio.TimeoutError:
-            pass
+            pass  # pragma: no cover
 
         self.assertTrue(t.exited)
 
@@ -88,9 +88,9 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
 
         foo_started = False
 
-        async def foo():
+        async def foo():  # pylint: disable=disallowed-name
             nonlocal foo_started
-            foo_started = True
+            foo_started = True  # pragma: no cover
 
         with self.assertRaises(asyncio.TimeoutError):
             t0 = loop.time()
@@ -108,15 +108,15 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
                 foo_running = None
                 started = loop.create_future()
 
-                async def foo():
+                async def foo():  # pylint: disable=disallowed-name
                     nonlocal foo_running
                     foo_running = True
-                    started.set_result(None)
+                    started.set_result(None)  # pylint: disable=cell-var-from-loop
                     try:
                         await asyncio.sleep(10)
                     finally:
                         foo_running = False
-                    return 'done'
+                    return 'done'  # pragma: no cover
 
                 fut = asyncio.create_task(foo())
                 await started
@@ -136,14 +136,14 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
         loop = asyncio.get_running_loop()
         foo_running = None
 
-        async def foo():
+        async def foo():   # pylint: disable=disallowed-name
             nonlocal foo_running
             foo_running = True
             try:
                 await asyncio.sleep(10)
             finally:
                 foo_running = False
-            return 'done'
+            return 'done'  # pragma: no cover
 
         fut = asyncio.create_task(foo())
 
@@ -207,7 +207,7 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
     async def test_wait_for_waits_for_task_cancellation_w_timeout_0(self):
         task_done = False
 
-        async def foo():
+        async def foo():   # pylint: disable=disallowed-name
             async def inner():
                 nonlocal task_done
                 try:
@@ -233,7 +233,7 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
         class FooException(Exception):
             pass
 
-        async def foo():
+        async def foo():   # pylint: disable=disallowed-name
             async def inner():
                 try:
                     await asyncio.sleep(0.2)
@@ -255,7 +255,7 @@ class AsyncioWaitForTest(unittest.IsolatedAsyncioTestCase):
                 try:
                     await asyncio.sleep(0.3)
                 except asyncio.CancelledError:
-                    await asyncio.sleep(0.3)
+                    await asyncio.sleep(0.3)  # pragma: no cover
 
             return 42
 
