@@ -6,7 +6,7 @@ import sqlite3
 import time
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import Any, List, Optional, TYPE_CHECKING
 
 import psutil
 
@@ -183,10 +183,15 @@ class TriblerProcess:
         self.api_port = api_port
         self.save()
 
-    def set_error(self, error: Union[str | Exception], replace: bool = False):
-        if isinstance(error, Exception):
+    def set_error(self, error: Any, replace: bool = False):
+        # It is expected for `error` to be str or an instance of exception, but values of other types
+        # are handled gracefully as well: everything except None is converted to str
+        if error is not None and not isinstance(error, str):
             error = f"{error.__class__.__name__}: {error}"
-        self.error_msg = error if replace else (self.error_msg or error)
+
+        if replace or not self.error_msg:
+            self.error_msg = error
+
         self.save()
 
     def finish(self, exit_code: Optional[int] = None):

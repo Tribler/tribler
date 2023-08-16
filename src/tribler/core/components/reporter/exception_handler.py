@@ -5,7 +5,7 @@ import sys
 from io import StringIO
 from socket import gaierror
 from traceback import print_exception
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional, Set, Tuple, Type
 
 from tribler.core.components.exceptions import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
@@ -13,20 +13,24 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.utilities.process_manager import get_global_process_manager
 
 # There are some errors that we are ignoring.
-IGNORED_ERRORS_BY_CODE = {
+
+IGNORED_ERRORS_BY_CLASS: Tuple[Type[Exception], ...] = (
+    ConnectionResetError,  # Connection forcibly closed by the remote host.
+    gaierror,  # all gaierror is ignored
+)
+
+IGNORED_ERRORS_BY_CODE: Set[Tuple[Type[Exception], int]] = {
     (OSError, 113),  # No route to host is non-critical since Tribler can still function when a request fails.
     # Socket block: this sometimes occurs on Windows and is non-critical.
     (BlockingIOError, 10035 if sys.platform == 'win32' else errno.EWOULDBLOCK),
     (OSError, 51),  # Could not send data: network is unreachable.
     (ConnectionAbortedError, 10053),  # An established connection was aborted by the software in your host machine.
-    (ConnectionResetError, 10054),  # Connection forcibly closed by the remote host.
     (OSError, 10022),  # Failed to get address info.
     (OSError, 16),  # Socket error: Device or resource busy.
     (OSError, 0)
 }
 
-IGNORED_ERRORS_BY_REGEX = {
-    gaierror: r'',  # all gaierror is ignored
+IGNORED_ERRORS_BY_REGEX: Dict[Type[Exception], str] = {
     RuntimeError: r'.*invalid info-hash.*'
 }
 
@@ -57,6 +61,9 @@ class CoreExceptionHandler:
     def _is_ignored(exception: Exception):
         exception_class = exception.__class__
         error_number = exception.errno if hasattr(exception, 'errno') else None
+
+        if isinstance(exception, IGNORED_ERRORS_BY_CLASS):
+            return True
 
         if (exception_class, error_number) in IGNORED_ERRORS_BY_CODE:
             return True

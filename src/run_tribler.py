@@ -92,6 +92,9 @@ if __name__ == "__main__":
 
     # Check whether we need to start the core or the user interface
     if parsed_args.core:
+        from tribler.core.utilities.pony_utils import track_slow_db_sessions
+        track_slow_db_sessions()
+
         from tribler.core.start_core import run_core
         from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 
