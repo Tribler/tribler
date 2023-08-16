@@ -6,9 +6,4 @@ def define_binding(db):
         public_key = Required(bytes, index=True)
         counter = Required(int)
 
-        @classmethod
-        @db_session
-        def get_count(cls, pk: bytes) -> int:
-            return RendezvousCertificate.get(public_key == pk).count()
-
     return RendezvousCertificate

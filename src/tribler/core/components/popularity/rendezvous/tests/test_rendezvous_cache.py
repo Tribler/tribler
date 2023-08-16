@@ -3,7 +3,6 @@ import time
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
-from ipv8.test.mocking.endpoint import AutoMockEndpoint
 
 from tribler.core.components.popularity.rendezvous.rendezvous_cache import RendezvousCache, EMPTY_PEER_CHALLENGE
 

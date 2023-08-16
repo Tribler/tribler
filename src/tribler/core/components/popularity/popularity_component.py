@@ -12,8 +12,10 @@ from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
 class PopularityComponent(Component):
-    community: PopularityCommunity = None
+    RENDEZVOUS_DB_NAME = 'rendezvous.db'
 
+    community: PopularityCommunity = None
+    rendezvous_db: RendezvousDatabase = None
     _ipv8_component: Ipv8Component = None
 
     async def run(self):
@@ -24,7 +26,8 @@ class PopularityComponent(Component):
         metadata_store_component = await self.require_component(MetadataStoreComponent)
         torrent_checker_component = await self.require_component(TorrentCheckerComponent)
 
-        rendezvous_db = RendezvousDatabase(db_path=self.session.config.state_dir / STATEDIR_DB_DIR / PopularityCommunity.RENDEZVOUS_DB_NAME)
+        self.rendezvous_db = RendezvousDatabase(
+            db_path=self.session.config.state_dir / STATEDIR_DB_DIR / self.RENDEZVOUS_DB_NAME)
 
         config = self.session.config
         community = PopularityCommunity(self._ipv8_component.peer,
@@ -33,7 +36,7 @@ class PopularityComponent(Component):
                                         settings=config.popularity_community,
                                         rqc_settings=config.remote_query_community,
                                         metadata_store=metadata_store_component.mds,
-                                        rendezvous_db=rendezvous_db,
+                                        rendezvous_db=self.rendezvous_db,
                                         torrent_checker=torrent_checker_component.torrent_checker)
         self.community = community
 
@@ -44,3 +47,5 @@ class PopularityComponent(Component):
         await super().shutdown()
         if self._ipv8_component and self.community:
             await self._ipv8_component.unload_community(self.community)
+        if self.rendezvous_db:
+            self.rendezvous_db.shutdown()

@@ -43,9 +43,8 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     GOSSIP_RANDOM_TORRENT_COUNT = 10
 
     PING_INTERVAL_RENDEZVOUS = 60  # seconds
-    RENDEZVOUS_DB_NAME = 'rendezvous.db'
 
-    community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1649')
+    community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
     def __init__(self, *args, torrent_checker=None, rendezvous_db=None, **kwargs):
         # Creating a separate instance of Network for this community to find more peers
@@ -62,9 +61,9 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
         self.logger.info('Popularity Community initialized (peer mid %s)', hexlify(self.my_peer.mid))
         self.register_task("gossip_random_torrents", self.gossip_random_torrents_health,
-                           interval=PopularityCommunity.GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS)
+                           interval=self.GOSSIP_INTERVAL_FOR_RANDOM_TORRENTS)
         self.register_task("ping_rendezvous", self.ping_rendezvous,
-                           interval=PopularityCommunity.PING_INTERVAL_RENDEZVOUS)
+                           interval=self.PING_INTERVAL_RENDEZVOUS)
 
         # Init version community message handlers
         self.init_version_community()
@@ -255,14 +254,13 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         if not self.crypto.is_valid_signature(peer.key, raw_payload.challenge, signature.signature):
             self.logger.warning(f"Received invalid signature from {peer.mid}")
             return
-        else:
-            # This nonce has been burned.
-            self.rendezvous_cache.clear_peer_challenge(peer)
+
+        # This nonce has been burned.
+        self.rendezvous_cache.clear_peer_challenge(peer)
 
         self.logger.debug(f"Received valid rendezvous response from {peer.mid}")
-        with db_session:
+        with db_session(immediate=True):
             certificate = self.rdb.Certificate.get(public_key=peer.mid)
             if not certificate:
                 certificate = self.rdb.Certificate(public_key=peer.mid, counter=0)
             certificate.counter += 1
-        return

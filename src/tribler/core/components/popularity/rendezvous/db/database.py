@@ -31,3 +31,6 @@ class RendezvousDatabase:
         if create_db:
             with db_session:
                 self.MiscData(name="db_version", value=str(self.DB_VERSION))
+
+    def shutdown(self) -> None:
+        self.database.disconnect()

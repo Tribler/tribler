@@ -4,7 +4,6 @@ from typing import List
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
@@ -13,7 +12,7 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
 from tribler.core.components.popularity.rendezvous.db.database import RendezvousDatabase
-from tribler.core.components.popularity.rendezvous.rendezvous import RendezvousResponsePayload, RendezvousChallenge
+from tribler.core.components.popularity.rendezvous.rendezvous import RendezvousChallenge
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HealthInfo
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.utilities.path_util import Path
@@ -268,7 +267,7 @@ class TestRendezvousLogic(TestBase):
         await self.deliver_messages()
 
         number_of_rendezvous = 4
-        for i in range(number_of_rendezvous):
+        for _ in range(number_of_rendezvous):
             for j in range(self.count):
                 self.nodes[j].overlay.ping_rendezvous()
                 await self.deliver_messages()
