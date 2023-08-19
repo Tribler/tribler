@@ -93,8 +93,6 @@ class RESTManager:
         self.config = config
         self.state_dir = state_dir
 
-        self.http_host = '127.0.0.1'
-        self.https_host = '0.0.0.0'
         self.shutdown_timeout = shutdown_timeout
 
     def get_endpoint(self, name):
@@ -146,13 +144,13 @@ class RESTManager:
             self._logger.info('Https enabled')
             await self.start_https_site()
 
-        self._logger.info(f'Swagger docs: http://{self.http_host}:{self.config.http_port}/docs')
-        self._logger.info(f'Swagger JSON: http://{self.http_host}:{self.config.http_port}/docs/swagger.json')
+        self._logger.info(f'Swagger docs: http://{self.config.http_host}:{self.config.http_port}/docs')
+        self._logger.info(f'Swagger JSON: http://{self.config.http_host}:{self.config.http_port}/docs/swagger.json')
 
     async def start_http_site(self):
         api_port = max(self.config.http_port, 0)  # if the value in config is -1 we convert it to 0
 
-        self.site = web.TCPSite(self.runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
+        self.site = web.TCPSite(self.runner, self.config.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
         self._logger.info(f"Starting HTTP REST API server on port {api_port}...")
 
         try:
@@ -174,7 +172,7 @@ class RESTManager:
         ssl_context.load_cert_chain(cert)
 
         port = self.config.https_port
-        self.site_https = web.TCPSite(self.runner, self.https_host, port, ssl_context=ssl_context)
+        self.site_https = web.TCPSite(self.runner, self.config.https_host, port, ssl_context=ssl_context)
 
         await self.site_https.start()
         self._logger.info("Started HTTPS REST API: %s", self.site_https.name)

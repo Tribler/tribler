@@ -9,7 +9,9 @@ from tribler.core.config.tribler_config_section import TriblerConfigSection
 class APISettings(TriblerConfigSection):
     http_enabled: bool = False
     http_port: int = -1
+    http_host: str = "127.0.0.1"
     https_enabled: bool = False
+    https_host: str = "127.0.0.1"
     https_port: int = -1
     https_certfile: str = ''
     key: Optional[str] = None

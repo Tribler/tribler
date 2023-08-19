@@ -7,7 +7,10 @@ services:
     network_mode: "host"
     build: .
     volumes:
-      - ~/.Tribler:/home/user/.Tribler
+      - "~/.Tribler:/state"
+      - "~/Downloads/TriblerDownloads:/downloads"
     environment:
-      CORE_API_PORT: 20100
-
+      - CORE_API_PORT=20100
+      - CORE_API_KEY=TEST
+      - TORRENT_PORT=7000
+      - TSTATEDIR=/state

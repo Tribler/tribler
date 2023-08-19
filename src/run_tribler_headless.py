@@ -96,9 +96,30 @@ class TriblerService:
 
         print("Starting Tribler")
 
-        if options.restapi > 0:
+        http_port = options.restapi_http_port or int(os.environ.get('CORE_API_PORT', "0"))
+
+        if 'CORE_API_PORT' in os.environ and (http_port := int(os.environ.get('CORE_API_PORT'))) > 0:
+            config.api.http_port = http_port
+        elif options.restapi_http_port > 0:
+            config.api.http_port = options.restapi_http_port
+
+        if options.restapi_http_host:
+            config.api.http_host = options.restapi_http_host
+
+        if options.restapi_https_port > 0:
+            config.api.https_port = options.restapi_https_port
+
+        if options.restapi_https_host:
+            config.api.https_host = options.restapi_https_host
+
+        if config.api.http_port > 0:
             config.api.http_enabled = True
-            config.api.http_port = options.restapi
+
+        if config.api.https_port > 0:
+            config.api.https_enabled = True
+
+        if api_key := os.environ.get('CORE_API_KEY'):
+            config.api.key = api_key
 
         if options.ipv8 > 0:
             config.ipv8.port = options.ipv8
@@ -107,6 +128,9 @@ class TriblerService:
 
         if options.libtorrent != -1 and options.libtorrent > 0:
             config.libtorrent.port = options.libtorrent
+
+        if options.download_dir:
+            config.download_defaults.saveas = options.download_dir
 
         if options.ipv8_bootstrap_override is not None:
             config.ipv8.bootstrap_override = options.ipv8_bootstrap_override
@@ -135,7 +159,15 @@ def main(argv):
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS,
                         help='Show this help message and exit')
     parser.add_argument('--statedir', '-s', default=None, help='Use an alternate statedir')
-    parser.add_argument('--restapi', '-p', default=-1, type=int, help='Use an alternate port for REST API')
+    parser.add_argument('--download_dir', default=None, help='Use an alternative download directory')
+    parser.add_argument('--restapi_http_port', '--restapi', '-p', default=-1, type=int,
+                        help='Use an alternate port for http REST API')
+    parser.add_argument('--restapi_http_host', default=None, type=str,
+                        help='Use an alternate listen address for http REST API')
+    parser.add_argument('--restapi_https_port', default=-1, type=int,
+                        help='Use an alternate port for https REST API')
+    parser.add_argument('--restapi_https_host', default=None, type=str,
+                        help='Use an alternate listen address for https REST API')
     parser.add_argument('--ipv8', '-i', default=-1, type=int, help='Use an alternate port for the IPv8')
     parser.add_argument('--libtorrent', '-l', default=-1, type=int, help='Use an alternate port for libtorrent')
     parser.add_argument('--ipv8_bootstrap_override', '-b', default=None, type=str,
@@ -152,7 +184,7 @@ def main(argv):
     coro = service.start_tribler(args)
     ensure_future(coro)
 
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and sys.version_info < (3, 8):
         # Unfortunately, this is needed on Windows for Ctrl+C to work consistently.
         # Should no longer be needed in Python 3.8.
         async def wakeup():
