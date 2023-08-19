@@ -48,6 +48,8 @@ class SearchEndpoint(MetadataEndpointBase):
         """
         content_to_torrents: Dict[str, list] = defaultdict(list)
         for search_result in search_results:
+            if "infohash" not in search_result:
+                continue
             with db_session:
                 content_items: List[str] = self.knowledge_db.get_objects(subject_type=ResourceType.TORRENT,
                                                                          subject=search_result["infohash"],
@@ -89,7 +91,7 @@ class SearchEndpoint(MetadataEndpointBase):
             torrents_in_snippets |= infohases
 
         search_results = [search_result for search_result in search_results if
-                          (search_result["infohash"] not in torrents_in_snippets)]
+                          (("infohash" not in search_result) or (search_result["infohash"] not in torrents_in_snippets))]
         return snippets + search_results
 
     @docs(
