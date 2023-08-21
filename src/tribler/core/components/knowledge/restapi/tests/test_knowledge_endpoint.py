@@ -2,7 +2,6 @@ from typing import Dict
 from unittest.mock import Mock
 
 import pytest
-from freezegun import freeze_time
 from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
@@ -11,6 +10,7 @@ from tribler.core.components.knowledge.community.knowledge_payload import Statem
 from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType
 from tribler.core.components.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.utilities.date_utils import freeze_time
 from tribler.core.utilities.unicode import hexlify
 
 
