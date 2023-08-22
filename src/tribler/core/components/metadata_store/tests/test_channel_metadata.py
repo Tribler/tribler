@@ -25,6 +25,7 @@ from tribler.core.components.metadata_store.db.serialization import (
 )
 from tribler.core.components.metadata_store.db.store import HealthItemsPayload
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
+from tribler.core.utilities.date_utils import freeze_time
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import random_infohash
 
@@ -328,9 +329,14 @@ def test_correct_commit_of_delete_entries(metadata_store):
         channel.commit_channel_torrent()
 
 
-@pytest.mark.freeze_time('2021-09-24')
+@pytest.fixture(name="freezer")
+def fixture_freezer():
+    with freeze_time("2021-09-24") as freezer:
+        yield freezer
+
+
 @db_session
-def test_vsids(metadata_store, freezer):
+def test_vsids(freezer, metadata_store):
     """
     Test VSIDS-based channel popularity system.
     """

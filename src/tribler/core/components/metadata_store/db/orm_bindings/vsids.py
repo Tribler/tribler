@@ -1,5 +1,5 @@
+import datetime
 import math
-from datetime import datetime
 
 from pony import orm
 from pony.orm import db_session
@@ -39,7 +39,7 @@ def define_binding(db):
         rowid = orm.PrimaryKey(int)
         bump_amount = orm.Required(float)
         total_activity = orm.Required(float)
-        last_bump = orm.Required(datetime)
+        last_bump = orm.Required(datetime.datetime)
         rescale_threshold = orm.Optional(float, default=10.0 ** 100)
         exp_period = orm.Optional(float, default=24.0 * 60 * 60 * 3)  # decay e times over this period of seconds
         max_val = orm.Optional(float, default=1.0)
@@ -70,7 +70,7 @@ def define_binding(db):
 
         @db_session
         def bump_channel(self, channel, vote):
-            now = datetime.utcnow()
+            now = datetime.datetime.utcnow()
 
             # Subtract the last vote by the same peer from the total vote amount for this channel.
             # This effectively puts a cap of 1.0 vote from a peer on a channel
@@ -108,7 +108,7 @@ def define_binding(db):
                 rowid=0,
                 bump_amount=1.0,
                 total_activity=(orm.sum(g.votes for g in db.ChannelMetadata) or 0.0),
-                last_bump=datetime.utcnow(),
+                last_bump=datetime.datetime.utcnow(),
             )
 
     return Vsids
