@@ -108,7 +108,8 @@ def event_loop():
 @pytest.fixture
 async def rest_api(event_loop, aiohttp_client, endpoint: RESTEndpoint):
     # In each test file that requires the use of this fixture, the endpoint fixture needs to be specified.
-    app = Application(middlewares=[error_middleware], client_max_size=endpoint.app._client_max_size)
+    client_max_size: int = endpoint.app._client_max_size  # pylint:disable=protected-access
+    app = Application(middlewares=[error_middleware], client_max_size=client_max_size)
     app.add_subapp(endpoint.path, endpoint.app)
 
     yield await aiohttp_client(app)
