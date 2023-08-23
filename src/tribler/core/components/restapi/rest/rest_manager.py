@@ -65,10 +65,10 @@ async def error_middleware(request, handler):
             'handled': True,
             'message': f'Could not find {request.path}'
         }}, status=HTTP_NOT_FOUND)
-    except HTTPRequestEntityTooLarge:
+    except HTTPRequestEntityTooLarge as http_error:
         return RESTResponse({'error': {
             'handled': True,
-            'message': f'Request size is larger than {MAX_REQUEST_SIZE} bytes'
+            'message': http_error.text,
         }}, status=HTTP_REQUEST_ENTITY_TOO_LARGE)
     except Exception as e:
         logger.exception(e)

@@ -14,10 +14,14 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 
 # pylint: disable=redefined-outer-name
 
+@pytest.fixture
+def client_max_size():
+    return 1024  # 1KB
+
 
 @pytest.fixture
-def endpoint(download_manager):
-    return CreateTorrentEndpoint(download_manager)
+def endpoint(download_manager, client_max_size):
+    return CreateTorrentEndpoint(download_manager, client_max_size=client_max_size)
 
 
 async def test_create_torrent(rest_api, tmp_path, download_manager):
@@ -75,13 +79,13 @@ async def test_create_torrent_io_error(rest_api, download_manager):
     assert expected_response == error_response
 
 
-async def test_create_torrent_of_large_size(rest_api):
+async def test_create_torrent_of_large_size(client_max_size, rest_api):
     """
     Testing whether the API returns a formatted 413 error if request size is above set client size.
     """
 
     post_data = {
-        "description": ''.join(random.choice(string.ascii_letters) for _ in range(MAX_REQUEST_SIZE))
+        "description": ''.join(random.choice(string.ascii_letters) for _ in range(client_max_size))
     }
 
     error_response = await do_request(
@@ -91,13 +95,10 @@ async def test_create_torrent_of_large_size(rest_api):
         post_data=post_data
     )
 
-    expected_response = {
-        "error": {
-            "handled": True,
-            "message": f"Request size is larger than {MAX_REQUEST_SIZE} bytes"
-        }
-    }
-    assert expected_response == error_response
+    assert error_response["error"]["handled"] is True
+
+    expected_msg = f"Maximum request body size {client_max_size} exceeded"
+    assert expected_msg in error_response["error"]["message"]
 
 
 async def test_create_torrent_missing_files_parameter(rest_api):

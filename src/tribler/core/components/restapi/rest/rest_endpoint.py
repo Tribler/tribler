@@ -27,9 +27,9 @@ MAX_REQUEST_SIZE = 16 * 1024 ** 2  # 16 MB
 class RESTEndpoint:
     path = ''
 
-    def __init__(self, middlewares=()):
+    def __init__(self, middlewares=(), client_max_size=MAX_REQUEST_SIZE):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.app = web.Application(middlewares=middlewares, client_max_size=MAX_REQUEST_SIZE)
+        self.app = web.Application(middlewares=middlewares, client_max_size=client_max_size)
         self.endpoints: Dict[str, RESTEndpoint] = {}
         self.async_group = AsyncGroup()
         self.setup_routes()

@@ -25,8 +25,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
     """
     path = '/createtorrent'
 
-    def __init__(self, download_manager: DownloadManager):
-        super().__init__()
+    def __init__(self, download_manager: DownloadManager, **kwargs):
+        super().__init__(**kwargs)
         self.download_manager = download_manager
 
     def setup_routes(self):
