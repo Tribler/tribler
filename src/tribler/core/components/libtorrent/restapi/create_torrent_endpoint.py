@@ -9,7 +9,8 @@ from marshmallow.fields import String
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse, \
+    MAX_REQUEST_SIZE
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.components.restapi.rest.utils import return_handled_exception
 from tribler.core.utilities.path_util import Path
@@ -25,8 +26,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
     """
     path = '/createtorrent'
 
-    def __init__(self, download_manager: DownloadManager, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, download_manager: DownloadManager, client_max_size: int = MAX_REQUEST_SIZE):
+        super().__init__(client_max_size=client_max_size)
         self.download_manager = download_manager
 
     def setup_routes(self):
