@@ -1,3 +1,10 @@
+import asyncio
+import mmap
+import os
+import shutil
+import sqlite3
+import time
+from http.client import responses
 from unittest.mock import MagicMock
 
 import pytest
@@ -14,6 +21,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.core.utilities.utilities import MEMORY_DB
 
 # pylint: disable=redefined-outer-name
 
@@ -95,10 +103,43 @@ async def video_seeder(tmp_path_factory, video_tdef):
     yield dlmgr
     await dlmgr.shutdown()
 
+# @responses.activate
+# def test_your_function():
+#     responses.add(responses.POST, 'https://sentry.io/api/8/envelope', json={}, status=200)
+
+
+# @pytest.fixture(scope="session")
+# def metadata_store_template_path(tmp_path_factory):
+#     yield tmp_path
+
+@pytest.fixture(scope="session")
+def metadata_store_db_template(tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("metadata_store_template")
+
+    db_path = tmp_path / 'test.db'
+    mds = MetadataStore(db_filename=db_path,
+                        channels_dir=tmp_path / 'channels',
+                        my_key=TEST_PERSONAL_KEY,
+                        disable_sync=True)
+    mds.shutdown()
+
+    with open(db_path, 'rb') as src, mmap.mmap(src.fileno(), 0, access=mmap.ACCESS_READ) as mmapped_db:
+        yield mmapped_db
+
 
 @pytest.fixture
-def metadata_store(tmp_path):
-    mds = MetadataStore(db_filename=tmp_path / 'test.db',
+def use_cached_metadata_store_db():
+    return True
+
+
+@pytest.fixture
+def metadata_store(metadata_store_db_template, tmp_path, use_cached_metadata_store_db):
+    db_path = tmp_path / 'test.db'
+    if use_cached_metadata_store_db:
+        with open(db_path, 'wb') as dst:
+            dst.write(metadata_store_db_template)
+
+    mds = MetadataStore(db_filename=db_path,
                         channels_dir=tmp_path / 'channels',
                         my_key=TEST_PERSONAL_KEY,
                         disable_sync=True)

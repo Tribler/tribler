@@ -43,6 +43,11 @@ def torrent_template():
 
 
 @pytest.fixture
+def use_cached_metadata_store_db():
+    return False
+
+
+@pytest.fixture
 def sample_torrent_dict(my_key):
     return {
         "infohash": b"1" * 20,
@@ -336,7 +341,7 @@ def fixture_freezer():
 
 
 @db_session
-def test_vsids(freezer, metadata_store):
+def test_vsids(freezer, use_cached_metadata_store_db, metadata_store):
     """
     Test VSIDS-based channel popularity system.
     """
