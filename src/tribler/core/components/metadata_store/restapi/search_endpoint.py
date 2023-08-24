@@ -12,7 +12,7 @@ from tribler.core.components.knowledge.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
-from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataParameters, MetadataSchema
+from tribler.core.components.metadata_store.restapi.metadata_schema import SearchMetadataParameters, MetadataSchema
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
@@ -110,7 +110,7 @@ class SearchEndpoint(MetadataEndpointBase):
             }
         },
     )
-    @querystring_schema(MetadataParameters)
+    @querystring_schema(SearchMetadataParameters)
     async def search(self, request):
         try:
             sanitized = self.sanitize_parameters(request.query)

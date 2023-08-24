@@ -272,6 +272,24 @@ def to_fts_query(text):
     return ' '.join(words)
 
 
+def parse_bool(obj):
+    """
+    Parse input to boolean True or False
+    Allow parsing text 'false', 'true' '1', '0' to boolean
+
+    :param obj: Object to parse
+    """
+    if isinstance(obj, str):
+        if obj.lower() == "false":
+            return False
+
+        try:
+            return bool(int(obj))
+        except ValueError:
+            pass
+    return bool(obj)
+
+
 def show_system_popup(title, text):
     """
     Create a native pop-up without any third party dependency.

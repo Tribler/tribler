@@ -5,7 +5,7 @@ from binascii import unhexlify
 from pathlib import Path
 
 from aiohttp import ClientSession, ContentTypeError, web
-from aiohttp_apispec import docs, json_schema
+from aiohttp_apispec import docs, json_schema, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
@@ -17,13 +17,13 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler.core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
-from tribler.core.components.metadata_store.restapi.metadata_schema import ChannelSchema, MetadataSchema, TorrentSchema
+from tribler.core.components.metadata_store.restapi.metadata_schema import ChannelSchema, MetadataParameters, MetadataSchema, TorrentSchema
 from tribler.core.components.metadata_store.utils import NoChannelSourcesException, RequestTimeoutException
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, HTTP_NOT_FOUND, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import froze_it, parse_magnetlink
+from tribler.core.utilities.utilities import froze_it, parse_bool, parse_magnetlink
 
 ERROR_INVALID_MAGNET_LINK = "Invalid magnet link: %s"
 
@@ -102,9 +102,10 @@ class ChannelsEndpoint(MetadataEndpointBase):
             }
         },
     )
+    @querystring_schema(MetadataParameters)
     async def get_channels(self, request):
         sanitized = self.sanitize_parameters(request.query)
-        sanitized['subscribed'] = None if 'subscribed' not in request.query else bool(int(request.query['subscribed']))
+        sanitized['subscribed'] = None if 'subscribed' not in request.query else parse_bool(request.query['subscribed'])
         include_total = request.query.get('include_total', '')
         sanitized.update({"origin_id": 0})
         sanitized['metadata_type'] = CHANNEL_TORRENT

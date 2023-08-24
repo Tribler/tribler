@@ -11,13 +11,19 @@ class MetadataParameters(Schema):
     hide_xxx = Boolean(default=False, description='Toggles xxx filter')
     category = String()
     exclude_deleted = Boolean(default=False)
-    remote_query = Boolean(default=False)
     metadata_type = List(String(description='Limits query to certain metadata types (e.g. "torrent" or "channel")'))
+
+
+class SearchMetadataParameters(MetadataParameters):
+    include_total = Boolean(default=False, description='Include total rows found in query response, expensive if '
+                                                       'there is many rows')
+    max_rowid = Integer(default=None, description='Only return results with rowid lesser than max_rowid')
 
 
 class RemoteQueryParameters(MetadataParameters):
     uuid = String()
-    channel_pk = String()
+    channel_pk = String(description='Channel to query, must also define origin_id')
+    origin_id = Integer(default=None, description='Peer id to query, must also define channel_pk')
 
 
 class MetadataSchema(Schema):

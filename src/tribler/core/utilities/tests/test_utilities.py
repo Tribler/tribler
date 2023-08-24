@@ -10,7 +10,7 @@ from tribler.core.utilities.tracker_utils import add_url_params
 from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_distributed_positive_integers,
                                               is_channel_public_key,
                                               is_infohash, is_simple_match_query, is_valid_url, parse_magnetlink,
-                                              parse_query, random_infohash, show_system_popup, to_fts_query)
+                                              parse_query, parse_bool, random_infohash, show_system_popup, to_fts_query)
 
 
 # pylint: disable=import-outside-toplevel, import-error, redefined-outer-name
@@ -185,6 +185,21 @@ def test_parse_query():
                      tags={'tag1', 'tag2'},
                      fts_text='query with  and')
     assert actual == expected
+
+
+def test_parse_bool():
+    assert not parse_bool('')
+    assert not parse_bool('false')
+    assert not parse_bool('False')
+    assert not parse_bool('0')
+    assert not parse_bool(0)
+    assert not parse_bool(False)
+    assert parse_bool('true')
+    assert parse_bool('True')
+    assert parse_bool('1')
+    assert parse_bool('-1')
+    assert parse_bool(1)
+    assert parse_bool(True)
 
 
 @patch_import(modules=['win32api'], MessageBox=MagicMock())
