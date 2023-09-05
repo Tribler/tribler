@@ -14,7 +14,7 @@ class DiscoveryBooster:
 
     # fmt: off
 
-    def __init__(self, timeout_in_sec: float = 120.0, take_step_interval_in_sec: float = 0.5,
+    def __init__(self, timeout_in_sec: float = 120.0, take_step_interval_in_sec: float = 1.1,
                  walker: DiscoveryStrategy = None):
         """
 
