@@ -66,22 +66,28 @@ def set_process_priority(pid=None, priority_order=1):
     """
     if priority_order < 0 or priority_order > 5:
         return
-
-    process = psutil.Process(pid if pid else os.getpid())
+    if sys.platform not in {'win32', 'darwin', 'linux'}:
+        return
 
     if sys.platform == 'win32':
-        priority_classes = [psutil.IDLE_PRIORITY_CLASS,
-                            psutil.BELOW_NORMAL_PRIORITY_CLASS,
-                            psutil.NORMAL_PRIORITY_CLASS,
-                            psutil.ABOVE_NORMAL_PRIORITY_CLASS,
-                            psutil.HIGH_PRIORITY_CLASS,
-                            psutil.REALTIME_PRIORITY_CLASS]
-        process.nice(priority_classes[priority_order])
-    elif sys.platform == 'darwin' or sys.platform == 'linux2':
+        priority_classes = [
+            psutil.IDLE_PRIORITY_CLASS,
+            psutil.BELOW_NORMAL_PRIORITY_CLASS,
+            psutil.NORMAL_PRIORITY_CLASS,
+            psutil.ABOVE_NORMAL_PRIORITY_CLASS,
+            psutil.HIGH_PRIORITY_CLASS,
+            psutil.REALTIME_PRIORITY_CLASS
+        ]
+    else:
         # On Unix, priority can be -20 to 20, but usually not allowed to set below 0, we set our classes somewhat in
         # that range.
         priority_classes = [5, 4, 3, 2, 1, 0]
+
+    try:
+        process = psutil.Process(pid if pid else os.getpid())
         process.nice(priority_classes[priority_order])
+    except psutil.Error as e:
+        logger.exception(e)
 
 
 def enable_fault_handler(log_dir):
