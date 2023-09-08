@@ -1,7 +1,10 @@
 from logging import Logger
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
-from tribler.core.check_os import enable_fault_handler, error_and_exit
+import psutil
+import pytest
+
+from tribler.core.check_os import enable_fault_handler, error_and_exit, set_process_priority
 from tribler.core.utilities.patch_import import patch_import
 
 
@@ -40,3 +43,32 @@ def test_enable_fault_handler_log_dir_not_exists():
 
     enable_fault_handler(log_dir=log_dir)
     log_dir.mkdir.assert_called_once()
+
+
+@patch.object(psutil.Process, 'nice')
+def test_set_process_priority_supported_platform(mocked_nice: Mock):
+    """ Test that the process priority is set on supported platforms."""
+    set_process_priority()
+    assert mocked_nice.called
+
+
+@patch('sys.platform', 'freebsd7')
+@patch.object(psutil.Process, 'nice')
+def test_set_process_priority_unsupported_platform(mocked_nice: Mock):
+    """ Test that the process priority is not set on unsupported platforms."""
+    set_process_priority()
+    assert not mocked_nice.called
+
+
+def test_set_process_exception():
+    """ Test that the set_process_priority does not re-raise an exception derived from `psutil.Error`
+    but re-raise all other exceptions"""
+
+    # psutil.Error
+    with patch.object(psutil.Process, 'nice', new=Mock(side_effect=psutil.AccessDenied)):
+        set_process_priority()
+
+    # any other error
+    with patch.object(psutil.Process, 'nice', new=Mock(side_effect=FileNotFoundError)):
+        with pytest.raises(FileNotFoundError):
+            set_process_priority()
