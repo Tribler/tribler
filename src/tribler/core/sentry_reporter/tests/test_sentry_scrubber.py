@@ -30,6 +30,11 @@ FOLDERS_POSITIVE_MATCH = [
     'Documents and Settings\\username\\some',
     'C:\\Users\\Some User\\',
     'C:\\Users\\USERNAM~1\\',
+
+    # double slashes (could be present as errors during a serialisation)
+    'C:\\\\Users\\\\username\\\\',
+    '//home//username//some//',
+
 ]
 
 FOLDERS_NEGATIVE_MATCH = [

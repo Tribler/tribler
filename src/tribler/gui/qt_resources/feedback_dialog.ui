@@ -161,7 +161,7 @@ background-color: #303030;
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>100</height>
+          <height>200</height>
          </size>
         </property>
         <property name="maximumSize">
@@ -176,57 +176,6 @@ background-color: #303030;
         <property name="readOnly">
          <bool>true</bool>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>The following information about your environment will be sent to us. You can remove entries by right-clicking them.</string>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QTreeWidget" name="env_variables_list">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>100</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="contextMenuPolicy">
-         <enum>Qt::CustomContextMenu</enum>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
-        <property name="indentation">
-         <number>0</number>
-        </property>
-        <column>
-         <property name="text">
-          <string>key</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string>value</string>
-         </property>
-        </column>
        </widget>
       </item>
       <item>

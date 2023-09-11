@@ -1,31 +1,75 @@
 from __future__ import annotations
 
+import json
 import os
 import platform
 import sys
 import time
-from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from PyQt5 import uic
-from PyQt5.QtWidgets import QAction, QDialog, QMessageBox, QTreeWidgetItem
+from PyQt5.QtWidgets import QAction, QDialog, QMessageBox
 
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import ADDITIONAL_INFORMATION, COMMENTS, LAST_PROCESSES, MACHINE, \
     OS, \
     OS_ENVIRON, PLATFORM, \
-    PLATFORM_DETAILS, \
     SYSINFO, SentryReporter, \
     VERSION
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
-from tribler.core.sentry_reporter.sentry_tools import delete_item, \
-    get_first_item
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, get_ui_file_path, tr
 
 if TYPE_CHECKING:
     from tribler.gui.tribler_window import TriblerWindow
+
+
+def dump(obj: Optional[Any], indent: int = 0) -> str:
+    """
+    Dump a value to a string
+    Args:
+        obj: The value to dump
+        indent: The indentation level
+
+    Returns:
+        The dumped value
+    """
+    ind = ' ' * indent
+
+    def join(strings):
+        joined = ',\n'.join(strings)
+        return f"\n{joined}\n{ind}"
+
+    if isinstance(obj, dict):
+        items = (f"{ind}  {repr(k)}: {dump(v, indent + 2)}" for k, v in obj.items())
+        return f'{{{join(items)}}}'
+
+    if isinstance(obj, (list, tuple)):
+        closing = ['(', ')'] if isinstance(obj, tuple) else ['[', ']']
+        items = (f"{ind}  {dump(x, indent + 2)}" for x in obj)
+        return f'{closing[0]}{join(items)}{closing[1]}'
+
+    return repr(obj)
+
+
+def dump_with_name(name: str, value: Optional[str | dict], start: str = '\n\n', delimiter: str = '=' * 40) -> str:
+    """
+    Dump a value to a string with a name
+    Args:
+        name: The name of the value
+        value: The value to dump
+        start: The start of the string
+        delimiter: The delimiter to use
+
+    Returns:
+        The dumped value
+    """
+    text = start + delimiter
+    text += f'\n{name}:\n'
+    text += delimiter + '\n'
+    text += dump(value)
+    return text
 
 
 class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
@@ -40,19 +84,60 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             additional_tags=None,
     ):
         QDialog.__init__(self, parent)
+        self.scrubber = SentryScrubber()
+        sentry_reporter.collecting_breadcrumbs_allowed = False  # stop collecting breadcrumbs while the dialog is open
+        uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
+        self.setWindowTitle(reported_error.type)
+
         self.core_manager = parent.core_manager
         self.process_manager = parent.process_manager
-
-        uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
-
-        self.setWindowTitle(tr("Unexpected error"))
-        self.tribler_version = tribler_version
         self.reported_error = reported_error
-        self.scrubber = SentryScrubber()
         self.sentry_reporter = sentry_reporter
         self.stop_application_on_close = stop_application_on_close
+        self.tribler_version = tribler_version
         self.additional_tags = additional_tags or {}
-        sentry_reporter.collecting_breadcrumbs_allowed = False  # stop collecting breadcrumbs while the dialog is open
+        # tags
+        self.additional_tags.update({
+            VERSION: tribler_version,
+            MACHINE: platform.machine(),
+            OS: platform.platform(),
+            PLATFORM: sys.platform
+        })
+
+        self.info = {
+            '_error_text': self.reported_error.text,
+            '_error_long_text': self.reported_error.long_text,
+            '_error_context': self.reported_error.context,
+            COMMENTS: self.comments_text_edit.toPlainText(),
+            SYSINFO: {
+                'os.getcwd': f'{os.getcwd()}',
+                'sys.executable': f'{sys.executable}',
+                'os': os.name,
+                'platform.machine': platform.machine(),
+                'python.version': sys.version,
+                'in_debug': str(__debug__),
+                'tribler_uptime': f"{time.time() - start_time}",
+                'sys.argv': list(sys.argv),
+                'sys.path': list(sys.path)
+            },
+            OS_ENVIRON: os.environ,
+            ADDITIONAL_INFORMATION: self.reported_error.additional_information,
+            LAST_PROCESSES: [str(p) for p in self.process_manager.get_last_processes()]
+        }
+
+        text = dump_with_name('Stacktrace', self.reported_error.long_text, start='')
+        text += dump_with_name('Info', self.info)
+        text += dump_with_name('Additional tags', self.additional_tags)
+        text += dump_with_name('Event', json.dumps(reported_error.event, indent=4))
+        text = text.replace('\\n', '\n')
+        text = self.scrubber.scrub_text(text)
+        self.error_text_edit.setPlainText(text)
+
+        self.send_automatically = SentryReporter.is_in_test_mode()
+        if self.send_automatically:
+            self.stop_application_on_close = True
+            self.on_send_clicked(True)
+
         # Qt 5.2 does not have the setPlaceholderText property
         if hasattr(self.comments_text_edit, "setPlaceholderText"):
             placeholder = tr(
@@ -61,52 +146,8 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             )
             self.comments_text_edit.setPlaceholderText(placeholder)
 
-        def add_item_to_info_widget(key, value):
-            item = QTreeWidgetItem(self.env_variables_list)
-            item.setText(0, key)
-            scrubbed_value = self.scrubber.scrub_text(value)
-            item.setText(1, scrubbed_value)
-
-        text_for_viewing = '\n'.join(
-            (
-                reported_error.text,
-                reported_error.long_text,
-                reported_error.context,
-            )
-        )
-        stacktrace = self.scrubber.scrub_text(text_for_viewing.rstrip())
-        self.error_text_edit.setPlainText(stacktrace)
         connect(self.cancel_button.clicked, self.on_cancel_clicked)
         connect(self.send_report_button.clicked, self.on_send_clicked)
-
-        # Add machine information to the tree widget
-        add_item_to_info_widget('os.getcwd', f'{os.getcwd()}')
-        add_item_to_info_widget('sys.executable', f'{sys.executable}')
-
-        add_item_to_info_widget('os', os.name)
-        add_item_to_info_widget('platform', sys.platform)
-        add_item_to_info_widget('platform.details', platform.platform())
-        add_item_to_info_widget('platform.machine', platform.machine())
-        add_item_to_info_widget('python.version', sys.version)
-        add_item_to_info_widget('indebug', str(__debug__))
-        add_item_to_info_widget('tribler_uptime', f"{time.time() - start_time}")
-
-        for argv in sys.argv:
-            add_item_to_info_widget('sys.argv', f'{argv}')
-
-        for path in sys.path:
-            add_item_to_info_widget('sys.path', f'{path}')
-
-        for key in os.environ.keys():
-            add_item_to_info_widget('os.environ', f'{key}: {os.environ[key]}')
-
-        # Users can remove specific lines in the report
-        connect(self.env_variables_list.customContextMenuRequested, self.on_right_click_item)
-
-        self.send_automatically = SentryReporter.is_in_test_mode()
-        if self.send_automatically:
-            self.stop_application_on_close = True
-            self.on_send_clicked(True)
 
     def on_remove_entry(self, index):
         self.env_variables_list.takeTopLevelItem(index)
@@ -130,39 +171,10 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.send_report_button.setEnabled(False)
         self.send_report_button.setText(tr("SENDING..."))
 
-        sys_info = defaultdict(lambda: [])
-        for ind in range(self.env_variables_list.topLevelItemCount()):
-            item = self.env_variables_list.topLevelItem(ind)
-            key = item.text(0)
-            value = item.text(1)
-
-            sys_info[key].append(value)
-
-        # tags
-        self.additional_tags[VERSION] = self.tribler_version
-        self.additional_tags[MACHINE] = platform.machine()
-        self.additional_tags[OS] = platform.platform()
-        self.additional_tags[PLATFORM] = get_first_item(sys_info[PLATFORM])
-        self.additional_tags[PLATFORM_DETAILS] = get_first_item(sys_info[PLATFORM_DETAILS])
-
-        # info
-        info = {}
-
-        info['_error_text'] = self.reported_error.text
-        info['_error_long_text'] = self.reported_error.long_text
-        info['_error_context'] = self.reported_error.context
-        info[COMMENTS] = self.comments_text_edit.toPlainText()
-        info[SYSINFO] = sys_info
-        info[OS_ENVIRON] = sys_info[OS_ENVIRON]
-        delete_item(info[SYSINFO], OS_ENVIRON)
-
-        info[ADDITIONAL_INFORMATION] = self.reported_error.additional_information
-        info[LAST_PROCESSES] = [str(p) for p in self.process_manager.get_last_processes()]
-
         self.sentry_reporter.send_event(
             event=self.reported_error.event,
             tags=self.additional_tags,
-            info=info,
+            info=self.info,
             last_core_output=self.reported_error.last_core_output,
             tribler_version=self.tribler_version
         )
