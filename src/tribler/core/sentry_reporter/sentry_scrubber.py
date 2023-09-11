@@ -52,9 +52,11 @@ class SentryScrubber:
 
     def _compile_re(self):
         """Compile all regular expressions."""
+        slash = r'[/\\]'
         for folder in self.home_folders:
-            folder_pattern = r'(?<=' + folder + r'[/\\])[\w\s~]+(?=[/\\])'
-            self.re_folders.append(re.compile(folder_pattern, re.I))
+            for separator in [slash, slash * 2]:
+                folder_pattern = rf'(?<={folder}{separator})[\w\s~]+(?={separator})'
+                self.re_folders.append(re.compile(folder_pattern, re.I))
 
         self.re_ip = re.compile(r'(?<!\.)\b(\d{1,3}\.){3}\d{1,3}\b(?!\.)', re.I)
         self.re_hash = re.compile(r'\b[0-9a-f]{40}\b', re.I)
