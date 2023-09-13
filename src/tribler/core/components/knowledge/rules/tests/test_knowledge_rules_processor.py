@@ -41,11 +41,12 @@ async def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_proce
     assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title=None)
 
     # test that process_torrent_title doesn't find any tags in the title
-    assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title')
-    mocked_save_tags.assert_not_called()
+    # the function should return `1` as it should process only one statement -- the TITLE itself
+    assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title') == 1
+    assert mocked_save_tags.call_count == 1
 
     # test that process_torrent_title does find tags in the title
-    assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
+    assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 2
     mocked_save_tags.assert_called_with(subject_type=ResourceType.TORRENT, subject='696e666f68617368', objects={'tag'},
                                         predicate=ResourceType.TAG)
 
