@@ -168,6 +168,21 @@ class TestTagDB(TestTagDBBase):
         assert self.db.instance.Peer.get().public_key == PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS
 
     @db_session
+    def test_double_add_auto_generated_tag(self):
+        """ Test that adding the same auto-generated tag twice will not create a new Statement entity."""
+        kwargs = {
+            'subject_type': ResourceType.TORRENT,
+            'subject': 'infohash',
+            'predicate': ResourceType.TAG,
+            'obj': 'tag'
+        }
+        self.db.add_auto_generated(**kwargs)
+        self.db.add_auto_generated(**kwargs)
+
+        assert len(self.db.instance.Statement.select()) == 1
+        assert self.db.instance.Statement.get().added_count == SHOW_THRESHOLD
+
+    @db_session
     def test_multiple_tags(self):
         self.add_operation_set(
             self.db,
