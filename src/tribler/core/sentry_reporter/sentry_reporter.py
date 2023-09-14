@@ -134,6 +134,7 @@ class SentryReporter:
                 ),
                 ThreadingIntegration(propagate_hub=True),
             ],
+            auto_enabling_integrations=False,
             before_send=self._before_send,
             before_breadcrumb=self._before_breadcrumb,
             ignore_errors=[
