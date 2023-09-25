@@ -33,8 +33,8 @@ runs:
         RELEASE_FOLDER: .\libsodium\x64\Release
       shell: cmd
       run: |
-        C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-${{inputs.libsodium-version}}-msvc.zip
-        7z x libsodium-${{inputs.libsodium-version}}-msvc.zip
+        curl -o libsodium.zip https://download.libsodium.org/libsodium/releases/libsodium-${{inputs.libsodium-version}}-msvc.zip
+        7z x libsodium.zip
         dir %RELEASE_FOLDER% /ad /b /o-n > latest_release_file
         set /p latest_release= < latest_release_file
         echo Latest release: %latest_release%
