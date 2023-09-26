@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pony.orm import db_session
 
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request

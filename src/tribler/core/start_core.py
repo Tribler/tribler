@@ -14,6 +14,7 @@ from tribler.core.check_os import (
 )
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.component import Component
+from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessWatcher
@@ -55,6 +56,7 @@ def components_gen(config: TriblerConfig):
     """
     yield ReporterComponent()
     yield GuiProcessWatcherComponent()
+    yield DatabaseComponent()
     yield RESTComponent()
     if config.chant.enabled or config.torrent_checking.enabled:
         yield MetadataStoreComponent()

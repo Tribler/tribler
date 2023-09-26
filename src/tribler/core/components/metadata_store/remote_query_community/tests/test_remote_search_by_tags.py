@@ -5,8 +5,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
 
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType, SHOW_THRESHOLD
-from tribler.core.components.knowledge.db.tests.test_knowledge_db import Resource, TestTagDB
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.database.db.tests.test_knowledge_db import Resource, TestTagDB
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity

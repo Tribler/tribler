@@ -8,7 +8,7 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 from pony.orm import db_session
 
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.database.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase

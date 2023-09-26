@@ -6,7 +6,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.tests.tools.common import PNG_FILE

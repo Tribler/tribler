@@ -6,6 +6,7 @@ from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler.core.components.component import Component
+from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.exceptions import NoneComponent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
@@ -84,6 +85,7 @@ class RESTComponent(Component):
         tunnel_component = await self.maybe_component(TunnelsComponent)
         torrent_checker_component = await self.maybe_component(TorrentCheckerComponent)
         gigachannel_manager_component = await self.maybe_component(GigachannelManagerComponent)
+        db_component = await self.maybe_component(DatabaseComponent)
 
         public_key = key_component.primary_key.key.pk if not isinstance(key_component, NoneComponent) else b''
         self._events_endpoint = EventsEndpoint(notifier, public_key=hexlify(public_key))
@@ -109,15 +111,15 @@ class RESTComponent(Component):
         self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add(TorrentInfoEndpoint, libtorrent_component.download_manager)
         self.maybe_add(MetadataEndpoint, torrent_checker, metadata_store_component.mds,
-                       knowledge_db=knowledge_component.knowledge_db,
+                       knowledge_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
         self.maybe_add(ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
                        gigachannel_component.community, metadata_store_component.mds,
-                       knowledge_db=knowledge_component.knowledge_db,
+                       knowledge_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(SearchEndpoint, metadata_store_component.mds, knowledge_db=knowledge_component.knowledge_db)
+        self.maybe_add(SearchEndpoint, metadata_store_component.mds, knowledge_db=db_component.db)
         self.maybe_add(RemoteQueryEndpoint, gigachannel_component.community, metadata_store_component.mds)
-        self.maybe_add(KnowledgeEndpoint, db=knowledge_component.knowledge_db, community=knowledge_component.community)
+        self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):
             ipv8_root_endpoint = IPV8RootEndpoint()

@@ -10,7 +10,7 @@ from ipv8.taskmanager import TaskManager
 from pony.orm import db_session
 
 from tribler.core import notifications
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, ResourceType
 from tribler.core.components.knowledge.rules.rules_content_items import content_items_rules
 from tribler.core.components.knowledge.rules.rules_general_tags import general_rules
 from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_valid_tags

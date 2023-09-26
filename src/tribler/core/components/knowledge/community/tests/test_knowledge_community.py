@@ -8,7 +8,7 @@ from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
 
 REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS = 0.1  # in seconds
 

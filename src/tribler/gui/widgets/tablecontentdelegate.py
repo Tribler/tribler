@@ -6,7 +6,7 @@ from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainte
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
 from psutil import LINUX
 
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.database.db.knowledge_db import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET

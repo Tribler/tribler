@@ -3,9 +3,9 @@ from unittest.mock import Mock, patch
 
 from pony.orm import commit, db_session
 
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, \
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, \
     PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
-from tribler.core.components.knowledge.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
+from tribler.core.components.database.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
 from tribler.core.utilities.pony_utils import TriblerDatabase, get_or_create
 
 

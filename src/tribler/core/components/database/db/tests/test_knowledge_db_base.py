@@ -5,7 +5,7 @@ from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType, SHOW_THRESHOLD
 from tribler.core.utilities.pony_utils import get_or_create
 
 

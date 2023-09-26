@@ -7,7 +7,7 @@ from pony.orm import db_session
 
 from tribler.core.components.conftest import TEST_PERSONAL_KEY
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import Operation, ResourceType
+from tribler.core.components.database.db.knowledge_db import Operation, ResourceType
 from tribler.core.components.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.date_utils import freeze_time

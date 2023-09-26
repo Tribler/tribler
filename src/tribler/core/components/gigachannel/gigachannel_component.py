@@ -1,6 +1,7 @@
 from ipv8.peerdiscovery.network import Network
 
 from tribler.core.components.component import Component
+from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.gigachannel.community.gigachannel_community import (
     GigaChannelCommunity,
     GigaChannelTestnetCommunity,
@@ -25,7 +26,7 @@ class GigaChannelComponent(Component):
 
         self._ipv8_component = await self.require_component(Ipv8Component)
         metadata_store_component = await self.require_component(MetadataStoreComponent)
-        knowledge_component = await self.get_component(KnowledgeComponent)
+        db_component = await self.get_component(DatabaseComponent)
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
         community = giga_channel_cls(
@@ -37,7 +38,7 @@ class GigaChannelComponent(Component):
             rqc_settings=config.remote_query_community,
             metadata_store=metadata_store_component.mds,
             max_peers=50,
-            knowledge_db=knowledge_component.knowledge_db if knowledge_component else None
+            knowledge_db=db_component.db if db_component else None
         )
         self.community = community
         self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)

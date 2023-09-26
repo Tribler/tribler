@@ -3,7 +3,7 @@ from typing import Optional
 
 from pony.orm import db_session
 
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, ResourceType
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT

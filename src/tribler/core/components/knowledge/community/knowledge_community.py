@@ -18,7 +18,7 @@ from tribler.core.components.knowledge.community.knowledge_payload import (
 from tribler.core.components.knowledge.community.knowledge_validator import validate_operation, validate_resource, \
     validate_resource_type
 from tribler.core.components.knowledge.community.operations_requests import OperationsRequests, PeerValidationError
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
+from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase
 
 REQUESTED_OPERATIONS_COUNT = 10
 
