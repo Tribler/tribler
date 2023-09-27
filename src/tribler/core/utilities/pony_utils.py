@@ -262,12 +262,11 @@ class TriblerDbSession(core.DBSessionContextManager):
 
 
 class PatchedSQLiteProvider(sqlite.SQLiteProvider):
-    _acquire_time: float = 0  # A time when the current provider were able to acquire the database lock
 
-    # It is impossible to override the __init__ method of `SQLiteProvider` without breaking
-    # the `SQLiteProvider.get_pool` method's logic. Therefore, we don't initialize
-    # a new attribute `_acquire_time` inside a class constructor method;
-    # instead, we set its initial value at a class level.
+    # It is impossible to override the __init__ method without breaking the `SQLiteProvider.get_pool` method's logic.
+    # Therefore, we don't initialize a new attribute `_acquire_time` inside a class constructor method.
+    # Instead, we set its initial value at a class level.
+    _acquire_time: float = 0  # A time when the current provider were able to acquire the database lock
 
     def acquire_lock(self):
         t1 = time.time()
