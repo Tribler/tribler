@@ -269,6 +269,7 @@ class PatchedSQLiteProvider(sqlite.SQLiteProvider):
     _acquire_time: float = 0  # A time when the current provider were able to acquire the database lock
 
     def acquire_lock(self):
+        # Adds tracking of a db_session's lock wait duration and lock acquire count
         t1 = time.time()
         super().acquire_lock()
         info = local.db_session_info
@@ -280,6 +281,7 @@ class PatchedSQLiteProvider(sqlite.SQLiteProvider):
             info.lock_wait_total_duration += lock_wait_duration
 
     def release_lock(self):
+        # Adds tracking of a db_session's total lock hold duration
         super().release_lock()
         info = local.db_session_info
         if info is not None:
