@@ -38,7 +38,7 @@ class GigaChannelComponent(Component):
             rqc_settings=config.remote_query_community,
             metadata_store=metadata_store_component.mds,
             max_peers=50,
-            knowledge_db=db_component.db if db_component else None
+            tribler_db=db_component.db if db_component else None
         )
         self.community = community
         self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)

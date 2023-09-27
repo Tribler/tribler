@@ -3,7 +3,7 @@ from typing import Optional
 
 from pony.orm import db_session
 
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -41,11 +41,11 @@ metadata_type_to_search_scope = {
 
 
 class MetadataEndpointBase(RESTEndpoint):
-    def __init__(self, metadata_store: MetadataStore, *args, knowledge_db: KnowledgeDatabase = None,
+    def __init__(self, metadata_store: MetadataStore, *args, tribler_db: TriblerDatabase = None,
                  tag_rules_processor: KnowledgeRulesProcessor = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = metadata_store
-        self.knowledge_db: Optional[KnowledgeDatabase] = knowledge_db
+        self.tribler_db: Optional[TriblerDatabase] = tribler_db
         self.tag_rules_processor: Optional[KnowledgeRulesProcessor] = tag_rules_processor
 
     @classmethod
@@ -76,13 +76,13 @@ class MetadataEndpointBase(RESTEndpoint):
 
     @db_session
     def add_statements_to_metadata_list(self, contents_list, hide_xxx=False):
-        if self.knowledge_db is None:
+        if self.tribler_db is None:
             self._logger.error(f'Cannot add statements to metadata list: '
-                               f'knowledge_db is not set in {self.__class__.__name__}')
+                               f'tribler_db is not set in {self.__class__.__name__}')
             return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                raw_statements = self.knowledge_db.get_statements(
+                raw_statements = self.tribler_db.get_statements(
                     subject_type=ResourceType.TORRENT,
                     subject=torrent["infohash"]
                 )

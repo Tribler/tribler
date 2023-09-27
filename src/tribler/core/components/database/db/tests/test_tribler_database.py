@@ -3,9 +3,9 @@ from unittest.mock import Mock, patch
 
 from pony.orm import commit, db_session
 
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, \
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, \
     PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
-from tribler.core.components.database.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
+from tribler.core.components.database.db.tests.test_tribler_database_base import Resource, TestTagDBBase
 from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 
@@ -13,12 +13,12 @@ from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 class TestTagDB(TestTagDBBase):
     @patch.object(TrackedDatabase, 'generate_mapping')
     def test_constructor_create_tables_true(self, mocked_generate_mapping: Mock):
-        KnowledgeDatabase(':memory:')
+        TriblerDatabase(':memory:')
         mocked_generate_mapping.assert_called_with(create_tables=True)
 
     @patch.object(TrackedDatabase, 'generate_mapping')
     def test_constructor_create_tables_false(self, mocked_generate_mapping: Mock):
-        KnowledgeDatabase(':memory:', create_tables=False)
+        TriblerDatabase(':memory:', create_tables=False)
         mocked_generate_mapping.assert_called_with(create_tables=False)
 
     @db_session
@@ -446,9 +446,9 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_show_condition(self):
-        assert KnowledgeDatabase._show_condition(SimpleNamespace(local_operation=Operation.ADD))
-        assert KnowledgeDatabase._show_condition(SimpleNamespace(local_operation=None, score=SHOW_THRESHOLD))
-        assert not KnowledgeDatabase._show_condition(SimpleNamespace(local_operation=None, score=0))
+        assert TriblerDatabase._show_condition(SimpleNamespace(local_operation=Operation.ADD))
+        assert TriblerDatabase._show_condition(SimpleNamespace(local_operation=None, score=SHOW_THRESHOLD))
+        assert not TriblerDatabase._show_condition(SimpleNamespace(local_operation=None, score=0))
 
     @db_session
     def test_get_random_operations_by_condition_less_than_count(self):

@@ -5,7 +5,7 @@ import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
 
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -20,8 +20,8 @@ TEST_INTERVAL = 0.1
 @pytest.fixture
 async def tag_rules_processor(tmp_path: Path):
     mds = MetadataStore(db_filename=MEMORY_DB, channels_dir=tmp_path, my_key=LibNaCLSK())
-    knowledge_db = KnowledgeDatabase(filename=':memory:')
-    processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=knowledge_db, mds=mds,
+    db = TriblerDatabase(filename=':memory:')
+    processor = KnowledgeRulesProcessor(notifier=MagicMock(), db=db, mds=mds,
                                         batch_size=TEST_BATCH_SIZE,
                                         batch_interval=TEST_INTERVAL)
     yield processor

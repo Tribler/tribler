@@ -10,7 +10,7 @@ from pony.orm import db_session
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.utilities.utilities import froze_it
@@ -23,9 +23,9 @@ class KnowledgeEndpoint(RESTEndpoint):
     """
     path = '/knowledge'
 
-    def __init__(self, db: KnowledgeDatabase, community: KnowledgeCommunity):
+    def __init__(self, db: TriblerDatabase, community: KnowledgeCommunity):
         super().__init__()
-        self.db: KnowledgeDatabase = db
+        self.db: TriblerDatabase = db
         self.community: KnowledgeCommunity = community
 
     @staticmethod

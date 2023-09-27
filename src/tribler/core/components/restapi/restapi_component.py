@@ -111,13 +111,13 @@ class RESTComponent(Component):
         self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add(TorrentInfoEndpoint, libtorrent_component.download_manager)
         self.maybe_add(MetadataEndpoint, torrent_checker, metadata_store_component.mds,
-                       knowledge_db=db_component.db,
+                       tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
         self.maybe_add(ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
                        gigachannel_component.community, metadata_store_component.mds,
-                       knowledge_db=db_component.db,
+                       tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(SearchEndpoint, metadata_store_component.mds, knowledge_db=db_component.db)
+        self.maybe_add(SearchEndpoint, metadata_store_component.mds, tribler_db=db_component.db)
         self.maybe_add(RemoteQueryEndpoint, gigachannel_component.community, metadata_store_component.mds)
         self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 

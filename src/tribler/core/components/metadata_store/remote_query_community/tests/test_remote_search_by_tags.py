@@ -5,8 +5,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
 
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, ResourceType, SHOW_THRESHOLD
-from tribler.core.components.database.db.tests.test_knowledge_db import Resource, TestTagDB
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType, SHOW_THRESHOLD
+from tribler.core.components.database.db.tests.test_tribler_database import Resource, TestTagDB
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
@@ -26,14 +26,14 @@ class TestRemoteSearchByTags(TestBase):
     def setUp(self):
         super().setUp()
         self.metadata_store = None
-        self.knowledge_db = None
+        self.tribler_db = None
         self.initialize(BasicRemoteQueryCommunity, 1)
 
     async def tearDown(self):
         if self.metadata_store:
             self.metadata_store.shutdown()
-        if self.knowledge_db:
-            self.knowledge_db.shutdown()
+        if self.tribler_db:
+            self.tribler_db.shutdown()
 
         await super().tearDown()
 
@@ -44,10 +44,10 @@ class TestRemoteSearchByTags(TestBase):
             default_eccrypto.generate_key("curve25519"),
             disable_sync=True,
         )
-        self.knowledge_db = KnowledgeDatabase(str(Path(self.temporary_directory()) / "tags.db"))
+        self.tribler_db = TriblerDatabase(str(Path(self.temporary_directory()) / "tags.db"))
 
         kwargs['metadata_store'] = self.metadata_store
-        kwargs['knowledge_db'] = self.knowledge_db
+        kwargs['tribler_db'] = self.tribler_db
         kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
         return super().create_node(*args, **kwargs)
 
@@ -55,12 +55,12 @@ class TestRemoteSearchByTags(TestBase):
     def rqc(self) -> RemoteQueryCommunity:
         return self.overlay(0)
 
-    @patch.object(RemoteQueryCommunity, 'knowledge_db', new=PropertyMock(return_value=None), create=True)
+    @patch.object(RemoteQueryCommunity, 'tribler_db', new=PropertyMock(return_value=None), create=True)
     def test_search_for_tags_no_db(self):
-        # test that in case of missed `knowledge_db`, function `search_for_tags` returns None
+        # test that in case of missed `tribler_db`, function `search_for_tags` returns None
         assert self.rqc.search_for_tags(tags=['tag']) is None
 
-    @patch.object(KnowledgeDatabase, 'get_subjects_intersection')
+    @patch.object(TriblerDatabase, 'get_subjects_intersection')
     def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
@@ -92,7 +92,7 @@ class TestRemoteSearchByTags(TestBase):
         @db_session
         def fill_tags_database():
             TestTagDB.add_operation_set(
-                self.rqc.knowledge_db,
+                self.rqc.tribler_db,
                 {
                     hexlify(infohash1): [
                         Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD),

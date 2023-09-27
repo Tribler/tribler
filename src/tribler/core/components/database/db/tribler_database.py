@@ -62,7 +62,7 @@ class SimpleStatement:
     subject: str
 
 
-class KnowledgeDatabase:
+class TriblerDatabase:
     def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
         self.instance = TrackedDatabase()
         self.define_binding(self.instance)

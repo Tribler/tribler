@@ -6,7 +6,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.tests.tools.common import PNG_FILE
@@ -108,7 +108,7 @@ def generate_collection(metadata_store, tags_db, parent):
 
 
 @db_session
-def generate_channel(metadata_store: MetadataStore, tags_db: KnowledgeDatabase, title=None, subscribed=False):
+def generate_channel(metadata_store: MetadataStore, tags_db: TriblerDatabase, title=None, subscribed=False):
     # Remember and restore the original key
     orig_key = metadata_store.ChannelNode._my_key
 

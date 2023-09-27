@@ -7,7 +7,7 @@ from pony.orm import db_session
 
 from tribler.core.components.conftest import TEST_PERSONAL_KEY
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.knowledge_db import Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import Operation, ResourceType
 from tribler.core.components.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.date_utils import freeze_time
@@ -17,8 +17,8 @@ from tribler.core.utilities.unicode import hexlify
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
-def endpoint(knowledge_db):
-    return KnowledgeEndpoint(knowledge_db, Mock(key=TEST_PERSONAL_KEY, sign=Mock(return_value=b'')))
+def endpoint(tribler_db):
+    return KnowledgeEndpoint(tribler_db, Mock(key=TEST_PERSONAL_KEY, sign=Mock(return_value=b'')))
 
 
 def tag_to_statement(tag: str) -> Dict:
@@ -48,7 +48,7 @@ async def test_add_invalid_tag(rest_api):
                      post_data=post_data)
 
 
-async def test_modify_tags(rest_api, knowledge_db):
+async def test_modify_tags(rest_api, tribler_db):
     """
     Test modifying tags
     """
@@ -58,7 +58,7 @@ async def test_modify_tags(rest_api, knowledge_db):
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
+            tags = tribler_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
         assert len(tags) == 2
 
         # Now remove a tag
@@ -67,17 +67,17 @@ async def test_modify_tags(rest_api, knowledge_db):
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
+            tags = tribler_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
         assert tags == ["abc"]
 
 
-async def test_modify_tags_no_community(knowledge_db, endpoint):
+async def test_modify_tags_no_community(tribler_db, endpoint):
     endpoint.community = None
     infohash = 'a' * 20
     endpoint.modify_statements(infohash, [tag_to_statement("abc"), tag_to_statement("def")])
 
     with db_session:
-        tags = knowledge_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
+        tags = tribler_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
 
     assert len(tags) == 0
 
@@ -90,7 +90,7 @@ async def test_get_suggestions_invalid_infohash(rest_api):
     await do_request(rest_api, 'knowledge/3f3f/tag_suggestions', expected_code=400)
 
 
-async def test_get_suggestions(rest_api, knowledge_db):
+async def test_get_suggestions(rest_api, tribler_db):
     """
     Test whether we can successfully fetch suggestions from content
     """
@@ -107,7 +107,7 @@ async def test_get_suggestions(rest_api, knowledge_db):
             operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash_str,
                                            predicate=ResourceType.TAG, object="test", operation=op, clock=0,
                                            creator_public_key=random_key.pub().key_to_bin())
-            knowledge_db.add_operation(operation, b"")
+            tribler_db.add_operation(operation, b"")
 
         _add_operation(op=Operation.ADD)
         _add_operation(op=Operation.REMOVE)

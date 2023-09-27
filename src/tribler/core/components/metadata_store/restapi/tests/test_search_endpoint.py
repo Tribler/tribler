@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pony.orm import db_session
 
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -30,8 +30,8 @@ def needle_in_haystack_mds(metadata_store):
 
 
 @pytest.fixture
-def endpoint(needle_in_haystack_mds, knowledge_db):
-    return SearchEndpoint(needle_in_haystack_mds, knowledge_db=knowledge_db)
+def endpoint(needle_in_haystack_mds, tribler_db):
+    return SearchEndpoint(needle_in_haystack_mds, tribler_db=tribler_db)
 
 
 async def test_search_wrong_mdtype(rest_api):
@@ -72,7 +72,7 @@ async def test_search_by_tags(rest_api):
             return None
         return {hexlify(os.urandom(20))}
 
-    with patch.object(KnowledgeDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
+    with patch.object(TriblerDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
         parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=real_tag', expected_code=200)
         assert len(parsed["results"]) == 0
 
@@ -159,7 +159,7 @@ async def test_search_with_space(rest_api, metadata_store):
     assert results == {'abc.def', 'abc def'}  # but not 'abcxyz def'
 
 
-async def test_single_snippet_in_search(rest_api, metadata_store, knowledge_db):
+async def test_single_snippet_in_search(rest_api, metadata_store, tribler_db):
     """
     Test building a simple snippet of a single item.
     """
@@ -170,7 +170,7 @@ async def test_single_snippet_in_search(rest_api, metadata_store, knowledge_db):
     def mocked_get_subjects(*_, **__) -> List[str]:
         return ["Abc"]
 
-    with patch.object(KnowledgeDatabase, 'get_objects', wraps=mocked_get_subjects):
+    with patch.object(TriblerDatabase, 'get_objects', wraps=mocked_get_subjects):
         s1 = to_fts_query("abc")
         results = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
 
@@ -182,7 +182,7 @@ async def test_single_snippet_in_search(rest_api, metadata_store, knowledge_db):
         assert snippet["torrents_in_snippet"][0]["infohash"] == hexlify(content_ih)
 
 
-async def test_multiple_snippets_in_search(rest_api, metadata_store, knowledge_db):
+async def test_multiple_snippets_in_search(rest_api, metadata_store, tribler_db):
     """
     Test two snippets with two torrents in each snippet.
     """
@@ -200,7 +200,7 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, knowledge_d
             return ["Content item 2"]
         return []
 
-    with patch.object(KnowledgeDatabase, 'get_objects', wraps=mocked_get_objects):
+    with patch.object(TriblerDatabase, 'get_objects', wraps=mocked_get_objects):
         s1 = to_fts_query("abc")
         parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
         results = parsed["results"]

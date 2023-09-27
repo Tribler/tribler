@@ -27,7 +27,7 @@ from PyQt5.QtNetwork import QNetworkReply
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
-from tribler.core.components.database.db.knowledge_db import ResourceType
+from tribler.core.components.database.db.tribler_database import ResourceType
 from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 # fmt: off

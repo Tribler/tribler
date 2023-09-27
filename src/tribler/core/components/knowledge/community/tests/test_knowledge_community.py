@@ -8,7 +8,7 @@ from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
 
 REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS = 0.1  # in seconds
 
@@ -22,7 +22,7 @@ class TestKnowledgeCommunity(TestBase):
         await super().tearDown()
 
     def create_node(self, *args, **kwargs):
-        return MockIPv8("curve25519", KnowledgeCommunity, db=KnowledgeDatabase(), key=LibNaCLSK(),
+        return MockIPv8("curve25519", KnowledgeCommunity, db=TriblerDatabase(), key=LibNaCLSK(),
                         request_interval=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS)
 
     def create_operation(self, subject='1' * 20, obj=''):
