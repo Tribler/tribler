@@ -7,9 +7,9 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase
+from tribler.core.upgrade.tags_to_knowledge.previous_dbs.knowledge_db import KnowledgeDatabase
 from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
-from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
+from tribler.core.upgrade.tags_to_knowledge.previous_dbs.tags_db import TagDatabase
 from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
