@@ -6,17 +6,17 @@ from pony.orm import commit, db_session
 from tribler.core.components.database.db.knowledge_db import KnowledgeDatabase, Operation, \
     PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
 from tribler.core.components.database.db.tests.test_knowledge_db_base import Resource, TestTagDBBase
-from tribler.core.utilities.pony_utils import TriblerDatabase, get_or_create
+from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 
 # pylint: disable=protected-access
 class TestTagDB(TestTagDBBase):
-    @patch.object(TriblerDatabase, 'generate_mapping')
+    @patch.object(TrackedDatabase, 'generate_mapping')
     def test_constructor_create_tables_true(self, mocked_generate_mapping: Mock):
         KnowledgeDatabase(':memory:')
         mocked_generate_mapping.assert_called_with(create_tables=True)
 
-    @patch.object(TriblerDatabase, 'generate_mapping')
+    @patch.object(TrackedDatabase, 'generate_mapping')
     def test_constructor_create_tables_false(self, mocked_generate_mapping: Mock):
         KnowledgeDatabase(':memory:', create_tables=False)
         mocked_generate_mapping.assert_called_with(create_tables=False)

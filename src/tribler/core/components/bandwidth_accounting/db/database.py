@@ -5,7 +5,7 @@ from pony.orm import count, db_session, desc, select
 
 from tribler.core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
-from tribler.core.utilities.pony_utils import TriblerDatabase
+from tribler.core.utilities.pony_utils import TrackedDatabase
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
@@ -28,7 +28,7 @@ class BandwidthDatabase:
         self.my_pub_key = my_pub_key
         self.store_all_transactions = store_all_transactions
 
-        self.database = TriblerDatabase()
+        self.database = TrackedDatabase()
 
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.

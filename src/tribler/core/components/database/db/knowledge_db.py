@@ -10,7 +10,7 @@ from pony.orm.core import Entity, Query, select
 from pony.utils import between
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.utilities.pony_utils import TriblerDatabase, get_or_create
+from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 CLOCK_START_VALUE = 0
 
@@ -64,7 +64,7 @@ class SimpleStatement:
 
 class KnowledgeDatabase:
     def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
-        self.instance = TriblerDatabase()
+        self.instance = TrackedDatabase()
         self.define_binding(self.instance)
         self.instance.bind('sqlite', filename or ':memory:', create_db=True)
         generate_mapping_kwargs['create_tables'] = create_tables

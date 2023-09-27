@@ -44,7 +44,7 @@ def test_patched_db_session(tmp_path):
     # The test is added for better coverage of TriblerDbSession methods
 
     with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.PatchedSQLiteProvider):
-        db = pony_utils.TriblerDatabase()
+        db = pony_utils.TrackedDatabase()
         db.bind('sqlite', str(tmp_path / 'db.sqlite'), create_db=True)
 
         class Entity1(db.Entity):
@@ -82,7 +82,7 @@ def test_patched_db_session_default_duration_threshold(tmp_path):
     # if no duration_threshold was explicitly specified for db_session
 
     with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.PatchedSQLiteProvider):
-        db = pony_utils.TriblerDatabase()
+        db = pony_utils.TrackedDatabase()
         db.bind('sqlite', str(tmp_path / 'db.sqlite'), create_db=True)
 
         class Entity1(db.Entity):
