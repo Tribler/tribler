@@ -166,7 +166,7 @@ class MetadataStore:
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         # pylint: disable=unused-variable
-        @self.db.on_connect(provider='sqlite')
+        @self.db.on_connect
         def on_connect(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")

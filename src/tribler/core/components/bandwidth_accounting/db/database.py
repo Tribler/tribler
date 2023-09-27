@@ -34,7 +34,7 @@ class BandwidthDatabase:
         # with the static analysis.
         # pylint: disable=unused-variable
 
-        @self.database.on_connect(provider='sqlite')
+        @self.database.on_connect
         def sqlite_sync_pragmas(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")

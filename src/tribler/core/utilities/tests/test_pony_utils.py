@@ -1,10 +1,12 @@
-from unittest.mock import patch
+import sqlite3
+from pathlib import Path
+from unittest.mock import patch, Mock
 
 import pytest
 
 from pony.orm.core import QueryStat, Required
 from tribler.core.utilities import pony_utils
-
+from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, handle_db_if_corrupted, marking_corrupted_db
 
 EMPTY_DICT = {}
 
@@ -43,9 +45,9 @@ def test_merge_stats():
 def test_patched_db_session(tmp_path):
     # The test is added for better coverage of TriblerDbSession methods
 
-    with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.TriblerSQLiteProvider):
+    with patch('tribler.core.utilities.pony_utils.TriblerDbSession.track_slow_db_sessions', True):
         db = pony_utils.TriblerDatabase()
-        db.bind('sqlite', str(tmp_path / 'db.sqlite'), create_db=True)
+        db.bind(provider='sqlite', filename=str(tmp_path / 'db.sqlite'), create_db=True)
 
         class Entity1(db.Entity):
             a = Required(int)
@@ -81,9 +83,9 @@ def test_patched_db_session_default_duration_threshold(tmp_path):
     # The test checks that db_session uses the current dynamic value of SLOW_DB_SESSION_DURATION_THRESHOLD
     # if no duration_threshold was explicitly specified for db_session
 
-    with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.TriblerSQLiteProvider):
+    with patch('tribler.core.utilities.pony_utils.TriblerDbSession.track_slow_db_sessions', True):
         db = pony_utils.TriblerDatabase()
-        db.bind('sqlite', str(tmp_path / 'db.sqlite'), create_db=True)
+        db.bind(provider='sqlite', filename=str(tmp_path / 'db.sqlite'), create_db=True)
 
         class Entity1(db.Entity):
             a = Required(int)
@@ -120,3 +122,41 @@ Queries statistics for the current db_session:
 Queries statistics for the entire application:
 <Global Stat>
 """
+
+
+@pytest.fixture(name='db_path')
+def db_path_fixture(tmp_path):
+    db_path = tmp_path / 'test.db'
+    db_path.touch()
+    return db_path
+
+
+@patch('tribler.core.utilities.pony_utils._handle_corrupted_db')
+def test_handle_db_if_corrupted__not_corrupted(handle_corrupted_db: Mock, db_path):
+    handle_db_if_corrupted(db_path)
+    handle_corrupted_db.assert_not_called()
+
+
+def test_handle_db_if_corrupted__corrupted(db_path):
+    marker_path = Path(str(db_path) + '.is_corrupted')
+    marker_path.touch()
+
+    handle_db_if_corrupted(db_path)
+    assert not db_path.exists()
+    assert not marker_path.exists()
+
+
+def test_marking_corrupted_db__not_malformed(db_path):
+    with pytest.raises(ZeroDivisionError):
+        with marking_corrupted_db(db_path):
+            raise ZeroDivisionError()
+
+    assert not Path(str(db_path) + '.is_corrupted').exists()
+
+
+def test_marking_corrupted_db__malformed(db_path):
+    with pytest.raises(DatabaseIsCorrupted):
+        with marking_corrupted_db(db_path):
+            raise sqlite3.DatabaseError('database disk image is malformed')
+
+    assert Path(str(db_path) + '.is_corrupted').exists()

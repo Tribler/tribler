@@ -377,9 +377,11 @@ class TriblerUpgrader:
         """
         self._logger.info('Upgrading GigaChannel DB from version 8 to 10')
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+
         if not database_path.exists() or get_db_version(database_path) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
+
         self._logger.info('8->10')
         # Otherwise, start upgrading
         self.update_status("STARTING")

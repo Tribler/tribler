@@ -66,7 +66,7 @@ class KnowledgeDatabase:
     def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
         self.instance = TriblerDatabase()
         self.define_binding(self.instance)
-        self.instance.bind('sqlite', filename or ':memory:', create_db=True)
+        self.instance.bind(provider='sqlite', filename=filename or ':memory:', create_db=True)
         generate_mapping_kwargs['create_tables'] = create_tables
         self.instance.generate_mapping(**generate_mapping_kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)

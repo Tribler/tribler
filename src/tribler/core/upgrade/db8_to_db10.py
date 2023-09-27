@@ -8,6 +8,7 @@ from time import time as now
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.utilities.pony_utils import handle_db_if_corrupted, marking_corrupted_db
 
 TABLE_NAMES = (
     "ChannelNode", "TorrentState", "TorrentState_TrackerState", "ChannelPeer", "ChannelVote", "TrackerState", "Vsids")
@@ -126,31 +127,31 @@ class PonyToPonyMigration:
     def do_migration(self):
         result = None  # estimated duration in seconds of ChannelNode table copying time
         try:
-
-            old_table_columns = {}
-            for table_name in TABLE_NAMES:
-                old_table_columns[table_name] = get_table_columns(self.old_db_path, table_name)
-
-            with contextlib.closing(sqlite3.connect(self.new_db_path)) as connection, connection:
-                cursor = connection.cursor()
-                cursor.execute("PRAGMA journal_mode = OFF;")
-                cursor.execute("PRAGMA synchronous = OFF;")
-                cursor.execute("PRAGMA foreign_keys = OFF;")
-                cursor.execute("PRAGMA temp_store = MEMORY;")
-                cursor.execute("PRAGMA cache_size = -204800;")
-                cursor.execute(f'ATTACH DATABASE "{self.old_db_path}" as old_db;')
-
+            with marking_corrupted_db(self.old_db_path):
+                old_table_columns = {}
                 for table_name in TABLE_NAMES:
-                    t1 = now()
-                    cursor.execute("BEGIN TRANSACTION;")
-                    if not self.must_shutdown():
-                        self.convert_table(cursor, table_name, old_table_columns[table_name])
-                    cursor.execute("COMMIT;")
-                    duration = now() - t1
-                    self._logger.info(f"Upgrade: copied table {table_name} in {duration:.2f} seconds")
+                    old_table_columns[table_name] = get_table_columns(self.old_db_path, table_name)
 
-                    if table_name == 'ChannelNode':
-                        result = duration
+                with contextlib.closing(sqlite3.connect(self.new_db_path)) as connection, connection:
+                    cursor = connection.cursor()
+                    cursor.execute("PRAGMA journal_mode = OFF;")
+                    cursor.execute("PRAGMA synchronous = OFF;")
+                    cursor.execute("PRAGMA foreign_keys = OFF;")
+                    cursor.execute("PRAGMA temp_store = MEMORY;")
+                    cursor.execute("PRAGMA cache_size = -204800;")
+                    cursor.execute(f'ATTACH DATABASE "{self.old_db_path}" as old_db;')
+
+                    for table_name in TABLE_NAMES:
+                        t1 = now()
+                        cursor.execute("BEGIN TRANSACTION;")
+                        if not self.must_shutdown():
+                            self.convert_table(cursor, table_name, old_table_columns[table_name])
+                        cursor.execute("COMMIT;")
+                        duration = now() - t1
+                        self._logger.info(f"Upgrade: copied table {table_name} in {duration:.2f} seconds")
+
+                        if table_name == 'ChannelNode':
+                            result = duration
 
             self.update_status("Synchronizing the upgraded DB to disk, please wait.")
         except Exception as e:
@@ -242,8 +243,10 @@ def get_table_columns(db_path, table_name):
 
 
 def get_db_version(db_path):
-    with contextlib.closing(sqlite3.connect(db_path)) as connection, connection:
-        cursor = connection.cursor()
-        cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
-        version = int(cursor.fetchone()[0])
+    handle_db_if_corrupted(db_path)
+    with marking_corrupted_db(db_path):
+        with contextlib.closing(sqlite3.connect(db_path)) as connection, connection:
+            cursor = connection.cursor()
+            cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
+            version = int(cursor.fetchone()[0])
     return version

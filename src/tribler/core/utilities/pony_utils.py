@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 import sys
 import threading
 import time
@@ -9,15 +10,19 @@ from asyncio import get_event_loop
 from dataclasses import dataclass
 from io import StringIO
 from operator import attrgetter
+from pathlib import Path
 from types import FrameType
-from typing import Callable, Dict, Iterable, Optional, Type
+from typing import Callable, Dict, Iterable, Optional, Type, Union
 from weakref import WeakSet
+
+from contextlib import contextmanager
 
 from pony import orm
 from pony.orm import core
 from pony.orm.core import Database, select
 from pony.orm.dbproviders import sqlite
-from pony.utils import cut_traceback, localbase
+from pony.orm.dbproviders.sqlite import SQLitePool
+from pony.utils import absolutize_path, cut_traceback, cut_traceback_depth, localbase
 
 SLOW_DB_SESSION_DURATION_THRESHOLD = 1.0
 
@@ -26,6 +31,57 @@ logger = logging.getLogger(__name__)
 databases_to_track: WeakSet[TriblerDatabase] = WeakSet()
 
 StatDict = Dict[Optional[str], core.QueryStat]
+
+
+class DatabaseIsCorrupted(Exception):
+    pass
+
+
+def handle_db_if_corrupted(db_filename: Union[str, Path]):
+    db_path = Path(db_filename)
+    marker_path = _get_corrupted_db_marker_path(db_path)
+    if marker_path.exists():
+        _handle_corrupted_db(db_path)
+
+
+def _handle_corrupted_db(db_path: Path):
+    if db_path.exists():
+        logger.warning(f'Database file was marked as corrupted, removing it: {db_path}')
+        db_path.unlink()
+
+    marker_path = _get_corrupted_db_marker_path(db_path)
+    if marker_path.exists():
+        logger.warning(f'Removing the corrupted database marker: {marker_path}')
+        marker_path.unlink()
+
+
+def _get_corrupted_db_marker_path(db_filename: Path) -> Path:
+    return Path(str(db_filename) + '.is_corrupted')
+
+
+@contextmanager
+def marking_corrupted_db(db_filename: Union[str, Path]):
+    try:
+        yield
+    except Exception as e:
+        if _is_malformed_db_exception(e):
+            db_path = Path(db_filename)
+            _mark_db_as_corrupted(db_path)
+            raise DatabaseIsCorrupted(str(db_path)) from e
+        raise
+
+
+def _is_malformed_db_exception(exception):
+    return isinstance(exception, (core.DatabaseError, sqlite3.DatabaseError)) and 'malformed' in str(exception)
+
+
+def _mark_db_as_corrupted(db_filename: Path):
+    if not db_filename.exists():
+        raise RuntimeError(f'Corrupted database file not found: {db_filename!r}')
+
+    marker_path = _get_corrupted_db_marker_path(db_filename)
+    marker_path.touch()
+
 
 
 # pylint: disable=bad-staticmethod-argument
@@ -271,6 +327,7 @@ class TriblerDbSession(core.DBSessionContextManager):
 
 
 class TriblerSQLiteProvider(sqlite.SQLiteProvider):
+    pool: TriblerPool
 
     # It is impossible to override the __init__ method without breaking the `SQLiteProvider.get_pool` method's logic.
     # Therefore, we don't initialize a new attribute `_acquire_time` inside a class constructor method.
@@ -298,14 +355,45 @@ class TriblerSQLiteProvider(sqlite.SQLiteProvider):
             lock_hold_duration = time.time() - acquire_time
             info.lock_hold_total_duration += lock_hold_duration
 
+    def set_transaction_mode(self, connection, cache):
+        with marking_corrupted_db(self.pool.filename):
+            return super().set_transaction_mode(connection, cache)
+
+    def execute(self, cursor, sql, arguments=None, returning_id=False):
+        with marking_corrupted_db(self.pool.filename):
+            return super().execute(cursor, sql, arguments, returning_id)
+
+    def mark_db_as_malformed(self):
+        filename = self.pool.filename
+        if not Path(filename).exists():
+            raise RuntimeError(f'Corrupted database file not found: {filename!r}')
+
+        marker_filename = filename + '.is_corrupted'
+        Path(marker_filename).touch()
+
+    def get_pool(self, is_shared_memory_db, filename, create_db=False, **kwargs):
+        if is_shared_memory_db or filename == ':memory:':
+            pass
+        else:
+            filename = absolutize_path(filename, frame_depth=cut_traceback_depth+5)  # see the base method for details
+        handle_db_if_corrupted(filename)
+        return TriblerPool(is_shared_memory_db, filename, create_db, **kwargs)
+
+
+class TriblerPool(SQLitePool):
+    def _connect(self):
+        with marking_corrupted_db(self.filename):
+            return super()._connect()
+
 
 db_session = TriblerDbSession()
 orm.db_session = orm.core.db_session = db_session
 
 
 class TriblerDatabase(Database):
-    # If a developer what to track the slow execution of the database, he should create an instance of TriblerDatabase
-    # instead of the usual pony.orm.Database.
+    # TriblerDatabase extends the functionality of the Database class in the following ways:
+    # * It adds handling of DatabaseError when the database file is corrupted
+    # * It accumulates and shows statistics on slow database queries
 
     def __init__(self):
         databases_to_track.add(self)
@@ -313,12 +401,19 @@ class TriblerDatabase(Database):
 
     @cut_traceback
     def bind(self, **kwargs):
-        if 'provider' in kwargs:
-            raise TypeError('You should not explicitly specify the `provider` keyword argument for TriblerDatabase')
+        provider = kwargs.pop('provider', None)
+        if provider and provider != 'sqlite':
+            raise TypeError(f"Invalid 'provider' argument for TriblerDatabase: {provider!r}")
+
+        filename = kwargs.get('filename', None)
+        if filename and filename not in {':memory:', ':sharedmemory:'}:
+            db_path = Path(filename)
+            if not db_path.absolute():
+                raise ValueError(f"The 'filename' attribute is expected to be an absolute path. Got: {filename}")
+
+            handle_db_if_corrupted(db_path)
 
         self._bind(TriblerSQLiteProvider, **kwargs)
 
-
 def track_slow_db_sessions():
     TriblerDbSession.track_slow_db_sessions = True
-
