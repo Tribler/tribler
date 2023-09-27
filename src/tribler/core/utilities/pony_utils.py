@@ -17,7 +17,7 @@ from pony import orm
 from pony.orm import core
 from pony.orm.core import Database, select
 from pony.orm.dbproviders import sqlite
-from pony.utils import localbase
+from pony.utils import cut_traceback, localbase
 
 SLOW_DB_SESSION_DURATION_THRESHOLD = 1.0
 
@@ -132,6 +132,8 @@ Queries statistics for the entire application:
 
 
 class TriblerDbSession(core.DBSessionContextManager):
+    track_slow_db_sessions = False
+
     def __init__(self, *args, duration_threshold: Optional[float] = None, **kwargs):
         super().__init__(*args, **kwargs)
         # `duration_threshold` specifies how long db_session should be to trigger the long db_session warning.
@@ -154,17 +156,24 @@ class TriblerDbSession(core.DBSessionContextManager):
 
     def _start_tracking(self):
         for db in databases_to_track:
-            # Clear the local statistics for all databases, so we can accumulate new local statistics in db_session
+            # Clear the local statistics for all databases, so we can accumulate new local statistics in db session
             db.merge_local_stats()
 
+        # If the tracking of slow db_sessions is not enabled, we still create the DbSessionInfo instance, but without
+        # the current db session stack. It is fast, and this way it is easier to avoid race conditions for the case
+        # when the track_slow_db_sessions value is changed on the fly during the db session execution.
         local.db_session_info = DbSessionInfo(
-            current_db_session_stack=self._extract_stack(),
+            current_db_session_stack=self._extract_stack() if self.track_slow_db_sessions else None,
             start_time=time.time()
         )
 
     def _stop_tracking(self):
         info: DbSessionInfo = local.db_session_info
         local.db_session_info = None
+
+        if info.current_db_session_stack is None:
+            # The tracking of slow db sessions was not enabled when the db session was started, so we skip analyzing it
+            return
 
         start_time = info.start_time
         db_session_duration = time.time() - start_time
@@ -291,6 +300,7 @@ class TriblerSQLiteProvider(sqlite.SQLiteProvider):
 
 
 db_session = TriblerDbSession()
+orm.db_session = orm.core.db_session = db_session
 
 
 class TriblerDatabase(Database):
@@ -301,8 +311,14 @@ class TriblerDatabase(Database):
         databases_to_track.add(self)
         super().__init__()
 
+    @cut_traceback
+    def bind(self, **kwargs):
+        if 'provider' in kwargs:
+            raise TypeError('You should not explicitly specify the `provider` keyword argument for TriblerDatabase')
+
+        self._bind(TriblerSQLiteProvider, **kwargs)
+
 
 def track_slow_db_sessions():
-    # The method enables tracking of slow db_sessions
-    orm.db_session = orm.core.db_session = db_session
-    sqlite.provider_cls = TriblerSQLiteProvider
+    TriblerDbSession.track_slow_db_sessions = True
+
