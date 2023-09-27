@@ -261,7 +261,7 @@ class TriblerDbSession(core.DBSessionContextManager):
         return result
 
 
-class PatchedSQLiteProvider(sqlite.SQLiteProvider):
+class TriblerSQLiteProvider(sqlite.SQLiteProvider):
 
     # It is impossible to override the __init__ method without breaking the `SQLiteProvider.get_pool` method's logic.
     # Therefore, we don't initialize a new attribute `_acquire_time` inside a class constructor method.
@@ -305,4 +305,4 @@ class TriblerDatabase(Database):
 def track_slow_db_sessions():
     # The method enables tracking of slow db_sessions
     orm.db_session = orm.core.db_session = db_session
-    sqlite.provider_cls = PatchedSQLiteProvider
+    sqlite.provider_cls = TriblerSQLiteProvider

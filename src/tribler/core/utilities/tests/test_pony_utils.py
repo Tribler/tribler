@@ -43,7 +43,7 @@ def test_merge_stats():
 def test_patched_db_session(tmp_path):
     # The test is added for better coverage of TriblerDbSession methods
 
-    with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.PatchedSQLiteProvider):
+    with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.TriblerSQLiteProvider):
         db = pony_utils.TriblerDatabase()
         db.bind('sqlite', str(tmp_path / 'db.sqlite'), create_db=True)
 
@@ -81,7 +81,7 @@ def test_patched_db_session_default_duration_threshold(tmp_path):
     # The test checks that db_session uses the current dynamic value of SLOW_DB_SESSION_DURATION_THRESHOLD
     # if no duration_threshold was explicitly specified for db_session
 
-    with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.PatchedSQLiteProvider):
+    with patch('pony.orm.dbproviders.sqlite.provider_cls', pony_utils.TriblerSQLiteProvider):
         db = pony_utils.TriblerDatabase()
         db.bind('sqlite', str(tmp_path / 'db.sqlite'), create_db=True)
 
