@@ -144,6 +144,14 @@ class TriblerDbSession(core.DBSessionContextManager):
         if is_top_level_db_session:
             self._start_tracking()
 
+    def __exit__(self, exc_type=None, exc=None, tb=None):
+        try:
+            super().__exit__(exc_type, exc, tb)
+        finally:
+            was_top_level_db_session = core.local.db_session is None
+            if was_top_level_db_session:
+                self._stop_tracking()
+
     def _start_tracking(self):
         for db in databases_to_track:
             # Clear the local statistics for all databases, so we can accumulate new local statistics in db_session
@@ -153,6 +161,17 @@ class TriblerDbSession(core.DBSessionContextManager):
             current_db_session_stack=self._extract_stack(),
             start_time=time.time()
         )
+
+    def _stop_tracking(self):
+        info: DbSessionInfo = local.db_session_info
+        local.db_session_info = None
+
+        start_time = info.start_time
+        db_session_duration = time.time() - start_time
+
+        threshold = SLOW_DB_SESSION_DURATION_THRESHOLD if self.duration_threshold is None else self.duration_threshold
+        if db_session_duration > threshold:
+            self._log_warning(db_session_duration, info)
 
     @staticmethod
     def _extract_stack() -> traceback.StackSummary:
@@ -177,25 +196,6 @@ class TriblerDbSession(core.DBSessionContextManager):
                                                capture_locals=False, lookup_lines=False)
         stack.reverse()
         return stack
-
-    def __exit__(self, exc_type=None, exc=None, tb=None):
-        try:
-            super().__exit__(exc_type, exc, tb)
-        finally:
-            was_top_level_db_session = core.local.db_session is None
-            if was_top_level_db_session:
-                self._stop_tracking()
-
-    def _stop_tracking(self):
-        info: DbSessionInfo = local.db_session_info
-        local.db_session_info = None
-
-        start_time = info.start_time
-        db_session_duration = time.time() - start_time
-
-        threshold = SLOW_DB_SESSION_DURATION_THRESHOLD if self.duration_threshold is None else self.duration_threshold
-        if db_session_duration > threshold:
-            self._log_warning(db_session_duration, info)
 
     def _log_warning(self, db_session_duration: float, info: DbSessionInfo):
         db_session_query_statistics = self._summarize_stat(db.local_stats for db in databases_to_track)
