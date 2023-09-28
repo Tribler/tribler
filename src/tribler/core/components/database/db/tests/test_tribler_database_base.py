@@ -79,8 +79,12 @@ class TestTagDBBase(TestBase):
                 yield f'peer{next(index)}'.encode('utf8')
 
         for subject, objects in dictionary.items():
+            subject_type = ResourceType.TORRENT
+            if isinstance(subject, tuple):
+                subject, subject_type = subject
+
             for obj in objects:
                 for peer in generate_n_peer_names(obj.count):
                     # assume that for test purposes all subject by default could be `Predicate.TORRENT`
-                    TestTagDBBase.add_operation(tag_db, ResourceType.TORRENT, subject, obj.predicate, obj.name, peer,
+                    TestTagDBBase.add_operation(tag_db, subject_type, subject, obj.predicate, obj.name, peer,
                                                 is_auto_generated=obj.auto_generated)
