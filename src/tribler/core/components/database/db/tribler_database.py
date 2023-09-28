@@ -361,9 +361,9 @@ class TriblerDatabase:
         )
         return suggestions
 
-    def get_subjects_intersection(self, subjects_type: Optional[ResourceType], objects: Set[str],
-                                  predicate: Optional[ResourceType],
-                                  case_sensitive: bool = True) -> Set[str]:
+    def get_subjects_intersection(self, objects: Set[str], predicate: Optional[ResourceType],
+                                  subjects_type: Optional[ResourceType] = ResourceType.TORRENT,
+                                  case_sensitive: bool = True) -> Set[str]:  # pylint: disable=unused-argument
         if not objects:
             return set()
 
@@ -371,9 +371,8 @@ class TriblerDatabase:
             name_condition = '"obj"."name" = $obj_name'
         else:
             name_condition = 'py_lower("obj"."name") = py_lower($obj_name)'
-
-        query = select(r.name for r in self.instance.Resource)
-        for obj_name in objects:
+        query = select(r.name for r in self.instance.Resource if r.type == subjects_type.value)
+        for obj_name in objects:  # pylint: disable=unused-variable
             query = query.filter(raw_sql(f"""
     r.id IN (
         SELECT "s"."subject"

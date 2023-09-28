@@ -3,9 +3,9 @@ from unittest.mock import Mock, patch
 
 from pony.orm import commit, db_session
 
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, \
-    PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
 from tribler.core.components.database.db.tests.test_tribler_database_base import Resource, TestTagDBBase
+from tribler.core.components.database.db.tribler_database import Operation, PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, \
+    ResourceType, SHOW_THRESHOLD, SimpleStatement, TriblerDatabase
 from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 
@@ -402,6 +402,12 @@ class TestTagDB(TestTagDBBase):
         self.add_operation_set(
             self.db,
             {
+                ('zero', ResourceType.TITLE): [
+                    # It should not appear in the results due to the differing subject type, although it possesses all
+                    # the necessary tags.
+                    Resource(name='tag1'),
+                    Resource(name='tag2'),
+                ],
                 'infohash1': [
                     Resource(name='tag1'),
                     Resource(name='tag2'),
