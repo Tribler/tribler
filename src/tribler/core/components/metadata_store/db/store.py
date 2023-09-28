@@ -48,7 +48,7 @@ from tribler.core.components.torrent_checker.torrent_checker.dataclasses import 
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import TriblerDatabase, get_max, get_or_create, run_threaded
+from tribler.core.utilities.pony_utils import TrackedDatabase, get_max, get_or_create, run_threaded
 from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
@@ -161,7 +161,7 @@ class MetadataStore:
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
         # at definition.
-        self.db = TriblerDatabase()
+        self.db = TrackedDatabase()
 
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.

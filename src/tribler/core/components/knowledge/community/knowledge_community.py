@@ -18,7 +18,7 @@ from tribler.core.components.knowledge.community.knowledge_payload import (
 from tribler.core.components.knowledge.community.knowledge_validator import validate_operation, validate_resource, \
     validate_resource_type
 from tribler.core.components.knowledge.community.operations_requests import OperationsRequests, PeerValidationError
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 
 REQUESTED_OPERATIONS_COUNT = 10
 
@@ -34,7 +34,7 @@ class KnowledgeCommunity(TriblerCommunity):
 
     community_id = unhexlify('d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0')
 
-    def __init__(self, *args, db: KnowledgeDatabase, key: LibNaCLSK, request_interval=REQUEST_INTERVAL,
+    def __init__(self, *args, db: TriblerDatabase, key: LibNaCLSK, request_interval=REQUEST_INTERVAL,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.db = db

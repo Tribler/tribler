@@ -14,7 +14,7 @@ from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata imp
 from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
-from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
+from tribler.core.upgrade.tags_to_knowledge.previous_dbs.tags_db import TagDatabase
 from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.utilities import random_infohash

@@ -1,3 +1,4 @@
+from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
@@ -10,7 +11,7 @@ from tribler.core.components.torrent_checker.torrent_checker_component import To
 
 # pylint: disable=protected-access
 async def test_torrent_checker_component(tribler_config):
-    components = [SocksServersComponent(), LibtorrentComponent(), KeyComponent(),
+    components = [DatabaseComponent(), SocksServersComponent(), LibtorrentComponent(), KeyComponent(),
                   Ipv8Component(), KnowledgeComponent(), MetadataStoreComponent(), TorrentCheckerComponent()]
     async with Session(tribler_config, components) as session:
         comp = session.get_instance(TorrentCheckerComponent)

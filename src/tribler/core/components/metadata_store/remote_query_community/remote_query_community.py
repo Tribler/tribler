@@ -16,7 +16,7 @@ from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.database.db.tribler_database import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -136,13 +136,13 @@ class RemoteQueryCommunity(TriblerCommunity):
     def __init__(self, my_peer, endpoint, network,
                  rqc_settings: RemoteQueryCommunitySettings = None,
                  metadata_store=None,
-                 knowledge_db=None,
+                 tribler_db=None,
                  **kwargs):
         super().__init__(my_peer, endpoint, network=network, **kwargs)
 
         self.rqc_settings = rqc_settings
         self.mds: MetadataStore = metadata_store
-        self.knowledge_db = knowledge_db
+        self.tribler_db = tribler_db
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.
         # Also, this keeps track of hosts we responded to. There is a possibility that
@@ -214,11 +214,11 @@ class RemoteQueryCommunity(TriblerCommunity):
         :raises ValueError: if no JSON could be decoded.
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
-        if self.knowledge_db:
+        if self.tribler_db:
             # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
             tags = sanitized_parameters.pop('tags', None)
 
-            infohash_set = await run_threaded(self.knowledge_db.instance, self.search_for_tags, tags)
+            infohash_set = await run_threaded(self.tribler_db.instance, self.search_for_tags, tags)
             if infohash_set:
                 sanitized_parameters['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
@@ -226,10 +226,10 @@ class RemoteQueryCommunity(TriblerCommunity):
 
     @db_session
     def search_for_tags(self, tags: Optional[List[str]]) -> Optional[Set[str]]:
-        if not tags or not self.knowledge_db:
+        if not tags or not self.tribler_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_resource(tag)}
-        result = self.knowledge_db.get_subjects_intersection(
+        result = self.tribler_db.get_subjects_intersection(
             subjects_type=ResourceType.TORRENT,
             objects=valid_tags,
             predicate=ResourceType.TAG,

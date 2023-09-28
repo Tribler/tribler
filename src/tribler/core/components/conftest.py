@@ -4,7 +4,7 @@ import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.util import succeed
 
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
@@ -107,8 +107,8 @@ def metadata_store(tmp_path):
 
 
 @pytest.fixture
-def knowledge_db():
-    db = KnowledgeDatabase()
+def tribler_db():
+    db = TriblerDatabase()
     yield db
     db.shutdown()
 

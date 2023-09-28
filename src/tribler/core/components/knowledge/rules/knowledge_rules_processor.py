@@ -10,7 +10,7 @@ from ipv8.taskmanager import TaskManager
 from pony.orm import db_session
 
 from tribler.core import notifications
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
 from tribler.core.components.knowledge.rules.rules_content_items import content_items_rules
 from tribler.core.components.knowledge.rules.rules_general_tags import general_rules
 from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_valid_tags
@@ -41,7 +41,7 @@ class KnowledgeRulesProcessor(TaskManager):
     # this value must be incremented in the case of new rules set has been applied
     version: int = 5
 
-    def __init__(self, notifier: Notifier, db: KnowledgeDatabase, mds: MetadataStore,
+    def __init__(self, notifier: Notifier, db: TriblerDatabase, mds: MetadataStore,
                  batch_size: int = DEFAULT_BATCH_SIZE, batch_interval: float = DEFAULT_BATCH_INTERVAL,
                  queue_interval: float = DEFAULT_QUEUE_INTERVAL, queue_batch_size: float = DEFAULT_QUEUE_BATCH_SIZE,
                  queue_max_size: int = DEFAULT_QUEUE_MAX_SIZE):

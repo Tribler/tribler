@@ -23,7 +23,7 @@ SLOW_DB_SESSION_DURATION_THRESHOLD = 1.0
 
 logger = logging.getLogger(__name__)
 
-databases_to_track: WeakSet[TriblerDatabase] = WeakSet()
+databases_to_track: WeakSet[TrackedDatabase] = WeakSet()
 
 StatDict = Dict[Optional[str], core.QueryStat]
 
@@ -292,7 +292,7 @@ class PatchedSQLiteProvider(sqlite.SQLiteProvider):
 db_session = TriblerDbSession()
 
 
-class TriblerDatabase(Database):
+class TrackedDatabase(Database):
     # If a developer what to track the slow execution of the database, he should create an instance of TriblerDatabase
     # instead of the usual pony.orm.Database.
 

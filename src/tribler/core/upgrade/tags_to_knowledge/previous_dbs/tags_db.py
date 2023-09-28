@@ -3,12 +3,12 @@ from typing import Optional
 
 from pony import orm
 
-from tribler.core.utilities.pony_utils import TriblerDatabase, get_or_create
+from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 
 class TagDatabase:
     def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
-        self.instance = TriblerDatabase()
+        self.instance = TrackedDatabase()
         self.define_binding(self.instance)
         self.instance.bind('sqlite', filename or ':memory:', create_db=True)
         generate_mapping_kwargs['create_tables'] = create_tables

@@ -8,7 +8,7 @@ from ipv8.util import succeed
 from pony.orm import db_session
 
 from tribler.core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
-from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.components.database.db.tribler_database import ResourceType
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
@@ -32,7 +32,7 @@ PNG_DATA = unhexlify(
 # pylint: disable=unused-argument, redefined-outer-name
 
 @pytest.fixture
-def endpoint(mock_dlmgr, metadata_store, knowledge_db):
+def endpoint(mock_dlmgr, metadata_store, tribler_db):
     def return_exc(*args, **kwargs):
         raise RequestTimeoutException
 
@@ -43,7 +43,7 @@ def endpoint(mock_dlmgr, metadata_store, knowledge_db):
         Mock(),
         Mock(remote_select_channel_contents=return_exc),
         metadata_store,
-        knowledge_db=knowledge_db
+        tribler_db=tribler_db
     )
 
 
@@ -636,7 +636,7 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
         assert len(item["statements"]) >= 2
 
 
-async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_get_download, my_channel,
+async def test_get_my_channel_tags_xxx(metadata_store, tribler_db, mock_dlmgr_get_download, my_channel,
                                        rest_api):  # pylint: disable=redefined-outer-name
     """
     Test whether XXX tags are correctly filtered
@@ -649,7 +649,7 @@ async def test_get_my_channel_tags_xxx(metadata_store, knowledge_db, mock_dlmgr_
 
         # Add a few tags to our new torrent
         tags = ["totally safe", "wrongterm", "wRonGtErM", "a wrongterm b"]
-        tag_torrent(infohash, knowledge_db, tags=tags)
+        tag_torrent(infohash, tribler_db, tags=tags)
 
     json_dict = await do_request(
         rest_api,

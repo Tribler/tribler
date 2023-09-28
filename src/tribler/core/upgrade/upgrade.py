@@ -19,8 +19,9 @@ from tribler.core.components.metadata_store.db.store import (
 )
 from tribler.core.upgrade.config_converter import convert_config_to_tribler76
 from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler.core.upgrade.knowledge_to_triblerdb.migration import MigrationKnowledgeToTriblerDB
 from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
-from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
+from tribler.core.upgrade.tags_to_knowledge.previous_dbs.tags_db import TagDatabase
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
@@ -104,6 +105,7 @@ class TriblerUpgrader:
         self.upgrade_tags_to_knowledge()
         self.remove_old_logs()
         self.upgrade_pony_db_14to15()
+        self.upgrade_knowledge_to_tribler_db()
 
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
         self._logger.info(f'Remove old logs')
@@ -417,3 +419,8 @@ class TriblerUpgrader:
         self._logger.info(status_text)
         if self._update_status_callback:
             self._update_status_callback(status_text)
+
+    def upgrade_knowledge_to_tribler_db(self):
+        self._logger.info('Upgrade knowledge to tribler.db')
+        migration = MigrationKnowledgeToTriblerDB(self.state_dir)
+        migration.run()

@@ -4,8 +4,9 @@ from itertools import count
 from ipv8.test.base import TestBase
 from pony.orm import commit, db_session
 
+from tribler.core.components.database.db.tribler_database import Operation, ResourceType, SHOW_THRESHOLD, \
+    TriblerDatabase
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, Operation, ResourceType, SHOW_THRESHOLD
 from tribler.core.utilities.pony_utils import get_or_create
 
 
@@ -22,7 +23,7 @@ class Resource:
 class TestTagDBBase(TestBase):
     def setUp(self):
         super().setUp()
-        self.db = KnowledgeDatabase()
+        self.db = TriblerDatabase()
 
     async def tearDown(self):
         if self._outcome.errors:
@@ -56,7 +57,7 @@ class TestTagDBBase(TestBase):
                                   operation=operation, clock=clock, creator_public_key=peer)
 
     @staticmethod
-    def add_operation(tag_db: KnowledgeDatabase, subject_type: ResourceType = ResourceType.TORRENT,
+    def add_operation(tag_db: TriblerDatabase, subject_type: ResourceType = ResourceType.TORRENT,
                       subject: str = 'infohash',
                       predicate: ResourceType = ResourceType.TAG, obj: str = 'tag', peer=b'',
                       operation: Operation = None,
@@ -70,7 +71,7 @@ class TestTagDBBase(TestBase):
         return result
 
     @staticmethod
-    def add_operation_set(tag_db: KnowledgeDatabase, dictionary):
+    def add_operation_set(tag_db: TriblerDatabase, dictionary):
         index = count(0)
 
         def generate_n_peer_names(n):
