@@ -221,7 +221,7 @@ class KnowledgeRulesProcessor(TaskManager):
     def save_statements(self, subject_type: ResourceType, subject: str, predicate: ResourceType, objects: Set[str]):
         self.logger.debug(f'Save: {len(objects)} objects for "{subject}" with predicate={predicate}')
         for obj in objects:
-            self.db.add_auto_generated(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
+            self.db.add_auto_generated_operation(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
 
     @db_session
     def get_last_processed_torrent_id(self) -> int:

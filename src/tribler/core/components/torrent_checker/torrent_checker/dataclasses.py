@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from enum import IntEnum
 from typing import List
 
 import human_readable
@@ -15,6 +16,15 @@ TORRENT_CHECK_WINDOW = MINUTE  # When asking multiple trackers in parallel, we i
 HEALTH_FRESHNESS_SECONDS = 4 * HOUR  # Number of seconds before a torrent health is considered stale. Default: 4 hours
 
 
+class Source(IntEnum):
+    """ Source of the Torrent Health information.
+    """
+    NONE = 0
+    TRACKER = 1
+    DHT = 2
+    POPULARITY_COMMUNITY = 3
+
+
 @dataclass(order=True)
 class HealthInfo:
     infohash: bytes = field(repr=False)
@@ -22,6 +32,7 @@ class HealthInfo:
     leechers: int = 0
     last_check: int = field(default_factory=lambda: int(time.time()))
     self_checked: bool = False
+    source: Source = Source.NONE
 
     def __repr__(self):
         infohash_repr = hexlify(self.infohash[:4])
@@ -74,8 +85,8 @@ class HealthInfo:
 
         if self.self_checked:
             return not prev.self_checked \
-                   or prev.older_than(self) \
-                   or (self.seeders, self.leechers) > (prev.seeders, prev.leechers)
+                or prev.older_than(self) \
+                or (self.seeders, self.leechers) > (prev.seeders, prev.leechers)
 
         if self.older_than(prev):
             # Always ignore a new health info if it is older than the previous health info

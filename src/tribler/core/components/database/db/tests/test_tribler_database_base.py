@@ -41,6 +41,10 @@ class TestTagDBBase(TestBase):
         self.db.instance.Statement.select().show()
         print('\nStatementOp')
         self.db.instance.StatementOp.select().show()
+        print('\nMisc')
+        self.db.instance.Misc.select().show()
+        print('\nHealthInfo')
+        self.db.instance.HealthInfo.select().show()
 
     def create_statement(self, subject='subject', subject_type: ResourceType = ResourceType.TORRENT,
                          predicate: ResourceType = ResourceType.TAG, obj='object'):

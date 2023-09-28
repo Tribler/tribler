@@ -1,3 +1,4 @@
+import time
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -6,6 +7,7 @@ from pony.orm import commit, db_session
 from tribler.core.components.database.db.tests.test_tribler_database_base import Resource, TestTagDBBase
 from tribler.core.components.database.db.tribler_database import Operation, PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, \
     ResourceType, SHOW_THRESHOLD, SimpleStatement, TriblerDatabase
+from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, Source
 from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 
@@ -156,7 +158,7 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_add_auto_generated_tag(self):
-        self.db.add_auto_generated(
+        self.db.add_auto_generated_operation(
             subject_type=ResourceType.TORRENT,
             subject='infohash',
             predicate=ResourceType.TAG,
@@ -176,8 +178,8 @@ class TestTagDB(TestTagDBBase):
             'predicate': ResourceType.TAG,
             'obj': 'tag'
         }
-        self.db.add_auto_generated(**kwargs)
-        self.db.add_auto_generated(**kwargs)
+        self.db.add_auto_generated_operation(**kwargs)
+        self.db.add_auto_generated_operation(**kwargs)
 
         assert len(self.db.instance.Statement.select()) == 1
         assert self.db.instance.Statement.get().added_count == SHOW_THRESHOLD
@@ -670,3 +672,20 @@ class TestTagDB(TestTagDBBase):
         """Test that set_misc works as expected"""
         self.db.set_misc(key='key', value='value')
         assert self.db.get_misc(key='key') == 'value'
+
+    @db_session
+    def test_add_torrent_health(self):
+        """ Test that add_torrent_health works as expected"""
+        health_info = HealthInfo(
+            infohash=b'0' * 20,
+            seeders=10,
+            leechers=20,
+            last_check=int(time.time()),
+            self_checked=True,
+            source=Source.POPULARITY_COMMUNITY
+        )
+
+        self.db.add_torrent_health(health_info)
+
+        assert self.db.get_torrent_health(health_info.infohash_hex)  # add fields validation
+        assert not self.db.get_torrent_health('missed hash')
