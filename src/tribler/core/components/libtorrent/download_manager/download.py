@@ -244,7 +244,10 @@ class Download(TaskManager):
                 self._logger.debug(f"Got alert: {safe_repr(alert)}")
 
             for handler in self.alert_handlers.get(alert_type, []):
-                handler(alert)
+                try:
+                    handler(alert)
+                except UnicodeDecodeError as e:
+                    self._logger.warning(f"UnicodeDecodeError in {handler.__name__}: {e}")
 
             for future, future_setter, getter in self.futures.pop(alert_type, []):
                 if not future.done():
@@ -319,23 +322,20 @@ class Download(TaskManager):
         """
         # The try-except block is added as a workaround to suppress UnicodeDecodeError in `repr(alert)`,
         # `alert.url` and `alert.msg`. See https://github.com/arvidn/libtorrent/issues/143
-        try:
-            self._logger.error(f'On tracker error alert: {safe_repr(alert)}')
-            url = alert.url
+        self._logger.error(f'On tracker error alert: {safe_repr(alert)}')
+        url = alert.url
 
-            if alert.msg:
-                status = 'Error: ' + alert.msg
-            elif alert.status_code > 0:
-                status = 'HTTP status code %d' % alert.status_code
-            elif alert.status_code == 0:
-                status = 'Timeout'
-            else:
-                status = 'Not working'
+        if alert.msg:
+            status = 'Error: ' + alert.msg
+        elif alert.status_code > 0:
+            status = 'HTTP status code %d' % alert.status_code
+        elif alert.status_code == 0:
+            status = 'Timeout'
+        else:
+            status = 'Not working'
 
-            peers = 0  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
-            self.tracker_status[url] = [peers, status]
-        except UnicodeDecodeError as e:
-            self._logger.warning(f'UnicodeDecodeError in on_tracker_error_alert: {e}')
+        peers = 0  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
+        self.tracker_status[url] = [peers, status]
 
     def on_tracker_warning_alert(self, alert: lt.tracker_warning_alert):
         self._logger.warning(f'On tracker warning alert: {safe_repr(alert)}')

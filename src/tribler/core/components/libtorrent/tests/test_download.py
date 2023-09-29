@@ -1,6 +1,6 @@
 from asyncio import Future, sleep
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import libtorrent as lt
 import pytest
@@ -240,11 +240,31 @@ def test_process_error_alert(test_download):
 
 
 def test_tracker_error_alert_unicode_decode_error(test_download: Download, caplog: LogCaptureFixture):
-    exception = UnicodeDecodeError('utf-8', b'\xc3\x28', 0, 1, 'invalid continuation byte')
-    mock_alert = MagicMock(__repr__=Mock(side_effect=exception))
+    # This exception in alert.__repr__() should be handled by the safe_repr() function
+    exception1 = UnicodeDecodeError('utf-8', b'\xc3\x28', 0, 1, 'invalid continuation byte (exception in __repr__)')
+
+    # Another exception in alert.url should be handled by the Download.process_alert() code
+    exception2 = UnicodeDecodeError('utf-8', b'\xc3\x28', 0, 1, 'invalid continuation byte (exception in .url)')
+
+    mock_alert = MagicMock(__repr__=Mock(side_effect=exception1))
+    type(mock_alert).url=PropertyMock(side_effect=exception2)
+
     test_download.process_alert(mock_alert, 'tracker_error_alert')
-    assert caplog.messages == ["UnicodeDecodeError in on_tracker_error_alert: "
-                               "'utf-8' codec can't decode byte 0xc3 in position 0: invalid continuation byte"]
+
+    mock_expected_safe_repr = (f"<Repr of {object.__repr__(mock_alert)} raises UnicodeDecodeError: "
+                               "'utf-8' codec can't decode byte 0xc3 in position 0: invalid continuation byte "
+                               "(exception in __repr__)>")
+
+    assert len(caplog.messages) == 2
+
+    # The first exception in self._logger.error(f'On tracker error alert: {safe_repr(alert)}')
+    # is converted to the following warning message:
+    assert caplog.messages[0] == f'On tracker error alert: {mock_expected_safe_repr}'
+
+    # The second exception in alert.url is converted to the following error message:
+    assert caplog.messages[1] == ("UnicodeDecodeError in on_tracker_error_alert: "
+                                  "'utf-8' codec can't decode byte 0xc3 in position 0: invalid continuation byte "
+                                  "(exception in .url)")
 
 
 def test_tracker_warning_alert(test_download):

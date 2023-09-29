@@ -341,5 +341,5 @@ def make_async_loop_fragile(loop):
 def safe_repr(obj):
     try:
         return repr(obj)
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return f'<Repr of {object.__repr__(obj)} raises {e.__class__.__name__}: {e}>'
