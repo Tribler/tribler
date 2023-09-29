@@ -1,6 +1,6 @@
 aiohttp==3.8.5
 aiohttp_apispec==2.2.1
-pydantic==1.8.2
+pydantic==2.4.0
 pygments==2.15.0
 sphinx==4.3.0
 sphinx_rtd_theme==1.0.0
