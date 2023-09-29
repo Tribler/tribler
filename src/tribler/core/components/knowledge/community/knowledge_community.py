@@ -71,7 +71,7 @@ class KnowledgeCommunity(TriblerCommunity):
             self.validate_operation(operation)
 
             with db_session():
-                is_added = self.db.add_operation(operation, signature.signature)
+                is_added = self.db.knowledge.add_operation(operation, signature.signature)
                 if is_added:
                     s = f'+ operation added ({operation.object!r} "{operation.predicate}" {operation.subject!r})'
                     self.logger.info(s)
@@ -89,7 +89,7 @@ class KnowledgeCommunity(TriblerCommunity):
         self.logger.info(f'<- peer {peer.mid.hex()} requested {operations_count} operations')
 
         with db_session:
-            random_operations = self.db.get_operations_for_gossip(count=operations_count)
+            random_operations = self.db.knowledge.get_operations_for_gossip(count=operations_count)
 
             self.logger.debug(f'Response {len(random_operations)} operations')
             sent_operations = []

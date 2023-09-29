@@ -2,7 +2,7 @@ import datetime
 import logging
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, Callable, Iterator, List, Optional, Set
+from typing import Callable, Iterator, List, Optional, Set
 
 from pony import orm
 from pony.orm import raw_sql
@@ -11,7 +11,7 @@ from pony.utils import between
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
-from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
+from tribler.core.utilities.pony_utils import get_or_create
 
 CLOCK_START_VALUE = 0
 
@@ -64,13 +64,16 @@ class SimpleStatement:
 
 
 class KnowledgeDataAccessLayer:
-    def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
-        self.instance = TrackedDatabase()
-        self.define_binding(self.instance)
-        self.instance.bind('sqlite', filename or ':memory:', create_db=True)
-        generate_mapping_kwargs['create_tables'] = create_tables
-        self.instance.generate_mapping(**generate_mapping_kwargs)
+    def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.db = None
+        self.instance = None
+
+    def apply(self, db):
+        self.db = db
+        self.instance = db.instance
+
+        return self.define_binding(self.instance)
 
     @staticmethod
     def define_binding(db):
@@ -124,7 +127,7 @@ class KnowledgeDataAccessLayer:
 
             subject_statements = orm.Set(lambda: Statement, reverse="subject")
             object_statements = orm.Set(lambda: Statement, reverse="object")
-            health_info = orm.Set(lambda: HealthInfo, reverse="torrent")
+            health_info = orm.Set(lambda: db.HealthInfo, reverse="torrent")
 
             orm.composite_key(name, type)
 
@@ -142,19 +145,7 @@ class KnowledgeDataAccessLayer:
 
             orm.composite_key(statement, peer)
 
-        class Misc(db.Entity):  # pylint: disable=unused-variable
-            name = orm.PrimaryKey(str)
-            value = orm.Optional(str)
-
-        class HealthInfo(db.Entity):
-            id = orm.PrimaryKey(int, auto=True)
-
-            torrent = orm.Required(lambda: Resource, index=True)
-
-            seeders = orm.Required(int, default=0)
-            leechers = orm.Required(int, default=0)
-            source = orm.Required(int, default=0)  # Source enum
-            last_check = orm.Required(datetime.datetime, default=datetime.datetime.utcnow)
+        return Peer, Statement, Resource, StatementOp
 
     def add_operation(self, operation: StatementOperation, signature: bytes, is_local_peer: bool = False,
                       is_auto_generated: bool = False, counter_increment: int = 1) -> bool:
@@ -223,28 +214,6 @@ class KnowledgeDataAccessLayer:
 
         return self.add_operation(operation, signature=b'', is_local_peer=False, is_auto_generated=True,
                                   counter_increment=SHOW_THRESHOLD)
-
-    def add_torrent_health(self, torrent_health: HealthInfo):
-        torrent = get_or_create(
-            self.instance.Resource,
-            name=torrent_health.infohash_hex,
-            type=ResourceType.TORRENT
-        )
-
-        health_info_entity = get_or_create(
-            self.instance.HealthInfo,
-            torrent=torrent
-        )
-
-        health_info_entity.seeders = torrent_health.seeders
-        health_info_entity.leechers = torrent_health.leechers
-        health_info_entity.source = torrent_health.source
-        health_info_entity.last_check = datetime.datetime.utcfromtimestamp(torrent_health.last_check)
-
-    def get_torrent_health(self, infohash: str):
-        if torrent := self.instance.Resource.get(name=infohash, type=ResourceType.TORRENT):
-            return self.instance.HealthInfo.get(torrent=torrent)
-        return None
 
     @staticmethod
     def _show_condition(s):
@@ -451,8 +420,7 @@ class KnowledgeDataAccessLayer:
             count=count
         )
 
-    def shutdown(self) -> None:
-        self.instance.disconnect()
+
 
     def _get_random_operations_by_condition(self, condition: Callable[[Entity], bool], count: int = 5,
                                             attempts: int = 100) -> Set[Entity]:
@@ -480,11 +448,3 @@ class KnowledgeDataAccessLayer:
                     operations.add(operation)
 
         return operations
-
-    def get_misc(self, key: str, default: Optional[str] = None) -> Optional[str]:
-        data = self.instance.Misc.get(name=key)
-        return data.value if data else default
-
-    def set_misc(self, key: str, value: Any):
-        key_value = get_or_create(self.instance.Misc, name=key)
-        key_value.value = str(value)

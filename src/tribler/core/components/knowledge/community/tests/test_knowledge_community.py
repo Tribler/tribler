@@ -6,9 +6,10 @@ from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 
 REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS = 0.1  # in seconds
 
@@ -30,7 +31,7 @@ class TestKnowledgeCommunity(TestBase):
         operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=subject, predicate=ResourceType.TAG,
                                        object=obj, operation=Operation.ADD, clock=0,
                                        creator_public_key=community.key.pub().key_to_bin())
-        operation.clock = community.db.get_clock(operation) + 1
+        operation.clock = community.db.knowledge.get_clock(operation) + 1
         return operation
 
     @db_session
@@ -47,11 +48,11 @@ class TestKnowledgeCommunity(TestBase):
             if i >= 5:
                 signature = b'1' * 64
 
-            community.db.add_operation(message, signature)
+            community.db.knowledge.add_operation(message, signature)
 
         # a single entity should be cyrillic
         cyrillic_message = self.create_operation(subject='Контент', obj='Тэг')
-        community.db.add_operation(cyrillic_message, community.sign(cyrillic_message))
+        community.db.knowledge.add_operation(cyrillic_message, community.sign(cyrillic_message))
 
         # put them into the past
         for op in community.db.instance.StatementOp.select():
@@ -72,11 +73,11 @@ class TestKnowledgeCommunity(TestBase):
         # ValueError should be eaten silently
         self.fill_db()
         # let's "break" the function that will be called on on_request()
-        self.overlay(0).db.get_operations_for_gossip = Mock(return_value=[MagicMock()])
+        self.overlay(0).db.knowledge.get_operations_for_gossip = Mock(return_value=[MagicMock()])
         # occurred exception should be ate by community silently
         await self.introduce_nodes()
         await self.deliver_messages(timeout=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS * 2)
-        self.overlay(0).db.get_operations_for_gossip.assert_called()
+        self.overlay(0).db.knowledge.get_operations_for_gossip.assert_called()
 
     async def test_no_peers(self):
         # Test that no error occurs in the community, in case there is no peers

@@ -12,11 +12,11 @@ from ipv8.requestcache import NumberCache, RandomNumberCache, RequestCache
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.database.db.tribler_database import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -229,7 +229,7 @@ class RemoteQueryCommunity(TriblerCommunity):
         if not tags or not self.tribler_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_resource(tag)}
-        result = self.tribler_db.get_subjects_intersection(
+        result = self.tribler_db.knowledge.get_subjects_intersection(
             subjects_type=ResourceType.TORRENT,
             objects=valid_tags,
             predicate=ResourceType.TAG,

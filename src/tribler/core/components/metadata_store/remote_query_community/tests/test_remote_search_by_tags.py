@@ -5,8 +5,11 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
 
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType, SHOW_THRESHOLD
-from tribler.core.components.database.db.tests.test_tribler_database import Resource, TestTagDB
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer, \
+    ResourceType, SHOW_THRESHOLD
+from tribler.core.components.database.db.layers.tests.test_knowledge_data_access_layer_base import Resource, \
+    TestKnowledgeAccessLayerBase
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
@@ -60,7 +63,7 @@ class TestRemoteSearchByTags(TestBase):
         # test that in case of missed `tribler_db`, function `search_for_tags` returns None
         assert self.rqc.search_for_tags(tags=['tag']) is None
 
-    @patch.object(TriblerDatabase, 'get_subjects_intersection')
+    @patch.object(KnowledgeDataAccessLayer, 'get_subjects_intersection')
     def test_search_for_tags_only_valid_tags(self, mocked_get_subjects_intersection: Mock):
         # test that function `search_for_tags` uses only valid tags
         self.rqc.search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
@@ -91,7 +94,7 @@ class TestRemoteSearchByTags(TestBase):
 
         @db_session
         def fill_tags_database():
-            TestTagDB.add_operation_set(
+            TestKnowledgeAccessLayerBase.add_operation_set(
                 self.rqc.tribler_db,
                 {
                     hexlify(infohash1): [
@@ -100,7 +103,8 @@ class TestRemoteSearchByTags(TestBase):
                     hexlify(infohash2): [
                         Resource(predicate=ResourceType.TAG, name='tag1', count=SHOW_THRESHOLD - 1),
                     ]
-                })
+                }
+            )
 
         @db_session
         def fill_mds():

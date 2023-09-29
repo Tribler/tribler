@@ -5,7 +5,8 @@ import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
 
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore

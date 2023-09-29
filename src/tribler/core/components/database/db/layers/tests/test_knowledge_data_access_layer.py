@@ -1,18 +1,18 @@
-import time
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from pony.orm import commit, db_session
 
-from tribler.core.components.database.db.tests.test_tribler_database_base import Resource, TestTagDBBase
-from tribler.core.components.database.db.tribler_database import Operation, PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, \
-    ResourceType, SHOW_THRESHOLD, SimpleStatement, TriblerDatabase
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, Source
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer, \
+    Operation, PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS, ResourceType, SHOW_THRESHOLD, SimpleStatement
+from tribler.core.components.database.db.layers.tests.test_knowledge_data_access_layer_base import Resource, \
+    TestKnowledgeAccessLayerBase
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
 
 # pylint: disable=protected-access
-class TestTagDB(TestTagDBBase):
+class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
     @patch.object(TrackedDatabase, 'generate_mapping')
     def test_constructor_create_tables_true(self, mocked_generate_mapping: Mock):
         TriblerDatabase(':memory:')
@@ -158,7 +158,7 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_add_auto_generated_tag(self):
-        self.db.add_auto_generated_operation(
+        self.db.knowledge.add_auto_generated_operation(
             subject_type=ResourceType.TORRENT,
             subject='infohash',
             predicate=ResourceType.TAG,
@@ -178,11 +178,11 @@ class TestTagDB(TestTagDBBase):
             'predicate': ResourceType.TAG,
             'obj': 'tag'
         }
-        self.db.add_auto_generated_operation(**kwargs)
-        self.db.add_auto_generated_operation(**kwargs)
+        self.db.knowledge.add_auto_generated_operation(**kwargs)
+        self.db.knowledge.add_auto_generated_operation(**kwargs)
 
-        assert len(self.db.instance.Statement.select()) == 1
-        assert self.db.instance.Statement.get().added_count == SHOW_THRESHOLD
+        assert len(self.db.Statement.select()) == 1
+        assert self.db.Statement.get().added_count == SHOW_THRESHOLD
 
     @db_session
     def test_multiple_tags(self):
@@ -228,9 +228,9 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        assert not self.db.get_objects(subject='missed infohash', predicate=ResourceType.TAG)
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag3', 'tag2']
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.CONTRIBUTOR) == ['Contributor']
+        assert not self.db.knowledge.get_objects(subject='missed infohash', predicate=ResourceType.TAG)
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag3', 'tag2']
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.CONTRIBUTOR) == ['Contributor']
 
     @db_session
     def test_get_objects_removed(self):
@@ -245,9 +245,9 @@ class TestTagDB(TestTagDBBase):
         )
 
         self.add_operation(self.db, subject='infohash1', predicate=ResourceType.TAG, obj='tag2', peer=b'4',
-                           operation=Operation.REMOVE)
+                                        operation=Operation.REMOVE)
 
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
 
     @db_session
     def test_get_objects_case_insensitive(self):
@@ -271,18 +271,18 @@ class TestTagDB(TestTagDBBase):
         )
 
         all_torrents = ['torrent', 'Torrent', 'TORRENT']
-        assert self.db.get_objects(subject='ubuntu', predicate=torrent, case_sensitive=False) == all_torrents
-        assert self.db.get_objects(subject='Ubuntu', predicate=torrent, case_sensitive=False) == all_torrents
+        assert self.db.knowledge.get_objects(subject='ubuntu', predicate=torrent, case_sensitive=False) == all_torrents
+        assert self.db.knowledge.get_objects(subject='Ubuntu', predicate=torrent, case_sensitive=False) == all_torrents
 
-        assert self.db.get_objects(subject='ubuntu', predicate=torrent, case_sensitive=True) == ['torrent']
-        assert self.db.get_objects(subject='Ubuntu', predicate=torrent, case_sensitive=True) == ['Torrent']
+        assert self.db.knowledge.get_objects(subject='ubuntu', predicate=torrent, case_sensitive=True) == ['torrent']
+        assert self.db.knowledge.get_objects(subject='Ubuntu', predicate=torrent, case_sensitive=True) == ['Torrent']
 
         all_ubuntu = ['ubuntu', 'Ubuntu', 'UBUNTU']
-        assert self.db.get_subjects(obj='torrent', predicate=torrent, case_sensitive=False) == all_ubuntu
-        assert self.db.get_subjects(obj='Torrent', predicate=torrent, case_sensitive=False) == all_ubuntu
+        assert self.db.knowledge.get_subjects(obj='torrent', predicate=torrent, case_sensitive=False) == all_ubuntu
+        assert self.db.knowledge.get_subjects(obj='Torrent', predicate=torrent, case_sensitive=False) == all_ubuntu
 
-        assert self.db.get_subjects(obj='torrent', predicate=torrent, case_sensitive=True) == ['ubuntu']
-        assert self.db.get_subjects(obj='Torrent', predicate=torrent, case_sensitive=True) == ['Ubuntu']
+        assert self.db.knowledge.get_subjects(obj='torrent', predicate=torrent, case_sensitive=True) == ['ubuntu']
+        assert self.db.knowledge.get_subjects(obj='Torrent', predicate=torrent, case_sensitive=True) == ['Ubuntu']
 
     @db_session
     def test_show_local_resources(self):
@@ -292,7 +292,7 @@ class TestTagDB(TestTagDBBase):
                            operation=Operation.REMOVE)
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer2',
                            operation=Operation.REMOVE)
-        assert not self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG)
+        assert not self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG)
 
         # test local add
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer3',
@@ -301,8 +301,8 @@ class TestTagDB(TestTagDBBase):
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.CONTRIBUTOR, 'contributor',
                            b'peer3',
                            operation=Operation.ADD, is_local_peer=True)
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.CONTRIBUTOR) == ['contributor']
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.CONTRIBUTOR) == ['contributor']
 
     @db_session
     def test_hide_local_tags(self):
@@ -310,13 +310,13 @@ class TestTagDB(TestTagDBBase):
         # No matter of other peers opinions, locally removed tag should be not visible.
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer1')
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer2')
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
 
         # test local remove
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash1', ResourceType.TAG, 'tag1', b'peer3',
                            operation=Operation.REMOVE,
                            is_local_peer=True)
-        assert self.db.get_objects(subject='infohash1', predicate=ResourceType.TAG) == []
+        assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG) == []
 
     @db_session
     def test_suggestions(self):
@@ -327,30 +327,31 @@ class TestTagDB(TestTagDBBase):
         self.add_operation(self.db, subject='subject', predicate=ResourceType.CONTRIBUTOR, obj='contributor',
                            peer=b'2')
 
-        assert self.db.get_suggestions(subject='subject',
-                                       predicate=ResourceType.TAG) == []  # This tag now has enough support
+        assert self.db.knowledge.get_suggestions(subject='subject',
+                                                 predicate=ResourceType.TAG) == []  # This tag now has enough support
 
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'3',
                            operation=Operation.REMOVE)  # score:1
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'4',
                            operation=Operation.REMOVE)  # score:0
-        assert self.db.get_suggestions(subject='subject', predicate=ResourceType.TAG) == ["tag1"]
+        assert self.db.knowledge.get_suggestions(subject='subject', predicate=ResourceType.TAG) == ["tag1"]
 
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'5',
                            operation=Operation.REMOVE)  # score:-1
         self.add_operation(self.db, subject='subject', predicate=ResourceType.TAG, obj='tag1', peer=b'6',
                            operation=Operation.REMOVE)  # score:-2
-        assert not self.db.get_suggestions(subject='infohash', predicate=ResourceType.TAG)  # below the threshold
+        assert not self.db.knowledge.get_suggestions(subject='infohash',
+                                                     predicate=ResourceType.TAG)  # below the threshold
 
     @db_session
     def test_get_clock_of_operation(self):
         operation = self.create_operation()
-        assert self.db.get_clock(operation) == 0
+        assert self.db.knowledge.get_clock(operation) == 0
 
         self.add_operation(self.db, subject=operation.subject, predicate=operation.predicate, obj=operation.object,
                            peer=operation.creator_public_key, clock=1)
 
-        assert self.db.get_clock(operation) == 1
+        assert self.db.knowledge.get_clock(operation) == 1
 
     @db_session
     def test_get_tags_operations_for_gossip(self):
@@ -367,7 +368,7 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        operations = self.db.get_operations_for_gossip(count=2)
+        operations = self.db.knowledge.get_operations_for_gossip(count=2)
         assert len(operations) == 2
         assert all(not o.auto_generated for o in operations)
 
@@ -390,7 +391,7 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        actual = self.db.get_subjects_intersection(
+        actual = self.db.knowledge.get_subjects_intersection(
             subjects_type=ResourceType.TORRENT,
             objects={'tag1'},
             predicate=ResourceType.TAG
@@ -431,7 +432,7 @@ class TestTagDB(TestTagDBBase):
 
         # no results
         def _results(objects, predicate=ResourceType.TAG, case_sensitive=True):
-            results = self.db.get_subjects_intersection(
+            results = self.db.knowledge.get_subjects_intersection(
                 subjects_type=ResourceType.TORRENT,
                 objects=objects,
                 predicate=predicate,
@@ -454,9 +455,9 @@ class TestTagDB(TestTagDBBase):
 
     @db_session
     def test_show_condition(self):
-        assert TriblerDatabase._show_condition(SimpleNamespace(local_operation=Operation.ADD))
-        assert TriblerDatabase._show_condition(SimpleNamespace(local_operation=None, score=SHOW_THRESHOLD))
-        assert not TriblerDatabase._show_condition(SimpleNamespace(local_operation=None, score=0))
+        assert KnowledgeDataAccessLayer._show_condition(SimpleNamespace(local_operation=Operation.ADD))
+        assert KnowledgeDataAccessLayer._show_condition(SimpleNamespace(local_operation=None, score=SHOW_THRESHOLD))
+        assert not KnowledgeDataAccessLayer._show_condition(SimpleNamespace(local_operation=None, score=0))
 
     @db_session
     def test_get_random_operations_by_condition_less_than_count(self):
@@ -473,7 +474,7 @@ class TestTagDB(TestTagDBBase):
         )
 
         # request 5 random operations
-        random_operations = self.db._get_random_operations_by_condition(
+        random_operations = self.db.knowledge._get_random_operations_by_condition(
             condition=lambda _: True,
             count=5,
             attempts=100
@@ -495,7 +496,7 @@ class TestTagDB(TestTagDBBase):
         )
 
         # request 5 random operations
-        random_operations = self.db._get_random_operations_by_condition(
+        random_operations = self.db.knowledge._get_random_operations_by_condition(
             condition=lambda _: True,
             count=5,
             attempts=100
@@ -520,7 +521,7 @@ class TestTagDB(TestTagDBBase):
         )
 
         # request 5 normal tags
-        random_operations = self.db._get_random_operations_by_condition(
+        random_operations = self.db.knowledge._get_random_operations_by_condition(
             condition=lambda so: not so.auto_generated,
             count=5,
             attempts=100
@@ -546,7 +547,7 @@ class TestTagDB(TestTagDBBase):
         )
 
         # request 5 normal tags
-        random_operations = self.db._get_random_operations_by_condition(
+        random_operations = self.db.knowledge._get_random_operations_by_condition(
             condition=lambda so: not so.auto_generated,
             count=5,
             attempts=100
@@ -575,15 +576,16 @@ class TestTagDB(TestTagDBBase):
             }
         )
 
-        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.CONTENT_ITEM,
-                                      obj='missed')
+        actual = self.db.knowledge.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.CONTENT_ITEM,
+                                                obj='missed')
         assert actual == []
 
-        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.CONTENT_ITEM,
-                                      obj='ubuntu')
+        actual = self.db.knowledge.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.CONTENT_ITEM,
+                                                obj='ubuntu')
         assert actual == ['infohash1', 'infohash2']
 
-        actual = self.db.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TAG, obj='linux')
+        actual = self.db.knowledge.get_subjects(subject_type=ResourceType.TORRENT, predicate=ResourceType.TAG,
+                                                obj='linux')
         assert actual == ['infohash1', 'infohash2', 'infohash3']
 
     @db_session
@@ -611,12 +613,12 @@ class TestTagDB(TestTagDBBase):
             SimpleStatement(subject_type=ResourceType.TORRENT, subject='infohash1', predicate=ResourceType.TYPE,
                             object='linux')
         ]
-        assert self.db.get_statements(subject='infohash1') == expected
+        assert self.db.knowledge.get_statements(subject='infohash1') == expected
 
         expected.append(
             SimpleStatement(subject_type=ResourceType.TORRENT, subject='INFOHASH1', predicate=ResourceType.TYPE,
                             object='case_insensitive'))
-        assert self.db.get_statements(subject='infohash1', case_sensitive=False) == expected
+        assert self.db.knowledge.get_statements(subject='infohash1', case_sensitive=False) == expected
 
     @db_session
     def test_various_queries(self):
@@ -642,7 +644,7 @@ class TestTagDB(TestTagDBBase):
 
         # queries
         def _objects(subject_type=None, subject='', predicate=None):
-            return set(self.db.get_objects(subject_type=subject_type, subject=subject, predicate=predicate))
+            return set(self.db.knowledge.get_objects(subject_type=subject_type, subject=subject, predicate=predicate))
 
         assert _objects(subject='infohash1') == {'ubuntu', 'linux', 'creator'}
         assert _objects(subject_type=ResourceType.TORRENT) == {'ubuntu', 'linux', 'debian'}
@@ -652,40 +654,8 @@ class TestTagDB(TestTagDBBase):
         assert actual == {'linux'}
 
         def _subjects(subject_type=None, obj='', predicate=None):
-            return set(self.db.get_subjects(subject_type=subject_type, predicate=predicate, obj=obj))
+            return set(self.db.knowledge.get_subjects(subject_type=subject_type, predicate=predicate, obj=obj))
 
         assert _subjects(obj='linux') == {'infohash1', 'infohash2', 'infohash3'}
         assert _subjects(predicate=ResourceType.TAG, obj='linux') == {'infohash3'}
         assert _subjects(predicate=ResourceType.CONTENT_ITEM) == {'infohash1', 'infohash2'}
-
-    @db_session
-    def test_non_existent_misc(self):
-        """Test that get_misc returns proper values"""
-        # None if the key does not exist
-        assert not self.db.get_misc(key='non existent')
-
-        # A value if the key does exist
-        assert self.db.get_misc(key='non existent', default=42) == 42
-
-    @db_session
-    def test_set_misc(self):
-        """Test that set_misc works as expected"""
-        self.db.set_misc(key='key', value='value')
-        assert self.db.get_misc(key='key') == 'value'
-
-    @db_session
-    def test_add_torrent_health(self):
-        """ Test that add_torrent_health works as expected"""
-        health_info = HealthInfo(
-            infohash=b'0' * 20,
-            seeders=10,
-            leechers=20,
-            last_check=int(time.time()),
-            self_checked=True,
-            source=Source.POPULARITY_COMMUNITY
-        )
-
-        self.db.add_torrent_health(health_info)
-
-        assert self.db.get_torrent_health(health_info.infohash_hex)  # add fields validation
-        assert not self.db.get_torrent_health('missed hash')

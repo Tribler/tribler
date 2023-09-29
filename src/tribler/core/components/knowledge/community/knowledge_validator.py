@@ -1,4 +1,4 @@
-from tribler.core.components.database.db.tribler_database import Operation, ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 
 

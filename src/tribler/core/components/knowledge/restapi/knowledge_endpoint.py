@@ -7,10 +7,11 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, List, String
 from pony.orm import db_session
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.utilities.utilities import froze_it
@@ -88,7 +89,7 @@ class KnowledgeEndpoint(RESTEndpoint):
             return
 
         # First, get the current statements and compute the diff between the old and new statements
-        old_statements = self.db.get_statements(subject_type=ResourceType.TORRENT, subject=infohash)
+        old_statements = self.db.knowledge.get_statements(subject_type=ResourceType.TORRENT, subject=infohash)
         old_statements = {(stmt.predicate, stmt.object) for stmt in old_statements}
         self._logger.info(f'Old statements: {old_statements}')
         new_statements = {(stmt["predicate"], stmt["object"]) for stmt in statements}
@@ -105,9 +106,9 @@ class KnowledgeEndpoint(RESTEndpoint):
                                            predicate=predicate,
                                            object=obj, operation=type_of_operation, clock=0,
                                            creator_public_key=public_key)
-            operation.clock = self.db.get_clock(operation) + 1
+            operation.clock = self.db.knowledge.get_clock(operation) + 1
             signature = self.community.sign(operation)
-            self.db.add_operation(operation, signature, is_local_peer=True)
+            self.db.knowledge.add_operation(operation, signature, is_local_peer=True)
 
         self._logger.info(f'Added statements: {added_statements}')
         self._logger.info(f'Removed statements: {removed_statements}')
@@ -134,5 +135,5 @@ class KnowledgeEndpoint(RESTEndpoint):
             return error_response
 
         with db_session:
-            suggestions = self.db.get_suggestions(subject=infohash, predicate=ResourceType.TAG)
+            suggestions = self.db.knowledge.get_suggestions(subject=infohash, predicate=ResourceType.TAG)
             return RESTResponse({"suggestions": suggestions})

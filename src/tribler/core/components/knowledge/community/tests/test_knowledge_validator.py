@@ -1,8 +1,8 @@
 import pytest
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource, validate_operation, \
     validate_resource, validate_resource_type
-from tribler.core.components.database.db.tribler_database import Operation, ResourceType
 
 VALID_TAGS = [
     'nl',

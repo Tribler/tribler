@@ -3,7 +3,8 @@ from typing import Optional
 
 from pony.orm import db_session
 
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
@@ -82,7 +83,7 @@ class MetadataEndpointBase(RESTEndpoint):
             return
         for torrent in contents_list:
             if torrent['type'] == REGULAR_TORRENT:
-                raw_statements = self.tribler_db.get_statements(
+                raw_statements = self.tribler_db.knowledge.get_statements(
                     subject_type=ResourceType.TORRENT,
                     subject=torrent["infohash"]
                 )

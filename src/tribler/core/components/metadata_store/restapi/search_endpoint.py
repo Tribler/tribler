@@ -8,11 +8,11 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, String
 from pony.orm import db_session
 
-from tribler.core.components.database.db.tribler_database import ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
-from tribler.core.components.metadata_store.restapi.metadata_schema import SearchMetadataParameters, MetadataSchema
+from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataSchema, SearchMetadataParameters
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
@@ -49,9 +49,9 @@ class SearchEndpoint(MetadataEndpointBase):
         content_to_torrents: Dict[str, list] = defaultdict(list)
         for search_result in search_results:
             with db_session:
-                content_items: List[str] = self.tribler_db.get_objects(subject_type=ResourceType.TORRENT,
-                                                                       subject=search_result["infohash"],
-                                                                       predicate=ResourceType.CONTENT_ITEM)
+                content_items: List[str] = self.tribler_db.knowledge.get_objects(subject_type=ResourceType.TORRENT,
+                                                                                 subject=search_result["infohash"],
+                                                                                 predicate=ResourceType.CONTENT_ITEM)
             if content_items:
                 for content_id in content_items:
                     content_to_torrents[content_id].append(search_result)
@@ -150,10 +150,11 @@ class SearchEndpoint(MetadataEndpointBase):
         try:
             with db_session:
                 if tags:
-                    infohash_set = self.tribler_db.get_subjects_intersection(subjects_type=ResourceType.TORRENT,
-                                                                             objects=set(tags),
-                                                                             predicate=ResourceType.TAG,
-                                                                             case_sensitive=False)
+                    infohash_set = self.tribler_db.knowledge.get_subjects_intersection(
+                        subjects_type=ResourceType.TORRENT,
+                        objects=set(tags),
+                        predicate=ResourceType.TAG,
+                        case_sensitive=False)
                     if infohash_set:
                         sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
 
