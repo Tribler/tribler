@@ -11,7 +11,7 @@ from tribler.core.utilities.tracker_utils import add_url_params
 from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_distributed_number_with_zero_mean,
                                               get_normally_distributed_positive_integers, is_channel_public_key,
                                               is_infohash, is_simple_match_query, is_valid_url, parse_magnetlink,
-                                              parse_query, random_infohash, show_system_popup, to_fts_query)
+                                              parse_query, random_infohash, safe_repr, show_system_popup, to_fts_query)
 
 
 # pylint: disable=import-outside-toplevel, import-error
@@ -330,3 +330,18 @@ def test_get_normally_distributed_positive_integers():
 
     with pytest.raises(ValueError):
         _ = get_normally_distributed_positive_integers(size=11, upper_limit=10)
+
+
+def test_safe_repr_successful():
+    obj = [1, 2, 3]
+    result = safe_repr(obj)
+    assert result == repr(obj)
+
+
+def test_safe_repr_exception():
+    class MyException(Exception):
+        pass
+
+    obj = MagicMock(__repr__=Mock(side_effect=MyException("exception text")))
+    result = safe_repr(obj)
+    assert result == f'<Repr of {object.__repr__(obj)} raises MyException: exception text>'
