@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 import sys
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from threading import Lock
@@ -72,11 +74,36 @@ class ProcessManager:
 
         except Exception as e:
             logger.exception(f'{e.__class__.__name__}: {e}')
+
             if connection:
                 connection.close()
+
             if isinstance(e, sqlite3.DatabaseError):
                 self.db_filepath.unlink(missing_ok=True)
+
+            if isinstance(e, sqlite3.OperationalError) and str(e) == 'unable to open database file':
+                msg = f"{e}: {self._unable_to_open_db_file_get_reason()}"
+                raise sqlite3.OperationalError(msg) from e
+
             raise
+
+    def _unable_to_open_db_file_get_reason(self):
+        dir_path = self.db_filepath.parent
+        if not dir_path.exists():
+            return f'parent directory `{dir_path}` does not exist'
+
+        if not os.access(dir_path, os.W_OK):
+            return f'the process does not have write permissions to the directory `{dir_path}`'
+
+        try:
+            tmp_filename = dir_path / f'tmp_{int(time.time())}.txt'
+            with tmp_filename.open('w') as f:
+                f.write('test')
+            tmp_filename.unlink()
+        except Exception as e2:  # pylint: disable=broad-except
+            return f'{e2.__class__.__name__}: {e2}'
+
+        return 'unknown reason'
 
     def primary_process_rowid(self, kind: ProcessKind) -> Optional[int]:
         """

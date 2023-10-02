@@ -1,8 +1,14 @@
+import sqlite3
 import time
 from unittest.mock import Mock, patch
 
-from tribler.core.utilities.process_manager.manager import ProcessManager, logger
+import pytest
+
+from tribler.core.utilities.process_manager.manager import DB_FILENAME, ProcessManager, logger
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
+
+
+# pylint: disable=protected-access
 
 
 def test_become_primary(process_manager: ProcessManager):
@@ -137,3 +143,39 @@ def test_delete_old_records_2(process_manager):
     with process_manager.connect() as connection:
         # Only the current primary process and the last 100 processes should remain
         assert connection.execute("select count(*) from processes").fetchone()[0] == 101
+
+
+def test_unable_to_open_db_file_get_reason_unknown_reason(process_manager):
+    reason = process_manager._unable_to_open_db_file_get_reason()
+    assert reason == 'unknown reason'
+
+
+def test_unable_to_open_db_file_get_reason_unable_to_write(process_manager):
+    class TestException(Exception):
+        pass
+
+    with patch('pathlib.Path.open', side_effect=TestException('exception text')):
+        reason = process_manager._unable_to_open_db_file_get_reason()
+        assert reason == 'TestException: exception text'
+
+
+def test_unable_to_open_db_file_get_reason_no_write_permissions(process_manager):
+    with patch('os.access', return_value=False):
+        reason = process_manager._unable_to_open_db_file_get_reason()
+        assert reason.startswith('the process does not have write permissions to the directory')
+
+
+def test_unable_to_open_db_file_get_reason_directory_does_not_exist(process_manager):
+    process_manager.root_dir /= 'non_existent_subdir'
+    process_manager.db_filepath = process_manager.root_dir / DB_FILENAME
+    reason = process_manager._unable_to_open_db_file_get_reason()
+    assert reason.startswith('parent directory') and reason.endswith('does not exist')
+
+
+def test_unable_to_open_db_file_reason_added(process_manager):
+    process_manager.root_dir /= 'non_existent_subdir'
+    process_manager.db_filepath = process_manager.root_dir / DB_FILENAME
+    with pytest.raises(sqlite3.OperationalError,
+                       match=r'^unable to open database file: parent directory.*does not exist$'):
+        with process_manager.connect():
+            pass
