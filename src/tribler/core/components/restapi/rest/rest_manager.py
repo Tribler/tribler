@@ -162,10 +162,7 @@ class RESTManager:
         self._logger.info(f"Starting HTTP REST API server on port {api_port}...")
 
         try:
-            # The self.site.start() is expected to start immediately. It looks like on some machines, it hangs.
-            # The timeout is added to prevent the hypothetical hanging.
-            await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
-
+            await self.site.start()
         except BaseException as e:
             self._logger.exception(f"Can't start HTTP REST API on port {api_port}: {e.__class__.__name__}: {e}")
             raise
