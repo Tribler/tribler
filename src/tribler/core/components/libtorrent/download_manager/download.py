@@ -29,7 +29,7 @@ from tribler.core.utilities.osutils import fix_filebasename
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
-from tribler.core.utilities.utilities import bdecode_compat
+from tribler.core.utilities.utilities import bdecode_compat, safe_repr
 
 
 class Download(TaskManager):
@@ -184,7 +184,7 @@ class Download(TaskManager):
         return atp
 
     def on_add_torrent_alert(self, alert: lt.add_torrent_alert):
-        self._logger.info(f'On add torrent alert: {alert}')
+        self._logger.info(f'On add torrent alert: {safe_repr(alert)}')
 
         if hasattr(alert, 'error') and alert.error.value():
             self._logger.error("Failed to add torrent (%s)", self.tdef.get_name_as_unicode())
@@ -241,23 +241,27 @@ class Download(TaskManager):
     def process_alert(self, alert: lt.torrent_alert, alert_type: str):
         try:
             if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
-                self._logger.debug("Got alert: %s", alert)
+                self._logger.debug(f"Got alert: {safe_repr(alert)}")
 
             for handler in self.alert_handlers.get(alert_type, []):
-                handler(alert)
+                try:
+                    handler(alert)
+                except UnicodeDecodeError as e:
+                    self._logger.warning(f"UnicodeDecodeError in {handler.__name__}: {e}")
 
             for future, future_setter, getter in self.futures.pop(alert_type, []):
                 if not future.done():
                     future_setter(getter(alert) if getter else alert)
         except Exception as e:
-            self._logger.exception(f'Failed process alert: {e}')
+            self._logger.exception(f'process_alert failed with {e.__class__.__name__}: {e} '
+                                   f'for alert {safe_repr(alert)}')
             raise NoCrashException from e
 
     def on_torrent_error_alert(self, alert: lt.torrent_error_alert):
-        self._logger.error(f'On torrent error alert: {alert}')
+        self._logger.error(f'On torrent error alert: {safe_repr(alert)}')
 
     def on_state_changed_alert(self, alert: lt.state_changed_alert):
-        self._logger.info(f'On state changed alert: {alert}')
+        self._logger.info(f'On state changed alert: {safe_repr(alert)}')
 
         if not self.handle:
             return
@@ -276,7 +280,7 @@ class Download(TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
-        self._logger.debug('On save resume data alert: %s', alert)
+        self._logger.debug(f'On save resume data alert: {safe_repr(alert)}')
         if self.checkpoint_disabled:
             return
 
@@ -307,7 +311,7 @@ class Download(TaskManager):
             self._logger.debug(f'Resume data has been saved to: {filename}')
 
     def on_tracker_reply_alert(self, alert: lt.tracker_reply_alert):
-        self._logger.info(f'On tracker reply alert: {alert}')
+        self._logger.info(f'On tracker reply alert: {safe_repr(alert)}')
 
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
 
@@ -318,26 +322,23 @@ class Download(TaskManager):
         """
         # The try-except block is added as a workaround to suppress UnicodeDecodeError in `repr(alert)`,
         # `alert.url` and `alert.msg`. See https://github.com/arvidn/libtorrent/issues/143
-        try:
-            self._logger.error(f'On tracker error alert: {alert}')
-            url = alert.url
+        self._logger.error(f'On tracker error alert: {safe_repr(alert)}')
+        url = alert.url
 
-            if alert.msg:
-                status = 'Error: ' + alert.msg
-            elif alert.status_code > 0:
-                status = 'HTTP status code %d' % alert.status_code
-            elif alert.status_code == 0:
-                status = 'Timeout'
-            else:
-                status = 'Not working'
+        if alert.msg:
+            status = 'Error: ' + alert.msg
+        elif alert.status_code > 0:
+            status = 'HTTP status code %d' % alert.status_code
+        elif alert.status_code == 0:
+            status = 'Timeout'
+        else:
+            status = 'Not working'
 
-            peers = 0  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
-            self.tracker_status[url] = [peers, status]
-        except UnicodeDecodeError as e:
-            self._logger.warning(f'UnicodeDecodeError in on_tracker_error_alert: {e}')
+        peers = 0  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
+        self.tracker_status[url] = [peers, status]
 
     def on_tracker_warning_alert(self, alert: lt.tracker_warning_alert):
-        self._logger.warning(f'On tracker warning alert: {alert}')
+        self._logger.warning(f'On tracker warning alert: {safe_repr(alert)}')
 
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
         status = 'Warning: ' + str(alert.message())
@@ -346,7 +347,7 @@ class Download(TaskManager):
 
     @check_handle()
     def on_metadata_received_alert(self, alert: lt.metadata_received_alert):
-        self._logger.info(f'On metadata received alert: {alert}')
+        self._logger.info(f'On metadata received alert: {safe_repr(alert)}')
 
         torrent_info = get_info_from_handle(self.handle)
         if not torrent_info:
@@ -382,7 +383,7 @@ class Download(TaskManager):
         self.checkpoint()
 
     def on_performance_alert(self, alert: lt.performance_alert):
-        self._logger.info(f'On performance alert: {alert}')
+        self._logger.info(f'On performance alert: {safe_repr(alert)}')
 
         if self.get_anon_mode() or self.download_manager.ltsessions is None:
             return
@@ -405,13 +406,13 @@ class Download(TaskManager):
                 self.download_manager.set_session_settings(self.download_manager.get_session(), settings)
 
     def on_torrent_removed_alert(self, alert: lt.torrent_removed_alert):
-        self._logger.info(f'On torrent remove alert: {alert}')
+        self._logger.info(f'On torrent remove alert: {safe_repr(alert)}')
 
         self._logger.debug("Removing %s", self.tdef.get_name())
         self.handle = None
 
     def on_torrent_checked_alert(self, alert: lt.torrent_checked_alert):
-        self._logger.info(f'On torrent checked alert: {alert}')
+        self._logger.info(f'On torrent checked alert: {safe_repr(alert)}')
 
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
@@ -422,7 +423,7 @@ class Download(TaskManager):
 
     @check_handle()
     def on_torrent_finished_alert(self, alert: lt.torrent_finished_alert):
-        self._logger.info(f'On torrent finished alert: {alert}')
+        self._logger.info(f'On torrent finished alert: {safe_repr(alert)}')
         self.update_lt_status(self.handle.status())
         self.checkpoint()
         downloaded = self.get_state().get_total_transferred(DOWNLOAD)

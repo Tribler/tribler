@@ -336,3 +336,10 @@ def make_async_loop_fragile(loop):
         os._exit(1)  # pylint: disable=protected-access
 
     loop.set_exception_handler(fragile_exception_handler)
+
+
+def safe_repr(obj):
+    try:
+        return repr(obj)
+    except Exception as e:  # pylint: disable=broad-except
+        return f'<Repr of {object.__repr__(obj)} raises {e.__class__.__name__}: {e}>'
