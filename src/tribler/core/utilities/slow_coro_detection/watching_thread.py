@@ -71,7 +71,7 @@ class SlowCoroWatchingThread(Thread):
             if handle is not None:
                 duration = time.time() - start_time
                 if duration > SLOW_CORO_DURATION_THRESHOLD:
-                    _report_freeze(current.handle, duration, first_report=prev_reported_handle is not handle)
+                    _report_freeze(handle, duration, first_report=prev_reported_handle is not handle)
                     new_reported_handle = handle
             prev_reported_handle = new_reported_handle
 
