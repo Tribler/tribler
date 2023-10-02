@@ -55,6 +55,10 @@ class TranslatedString(str):
             msg = f'No value provided for {e} in translation "{self}", original string: "{self.original_string}"'
             logger.warning(f'{type(e).__name__}: {msg}')
             return self.original_string % other
+        except TypeError as e:
+            msg = f'Wrong number of parameters in translation "{self}", original string: "{self.original_string}"'
+            logger.warning(f'{type(e).__name__}: {msg}')
+            return self.original_string % other
 
 
 def tr(key):
