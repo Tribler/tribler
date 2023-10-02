@@ -267,6 +267,34 @@ def test_tracker_error_alert_unicode_decode_error(test_download: Download, caplo
                                   "(exception in .url)")
 
 
+def test_tracker_error_alert_has_msg(test_download: Download):
+    alert = MagicMock(__repr__=Mock(return_value='<ALERT_REPR>'), url='<ALERT_URL>', msg='<ALERT_MSG>')
+    assert alert.url not in test_download.tracker_status
+    test_download.on_tracker_error_alert(alert)
+    assert test_download.tracker_status[alert.url] == [0, 'Error: <ALERT_MSG>']
+
+
+def test_tracker_error_alert_has_positive_status_code(test_download: Download):
+    alert = MagicMock(__repr__=Mock(return_value='<ALERT_REPR>'), url='<ALERT_URL>', msg=None, status_code=123)
+    assert alert.url not in test_download.tracker_status
+    test_download.on_tracker_error_alert(alert)
+    assert test_download.tracker_status[alert.url] == [0, 'HTTP status code 123']
+
+
+def test_tracker_error_alert_has_status_code_zero(test_download: Download):
+    alert = MagicMock(__repr__=Mock(return_value='<ALERT_REPR>'), url='<ALERT_URL>', msg=None, status_code=0)
+    assert alert.url not in test_download.tracker_status
+    test_download.on_tracker_error_alert(alert)
+    assert test_download.tracker_status[alert.url] == [0, 'Timeout']
+
+
+def test_tracker_error_alert_has_negative_status_code(test_download: Download):
+    alert = MagicMock(__repr__=Mock(return_value='<ALERT_REPR>'), url='<ALERT_URL>', msg=None, status_code=-1)
+    assert alert.url not in test_download.tracker_status
+    test_download.on_tracker_error_alert(alert)
+    assert test_download.tracker_status[alert.url] == [0, 'Not working']
+
+
 def test_tracker_warning_alert(test_download):
     """
     Test whether a tracking warning alert is processed correctly
