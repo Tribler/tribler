@@ -2,11 +2,14 @@ import datetime
 import logging
 
 from pony import orm
-from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.upgrade.tags_to_knowledge.previous_dbs.knowledge_db import ResourceType
 from tribler.core.utilities.pony_utils import get_or_create
+
+
+# pylint: disable=redefined-outer-name
 
 
 class HealthDataAccessLayer:
@@ -14,7 +17,7 @@ class HealthDataAccessLayer:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.instance = knowledge_layer.instance
         self.Resource = knowledge_layer.Resource
-        self.HealthInfo, = self.define_binding(self.instance)
+        self.HealthInfo = self.define_binding(self.instance)
 
     @staticmethod
     def define_binding(db):
@@ -28,7 +31,7 @@ class HealthDataAccessLayer:
             source = orm.Required(int, default=0)  # Source enum
             last_check = orm.Required(datetime.datetime, default=datetime.datetime.utcnow)
 
-        return HealthInfo,
+        return HealthInfo
 
     def add_torrent_health(self, torrent_health: HealthInfo):
         torrent = get_or_create(

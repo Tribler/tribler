@@ -15,7 +15,7 @@ class TriblerDatabase:
         self.knowledge = KnowledgeDataAccessLayer(self.instance)
         self.health = HealthDataAccessLayer(self.knowledge)
 
-        self.Misc, = self.define_binding(self.instance)
+        self.Misc = self.define_binding(self.instance)
 
         self.Peer = self.knowledge.Peer
         self.Statement = self.knowledge.Statement
@@ -37,7 +37,7 @@ class TriblerDatabase:
             name = orm.PrimaryKey(str)
             value = orm.Optional(str)
 
-        return Misc,
+        return Misc
 
     def get_misc(self, key: str, default: Optional[str] = None) -> Optional[str]:
         data = self.Misc.get(name=key)

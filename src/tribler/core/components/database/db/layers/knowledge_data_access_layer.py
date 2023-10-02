@@ -20,6 +20,9 @@ SHOW_THRESHOLD = 1  # how many operation needed for showing a knowledge graph st
 HIDE_THRESHOLD = -2  # how many operation needed for hiding a knowledge graph statement in the UI
 
 
+# pylint: disable=redefined-outer-name
+
+
 class Operation(IntEnum):
     """ Available types of statement operations."""
     ADD = 1  # +1 operation
@@ -177,7 +180,6 @@ class KnowledgeDataAccessLayer:
                 yield from list(results)
 
         return Peer, Statement, Resource, StatementOp, _get_statements
-
 
     def add_operation(self, operation: StatementOperation, signature: bytes, is_local_peer: bool = False,
                       is_auto_generated: bool = False, counter_increment: int = 1) -> bool:
@@ -361,9 +363,10 @@ class KnowledgeDataAccessLayer:
         )
         return suggestions
 
-    def get_subjects_intersection(self, objects: Set[str], predicate: Optional[ResourceType],
+    def get_subjects_intersection(self, objects: Set[str],
+                                  predicate: Optional[ResourceType],  # pylint: disable=unused-argument
                                   subjects_type: Optional[ResourceType] = ResourceType.TORRENT,
-                                  case_sensitive: bool = True) -> Set[str]:  # pylint: disable=unused-argument
+                                  case_sensitive: bool = True) -> Set[str]:
         if not objects:
             return set()
 
