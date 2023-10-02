@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from io import StringIO
 from operator import attrgetter
 from types import FrameType
-from typing import Callable, Dict, Iterable, Optional, Type
+from typing import Callable, Dict, Iterable, Optional, Type, TypeVar
 from weakref import WeakSet
 
 from pony import orm
@@ -28,8 +28,15 @@ databases_to_track: WeakSet[TrackedDatabase] = WeakSet()
 StatDict = Dict[Optional[str], core.QueryStat]
 
 
+E = TypeVar('E', bound=core.Entity)
+
+
+def iterable(cls: Type[E]) -> Iterable[E]:
+    return cls
+
+
 # pylint: disable=bad-staticmethod-argument
-def get_or_create(cls: Type[core.Entity], create_kwargs=None, **kwargs) -> core.Entity:
+def get_or_create(cls: Type[E], create_kwargs=None, **kwargs) -> E:
     """Get or create db entity.
     Args:
         cls: Entity's class, eg: `self.instance.Peer`

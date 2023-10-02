@@ -2,6 +2,7 @@ import datetime
 import logging
 
 from pony import orm
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
 
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.upgrade.tags_to_knowledge.previous_dbs.knowledge_db import ResourceType
@@ -9,16 +10,11 @@ from tribler.core.utilities.pony_utils import get_or_create
 
 
 class HealthDataAccessLayer:
-    def __init__(self):
+    def __init__(self, knowledge_layer: KnowledgeDataAccessLayer):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.db = None
-        self.instance = None
-
-    def apply(self, db):
-        self.db = db.instance
-        self.instance = db.instance
-
-        return self.define_binding(self.instance)
+        self.instance = knowledge_layer.instance
+        self.Resource = knowledge_layer.Resource
+        self.HealthInfo, = self.define_binding(self.instance)
 
     @staticmethod
     def define_binding(db):
@@ -36,13 +32,13 @@ class HealthDataAccessLayer:
 
     def add_torrent_health(self, torrent_health: HealthInfo):
         torrent = get_or_create(
-            self.instance.Resource,
+            self.Resource,
             name=torrent_health.infohash_hex,
             type=ResourceType.TORRENT
         )
 
         health_info_entity = get_or_create(
-            self.instance.HealthInfo,
+            self.HealthInfo,
             torrent=torrent
         )
 
@@ -52,6 +48,6 @@ class HealthDataAccessLayer:
         health_info_entity.last_check = datetime.datetime.utcfromtimestamp(torrent_health.last_check)
 
     def get_torrent_health(self, infohash: str):
-        if torrent := self.instance.Resource.get(name=infohash, type=ResourceType.TORRENT):
-            return self.instance.HealthInfo.get(torrent=torrent)
+        if torrent := self.Resource.get(name=infohash, type=ResourceType.TORRENT):
+            return self.HealthInfo.get(torrent=torrent)
         return None

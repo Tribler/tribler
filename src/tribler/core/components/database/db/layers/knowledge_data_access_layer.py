@@ -10,8 +10,7 @@ from pony.orm.core import Entity, Query, select
 from pony.utils import between
 
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
-from tribler.core.utilities.pony_utils import get_or_create
+from tribler.core.utilities.pony_utils import get_or_create, iterable
 
 CLOCK_START_VALUE = 0
 
@@ -64,16 +63,11 @@ class SimpleStatement:
 
 
 class KnowledgeDataAccessLayer:
-    def __init__(self):
+    def __init__(self, instance: orm.Database):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.db = None
-        self.instance = None
-
-    def apply(self, db):
-        self.db = db
-        self.instance = db.instance
-
-        return self.define_binding(self.instance)
+        self.instance = instance
+        self.Peer, self.Statement, self.Resource, self.StatementOp, self._get_statements = \
+            self.define_binding(self.instance)
 
     @staticmethod
     def define_binding(db):
@@ -107,7 +101,7 @@ class KnowledgeDataAccessLayer:
                 Args:
                     operation: Resource operation
                     increment:
-                    is_local_peer: The flag indicates whether do we performs operations from a local user or from
+                    is_local_peer: The flag indicates whether do we perform operations from a local user or from
                         a remote user. In case of the local user, his operations will be considered as
                         authoritative for his (only) local Tribler instance.
 
@@ -145,7 +139,45 @@ class KnowledgeDataAccessLayer:
 
             orm.composite_key(statement, peer)
 
-        return Peer, Statement, Resource, StatementOp
+        def _get_resources(resource_type: Optional[ResourceType], name: Optional[str],
+                           case_sensitive: bool) -> Query:
+            """ Get resources
+
+            Args:
+                resource_type: type of resources
+                name: name of resources
+                case_sensitive: if True, then Resources are selected in a case-sensitive manner.
+                                if False, then Resources are selected in a case-insensitive manner.
+
+            Returns: a Query object for requested resources
+            """
+
+            results = Resource.select()
+            if name:
+                results = results.filter(
+                    (lambda r: r.name == name) if case_sensitive else (lambda r: r.name.lower() == name.lower())
+                )
+            if resource_type:
+                results = results.filter(lambda r: r.type == resource_type.value)
+            return results
+
+        def _get_statements(source_type: Optional[ResourceType], source_name: Optional[str],
+                            statements_getter: Callable[[Entity], Entity],
+                            target_condition: Callable[[], bool], condition: Callable[[], bool],
+                            case_sensitive: bool, ) -> Iterator[Statement]:
+            """ Get entities that satisfies the given condition.
+            """
+
+            for resource in _get_resources(source_type, source_name, case_sensitive):
+                results = orm.select(_ for _ in statements_getter(resource)
+                                     .select(condition)
+                                     .filter(target_condition)
+                                     .order_by(lambda s: orm.desc(s.score)))
+
+                yield from list(results)
+
+        return Peer, Statement, Resource, StatementOp, _get_statements
+
 
     def add_operation(self, operation: StatementOperation, signature: bytes, is_local_peer: bool = False,
                       is_auto_generated: bool = False, counter_increment: int = 1) -> bool:
@@ -161,15 +193,15 @@ class KnowledgeDataAccessLayer:
         Returns: True if the operation has been added/updated, False otherwise.
         """
         self.logger.debug(f'Add operation. {operation.subject} "{operation.predicate}" {operation.object}')
-        peer = get_or_create(self.instance.Peer, public_key=operation.creator_public_key)
-        subject = get_or_create(self.instance.Resource, name=operation.subject, type=operation.subject_type)
-        obj = get_or_create(self.instance.Resource, name=operation.object, type=operation.predicate)
-        statement = get_or_create(self.instance.Statement, subject=subject, object=obj)
-        op = self.instance.StatementOp.get_for_update(statement=statement, peer=peer)
+        peer = get_or_create(self.Peer, public_key=operation.creator_public_key)
+        subject = get_or_create(self.Resource, name=operation.subject, type=operation.subject_type)
+        obj = get_or_create(self.Resource, name=operation.object, type=operation.predicate)
+        statement = get_or_create(self.Statement, subject=subject, object=obj)
+        op = self.StatementOp.get_for_update(statement=statement, peer=peer)
 
         if not op:  # then insert
-            self.instance.StatementOp(statement=statement, peer=peer, operation=operation.operation,
-                                      clock=operation.clock, signature=signature, auto_generated=is_auto_generated)
+            self.StatementOp(statement=statement, peer=peer, operation=operation.operation,
+                             clock=operation.clock, signature=signature, auto_generated=is_auto_generated)
             statement.update_counter(operation.operation, increment=counter_increment, is_local_peer=is_local_peer)
             return True
 
@@ -219,42 +251,6 @@ class KnowledgeDataAccessLayer:
     def _show_condition(s):
         """This function determines show condition for the statement"""
         return s.local_operation == Operation.ADD.value or not s.local_operation and s.score >= SHOW_THRESHOLD
-
-    def _get_resources(self, resource_type: Optional[ResourceType], name: Optional[str], case_sensitive: bool) -> Query:
-        """ Get resources
-
-        Args:
-            resource_type: type of resources
-            name: name of resources
-            case_sensitive: if True, then Resources are selected in a case-sensitive manner. if False, then Resources
-                are selected in a case-insensitive manner.
-        
-        Returns: a Query object for requested resources
-        """
-
-        results = self.instance.Resource.select()
-        if name:
-            results = results.filter(
-                (lambda r: r.name == name) if case_sensitive else (lambda r: r.name.lower() == name.lower())
-            )
-        if resource_type:
-            results = results.filter(lambda r: r.type == resource_type.value)
-        return results
-
-    def _get_statements(self, source_type: Optional[ResourceType], source_name: Optional[str],
-                        statements_getter: Callable[[Entity], Entity],
-                        target_condition: Callable[[], bool], condition: Callable[[], bool],
-                        case_sensitive: bool, ) -> Iterator[str]:
-        """ Get entities that satisfies the given condition.
-        """
-
-        for resource in self._get_resources(source_type, source_name, case_sensitive):
-            results = orm.select(_ for _ in statements_getter(resource)
-                                 .select(condition)
-                                 .filter(target_condition)
-                                 .order_by(lambda s: orm.desc(s.score)))
-
-            yield from list(results)
 
     def get_objects(self, subject_type: Optional[ResourceType] = None, subject: Optional[str] = '',
                     predicate: Optional[ResourceType] = None, case_sensitive: bool = True,
@@ -375,7 +371,7 @@ class KnowledgeDataAccessLayer:
             name_condition = '"obj"."name" = $obj_name'
         else:
             name_condition = 'py_lower("obj"."name") = py_lower($obj_name)'
-        query = select(r.name for r in self.instance.Resource if r.type == subjects_type.value)
+        query = select(r.name for r in iterable(self.Resource) if r.type == subjects_type.value)
         for obj_name in objects:  # pylint: disable=unused-variable
             query = query.filter(raw_sql(f"""
     r.id IN (
@@ -396,17 +392,17 @@ class KnowledgeDataAccessLayer:
     def get_clock(self, operation: StatementOperation) -> int:
         """ Get the clock (int) of operation.
         """
-        peer = self.instance.Peer.get(public_key=operation.creator_public_key)
-        subject = self.instance.Resource.get(name=operation.subject, type=operation.subject_type)
-        obj = self.instance.Resource.get(name=operation.object, type=operation.predicate)
+        peer = self.Peer.get(public_key=operation.creator_public_key)
+        subject = self.Resource.get(name=operation.subject, type=operation.subject_type)
+        obj = self.Resource.get(name=operation.object, type=operation.predicate)
         if not subject or not obj or not peer:
             return CLOCK_START_VALUE
 
-        statement = self.instance.Statement.get(subject=subject, object=obj)
+        statement = self.Statement.get(subject=subject, object=obj)
         if not statement:
             return CLOCK_START_VALUE
 
-        op = self.instance.StatementOp.get(statement=statement, peer=peer)
+        op = self.StatementOp.get(statement=statement, peer=peer)
         return op.clock if op else CLOCK_START_VALUE
 
     def get_operations_for_gossip(self, count: int = 10) -> Set[Entity]:
@@ -419,8 +415,6 @@ class KnowledgeDataAccessLayer:
             condition=lambda so: not so.auto_generated,
             count=count
         )
-
-
 
     def _get_random_operations_by_condition(self, condition: Callable[[Entity], bool], count: int = 5,
                                             attempts: int = 100) -> Set[Entity]:
@@ -441,7 +435,7 @@ class KnowledgeDataAccessLayer:
             if len(operations) == count:
                 return operations
 
-            random_operations_list = self.instance.StatementOp.select_random(1)
+            random_operations_list = self.StatementOp.select_random(1)
             if random_operations_list:
                 operation = random_operations_list[0]
                 if condition(operation):

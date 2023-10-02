@@ -12,12 +12,17 @@ class TriblerDatabase:
     def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
         self.instance = TrackedDatabase()
 
-        self.knowledge = KnowledgeDataAccessLayer()
-        self.health = HealthDataAccessLayer()
+        self.knowledge = KnowledgeDataAccessLayer(self.instance)
+        self.health = HealthDataAccessLayer(self.knowledge)
 
         self.Misc, = self.define_binding(self.instance)
-        self.Peer, self.Statement, self.Resource, self.StatementOp, = self.knowledge.apply(self)
-        self.HealthInfo, = self.health.apply(self)
+
+        self.Peer = self.knowledge.Peer
+        self.Statement = self.knowledge.Statement
+        self.Resource = self.knowledge.Resource
+        self.StatementOp = self.knowledge.StatementOp
+
+        self.HealthInfo = self.health.HealthInfo
 
         self.instance.bind('sqlite', filename or ':memory:', create_db=True)
         generate_mapping_kwargs['create_tables'] = create_tables

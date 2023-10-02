@@ -27,18 +27,18 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
     def test_get_or_create(self):
         # Test that function get_or_create() works as expected:
         # it gets an entity if the entity is exist and create the entity otherwise
-        assert self.db.instance.Peer.select().count() == 0
+        assert self.db.Peer.select().count() == 0
 
         # test create
-        peer = get_or_create(self.db.instance.Peer, public_key=b'123')
+        peer = get_or_create(self.db.Peer, public_key=b'123')
         commit()
         assert peer.public_key == b'123'
-        assert self.db.instance.Peer.select().count() == 1
+        assert self.db.Peer.select().count() == 1
 
         # test get
-        peer = get_or_create(self.db.instance.Peer, public_key=b'123')
+        peer = get_or_create(self.db.Peer, public_key=b'123')
         assert peer.public_key == b'123'
-        assert self.db.instance.Peer.select().count() == 1
+        assert self.db.Peer.select().count() == 1
 
     @db_session
     def test_update_counter_add(self):
@@ -73,10 +73,10 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
     @db_session
     def test_remote_add_tag_operation(self):
         def assert_all_tables_have_the_only_one_entity():
-            assert self.db.instance.Peer.select().count() == 1
-            assert self.db.instance.Resource.select().count() == 2
-            assert self.db.instance.Statement.select().count() == 1
-            assert self.db.instance.StatementOp.select().count() == 1
+            assert self.db.Peer.select().count() == 1
+            assert self.db.Resource.select().count() == 2
+            assert self.db.Statement.select().count() == 1
+            assert self.db.StatementOp.select().count() == 1
 
         # add the first operation
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1')
@@ -94,26 +94,26 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1', clock=1000)
         assert_all_tables_have_the_only_one_entity()
 
-        assert self.db.instance.StatementOp.get().operation == Operation.ADD
-        assert self.db.instance.Statement.get().added_count == 1
-        assert self.db.instance.Statement.get().removed_count == 0
+        assert self.db.StatementOp.get().operation == Operation.ADD
+        assert self.db.Statement.get().added_count == 1
+        assert self.db.Statement.get().removed_count == 0
 
         # add a unique operation from the future
         self.add_operation(self.db, ResourceType.TORRENT, 'infohash', ResourceType.TAG, 'tag', b'peer1',
                            operation=Operation.REMOVE, clock=1001)
         assert_all_tables_have_the_only_one_entity()
-        assert self.db.instance.StatementOp.get().operation == Operation.REMOVE
-        assert self.db.instance.Statement.get().added_count == 0
-        assert self.db.instance.Statement.get().removed_count == 1
+        assert self.db.StatementOp.get().operation == Operation.REMOVE
+        assert self.db.Statement.get().added_count == 0
+        assert self.db.Statement.get().removed_count == 1
 
     @db_session
     def test_resource_type(self):
         # Test that resources with different type are stored in separated db entities.
         def resources():
-            """get all resources from self.db.instance.Resource and convert them to the tuples:
+            """get all resources from self.db.Resource and convert them to the tuples:
             (type, name)
             """
-            db_entities = self.db.instance.Resource.select()
+            db_entities = self.db.Resource.select()
             return [(r.type, r.name) for r in db_entities]
 
         # Add operations for two peers with the 'infohash' and `tag`
@@ -135,7 +135,7 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
     @db_session
     def test_remote_add_multiple_tag_operations(self):
         def _get_statement(t: ResourceType):
-            resources = list(self.db.instance.Resource.select(type=t))
+            resources = list(self.db.Resource.select(type=t))
             return list(resources[0].object_statements).pop()
 
         self.add_operation(self.db, subject='infohash', obj='tag', peer=b'peer1')
@@ -165,9 +165,9 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
             obj='tag'
         )
 
-        assert self.db.instance.StatementOp.get().auto_generated
-        assert self.db.instance.Statement.get().added_count == SHOW_THRESHOLD
-        assert self.db.instance.Peer.get().public_key == PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS
+        assert self.db.StatementOp.get().auto_generated
+        assert self.db.Statement.get().added_count == SHOW_THRESHOLD
+        assert self.db.Peer.get().public_key == PUBLIC_KEY_FOR_AUTO_GENERATED_OPERATIONS
 
     @db_session
     def test_double_add_auto_generated_tag(self):
@@ -204,13 +204,13 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
             }
         )
 
-        assert self.db.instance.Statement.select().count() == 8
-        assert self.db.instance.Resource.select().count() == 8
-        assert self.db.instance.StatementOp.select().count() == 10
+        assert self.db.Statement.select().count() == 8
+        assert self.db.Resource.select().count() == 8
+        assert self.db.StatementOp.select().count() == 10
 
-        infohash1 = self.db.instance.Resource.get(name='infohash1')
-        tag1 = self.db.instance.Resource.get(name='tag1')
-        statement = self.db.instance.Statement.get(subject=infohash1, object=tag1)
+        infohash1 = self.db.Resource.get(name='infohash1')
+        tag1 = self.db.Resource.get(name='tag1')
+        statement = self.db.Statement.get(subject=infohash1, object=tag1)
         assert statement.added_count == 2
         assert statement.removed_count == 0
 
@@ -251,8 +251,8 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
 
     @db_session
     def test_get_objects_case_insensitive(self):
-        # Test that for case sensitive queries the result is the exact match.
-        # Test that for case insensitive queries the result is the case insensitive match.
+        # Test that for case-sensitive queries the result is the exact match.
+        # Test that for case-insensitive queries the result is the case-insensitive match.
 
         torrent = ResourceType.TORRENT
         self.add_operation_set(
