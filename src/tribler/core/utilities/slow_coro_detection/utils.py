@@ -24,8 +24,12 @@ def format_info(handle: Handle, include_stack: bool = False, stack_cut_duration:
 
     if not main_stack_tracking_is_enabled():
         stream = io.StringIO()
-        task.print_stack(limit=limit, file=stream)
-        stack = stream.getvalue()
+        try:
+            task.print_stack(limit=limit, file=stream)
+        except Exception as e:  # pylint: disable=broad-except
+            stack = f'Stack is unavailable: {e.__class__.__name__}: {e}'
+        else:
+            stack = stream.getvalue()
     else:
         stack = get_main_thread_stack(stack_cut_duration, limit, enable_profiling_tip)
     return f"{task}\n{stack}"
