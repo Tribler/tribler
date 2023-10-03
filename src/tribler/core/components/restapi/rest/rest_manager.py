@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import ssl
 import traceback
@@ -23,9 +22,6 @@ from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
-
-
-SITE_START_TIMEOUT = 5.0  # seconds
 
 
 logger = logging.getLogger(__name__)
