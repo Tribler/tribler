@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
@@ -5,6 +7,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
+    BandwidthCommunitySettings,
 )
 from tribler.core.components.bandwidth_accounting.community.cache import BandwidthTransactionSignCache
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
@@ -21,11 +24,17 @@ class TestBandwidthAccountingCommunity(TestBase):
         super().setUp()
         self.initialize(BandwidthAccountingCommunity, 2)
 
-    def create_node(self):
+    def create_node(self, settings: BandwidthCommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
         peer = Peer(default_eccrypto.generate_key("curve25519"), address=("1.2.3.4", 5))
-        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=peer.public_key.key_to_bin())
-        ipv8 = MockIPv8(peer, BandwidthAccountingCommunity, database=db,
-                        settings=BandwidthAccountingSettings())
+        db = BandwidthDatabase(db_path=MEMORY_DB,
+                               my_pub_key=peer.public_key.key_to_bin())
+        ipv8 = MockIPv8(peer,
+                        BandwidthAccountingCommunity,
+                        BandwidthCommunitySettings(
+                            database=db,
+                            settings=BandwidthAccountingSettings()
+                        ))
         return ipv8
 
     def database(self, i):

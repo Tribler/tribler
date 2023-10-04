@@ -1,6 +1,7 @@
 from typing import Optional
 
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
+from ipv8.community import CommunitySettings
 from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
 from ipv8.dht.churn import PingChurn
 from ipv8.dht.discovery import DHTDiscoveryCommunity
@@ -112,7 +113,12 @@ class Ipv8Component(Component):
 
     def _init_peer_discovery_community(self):
         ipv8 = self.ipv8
-        community = DiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=100)
+        community = DiscoveryCommunity(CommunitySettings(
+            my_peer=self.peer,
+            endpoint=ipv8.endpoint,
+            network=ipv8.network,
+            max_peers=100
+        ))
         self.initialise_community_by_default(community)
         ipv8.add_strategy(community, RandomChurn(community), INFINITE)
         ipv8.add_strategy(community, PeriodicSimilarity(community), INFINITE)
@@ -120,7 +126,12 @@ class Ipv8Component(Component):
 
     def _init_dht_discovery_community(self):
         ipv8 = self.ipv8
-        community = DHTDiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=60)
+        community = DHTDiscoveryCommunity(CommunitySettings(
+            my_peer=self.peer,
+            endpoint=ipv8.endpoint,
+            network=ipv8.network,
+            max_peers=60
+        ))
         self.initialise_community_by_default(community)
         ipv8.add_strategy(community, PingChurn(community), INFINITE)
         self.dht_discovery_community = community
@@ -136,4 +147,4 @@ class Ipv8Component(Component):
                 await self.ipv8.unload_overlay(overlay)
 
         await self._task_manager.shutdown_task_manager()
-        await self.ipv8.stop(stop_loop=False)
+        await self.ipv8.stop()

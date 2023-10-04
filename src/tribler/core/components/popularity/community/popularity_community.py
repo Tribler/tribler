@@ -7,7 +7,10 @@ from typing import List, TYPE_CHECKING
 from ipv8.lazy_community import lazy_wrapper
 from pony.orm import db_session
 
-from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
+    RemoteCommunitySettings,
+    RemoteQueryCommunity
+)
 from tribler.core.components.popularity.community.payload import PopularTorrentsRequest, TorrentsHealthPayload
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
@@ -17,6 +20,10 @@ from tribler.core.utilities.utilities import get_normally_distributed_positive_i
 
 if TYPE_CHECKING:
     from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
+
+
+class PopularityCommunitySettings(RemoteCommunitySettings):
+    torrent_checker: TorrentChecker | None = None
 
 
 class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
@@ -36,11 +43,12 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     GOSSIP_RANDOM_TORRENT_COUNT = 10
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
+    settings_class = PopularityCommunitySettings
 
-    def __init__(self, *args, torrent_checker=None, **kwargs):
+    def __init__(self, settings: PopularityCommunitySettings):
         # Creating a separate instance of Network for this community to find more peers
-        super().__init__(*args, **kwargs)
-        self.torrent_checker: TorrentChecker = torrent_checker
+        super().__init__(settings)
+        self.torrent_checker = settings.torrent_checker
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
         self.add_message_handler(PopularTorrentsRequest, self.on_popular_torrents_request)

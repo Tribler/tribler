@@ -26,7 +26,10 @@ from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.socks_servers.socks5.server import Socks5Server
 from tribler.core.components.socks_servers.socks_servers_component import NUM_SOCKS_PROXIES
-from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
+from tribler.core.components.tunnel.community.tunnel_community import (
+    TriblerTunnelCommunity,
+    TriblerTunnelCommunitySettings
+)
 from tribler.core.components.tunnel.settings import TunnelCommunitySettings
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.simpledefs import DownloadStatus
@@ -135,10 +138,12 @@ async def create_tunnel_community(temp_path_factory: TempPathFactory,
 
     ipv8 = MockIPv8("curve25519",
                     TriblerTunnelCommunity,
-                    settings={"max_circuits": 1},
-                    config=config,
-                    socks_servers=socks_servers,
-                    dlmgr=download_manager)
+                    TriblerTunnelCommunitySettings(
+                        settings={"max_circuits": 1},
+                        config=config,
+                        socks_servers=socks_servers,
+                        dlmgr=download_manager
+                    ))
     if start_lt:
         download_manager.peer_mid = ipv8.my_peer.mid
         download_manager.initialize()

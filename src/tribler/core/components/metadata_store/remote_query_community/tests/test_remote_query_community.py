@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import random
 import string
@@ -9,6 +11,8 @@ from os import urandom
 from unittest.mock import Mock, patch
 
 import pytest
+
+from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
@@ -18,6 +22,7 @@ from tribler.core.components.metadata_store.db.orm_bindings.channel_node import 
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
+    RemoteCommunitySettings,
     RemoteQueryCommunity,
     sanitize_query,
 )
@@ -73,7 +78,8 @@ class TestRemoteQueryCommunity(TestBase):
             metadata_store.shutdown()
         await super().tearDown()
 
-    def create_node(self, *args, **kwargs):
+    def create_node(self, settings: CommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
         metadata_store = MetadataStore(
             Path(self.temporary_directory()) / f"{self.count}.db",
             Path(self.temporary_directory()),
@@ -81,9 +87,8 @@ class TestRemoteQueryCommunity(TestBase):
             disable_sync=True,
         )
         self.metadata_store_set.add(metadata_store)
-        kwargs['metadata_store'] = metadata_store
-        kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
-        node = super().create_node(*args, **kwargs)
+        node = super().create_node(RemoteCommunitySettings(metadata_store=metadata_store,
+                                                           rqc_settings=RemoteQueryCommunitySettings()))
         self.count += 1
         return node
 

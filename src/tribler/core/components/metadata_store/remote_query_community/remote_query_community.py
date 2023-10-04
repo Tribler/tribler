@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import struct
 import time
@@ -14,7 +16,7 @@ from pony.orm.dbapiprovider import OperationalError
 
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
-from tribler.core.components.ipv8.tribler_community import TriblerCommunity
+from tribler.core.components.ipv8.tribler_community import TriblerCommunity, TriblerSettings
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
 from tribler.core.components.database.db.tribler_database import ResourceType
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
@@ -128,21 +130,24 @@ class PushbackWindow(NumberCache):
         pass
 
 
+class RemoteCommunitySettings(TriblerSettings):
+    rqc_settings: RemoteQueryCommunitySettings | None = None
+    metadata_store: MetadataStore | None = None
+    tribler_db = None
+
+
 class RemoteQueryCommunity(TriblerCommunity):
     """
     Community for general purpose SELECT-like queries into remote Channels database
     """
+    settings_class = RemoteCommunitySettings
 
-    def __init__(self, my_peer, endpoint, network,
-                 rqc_settings: RemoteQueryCommunitySettings = None,
-                 metadata_store=None,
-                 tribler_db=None,
-                 **kwargs):
-        super().__init__(my_peer, endpoint, network=network, **kwargs)
+    def __init__(self, settings: RemoteCommunitySettings):
+        super().__init__(settings)
 
-        self.rqc_settings = rqc_settings
-        self.mds: MetadataStore = metadata_store
-        self.tribler_db = tribler_db
+        self.rqc_settings = settings.rqc_settings
+        self.mds = settings.metadata_store
+        self.tribler_db = settings.tribler_db
         # This object stores requests for "select" queries that we sent to other hosts.
         # We keep track of peers we actually requested for data so people can't randomly push spam at us.
         # Also, this keeps track of hosts we responded to. There is a possibility that

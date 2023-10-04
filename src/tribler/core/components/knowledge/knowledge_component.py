@@ -3,7 +3,7 @@ from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
-from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
+from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity, KnowledgeSettings
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.utils import generate_test_channels
 
@@ -23,13 +23,13 @@ class KnowledgeComponent(Component):
         mds_component = await self.require_component(metadata_store_component.MetadataStoreComponent)
         db_component = await self.require_component(DatabaseComponent)
 
-        self.community = KnowledgeCommunity(
-            self._ipv8_component.peer,
-            self._ipv8_component.ipv8.endpoint,
-            self._ipv8_component.ipv8.network,
+        self.community = KnowledgeCommunity(KnowledgeSettings(
+            my_peer=self._ipv8_component.peer,
+            endpoint=self._ipv8_component.ipv8.endpoint,
+            network=self._ipv8_component.ipv8.network,
             db=db_component.db,
             key=key_component.secondary_key
-        )
+        ))
         self.rules_processor = KnowledgeRulesProcessor(
             notifier=self.session.notifier,
             db=db_component.db,

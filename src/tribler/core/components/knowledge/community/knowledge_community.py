@@ -7,7 +7,7 @@ from ipv8.lazy_community import lazy_wrapper
 from ipv8.types import Key
 from pony.orm import db_session
 
-from tribler.core.components.ipv8.tribler_community import TriblerCommunity
+from tribler.core.components.ipv8.tribler_community import TriblerCommunity, TriblerSettings
 from tribler.core.components.knowledge.community.knowledge_payload import (
     RawStatementOperationMessage,
     RequestStatementOperationMessage,
@@ -26,6 +26,12 @@ REQUEST_INTERVAL = 5  # 5 sec
 CLEAR_ALL_REQUESTS_INTERVAL = 10 * 60  # 10 minutes
 
 
+class KnowledgeSettings(TriblerSettings):
+    db: TriblerDatabase
+    key: LibNaCLSK
+    request_interval = REQUEST_INTERVAL
+
+
 class KnowledgeCommunity(TriblerCommunity):
     """ Community for disseminating tags across the network.
 
@@ -33,18 +39,18 @@ class KnowledgeCommunity(TriblerCommunity):
     """
 
     community_id = unhexlify('d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0')
+    settings_class = KnowledgeSettings
 
-    def __init__(self, *args, db: TriblerDatabase, key: LibNaCLSK, request_interval=REQUEST_INTERVAL,
-                 **kwargs):
-        super().__init__(*args, **kwargs)
-        self.db = db
-        self.key = key
+    def __init__(self, settings: KnowledgeSettings):
+        super().__init__(settings)
+        self.db = settings.db
+        self.key = settings.key
         self.requests = OperationsRequests()
 
         self.add_message_handler(RawStatementOperationMessage, self.on_message)
         self.add_message_handler(RequestStatementOperationMessage, self.on_request)
 
-        self.register_task("request_operations", self.request_operations, interval=request_interval)
+        self.register_task("request_operations", self.request_operations, interval=settings.request_interval)
         self.register_task("clear_requests", self.requests.clear_requests, interval=CLEAR_ALL_REQUESTS_INTERVAL)
         self.logger.info('Knowledge community initialized')
 

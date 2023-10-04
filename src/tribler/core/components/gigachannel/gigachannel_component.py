@@ -4,7 +4,7 @@ from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.gigachannel.community.gigachannel_community import (
     GigaChannelCommunity,
-    GigaChannelTestnetCommunity,
+    GigaChannelTestnetCommunity, GigaCommunitySettings,
 )
 from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
@@ -29,17 +29,17 @@ class GigaChannelComponent(Component):
         db_component = await self.get_component(DatabaseComponent)
 
         giga_channel_cls = GigaChannelTestnetCommunity if config.general.testnet else GigaChannelCommunity
-        community = giga_channel_cls(
-            self._ipv8_component.peer,
-            self._ipv8_component.ipv8.endpoint,
-            Network(),
+        community = giga_channel_cls(GigaCommunitySettings(
+            my_peer=self._ipv8_component.peer,
+            endpoint=self._ipv8_component.ipv8.endpoint,
+            network=Network(),
             notifier=notifier,
             settings=config.chant,
             rqc_settings=config.remote_query_community,
             metadata_store=metadata_store_component.mds,
             max_peers=50,
             tribler_db=db_component.db if db_component else None
-        )
+        ))
         self.community = community
         self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)
         self._ipv8_component.ipv8.add_strategy(community, RemovePeers(community), INFINITE)

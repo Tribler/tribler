@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 import uuid
 from binascii import unhexlify
@@ -13,7 +15,10 @@ from tribler.core import notifications
 from tribler.core.components.ipv8.discovery_booster import DiscoveryBooster
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState
-from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
+    RemoteCommunitySettings,
+    RemoteQueryCommunity
+)
 from tribler.core.components.metadata_store.utils import NoChannelSourcesException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID
@@ -70,8 +75,13 @@ class ChannelsPeersMapping:
         return sorted(channel_peers, key=lambda x: x.last_response, reverse=True)[0:limit]
 
 
+class GigaCommunitySettings(RemoteCommunitySettings):
+    notifier: Notifier | None = None
+
+
 class GigaChannelCommunity(RemoteQueryCommunity):
     community_id = unhexlify('d3512d0ff816d8ac672eab29a9c1a3a32e17cb13')
+    settings_class = GigaCommunitySettings
 
     def create_introduction_response(
             self,
@@ -94,14 +104,12 @@ class GigaChannelCommunity(RemoteQueryCommunity):
             new_style=new_style,
         )
 
-    def __init__(
-            self, *args, notifier: Notifier = None, **kwargs
-    ):  # pylint: disable=unused-argument
+    def __init__(self, settings: GigaCommunitySettings):  # pylint: disable=unused-argument
         # ACHTUNG! We create a separate instance of Network for this community because it
         # walks aggressively and wants lots of peers, which can interfere with other communities
-        super().__init__(*args, **kwargs)
+        super().__init__(settings)
 
-        self.notifier = notifier
+        self.notifier = settings.notifier
 
         # This set contains all the peers that we queried for subscribed channels over time.
         # It is emptied regularly. The purpose of this set is to work as a filter so we never query the same

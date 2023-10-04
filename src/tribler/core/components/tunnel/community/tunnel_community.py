@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import math
 import sys
@@ -11,7 +13,7 @@ from typing import Callable, List, Optional
 import async_timeout
 from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import unpack_cell
-from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
+from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, HiddenTunnelSettings
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
@@ -34,6 +36,7 @@ from pony.orm import OrmError
 
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
+from tribler.core.components.ipv8.tribler_community import TriblerSettings
 from tribler.core.components.socks_servers.socks5.server import Socks5Server
 from tribler.core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
@@ -61,24 +64,34 @@ PEER_FLAG_EXIT_HTTP = 32768
 MAX_HTTP_PACKET_SIZE = 1400
 
 
+class TriblerTunnelCommunitySettings(HiddenTunnelSettings, TriblerSettings):
+    bandwidth_community = None
+    exitnode_cache: Optional[Path] = None
+    config = None
+    notifier = None
+    dlmgr = None
+    socks_servers: List[Socks5Server] = []
+
+
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
     """
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
     """
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
+    settings_class = TriblerTunnelCommunitySettings
 
-    def __init__(self, *args, **kwargs):
-        self.bandwidth_community = kwargs.pop('bandwidth_community', None)
-        self.exitnode_cache: Optional[Path] = kwargs.pop('exitnode_cache', None)
-        self.config = kwargs.pop('config', None)
-        self.notifier = kwargs.pop('notifier', None)
-        self.download_manager = kwargs.pop('dlmgr', None)
-        self.socks_servers: List[Socks5Server] = kwargs.pop('socks_servers', [])
+    def __init__(self, settings: TriblerTunnelCommunitySettings):
+        self.bandwidth_community = settings.bandwidth_community
+        self.exitnode_cache = settings.exitnode_cache
+        self.config = settings.config
+        self.notifier = settings.notifier
+        self.download_manager = settings.dlmgr
+        self.socks_servers = settings.socks_servers
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
 
-        super().__init__(*args, **kwargs)
+        super().__init__(settings)
         self._use_main_thread = True
 
         if self.config.exitnode_enabled:
@@ -382,7 +395,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if tup[1] == circuit_id:
                 self.competing_slots[ind] = (0, None)
 
-    def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
+    def remove_circuit(self, circuit_id: int, additional_info: str = '', remove_now: bool = False,
+                       destroy: bool | int = False):
         if circuit_id not in self.circuits:
             self.logger.warning("Circuit %d not found when trying to remove it", circuit_id)
             return succeed(None)
@@ -423,14 +437,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                       remove_now=remove_now, destroy=destroy)
 
     @task
-    async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
-                           got_destroy_from=None, both_sides=True):
+    async def remove_relay(self, circuit_id: int, additional_info: str = '', remove_now: bool = False,
+                           destroy: bool = False):
         removed_relays = await super().remove_relay(circuit_id,
                                                     additional_info=additional_info,
                                                     remove_now=remove_now,
-                                                    destroy=destroy,
-                                                    got_destroy_from=got_destroy_from,
-                                                    both_sides=both_sides)
+                                                    destroy=destroy)
 
         self.clean_from_slots(circuit_id)
 
@@ -438,7 +450,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             for removed_relay in removed_relays:
                 self.notifier[notifications.circuit_removed](removed_relay, additional_info)
 
-    def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
+    def remove_exit_socket(self, circuit_id: int, additional_info: str = '', remove_now: bool = False,
+                           destroy: bool = False):
         if circuit_id in self.exit_sockets and self.notifier:
             exit_socket = self.exit_sockets[circuit_id]
             self.notifier[notifications.circuit_removed](exit_socket, additional_info)

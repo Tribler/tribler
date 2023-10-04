@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields
@@ -5,6 +7,8 @@ from typing import Callable
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+
+from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
@@ -13,7 +17,7 @@ from pony.orm import db_session
 from tribler.core.components.gigachannel.community.gigachannel_community import (
     ChannelsPeersMapping,
     GigaChannelCommunity,
-    NoChannelSourcesException,
+    GigaCommunitySettings, NoChannelSourcesException,
     happy_eyeballs_delay
 )
 from tribler.core.components.gigachannel.community.settings import ChantSettings
@@ -66,7 +70,8 @@ class TestGigaChannelUnits(TestBase):
             metadata_store.shutdown()
         await super().tearDown()
 
-    def create_node(self, *args, **kwargs):
+    def create_node(self, settings: CommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
         metadata_store = MetadataStore(
             Path(self.temporary_directory()) / f"{self.count}.db",
             Path(self.temporary_directory()),
@@ -74,10 +79,11 @@ class TestGigaChannelUnits(TestBase):
             disable_sync=True,
         )
         self.metadata_store_set.add(metadata_store)
-        kwargs['metadata_store'] = metadata_store
-        kwargs['settings'] = ChantSettings()
-        kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
-        node = super().create_node(*args, **kwargs)
+        node = super().create_node(GigaCommunitySettings(
+            metadata_store=metadata_store,
+            settings=ChantSettings(),
+            rqc_settings=RemoteQueryCommunitySettings()
+        ))
 
         node.overlay.discovery_booster.finish()
         notifier = Notifier(loop=self.loop)

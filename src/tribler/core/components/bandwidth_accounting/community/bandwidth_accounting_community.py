@@ -16,8 +16,12 @@ from tribler.core.components.bandwidth_accounting.community.payload import (
 )
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
-from tribler.core.components.ipv8.tribler_community import TriblerCommunity
+from tribler.core.components.ipv8.tribler_community import TriblerCommunity, TriblerSettings
 from tribler.core.utilities.unicode import hexlify
+
+
+class BandwidthCommunitySettings(TriblerSettings):
+    database: BandwidthDatabase | None = None
 
 
 class BandwidthAccountingCommunity(TriblerCommunity):
@@ -27,17 +31,18 @@ class BandwidthAccountingCommunity(TriblerCommunity):
     community_id = unhexlify('79b25f2867739261780faefede8f25038de9975d')
     DB_NAME = 'bandwidth'
     version = b'\x02'
+    settings_class = BandwidthCommunitySettings
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, settings: BandwidthCommunitySettings) -> None:
         """
         Initialize the community.
         :param persistence: The database that stores transactions, will be created if not provided.
         :param database_path: The path at which the database will be created. Defaults to the current working directory.
         """
-        self.database: BandwidthDatabase = kwargs.pop('database', None)
+        self.database = settings.database
         self.random = Random()
 
-        super().__init__(*args, **kwargs)
+        super().__init__(settings)
 
         self.request_cache = RequestCache()
         self.my_pk = self.my_peer.public_key.key_to_bin()

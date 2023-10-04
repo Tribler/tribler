@@ -9,7 +9,7 @@ from tribler.core.components.socks_servers.socks_servers_component import SocksS
 from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
 from tribler.core.components.tunnel.community.tunnel_community import (
     TriblerTunnelCommunity,
-    TriblerTunnelTestnetCommunity,
+    TriblerTunnelCommunitySettings, TriblerTunnelTestnetCommunity,
 )
 
 
@@ -47,17 +47,19 @@ class TunnelsComponent(Component):
         exitnode_cache = config.state_dir / "exitnode_cache.dat"
 
         # TODO: decouple bandwidth community and dlmgr to initiate later
-        self.community = tunnel_cls(self._ipv8_component.peer,
-                                    self._ipv8_component.ipv8.endpoint,
-                                    self._ipv8_component.ipv8.network,
-                                    socks_servers=socks_servers,
-                                    config=config.tunnel_community,
-                                    notifier=self.session.notifier,
-                                    dlmgr=download_manager,
-                                    bandwidth_community=bandwidth_community,
-                                    dht_provider=provider,
-                                    exitnode_cache=exitnode_cache,
-                                    settings=settings)
+        self.community = tunnel_cls(TriblerTunnelCommunitySettings(
+            my_peer=self._ipv8_component.peer,
+            endpoint=self._ipv8_component.ipv8.endpoint,
+            network=self._ipv8_component.ipv8.network,
+            socks_servers=socks_servers,
+            config=config.tunnel_community,
+            notifier=self.session.notifier,
+            dlmgr=download_manager,
+            bandwidth_community=bandwidth_community,
+            dht_provider=provider,
+            exitnode_cache=exitnode_cache,
+            settings=settings
+        ))
 
         self._ipv8_component.initialise_community_by_default(self.community)
         self._ipv8_component.ipv8.add_strategy(self.community, GoldenRatioStrategy(self.community), INFINITE)

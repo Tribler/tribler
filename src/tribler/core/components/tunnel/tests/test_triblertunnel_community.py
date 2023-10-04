@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import os
 from asyncio import Future, TimeoutError as AsyncTimeoutError, sleep, wait_for
 from collections import defaultdict
 from random import random
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
+
+from ipv8.community import CommunitySettings
+from ipv8.keyvault.public.libnaclkey import LibNaCLPK
 from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
@@ -12,8 +17,8 @@ from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_TYPE_RP_SEEDER,
     PEER_FLAG_EXIT_BT,
 )
+from ipv8.messaging.serialization import ADDRESS_TYPE_IPV4
 from ipv8.peer import Peer
-from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.test_community import MockDHTProvider
@@ -23,11 +28,16 @@ from ipv8.util import succeed
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
+    BandwidthCommunitySettings,
 )
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.components.tunnel.community.payload import BandwidthTransactionPayload
-from tribler.core.components.tunnel.community.tunnel_community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity
+from tribler.core.components.tunnel.community.tunnel_community import (
+    PEER_FLAG_EXIT_HTTP,
+    TriblerTunnelCommunity,
+    TriblerTunnelCommunitySettings
+)
 from tribler.core.components.tunnel.settings import TunnelCommunitySettings
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.tests.tools.tracker.http_tracker import HTTPTracker
@@ -37,29 +47,16 @@ from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
-# pylint: disable=redefined-outer-name
-
-@pytest.fixture()
-async def tunnel_community():
-    community = TriblerTunnelCommunity(MagicMock(),
-                                       MagicMock(),
-                                       MagicMock(),
-                                       socks_servers=MagicMock(),
-                                       config=MagicMock(),
-                                       notifier=MagicMock(),
-                                       dlmgr=MagicMock(),
-                                       bandwidth_community=MagicMock(),
-                                       dht_provider=MagicMock(),
-                                       exitnode_cache=MagicMock(),
-                                       settings=MagicMock())
-    yield community
-    await community.unload()
-
-
+@pytest.mark.usefixtures("tmp_path")
 class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-methods
+
+    @pytest.fixture(autouse=True)
+    def init_tmp(self, tmp_path):
+        self.tmp_path = tmp_path
 
     def setUp(self):
         self.initialize(TriblerTunnelCommunity, 1)
+        self.tmp_path = self.tmp_path
 
     async def tearDown(self):
         test_community.global_dht_services = defaultdict(list)  # Reset the global_dht_services variable
@@ -67,21 +64,25 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
             await node.overlay.bandwidth_community.unload()
         await super().tearDown()
 
-    def create_node(self):
+    def create_node(self, settings: CommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
         config = TunnelCommunitySettings()
         mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity,
-                             settings={'remove_tunnel_delay': 0},
-                             config=config,
-                             exitnode_cache=Path(self.temporary_directory()) / "exitnode_cache.dat"
-                             )
-        mock_ipv8.overlay.settings.max_circuits = 1
-
-        db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
+                             TriblerTunnelCommunitySettings(
+                                 settings={'remove_tunnel_delay': 0},
+                                 config=config,
+                                 exitnode_cache=Path(self.temporary_directory()) / "exitnode_cache.dat",
+                                 max_circuits=1
+                             ))
 
         # Load the bandwidth accounting community
-        mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(
-            mock_ipv8.my_peer, mock_ipv8.endpoint, mock_ipv8.network,
-            settings=BandwidthAccountingSettings(), database=db)
+        mock_ipv8.overlay.bandwidth_community = BandwidthAccountingCommunity(BandwidthCommunitySettings(
+            my_peer=mock_ipv8.my_peer,
+            endpoint=mock_ipv8.endpoint,
+            network=mock_ipv8.network,
+            settings=BandwidthAccountingSettings(),
+            database=BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=mock_ipv8.my_peer.public_key.key_to_bin())
+        ))
         mock_ipv8.overlay.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key,
                                                               mock_ipv8.overlay.my_estimated_wan))
 
@@ -345,11 +346,10 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(2), 1.0)
 
         # Destroy the circuit
-        for circuit_id, circuit in self.nodes[0].overlay.circuits.items():
+        for circuit_id, circuit in list(self.nodes[0].overlay.circuits.items()):
             circuit.bytes_down = 250 * 1024 * 1024
-            self.nodes[0].overlay.remove_circuit(circuit_id, destroy=1)
-
-        await sleep(0.5)
+            await self.nodes[0].overlay.remove_circuit(circuit_id, destroy=1)
+            await self.deliver_messages()
 
         # Verify whether the downloader (node 0) correctly paid the relay and exit nodes.
         self.assertTrue(self.nodes[0].overlay.bandwidth_community.database.get_my_balance() < 0)
@@ -672,20 +672,18 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
                                                                       b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
                            timeout=.3)
 
+    def test_cache_exitnodes_to_disk(self):
+        """ Test whether we can cache exit nodes to disk """
+        self.overlay(0).candidates = {Peer(LibNaCLPK(b'\x00'*64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
+        self.overlay(0).exitnode_cache = self.tmp_path / 'exitnode_cache.dat'
+        self.overlay(0).cache_exitnodes_to_disk()
 
-@patch.object(Network, 'snapshot', Mock(return_value=b'snapshot'))
-def test_cache_exitnodes_to_disk(tunnel_community: TriblerTunnelCommunity, tmp_path):
-    """ Test whether we can cache exit nodes to disk """
-    tunnel_community.exitnode_cache = tmp_path / 'exitnode_cache.dat'
-    tunnel_community.cache_exitnodes_to_disk()
+        assert self.overlay(0).exitnode_cache.read_bytes() == bytes([ADDRESS_TYPE_IPV4]) + bytes(range(6))
 
-    assert tunnel_community.exitnode_cache.read_bytes() == b'snapshot'
+    def test_cache_exitnodes_to_disk_os_error(self):
+        """ Test whether we can handle an OSError when caching exit nodes to disk and raise no errors """
+        self.overlay(0).candidates = {Peer(LibNaCLPK(b'\x00'*64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
+        self.overlay(0).exitnode_cache = Mock(write_bytes=Mock(side_effect=FileNotFoundError))
+        self.overlay(0).cache_exitnodes_to_disk()
 
-
-@patch.object(Network, 'snapshot', Mock(return_value=b'snapshot'))
-def test_cache_exitnodes_to_disk_os_error(tunnel_community: TriblerTunnelCommunity):
-    """ Test whether we can handle an OSError when caching exit nodes to disk and raise no errors """
-    tunnel_community.exitnode_cache = Mock(write_bytes=Mock(side_effect=FileNotFoundError))
-    tunnel_community.cache_exitnodes_to_disk()
-
-    assert tunnel_community.exitnode_cache.write_bytes.called
+        assert self.overlay(0).exitnode_cache.write_bytes.called

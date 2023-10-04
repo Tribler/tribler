@@ -1,6 +1,7 @@
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
     BandwidthAccountingTestnetCommunity,
+    BandwidthCommunitySettings,
 )
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.component import Component
@@ -40,12 +41,14 @@ class BandwidthAccountingComponent(Component):
                                           store_all_transactions=store_all_transactions)
 
         kwargs = {"max_peers": -1} if unlimited_peers else {}
-        self.community = bandwidth_cls(self._ipv8_component.peer,
-                                       self._ipv8_component.ipv8.endpoint,
-                                       self._ipv8_component.ipv8.network,
-                                       settings=config.bandwidth_accounting,
-                                       database=self.database,
-                                       **kwargs)
+        self.community = bandwidth_cls(BandwidthCommunitySettings(
+            my_peer=self._ipv8_component.peer,
+            endpoint=self._ipv8_component.ipv8.endpoint,
+            network=self._ipv8_component.ipv8.network,
+            settings=config.bandwidth_accounting,
+            database=self.database,
+            **kwargs
+        ))
 
         self._ipv8_component.initialise_community_by_default(self.community)
 

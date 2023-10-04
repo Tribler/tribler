@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import time
 from random import randint
 from typing import List
 from unittest.mock import Mock
 
+from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
@@ -10,7 +13,10 @@ from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.components.popularity.community.popularity_community import (
+    PopularityCommunity,
+    PopularityCommunitySettings
+)
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HealthInfo
 from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.utilities.path_util import Path
@@ -53,7 +59,8 @@ class TestPopularityCommunity(TestBase):
             metadata_store.shutdown()
         await super().tearDown()
 
-    def create_node(self, *args, **kwargs):
+    def create_node(self, settings: CommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
         mds = MetadataStore(Path(self.temporary_directory()) / f"{self.count}",
                             Path(self.temporary_directory()),
                             default_eccrypto.generate_key("curve25519"))
@@ -64,10 +71,12 @@ class TestPopularityCommunity(TestBase):
         self.count += 1
 
         rqc_settings = RemoteQueryCommunitySettings()
-        return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
-                        torrent_checker=torrent_checker,
-                        rqc_settings=rqc_settings
-                        )
+        return MockIPv8("curve25519", PopularityCommunity,
+                        PopularityCommunitySettings(
+                            metadata_store=mds,
+                            torrent_checker=torrent_checker,
+                            rqc_settings=rqc_settings
+                        ))
 
     @db_session
     def fill_database(self, metadata_store, last_check_now=False):

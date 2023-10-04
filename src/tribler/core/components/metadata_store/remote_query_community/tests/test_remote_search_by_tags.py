@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
+from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
 from pony.orm import db_session
@@ -9,7 +12,10 @@ from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.database.db.tests.test_tribler_database import Resource, TestTagDB
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
+from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
+    RemoteCommunitySettings,
+    RemoteQueryCommunity
+)
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.remote_query_community.tests.test_remote_query_community import (
     BasicRemoteQueryCommunity,
@@ -37,7 +43,8 @@ class TestRemoteSearchByTags(TestBase):
 
         await super().tearDown()
 
-    def create_node(self, *args, **kwargs):
+    def create_node(self, settings: CommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
         self.metadata_store = MetadataStore(
             Path(self.temporary_directory()) / "mds.db",
             Path(self.temporary_directory()),
@@ -46,10 +53,11 @@ class TestRemoteSearchByTags(TestBase):
         )
         self.tribler_db = TriblerDatabase(str(Path(self.temporary_directory()) / "tags.db"))
 
-        kwargs['metadata_store'] = self.metadata_store
-        kwargs['tribler_db'] = self.tribler_db
-        kwargs['rqc_settings'] = RemoteQueryCommunitySettings()
-        return super().create_node(*args, **kwargs)
+        return super().create_node(RemoteCommunitySettings(
+            metadata_store=self.metadata_store,
+            tribler_db=self.tribler_db,
+            rqc_settings=RemoteQueryCommunitySettings()
+        ))
 
     @property
     def rqc(self) -> RemoteQueryCommunity:

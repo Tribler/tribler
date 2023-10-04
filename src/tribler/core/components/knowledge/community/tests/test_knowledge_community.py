@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import datetime
 from unittest.mock import MagicMock, Mock
 
+from ipv8.community import CommunitySettings
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
-from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
+from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity, KnowledgeSettings
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
 
@@ -21,9 +24,13 @@ class TestKnowledgeCommunity(TestBase):
     async def tearDown(self):
         await super().tearDown()
 
-    def create_node(self, *args, **kwargs):
-        return MockIPv8("curve25519", KnowledgeCommunity, db=TriblerDatabase(), key=LibNaCLSK(),
-                        request_interval=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS)
+    def create_node(self, settings: CommunitySettings | None = None,  # pylint: disable=unused-argument
+                    create_dht: bool = False, enable_statistics: bool = False):  # pylint: disable=unused-argument
+        return MockIPv8("curve25519", KnowledgeCommunity, KnowledgeSettings(
+            db=TriblerDatabase(),
+            key=LibNaCLSK(),
+            request_interval=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS
+        ))
 
     def create_operation(self, subject='1' * 20, obj=''):
         community = self.overlay(0)
