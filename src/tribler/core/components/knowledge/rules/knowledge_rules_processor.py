@@ -10,7 +10,8 @@ from ipv8.taskmanager import TaskManager
 from pony.orm import db_session
 
 from tribler.core import notifications
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.rules.rules_content_items import content_items_rules
 from tribler.core.components.knowledge.rules.rules_general_tags import general_rules
 from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_valid_tags
@@ -221,7 +222,8 @@ class KnowledgeRulesProcessor(TaskManager):
     def save_statements(self, subject_type: ResourceType, subject: str, predicate: ResourceType, objects: Set[str]):
         self.logger.debug(f'Save: {len(objects)} objects for "{subject}" with predicate={predicate}')
         for obj in objects:
-            self.db.add_auto_generated(subject_type=subject_type, subject=subject, predicate=predicate, obj=obj)
+            self.db.knowledge.add_auto_generated_operation(subject_type=subject_type, subject=subject,
+                                                           predicate=predicate, obj=obj)
 
     @db_session
     def get_last_processed_torrent_id(self) -> int:

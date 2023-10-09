@@ -5,8 +5,9 @@ from faker import Faker
 from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, Operation, ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.tests.tools.common import PNG_FILE
@@ -39,7 +40,7 @@ def get_random_word(min_length=0):
     return word
 
 
-def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
+def tag_torrent(infohash, db, tags=None, suggested_tags=None):
     infohash = hexlify(infohash)
     if tags is None:
         tags_count = random.randint(2, 6)
@@ -60,8 +61,8 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
     def _add_operation(_obj, _op, _key, _predicate=ResourceType.TAG):
         operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash, predicate=_predicate,
                                        object=_obj, operation=_op, clock=0, creator_public_key=_key.pub().key_to_bin())
-        operation.clock = tags_db.get_clock(operation) + 1
-        tags_db.add_operation(operation, b"")
+        operation.clock = db.knowledge.get_clock(operation) + 1
+        db.knowledge.add_operation(operation, b"")
 
     # Give the torrent some tags
     for tag in tags:
@@ -86,7 +87,7 @@ def tag_torrent(infohash, tags_db, tags=None, suggested_tags=None):
 
 
 @db_session
-def generate_torrent(metadata_store, tags_db, parent, title=None):
+def generate_torrent(metadata_store, db, parent, title=None):
     infohash = random_infohash()
 
     # Give each torrent some health information. For now, we assume all torrents are healthy.
@@ -97,7 +98,7 @@ def generate_torrent(metadata_store, tags_db, parent, title=None):
     metadata_store.TorrentMetadata(title=title or generate_title(words_count=4), infohash=infohash,
                                    origin_id=parent.id_, health=torrent_state, tags=category)
 
-    tag_torrent(infohash, tags_db)
+    tag_torrent(infohash, db)
 
 
 @db_session
@@ -108,7 +109,7 @@ def generate_collection(metadata_store, tags_db, parent):
 
 
 @db_session
-def generate_channel(metadata_store: MetadataStore, tags_db: TriblerDatabase, title=None, subscribed=False):
+def generate_channel(metadata_store: MetadataStore, db: TriblerDatabase, title=None, subscribed=False):
     # Remember and restore the original key
     orig_key = metadata_store.ChannelNode._my_key
 
@@ -119,7 +120,7 @@ def generate_channel(metadata_store: MetadataStore, tags_db: TriblerDatabase, ti
 
     # add some collections to the channel
     for _ in range(0, 3):
-        generate_collection(metadata_store, tags_db, chan)
+        generate_collection(metadata_store, db, chan)
 
     metadata_store.ChannelNode._my_key = orig_key
 

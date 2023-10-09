@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from pony.orm import db_session
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
@@ -72,7 +73,7 @@ async def test_search_by_tags(rest_api):
             return None
         return {hexlify(os.urandom(20))}
 
-    with patch.object(TriblerDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
+    with patch.object(KnowledgeDataAccessLayer, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
         parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=real_tag', expected_code=200)
         assert len(parsed["results"]) == 0
 
@@ -170,7 +171,7 @@ async def test_single_snippet_in_search(rest_api, metadata_store, tribler_db):
     def mocked_get_subjects(*_, **__) -> List[str]:
         return ["Abc"]
 
-    with patch.object(TriblerDatabase, 'get_objects', wraps=mocked_get_subjects):
+    with patch.object(KnowledgeDataAccessLayer, 'get_objects', wraps=mocked_get_subjects):
         s1 = to_fts_query("abc")
         results = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
 
@@ -200,7 +201,7 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, tribler_db)
             return ["Content item 2"]
         return []
 
-    with patch.object(TriblerDatabase, 'get_objects', wraps=mocked_get_objects):
+    with patch.object(KnowledgeDataAccessLayer, 'get_objects', wraps=mocked_get_objects):
         s1 = to_fts_query("abc")
         parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
         results = parsed["results"]

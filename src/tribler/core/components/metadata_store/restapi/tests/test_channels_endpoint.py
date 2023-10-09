@@ -7,8 +7,8 @@ import pytest
 from ipv8.util import succeed
 from pony.orm import db_session
 
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.gigachannel.community.gigachannel_community import NoChannelSourcesException
-from tribler.core.components.database.db.tribler_database import ResourceType
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW

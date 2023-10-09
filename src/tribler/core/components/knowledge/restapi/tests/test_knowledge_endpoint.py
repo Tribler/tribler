@@ -6,8 +6,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.conftest import TEST_PERSONAL_KEY
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
-from tribler.core.components.database.db.tribler_database import Operation, ResourceType
 from tribler.core.components.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.date_utils import freeze_time
@@ -58,7 +58,7 @@ async def test_modify_tags(rest_api, tribler_db):
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = tribler_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
+            tags = tribler_db.knowledge.get_objects(subject=infohash, predicate=ResourceType.TAG)
         assert len(tags) == 2
 
         # Now remove a tag
@@ -67,7 +67,7 @@ async def test_modify_tags(rest_api, tribler_db):
         await do_request(rest_api, f'knowledge/{infohash}', request_type="PATCH", expected_code=200,
                          post_data=post_data)
         with db_session:
-            tags = tribler_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
+            tags = tribler_db.knowledge.get_objects(subject=infohash, predicate=ResourceType.TAG)
         assert tags == ["abc"]
 
 
@@ -77,7 +77,7 @@ async def test_modify_tags_no_community(tribler_db, endpoint):
     endpoint.modify_statements(infohash, [tag_to_statement("abc"), tag_to_statement("def")])
 
     with db_session:
-        tags = tribler_db.get_objects(subject=infohash, predicate=ResourceType.TAG)
+        tags = tribler_db.knowledge.get_objects(subject=infohash, predicate=ResourceType.TAG)
 
     assert len(tags) == 0
 
@@ -107,7 +107,7 @@ async def test_get_suggestions(rest_api, tribler_db):
             operation = StatementOperation(subject_type=ResourceType.TORRENT, subject=infohash_str,
                                            predicate=ResourceType.TAG, object="test", operation=op, clock=0,
                                            creator_public_key=random_key.pub().key_to_bin())
-            tribler_db.add_operation(operation, b"")
+            tribler_db.knowledge.add_operation(operation, b"")
 
         _add_operation(op=Operation.ADD)
         _add_operation(op=Operation.REMOVE)

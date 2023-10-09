@@ -10,7 +10,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QListWidget, QTableView, QTextEdit, QTreeWidget, QTreeWidgetItem
 
 import tribler.gui
-from tribler.core.components.database.db.tribler_database import ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter

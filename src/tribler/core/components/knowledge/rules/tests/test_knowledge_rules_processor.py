@@ -5,7 +5,8 @@ import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session
 
-from tribler.core.components.database.db.tribler_database import TriblerDatabase, ResourceType
+from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -57,11 +58,11 @@ def test_save_tags(tag_rules_processor: KnowledgeRulesProcessor):
         {'obj': 'tag2', 'predicate': ResourceType.TAG, 'subject': 'infohash', 'subject_type': ResourceType.TORRENT},
         {'obj': 'tag1', 'predicate': ResourceType.TAG, 'subject': 'infohash', 'subject_type': ResourceType.TORRENT}
     ]
-    tag_rules_processor.db.add_auto_generated = Mock()
+    tag_rules_processor.db.add_auto_generated_operation = Mock()
     tag_rules_processor.save_statements(subject_type=ResourceType.TORRENT, subject='infohash',
                                         predicate=ResourceType.TAG,
                                         objects={'tag1', 'tag2'})
-    actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated.mock_calls]
+    actual_calls = [c.kwargs for c in tag_rules_processor.db.add_auto_generated_operation.mock_calls]
 
     # compare two lists of dict
     assert [c for c in actual_calls if c not in expected_calls] == []
