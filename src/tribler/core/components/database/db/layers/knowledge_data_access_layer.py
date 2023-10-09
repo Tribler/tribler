@@ -124,7 +124,8 @@ class KnowledgeDataAccessLayer:
 
             subject_statements = orm.Set(lambda: Statement, reverse="subject")
             object_statements = orm.Set(lambda: Statement, reverse="object")
-            health_info = orm.Set(lambda: db.HealthInfo, reverse="torrent")
+            torrent_healths = orm.Set(lambda: db.TorrentHealth, reverse="torrent")
+            trackers = orm.Set(lambda: db.Tracker, reverse="torrents")
 
             orm.composite_key(name, type)
 

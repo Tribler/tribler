@@ -19,9 +19,9 @@ HEALTH_FRESHNESS_SECONDS = 4 * HOUR  # Number of seconds before a torrent health
 class Source(IntEnum):
     """ Source of the Torrent Health information.
     """
-    NONE = 0
-    TRACKER = 1
-    DHT = 2
+    UNKNOWN = 0
+    DHT = 1
+    TRACKER = 2
     POPULARITY_COMMUNITY = 3
 
 
@@ -32,7 +32,8 @@ class HealthInfo:
     leechers: int = 0
     last_check: int = field(default_factory=lambda: int(time.time()))
     self_checked: bool = False
-    source: Source = Source.NONE
+    source: Source = Source.UNKNOWN
+    tracker: str = ''
 
     def __repr__(self):
         infohash_repr = hexlify(self.infohash[:4])

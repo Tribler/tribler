@@ -29,8 +29,10 @@ class TestTriblerDatabase(TestBase):
         self.db.instance.StatementOp.select().show()
         print('\nMisc')
         self.db.instance.Misc.select().show()
-        print('\nHealthInfo')
-        self.db.instance.HealthInfo.select().show()
+        print('\nTorrentHealth')
+        self.db.instance.TorrentHealth.select().show()
+        print('\nTracker')
+        self.db.instance.Tracker.select().show()
 
     @db_session
     def test_set_misc(self):

@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from pony import orm
 
-from tribler.core.components.database.db.layers.health_data_access_level import HealthDataAccessLayer
+from tribler.core.components.database.db.layers.health_data_access_layer import HealthDataAccessLayer
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
 from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
@@ -22,7 +22,8 @@ class TriblerDatabase:
         self.Resource = self.knowledge.Resource
         self.StatementOp = self.knowledge.StatementOp
 
-        self.HealthInfo = self.health.HealthInfo
+        self.TorrentHealth = self.health.TorrentHealth
+        self.Tracker = self.health.Tracker
 
         self.instance.bind('sqlite', filename or ':memory:', create_db=True)
         generate_mapping_kwargs['create_tables'] = create_tables
