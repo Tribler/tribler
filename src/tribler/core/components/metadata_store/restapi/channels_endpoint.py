@@ -404,7 +404,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
 
                 meta_info = await self.download_manager.get_metainfo(xt, timeout=30, url=uri)
                 if not meta_info:
-                    raise RuntimeError("Metainfo timeout")
+                    return RESTResponse(f'Metainfo request for {uri} timed out.', status=HTTP_BAD_REQUEST)
                 tdef = TorrentDef.load_from_dict(meta_info)
             else:
                 return RESTResponse({"error": "unknown uri type"}, status=HTTP_BAD_REQUEST)
