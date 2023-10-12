@@ -140,7 +140,7 @@ class TriblerProcess:
 
     def is_current_process(self) -> bool:
         """Returns True if the object represents the current process"""
-        return self.pid == os.getpid() and self.is_running()
+        return self.pid == os.getpid()
 
     @with_retry
     def become_primary(self) -> bool:

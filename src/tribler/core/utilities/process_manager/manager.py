@@ -119,7 +119,7 @@ class ProcessManager:
             row = cursor.fetchone()
             if row is not None:
                 process = TriblerProcess.from_row(self, row)
-                if process.is_running():
+                if process.is_current_process() or process.is_running():
                     return process.rowid
 
                 # Process is not running anymore; mark it as not primary
