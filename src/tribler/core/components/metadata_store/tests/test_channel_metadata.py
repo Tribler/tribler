@@ -11,11 +11,6 @@ from lz4.frame import LZ4FrameDecompressor
 from pony.orm import ObjectNotFound, db_session
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import (
-    CHANNEL_DIR_NAME_LENGTH,
-    MetadataCompressor,
-    entries_to_chunk,
-)
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED, NEW, TODELETE, UPDATED
 from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,

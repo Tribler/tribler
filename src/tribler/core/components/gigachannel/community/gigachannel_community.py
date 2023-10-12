@@ -12,7 +12,7 @@ from pony.orm import db_session
 from tribler.core import notifications
 from tribler.core.components.ipv8.discovery_booster import DiscoveryBooster
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
-from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState
+from tribler.core.components.metadata_store.db.store import ObjState
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.metadata_store.utils import NoChannelSourcesException
 from tribler.core.utilities.notifier import Notifier
@@ -153,36 +153,6 @@ class GigaChannelCommunity(RemoteQueryCommunity):
         if len(self.queried_peers) >= self.settings.queried_peers_limit:
             self.queried_peers.clear()
         self.queried_peers.add(peer.mid)
-        self.send_remote_select_subscribed_channels(peer)
-
-    def send_remote_select_subscribed_channels(self, peer):
-        def on_packet_callback(_, processing_results):
-            # We use responses for requests about subscribed channels to bump our local channels ratings
-            with db_session:
-                for c in (r.md_obj for r in processing_results if r.md_obj.metadata_type == CHANNEL_TORRENT):
-                    self.mds.vote_bump(c.public_key, c.id_, peer.public_key.key_to_bin()[10:])
-                    self.channels_peers.add(peer, c.public_key, c.id_)
-
-            # Notify GUI about the new channels
-            results = [
-                r.md_obj.to_simple_dict()
-                for r in processing_results
-                if (
-                        r.obj_state == ObjState.NEW_OBJECT
-                        and r.md_obj.metadata_type == CHANNEL_TORRENT
-                        and r.md_obj.origin_id == 0
-                )
-            ]
-            if self.notifier and results:
-                self.notifier[notifications.channel_discovered]({"results": results, "uuid": str(CHANNELS_VIEW_UUID)})
-
-        request_dict = {
-            "metadata_type": [CHANNEL_TORRENT],
-            "subscribed": True,
-            "attribute_ranges": (("num_entries", 1, None),),
-            "complete_channel": True,
-        }
-        self.send_remote_select(peer, **request_dict, processing_callback=on_packet_callback)
 
     async def remote_select_channel_contents(self, **kwargs):
         peers_to_query = self.get_known_subscribed_peers_for_node(kwargs["channel_pk"], kwargs["origin_id"])

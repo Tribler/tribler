@@ -196,11 +196,11 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         with db_session:
             chan = mds0.ChannelMetadata(infohash=random_infohash(), title="foo", sign_with=fake_key)
             # pylint: disable=protected-access
-            chan_payload_old = chan._payload_class.from_signed_blob(chan.serialized())
+            chan_payload_old = chan.payload_class.from_signed_blob(chan.serialized())
             chan.timestamp = chan.timestamp + 1
             chan.sign(key=fake_key)
             # pylint: disable=protected-access
-            chan_payload_updated = chan._payload_class.from_signed_blob(chan.serialized())
+            chan_payload_updated = chan.payload_class.from_signed_blob(chan.serialized())
             chan.delete()
 
             # Add the older channel version to node 0

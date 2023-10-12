@@ -6,11 +6,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
-from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_LENGTH
-from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.tests.tools.common import PNG_FILE
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import random_infohash
 
@@ -99,61 +96,3 @@ def generate_torrent(metadata_store, db, parent, title=None):
                                    origin_id=parent.id_, health=torrent_state, tags=category)
 
     tag_torrent(infohash, db)
-
-
-@db_session
-def generate_collection(metadata_store, tags_db, parent):
-    coll = metadata_store.CollectionNode(title=generate_title(words_count=3), origin_id=parent.id_)
-    for _ in range(0, 3):
-        generate_torrent(metadata_store, tags_db, coll)
-
-
-@db_session
-def generate_channel(metadata_store: MetadataStore, db: TriblerDatabase, title=None, subscribed=False):
-    # Remember and restore the original key
-    orig_key = metadata_store.ChannelNode._my_key
-
-    metadata_store.ChannelNode._my_key = default_eccrypto.generate_key('low')
-    chan = metadata_store.ChannelMetadata(
-        title=title or generate_title(words_count=5), subscribed=subscribed, infohash=random_infohash()
-    )
-
-    # add some collections to the channel
-    for _ in range(0, 3):
-        generate_collection(metadata_store, db, chan)
-
-    metadata_store.ChannelNode._my_key = orig_key
-
-
-@db_session
-def generate_test_channels(metadata_store, tags_db) -> None:
-    # First, generate some foreign channels
-    for ind in range(0, 10):
-        generate_channel(metadata_store, tags_db, subscribed=ind % 2 == 0)
-
-    # This one is necessary to test filters, etc
-    generate_channel(metadata_store, tags_db, title="nonrandom unsubscribed channel name")
-
-    # The same, but subscribed
-    generate_channel(metadata_store, tags_db, title="nonrandom subscribed channel name", subscribed=True)
-
-    # Now generate a couple of personal channels
-    chan1 = metadata_store.ChannelMetadata.create_channel(title="personal channel with nonrandom name")
-    generate_torrent(metadata_store, tags_db, chan1, title='Some torrent with nonrandom name')
-    generate_torrent(metadata_store, tags_db, chan1, title='Another torrent with nonrandom name')
-
-    with open(PNG_FILE, "rb") as f:
-        pic_bytes = f.read()
-    metadata_store.ChannelThumbnail(binary_data=pic_bytes, data_type="image/png", origin_id=chan1.id_)
-    metadata_store.ChannelDescription(json_text='{"description_text": "# Hi guys"}', origin_id=chan1.id_)
-
-    for _ in range(0, 3):
-        generate_collection(metadata_store, tags_db, chan1)
-    chan1.commit_channel_torrent()
-
-    chan2 = metadata_store.ChannelMetadata.create_channel(title="personal channel " + generate_title(words_count=2))
-    for _ in range(0, 3):
-        generate_collection(metadata_store, tags_db, chan2)
-
-    # add 'Tribler' entry to facilitate keyword search tests
-    generate_channel(metadata_store, tags_db, title="Tribler tribler chan", subscribed=True)

@@ -6,7 +6,6 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 from psutil import LINUX
 
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import DIRTY_STATUSES, NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import (
@@ -246,14 +245,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.window().channels_menu_list.reload_if_necessary(changed_entries)
         dirty = False
         structure_changed = False
-        for entry in changed_entries:
-            dirty = dirty or entry.get('status', None) in DIRTY_STATUSES
-            structure_changed = (
-                    structure_changed
-                    or entry.get("state", None) == "Deleted"
-                    or (entry.get("type", None) in [CHANNEL_TORRENT, COLLECTION_NODE] and entry[
-                "status"] in DIRTY_STATUSES)
-            )
 
         if structure_changed:
             self.window().add_to_channel_dialog.clear_channels_tree()

@@ -1,10 +1,10 @@
+from unittest import skip
 from unittest.mock import MagicMock
 
 import pytest
 from ipv8.util import succeed
 from pony.orm import db_session
 
-from tribler.core.components.gigachannel_manager.gigachannel_manager import GigaChannelManager
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
@@ -46,21 +46,10 @@ async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unu
     await seeder_dlmgr.shutdown()
 
 
-@pytest.fixture
-async def gigachannel_manager(metadata_store, download_manager: DownloadManager):
-    manager = GigaChannelManager(
-        state_dir=metadata_store.channels_dir.parent,
-        download_manager=download_manager,
-        metadata_store=metadata_store,
-        notifier=MagicMock(),
-    )
-    yield manager
-    await manager.shutdown()
-
-
+@skip
 @pytest.mark.looptime(False)
 async def test_channel_update_and_download(
-        channel_tdef, channel_seeder, metadata_store, download_manager, gigachannel_manager
+        channel_tdef, channel_seeder, metadata_store, download_manager
 ):
     """
     Test whether we can successfully update a channel and download the new version

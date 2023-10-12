@@ -40,7 +40,7 @@ def test_serialization(metadata_store):
         metadata1.delete()
         orm.flush()
 
-        metadata2 = md_type.from_payload(md_type._payload_class.from_signed_blob(serialized1))
+        metadata2 = md_type.from_payload(md_type.payload_class.from_signed_blob(serialized1))
         serialized2 = metadata2.serialized()
         assert serialized1 == serialized2
 
@@ -48,13 +48,13 @@ def test_serialization(metadata_store):
         metadata2_dict = metadata2.to_dict()
         metadata2_dict.pop("signature")
         with pytest.raises(InvalidSignatureException):
-            md_type._payload_class(**metadata2_dict)
+            md_type.payload_class(**metadata2_dict)
 
         serialized3 = serialized2[:-5] + b"\xee" * 5
         with pytest.raises(InvalidSignatureException):
-            md_type._payload_class.from_signed_blob(serialized3)
+            md_type.payload_class.from_signed_blob(serialized3)
         # Test bypass signature check
-        md_type._payload_class.from_signed_blob(serialized3, check_signature=False)
+        md_type.payload_class.from_signed_blob(serialized3, check_signature=False)
 
 
 @db_session

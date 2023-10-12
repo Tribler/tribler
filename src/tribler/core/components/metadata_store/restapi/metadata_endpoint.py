@@ -8,7 +8,6 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean
 from pony.orm import db_session
 
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.restapi.metadata_endpoint_base import MetadataEndpointBase
 from tribler.core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema

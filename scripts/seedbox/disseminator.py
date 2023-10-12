@@ -28,7 +28,6 @@ from pony.orm import db_session
 
 from tribler.core.components import libtorrent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
-from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
@@ -68,9 +67,8 @@ def setup_logger(verbosity):
 
 
 class ChannelHelper:
-    def __init__(self, community, manager):
+    def __init__(self, community):
         self.community = community
-        self.manager = manager
         self.directories = SimpleNamespace(tree={}, directory=None)
 
     @db_session
@@ -164,8 +162,7 @@ class Service(TinyTriblerService):
         super().__init__(*args, **kwargs,
                          components=[
                              KnowledgeComponent(), MetadataStoreComponent(), KeyComponent(), Ipv8Component(),
-                             SocksServersComponent(), LibtorrentComponent(), GigachannelManagerComponent(),
-                             GigaChannelComponent()
+                             SocksServersComponent(), LibtorrentComponent(), GigaChannelComponent()
                          ])
         self.config.general.testnet = testnet
         self.source_dir = Path(source_dir)
@@ -181,8 +178,8 @@ class Service(TinyTriblerService):
         f = self.source_dir / _description_file_name
         return f.read_text() if f.exists() else None
 
-    async def create_channel(self, community, manager):
-        channel_helper = ChannelHelper(community, manager)
+    async def create_channel(self, community):
+        channel_helper = ChannelHelper(community)
         channel_name = self.source_dir.name
 
         if not channel_helper.create_root_channel(channel_name):
@@ -203,9 +200,7 @@ class Service(TinyTriblerService):
     async def on_tribler_started(self):
         await super().on_tribler_started()
         gigachannel_component = self.session.get_instance(GigaChannelComponent)
-        gigachannel_manager_component = self.session.get_instance(GigachannelManagerComponent)
-        await self.create_channel(gigachannel_component.community,
-                                  gigachannel_manager_component.gigachannel_manager)
+        await self.create_channel(gigachannel_component.community)
 
 
 if __name__ == "__main__":

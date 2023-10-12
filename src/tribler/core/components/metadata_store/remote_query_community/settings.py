@@ -16,9 +16,4 @@ class RemoteQueryCommunitySettings(TriblerConfigSection):
     max_query_peers: int = 20
 
     max_response_size: int = 100  # Max number of entries returned by SQL query
-    max_channel_query_back: int = 4  # Max number of entries to query back on receiving an unknown channel
     push_updates_back_enabled = True
-
-    @property
-    def channel_query_back_enabled(self):
-        return self.max_channel_query_back > 0

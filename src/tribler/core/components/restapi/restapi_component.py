@@ -9,7 +9,6 @@ from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.exceptions import NoneComponent
 from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
-from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
@@ -84,7 +83,6 @@ class RESTComponent(Component):
         knowledge_component = await self.maybe_component(KnowledgeComponent)
         tunnel_component = await self.maybe_component(TunnelsComponent)
         torrent_checker_component = await self.maybe_component(TorrentCheckerComponent)
-        gigachannel_manager_component = await self.maybe_component(GigachannelManagerComponent)
         db_component = await self.maybe_component(DatabaseComponent)
 
         public_key = key_component.primary_key.key.pk if not isinstance(key_component, NoneComponent) else b''
@@ -93,7 +91,6 @@ class RESTComponent(Component):
 
         torrent_checker = None if config.gui_test_mode else torrent_checker_component.torrent_checker
         tunnel_community = None if config.gui_test_mode else tunnel_component.community
-        gigachannel_manager = None if config.gui_test_mode else gigachannel_manager_component.gigachannel_manager
 
         # add endpoints
         self.root_endpoint.add_endpoint(EventsEndpoint.path, self._events_endpoint)
@@ -113,7 +110,7 @@ class RESTComponent(Component):
         self.maybe_add(MetadataEndpoint, torrent_checker, metadata_store_component.mds,
                        tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(ChannelsEndpoint, libtorrent_component.download_manager, gigachannel_manager,
+        self.maybe_add(ChannelsEndpoint, libtorrent_component.download_manager,
                        gigachannel_component.community, metadata_store_component.mds,
                        tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)

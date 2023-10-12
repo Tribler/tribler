@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewIte
 from psutil import LINUX
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import LEGACY_ENTRY
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
 from tribler.core.utilities.simpledefs import CHANNEL_STATE

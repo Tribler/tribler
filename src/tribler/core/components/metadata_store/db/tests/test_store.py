@@ -10,10 +10,6 @@ import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from pony.orm import db_session
 
-from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import (
-    CHANNEL_DIR_NAME_LENGTH,
-    entries_to_chunk,
-)
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import (
     CHANNEL_TORRENT,
@@ -23,7 +19,6 @@ from tribler.core.components.metadata_store.db.serialization import (
     UnknownBlobTypeException,
     int2time,
 )
-from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState, ProcessingResult
 from tribler.core.components.metadata_store.tests.test_channel_download import CHANNEL_METADATA_UPDATED
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path
@@ -39,7 +34,7 @@ def get_payloads(entity_class, key):
 
     entity_class._my_key = key
     c = entity_class(infohash=random_infohash())
-    payload = c._payload_class.from_signed_blob(c.serialized())
+    payload = c.payload_class.from_signed_blob(c.serialized())
     deleted_payload = DeletedMetadataPayload.from_signed_blob(c.serialized_delete())
 
     entity_class._my_key = orig_key
@@ -212,7 +207,7 @@ def test_skip_processing_mdblob_with_forbidden_terms(metadata_store):
     """
     key = default_eccrypto.generate_key("curve25519")
     chan_entry = metadata_store.ChannelMetadata(title="12yo", infohash=random_infohash(), sign_with=key)
-    chan_payload = chan_entry._payload_class(**chan_entry.to_dict())
+    chan_payload = chan_entry.payload_class(**chan_entry.to_dict())
     chan_entry.delete()
     assert metadata_store.process_payload(chan_payload) == []
 
@@ -297,12 +292,12 @@ def test_process_payload_ffa(metadata_store):
     infohash = b"1" * 20
     ffa_title = "abcabc"
     ffa_torrent = metadata_store.TorrentMetadata.add_ffa_from_dict(dict(infohash=infohash, title=ffa_title))
-    ffa_payload = metadata_store.TorrentMetadata._payload_class.from_signed_blob(ffa_torrent.serialized())
+    ffa_payload = metadata_store.TorrentMetadata.payload_class.from_signed_blob(ffa_torrent.serialized())
     ffa_torrent.delete()
 
     # Assert that FFA is never added to DB if there is already a signed entry with the same infohash
     signed_md = metadata_store.TorrentMetadata(infohash=infohash, title='')
-    metadata_store.TorrentMetadata._payload_class.from_signed_blob(signed_md.serialized())
+    metadata_store.TorrentMetadata.payload_class.from_signed_blob(signed_md.serialized())
     assert metadata_store.process_payload(ffa_payload) == []
     assert metadata_store.TorrentMetadata.get(title=ffa_title) is None
     signed_md.delete()
@@ -324,7 +319,7 @@ def test_process_payload_with_known_channel_public_key(metadata_store):
     key1 = default_eccrypto.generate_key("curve25519")
     key2 = default_eccrypto.generate_key("curve25519")
     torrent = metadata_store.TorrentMetadata(infohash=random_infohash(), sign_with=key1)
-    payload = torrent._payload_class(**torrent.to_dict())
+    payload = torrent.payload_class(**torrent.to_dict())
     torrent.delete()
     # Check rejecting a payload with non-matching public key
     assert [] == metadata_store.process_payload(payload, channel_public_key=key2.pub().key_to_bin()[10:])
@@ -354,7 +349,7 @@ def test_process_payload_reject_older(metadata_store):
     torrent = metadata_store.TorrentMetadata(
         title='blabla', timestamp=11, origin_id=channel.id_, infohash=random_infohash(), sign_with=key
     )
-    payload = torrent._payload_class(**torrent.to_dict())
+    payload = torrent.payload_class(**torrent.to_dict())
     torrent.delete()
     assert metadata_store.process_payload(payload) == []
     assert metadata_store.TorrentMetadata.get(title='blabla') is None
@@ -366,7 +361,7 @@ def test_process_payload_reject_older(metadata_store):
     torrent = metadata_store.TorrentMetadata(
         title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=random_infohash(), sign_with=key
     )
-    payload = torrent._payload_class(**torrent.to_dict())
+    payload = torrent.payload_class(**torrent.to_dict())
     torrent.delete()
     assert metadata_store.process_payload(payload) == []
     assert metadata_store.TorrentMetadata.get(title='blabla') is None
@@ -377,7 +372,7 @@ def test_process_payload_reject_older(metadata_store):
     torrent = metadata_store.TorrentMetadata(
         title='blabla', timestamp=11, origin_id=folder_2.id_, infohash=random_infohash(), sign_with=key
     )
-    payload = torrent._payload_class(**torrent.to_dict())
+    payload = torrent.payload_class(**torrent.to_dict())
     torrent.delete()
     assert metadata_store.process_payload(payload)[0].obj_state == ObjState.NEW_OBJECT
     assert metadata_store.TorrentMetadata.get(title='blabla')
@@ -393,7 +388,7 @@ def test_process_payload_reject_older_entry(metadata_store):
     torrent_old = metadata_store.TorrentMetadata(
         title='blabla', timestamp=11, id_=3, infohash=random_infohash(), sign_with=key
     )
-    payload_old = torrent_old._payload_class(**torrent_old.to_dict())
+    payload_old = torrent_old.payload_class(**torrent_old.to_dict())
     torrent_old.delete()
 
     torrent_updated = metadata_store.TorrentMetadata(
@@ -444,7 +439,7 @@ def test_process_payload_update_type(metadata_store):
     node, node_payload, _ = get_payloads(metadata_store.CollectionNode, metadata_store.my_key)
     updated_node = node.update_properties({"origin_id": 0})  # This will implicitly change the node to ChannelTorrent
     assert updated_node.metadata_type == CHANNEL_TORRENT
-    updated_node_payload = updated_node._payload_class.from_signed_blob(updated_node.serialized())
+    updated_node_payload = updated_node.payload_class.from_signed_blob(updated_node.serialized())
     updated_node.delete()
 
     metadata_store.process_payload(node_payload, skip_personal_metadata_payload=False)

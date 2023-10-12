@@ -10,7 +10,6 @@ from typing import Callable, Dict, List
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
 from tribler.core.utilities.search_utils import item_rank
