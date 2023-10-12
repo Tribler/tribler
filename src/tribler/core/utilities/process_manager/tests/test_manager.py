@@ -11,8 +11,8 @@ from tribler.core.utilities.process_manager.process import ProcessKind, TriblerP
 # pylint: disable=protected-access
 
 
-@patch('os.getpid', return_value=1)
-def test_become_primary(os_getpid: Mock, process_manager: ProcessManager):
+@patch('os.getpid', new=lambda: 1)
+def test_become_primary(process_manager: ProcessManager):
     # Initially process manager fixture creates a primary current process that is a single process in DB
     p1 = process_manager.current_process
     assert p1.primary
