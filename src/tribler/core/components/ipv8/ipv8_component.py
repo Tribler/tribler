@@ -15,7 +15,10 @@ from ipv8.taskmanager import TaskManager
 from ipv8_service import IPv8
 
 from tribler.core.components.component import Component
+from tribler.core.components.ipv8.rendezvous.db.database import RendezvousDatabase
+from tribler.core.components.ipv8.rendezvous.rendezvous_hook import RendezvousHook
 from tribler.core.components.key.key_component import KeyComponent
+from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 INFINITE = -1
 
@@ -30,12 +33,21 @@ class Ipv8Component(Component):
     _task_manager: TaskManager
     _peer_discovery_community: Optional[DiscoveryCommunity] = None
 
+    RENDEZVOUS_DB_NAME = 'rendezvous.db'
+    rendezvous_db: Optional[RendezvousDatabase] = None
+    rendevous_hook: Optional[RendezvousHook] = None
+
     async def run(self):
         await super().run()
 
         config = self.session.config
 
         self._task_manager = TaskManager()
+
+        if config.ipv8.rendezvous_stats:
+            self.rendezvous_db = RendezvousDatabase(
+                db_path=self.session.config.state_dir / STATEDIR_DB_DIR / self.RENDEZVOUS_DB_NAME)
+            self.rendevous_hook = RendezvousHook(self.rendezvous_db)
 
         port = config.ipv8.port
         address = config.ipv8.address
@@ -52,14 +64,12 @@ class Ipv8Component(Component):
         if config.gui_test_mode:
             endpoint = DispatcherEndpoint([])
         else:
-            # IPv8 includes IPv6 support by default.
-            # We only load IPv4 to not kill all Tribler overlays (currently, it would instantly crash all users).
-            # If you want to test IPv6 in Tribler you can set ``endpoint = None`` here.
-            endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port,
-                                                                'ip': address})
+            endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port, 'ip': address})
         ipv8 = IPv8(ipv8_config_builder.finalize(),
                     enable_statistics=config.ipv8.statistics and not config.gui_test_mode,
                     endpoint_override=endpoint)
+        if config.ipv8.rendezvous_stats:
+            ipv8.network.add_peer_observer(self.rendevous_hook)
         await ipv8.start()
         self.ipv8 = ipv8
 
@@ -135,5 +145,7 @@ class Ipv8Component(Component):
             if overlay:
                 await self.ipv8.unload_overlay(overlay)
 
+        if self.rendevous_hook is not None:
+            self.rendevous_hook.shutdown(self.ipv8.network)
         await self._task_manager.shutdown_task_manager()
         await self.ipv8.stop(stop_loop=False)

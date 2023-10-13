@@ -40,3 +40,11 @@ async def test_ipv8_component_statistics_enabled(tribler_config):
     async with Session(tribler_config, [KeyComponent(), Ipv8Component()]) as session:
         comp = session.get_instance(Ipv8Component)
         assert comp.dht_discovery_community.get_prefix() in comp.ipv8.endpoint.statistics
+
+
+async def test_ipv8_rendezvous_enabled(tribler_config):
+    tribler_config.ipv8.rendezvous_stats = True
+    async with Session(tribler_config, [KeyComponent(), Ipv8Component()]) as session:
+        comp = session.get_instance(Ipv8Component)
+        assert comp.rendezvous_db is not None
+        assert comp.rendevous_hook is not None
