@@ -12,7 +12,7 @@ from pony.orm import db_session, delete
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.metadata_store.db.store import (
-    MetadataStore,
+    CURRENT_DB_VERSION, MetadataStore,
     sql_create_partial_index_channelnode_metadata_type,
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
@@ -134,6 +134,9 @@ class TriblerUpgrader:
     def upgrade_pony_db_14to15(self):
         self._logger.info('Upgrade Pony DB from version 14 to version 15')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+        if not mds_path.exists() or get_db_version(mds_path, CURRENT_DB_VERSION) > 14:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
 
         mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
                             check_tables=False, db_version=14) if mds_path.exists() else None
@@ -146,6 +149,10 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB from version 13 to version 14')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         tagdb_path = self.state_dir / STATEDIR_DB_DIR / 'tags.db'
+
+        if not mds_path.exists() or get_db_version(mds_path, CURRENT_DB_VERSION) > 13:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
 
         mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
                             check_tables=False, db_version=13) if mds_path.exists() else None
@@ -166,11 +173,14 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB 12 to 13')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if database_path.exists():
-            mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
-                                disable_sync=True, check_tables=False, db_version=12)
-            self.do_upgrade_pony_db_12to13(mds)
-            mds.shutdown()
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) > 12:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
+        mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
+                            disable_sync=True, check_tables=False, db_version=12)
+        self.do_upgrade_pony_db_12to13(mds)
+        mds.shutdown()
 
     def upgrade_pony_db_11to12(self):
         """
@@ -181,8 +191,10 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB 11 to 12')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists():
-            return
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) > 11:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
         mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=11)
         self.do_upgrade_pony_db_11to12(mds)
@@ -197,8 +209,10 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB 10 to 11')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists():
-            return
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) > 10:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
         # code of the migration
         mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=10)
@@ -215,8 +229,10 @@ class TriblerUpgrader:
         to_version = 9
 
         database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
-        if not database_path.exists() or get_db_version(database_path) >= 9:
-            return  # No need to update if the database does not exist or is already updated
+        if not database_path.exists() or get_db_version(database_path, BandwidthDatabase.CURRENT_DB_VERSION) > 8:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
         self._logger.info('bw8->9')
         db = BandwidthDatabase(database_path, self.primary_key.key.pk)
 
@@ -378,7 +394,7 @@ class TriblerUpgrader:
         self._logger.info('Upgrading GigaChannel DB from version 8 to 10')
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
 
-        if not database_path.exists() or get_db_version(database_path) >= 10:
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
 
