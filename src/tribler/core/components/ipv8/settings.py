@@ -21,6 +21,7 @@ class Ipv8Settings(TriblerConfigSection):
     address: str = '0.0.0.0'
     bootstrap_override: Optional[str] = None
     statistics: bool = False
+    rendezvous_stats: bool = False
     walk_interval: float = 0.5
     walk_scaling_enabled: bool = True
     walk_scaling_upper_limit: float = 3.0
