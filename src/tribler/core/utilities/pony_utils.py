@@ -372,11 +372,9 @@ class TriblerSQLiteProvider(sqlite.SQLiteProvider):
         Path(marker_filename).touch()
 
     def get_pool(self, is_shared_memory_db, filename, create_db=False, **kwargs):
-        if is_shared_memory_db or filename == ':memory:':
-            pass
-        else:
+        if not (is_shared_memory_db or filename == ':memory:'):
             filename = absolutize_path(filename, frame_depth=cut_traceback_depth+5)  # see the base method for details
-        handle_db_if_corrupted(filename)
+            handle_db_if_corrupted(filename)
         return TriblerPool(is_shared_memory_db, filename, create_db, **kwargs)
 
 

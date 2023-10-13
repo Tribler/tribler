@@ -11,7 +11,9 @@ from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.upgrade.upgrade import TriblerUpgrader
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory, NoDiskSpaceAvailableError
-from tribler.gui.defs import BUTTON_TYPE_NORMAL, NO_DISK_SPACE_ERROR_MESSAGE, UPGRADE_CANCELLED_ERROR_TITLE
+from tribler.core.utilities.pony_utils import DatabaseIsCorrupted
+from tribler.gui.defs import BUTTON_TYPE_NORMAL, DATABASE_IS_CORRUPTED_ERROR_MESSAGE, NO_DISK_SPACE_ERROR_MESSAGE, \
+    UPGRADE_CANCELLED_ERROR_TITLE
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
 from tribler.gui.utilities import connect, format_size, tr
@@ -50,6 +52,9 @@ class StateDirUpgradeWorker(QObject):
                 update_status_callback=self._update_status_callback,
                 interrupt_upgrade_event=self.upgrade_interrupted,
             )
+        except DatabaseIsCorrupted as exc:
+            self.logger.exception(exc)
+            self.cancelled.emit(self.format_database_is_corrupted_error(exc))
         except NoDiskSpaceAvailableError as exc:
             self.logger.exception(exc)
             self.cancelled.emit(self.format_no_disk_space_available_error(exc))
@@ -60,7 +65,13 @@ class StateDirUpgradeWorker(QObject):
             self.logger.info('Finished')
             self.finished.emit(None)
 
-    def format_no_disk_space_available_error(self, disk_error: NoDiskSpaceAvailableError) -> str:
+    @staticmethod
+    def format_database_is_corrupted_error(exc: DatabaseIsCorrupted) -> str:
+        formatted_error = tr(DATABASE_IS_CORRUPTED_ERROR_MESSAGE) % str(exc)
+        return formatted_error
+
+    @staticmethod
+    def format_no_disk_space_available_error(disk_error: NoDiskSpaceAvailableError) -> str:
         diff_space = format_size(disk_error.space_required - disk_error.space_available)
         formatted_error = tr(NO_DISK_SPACE_ERROR_MESSAGE) % diff_space
         return formatted_error

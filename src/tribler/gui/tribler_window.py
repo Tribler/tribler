@@ -1259,3 +1259,14 @@ class TriblerWindow(QMainWindow):
         self.pending_uri_requests.append(uri)
         if self.ui_started and not self.start_download_dialog_active:
             self.process_uri_request()
+
+    def show_database_is_corrupted_dialog(self, db_file_path: Path):
+        self.dialog = ConfirmationDialog(
+            self,
+            tr("Database is corrupted: restart needed"),
+            tr("The database file found to be corrupted") + ":<br/>"
+            + f"<b>{db_file_path}</b><br/><br/>"
+            + tr("Press OK to re-create the database file"),
+            [(tr("OK"), BUTTON_TYPE_CONFIRM)],
+        )
+        self.dialog.show()
