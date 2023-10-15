@@ -53,8 +53,8 @@ class StatisticsEndpoint(RESTEndpoint):
         if self.mds:
             db_size = self.mds.get_db_file_size()
             stats_dict = {"db_size": db_size,
-                          "num_channels": self.mds.get_num_channels(),
-                          "num_torrents": self.mds.get_num_torrents()}
+                          "num_channels": 0,#self.mds.get_num_channels(),
+                          "num_torrents": 0}#self.mds.get_num_torrents()}
 
         return RESTResponse({'tribler_statistics': stats_dict})
 
