@@ -83,6 +83,9 @@ class TestPopularityCommunity(TriblerTestBase):
 
         await self.deliver_messages(timeout=deliver_timeout)
 
+    def torrent_metadata(self, i):
+        return self.overlay(i).mds.TorrentMetadata
+
     async def test_torrents_health_gossip(self):
         """
         Test whether torrent health information is correctly gossiped around
@@ -209,3 +212,24 @@ class TestPopularityCommunity(TriblerTestBase):
         await self.init_first_node_and_gossip(
             HealthInfo(infohash, seeders=200, leechers=0))
         self.nodes[1].overlay.send_remote_select.assert_not_called()
+
+    async def test_popularity_search(self):
+        """
+        Test searching several nodes for metadata entries based on title text
+        """
+
+        # We do not want the query back mechanism and introduction callback to interfere with this test
+        for node in self.nodes:
+            node.overlay.rqc_settings.max_channel_query_back = 0
+
+        with db_session:
+            # Add test metadata to node ID1
+            self.channel_metadata(0).create_channel(U_CHANNEL, "")
+            self.channel_metadata(0).create_channel("debian channel", "")
+            # Add test metadata to node ID2
+            self.torrent_metadata(1)(title=U_TORRENT, infohash=random_infohash())
+            self.torrent_metadata(1)(title="debian torrent", infohash=random_infohash())
+
+        self.overlay(3).send_search_request(**{"txt_filter": "ubuntu*"})
+
+        await self.deliver_messages()

@@ -15,7 +15,6 @@ from tribler.core.check_os import (
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
-from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessWatcher
 from tribler.core.components.gui_process_watcher.gui_process_watcher_component import GuiProcessWatcherComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -68,8 +67,6 @@ def components_gen(config: TriblerConfig):
 
     if config.libtorrent.enabled:
         yield LibtorrentComponent()
-    if config.ipv8.enabled and config.chant.enabled:
-        yield GigaChannelComponent()
     if config.ipv8.enabled:
         yield BandwidthAccountingComponent()
     if config.resource_monitor.enabled:

@@ -8,7 +8,6 @@ from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint imp
 from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.exceptions import NoneComponent
-from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
@@ -22,6 +21,7 @@ from tribler.core.components.metadata_store.metadata_store_component import Meta
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
 from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
+from tribler.core.components.popularity.popularity_component import PopularityComponent
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.reporter.reporter_component import ReporterComponent
@@ -78,7 +78,7 @@ class RESTComponent(Component):
         libtorrent_component = await self.maybe_component(LibtorrentComponent)
         resource_monitor_component = await self.maybe_component(ResourceMonitorComponent)
         bandwidth_accounting_component = await self.maybe_component(BandwidthAccountingComponent)
-        gigachannel_component = await self.maybe_component(GigaChannelComponent)
+        popularity_component = await self.maybe_component(PopularityComponent)
         knowledge_component = await self.maybe_component(KnowledgeComponent)
         tunnel_component = await self.maybe_component(TunnelsComponent)
         torrent_checker_component = await self.maybe_component(TorrentCheckerComponent)
@@ -110,7 +110,7 @@ class RESTComponent(Component):
                        metadata_store_component.mds, tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
         self.maybe_add(SearchEndpoint, metadata_store_component.mds, tribler_db=db_component.db)
-        self.maybe_add(RemoteQueryEndpoint, gigachannel_component.community, metadata_store_component.mds)
+        self.maybe_add(RemoteQueryEndpoint, popularity_component.community, metadata_store_component.mds)
         self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):

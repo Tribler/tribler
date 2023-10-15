@@ -1,15 +1,14 @@
-import time
 from binascii import unhexlify
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import String, List
-from pony.orm import db_session
 
-from tribler.core.components.gigachannel.community.gigachannel_community import GigaChannelCommunity
+
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import RemoteQueryParameters
+from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import froze_it
@@ -22,13 +21,12 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
     """
     path = '/remote_query'
 
-    def __init__(self, gigachannel_community: GigaChannelCommunity, *args, **kwargs):
+    def __init__(self, popularity_community: PopularityCommunity, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
-        self.gigachannel_community = gigachannel_community
+        self.popularity_community = popularity_community
 
     def setup_routes(self):
         self.app.add_routes([web.put('', self.create_remote_search_request)])
-        self.app.add_routes([web.get('/channels_peers', self.get_channels_peers)])
 
     def sanitize_parameters(self, parameters):
         sanitized = super().sanitize_parameters(parameters)
@@ -64,31 +62,7 @@ class RemoteQueryEndpoint(MetadataEndpointBase):
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
         self._logger.info(f'Parameters: {sanitized}')
 
-        request_uuid, peers_list = self.gigachannel_community.send_search_request(**sanitized)
+        request_uuid, peers_list = self.popularity_community.send_search_request(**sanitized)
         peers_mid_list = [hexlify(p.mid) for p in peers_list]
 
         return RESTResponse({"request_uuid": str(request_uuid), "peers": peers_mid_list})
-
-    async def get_channels_peers(self, _):
-        # Get debug stats for peers serving channels
-        current_time = time.time()
-        result = []
-        mapping = self.gigachannel_community.channels_peers
-        with db_session:
-            for id_tuple, peers in mapping._channels_dict.items():  # pylint:disable=W0212
-                channel_pk, channel_id = id_tuple
-                chan = self.mds.ChannelMetadata.get(public_key=channel_pk, id_=channel_id)
-
-                peers_list = []
-                for p in peers:
-                    peers_list.append((hexlify(p.mid), int(current_time - p.last_response)))
-
-                chan_dict = {
-                    "channel_name": chan.title if chan else None,
-                    "channel_pk": hexlify(channel_pk),
-                    "channel_id": channel_id,
-                    "peers": peers_list,
-                }
-                result.append(chan_dict)
-
-        return RESTResponse({"channels_list": result})

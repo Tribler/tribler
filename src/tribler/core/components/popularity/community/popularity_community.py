@@ -1,22 +1,30 @@
 from __future__ import annotations
 
 import random
+import time
+import uuid
 from binascii import unhexlify
 from typing import List, TYPE_CHECKING
 
 from ipv8.lazy_community import lazy_wrapper
 from pony.orm import db_session
 
+from tribler.core import notifications
+from tribler.core.components.ipv8.discovery_booster import DiscoveryBooster
+from tribler.core.components.metadata_store.db.store import ObjState
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.popularity.community.payload import PopularTorrentsRequest, TorrentsHealthPayload
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
+from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import get_normally_distributed_positive_integers
 
 if TYPE_CHECKING:
     from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
+
+max_address_cache_lifetime = 5.0  # seconds
 
 
 class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
@@ -37,10 +45,11 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
     community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
 
-    def __init__(self, *args, torrent_checker=None, **kwargs):
+    def __init__(self, *args, torrent_checker=None, notifier=None, **kwargs):
         # Creating a separate instance of Network for this community to find more peers
         super().__init__(*args, **kwargs)
         self.torrent_checker: TorrentChecker = torrent_checker
+        self.notifier: Notifier = notifier
 
         self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
         self.add_message_handler(PopularTorrentsRequest, self.on_popular_torrents_request)
@@ -51,6 +60,29 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
         # Init version community message handlers
         self.init_version_community()
+
+        self.address_cache = {}
+        self.address_cache_created_at = time.time()
+
+        self.discovery_booster = DiscoveryBooster()
+        self.discovery_booster.apply(self)
+
+    def guess_address(self, interface):
+        # Address caching allows 100x speedup of EdgeWalk.take_step() in DiscoveryBooster, from 3.0 to 0.03 seconds.
+        # The overridden method can be removed after IPv8 adds internal caching of addresses.
+        now = time.time()
+        cache_lifetime = now - self.address_cache_created_at
+        if cache_lifetime > max_address_cache_lifetime:
+            self.address_cache.clear()
+            self.address_cache_created_at = now
+
+        result = self.address_cache.get(interface)
+        if result is not None:
+            return result
+
+        result = super().guess_address(interface)
+        self.address_cache[interface] = result
+        return result
 
     def introduction_request_callback(self, peer, dist, payload):
         super().introduction_request_callback(peer, dist, payload)
@@ -141,3 +173,31 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
 
         random_torrents = random.sample(checked_and_alive, num_torrents_to_send)
         return random_torrents
+
+    def get_random_peers(self, sample_size=None):
+        # Randomly sample sample_size peers from the complete list of our peers
+        all_peers = self.get_peers()
+        if sample_size is not None and sample_size < len(all_peers):
+            return random.sample(all_peers, sample_size)
+        return all_peers
+
+    def send_search_request(self, **kwargs):
+        # Send a remote query request to multiple random peers to search for some terms
+        request_uuid = uuid.uuid4()
+
+        def notify_gui(request, processing_results):
+            results = [
+                r.md_obj.to_simple_dict()
+                for r in processing_results
+                if r.obj_state == ObjState.NEW_OBJECT
+            ]
+            if self.notifier:
+                self.notifier[notifications.remote_query_results](
+                    {"results": results, "uuid": str(request_uuid), "peer": hexlify(request.peer.mid)})
+
+        peers_to_query = self.get_random_peers(self.rqc_settings.max_query_peers)
+
+        for p in peers_to_query:
+            self.send_remote_select(p, **kwargs, processing_callback=notify_gui)
+
+        return request_uuid, peers_to_query

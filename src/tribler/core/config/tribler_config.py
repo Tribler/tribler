@@ -10,7 +10,6 @@ from configobj import ParseError
 from pydantic import BaseSettings, Extra, PrivateAttr, validate_model
 
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
-from tribler.core.components.gigachannel.community.settings import ChantSettings
 from tribler.core.components.ipv8.settings import (
     BootstrapSettings,
     DHTSettings,
@@ -20,7 +19,7 @@ from tribler.core.components.ipv8.settings import (
 from tribler.core.components.key.settings import TrustchainSettings
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler.core.components.popularity.settings import PopularityCommunitySettings
+from tribler.core.components.popularity.settings import PopularityCommunitySettings, ChantSettings
 from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.components.torrent_checker.settings import TorrentCheckerSettings
