@@ -93,7 +93,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.last_search_time = time.time()
 
         model = SearchResultsModel(
-            endpoint_url="search",
+            endpoint_url="search/local",
             hide_xxx=self.results_page_content.hide_xxx,
             original_query=query.original_query,
             text_filter=to_fts_query(query.fts_text),
@@ -117,7 +117,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
 
         params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags),
                   'metadata_type': REGULAR_TORRENT, 'exclude_deleted': True}
-        request_manager.put('remote_query', register_request, url_params=params)
+        request_manager.put('search/remote', register_request, url_params=params)
 
         return True
 

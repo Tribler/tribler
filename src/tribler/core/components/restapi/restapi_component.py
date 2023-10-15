@@ -19,7 +19,6 @@ from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTo
 from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
-from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.popularity.popularity_component import PopularityComponent
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
@@ -109,8 +108,8 @@ class RESTComponent(Component):
         self.maybe_add(MetadataEndpoint, libtorrent_component.download_manager, torrent_checker,
                        metadata_store_component.mds, tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(SearchEndpoint, metadata_store_component.mds, tribler_db=db_component.db)
-        self.maybe_add(RemoteQueryEndpoint, popularity_component.community, metadata_store_component.mds)
+        self.maybe_add(SearchEndpoint, popularity_component.community,
+                       metadata_store_component.mds, tribler_db=db_component.db)
         self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):

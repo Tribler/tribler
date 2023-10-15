@@ -1,18 +1,21 @@
 import time
+import typing
+from binascii import unhexlify, hexlify
 from collections import defaultdict
-from typing import Dict, List
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
-from marshmallow.fields import Integer, String
+from marshmallow.fields import Integer, String, List
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
-from tribler.core.components.metadata_store.restapi.metadata_schema import MetadataSchema, SearchMetadataParameters
+from tribler.core.components.metadata_store.restapi.metadata_schema import SearchMetadataParameters, MetadataSchema, \
+    RemoteQueryParameters
+from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
@@ -28,17 +31,27 @@ class SearchEndpoint(MetadataEndpointBase):
     """
     path = '/search'
 
+    def __init__(self, popularity_community: PopularityCommunity, *args, **kwargs):
+        MetadataEndpointBase.__init__(self, *args, **kwargs)
+        self.popularity_community = popularity_community
+
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.search), web.get('/completions', self.completions)])
+        self.app.add_routes([web.get('/local', self.local_search),
+                             web.put('/remote', self.remote_search),
+                             web.get('/completions', self.completions)])
 
     @classmethod
     def sanitize_parameters(cls, parameters):
         sanitized = super().sanitize_parameters(parameters)
         if "max_rowid" in parameters:
             sanitized["max_rowid"] = int(parameters["max_rowid"])
+        if "channel_pk" in parameters:
+            sanitized["channel_pk"] = unhexlify(parameters["channel_pk"])
+        if "origin_id" in parameters:
+            sanitized["origin_id"] = int(parameters["origin_id"])
         return sanitized
 
-    def build_snippets(self, search_results: List[Dict]) -> List[Dict]:
+    def build_snippets(self, search_results: typing.List[typing.Dict]) -> typing.List[typing.Dict]:
         """
         Build a list of snippets that bundle torrents describing the same content item.
         For each search result we determine the content item it is associated to and bundle it inside a snippet.
@@ -46,14 +59,14 @@ class SearchEndpoint(MetadataEndpointBase):
         Within each snippet, we sort on torrent popularity, putting the torrent with the most seeders on top.
         Torrents bundled in a snippet are filtered out from the search results.
         """
-        content_to_torrents: Dict[str, list] = defaultdict(list)
+        content_to_torrents: typing.Dict[str, list] = defaultdict(list)
         for search_result in search_results:
             if "infohash" not in search_result:
                 continue
             with db_session:
-                content_items: List[str] = self.tribler_db.knowledge.get_objects(subject_type=ResourceType.TORRENT,
-                                                                                 subject=search_result["infohash"],
-                                                                                 predicate=ResourceType.CONTENT_ITEM)
+                content_items: typing.List[str] = self.tribler_db.get_objects(subject_type=ResourceType.TORRENT,
+                                                                              subject=search_result["infohash"],
+                                                                              predicate=ResourceType.CONTENT_ITEM)
             if content_items:
                 for content_id in content_items:
                     content_to_torrents[content_id].append(search_result)
@@ -66,7 +79,7 @@ class SearchEndpoint(MetadataEndpointBase):
         sorted_content_info = list(content_to_torrents.items())
         sorted_content_info.sort(key=lambda x: x[1][0]["num_seeders"], reverse=True)
 
-        snippets: List[Dict] = []
+        snippets: typing.List[typing.Dict] = []
         for content_info in sorted_content_info:
             content_id = content_info[0]
             torrents_in_snippet = content_to_torrents[content_id][:MAX_TORRENTS_IN_SNIPPETS]
@@ -114,7 +127,7 @@ class SearchEndpoint(MetadataEndpointBase):
         },
     )
     @querystring_schema(SearchMetadataParameters)
-    async def search(self, request):
+    async def local_search(self, request):
         try:
             sanitized = self.sanitize_parameters(request.query)
             tags = sanitized.pop('tags', None)
@@ -210,3 +223,32 @@ class SearchEndpoint(MetadataEndpointBase):
         # TODO: add XXX filtering for completion terms
         results = self.mds.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})
+
+    @docs(
+        tags=['Metadata'],
+        summary="Perform a search for a given query.",
+        responses={200: {
+            'schema': schema(RemoteSearchResponse={'request_uuid': String(), 'peers': List(String())})},
+            "examples": {
+                'Success': {
+                    "request_uuid": "268560c0-3f28-4e6e-9d85-d5ccb0269693",
+                    "peers": ["50e9a2ce646c373985a8e827e328830e053025c6", "107c84e5d9636c17b46c88c3ddb54842d80081b0"]
+                }
+            }
+        },
+    )
+    @querystring_schema(RemoteQueryParameters)
+    async def remote_search(self, request):
+        self._logger.info('Create remote search request')
+        # Query remote results from the GigaChannel Community.
+        # Results are returned over the Events endpoint.
+        try:
+            sanitized = self.sanitize_parameters(request.query)
+        except (ValueError, KeyError) as e:
+            return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
+        self._logger.info(f'Parameters: {sanitized}')
+
+        request_uuid, peers_list = self.popularity_community.send_search_request(**sanitized)
+        peers_mid_list = [hexlify(p.mid).decode() for p in peers_list]
+
+        return RESTResponse({"request_uuid": str(request_uuid), "peers": peers_mid_list})

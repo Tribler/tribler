@@ -1,7 +1,8 @@
 import os
+import uuid
 from binascii import unhexlify
 from typing import List, Set
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import pytest
 from pony.orm import db_session
@@ -227,3 +228,41 @@ def test_build_snippets_no_infohash(endpoint: SearchEndpoint):
     search_results = [{'dictionary': 'without infohash'}]
     result = endpoint.build_snippets(search_results)
     assert result == search_results
+
+
+@pytest.fixture
+def mock_gigachannel_community():
+    return Mock()
+
+
+async def test_create_remote_search_request(rest_api, mock_gigachannel_community):
+    """
+    Test that remote search call is sent on a REST API search request
+    """
+    sent = {}
+    peers = []
+    request_uuid = uuid.uuid4()
+
+    def mock_send(**kwargs):
+        sent.update(kwargs)
+        return request_uuid, peers
+
+    # Test querying for keywords
+    mock_gigachannel_community.send_search_request = mock_send
+    search_txt = "foo"
+    await do_request(
+        rest_api,
+        f'search/remote?txt_filter={search_txt}',
+        request_type="PUT",
+        expected_code=200,
+        expected_json={"request_uuid": str(request_uuid), "peers": peers},
+    )
+    assert sent['txt_filter'] == search_txt
+    sent.clear()
+
+    # Test querying channel data by public key, e.g. for channel preview purposes
+    channel_pk = "ff"
+    await do_request(
+        rest_api, f'remote_query?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
+    )
+    assert hexlify(sent['channel_pk']) == channel_pk
