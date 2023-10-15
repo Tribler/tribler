@@ -1,7 +1,7 @@
 from base64 import b64encode
 
 from PyQt5 import uic
-from PyQt5.QtCore import QDir, QTimer, Qt, pyqtSignal
+from PyQt5.QtCore import QDir, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 from psutil import LINUX
@@ -147,6 +147,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.category_selector.addItems(self.categories)
         connect(self.category_selector.currentIndexChanged, self.on_category_selector_changed)
         self.channel_back_button.setIcon(QIcon(get_image_path('page_back.png')))
+        self.channel_back_button.setHidden(True)
         connect(self.channel_back_button.clicked, self.go_back)
         connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
         self.commit_control_bar.setHidden(True)
@@ -203,17 +204,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             container.setHidden(True)
         elif is_time_to_show and container.isHidden() and container.initialized:
             container.setHidden(False)
-
-    # def _enable_autocommit_timer(self):
-    #     self.commit_timer = QTimer()
-    #     self.commit_timer.setSingleShot(True)
-    #     connect(self.commit_timer.timeout, self.commit_channels)
-    #
-    #     # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
-    #     # The timer thing here is a workaround for race condition with the core startup
-    #     self.controller.table_view.setColumnHidden(3, True)
-    #     self.commit_timer.stop()
-    #     self.commit_timer.start(10000)
 
     def on_category_selector_changed(self, ind):
         category = self.categories[ind] if ind else None
@@ -291,13 +281,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def disconnect_current_model(self):
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
-        disconnect(self.model.info_changed, self.on_model_info_changed)
+        # disconnect(self.model.info_changed, self.on_model_info_changed)
         disconnect(self.model.query_complete, self.on_model_query_completed)
 
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def connect_current_model(self):
-        connect(self.model.info_changed, self.on_model_info_changed)
+        # connect(self.model.info_changed, self.on_model_info_changed)
         connect(self.model.query_complete, self.on_model_query_completed)
         connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 

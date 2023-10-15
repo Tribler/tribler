@@ -174,7 +174,7 @@ font-size: 20px;
 font-weight: bold;</string>
         </property>
         <property name="text">
-         <string notr="true">Some fancy channel</string>
+         <string notr="true"></string>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse</set>
