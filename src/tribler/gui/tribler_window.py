@@ -579,19 +579,19 @@ class TriblerWindow(QMainWindow):
         )
         self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
 
-        self.discovered_page.initialize_root_model(
-            DiscoveredChannelsModel(
-                channel_info={"name": tr("Discovered channels")}, endpoint_url="channels", hide_xxx=self.hide_xxx
-            )
-        )
-        connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
+        # self.discovered_page.initialize_root_model(
+        #     DiscoveredChannelsModel(
+        #         channel_info={"name": tr("Discovered channels")}, endpoint_url="channels", hide_xxx=self.hide_xxx
+        #     )
+        # )
+        # connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
 
         self.popular_page.initialize_root_model(
             PopularTorrentsModel(channel_info={"name": tr("Popular torrents")}, hide_xxx=self.hide_xxx)
         )
         self.popular_page.explanation_tooltip_button.setHidden(False)
 
-        self.add_to_channel_dialog.load_channel(0)
+        # self.add_to_channel_dialog.load_channel(0)
 
         if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
             connect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
@@ -602,7 +602,7 @@ class TriblerWindow(QMainWindow):
             self.clicked_menu_button_discovered()
             self.left_menu_button_discovered.setChecked(True)
 
-        self.channels_menu_list.load_channels()
+        # self.channels_menu_list.load_channels()
 
         # Toggle debug if developer mode is enabled
         self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))

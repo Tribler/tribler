@@ -128,8 +128,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.model.reset()
             self.update_labels()
 
-    def commit_channels(self, checked=False):  # pylint: disable=W0613
-        request_manager.post("channels/mychannel/0/commit", on_success=self.on_channel_committed)
+    # def commit_channels(self, checked=False):  # pylint: disable=W0613
+    #     request_manager.post("channels/mychannel/0/commit", on_success=self.on_channel_committed)
 
     def initialize_content_page(
             self,
@@ -161,13 +161,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
 
         self.autocommit_enabled = autocommit_enabled
-        if self.autocommit_enabled:
-            self._enable_autocommit_timer()
+        # if self.autocommit_enabled:
+        #     self._enable_autocommit_timer()
 
         # New channel button
         connect(self.new_channel_button.clicked, self.create_new_channel)
         connect(self.content_table.channel_clicked, self.on_channel_clicked)
-        connect(self.edit_channel_commit_button.clicked, self.commit_channels)
+        # connect(self.edit_channel_commit_button.clicked, self.commit_channels)
 
         self.subscription_widget.initialize(self)
 
@@ -178,9 +178,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def _description_changed(self):
         # Initialize commit timer on channel description change
-        if self.autocommit_enabled:
-            self.commit_timer.stop()
-            self.commit_timer.start(CHANNEL_COMMIT_DELAY)
+        # if self.autocommit_enabled:
+        #     self.commit_timer.stop()
+        #     self.commit_timer.start(CHANNEL_COMMIT_DELAY)
         self.model.channel_info["dirty"] = True
         self.update_labels()
 
@@ -204,16 +204,16 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         elif is_time_to_show and container.isHidden() and container.initialized:
             container.setHidden(False)
 
-    def _enable_autocommit_timer(self):
-        self.commit_timer = QTimer()
-        self.commit_timer.setSingleShot(True)
-        connect(self.commit_timer.timeout, self.commit_channels)
-
-        # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
-        # The timer thing here is a workaround for race condition with the core startup
-        self.controller.table_view.setColumnHidden(3, True)
-        self.commit_timer.stop()
-        self.commit_timer.start(10000)
+    # def _enable_autocommit_timer(self):
+    #     self.commit_timer = QTimer()
+    #     self.commit_timer.setSingleShot(True)
+    #     connect(self.commit_timer.timeout, self.commit_channels)
+    #
+    #     # Commit the channel just in case there are uncommitted changes left since the last time (e.g. Tribler crashed)
+    #     # The timer thing here is a workaround for race condition with the core startup
+    #     self.controller.table_view.setColumnHidden(3, True)
+    #     self.commit_timer.stop()
+    #     self.commit_timer.start(10000)
 
     def on_category_selector_changed(self, ind):
         category = self.categories[ind] if ind else None
@@ -249,9 +249,9 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         if structure_changed:
             self.window().add_to_channel_dialog.clear_channels_tree()
 
-        if self.autocommit_enabled and dirty:
-            self.commit_timer.stop()
-            self.commit_timer.start(CHANNEL_COMMIT_DELAY)
+        # if self.autocommit_enabled and dirty:
+        #     self.commit_timer.stop()
+        #     self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
         self.model.channel_info["dirty"] = dirty
         self.update_labels()

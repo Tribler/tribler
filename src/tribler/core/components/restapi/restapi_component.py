@@ -19,7 +19,6 @@ from tribler.core.components.libtorrent.restapi.downloads_endpoint import Downlo
 from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
 from tribler.core.components.metadata_store.restapi.remote_query_endpoint import RemoteQueryEndpoint
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
@@ -107,12 +106,8 @@ class RESTComponent(Component):
         self.maybe_add(StatisticsEndpoint, ipv8=ipv8_component.ipv8, metadata_store=metadata_store_component.mds)
         self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add(TorrentInfoEndpoint, libtorrent_component.download_manager)
-        self.maybe_add(MetadataEndpoint, torrent_checker, metadata_store_component.mds,
-                       tribler_db=db_component.db,
-                       tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(ChannelsEndpoint, libtorrent_component.download_manager,
-                       gigachannel_component.community, metadata_store_component.mds,
-                       tribler_db=db_component.db,
+        self.maybe_add(MetadataEndpoint, libtorrent_component.download_manager, torrent_checker,
+                       metadata_store_component.mds, tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
         self.maybe_add(SearchEndpoint, metadata_store_component.mds, tribler_db=db_component.db)
         self.maybe_add(RemoteQueryEndpoint, gigachannel_component.community, metadata_store_component.mds)

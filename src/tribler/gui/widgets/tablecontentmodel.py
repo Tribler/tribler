@@ -711,7 +711,7 @@ class PopularTorrentsModel(ChannelContentModel):
     columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.CREATED)
 
     def __init__(self, *args, **kwargs):
-        kwargs["endpoint_url"] = 'channels/popular_torrents'
+        kwargs["endpoint_url"] = 'metadata/torrents/popular'
         super().__init__(*args, **kwargs)
 
 
