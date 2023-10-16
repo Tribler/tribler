@@ -15,7 +15,7 @@ class DatabaseComponent(Component):
         if self.session.config.gui_test_mode:
             db_path = ":memory:"
 
-        self.db = TriblerDatabase(str(db_path), create_tables=True)
+        self.db = TriblerDatabase(str(db_path))
 
     async def shutdown(self):
         await super().shutdown()
