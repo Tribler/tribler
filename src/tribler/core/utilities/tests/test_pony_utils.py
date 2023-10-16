@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 
 import pytest
@@ -56,6 +57,7 @@ def test_patched_db_session(tmp_path):
         def _perform_queries():
             for i in range(10):
                 Entity1(a=i)
+            time.sleep(0.01)
             db.commit()
             db.rollback()
             Entity1.select().fetch()
