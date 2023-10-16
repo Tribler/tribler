@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import sqlite3
 import sys
@@ -35,6 +36,36 @@ StatDict = Dict[Optional[str], core.QueryStat]
 
 class DatabaseIsCorrupted(Exception):
     pass
+
+
+def table_exists(cursor: sqlite3.Cursor, table_name: str) -> bool:
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    return cursor.fetchone() is not None
+
+
+def get_db_version(db_path, default: int = None) -> int:
+    handle_db_if_corrupted(db_path)
+    if not db_path.exists():
+        version = None
+    else:
+        with marking_corrupted_db(db_path):
+            with contextlib.closing(sqlite3.connect(db_path)) as connection:
+                with connection:
+                    cursor = connection.cursor()
+                    if not table_exists(cursor, 'MiscData'):
+                        version = None
+                    else:
+                        cursor.execute("SELECT value FROM MiscData WHERE name == 'db_version'")
+                        row = cursor.fetchone()
+                        version = int(row[0]) if row else None
+
+    if version is not None:
+        return version
+
+    if default is not None:
+        return default
+
+    raise RuntimeError(f'The version value is not found in database {db_path}')
 
 
 def handle_db_if_corrupted(db_filename: Union[str, Path]):
@@ -77,7 +108,7 @@ def _is_malformed_db_exception(exception):
 
 def _mark_db_as_corrupted(db_filename: Path):
     if not db_filename.exists():
-        raise RuntimeError(f'Corrupted database file not found: {db_filename!r}')
+        raise RuntimeError(f'Corrupted database file not found: {db_filename}')
 
     marker_path = _get_corrupted_db_marker_path(db_filename)
     marker_path.touch()

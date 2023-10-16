@@ -6,7 +6,9 @@ import pytest
 
 from pony.orm.core import QueryStat, Required
 from tribler.core.utilities import pony_utils
-from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, handle_db_if_corrupted, marking_corrupted_db
+from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, _mark_db_as_corrupted, get_db_version, \
+    handle_db_if_corrupted, \
+    marking_corrupted_db, table_exists
 
 EMPTY_DICT = {}
 
@@ -125,19 +127,19 @@ Queries statistics for the entire application:
 
 
 @pytest.fixture(name='db_path')
-def db_path_fixture(tmp_path):
+def db_path_fixture(tmp_path: Path):
     db_path = tmp_path / 'test.db'
     db_path.touch()
     return db_path
 
 
 @patch('tribler.core.utilities.pony_utils._handle_corrupted_db')
-def test_handle_db_if_corrupted__not_corrupted(handle_corrupted_db: Mock, db_path):
+def test_handle_db_if_corrupted__not_corrupted(handle_corrupted_db: Mock, db_path: Path):
     handle_db_if_corrupted(db_path)
     handle_corrupted_db.assert_not_called()
 
 
-def test_handle_db_if_corrupted__corrupted(db_path):
+def test_handle_db_if_corrupted__corrupted(db_path: Path):
     marker_path = Path(str(db_path) + '.is_corrupted')
     marker_path.touch()
 
@@ -146,7 +148,7 @@ def test_handle_db_if_corrupted__corrupted(db_path):
     assert not marker_path.exists()
 
 
-def test_marking_corrupted_db__not_malformed(db_path):
+def test_marking_corrupted_db__not_malformed(db_path: Path):
     with pytest.raises(ZeroDivisionError):
         with marking_corrupted_db(db_path):
             raise ZeroDivisionError()
@@ -154,9 +156,77 @@ def test_marking_corrupted_db__not_malformed(db_path):
     assert not Path(str(db_path) + '.is_corrupted').exists()
 
 
-def test_marking_corrupted_db__malformed(db_path):
+def test_marking_corrupted_db__malformed(db_path: Path):
     with pytest.raises(DatabaseIsCorrupted):
         with marking_corrupted_db(db_path):
             raise sqlite3.DatabaseError('database disk image is malformed')
 
     assert Path(str(db_path) + '.is_corrupted').exists()
+
+
+def test_get_db_version__db_does_not_exist(tmp_path: Path):
+    db_path = tmp_path / 'doesnotexist.db'
+
+    with pytest.raises(RuntimeError, match='^The version value is not found in database .*doesnotexist.db$'):
+        get_db_version(db_path)
+
+
+def test_get_db_version__db_does_not_exist_default_version(tmp_path: Path):
+    db_path = tmp_path / 'doesnotexist.db'
+
+    default_version = 123
+    version = get_db_version(db_path, default=default_version)
+    assert version == default_version
+
+
+def test_get_db_version__version_table_does_not_exist(db_path: Path):
+    with pytest.raises(RuntimeError, match='^The version value is not found in database .*test.db$'):
+        get_db_version(db_path)
+
+
+def test_get_db_version__version_table_does_not_exist_default_version(db_path: Path):
+    default_version = 123
+    version = get_db_version(db_path, default=default_version)
+    assert version == default_version
+
+
+def test_get_db_version(db_path: Path):
+    with sqlite3.connect(db_path) as connection:
+        connection.execute('create table MiscData(name text primary key, value text)')
+        connection.execute("insert into MiscData(name, value) values('db_version', '100')")
+
+    version = get_db_version(db_path)
+    assert version == 100
+
+    version = get_db_version(db_path, default=99)
+    assert version == 100
+
+    version = get_db_version(db_path, default=101)
+    assert version == 100
+
+
+def test_get_db_version__corrupted_db(tmp_path: Path):
+    db_path = tmp_path / 'test.db'
+
+    connection = sqlite3.connect(db_path)
+    connection.execute('create table MiscData(name text primary key, value text)')
+    connection.execute("insert into MiscData(name, value) values('db_version', '100')")
+    connection.commit()
+    assert table_exists(connection.cursor(), 'MiscData')
+    connection.close()
+
+    marker_path = Path(str(db_path) + '.is_corrupted')
+    marker_path.touch()
+
+    default_version = 10
+    version = get_db_version(db_path, default=default_version)
+    assert version == default_version
+
+    with sqlite3.connect(db_path) as connection:
+        assert not table_exists(connection.cursor(), 'MiscData')
+
+
+def test_mark_db_as_corrupted_file_does_not_exist(tmp_path: Path):
+    db_path = tmp_path / 'doesnotexist.db'
+    with pytest.raises(RuntimeError, match='^Corrupted database file not found: .*doesnotexist.db$'):
+        _mark_db_as_corrupted(db_path)

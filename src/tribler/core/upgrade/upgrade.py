@@ -18,11 +18,12 @@ from tribler.core.components.metadata_store.db.store import (
     sql_create_partial_index_torrentstate_last_check,
 )
 from tribler.core.upgrade.config_converter import convert_config_to_tribler76
-from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration
 from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
 from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.pony_utils import get_db_version
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 
