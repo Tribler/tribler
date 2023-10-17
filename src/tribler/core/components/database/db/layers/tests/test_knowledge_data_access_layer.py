@@ -14,13 +14,19 @@ from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 # pylint: disable=protected-access
 class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
     @patch.object(TrackedDatabase, 'generate_mapping')
+    @patch.object(TriblerDatabase, 'fill_default_data', Mock())
     def test_constructor_create_tables_true(self, mocked_generate_mapping: Mock):
-        TriblerDatabase(':memory:')
+        """ Test that constructor of TriblerDatabase calls TrackedDatabase.generate_mapping with create_tables=True"""
+        TriblerDatabase()
+
         mocked_generate_mapping.assert_called_with(create_tables=True)
 
     @patch.object(TrackedDatabase, 'generate_mapping')
+    @patch.object(TriblerDatabase, 'fill_default_data', Mock())
     def test_constructor_create_tables_false(self, mocked_generate_mapping: Mock):
-        TriblerDatabase(':memory:', create_tables=False)
+        """ Test that constructor of TriblerDatabase calls TrackedDatabase.generate_mapping with create_tables=False"""
+        TriblerDatabase(create_tables=False)
+
         mocked_generate_mapping.assert_called_with(create_tables=False)
 
     @db_session
@@ -245,7 +251,7 @@ class TestKnowledgeAccessLayer(TestKnowledgeAccessLayerBase):
         )
 
         self.add_operation(self.db, subject='infohash1', predicate=ResourceType.TAG, obj='tag2', peer=b'4',
-                                        operation=Operation.REMOVE)
+                           operation=Operation.REMOVE)
 
         assert self.db.knowledge.get_objects(subject='infohash1', predicate=ResourceType.TAG) == ['tag1']
 

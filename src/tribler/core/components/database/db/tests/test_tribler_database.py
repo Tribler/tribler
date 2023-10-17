@@ -1,3 +1,4 @@
+import pytest
 from ipv8.test.base import TestBase
 from pony.orm import db_session
 
@@ -37,8 +38,10 @@ class TestTriblerDatabase(TestBase):
     @db_session
     def test_set_misc(self):
         """Test that set_misc works as expected"""
-        self.db.set_misc(key='key', value='value')
-        assert self.db.get_misc(key='key') == 'value'
+        self.db.set_misc(key='string', value='value')
+        self.db.set_misc(key='integer', value=1)
+        assert self.db.get_misc(key='string') == 'value'
+        assert self.db.get_misc(key='integer') == '1'
 
     @db_session
     def test_non_existent_misc(self):
@@ -48,3 +51,20 @@ class TestTriblerDatabase(TestBase):
 
         # A value if the key does exist
         assert self.db.get_misc(key='non existent', default=42) == 42
+
+    @db_session
+    def test_default_version(self):
+        """ Test that the default version is equal to `CURRENT_VERSION`"""
+        assert self.db.version == TriblerDatabase.CURRENT_VERSION
+
+    @db_session
+    def test_version_getter_and_setter(self):
+        """ Test that the version getter and setter work as expected"""
+        self.db.version = 42
+        assert self.db.version == 42
+
+    @db_session
+    def test_version_getter_unsupported_type(self):
+        """ Test that the version getter raises a TypeError if the type is not supported"""
+        with pytest.raises(TypeError):
+            self.db.version = 'string'
