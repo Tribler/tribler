@@ -3,6 +3,7 @@ import os
 import shutil
 import time
 from configparser import MissingSectionHeaderError, ParsingError
+from functools import wraps
 from types import SimpleNamespace
 from typing import List, Optional, Tuple
 
@@ -23,7 +24,7 @@ from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnow
 from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import get_db_version
+from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, get_db_version
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 
@@ -69,6 +70,22 @@ def cleanup_noncompliant_channel_torrents(state_dir):
                                  file_path)
 
 
+def catch_db_is_corrupted_exception(upgrader_method):
+
+    @wraps(upgrader_method)
+    def new_method(*args, **kwargs):
+        try:
+            upgrader_method(*args, **kwargs)
+        except DatabaseIsCorrupted as exc:
+            self: TriblerUpgrader = args[0]
+            self._logger.exception(exc)
+
+            if not self._db_is_corrupted_exception:
+                self._db_is_corrupted_exception = exc
+
+    return new_method
+
+
 class TriblerUpgrader:
 
     def __init__(self, state_dir: Path, channels_dir: Path, primary_key: LibNaCLSK, secondary_key: Optional[LibNaCLSK],
@@ -84,6 +101,7 @@ class TriblerUpgrader:
 
         self.failed = True
         self._pony2pony = None
+        self._db_is_corrupted_exception: Optional[DatabaseIsCorrupted] = None
 
     @property
     def shutting_down(self):
@@ -106,6 +124,9 @@ class TriblerUpgrader:
         self.remove_old_logs()
         self.upgrade_pony_db_14to15()
 
+        if self._db_is_corrupted_exception:
+            raise self._db_is_corrupted_exception
+
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
         self._logger.info(f'Remove old logs')
 
@@ -127,11 +148,13 @@ class TriblerUpgrader:
 
         return removed_files, left_files
 
+    @catch_db_is_corrupted_exception
     def upgrade_tags_to_knowledge(self):
         self._logger.info('Upgrade tags to knowledge')
         migration = MigrationTagsToKnowledge(self.state_dir, self.secondary_key)
         migration.run()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_14to15(self):
         self._logger.info('Upgrade Pony DB from version 14 to version 15')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
@@ -146,6 +169,7 @@ class TriblerUpgrader:
         if mds:
             mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_13to14(self):
         self._logger.info('Upgrade Pony DB from version 13 to version 14')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
@@ -166,6 +190,7 @@ class TriblerUpgrader:
         if tag_db:
             tag_db.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_12to13(self):
         """
         Upgrade GigaChannel DB from version 12 (7.9.x) to version 13 (7.11.x).
@@ -183,6 +208,7 @@ class TriblerUpgrader:
         self.do_upgrade_pony_db_12to13(mds)
         mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_11to12(self):
         """
         Upgrade GigaChannel DB from version 11 (7.8.x) to version 12 (7.9.x).
@@ -201,6 +227,7 @@ class TriblerUpgrader:
         self.do_upgrade_pony_db_11to12(mds)
         mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_10to11(self):
         """
         Upgrade GigaChannel DB from version 10 (7.6.x) to version 11 (7.7.x).
@@ -220,6 +247,7 @@ class TriblerUpgrader:
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_bw_accounting_db_8to9(self):
         """
         Upgrade the database with bandwidth accounting information from 8 to 9.
@@ -387,6 +415,7 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_8to10(self):
         """
         Upgrade GigaChannel DB from version 8 (7.5.x) to version 10 (7.6.x).

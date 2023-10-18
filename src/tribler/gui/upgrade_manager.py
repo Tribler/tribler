@@ -52,9 +52,6 @@ class StateDirUpgradeWorker(QObject):
                 update_status_callback=self._update_status_callback,
                 interrupt_upgrade_event=self.upgrade_interrupted,
             )
-        except DatabaseIsCorrupted as exc:
-            self.logger.exception(exc)
-            self.cancelled.emit(self.format_database_is_corrupted_error(exc))
         except NoDiskSpaceAvailableError as exc:
             self.logger.exception(exc)
             self.cancelled.emit(self.format_no_disk_space_available_error(exc))
@@ -64,11 +61,6 @@ class StateDirUpgradeWorker(QObject):
         else:
             self.logger.info('Finished')
             self.finished.emit(None)
-
-    @staticmethod
-    def format_database_is_corrupted_error(exc: DatabaseIsCorrupted) -> str:
-        formatted_error = tr(DATABASE_IS_CORRUPTED_ERROR_MESSAGE) % str(exc)
-        return formatted_error
 
     @staticmethod
     def format_no_disk_space_available_error(disk_error: NoDiskSpaceAvailableError) -> str:
@@ -258,8 +250,22 @@ class UpgradeManager(QObject):
         self.stop_worker()
         if exc is None:
             self.upgrader_finished.emit()
+        elif isinstance(exc, DatabaseIsCorrupted):
+            self.show_db_corruption_fixed_message(exc)
+            self.upgrader_finished.emit()
         else:
             raise UpgradeError(f'{exc.__class__.__name__}: {exc}') from exc
+
+    def show_db_corruption_fixed_message(self, exc):
+        msg = self._format_database_corruption_fixed_message(exc)
+        message_box = QMessageBox(icon=QMessageBox.Critical, text=msg)
+        message_box.setWindowTitle(tr("Database corruption fixed"))
+        message_box.exec()
+
+    @staticmethod
+    def _format_database_corruption_fixed_message(exc: DatabaseIsCorrupted) -> str:
+        formatted_error = tr(DATABASE_IS_CORRUPTED_ERROR_MESSAGE) % str(exc)
+        return formatted_error
 
     def on_worker_cancelled(self, reason: str):
         self.stop_worker()
