@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 import psutil
 import pytest
 
-from tribler.core.components.gui_process_watcher.gui_process_watcher import GUI_PID_ENV_KEY, GuiProcessNotRunning, \
+from tribler.core.components.gui_process_watcher.gui_process_watcher import GUI_PID_ENV_KEY, GUI_UID_ENV_KEY, \
+    GuiProcessNotRunning, \
     GuiProcessWatcher
 
 
@@ -31,6 +32,19 @@ def test_get_gui_pid(caplog):
 
     with patch.dict(os.environ, {GUI_PID_ENV_KEY: '123'}):
         assert GuiProcessWatcher.get_gui_pid() == 123
+
+
+def test_get_gui_uid(caplog):
+    with patch.dict(os.environ, {GUI_UID_ENV_KEY: ''}):
+        assert GuiProcessWatcher.get_gui_pid() is None
+
+    with patch.dict(os.environ, {GUI_UID_ENV_KEY: 'abc'}):
+        caplog.clear()
+        assert GuiProcessWatcher.get_gui_uid() is None
+        assert caplog.records[-1].message == 'Cannot parse TRIBLER_GUI_UID environment variable: abc'
+
+    with patch.dict(os.environ, {GUI_UID_ENV_KEY: '123'}):
+        assert GuiProcessWatcher.get_gui_uid() == 123
 
 
 def test_get_gui_process():

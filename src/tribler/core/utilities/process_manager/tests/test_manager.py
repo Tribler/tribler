@@ -14,42 +14,37 @@ from tribler.core.utilities.process_manager.process import ProcessKind, TriblerP
 def test_become_primary(process_manager: ProcessManager):
     # Initially process manager fixture creates a primary current process that is a single process in DB
     p1 = process_manager.current_process
-    assert p1.primary
+    assert p1.is_primary
 
     # Create a new process object with a different PID value
     # (it is not important for the test do we have an actual process with this PID value or not)
-    p2 = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    p2 = TriblerProcess.current_process(kind=ProcessKind.Core, manager=process_manager)
     p2.pid += 1
     # The new process should not be able to become a primary process, as we already have the primary process in the DB
     assert not p2.become_primary()
-    assert not p2.primary
+    assert not p2.is_primary
 
     with process_manager.connect() as connection:
         # Here we are emulating the situation that the current process abnormally terminated without updating the row
         # in the database. To emulate it, we update the `started_at` time of the primary process in the DB.
+        t = int(time.time()) - 30
+        connection.execute('update processes set last_alive_at = ? where is_primary = 1', [t])
 
-        # After the update, it looks like the actual process with the PID of the primary process (that is, the process
-        # from which the test suite is running) was created 100 days after the row was added to the database.
-
-        # As a result, TriblerProcess.is_running() returns False for the previous primary process because it
-        # believes the running process with the same PID is a new process, different from the process in the DB
-        connection.execute('update processes set started_at = started_at - (60 * 60 * 24 * 100) where "primary" = 1')
-
-    p3 = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    p3 = TriblerProcess.current_process(kind=ProcessKind.Core, manager=process_manager)
     p3.pid += 2
     # Now p3 can become a new primary process, because the previous primary process considered
     # already finished and replaced with a new unrelated process with the same PID
     assert p3.become_primary()
-    assert p3.primary
+    assert p3.is_primary
 
     with process_manager.connect() as connection:
-        rows = connection.execute('select rowid from processes where "primary" = 1').fetchall()
+        rows = connection.execute('select rowid from processes where is_primary = 1').fetchall()
         # At the end, the DB should contain only one primary process, namely p3
         assert len(rows) == 1 and rows[0][0] == p3.rowid
 
 
 def test_save(process_manager: ProcessManager):
-    p = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    p = TriblerProcess.current_process(kind=ProcessKind.Core, manager=process_manager)
     p.pid = p.pid + 100
     p.save()
     assert p.rowid is not None
@@ -68,7 +63,7 @@ def test_sys_exit(sys_exit: Mock, process_manager: ProcessManager):
     process_manager.sys_exit(123, 'Error text')
 
     with process_manager.connect() as connection:
-        rows = connection.execute('select "primary", error_msg from processes where rowid = ?',
+        rows = connection.execute('select is_primary, error_msg from processes where rowid = ?',
                                   [process_manager.current_process.rowid]).fetchall()
         assert len(rows) == 1 and rows[0] == (0, 'Error text')
     assert sys_exit.called and sys_exit.call_args[0][0] == 123
@@ -78,7 +73,7 @@ def test_get_last_processes(process_manager: ProcessManager):
     last_processes = process_manager.get_last_processes()
     assert len(last_processes) == 1 and last_processes[0].rowid == process_manager.current_process.rowid
 
-    fake_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    fake_process = TriblerProcess.current_process(kind=ProcessKind.Core, manager=process_manager)
     fake_process.pid = fake_process.pid + 1
     fake_process.become_primary()
 
@@ -96,7 +91,7 @@ def test_corrupted_database(logger_exception: Mock, logger_warning: Mock, proces
     process_manager.db_filepath.write_bytes(db_content[:1500])  # corrupt the database file
 
     # no exception, the database is silently re-created:
-    current_process = TriblerProcess.current_process(ProcessKind.Core, manager=process_manager)
+    current_process = TriblerProcess.current_process(kind=ProcessKind.Core, manager=process_manager)
     process_manager2 = ProcessManager(process_manager.root_dir, current_process)
     current_process.become_primary()
     assert logger_exception.call_args[0][0] == 'DatabaseError: database disk image is malformed'
@@ -116,8 +111,8 @@ def test_delete_old_records_1(process_manager):
 
         # Let's add 100 processes finished in previous days
         for i in range(1, 101):
-            p = TriblerProcess(manager=process_manager, pid=i, kind=ProcessKind.Core, app_version='',
-                               started_at=now - day * i - 60, finished_at=now - day * i + 60)
+            p = TriblerProcess(manager=process_manager, uid=i, pid=i, kind=ProcessKind.Core, app_version='',
+                               started_at=now - day * i - 60, last_alive_at=now - day * i + 60)
             p.save()
         assert connection.execute("select count(*) from processes").fetchone()[0] == 101
 
@@ -135,8 +130,8 @@ def test_delete_old_records_2(process_manager):
 
         # Let's add 200 processes
         for i in range(200):
-            p = TriblerProcess(manager=process_manager, pid=i, kind=ProcessKind.Core, app_version='',
-                               started_at=now - 120)
+            p = TriblerProcess(manager=process_manager, uid=i, pid=i, kind=ProcessKind.Core, app_version='',
+                               started_at=now - 120, last_alive_at=now - 120)
             p.save()
         assert connection.execute("select count(*) from processes").fetchone()[0] == 201
 

@@ -41,7 +41,7 @@ def fixture_window(tmp_path_factory):
     api_key = hexlify(os.urandom(16))
     root_state_dir = tmp_path_factory.mktemp('tribler_state_dir')
 
-    current_process = TriblerProcess.current_process(ProcessKind.GUI)
+    current_process = TriblerProcess.current_process(kind=ProcessKind.GUI)
     process_manager = ProcessManager(root_state_dir, current_process)
     is_primary_process = process_manager.current_process.become_primary()
     app = TriblerApplication("triblerapp-guitest", sys.argv, start_local_server=is_primary_process)

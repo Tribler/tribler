@@ -74,9 +74,10 @@ class TinyTriblerService:
         self.logger.info(f'Check if we are already running a Tribler instance in: {self.config.state_dir}')
 
         root_state_dir = get_root_state_directory(create=True)
-        current_process = TriblerProcess.current_process(ProcessKind.Core)
+        current_process = TriblerProcess.current_process(kind=ProcessKind.Core)
         self.process_manager = ProcessManager(root_state_dir, current_process)
         set_global_process_manager(self.process_manager)
+        current_process.start_updating_thread()
 
         if not self.process_manager.current_process.become_primary():
             msg = 'Another Core process is already running'
@@ -107,6 +108,8 @@ class TinyTriblerService:
         shutdown_task.add_done_callback(lambda result: self._stop_event_loop())
 
     def _stop_event_loop(self):
-        asyncio.get_running_loop().stop()
-        if self.process_manager:
-            self.process_manager.current_process.finish()
+        try:
+            asyncio.get_running_loop().stop()
+        finally:
+            if self.process_manager:
+                self.process_manager.current_process.finish()

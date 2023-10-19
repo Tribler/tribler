@@ -5,6 +5,7 @@ from typing import Callable, Optional
 import psutil
 from ipv8.taskmanager import TaskManager
 
+GUI_UID_ENV_KEY = 'TRIBLER_GUI_UID'
 GUI_PID_ENV_KEY = 'TRIBLER_GUI_PID'
 CHECK_INTERVAL = 10
 
@@ -50,6 +51,16 @@ class GuiProcessWatcher(TaskManager):
                 return int(pid)
             except ValueError:
                 logger.warning(f'Cannot parse {GUI_PID_ENV_KEY} environment variable: {pid}')
+        return None
+
+    @staticmethod
+    def get_gui_uid() -> Optional[int]:
+        uid = os.environ.get(GUI_UID_ENV_KEY, None)
+        if uid:
+            try:
+                return int(uid)
+            except ValueError:
+                logger.warning(f'Cannot parse {GUI_UID_ENV_KEY} environment variable: {uid}')
         return None
 
     @classmethod

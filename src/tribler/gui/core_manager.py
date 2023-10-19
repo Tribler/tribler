@@ -113,7 +113,8 @@ class CoreManager(QObject):
             core_env = QProcessEnvironment.systemEnvironment()
             core_env.insert("CORE_API_KEY", self.api_key)
             core_env.insert("TSTATEDIR", str(self.root_state_dir))
-            core_env.insert("TRIBLER_GUI_PID", str(os.getpid()))
+            core_env.insert("TRIBLER_GUI_UID", str(self.process_manager.current_process.uid))
+            core_env.insert("TRIBLER_GUI_PID", str(self.process_manager.current_process.pid))
 
         core_args = self.core_args
         if not core_args:

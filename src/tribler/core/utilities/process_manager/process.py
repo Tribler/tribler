@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import sqlite3
 import time
 from datetime import datetime, timedelta
@@ -11,11 +12,15 @@ from typing import Any, List, Optional, TYPE_CHECKING
 import psutil
 
 from tribler.core.utilities.process_manager import sql_scripts
+from tribler.core.utilities.process_manager.updating_thread import UpdatingThread
 from tribler.core.utilities.process_manager.utils import with_retry
 from tribler.core.version import version_id
 
 if TYPE_CHECKING:
     from tribler.core.utilities.process_manager import ProcessManager
+
+
+ALIVE_TIMEOUT = 5
 
 
 class ProcessKind(Enum):
@@ -24,25 +29,44 @@ class ProcessKind(Enum):
 
 
 class TriblerProcess:
-    def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
-                 row_version: int = 0, rowid: Optional[int] = None, creator_pid: Optional[int] = None,
-                 primary: bool = False, canceled: bool = False, api_port: Optional[int] = None,
-                 finished_at: Optional[int] = None, exit_code: Optional[int] = None, error_msg: Optional[str] = None,
-                 manager: Optional[ProcessManager] = None):
+    def __init__(self, *,
+                 manager: Optional[ProcessManager] = None,
+                 rowid: Optional[int] = None,
+                 row_version: int = 0,
+                 uid: int,
+                 pid: int,
+                 creator_uid: Optional[int] = None,
+                 creator_pid: Optional[int] = None,
+                 kind: ProcessKind,
+                 is_primary: bool = False,
+                 app_version: str,
+                 api_port: Optional[int] = None,
+                 started_at: int,
+                 last_alive_at: int,
+                 is_finished: bool = False,
+                 is_canceled: bool = False,
+                 exit_code: Optional[int] = None,
+                 error_msg: Optional[str] = None
+                 ):
+        self.uid = None
         self._manager = manager
         self.rowid = rowid
         self.row_version = row_version
+        self.uid = uid
         self.pid = pid
-        self.kind = kind
-        self.primary = primary
-        self.canceled = canceled
-        self.app_version = app_version
-        self.started_at = started_at
+        self.creator_uid = creator_uid
         self.creator_pid = creator_pid
+        self.kind = kind
+        self.is_primary = is_primary
+        self.app_version = app_version
         self.api_port = api_port
-        self.finished_at = finished_at
+        self.started_at = started_at
+        self.last_alive_at = last_alive_at
+        self.is_canceled = is_canceled
+        self.is_finished = is_finished
         self.exit_code = exit_code
         self.error_msg = error_msg
+        self.updating_thread: Optional[UpdatingThread] = None
 
     @property
     def manager(self) -> ProcessManager:
@@ -53,6 +77,11 @@ class TriblerProcess:
     @manager.setter
     def manager(self, manager: ProcessManager):
         self._manager = manager
+
+    @property
+    def is_current_process(self):
+        manager = self._manager
+        return manager and manager.current_process and manager.current_process.uid == self.uid
 
     @property
     def logger(self) -> logging.Logger:
@@ -76,30 +105,54 @@ class TriblerProcess:
     @classmethod
     def from_row(cls, manager: ProcessManager, row: tuple) -> TriblerProcess:
         """Constructs an object from the database row"""
-        rowid, row_version, pid, kind, primary, canceled, app_version, started_at, creator_pid, api_port, \
-        finished_at, exit_code, error_msg = row
+        rowid, row_version, uid, pid, creator_uid, creator_pid, kind, is_primary, \
+            app_version, api_port, started_at, last_alive_at, is_finished, is_canceled, exit_code, error_msg = row
 
-        return TriblerProcess(manager=manager, rowid=rowid, row_version=row_version, pid=pid, kind=ProcessKind(kind),
-                              primary=primary, canceled=canceled, app_version=app_version, started_at=started_at,
-                              creator_pid=creator_pid, api_port=api_port, finished_at=finished_at,
-                              exit_code=exit_code, error_msg=error_msg)
+        return TriblerProcess(manager=manager,
+                              rowid=rowid,
+                              row_version=row_version,
+                              uid=uid,
+                              pid=pid,
+                              creator_uid=creator_uid,
+                              creator_pid=creator_pid,
+                              kind=ProcessKind(kind),
+                              is_primary=is_primary,
+                              app_version=app_version,
+                              api_port=api_port,
+                              started_at=started_at,
+                              last_alive_at=last_alive_at,
+                              is_finished=is_finished,
+                              is_canceled=is_canceled,
+                              exit_code=exit_code,
+                              error_msg=error_msg)
 
     def __str__(self) -> str:
         kind = self.kind.value.capitalize()
         elements: List[str] = []
         append = elements.append
-        append('finished' if self.finished_at or self.exit_code is not None else 'running')
+        append('finished' if self.is_finished else 'running')
 
-        if self.is_current_process():
-            append('current process')
+        manager = self._manager
+        if manager and manager.current_process:
 
-        if self.primary:
+            if manager.current_process.uid == self.uid:
+                append('current process')
+
+            if manager.current_process.creator_uid == self.uid:
+                append('parent process')
+
+        if self.is_primary:
             append('primary')
 
-        if self.canceled:
+        if self.is_canceled:
             append('canceled')
 
+        append(f'uid={self.uid:x}')
+
         append(f'pid={self.pid}')
+
+        if self.creator_uid is not None:
+            append(f'gui_uid={self.creator_uid:x}')
 
         if self.creator_pid is not None:
             append(f'gui_pid={self.creator_pid}')
@@ -111,8 +164,8 @@ class TriblerProcess:
         if self.api_port is not None:
             append(f'api_port={self.api_port}')
 
-        if self.finished_at:
-            finished = datetime.utcfromtimestamp(self.finished_at)
+        if self.is_finished:
+            finished = datetime.utcfromtimestamp(self.last_alive_at)
             duration = finished - started
         else:
             duration = timedelta(seconds=int(time.time()) - self.started_at)
@@ -128,19 +181,33 @@ class TriblerProcess:
         return ''.join(result)
 
     @classmethod
-    def current_process(cls, kind: ProcessKind,
+    def current_process(cls, *,
+                        manager: Optional[ProcessManager] = None,
+                        kind: ProcessKind,
+                        creator_uid: Optional[int] = None,
                         creator_pid: Optional[int] = None,
-                        manager: Optional[ProcessManager] = None) -> TriblerProcess:
+                        ) -> TriblerProcess:
         """Constructs an object for a current process, specifying the PID value of the current process"""
+        uid = secrets.randbits(32)
         pid = os.getpid()
-        psutil_process = psutil.Process(pid)
-        started_at = int(psutil_process.create_time())
-        return cls(manager=manager, row_version=0, pid=pid, kind=kind,
-                   app_version=version_id, started_at=started_at, creator_pid=creator_pid)
+        started_at = int(time.time())
 
-    def is_current_process(self) -> bool:
-        """Returns True if the object represents the current process"""
-        return self.pid == os.getpid() and self.is_running()
+        return cls(manager=manager,
+                   row_version=0,
+                   uid=uid,
+                   pid=pid,
+                   creator_uid=creator_uid,
+                   creator_pid=creator_pid,
+                   kind=kind,
+                   app_version=version_id,
+                   started_at=started_at,
+                   last_alive_at=started_at)
+
+    def start_updating_thread(self):
+        if self.updating_thread:
+            return
+        self.updating_thread = UpdatingThread(process=self)
+        self.updating_thread.start()
 
     @with_retry
     def become_primary(self) -> bool:
@@ -148,17 +215,19 @@ class TriblerProcess:
         If there is no primary process already, makes the current process primary and returns the primary status
         """
         with self.manager.connect():
-            # for a new process object self.rowid is None
-            primary_rowid = self.manager.primary_process_rowid(self.kind)
-            if primary_rowid is None or primary_rowid == self.rowid:
-                self.primary = True
+            primary_uid = self.manager.primary_process_uid(self.kind)
+            if primary_uid is None or primary_uid == self.uid:
+                self.is_primary = True
             else:
-                self.canceled = True
+                self.is_canceled = True
             self.save()
-        return bool(self.primary)
+        return bool(self.is_primary)
 
     def is_running(self):
         """Returns True if the object represents a running process"""
+        if self.is_finished:
+            return False
+
         if not psutil.pid_exists(self.pid):
             return False
 
@@ -172,9 +241,7 @@ class TriblerProcess:
         if status == psutil.STATUS_ZOMBIE:
             return False
 
-        psutil_process_create_time = int(psutil_process.create_time())
-        if psutil_process_create_time > self.started_at:
-            # The same PID value was reused for a new process, so the previous process is not running anymore
+        if int(time.time()) - self.last_alive_at > ALIVE_TIMEOUT:
             return False
 
         return True
@@ -195,8 +262,14 @@ class TriblerProcess:
         self.save()
 
     def finish(self, exit_code: Optional[int] = None):
-        self.primary = False
-        self.finished_at = int(time.time())
+        if self.updating_thread:
+            self.updating_thread.should_stop.set()
+            self.updating_thread.join()
+            self.updating_thread = None
+
+        self.is_primary = False
+        self.is_finished = True
+        self.last_alive_at = int(time.time())
 
         # if exit_code is specified, it overrides the previously set exit code
         if exit_code is not None:
@@ -214,11 +287,12 @@ class TriblerProcess:
         cursor = connection.cursor()
         cursor.execute("""
             INSERT INTO processes (
-                pid, kind, "primary", canceled, app_version, started_at,
-                creator_pid, api_port, finished_at, exit_code, error_msg
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, [self.pid, self.kind.value, int(self.primary), int(self.canceled), self.app_version, self.started_at,
-              self.creator_pid, self.api_port, self.finished_at, self.exit_code, self.error_msg])
+                uid, pid, creator_uid, creator_pid, kind, is_primary,
+                app_version, api_port, started_at, last_alive_at, is_finished, is_canceled, exit_code, error_msg
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, [self.uid, self.pid, self.creator_uid, self.creator_pid, self.kind.value, self.is_primary,
+              self.app_version, self.api_port, self.started_at, self.last_alive_at, self.is_finished, self.is_canceled,
+              self.exit_code, self.error_msg])
         self.rowid = cursor.lastrowid
 
     def _update(self, connection: sqlite3.Connection):
@@ -228,14 +302,16 @@ class TriblerProcess:
         cursor = connection.cursor()
         cursor.execute("""
             UPDATE processes
-            SET row_version = ?, "primary" = ?, canceled = ?, creator_pid = ?, api_port = ?,
-                finished_at = ?, exit_code = ?, error_msg = ?
-            WHERE rowid = ? and row_version = ? and pid = ? and kind = ? and app_version = ? and started_at = ?
-        """, [self.row_version, int(self.primary), int(self.canceled), self.creator_pid, self.api_port,
-              self.finished_at, self.exit_code, self.error_msg,
-              self.rowid, prev_version, self.pid, self.kind.value, self.app_version, self.started_at])
+            SET row_version = ?, is_primary = ?, api_port = ?, last_alive_at = ?,
+                is_finished = ?, is_canceled = ?, exit_code = ?, error_msg = ?
+            WHERE rowid = ? and row_version = ? and uid = ?
+        """, [self.row_version, self.is_primary, self.api_port, self.last_alive_at,
+              self.is_finished, self.is_canceled, self.exit_code, self.error_msg,
+              self.rowid, prev_version, self.uid])
+
         if cursor.rowcount == 0:
-            self.logger.error(f'Row {self.rowid} with row version {prev_version} was not found')
+            msg = f"Process {self} with rowid {self.rowid} and row version {prev_version} wasn't found in the database"
+            raise RuntimeError(msg)
 
     def get_core_process(self) -> Optional[TriblerProcess]:
         """
@@ -247,8 +323,8 @@ class TriblerProcess:
         with self.manager.connect() as connection:
             cursor = connection.execute(f"""
                 SELECT {sql_scripts.SELECT_COLUMNS}
-                FROM processes WHERE "primary" = 1 and kind = ? and creator_pid = ?
-            """, [ProcessKind.Core.value, self.pid])
+                FROM processes WHERE is_primary = 1 and kind = ? and creator_uid = ?
+            """, [ProcessKind.Core.value, self.uid])
             rows = cursor.fetchall()
             if len(rows) > 1:  # should not happen
                 raise RuntimeError('Multiple Core processes were found for a single GUI process')

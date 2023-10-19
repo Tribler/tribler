@@ -38,7 +38,7 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, par
         logger.info('Enabling a workaround for Ubuntu 21.04+ wayland environment')
         os.environ["GDK_BACKEND"] = "x11"
 
-    current_process = TriblerProcess.current_process(ProcessKind.GUI)
+    current_process = TriblerProcess.current_process(kind=ProcessKind.GUI)
     process_manager = ProcessManager(root_state_dir, current_process)
     set_global_process_manager(process_manager)  # to be able to add information about exception to the process info
     current_process_is_primary = process_manager.current_process.become_primary()
@@ -70,6 +70,7 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, par
             logger.info('Close the current GUI application.')
             process_manager.sys_exit(1, 'Tribler GUI application is already running')
 
+        current_process.start_updating_thread()
         logger.info('Start Tribler Window')
         window = TriblerWindow(process_manager, app_manager, settings, root_state_dir,
                                api_port=api_port, api_key=api_key)

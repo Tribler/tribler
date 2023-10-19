@@ -81,6 +81,7 @@ class TriblerService:
         current_process = TriblerProcess.current_process(ProcessKind.Core)
         self.process_manager = ProcessManager(root_state_dir, current_process)
         set_global_process_manager(self.process_manager)
+        current_process.start_updating_thread()
 
         if not self.process_manager.current_process.become_primary():
             msg = 'Another Core process is already running'

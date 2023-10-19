@@ -186,8 +186,9 @@ def run_tribler_core_session(api_port: Optional[int], api_key: str,
 def run_core(api_port: Optional[int], api_key: Optional[str], root_state_dir, parsed_args):
     logger.info(f"Running Core in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
 
+    gui_uid = GuiProcessWatcher.get_gui_uid()
     gui_pid = GuiProcessWatcher.get_gui_pid()
-    current_process = TriblerProcess.current_process(ProcessKind.Core, creator_pid=gui_pid)
+    current_process = TriblerProcess.current_process(kind=ProcessKind.Core, creator_uid=gui_uid, creator_pid=gui_pid)
     process_manager = ProcessManager(root_state_dir, current_process)
     set_global_process_manager(process_manager)
     current_process_is_primary = process_manager.current_process.become_primary()
@@ -199,6 +200,7 @@ def run_core(api_port: Optional[int], api_key: Optional[str], root_state_dir, pa
         logger.warning(msg)
         process_manager.sys_exit(1, msg)
 
+    current_process.start_updating_thread()
     version_history = VersionHistory(root_state_dir)
     state_dir = version_history.code_version.directory
     exit_code = run_tribler_core_session(api_port, api_key, state_dir, gui_test_mode=parsed_args.gui_test_mode)

@@ -105,7 +105,7 @@ class ProcessManager:
 
         return 'unknown reason'
 
-    def primary_process_rowid(self, kind: ProcessKind) -> Optional[int]:
+    def primary_process_uid(self, kind: ProcessKind) -> Optional[int]:
         """
         A helper method to load the current primary process of the specified kind from the database.
 
@@ -114,18 +114,26 @@ class ProcessManager:
         with self.connect() as connection:
             cursor = connection.execute(f"""
                 SELECT {sql_scripts.SELECT_COLUMNS}
-                FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
+                FROM processes WHERE kind = ? and is_primary = 1 ORDER BY rowid
             """, [kind.value])
-            row = cursor.fetchone()
-            if row is not None:
+            rows = cursor.fetchall()
+            primary_processes = []
+            for row in rows:
                 process = TriblerProcess.from_row(self, row)
                 if process.is_running():
-                    return process.rowid
+                    primary_processes.append(process)
+                else:
+                    # Process is not running anymore; mark it as not primary
+                    process.is_primary = False
+                    process.save()
 
-                # Process is not running anymore; mark it as not primary
-                process.primary = False
-                process.save()
-            return None
+            if not primary_processes:
+                return None
+
+            if len(primary_processes) > 1:
+                raise RuntimeError(f'Several primary processes found of kind {kind}')
+
+            return primary_processes[0].uid
 
     def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
         """
@@ -141,7 +149,7 @@ class ProcessManager:
         sys.exit(exit_code)
 
     @with_retry
-    def get_last_processes(self, limit=6) -> List[TriblerProcess]:
+    def get_last_processes(self, limit=10) -> List[TriblerProcess]:
         """
         Returns last `limit` processes from the database. They are used during the formatting of the error report.
         """
