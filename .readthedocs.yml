@@ -9,13 +9,14 @@ sphinx:
   configuration: doc/conf.py
 
 build:
-  image: latest
+  os: ubuntu-22.04
+  tools:
+    python: "3.8"
 
 # Include all submodules
 submodules:
   include: all
 
 python:
-  version: "3.8"
   install:
     - requirements: doc/requirements.txt
