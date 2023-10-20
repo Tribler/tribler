@@ -16,12 +16,14 @@ Each action contains a weight, indicating the probability that it is selected as
 You can specify how long Tribler should be tested by specifying a `-d` (duration) flag, e.g. to run the application tester for two minutes:
 
 ```
-python scripts/application-tester/main.py -p "python src/run_tribler.py" -d 120
+export CORE_API_PORT=20100
+python scripts/application-tester/main.py -p "python src/run_tribler.py" -d 120 
 ```
 
 To disable all actions and run Tribler idle, specify the `-s` (silent) flag:
 
 ```
+export CORE_API_PORT=20100
 python scripts/application-tester/main.py -p "python src/run_tribler.py" -s
 ```
 
