@@ -1,6 +1,7 @@
 from random import choice
 
 from tribler_apptester.action_sequence import ActionSequence
+from tribler_apptester.actions.assert_action import AssertAction
 from tribler_apptester.actions.click_action import ClickAction
 from tribler_apptester.actions.custom_action import CustomAction
 from tribler_apptester.actions.wait_action import WaitAction
@@ -20,6 +21,7 @@ class StartDownloadAction(ActionSequence):
         self.add_action(WaitAction(1000))
         self.add_action(ClickAction("window.dialog.buttons[0]"))
         self.add_action(WaitAction(7000))
+        self.add_action(AssertAction("hasattr(window.dialog.dialog_widget, 'download_button')"))
         self.add_action(ClickAction("window.dialog.dialog_widget.download_button"))
         self.add_action(WaitAction(2000))
 

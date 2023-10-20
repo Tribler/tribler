@@ -21,6 +21,3 @@ class ExploreChannelAction(ActionSequence):
         self.add_action(RandomTableViewClickAction('window.discovered_page.content_table'))
         self.add_action(WaitAction(2000))
         self.add_action(ClickAction('window.discovered_page.channel_back_button'))
-
-    def required_imports(self):
-        return ["from random import randint"]

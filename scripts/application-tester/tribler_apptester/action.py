@@ -12,17 +12,16 @@ class Action(object):
     - a list of required imports to run the code returned by generate_code
     """
 
-    @abstractmethod
-    def action_code(self):
-        pass
-
-    def generate_code(self):
-        code = ""
-        for import_line in self.required_imports():
-            code += import_line + "\n"
-        code += "\n"
-        code += self.action_code()
-        return code
-
     def required_imports(self):
         return []
+
+    def get_required_imports(self):
+        return self.required_imports()
+
+    def action_code(self):
+        return "pass"
+
+    def generate_code(self):
+        code = "\n".join(self.get_required_imports()) + "\n\n"
+        code += self.action_code()
+        return code.strip()

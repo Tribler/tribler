@@ -37,5 +37,5 @@ QMetaObject.invokeMethod(tree_view, "itemClicked", Q_ARG(QTreeWidgetItem, item),
             "from random import randint",
             "from PyQt5.QtCore import QMetaObject, Q_ARG, Qt",
             "from PyQt5.QtWidgets import QTreeWidgetItem",
-            "from tribler_gui.widgets.torrentfiletreewidget import CHECKBOX_COL"
+            "from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL"
         ]

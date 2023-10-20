@@ -17,7 +17,9 @@ class SubscribeUnsubscribeAction(ActionSequence):
 
         self.add_action(PageAction('discovered'))
         self.add_action(WaitAction(2000))
-        self.add_action(CustomAction("""if window.discovered_page.content_table.model().rowCount() == 0:
+        self.add_action(CustomAction("""
+model = window.discovered_page.model
+if model is None or model.rowCount() == 0:
     exit_script()
     """))
         self.add_action(RandomTableViewClickAction('window.discovered_page.content_table'))
@@ -28,6 +30,3 @@ class SubscribeUnsubscribeAction(ActionSequence):
         self.add_action(ConditionalAction("window.discovered_page.subscribe_button.isVisible()", click_action))
         self.add_action(WaitAction(2000))
         self.add_action(ClickAction('window.discovered_page.channel_back_button'))
-
-    def required_imports(self):
-        return ["from random import randint"]

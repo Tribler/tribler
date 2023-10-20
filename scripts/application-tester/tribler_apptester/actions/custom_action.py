@@ -13,5 +13,3 @@ class CustomAction(Action):
     def action_code(self):
         return self.code
 
-    def required_imports(self):
-        return []

@@ -46,4 +46,4 @@ table_view.setCurrentIndex(index)
         return code
 
     def required_imports(self):
-        return ["from PyQt5.QtCore import QPoint"]
+        return ["from random import randint", "from PyQt5.QtCore import QPoint"]

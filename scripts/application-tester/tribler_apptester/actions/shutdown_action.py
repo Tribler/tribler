@@ -8,9 +8,6 @@ class ShutdownAction(Action):
     def action_code(self):
         return "window.close_tribler()"
 
-    def required_imports(self):
-        return []
-
 
 class HardShutdownAction(Action):
     """

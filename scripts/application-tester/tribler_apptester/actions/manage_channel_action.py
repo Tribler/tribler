@@ -45,6 +45,3 @@ class ManageChannelAction(ActionSequence):
         self.add_action(ClickAction("window.personal_channel_page.dialog.buttons[1]"))
         self.add_action(WaitAction(1000))
         self.add_action(ClickAction("window.personal_channel_page.channel_back_button"))
-
-    def required_imports(self):
-        return ["from random import randint"]

@@ -16,7 +16,7 @@ screenshots_dir = '%s'
 if not os.path.exists(screenshots_dir):
     os.mkdir(screenshots_dir)
 pixmap.save(os.path.join(screenshots_dir, img_name))
-        """ % (os.path.join(os.getcwd(), "screenshots").replace('\\', '\\\\'))
+        """ % os.path.join(os.getcwd(), "screenshots").replace('\\', '\\\\')
 
     def required_imports(self):
         return ["import time", "import os", "from PyQt5.QtGui import QPixmap, QRegion", "from PyQt5.QtCore import QPoint"]

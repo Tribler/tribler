@@ -14,6 +14,3 @@ class PrintAction(Action):
     def action_code(self):
         args_str = "(%s)" % ", ".join(self.print_args)
         return "print('%s' %% %s)" % (self.print_str, args_str)
-
-    def required_imports(self):
-        return []

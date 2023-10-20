@@ -28,7 +28,8 @@ if __name__ == "__main__":
     parser.add_argument('--magnetsfile', default=Path("tribler_apptester") / "data" / "torrent_links.txt", type=str, help='specify the location of the file with magnet links')
 
     # Setup logging
-    logging.basicConfig(level=logging.DEBUG)
+    logging_level = os.environ.get('APPTESTER_LOGGING_LEVEL', 'INFO')
+    logging.basicConfig(level=logging_level)
 
     args = parser.parse_args()
     executor = Executor(args)

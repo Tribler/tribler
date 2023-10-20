@@ -73,21 +73,3 @@ class HTTPRequestManager(object):
         Perform a request to the core to get the CPU usage history
         """
         return await self.get_json_from_endpoint("debug/cpu/history")
-
-    async def get_state(self):
-        """
-        Get the current state of the Tribler instance
-        """
-        async with aiohttp.ClientSession() as client:
-            response = await client.get(f"http://localhost:{self.api_port}/state", headers=self.headers)
-            return await response.json()
-
-    async def is_tribler_started(self):
-        """
-        Return whether Tribler has started or not
-        """
-        try:
-            json_response = await self.get_state()
-            return json_response['state'] == 'STARTED'
-        except:
-            return False

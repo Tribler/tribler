@@ -1,5 +1,5 @@
 import logging
-from asyncio import open_connection, get_event_loop, ensure_future
+from asyncio import open_connection, ensure_future
 from base64 import b64decode
 
 
@@ -13,10 +13,11 @@ class TriblerCodeClient(object):
         self.buffer = b''
         self.reader = None
         self.writer = None
+        self.connected = False
 
     async def connect(self):
-        loop = get_event_loop()
-        self.reader, self.writer = await open_connection(self.host, self.port, loop=loop)
+        self.reader, self.writer = await open_connection(self.host, self.port)  # can rise ConnectionRefusedError
+        self.connected = True
         self._logger.info("Code socket opened!")
         ensure_future(self.read_loop())
 
@@ -53,12 +54,17 @@ class TriblerCodeClient(object):
             result_value = b64decode(parts[1])
             task_id = parts[2]
             self.executor.on_task_result(task_id, result_value)
-        elif data.startswith(b'crash'):
+        elif data.startswith(b'crash '):
             parts = data.split(b' ')
             if len(parts) != 2:
+                self._logger.error("Icorrect crash data received: %r" % data)
                 return
             traceback = b64decode(parts[1])
             self.executor.on_tribler_crash(traceback)
 
     def run_code(self, code, task_id):
+        if self.writer is None:
+            self._logger.error("Writer is not available")
+            return
+
         self.writer.write(b"%s %s\n" % (code, task_id))
