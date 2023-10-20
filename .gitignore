@@ -97,3 +97,5 @@ _build/
 
 # this folder is dedicated to storing local experimental code that don't want to be committed
 local/
+
+scripts/application-tester/output/
