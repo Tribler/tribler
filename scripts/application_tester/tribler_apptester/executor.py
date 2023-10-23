@@ -8,12 +8,12 @@ import signal
 import subprocess
 import sys
 import time
-from asyncio import Task, create_task, get_event_loop, sleep, Future, wait_for
+from asyncio import Future, Task, create_task, get_event_loop, sleep, wait_for
 from base64 import b64encode
 from bisect import bisect
 from distutils.version import LooseVersion
 from pathlib import Path
-from random import random, randint, choice
+from random import choice, randint, random
 from typing import Dict, Optional
 
 from tribler.core.config.tribler_config import TriblerConfig
@@ -42,7 +42,6 @@ from tribler_apptester.utils.asyncio import looping_call
 from tribler_apptester.utils.osutils import get_appstate_dir, quote_path_with_spaces
 
 CHECK_PROCESS_STARTED_TIMEOUT = 60
-CHECK_PROCESS_STARTED_INTERVAL = 1
 
 ACTIONS_WARMUP_DELAY = 15
 DELAY_BETWEEN_ACTIONS = 5
@@ -50,12 +49,14 @@ DELAY_BETWEEN_ACTIONS = 5
 SHUTDOWN_TIMEOUT = 30
 
 
-
 class Executor(object):
 
-    def __init__(self, args):
+    def __init__(self, args, read_config_delay=2, read_config_attempts=10, check_process_started_interval=5):
         self.args = args
         self.tribler_path = quote_path_with_spaces(args.tribler_executable)
+        self.read_config_delay = read_config_delay
+        self.check_process_started_interval = check_process_started_interval
+        self.read_config_attempts = read_config_attempts
         self.code_port = args.codeport
         self.api_port = int(os.environ.get('CORE_API_PORT'))
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -149,7 +150,7 @@ class Executor(object):
                 self._logger.info("Successfully connected to the code executor port")
                 return True
 
-            await sleep(CHECK_PROCESS_STARTED_INTERVAL)
+            await sleep(self.check_process_started_interval)
 
         self._logger.error("Cannot connect to the code executor port in specified time")
         return False
@@ -188,14 +189,14 @@ class Executor(object):
         Attempt to load the Tribler config until we have an API key.
         """
 
-        for attempt in range(1, 10):
-            self._logger.info("Attempting to load Tribler config (%d/10)", attempt)
+        for attempt in range(self.read_config_attempts):
+            self._logger.info(f'Attempting to load Tribler config ({attempt + 1}/{self.read_config_attempts})')
 
             # Read the version_history file and derive the current state dir from that
             versions_file_path = get_appstate_dir() / "version_history.json"
             if not versions_file_path.exists():
                 self._logger.info("Version file at %s does not exist, waiting...", versions_file_path)
-                await sleep(2)
+                await sleep(self.read_config_delay)
             else:
                 with open(versions_file_path, "r") as versions_file:
                     json_content = json.loads(versions_file.read())
@@ -209,7 +210,7 @@ class Executor(object):
 
                 config = TriblerConfig.load(state_dir=state_dir, file=config_file_path)
                 if not config.api.key:
-                    await sleep(2)
+                    await sleep(self.read_config_delay)
                 else:
                     self.tribler_config = config
                     self._logger.info(f"Loaded API key: {config.api.key}")

@@ -40,6 +40,7 @@ jobs:
       - name: Set PYTHONPATH
         run: |
           echo "PYTHONPATH=${PYTHONPATH}:./src" >> $GITHUB_ENV
+          echo "PYTHONPATH=${PYTHONPATH}:./scripts/application_tester" >> $GITHUB_ENV
 
       - name: run_bandwidth_crawler.py
         uses: ./.github/actions/timeout
@@ -54,6 +55,12 @@ jobs:
           HELPER_BASE: 2000
         with:
           command: python ./scripts/exit_node/run_exit_node.py --testnet --fragile
+          duration: ${{inputs.duration}}
+
+      - name: Application Tester
+        uses: ./.github/actions/timeout
+        with:
+          command: python ./scripts/application_tester/main.py -p "python src/run_tribler.py" --fragile
           duration: ${{inputs.duration}}
 
       #experiments

@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import logging
 import os
 from asyncio import ensure_future, get_event_loop
 from pathlib import Path
@@ -12,7 +11,7 @@ from tribler_apptester.executor import Executor
 from tribler_apptester.logger.logger import init_logger
 
 sentry_sdk.init(
-    os.environ.get('SENTRY_URL', 'https://e489691c2e214c03961e18069a71d76c@sentry.tribler.org/6'),
+    os.environ.get('APPLICATION_TESTER_SENTRY_DSN'),
     traces_sample_rate=1.0,
     ignore_errors=[KeyboardInterrupt],
 )
@@ -35,10 +34,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
+    executor_kwargs = dict()
     if args.fragile:
         make_async_loop_fragile(loop)
 
-    executor = Executor(args)
+        # Modify the base logic of the Executor to quickly receive feedback from the Application Tester.
+        # This feature is employed in PR tests when we aim to assess potential disruptions in script logic due
+        # to changes within Tribler.
+        executor_kwargs['read_config_delay'] = 0
+        executor_kwargs['read_config_attempts'] = 1
+        executor_kwargs['check_process_started_interval'] = 1
+
+    executor = Executor(args, **executor_kwargs)
 
     loop = get_event_loop()
     coro = executor.start()

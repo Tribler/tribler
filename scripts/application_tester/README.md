@@ -6,7 +6,7 @@ This repository hosts code for the Tribler application tester, which aims to aut
 To run the Tribler application tester, it requires a path to the Tribler executable, for example:
 
 ```
-python scripts/application-tester/main.py -p "python src/run_tribler.py"
+python scripts/application_tester/main.py -p "python src/run_tribler.py"
 ```
 
 Upon start, the application tester will automatically verify whether Tribler has been started correctly and then open a TCP connection to the code injection port.
@@ -17,17 +17,17 @@ You can specify how long Tribler should be tested by specifying a `-d` (duration
 
 ```
 export CORE_API_PORT=20100
-python scripts/application-tester/main.py -p "python src/run_tribler.py" -d 120 
+python scripts/application_tester/main.py -p "python src/run_tribler.py" -d 120 
 ```
 
 To disable all actions and run Tribler idle, specify the `-s` (silent) flag:
 
 ```
 export CORE_API_PORT=20100
-python scripts/application-tester/main.py -p "python src/run_tribler.py" -s
+python scripts/application_tester/main.py -p "python src/run_tribler.py" -s
 ```
 
-Furthermore, there are several flags to increase resource monitoring. See the output of `python scripts/application-tester/main.py -h` for more details.
+Furthermore, there are several flags to increase resource monitoring. See the output of `python scripts/application_tester/main.py -h` for more details.
 
 ## Authors
 
