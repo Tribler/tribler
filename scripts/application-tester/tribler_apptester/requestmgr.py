@@ -26,6 +26,8 @@ class HTTPRequestManager(object):
         with open(self.request_times_file_path, "w") as output_file:
             output_file.write("request_type,start_time,duration\n")
 
+        self._logger.info(f'Initialized. Key: {api_key}. Port: {api_port}')
+
     def write_request_time(self, request_type, start_time):
         current_time = int(round(time.time() * 1000))
         request_time = current_time - start_time

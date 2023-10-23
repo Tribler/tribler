@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -15,25 +16,22 @@ from pathlib import Path
 from random import random, randint, choice
 from typing import Dict, Optional
 
-import signal
-
-from configobj import ConfigObj
-
-from tribler_apptester.actions.manage_channel_action import ManageChannelAction
-from tribler_apptester.actions.scroll_discovered_action import ScrollDiscoveredAction
+from tribler.core.config.tribler_config import TriblerConfig
 from tribler_apptester.actions.change_anonymity_action import ChangeAnonymityAction
 from tribler_apptester.actions.change_download_files_action import ChangeDownloadFilesAction
 from tribler_apptester.actions.explore_channel_action import ExploreChannelAction
 from tribler_apptester.actions.explore_download_action import ExploreDownloadAction
+from tribler_apptester.actions.manage_channel_action import ManageChannelAction
 from tribler_apptester.actions.page_action import RandomPageAction
+from tribler_apptester.actions.remove_download_action import RemoveRandomDownloadAction
 from tribler_apptester.actions.screenshot_action import ScreenshotAction
+from tribler_apptester.actions.scroll_discovered_action import ScrollDiscoveredAction
 from tribler_apptester.actions.search_action import RandomSearchAction
 from tribler_apptester.actions.shutdown_action import ShutdownAction
 from tribler_apptester.actions.start_download_action import StartRandomDownloadAction
-from tribler_apptester.actions.test_exception import TestExceptionAction
-from tribler_apptester.actions.remove_download_action import RemoveRandomDownloadAction
 from tribler_apptester.actions.start_vod_action import StartVODAction
 from tribler_apptester.actions.subscribe_unsubscribe_action import SubscribeUnsubscribeAction
+from tribler_apptester.actions.test_exception import TestExceptionAction
 from tribler_apptester.actions.wait_action import WaitAction
 from tribler_apptester.monitors.download_monitor import DownloadMonitor
 from tribler_apptester.monitors.ipv8_monitor import IPv8Monitor
@@ -59,7 +57,7 @@ class Executor(object):
         self.args = args
         self.tribler_path = quote_path_with_spaces(args.tribler_executable)
         self.code_port = args.codeport
-        self.api_port = args.apiport
+        self.api_port = int(os.environ.get('CORE_API_PORT'))
         self._logger = logging.getLogger(self.__class__.__name__)
         self.allow_plain_downloads = args.plain
         self.magnets_file_path = args.magnetsfile
@@ -80,7 +78,7 @@ class Executor(object):
         self.check_tribler_process_lc = None
         self.shutting_down = False
 
-        self.tribler_config = None
+        self.tribler_config: Optional[TriblerConfig] = None
         self.request_manager = None
 
     async def start(self):
@@ -130,7 +128,7 @@ class Executor(object):
             self._logger.warning("Loading Tribler config loaded, aborting")
             create_task(self.stop(1))
         else:
-            self.request_manager = HTTPRequestManager(self.tribler_config['api']['key'], self.api_port)
+            self.request_manager = HTTPRequestManager(self.tribler_config.api.key, self.api_port)
             self.request_manager.tribler_start_time = int(round(time.time() * 1000))
             self._logger.info("Tribler started - start testing")
             self.start_testing()
@@ -189,7 +187,6 @@ class Executor(object):
         """
         Attempt to load the Tribler config until we have an API key.
         """
-        spec_file = Path("tribler_apptester") / "config" / "tribler_config.spec"
 
         for attempt in range(1, 10):
             self._logger.info("Attempting to load Tribler config (%d/10)", attempt)
@@ -204,15 +201,18 @@ class Executor(object):
                     json_content = json.loads(versions_file.read())
 
                 state_dir_name = ".".join(str(part) for part in LooseVersion(json_content["last_version"]).version[:2])
-                config_file_path = get_appstate_dir() / state_dir_name / "triblerd.conf"
-                self._logger.info("Config file path: %s", config_file_path)
+                state_dir = get_appstate_dir() / state_dir_name
+                self._logger.info(f'State dir: {state_dir}')
 
-                config = ConfigObj(infile=str(config_file_path), configspec=str(spec_file), default_encoding='utf-8')
-                if 'api' not in config or 'key' not in config['api']:
+                config_file_path = state_dir / "triblerd.conf"
+                self._logger.info(f"Config file path: {config_file_path}")
+
+                config = TriblerConfig.load(state_dir=state_dir, file=config_file_path)
+                if not config.api.key:
                     await sleep(2)
                 else:
                     self.tribler_config = config
-                    self._logger.info("Loaded API key: %s" % self.tribler_config['api']['key'])
+                    self._logger.info(f"Loaded API key: {config.api.key}")
                     return True
 
         return True
