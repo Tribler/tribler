@@ -18,6 +18,7 @@ on:
         type: string
         required: false
 
+
 permissions:
   contents: read
 
