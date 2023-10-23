@@ -37,9 +37,12 @@ jobs:
           requirements: requirements-core.txt
           custom_cache_key_element: ${{inputs.ref}}
 
-      - name: Set PYTHONPATH
+      - name: Add Tribler to PYTHONPATH
         run: |
           echo "PYTHONPATH=${PYTHONPATH}:./src" >> $GITHUB_ENV
+
+      - name: Add Application Tester to PYTHONPATH
+        run: |
           echo "PYTHONPATH=${PYTHONPATH}:./scripts/application_tester" >> $GITHUB_ENV
 
       - name: run_bandwidth_crawler.py
