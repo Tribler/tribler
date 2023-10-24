@@ -62,6 +62,8 @@ jobs:
 
       - name: Application Tester
         uses: ./.github/actions/timeout
+        env:
+          CORE_API_PORT: 20100
         with:
           command: python ./scripts/application_tester/main.py -p "python src/run_tribler.py" --fragile
           duration: ${{inputs.duration}}
