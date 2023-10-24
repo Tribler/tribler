@@ -1,7 +1,6 @@
 import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
-from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
@@ -10,6 +9,7 @@ from tribler.core.components.bandwidth_accounting.db.database import BandwidthDa
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
 from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.utilities.unicode import hexlify
 
@@ -27,9 +27,9 @@ def bandwidth_database(tmp_path, peer):
 
 @pytest.fixture
 async def bw_community(bandwidth_database, peer):
-    ipv8 = MockIPv8(peer, BandwidthAccountingCommunity,
-                    database=bandwidth_database,
-                    settings=BandwidthAccountingSettings())
+    ipv8 = TriblerMockIPv8(peer, BandwidthAccountingCommunity,
+                           database=bandwidth_database,
+                           settings=BandwidthAccountingSettings())
     community = ipv8.get_overlay(BandwidthAccountingCommunity)
     yield community
     await ipv8.stop()

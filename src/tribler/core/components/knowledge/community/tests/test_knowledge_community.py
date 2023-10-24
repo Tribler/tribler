@@ -2,11 +2,10 @@ import datetime
 from unittest.mock import MagicMock, Mock
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from ipv8.test.base import TestBase
-from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import Operation, ResourceType
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8, TriblerTestBase
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.community.knowledge_payload import StatementOperation
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
@@ -14,7 +13,7 @@ from tribler.core.components.database.db.tribler_database import TriblerDatabase
 REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS = 0.1  # in seconds
 
 
-class TestKnowledgeCommunity(TestBase):
+class TestKnowledgeCommunity(TriblerTestBase):
     def setUp(self):
         super().setUp()
         self.initialize(KnowledgeCommunity, 2)
@@ -23,8 +22,8 @@ class TestKnowledgeCommunity(TestBase):
         await super().tearDown()
 
     def create_node(self, *args, **kwargs):
-        return MockIPv8("curve25519", KnowledgeCommunity, db=TriblerDatabase(), key=LibNaCLSK(),
-                        request_interval=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS)
+        return TriblerMockIPv8("curve25519", KnowledgeCommunity, db=TriblerDatabase(), key=LibNaCLSK(),
+                               request_interval=REQUEST_INTERVAL_FOR_RANDOM_OPERATIONS)
 
     def create_operation(self, subject='1' * 20, obj=''):
         community = self.overlay(0)

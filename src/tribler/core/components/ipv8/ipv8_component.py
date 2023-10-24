@@ -17,6 +17,7 @@ from ipv8_service import IPv8
 from tribler.core.components.component import Component
 from tribler.core.components.ipv8.rendezvous.db.database import RendezvousDatabase
 from tribler.core.components.ipv8.rendezvous.rendezvous_hook import RendezvousHook
+from tribler.core.components.ipv8.tribler_community import args_kwargs_to_community_settings
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
@@ -122,7 +123,9 @@ class Ipv8Component(Component):
 
     def _init_peer_discovery_community(self):
         ipv8 = self.ipv8
-        community = DiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=100)
+        community = DiscoveryCommunity(args_kwargs_to_community_settings(DiscoveryCommunity.settings_class,
+                                                                         [self.peer, ipv8.endpoint, ipv8.network],
+                                                                         {"max_peers": 100}))
         self.initialise_community_by_default(community)
         ipv8.add_strategy(community, RandomChurn(community), INFINITE)
         ipv8.add_strategy(community, PeriodicSimilarity(community), INFINITE)
@@ -130,7 +133,9 @@ class Ipv8Component(Component):
 
     def _init_dht_discovery_community(self):
         ipv8 = self.ipv8
-        community = DHTDiscoveryCommunity(self.peer, ipv8.endpoint, ipv8.network, max_peers=60)
+        community = DHTDiscoveryCommunity(args_kwargs_to_community_settings(DHTDiscoveryCommunity.settings_class,
+                                                                            [self.peer, ipv8.endpoint, ipv8.network],
+                                                                            {"max_peers": 60}))
         self.initialise_community_by_default(community)
         ipv8.add_strategy(community, PingChurn(community), INFINITE)
         self.dht_discovery_community = community
@@ -148,4 +153,4 @@ class Ipv8Component(Component):
         if self.rendevous_hook is not None:
             self.rendevous_hook.shutdown(self.ipv8.network)
         await self._task_manager.shutdown_task_manager()
-        await self.ipv8.stop(stop_loop=False)
+        await self.ipv8.stop()

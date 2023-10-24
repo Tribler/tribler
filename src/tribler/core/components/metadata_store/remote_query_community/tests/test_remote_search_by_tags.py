@@ -2,7 +2,6 @@ import os
 from unittest.mock import AsyncMock, Mock, PropertyMock, patch
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.test.base import TestBase
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer, \
@@ -10,6 +9,7 @@ from tribler.core.components.database.db.layers.knowledge_data_access_layer impo
 from tribler.core.components.database.db.layers.tests.test_knowledge_data_access_layer_base import Resource, \
     TestKnowledgeAccessLayerBase
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
+from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
@@ -21,7 +21,7 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.unicode import hexlify
 
 
-class TestRemoteSearchByTags(TestBase):
+class TestRemoteSearchByTags(TriblerTestBase):
     """ In this test set we will use only one node's instance as it is sufficient
     for testing remote search by tags
     """

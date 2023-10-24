@@ -1,14 +1,12 @@
 from unittest.mock import Mock
 
 import pytest
-from aiohttp.web_app import Application
-from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community \
     import BandwidthAccountingCommunity
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
 
 
@@ -17,8 +15,8 @@ from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsE
 
 @pytest.fixture
 async def endpoint(metadata_store):
-    ipv8 = MockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
-                    settings=BandwidthAccountingSettings())
+    ipv8 = TriblerMockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
+                           settings=BandwidthAccountingSettings())
     ipv8.overlays = [ipv8.overlay]
     ipv8.endpoint.bytes_up = 100
     ipv8.endpoint.bytes_down = 20

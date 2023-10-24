@@ -10,10 +10,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.test.base import TestBase
 from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
+from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -52,7 +52,7 @@ class BasicRemoteQueryCommunity(RemoteQueryCommunity):
     community_id = unhexlify('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
 
 
-class TestRemoteQueryCommunity(TestBase):
+class TestRemoteQueryCommunity(TriblerTestBase):
     """
     Unit tests for the base RemoteQueryCommunity which do not need a real Session.
     """

@@ -1,9 +1,9 @@
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
-from ipv8.test.base import TestBase
 
 from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
+from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 
 
 class MockCommunity:
@@ -23,7 +23,7 @@ class MockCommunity:
         return self.get_peers_return
 
 
-class TestRemovePeers(TestBase):
+class TestRemovePeers(TriblerTestBase):
     def setUp(self):
         self.community = MockCommunity()
         self.strategy = RemovePeers(self.community)
