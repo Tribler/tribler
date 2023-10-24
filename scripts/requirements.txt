@@ -1,0 +1,3 @@
+-r ../requirements.txt
+-r ./application_tester/requirements.txt
+-r ./experiments/requirements.txt
