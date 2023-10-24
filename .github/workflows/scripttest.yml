@@ -34,7 +34,7 @@ jobs:
         uses: ./.github/actions/pyenv
         with:
           python-version: ${{inputs.python-version}}
-          requirements: requirements-core.txt
+          requirements: ./scripts/requirements.txt
           custom_cache_key_element: ${{inputs.ref}}
 
       - name: Add Tribler to PYTHONPATH
