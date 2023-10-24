@@ -60,6 +60,17 @@ jobs:
           command: python ./scripts/exit_node/run_exit_node.py --testnet --fragile
           duration: ${{inputs.duration}}
 
+      # install QT Linux dependencies and Headless Display for the correct work of the Application Tester
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt install pyqt5-dev-tools
+
+      - name: Setup headless display (Linux)
+        if: runner.os == 'Linux'
+        uses: pyvista/setup-headless-display-action@v1
+
       - name: Application Tester
         uses: ./.github/actions/timeout
         env:
