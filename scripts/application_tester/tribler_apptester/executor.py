@@ -61,7 +61,6 @@ class Executor(object):
         self.api_port = int(os.environ.get('CORE_API_PORT'))
         self._logger = logging.getLogger(self.__class__.__name__)
         self.allow_plain_downloads = args.plain
-        self.magnets_file_path = args.magnetsfile
         self.pending_tasks: Dict[bytes, Future] = {}  # Dictionary of pending tasks
         self.probabilities = []
         self.apptester_start_time = time.time()
@@ -245,7 +244,7 @@ class Executor(object):
 
     def determine_probabilities(self):
         self._logger.info("Determining probabilities of actions")
-        with open(Path("tribler_apptester") / "data" / "action_weights.txt", "r") as action_weights_file:
+        with open(Path(__file__).parent / "data/action_weights.txt", "r") as action_weights_file:
             content = action_weights_file.read()
             for line in content.split('\n'):
                 if len(line) == 0:
@@ -430,7 +429,8 @@ def exit_script():
             elif action_name == 'search':
                 action = RandomSearchAction()
             elif action_name == 'start_download':
-                action = StartRandomDownloadAction(self.magnets_file_path)
+                torrent_links = Path(__file__).parent / "data/torrent_links.txt"
+                action = StartRandomDownloadAction(torrent_links)
             elif action_name == 'remove_download':
                 action = RemoveRandomDownloadAction()
             elif action_name == 'explore_download':

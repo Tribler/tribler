@@ -26,7 +26,6 @@ if __name__ == "__main__":
     parser.add_argument('--monitordownloads', default=None, type=int, help='monitor the downloads with a specified interval in seconds')
     parser.add_argument('--monitorresources', default=None, type=int, help='monitor the resources with a specified interval in seconds')
     parser.add_argument('--monitoripv8', default=None, type=int, help='monitor IPv8 overlays with a specified interval in seconds')
-    parser.add_argument('--magnetsfile', default=Path("tribler_apptester") / "data" / "torrent_links.txt", type=str, help='specify the location of the file with magnet links')
     parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
 
     init_logger()
