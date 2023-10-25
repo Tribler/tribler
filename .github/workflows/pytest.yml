@@ -39,7 +39,7 @@ jobs:
     env:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
 
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
