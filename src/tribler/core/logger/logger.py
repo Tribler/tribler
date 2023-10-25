@@ -6,7 +6,8 @@ from pathlib import Path
 import yaml
 
 LOG_CONFIG_FILENAME = 'logger.yaml'
-
+GREEN = "\033[32m"
+CYAN = "\033[36m"
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +53,7 @@ def setup_logging(app_mode, log_dir: Path, config_path: Path):
     def record_factory(*args, **kwargs):
         record = log_factory(*args, **kwargs)
         record.app_mode = app_mode
+        record.app_mode_color = GREEN if app_mode == 'tribler-gui' else CYAN
         return record
 
     logger.info(f'Load logger config: app_mode={app_mode}, config_path={config_path}, dir={log_dir}')

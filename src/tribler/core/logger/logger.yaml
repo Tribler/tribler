@@ -4,8 +4,18 @@ filters:
   stdout_filter:
     (): tribler.core.logger.logger.StdoutFilter
 
-# Logging formatter
+# Logging formatters
 formatters:
+  colored:
+    (): colorlog.ColoredFormatter
+    format: "%(app_mode_color)s[%(app_mode)s PID:%(process)d]%(reset)s %(log_color)s%(asctime)s - %(levelname)s - %(name)s(%(lineno)d) - %(message)s"
+    log_colors:
+      DEBUG: cyan
+      WARNING: yellow
+      ERROR: red
+      CRITICAL: red,bg_white
+      GUI: green
+      CORE: yellow
   standard:
     format: "[%(app_mode)s PID:%(process)d] %(asctime)s - %(levelname)s - %(name)s(%(lineno)d) - %(message)s"
   error:
@@ -46,7 +56,7 @@ handlers:
   stdout_handler:
     class: logging.StreamHandler
     level: INFO
-    formatter: standard
+    formatter: colored
     filters: [ stdout_filter ]
     stream: ext://tribler.core.logger.logger_streams.stdout_wrapper
 
