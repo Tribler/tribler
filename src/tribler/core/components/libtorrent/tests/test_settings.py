@@ -1,4 +1,5 @@
-from tribler.core.components.libtorrent.settings import TRIBLER_DOWNLOADS_DEFAULT, get_default_download_dir
+from tribler.core.components.libtorrent.settings import INT_MAX, TRIBLER_DOWNLOADS_DEFAULT, get_default_download_dir
+from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.path_util import Path
 
 
@@ -36,3 +37,11 @@ def test_get_default_home_nothing_exists(tmp_path, monkeypatch):
 
     download_dir = get_default_download_dir(home)
     assert download_dir == (home / TRIBLER_DOWNLOADS_DEFAULT).resolve()
+
+
+def test_big_int_setter(tmpdir):
+    # Test the setter for big integers. In the case of overflow, the value should be set to INT_MAX
+    config = TriblerConfig(state_dir=tmpdir)
+    big_int = 2 ** 1000
+    config.libtorrent.max_connections_download = big_int
+    assert config.libtorrent.max_connections_download == INT_MAX
