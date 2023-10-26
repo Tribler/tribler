@@ -15,7 +15,7 @@ from ipv8.peer import Peer
 from ipv8.test.messaging.anonymization import test_community
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
-from ipv8.test.mocking.ipv8 import MockIPv8
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8
 
 # Pylint does not agree with the way pytest handles fixtures.
 # pylint: disable=W0613,W0621
@@ -133,12 +133,12 @@ async def create_tunnel_community(temp_path_factory: TempPathFactory,
     config = config or TunnelCommunitySettings()
     config.exitnode_enabled = exit_node_enable
 
-    ipv8 = MockIPv8("curve25519",
-                    TriblerTunnelCommunity,
-                    settings={"max_circuits": 1},
-                    config=config,
-                    socks_servers=socks_servers,
-                    dlmgr=download_manager)
+    ipv8 = TriblerMockIPv8("curve25519",
+                           TriblerTunnelCommunity,
+                           settings={"max_circuits": 1},
+                           config=config,
+                           socks_servers=socks_servers,
+                           dlmgr=download_manager)
     if start_lt:
         download_manager.peer_mid = ipv8.my_peer.mid
         download_manager.initialize()

@@ -1,13 +1,13 @@
 import pytest
-from ipv8.test.base import TestBase
 from pony.orm import db_session
 
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
+from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 
 
 # pylint: disable=protected-access
 
-class TestTriblerDatabase(TestBase):
+class TestTriblerDatabase(TriblerTestBase):
     def setUp(self):
         super().setUp()
         self.db = TriblerDatabase()

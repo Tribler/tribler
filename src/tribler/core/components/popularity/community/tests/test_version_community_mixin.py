@@ -2,16 +2,15 @@ import os
 import sys
 from asyncio import Future
 
-from ipv8.community import Community
 from ipv8.messaging.serialization import default_serializer
-from ipv8.test.base import TestBase
-from ipv8.test.mocking.ipv8 import MockIPv8
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8, TriblerTestBase
+from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 
 from tribler.core.components.popularity.community.version_community_mixin import VersionCommunityMixin, VersionResponse
 from tribler.core.version import version_id
 
 
-class VersionCommunity(VersionCommunityMixin, Community):
+class VersionCommunity(VersionCommunityMixin, TriblerCommunity):
     community_id = os.urandom(20)
 
     def __init__(self, *args, **kwargs):
@@ -19,7 +18,7 @@ class VersionCommunity(VersionCommunityMixin, Community):
         self.init_version_community()
 
 
-class TestVersionCommunity(TestBase):
+class TestVersionCommunity(TriblerTestBase):
     NUM_NODES = 2
 
     def setUp(self):
@@ -27,7 +26,7 @@ class TestVersionCommunity(TestBase):
         self.initialize(VersionCommunity, self.NUM_NODES)
 
     def create_node(self, *args, **kwargs):
-        return MockIPv8("curve25519", VersionCommunity)
+        return TriblerMockIPv8("curve25519", VersionCommunity)
 
     def test_version_response_payload(self):
         """

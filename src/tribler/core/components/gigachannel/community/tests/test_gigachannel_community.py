@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
-from ipv8.test.base import TestBase
 from pony.orm import db_session
 
 from tribler.core.components.gigachannel.community.gigachannel_community import (
@@ -17,6 +16,7 @@ from tribler.core.components.gigachannel.community.gigachannel_community import 
     happy_eyeballs_delay
 )
 from tribler.core.components.gigachannel.community.settings import ChantSettings
+from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import EvaSelectRequest, \
     SelectRequest, RemoteSelectPayload, RemoteSelectPayloadEva, SelectResponsePayload
@@ -52,7 +52,7 @@ class ChannelKey(Mapping):
         return len(fields(self))
 
 
-class TestGigaChannelUnits(TestBase):
+class TestGigaChannelUnits(TriblerTestBase):
     overlay: Callable[[int], GigaChannelCommunity]
 
     def setUp(self):

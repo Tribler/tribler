@@ -34,6 +34,7 @@ from pony.orm import OrmError
 
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
+from tribler.core.components.ipv8.tribler_community import args_kwargs_to_community_settings
 from tribler.core.components.socks_servers.socks5.server import Socks5Server
 from tribler.core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
 from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
@@ -78,7 +79,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
 
-        super().__init__(*args, **kwargs)
+        super().__init__(args_kwargs_to_community_settings(self.settings_class, args, kwargs))
         self._use_main_thread = True
 
         if self.config.exitnode_enabled:
@@ -423,20 +424,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                       remove_now=remove_now, destroy=destroy)
 
     @task
-    async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False,
-                           got_destroy_from=None, both_sides=True):
-        removed_relays = await super().remove_relay(circuit_id,
-                                                    additional_info=additional_info,
-                                                    remove_now=remove_now,
-                                                    destroy=destroy,
-                                                    got_destroy_from=got_destroy_from,
-                                                    both_sides=both_sides)
+    async def remove_relay(self, circuit_id, additional_info='', remove_now=False, destroy=False):
+        removed_relay = await super().remove_relay(circuit_id,
+                                                   additional_info=additional_info,
+                                                   remove_now=remove_now,
+                                                   destroy=destroy)
 
         self.clean_from_slots(circuit_id)
 
-        if self.notifier:
-            for removed_relay in removed_relays:
-                self.notifier[notifications.circuit_removed](removed_relay, additional_info)
+        if self.notifier and removed_relay is not None:
+            self.notifier[notifications.circuit_removed](removed_relay, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id in self.exit_sockets and self.notifier:

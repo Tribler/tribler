@@ -1,7 +1,5 @@
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
-from ipv8.test.base import TestBase
-from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community import (
     BandwidthAccountingCommunity,
@@ -10,22 +8,23 @@ from tribler.core.components.bandwidth_accounting.community.cache import Bandwid
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData, EMPTY_SIGNATURE
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8, TriblerTestBase
 from tribler.core.utilities.utilities import MEMORY_DB
 
 ID1, ID2, ID3 = range(3)
 
 
-class TestBandwidthAccountingCommunity(TestBase):
+class TestBandwidthAccountingCommunity(TriblerTestBase):
 
     def setUp(self):
         super().setUp()
         self.initialize(BandwidthAccountingCommunity, 2)
 
-    def create_node(self):
+    def create_node(self, *args, **kwargs):
         peer = Peer(default_eccrypto.generate_key("curve25519"), address=("1.2.3.4", 5))
         db = BandwidthDatabase(db_path=MEMORY_DB, my_pub_key=peer.public_key.key_to_bin())
-        ipv8 = MockIPv8(peer, BandwidthAccountingCommunity, database=db,
-                        settings=BandwidthAccountingSettings())
+        ipv8 = TriblerMockIPv8(peer, BandwidthAccountingCommunity, database=db,
+                               settings=BandwidthAccountingSettings())
         return ipv8
 
     def database(self, i):

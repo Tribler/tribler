@@ -4,10 +4,9 @@ from typing import List
 from unittest.mock import Mock
 
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.test.base import TestBase
-from ipv8.test.mocking.ipv8 import MockIPv8
 from pony.orm import db_session
 
+from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8, TriblerTestBase
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
@@ -39,7 +38,7 @@ def _generate_checked_torrents(count: int, status: str = None) -> List[HealthInf
     return [_generate_single_checked_torrent(status) for _ in range(count)]
 
 
-class TestPopularityCommunity(TestBase):
+class TestPopularityCommunity(TriblerTestBase):
     NUM_NODES = 2
 
     def setUp(self):
@@ -64,10 +63,10 @@ class TestPopularityCommunity(TestBase):
         self.count += 1
 
         rqc_settings = RemoteQueryCommunitySettings()
-        return MockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
-                        torrent_checker=torrent_checker,
-                        rqc_settings=rqc_settings
-                        )
+        return TriblerMockIPv8("curve25519", PopularityCommunity, metadata_store=mds,
+                               torrent_checker=torrent_checker,
+                               rqc_settings=rqc_settings
+                               )
 
     @db_session
     def fill_database(self, metadata_store, last_check_now=False):

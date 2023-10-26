@@ -11,10 +11,9 @@ from typing import Type
 from unittest.mock import Mock, patch
 
 import pytest
-from ipv8.community import Community
 from ipv8.messaging.lazy_payload import VariablePayload
-from ipv8.test.base import TestBase
 from ipv8.types import Peer
+from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 
 from tribler.core.components.ipv8.eva.exceptions import RequestRejected, SizeException, TimeoutException, \
     TransferCancelledException, TransferException, \
@@ -23,6 +22,7 @@ from tribler.core.components.ipv8.eva.payload import Acknowledgement, Data, Erro
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.eva.settings import EVASettings, Retransmission, Termination
+from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 
 # pylint: disable=redefined-outer-name, protected-access, attribute-defined-outside-init
 
@@ -45,7 +45,7 @@ async def drain_loop(loop: AbstractEventLoop):
         await asyncio.sleep(0)
 
 
-class MockCommunity(Community):  # pylint: disable=too-many-ancestors
+class MockCommunity(TriblerCommunity):  # pylint: disable=too-many-ancestors
     community_id = os.urandom(20)
 
     def __init__(self, *args, **kwargs):
@@ -83,7 +83,7 @@ class MockCommunity(Community):  # pylint: disable=too-many-ancestors
         self.error_has_been_raised.set()
 
 
-class TestEVA(TestBase):
+class TestEVA(TriblerTestBase):
     def setUp(self):
         super().setUp()
         self.initialize(MockCommunity, 3)
