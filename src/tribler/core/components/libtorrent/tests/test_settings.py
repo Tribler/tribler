@@ -1,4 +1,4 @@
-from tribler.core.components.libtorrent.settings import INT_MAX, TRIBLER_DOWNLOADS_DEFAULT, get_default_download_dir
+from tribler.core.components.libtorrent.settings import INT32_MAX, TRIBLER_DOWNLOADS_DEFAULT, get_default_download_dir
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.path_util import Path
 
@@ -44,4 +44,4 @@ def test_big_int_setter(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     big_int = 2 ** 1000
     config.libtorrent.max_connections_download = big_int
-    assert config.libtorrent.max_connections_download == INT_MAX
+    assert config.libtorrent.max_connections_download == INT32_MAX

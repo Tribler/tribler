@@ -8,7 +8,7 @@ from tribler.core.utilities.network_utils import NetworkUtils
 from tribler.core.utilities.osutils import get_home_dir
 from tribler.core.utilities.path_util import Path
 
-INT_MAX = 2147483647  # max int value for C
+INT32_MAX = 2147483647  # max int value for C
 
 TRIBLER_DOWNLOADS_DEFAULT = "TriblerDownloads"
 
@@ -48,7 +48,7 @@ class LibtorrentSettings(TriblerConfigSection):
     def __setattr__(self, key, value):
         """Override __setattr__ to limit the max int value to `INT_MAX` (the max int value for C)"""
         if isinstance(value, int):
-            value = min(INT_MAX, value)
+            value = min(INT32_MAX, value)
         super().__setattr__(key, value)
 
 
