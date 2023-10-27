@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 # Sentinel representing that SQLite must create database in-memory with ":memory:" argument
 MEMORY_DB = sentinel('MEMORY_DB')
+INT32_MAX = 2 ** 31 - 1
 
 _switch_interval_lock = threading.Lock()
 
