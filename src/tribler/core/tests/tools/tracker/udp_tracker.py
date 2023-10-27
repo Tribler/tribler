@@ -2,7 +2,7 @@ import random
 import struct
 from asyncio import DatagramProtocol, get_event_loop
 
-from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import MAX_INT32
+from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import INT32_MAX
 from tribler.core.tests.tools.tracker.tracker_info import TrackerInfo
 
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
@@ -58,7 +58,7 @@ class UDPTrackerProtocol(DatagramProtocol):
         """
         Send a connection reply.
         """
-        self.connection_id = random.randint(0, MAX_INT32)
+        self.connection_id = random.randint(0, INT32_MAX)
         response_msg = struct.pack('!iiq', TRACKER_ACTION_CONNECT, self.transaction_id, self.connection_id)
         self.transport.sendto(response_msg, (host, port))
 
