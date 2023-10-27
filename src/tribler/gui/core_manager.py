@@ -63,6 +63,8 @@ class CoreManager(QObject):
         self.core_connected = False
         self.shutting_down = False
         self.core_finished = False
+        self.is_restarting = False
+        self.core_old_pid = None
 
         self.should_quit_app_on_core_finished = False
 
@@ -112,6 +114,7 @@ class CoreManager(QObject):
 
     def start_tribler_core(self):
         self.use_existing_core = False
+        self.is_restarting = False
 
         core_env = self.core_env
         if not core_env:
@@ -143,6 +146,7 @@ class CoreManager(QObject):
         self.core_started = True
         self.core_started_at = time.time()
         self.core_running = True
+        self.core_connected = False
         self.check_core_api_port()
 
     def check_core_api_port(self, *args):
@@ -266,6 +270,18 @@ class CoreManager(QObject):
             self._logger.info('Core is not running, quitting GUI application')
             self.app_manager.quit_application()
 
+    def restart_core(self):
+        self.core_old_pid = self.core_process.pid()
+        self.should_quit_app_on_core_finished = False
+        self.shutting_down = False
+
+        self._logger.info("Restarting Core Process ...")
+        self.is_restarting = True
+        if self.core_process:
+            self.kill_core_process()
+
+        self.start_tribler_core()
+
     def kill_core_process(self):
         if not self.core_process or self.use_existing_core:
             self._logger.warning("Cannot kill the Core process as it is not initialized")
@@ -324,6 +340,8 @@ class CoreManager(QObject):
         if self.shutting_down:
             if self.should_quit_app_on_core_finished:
                 self.app_manager.quit_application()
+        elif self.is_restarting:
+            self.is_restarting = False
         else:
             error_message = self.format_error_message(exit_code, exit_status)
             self._logger.warning(error_message)

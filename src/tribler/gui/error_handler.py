@@ -67,7 +67,8 @@ class ErrorHandler:
             quoted_output = self.tribler_window.core_manager.get_last_core_output()
             self._logger.info(f'Last Core output:\n{quoted_output}')
 
-            self._stop_tribler(reported_error.text)
+            # self._stop_tribler(reported_error.text)
+            self._restart_tribler(reported_error.text)
 
         if self.app_manager.quitting_app:
             return
@@ -100,7 +101,8 @@ class ErrorHandler:
         self._logger.error(error_text)
 
         if reported_error.should_stop:
-            self._stop_tribler(error_text)
+            # self._stop_tribler(error_text)
+            self._restart_tribler(error_text)
 
         SentryScrubber.remove_breadcrumbs(reported_error.event)
         gui_sentry_reporter.additional_information.update(reported_error.additional_information)
@@ -139,3 +141,10 @@ class ErrorHandler:
 
         if self.tribler_window.debug_window:
             self.tribler_window.debug_window.setHidden(True)
+
+    def _restart_tribler(self, text):
+        if self._tribler_stopped:
+            return
+
+        self.tribler_window.tribler_crashed.emit(text)
+        self.tribler_window.core_manager.restart_core()
