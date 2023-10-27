@@ -31,7 +31,7 @@ TRACKER_ACTION_CONNECT = 0
 TRACKER_ACTION_ANNOUNCE = 1
 TRACKER_ACTION_SCRAPE = 2
 
-MAX_INT32 = 2 ** 31 - 1
+INT32_MAX = 2 ** 31 - 1
 
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 
@@ -260,7 +260,7 @@ class UdpTrackerSession(TrackerSession):
         """
         while True:
             # make sure there is no duplicated transaction IDs
-            transaction_id = random.randint(0, MAX_INT32)
+            transaction_id = random.randint(0, INT32_MAX)
             if transaction_id not in UdpTrackerSession._active_session_dict.items():
                 UdpTrackerSession._active_session_dict[self] = transaction_id
                 self.transaction_id = transaction_id
