@@ -11,3 +11,6 @@ mistune==0.8.4  # sphinxcontrib-openapi==0.7.0 cannot work with the latest mistu
 MarkupSafe==2.0.1  # used by jinja2; 2.1.0 version removes soft_unicode and breaks jinja2-2.11.3
 pyipv8==2.12.0
 setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
+certifi>=2023.7.22 # not directly required, pinned by Snyk to avoid a vulnerability
+cryptography>=41.0.5 # not directly required, pinned by Snyk to avoid a vulnerability
+requests>=2.31.0 # not directly required, pinned by Snyk to avoid a vulnerability
