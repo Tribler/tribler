@@ -91,7 +91,8 @@ class SearchEndpoint(MetadataEndpointBase):
             torrents_in_snippets |= infohases
 
         search_results = [search_result for search_result in search_results if
-                          (("infohash" not in search_result) or (search_result["infohash"] not in torrents_in_snippets))]
+                          (("infohash" not in search_result) or
+                           (search_result["infohash"] not in torrents_in_snippets))]
         return snippets + search_results
 
     @docs(
