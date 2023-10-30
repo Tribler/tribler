@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import Optional
 
 from PyQt5.QtCore import QSettings
@@ -13,9 +14,9 @@ from tribler.core.check_os import (
 )
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
-from tribler.core.utilities.rest_utils import path_to_url
+from tribler.core.utilities.process_locking import GUI_LOCK_FILENAME, try_acquire_file_lock
+from tribler.core.utilities.process_manager import ProcessKind
+from tribler.core.utilities.process_manager.manager import setup_process_manager
 from tribler.core.utilities.utilities import show_system_popup
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
@@ -26,7 +27,7 @@ from tribler.gui.utilities import get_translator
 logger = logging.getLogger(__name__)
 
 
-def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, parsed_args):
+def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir: Path, parsed_args):
     logger.info(f"Running GUI in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
 
     # Workaround for macOS Big Sur, see https://github.com/Tribler/tribler/issues/5728
@@ -38,12 +39,12 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, par
         logger.info('Enabling a workaround for Ubuntu 21.04+ wayland environment')
         os.environ["GDK_BACKEND"] = "x11"
 
-    current_process = TriblerProcess.current_process(ProcessKind.GUI)
-    process_manager = ProcessManager(root_state_dir, current_process)
-    set_global_process_manager(process_manager)  # to be able to add information about exception to the process info
-    current_process_is_primary = process_manager.current_process.become_primary()
+    process_lock = try_acquire_file_lock(root_state_dir / GUI_LOCK_FILENAME)
+    current_process_owns_lock = bool(process_lock)
 
-    load_logger_config('tribler-gui', root_state_dir, current_process_is_primary)
+    process_manager = setup_process_manager(root_state_dir, ProcessKind.GUI, current_process_owns_lock)
+
+    load_logger_config('tribler-gui', root_state_dir, current_process_owns_lock)
 
     # Enable tracer using commandline args: --trace-debug or --trace-exceptions
     trace_logger = check_and_enable_code_tracing('gui', root_state_dir)
@@ -55,7 +56,7 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, par
 
     try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
-        app = TriblerApplication(app_name, sys.argv, start_local_server=current_process_is_primary)
+        app = TriblerApplication(app_name, sys.argv, start_local_server=current_process_owns_lock)
         app_manager = AppManager(app)
 
         # Note (@ichorid): translator MUST BE created and assigned to a separate variable
@@ -64,7 +65,7 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir, par
         translator = get_translator(settings.value('translation', None))
         app.installTranslator(translator)
 
-        if not current_process_is_primary:
+        if not current_process_owns_lock:
             logger.info('GUI Application is already running.')
             app.send_torrent_file_path_to_primary_process()
             logger.info('Close the current GUI application.')

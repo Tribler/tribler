@@ -40,8 +40,9 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities import slow_coro_detection
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
+from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock
+from tribler.core.utilities.process_manager import ProcessKind
+from tribler.core.utilities.process_manager.manager import setup_process_manager
 
 logger = logging.getLogger(__name__)
 CONFIG_FILE_NAME = 'triblerd.conf'
@@ -186,15 +187,17 @@ def run_tribler_core_session(api_port: Optional[int], api_key: str,
 def run_core(api_port: Optional[int], api_key: Optional[str], root_state_dir, parsed_args):
     logger.info(f"Running Core in {'gui_test_mode' if parsed_args.gui_test_mode else 'normal mode'}")
 
-    gui_pid = GuiProcessWatcher.get_gui_pid()
-    current_process = TriblerProcess.current_process(ProcessKind.Core, creator_pid=gui_pid)
-    process_manager = ProcessManager(root_state_dir, current_process)
-    set_global_process_manager(process_manager)
-    current_process_is_primary = process_manager.current_process.become_primary()
+    process_lock = try_acquire_file_lock(root_state_dir / CORE_LOCK_FILENAME)
+    current_process_owns_lock = bool(process_lock)
 
-    load_logger_config('tribler-core', root_state_dir, current_process_is_primary)
+    gui_process_pid = GuiProcessWatcher.get_gui_pid()
 
-    if not current_process_is_primary:
+    process_manager = setup_process_manager(root_state_dir, ProcessKind.Core, current_process_owns_lock,
+                                            creator_pid=gui_process_pid)
+
+    load_logger_config('tribler-core', root_state_dir, current_process_owns_lock)
+
+    if not current_process_owns_lock:
         msg = 'Another Core process is already running'
         logger.warning(msg)
         process_manager.sys_exit(1, msg)
