@@ -51,8 +51,6 @@ class ErrorHandler:
             self._logger.info('This exception has been handled already')
             return
 
-        self._handled_exceptions.add(exc_type)
-
         reported_error = ReportedError(
             type=type(exc_type).__name__,
             text=text,
@@ -63,12 +61,16 @@ class ErrorHandler:
         if is_core_exception:
             self._logger.info('It is a subclass of CoreError exception')
 
+            reported_error.additional_information.update({
+                "core_restart_logs": self.tribler_window.core_manager.core_restart_logs
+            })
             reported_error.last_core_output = self.tribler_window.core_manager.get_last_core_output(quoted=False)
             quoted_output = self.tribler_window.core_manager.get_last_core_output()
             self._logger.info(f'Last Core output:\n{quoted_output}')
 
-            # self._stop_tribler(reported_error.text)
             self._restart_tribler(reported_error.text)
+        else:
+            self._handled_exceptions.add(exc_type)
 
         if self.app_manager.quitting_app:
             return
@@ -92,7 +94,6 @@ class ErrorHandler:
         if self._tribler_stopped or reported_error.type in self._handled_exceptions:
             return
 
-        self._handled_exceptions.add(reported_error.type)
         self._logger.info(f'Processing Core error: {reported_error}')
         process_manager = self.tribler_window.process_manager
         process_manager.current_process.set_error(f"Core {reported_error.type}: {reported_error.text}")
@@ -101,11 +102,15 @@ class ErrorHandler:
         self._logger.error(error_text)
 
         if reported_error.should_stop:
-            # self._stop_tribler(error_text)
             self._restart_tribler(error_text)
+        else:
+            self._handled_exceptions.add(reported_error.type)
 
         SentryScrubber.remove_breadcrumbs(reported_error.event)
         gui_sentry_reporter.additional_information.update(reported_error.additional_information)
+        gui_sentry_reporter.additional_information.update({
+            "core_restart_logs": self.tribler_window.core_manager.core_restart_logs
+        })
 
         additional_tags = {
             'source': 'core',

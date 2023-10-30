@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from collections import deque
+from datetime import timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -65,6 +66,7 @@ class CoreManager(QObject):
         self.core_finished = False
         self.is_restarting = False
         self.core_old_pid = None
+        self.started_at = int(time.time())
 
         self.should_quit_app_on_core_finished = False
 
@@ -73,6 +75,11 @@ class CoreManager(QObject):
         self.last_core_stderr_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
 
         connect(self.events_manager.core_connected, self.on_core_connected)
+
+        # Core restart log that tracks when core process was restarted.
+        # For each restart, the following tuple is added.
+        # (core_pid, started_at, finished_at)
+        self.core_restart_logs = []
 
     def on_core_connected(self, _):
         if self.core_finished:
@@ -147,7 +154,18 @@ class CoreManager(QObject):
         self.core_started_at = time.time()
         self.core_running = True
         self.core_connected = False
+        self.add_core_started_log()
         self.check_core_api_port()
+
+    def add_core_started_log(self):
+        uptime_since_beginning = timedelta(seconds=int(time.time()) - self.started_at)
+        self.core_restart_logs.append((self.core_process.pid(), int(time.time()), str(uptime_since_beginning), None))
+
+    def update_last_core_process_log(self):
+        if self.core_restart_logs:
+            core_pid, core_started_at, uptime, duration = self.core_restart_logs[-1]
+            duration = timedelta(seconds=int(time.time()) - core_started_at)
+            self.core_restart_logs[-1] = (core_pid, core_started_at, uptime, str(duration))
 
     def check_core_api_port(self, *args):
         """
@@ -321,6 +339,8 @@ class CoreManager(QObject):
 
     def on_core_finished(self, exit_code, exit_status):
         self._logger.info("Core process finished")
+        self.update_last_core_process_log()
+
         self.core_running = False
         self.core_connected = False
         if exit_code == EXITCODE_DATABASE_IS_CORRUPTED:
