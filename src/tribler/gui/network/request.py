@@ -87,6 +87,7 @@ class Request(QObject):
         self.status_text = "unknown"
         self.cancellable = True
         self.id = 0
+        self.caller = ''
 
     def set_manager(self, manager: RequestManager):
         self.manager = manager
@@ -184,4 +185,7 @@ class Request(QObject):
             self.reply = None
 
     def __str__(self):
-        return f'{self.method} {self.url}'
+        result = f'{self.method} {self.url}'
+        if self.caller:
+            result += f'\nCaller: {self.caller}'
+        return result
