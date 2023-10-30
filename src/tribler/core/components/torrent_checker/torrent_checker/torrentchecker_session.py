@@ -20,7 +20,7 @@ from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 from tribler.core.components.torrent_checker.torrent_checker.utils import filter_non_exceptions, gather_coros
 from tribler.core.utilities.tracker_utils import add_url_params, parse_tracker_url
-from tribler.core.utilities.utilities import bdecode_compat
+from tribler.core.utilities.utilities import INT32_MAX, bdecode_compat
 
 if TYPE_CHECKING:
     from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
@@ -30,8 +30,6 @@ if TYPE_CHECKING:
 TRACKER_ACTION_CONNECT = 0
 TRACKER_ACTION_ANNOUNCE = 1
 TRACKER_ACTION_SCRAPE = 2
-
-INT32_MAX = 2 ** 31 - 1
 
 UDP_TRACKER_INIT_CONNECTION_ID = 0x41727101980
 

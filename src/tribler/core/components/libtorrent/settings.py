@@ -7,8 +7,7 @@ from tribler.core.config.tribler_config_section import TriblerConfigSection
 from tribler.core.utilities.network_utils import NetworkUtils
 from tribler.core.utilities.osutils import get_home_dir
 from tribler.core.utilities.path_util import Path
-
-INT32_MAX = 2147483647  # max int value for C
+from tribler.core.utilities.utilities import INT32_MAX
 
 TRIBLER_DOWNLOADS_DEFAULT = "TriblerDownloads"
 

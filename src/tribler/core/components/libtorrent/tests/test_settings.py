@@ -1,6 +1,7 @@
-from tribler.core.components.libtorrent.settings import INT32_MAX, TRIBLER_DOWNLOADS_DEFAULT, get_default_download_dir
+from tribler.core.components.libtorrent.settings import TRIBLER_DOWNLOADS_DEFAULT, get_default_download_dir
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.utilities import INT32_MAX
 
 
 def test_get_default_download_dir_exists(tmp_path, monkeypatch):
