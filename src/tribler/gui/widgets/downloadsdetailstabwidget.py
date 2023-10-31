@@ -89,12 +89,13 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 or self.current_download.get('infohash') != download.get('infohash')
                 or self.current_download.get('time_added') != download.get('time_added')
         )
-        self.current_download = download
         # When we switch to another download, we want to fixate the changes user did to selected files.
         # Also, we have to stop the change batching time to prevent carrying the event to the new download
         if did_change and self._batch_changes_timer.isActive():
             self._batch_changes_timer.stop()
             self.set_included_files()
+
+        self.current_download = download
         self.update_pages(new_download=did_change)
 
     @staticmethod
