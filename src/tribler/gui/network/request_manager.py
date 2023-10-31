@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import traceback
 from collections import deque
 from time import time
 from typing import Callable, Dict, Optional, Set
@@ -118,10 +119,20 @@ class RequestManager(QNetworkAccessManager):
                           method=Request.DELETE)
         return self.add(request)
 
-    def add(self, request: Request) -> Optional[Request]:
+    def add(self, request: Request, debug: bool = False) -> Optional[Request]:
+        """ Add a request to the queue.
+
+        Args:
+            request: The request to add.
+            debug: Whether to print debug information.
+
+        Returns: The request if it was added, None otherwise.
+        """
         if self._is_in_shutting_down(request):
             # Do not send requests when Tribler is shutting down
             return None
+        if debug:
+            request.caller = traceback.extract_stack()[-3]
 
         # Set last request id
         self.last_request_id += 1
