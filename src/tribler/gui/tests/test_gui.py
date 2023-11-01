@@ -65,7 +65,7 @@ def fixture_window(tmp_path_factory):
     wait_for_signal(
         window.core_manager.events_manager.core_connected,
         timeout=20,
-        condition=lambda: window.tribler_started or (
+        condition=lambda: window.core_connected or (
                 window.core_manager.core_started and not window.core_manager.core_running)
     )
     if not window.core_manager.core_running:
