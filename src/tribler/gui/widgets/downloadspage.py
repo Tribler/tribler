@@ -134,11 +134,22 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def refresh_downloads(self):
         index = self.window().download_details_widget.currentIndex()
 
-        url_params = {'get_pieces': 1}
-        if index == DownloadDetailsTabs.PEERS:
-            url_params['get_peers'] = 1
-        elif index == DownloadDetailsTabs.FILES:
-            url_params['get_files'] = 1
+        details_shown = not self.window().download_details_widget.isHidden()
+        selected_download = self.window().download_details_widget.current_download
+
+        if details_shown and selected_download is not None:
+            url_params = {
+                'get_pieces': 1,
+                'get_peers': int(index == DownloadDetailsTabs.PEERS),
+                'get_files': int(index == DownloadDetailsTabs.FILES),
+                'infohash': selected_download.get('infohash', "")
+            }
+        else:
+            url_params = {
+                'get_pieces': 0,
+                'get_peers': 0,
+                'get_files': 0
+            }
 
         request_manager.get(
             endpoint="downloads",
@@ -276,6 +287,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if len(self.selected_items) == 1:
             self.window().download_details_widget.update_with_download(self.selected_items[0].download_info)
             self.window().download_details_widget.show()
+            self.refresh_downloads()
         else:
             self.window().download_details_widget.hide()
 

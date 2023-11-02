@@ -178,6 +178,13 @@ class DownloadsEndpoint(RESTEndpoint):
                 'description': 'Flag indicating whether or not to include files',
                 'type': 'boolean',
                 'required': False
+            },
+            {
+                'in': 'query',
+                'name': 'infohash',
+                'description': 'Limit fetching of files, peers, and pieces to a specific infohash',
+                'type': 'boolean',
+                'required': False
             }],
         responses={
             200: {
@@ -235,6 +242,7 @@ class DownloadsEndpoint(RESTEndpoint):
         get_peers = params.get('get_peers', '0') == '1'
         get_pieces = params.get('get_pieces', '0') == '1'
         get_files = params.get('get_files', '0') == '1'
+        unfiltered = not params.get('infohash')
 
         checkpoints = {
             TOTAL: self.download_manager.checkpoints_count,
@@ -315,30 +323,31 @@ class DownloadsEndpoint(RESTEndpoint):
 
                 })
 
-            # Add peers information if requested
-            if get_peers:
-                peer_list = state.get_peerlist()
-                for peer_info in peer_list:  # Remove have field since it is very large to transmit.
-                    del peer_info['have']
-                    if 'extended_version' in peer_info:
-                        peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                    # Does this peer represent a hidden services circuit?
-                    if peer_info.get('port') == CIRCUIT_ID_PORT and self.tunnel_community:
-                        tc = self.tunnel_community
-                        circuit_id = tc.ip_to_circuit_id(peer_info['ip'])
-                        circuit = tc.circuits.get(circuit_id, None)
-                        if circuit:
-                            peer_info['circuit'] = circuit_id
+            if unfiltered or params.get('infohash') == download_json["infohash"]:
+                # Add peers information if requested
+                if get_peers:
+                    peer_list = state.get_peerlist()
+                    for peer_info in peer_list:  # Remove have field since it is very large to transmit.
+                        del peer_info['have']
+                        if 'extended_version' in peer_info:
+                            peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
+                        # Does this peer represent a hidden services circuit?
+                        if peer_info.get('port') == CIRCUIT_ID_PORT and self.tunnel_community:
+                            tc = self.tunnel_community
+                            circuit_id = tc.ip_to_circuit_id(peer_info['ip'])
+                            circuit = tc.circuits.get(circuit_id, None)
+                            if circuit:
+                                peer_info['circuit'] = circuit_id
 
-                download_json["peers"] = peer_list
+                    download_json["peers"] = peer_list
 
-            # Add piece information if requested
-            if get_pieces:
-                download_json["pieces"] = download.get_pieces_base64().decode('utf-8')
+                # Add piece information if requested
+                if get_pieces:
+                    download_json["pieces"] = download.get_pieces_base64().decode('utf-8')
 
-            # Add files if requested
-            if get_files:
-                download_json["files"] = self.get_files_info_json(download)
+                # Add files if requested
+                if get_files:
+                    download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
         return RESTResponse({"downloads": downloads_json, "checkpoints": checkpoints})
