@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QW
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
+from tribler.gui import gui_sentry_reporter
 from tribler.gui.defs import (
     DARWIN,
     PAGE_SETTINGS_ANONYMITY,
@@ -529,21 +530,22 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         if not data:
             return
         # Now save the GUI settings
-        self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
-        self.window().gui_settings.setValue("disable_tags", self.window().disable_tags_checkbox.isChecked())
-        self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
-        self.window().gui_settings.setValue(
-            "ask_download_settings", self.window().always_ask_location_checkbox.isChecked()
-        )
-        self.window().gui_settings.setValue(
-            "use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked()
-        )
-        self.window().gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
+        gui_settings = self.window().gui_settings
+
+        gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
+        gui_settings.setValue("disable_tags", self.window().disable_tags_checkbox.isChecked())
+        gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
+        gui_settings.setValue("ask_download_settings", self.window().always_ask_location_checkbox.isChecked())
+        gui_settings.setValue("use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked())
+        gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
         self.save_language_selection()
         self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
 
         def on_receive_settings(response):
-            self.window().tribler_settings = response['settings']
+            settings = response['settings']
+
+            self.window().tribler_settings = settings
+            gui_sentry_reporter.additional_information['settings'] = settings
 
         request_manager.get("settings", on_receive_settings, capture_errors=False)
 
