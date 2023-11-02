@@ -190,7 +190,8 @@ class TriblerWindow(QMainWindow):
         request_manager.set_api_key(api_key)
         request_manager.set_api_port(api_port)
 
-        self.tribler_started = False
+        self.core_connected = False
+        self.ui_started = False
         self.tribler_settings = None
         self.tribler_version = version_id
         self.debug_window = None
@@ -541,12 +542,12 @@ class TriblerWindow(QMainWindow):
                 logging.error("Failed to set tray message: %s", str(e))
 
     def on_core_connected(self, version):
-        if self.tribler_started:
+        if self.core_connected:
             self._logger.warning("Received duplicate Tribler Core connected event")
             return
 
         self._logger.info("Core connected")
-        self.tribler_started = True
+        self.core_connected = True
         self.tribler_version = version
 
         request_manager.get("settings", self.on_receive_settings, capture_errors=False)
@@ -602,6 +603,8 @@ class TriblerWindow(QMainWindow):
         self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
 
         QApplication.setStyle(InstantTooltipStyle(QApplication.style()))
+
+        self.ui_started = True
 
     @property
     def hide_xxx(self):
@@ -1252,5 +1255,5 @@ class TriblerWindow(QMainWindow):
 
     def handle_uri(self, uri):
         self.pending_uri_requests.append(uri)
-        if self.tribler_started and not self.start_download_dialog_active:
+        if self.ui_started and not self.start_download_dialog_active:
             self.process_uri_request()
