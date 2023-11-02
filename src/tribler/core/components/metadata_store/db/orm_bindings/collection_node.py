@@ -193,8 +193,7 @@ def define_binding(db):
                 results_stack.append(subnode)
             return results_stack
 
-        @db_session
-        def add_torrents_from_dir(self, torrents_dir, recursive=False):
+        async def add_torrents_from_dir(self, torrents_dir, recursive=False):
             torrents_list = []
             errors_list = []
 
@@ -208,17 +207,21 @@ def define_binding(db):
             torrents_list_generator = (Path(torrents_dir, f) for f in filename_generator)
             torrents_list = [f for f in torrents_list_generator if f.is_file() and f.suffix == ".torrent"]
 
+            torrent_defs = []
+            for filename in torrents_list:
+                try:
+                    torrent_defs.append(await TorrentDef.load(filename))
+                except Exception:  # pylint: disable=W0703
+                    # Have to use the broad exception clause because Py3 versions of libtorrent
+                    # generate generic Exceptions
+                    errors_list.append(filename)
+
             # 100 is a reasonable chunk size for commits
-            for chunk in chunks(torrents_list, 100):
-                for f in chunk:
-                    try:
-                        self.add_torrent_to_channel(TorrentDef.load(f))
-                    except Exception:  # pylint: disable=W0703
-                        # Have to use the broad exception clause because Py3 versions of libtorrent
-                        # generate generic Exceptions
-                        errors_list.append(f)
-                # Optimization to drop excess cache
-                orm.commit()
+            with db_session:
+                for chunk in chunks(torrent_defs, 100):
+                    for tdef in chunk:
+                        self.add_torrent_to_channel(tdef)
+                    orm.commit()
 
             return torrents_list, errors_list
 

@@ -3,6 +3,7 @@ Author(s): Arno Bakker
 """
 import itertools
 import logging
+from asyncio import get_running_loop
 from hashlib import sha1
 
 import aiohttp
@@ -95,14 +96,23 @@ class TorrentDef:
                 self.torrent_parameters[key] = self.metainfo[b'info'][key]
 
     @staticmethod
-    def load(filepath):
+    def _threaded_load_job(filepath):
         """
-        Create a TorrentDef object from a .torrent file
-        :param filepath: The path to the .torrent file
+        Perform the actual loading of the torrent.
+
+        Called from a thread: don't call this directly!
         """
         with open(filepath, "rb") as torrent_file:
             file_content = torrent_file.read()
         return TorrentDef.load_from_memory(file_content)
+
+    @staticmethod
+    async def load(filepath):
+        """
+        Create a TorrentDef object from a .torrent file
+        :param filepath: The path to the .torrent file
+        """
+        return await get_running_loop().run_in_executor(None, TorrentDef._threaded_load_job, filepath)
 
     @staticmethod
     def load_from_memory(bencoded_data):

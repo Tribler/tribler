@@ -427,8 +427,8 @@ async def test_add_torrent_duplicate(my_channel, rest_api):
     """
     Test that adding a duplicate torrent to you channel does not result in an error
     """
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
     with db_session:
-        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         my_channel.add_torrent_to_channel(tdef, {'description': 'blabla'})
 
     with open(TORRENT_UBUNTU_FILE, "rb") as torrent_file:
@@ -497,12 +497,6 @@ async def test_add_torrent_from_magnet(my_channel, mock_dlmgr, rest_api, metadat
     """
     Test whether we can add a torrent to your channel from a magnet link
     """
-
-    def fake_get_metainfo(_, **__):
-        meta_info = TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
-        return succeed(meta_info)
-
-    mock_dlmgr.get_metainfo = fake_get_metainfo
     metadata_store.torrent_exists_in_personal_channel = Mock()
 
     post_params = {'uri': 'magnet:?xt=urn:btih:1111111111111111111111111111111111111111'}

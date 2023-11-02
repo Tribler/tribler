@@ -1,6 +1,6 @@
 import random
 import string
-from unittest.mock import Mock
+from unittest.mock import AsyncMock
 
 import pytest
 from ipv8.util import succeed
@@ -36,7 +36,7 @@ async def test_create_torrent(rest_api, tmp_path, download_manager):
 
     download_manager.download_defaults = DownloadDefaultsSettings()
     download_manager.create_torrent_file = fake_create_torrent_file
-    download_manager.start_download = start_download = Mock()
+    download_manager.start_download = start_download = AsyncMock()
 
     torrent_path = tmp_path / "video.avi.torrent"
     post_data = {

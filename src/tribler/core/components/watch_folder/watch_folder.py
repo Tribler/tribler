@@ -40,12 +40,12 @@ class WatchFolder:
 
     async def _check_watch_folder_handle_exceptions(self):
         try:
-            self._check_watch_folder()
+            await self._check_watch_folder()
         except Exception as e:
             self._logger.exception(f'Failed download attempt: {e}')
             raise NoCrashException from e
 
-    def _check_watch_folder(self):
+    async def _check_watch_folder(self):
         self._logger.debug('Checking watch folder...')
         if not self.settings.enabled or not self.state_dir:
             self._logger.debug(f'Cancelled. Enabled: {self.settings.enabled}. State dir: {self.state_dir}.')
@@ -60,18 +60,18 @@ class WatchFolder:
         for root, _, files in os.walk(str(directory)):
             for name in files:
                 path = Path(root) / name
-                self._process_torrent_file(path)
+                await self._process_torrent_file(path)
 
         self._logger.debug('Checking watch folder completed.')
 
-    def _process_torrent_file(self, path: Path):
+    async def _process_torrent_file(self, path: Path):
         if not path.name.endswith(".torrent"):
             return
 
         self._logger.info(f'Torrent file found: {path}')
         exception = None
         try:
-            self._start_download(path)
+            await self._start_download(path)
         except Exception as e:  # pylint: disable=broad-except
             self._logger.error(f'{e.__class__.__name__}: {e}')
             exception = e
@@ -83,8 +83,8 @@ class WatchFolder:
             except OSError as e:
                 self._logger.warning(f'{e.__class__.__name__}: {e}')
 
-    def _start_download(self, path: Path):
-        tdef = TorrentDef.load(path)
+    async def _start_download(self, path: Path):
+        tdef = await TorrentDef.load(path)
         if not tdef.get_metainfo():
             self._logger.warning(f'Missed metainfo: {path}')
             return
@@ -97,4 +97,4 @@ class WatchFolder:
             download_config = DownloadConfig.from_defaults(self.download_manager.download_defaults,
                                                            state_dir=self.state_dir)
 
-            self.download_manager.start_download(torrent_file=path, config=download_config)
+            await self.download_manager.start_download(torrent_file=path, config=download_config)

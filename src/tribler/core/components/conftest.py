@@ -69,8 +69,8 @@ def mock_dlmgr(state_dir):
 
 
 @pytest.fixture
-def video_tdef():
-    return TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')
+async def video_tdef():
+    return await TorrentDef.load(TESTS_DATA_DIR / 'video.avi.torrent')
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ async def video_seeder(tmp_path_factory, video_tdef):
     dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR)
-    upload = dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
+    upload = await dlmgr.start_download(tdef=video_tdef, config=dscfg_seed)
     await upload.wait_for_status(DownloadStatus.SEEDING)
     yield dlmgr
     await dlmgr.shutdown()

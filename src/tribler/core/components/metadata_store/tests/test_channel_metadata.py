@@ -197,18 +197,20 @@ def test_add_metadata_to_channel(torrent_template, metadata_store):
     assert channel_metadata.num_entries == 1
 
 
-@db_session
-def test_add_torrent_to_channel(metadata_store):
+async def test_add_torrent_to_channel(metadata_store):
     """
     Test adding a torrent to your channel
     """
-    channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-    channel_metadata.add_torrent_to_channel(tdef, {'description': 'blabla'})
-    assert channel_metadata.contents_list
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-    # Make sure trying to add a duplicate torrent does not result in an error
-    channel_metadata.add_torrent_to_channel(tdef, None)
+    with db_session:
+        channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
+
+        channel_metadata.add_torrent_to_channel(tdef, {'description': 'blabla'})
+        assert channel_metadata.contents_list
+
+        # Make sure trying to add a duplicate torrent does not result in an error
+        channel_metadata.add_torrent_to_channel(tdef, None)
 
 
 @db_session
@@ -247,56 +249,58 @@ def test_copy_to_channel(torrent_template, metadata_store):
     assert len(channel2.contents_list) == 1
 
 
-@db_session
-def test_restore_torrent_in_channel(metadata_store):
+async def test_restore_torrent_in_channel(metadata_store):
     """
     Test if the torrent scheduled for deletion is restored/updated after the user tries to re-add it.
     """
-    channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-    md = channel_metadata.add_torrent_to_channel(tdef, None)
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-    # Check correct re-add
-    md.status = TODELETE
-    md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
-    assert UPDATED == md.status
-    assert md_updated == md
-    assert md.has_valid_signature
+    with db_session:
+        channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
+        md = channel_metadata.add_torrent_to_channel(tdef, None)
 
-    # Check update of torrent properties from a new tdef
-    md.status = TODELETE
-    new_tracker_address = 'http://tribler.org/announce'
-    tdef.torrent_parameters[b'announce'] = new_tracker_address.encode('utf-8')
-    md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
-    assert md_updated == md
-    assert md.status == UPDATED
-    assert md.tracker_info == new_tracker_address
-    assert md.has_valid_signature
-    # In addition, check that the trackers table was properly updated
-    assert len(md.health.trackers) == 2
+        # Check correct re-add
+        md.status = TODELETE
+        md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
+        assert UPDATED == md.status
+        assert md_updated == md
+        assert md.has_valid_signature
+
+        # Check update of torrent properties from a new tdef
+        md.status = TODELETE
+        new_tracker_address = 'http://tribler.org/announce'
+        tdef.torrent_parameters[b'announce'] = new_tracker_address.encode('utf-8')
+        md_updated = channel_metadata.add_torrent_to_channel(tdef, None)
+        assert md_updated == md
+        assert md.status == UPDATED
+        assert md.tracker_info == new_tracker_address
+        assert md.has_valid_signature
+        # In addition, check that the trackers table was properly updated
+        assert len(md.health.trackers) == 2
 
 
-@db_session
-def test_delete_torrent_from_channel(metadata_store):
+async def test_delete_torrent_from_channel(metadata_store):
     """
     Test deleting a torrent from your channel
     """
-    channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-    # Check that nothing is committed when deleting uncommited torrent metadata
-    torrent = channel_metadata.add_torrent_to_channel(tdef, None)
-    torrent.soft_delete()
-    assert not channel_metadata.contents_list
+    with db_session:
+        channel_metadata = metadata_store.ChannelMetadata.create_channel('test', 'test')
 
-    # Check append-only deletion process
-    torrent = channel_metadata.add_torrent_to_channel(tdef, None)
-    channel_metadata.commit_channel_torrent()
-    assert len(channel_metadata.contents_list) == 1
+        # Check that nothing is committed when deleting uncommited torrent metadata
+        torrent = channel_metadata.add_torrent_to_channel(tdef, None)
+        torrent.soft_delete()
+        assert not channel_metadata.contents_list
 
-    torrent.soft_delete()
-    channel_metadata.commit_channel_torrent()
-    assert not channel_metadata.contents_list
+        # Check append-only deletion process
+        torrent = channel_metadata.add_torrent_to_channel(tdef, None)
+        channel_metadata.commit_channel_torrent()
+        assert len(channel_metadata.contents_list) == 1
+
+        torrent.soft_delete()
+        channel_metadata.commit_channel_torrent()
+        assert not channel_metadata.contents_list
 
 
 @db_session
@@ -369,24 +373,25 @@ def test_vsids(freezer, metadata_store):
     assert 2.0 < channel.votes < 2.5
 
 
-@db_session
-def test_commit_channel_torrent(metadata_store):
+async def test_commit_channel_torrent(metadata_store):
     """
     Test committing a channel torrent
     """
-    channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
-    channel.add_torrent_to_channel(tdef, None)
-    # The first run should return the infohash, the second should return None, because nothing was really done
-    assert channel.commit_channel_torrent()
-    assert not channel.commit_channel_torrent()
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-    # Test adding flags to channel torrent when adding thumbnail and description
-    metadata_store.ChannelThumbnail(public_key=channel.public_key, origin_id=channel.id_, status=NEW)
-    metadata_store.ChannelDescription(public_key=channel.public_key, origin_id=channel.id_, status=NEW)
-    assert channel.commit_channel_torrent()
-    assert channel.reserved_flags == 3
-    assert not channel.commit_channel_torrent()
+    with db_session:
+        channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
+        channel.add_torrent_to_channel(tdef, None)
+        # The first run should return the infohash, the second should return None, because nothing was really done
+        assert channel.commit_channel_torrent()
+        assert not channel.commit_channel_torrent()
+
+        # Test adding flags to channel torrent when adding thumbnail and description
+        metadata_store.ChannelThumbnail(public_key=channel.public_key, origin_id=channel.id_, status=NEW)
+        metadata_store.ChannelDescription(public_key=channel.public_key, origin_id=channel.id_, status=NEW)
+        assert channel.commit_channel_torrent()
+        assert channel.reserved_flags == 3
+        assert not channel.commit_channel_torrent()
 
 
 @db_session
@@ -481,43 +486,45 @@ def test_recursive_commit_channel_torrent(metadata_store):
     assert chan.num_entries == 366
 
 
-@db_session
-def test_consolidate_channel_torrent(torrent_template, metadata_store):
+async def test_consolidate_channel_torrent(torrent_template, metadata_store):
     """
     Test completely re-commit your channel
     """
-    channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
-    my_dir = Path(metadata_store.ChannelMetadata._channels_dir / channel.dirname).absolute()
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-    # 1st torrent
-    torrent_entry = channel.add_torrent_to_channel(tdef, None)
-    channel.commit_channel_torrent()
+    with db_session:
+        channel = metadata_store.ChannelMetadata.create_channel('test', 'test')
+        my_dir = Path(metadata_store.ChannelMetadata._channels_dir / channel.dirname).absolute()
 
-    # 2nd torrent
-    metadata_store.TorrentMetadata.from_dict(
-        dict(torrent_template, public_key=channel.public_key, origin_id=channel.id_, status=NEW)
-    )
-    channel.commit_channel_torrent()
-    # Delete entry
-    torrent_entry.soft_delete()
-    channel.commit_channel_torrent()
+        # 1st torrent
+        torrent_entry = channel.add_torrent_to_channel(tdef, None)
+        channel.commit_channel_torrent()
 
-    assert len(channel.contents_list) == 1
-    assert len(os.listdir(my_dir)) == 3
+        # 2nd torrent
+        metadata_store.TorrentMetadata.from_dict(
+            dict(torrent_template, public_key=channel.public_key, origin_id=channel.id_, status=NEW)
+        )
+        channel.commit_channel_torrent()
+        # Delete entry
+        torrent_entry.soft_delete()
+        channel.commit_channel_torrent()
 
-    torrent3 = metadata_store.TorrentMetadata(
-        public_key=channel.public_key, origin_id=channel.id_, status=NEW, infohash=random_infohash()
-    )
-    channel.commit_channel_torrent()
-    torrent3.soft_delete()
+        assert len(channel.contents_list) == 1
+        assert len(os.listdir(my_dir)) == 3
 
-    channel.consolidate_channel_torrent()
-    assert len(os.listdir(my_dir)) == 1
-    metadata_store.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT).delete()
-    channel.local_version = 0
-    metadata_store.process_channel_dir(my_dir, channel.public_key, channel.id_, skip_personal_metadata_payload=False)
-    assert len(channel.contents[:]) == 1
+        torrent3 = metadata_store.TorrentMetadata(
+            public_key=channel.public_key, origin_id=channel.id_, status=NEW, infohash=random_infohash()
+        )
+        channel.commit_channel_torrent()
+        torrent3.soft_delete()
+
+        channel.consolidate_channel_torrent()
+        assert len(os.listdir(my_dir)) == 1
+        metadata_store.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT).delete()
+        channel.local_version = 0
+        metadata_store.process_channel_dir(my_dir, channel.public_key, channel.id_,
+                                           skip_personal_metadata_payload=False)
+        assert len(channel.contents[:]) == 1
 
 
 @db_session
@@ -856,11 +863,11 @@ def test_get_channel_name(metadata_store):
     metadata_store.ChannelMetadata.get_channel_name.assert_not_called()
 
 
-@db_session
-def check_add(metadata_store, torrents_in_dir, errors, recursive):
+async def check_add(metadata_store, torrents_in_dir, errors, recursive):
     TEST_TORRENTS_DIR = TESTS_DATA_DIR / 'linux_torrents'
-    chan = metadata_store.ChannelMetadata.create_channel(title='testchan')
-    torrents, e = chan.add_torrents_from_dir(TEST_TORRENTS_DIR, recursive)
+    with db_session:
+        chan = metadata_store.ChannelMetadata.create_channel(title='testchan')
+    torrents, e = await chan.add_torrents_from_dir(TEST_TORRENTS_DIR, recursive)
     assert torrents_in_dir == len(torrents)
     assert errors == len(e)
     with db_session:
@@ -868,12 +875,12 @@ def check_add(metadata_store, torrents_in_dir, errors, recursive):
         assert torrents_in_dir - len(e) == q.count()
 
 
-def test_add_torrents_from_dir(metadata_store):
-    check_add(metadata_store, 9, 0, recursive=False)
+async def test_add_torrents_from_dir(metadata_store):
+    await check_add(metadata_store, 9, 0, recursive=False)
 
 
-def test_add_torrents_from_dir_recursive(metadata_store):
-    check_add(metadata_store, 11, 1, recursive=True)
+async def test_add_torrents_from_dir_recursive(metadata_store):
+    await check_add(metadata_store, 11, 1, recursive=True)
 
 
 @db_session
