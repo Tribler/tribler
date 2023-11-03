@@ -160,3 +160,12 @@ def test_update_from_dict_wrong_key(tmpdir):
     config = TriblerConfig(state_dir=tmpdir)
     with pytest.raises(ValueError):
         config.update_from_dict({'wrong key': 'any value'})
+
+
+def test_validate_config(tmpdir):
+    """ Test that validate_config raises ValueError when config is invalid"""
+    config = TriblerConfig(state_dir=tmpdir)
+    config.general = 'invalid value'
+
+    with pytest.raises(ValueError):
+        config.validate_config()

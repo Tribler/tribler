@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Union
 
 import configobj
 from configobj import ParseError
-from pydantic import BaseSettings, Extra, PrivateAttr
+from pydantic import BaseSettings, Extra, PrivateAttr, validate_model
 
 from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.components.gigachannel.community.settings import ChantSettings
@@ -165,6 +165,14 @@ class TriblerConfig(BaseSettings):
 
         for key, value in config.items():
             update_recursively(self, key, value)
+
+        self.validate_config()
+
+    def validate_config(self):
+        """ Validate config and raise an exception in case of an error"""
+        *_, error = validate_model(self.__class__, self.__dict__)
+        if error:
+            raise error
 
     @property
     def error(self) -> Optional[str]:
