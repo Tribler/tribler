@@ -27,7 +27,7 @@ class SentryScrubber:
             'Documents and Settings',
             'Users',
         ]
-        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN', 'server_name', 'COMPUTERNAME']
+        self.dict_keys_for_scrub = ['USERNAME', 'USERDOMAIN', 'server_name', 'COMPUTERNAME', 'key']
         self.event_fields_to_cut = []
         self.exclusions = ['local', '127.0.0.1']
 

@@ -56,6 +56,7 @@ from tribler.core.utilities.rest_utils import (
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import parse_query
 from tribler.core.version import version_id
+from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
@@ -554,6 +555,7 @@ class TriblerWindow(QMainWindow):
 
     def on_receive_settings(self, settings):
         self.tribler_settings = settings['settings']
+        gui_sentry_reporter.additional_information['settings'] = self.tribler_settings
         self.start_ui()
 
     def start_ui(self):
