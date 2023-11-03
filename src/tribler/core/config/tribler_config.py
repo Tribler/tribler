@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import traceback
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional, Union
 
 import configobj
 from configobj import ParseError
@@ -151,6 +151,20 @@ class TriblerConfig(BaseSettings):
         conf = configobj.ConfigObj(dictionary, encoding='utf-8')
         conf.filename = str(file)
         conf.write()
+
+    def update_from_dict(self, config: Dict):
+        """ Update (patch) current config from dictionary"""
+
+        def update_recursively(settings: BaseSettings, attribute_name: str, attribute_value: Union[Any, Dict]):
+            """ Update setting recursively from dictionary"""
+            if isinstance(attribute_value, dict):
+                for k, v in attribute_value.items():
+                    update_recursively(getattr(settings, attribute_name), k, v)
+            else:
+                setattr(settings, attribute_name, attribute_value)
+
+        for key, value in config.items():
+            update_recursively(self, key, value)
 
     @property
     def error(self) -> Optional[str]:
