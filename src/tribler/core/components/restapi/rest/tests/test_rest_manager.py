@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from aiohttp import ClientOSError, ServerDisconnectedError
 from aiohttp.web_protocol import RequestHandler
+from pydantic import ValidationError
 
 from tribler.core.components.restapi.rest.aiohttp_patch import get_transport_is_none_counter, patch_make_request
 from tribler.core.components.restapi.rest.base_api_test import do_real_request
@@ -95,10 +96,10 @@ async def test_unhandled_exception(rest_manager, api_port):
         handler.unhandled_error_observer.assert_called_once()
         exception_dict = handler.unhandled_error_observer.call_args.args[1]
         assert exception_dict['should_stop'] is False
-        assert isinstance(exception_dict['exception'], TypeError)
+        assert isinstance(exception_dict['exception'], ValidationError)
     assert response_dict
     assert not response_dict['error']['handled']
-    assert response_dict['error']['code'] == "TypeError"
+    assert response_dict['error']['code'] == "ValidationError"
 
 
 async def test_patch_make_request():

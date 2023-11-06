@@ -19,7 +19,7 @@ class SettingsEndpoint(RESTEndpoint):
 
     def __init__(self, tribler_config: TriblerConfig, download_manager: DownloadManager = None):
         super().__init__()
-        self.tribler_config = tribler_config
+        self.config = tribler_config
         self.download_manager = download_manager
 
     def setup_routes(self):
@@ -40,7 +40,7 @@ class SettingsEndpoint(RESTEndpoint):
     async def get_settings(self, request):
         self._logger.info(f'Get settings. Request: {request}')
         return RESTResponse({
-            "settings": self.tribler_config.dict(),
+            "settings": self.config.dict(),
             "ports": list(default_network_utils.ports_in_use)
         })
 
@@ -55,31 +55,12 @@ class SettingsEndpoint(RESTEndpoint):
     )
     @json_schema(schema(UpdateTriblerSettingsRequest={}))
     async def update_settings(self, request):
-        settings_dict = await request.json()
-        await self.parse_settings_dict(settings_dict)
-        self.tribler_config.write()
+        settings = await request.json()
+        self._logger.info(f'Received settings: {settings}')
+        self.config.update_from_dict(settings)
+        self.config.write()
+
+        if self.download_manager:
+            self.download_manager.update_max_rates_from_config()
+
         return RESTResponse({"modified": True})
-
-    async def parse_setting(self, section, option, value):
-        """
-        Set a specific Tribler setting. Throw a ValueError if this setting is not available.
-        """
-        # if section in self.config.config and option in self.config.config[section]:
-        self.tribler_config.__getattribute__(section).__setattr__(option, value)
-        # else:
-        #     raise ValueError(f"Section {section} with option {option} does not exist")
-
-        # Perform some actions when specific keys are set
-        if section == "libtorrent" and (option == "max_download_rate" or option == "max_upload_rate"):
-            if self.download_manager:
-                self.download_manager.update_max_rates_from_config()
-
-    async def parse_settings_dict(self, settings_dict, depth=1, root_key=None):
-        """
-        Parse the settings dictionary.
-        """
-        for key, value in settings_dict.items():
-            if isinstance(value, dict):
-                await self.parse_settings_dict(value, depth=depth + 1, root_key=key)
-            else:
-                await self.parse_setting(root_key, key, value)

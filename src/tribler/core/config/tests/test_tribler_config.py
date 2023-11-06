@@ -134,3 +134,38 @@ def test_invalid_config_recovers(tmpdir):
     # should work without the reset flag.
     config = TriblerConfig.load(file=default_config_file, state_dir=tmpdir)
     assert not config.error
+
+
+def test_update_from_dict(tmpdir):
+    """ Test that update_from_dict updates config with correct values"""
+
+    config = TriblerConfig(state_dir=tmpdir)
+    config.api.http_port = 1234
+
+    config.update_from_dict(
+        {
+            'api':
+                {
+                    'key': 'key value'
+                }
+        }
+    )
+
+    assert config.api.http_port == 1234
+    assert config.api.key == 'key value'
+
+
+def test_update_from_dict_wrong_key(tmpdir):
+    """ Test that update_from_dict raises ValueError when wrong key is passed"""
+    config = TriblerConfig(state_dir=tmpdir)
+    with pytest.raises(ValueError):
+        config.update_from_dict({'wrong key': 'any value'})
+
+
+def test_validate_config(tmpdir):
+    """ Test that validate_config raises ValueError when config is invalid"""
+    config = TriblerConfig(state_dir=tmpdir)
+    config.general = 'invalid value'
+
+    with pytest.raises(ValueError):
+        config.validate_config()
