@@ -8,6 +8,7 @@ import pytest
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -22,24 +23,28 @@ from tribler.core.utilities.utilities import random_infohash, to_fts_query
 def needle_in_haystack_mds(metadata_store):
     num_hay = 100
     with db_session:
-        _ = metadata_store.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
         for x in range(0, num_hay):
-            metadata_store.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='needle', infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='needle2', infohash=random_infohash())
+            metadata_store.TorrentMetadata(title='hay ' + str(x), infohash=random_infohash(), public_key=b'')
+        metadata_store.TorrentMetadata(title='needle', infohash=random_infohash(), public_key=b'')
+        metadata_store.TorrentMetadata(title='needle2', infohash=random_infohash(), public_key=b'')
     return metadata_store
 
 
 @pytest.fixture
-def endpoint(needle_in_haystack_mds, tribler_db):
-    return SearchEndpoint(needle_in_haystack_mds, tribler_db=tribler_db)
+def mock_popularity_community():
+    return Mock()
+
+
+@pytest.fixture
+def endpoint(mock_popularity_community, needle_in_haystack_mds, tribler_db):
+    return SearchEndpoint(mock_popularity_community, needle_in_haystack_mds, tribler_db=tribler_db)
 
 
 async def test_search_wrong_mdtype(rest_api):
     """
     Testing whether the API returns an error 400 if wrong metadata type is passed in the query
     """
-    await do_request(rest_api, 'search?txt_filter=bla&metadata_type=ddd', expected_code=400)
+    await do_request(rest_api, 'search/local?txt_filter=bla&metadata_type=ddd', expected_code=400)
 
 
 async def test_search(rest_api):
@@ -47,22 +52,19 @@ async def test_search(rest_api):
     Test a search query that should return a few new type channels
     """
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle', expected_code=200)
     assert len(parsed["results"]) == 1
 
-    parsed = await do_request(rest_api, 'search?txt_filter=hay', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=hay', expected_code=200)
     assert len(parsed["results"]) == 50
 
-    parsed = await do_request(rest_api, 'search?txt_filter=test&type=channel', expected_code=200)
-    assert len(parsed["results"]) == 1
-
-    parsed = await do_request(rest_api, 'search?txt_filter=needle&type=torrent', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle&type=torrent', expected_code=200)
     assert parsed["results"][0]['name'] == 'needle'
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle&sort_by=name', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle&sort_by=name', expected_code=200)
     assert len(parsed["results"]) == 1
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle%2A&sort_by=name&sort_desc=1', expected_code=200)
     assert len(parsed["results"]) == 2
     assert parsed["results"][0]['name'] == "needle2"
 
@@ -73,11 +75,12 @@ async def test_search_by_tags(rest_api):
             return None
         return {hexlify(os.urandom(20))}
 
-    with patch.object(KnowledgeDataAccessLayer, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
-        parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=real_tag', expected_code=200)
+    with patch.object(TriblerDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
+        parsed = await do_request(rest_api, 'search/local?txt_filter=needle&tags=real_tag', expected_code=200)
+
         assert len(parsed["results"]) == 0
 
-        parsed = await do_request(rest_api, 'search?txt_filter=needle&tags=missed_tag', expected_code=200)
+        parsed = await do_request(rest_api, 'search/local?txt_filter=needle&tags=missed_tag', expected_code=200)
         assert len(parsed["results"]) == 1
 
 
@@ -86,35 +89,35 @@ async def test_search_with_include_total_and_max_rowid(rest_api):
     Test search queries with include_total and max_rowid options
     """
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle', expected_code=200)
     assert len(parsed["results"]) == 1
     assert "total" not in parsed
     assert "max_rowid" not in parsed
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle&include_total=1', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle&include_total=1', expected_code=200)
     assert parsed["total"] == 1
-    assert parsed["max_rowid"] == 103
+    assert parsed["max_rowid"] == 102
 
-    parsed = await do_request(rest_api, 'search?txt_filter=hay&include_total=1', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=hay&include_total=1', expected_code=200)
     assert parsed["total"] == 100
-    assert parsed["max_rowid"] == 103
+    assert parsed["max_rowid"] == 102
 
-    parsed = await do_request(rest_api, 'search?txt_filter=hay', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=hay', expected_code=200)
     assert len(parsed["results"]) == 50
 
-    parsed = await do_request(rest_api, 'search?txt_filter=hay&max_rowid=0', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=hay&max_rowid=0', expected_code=200)
     assert len(parsed["results"]) == 0
 
-    parsed = await do_request(rest_api, 'search?txt_filter=hay&max_rowid=20', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=hay&max_rowid=19', expected_code=200)
     assert len(parsed["results"]) == 19
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle&sort_by=name', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle&sort_by=name', expected_code=200)
     assert len(parsed["results"]) == 1
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle&sort_by=name&max_rowid=20', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle&sort_by=name&max_rowid=20', expected_code=200)
     assert len(parsed["results"]) == 0
 
-    parsed = await do_request(rest_api, 'search?txt_filter=needle&sort_by=name&max_rowid=200', expected_code=200)
+    parsed = await do_request(rest_api, 'search/local?txt_filter=needle&sort_by=name&max_rowid=200', expected_code=200)
     assert len(parsed["results"]) == 1
 
 
@@ -135,12 +138,11 @@ async def test_completions(rest_api):
 
 async def test_search_with_space(rest_api, metadata_store):
     with db_session:
-        _ = metadata_store.ChannelMetadata(title='test', tags='test', subscribed=True, infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='abc', infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='abc.def', infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='abc def', infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='abcxyz def', infohash=random_infohash())
-        metadata_store.TorrentMetadata(title='abc defxyz', infohash=random_infohash())
+        metadata_store.TorrentMetadata(title='abc', infohash=random_infohash(), public_key=b'')
+        metadata_store.TorrentMetadata(title='abc.def', infohash=random_infohash(), public_key=b'')
+        metadata_store.TorrentMetadata(title='abc def', infohash=random_infohash(), public_key=b'')
+        metadata_store.TorrentMetadata(title='abcxyz def', infohash=random_infohash(), public_key=b'')
+        metadata_store.TorrentMetadata(title='abc defxyz', infohash=random_infohash(), public_key=b'')
 
     s1 = to_fts_query("abc")
     assert s1 == '"abc"'
@@ -151,11 +153,11 @@ async def test_search_with_space(rest_api, metadata_store):
     ss2 = to_fts_query(s2)
     assert ss2 == s2
 
-    parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
+    parsed = await do_request(rest_api, f'search/local?txt_filter={s1}', expected_code=200)
     results = {item["name"] for item in parsed["results"]}
     assert results == {'abc', 'abc.def', 'abc def', 'abc defxyz'}
 
-    parsed = await do_request(rest_api, f'search?txt_filter={s2}', expected_code=200)
+    parsed = await do_request(rest_api, f'search/local?txt_filter={s2}', expected_code=200)
     results = {item["name"] for item in parsed["results"]}
     assert results == {'abc.def', 'abc def'}  # but not 'abcxyz def'
 
@@ -173,7 +175,7 @@ async def test_single_snippet_in_search(rest_api, metadata_store, tribler_db):
 
     with patch.object(KnowledgeDataAccessLayer, 'get_objects', wraps=mocked_get_subjects):
         s1 = to_fts_query("abc")
-        results = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
+        results = await do_request(rest_api, f'search/local?txt_filter={s1}', expected_code=200)
 
         assert len(results["results"]) == 1
         snippet = results["results"][0]
@@ -191,7 +193,7 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, tribler_db)
         infohashes = [random_infohash() for _ in range(5)]
         for ind, infohash in enumerate(infohashes):
             torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=ind)
-            metadata_store.TorrentMetadata(title=f'abc {ind}', infohash=infohash, health=torrent_state)
+            metadata_store.TorrentMetadata(title=f'abc {ind}', infohash=infohash, health=torrent_state, public_key=b'')
 
     def mocked_get_objects(*__, subject=None, **___) -> List[str]:
         subject = unhexlify(subject)
@@ -203,7 +205,7 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, tribler_db)
 
     with patch.object(KnowledgeDataAccessLayer, 'get_objects', wraps=mocked_get_objects):
         s1 = to_fts_query("abc")
-        parsed = await do_request(rest_api, f'search?txt_filter={s1}', expected_code=200)
+        parsed = await do_request(rest_api, f'search/local?txt_filter={s1}', expected_code=200)
         results = parsed["results"]
 
         assert len(results) == 3
@@ -248,7 +250,7 @@ async def test_create_remote_search_request(rest_api, mock_gigachannel_community
         return request_uuid, peers
 
     # Test querying for keywords
-    mock_gigachannel_community.send_search_request = mock_send
+    mock_popularity_community.send_search_request = mock_send
     search_txt = "foo"
     await do_request(
         rest_api,
@@ -263,6 +265,6 @@ async def test_create_remote_search_request(rest_api, mock_gigachannel_community
     # Test querying channel data by public key, e.g. for channel preview purposes
     channel_pk = "ff"
     await do_request(
-        rest_api, f'remote_query?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
+        rest_api, f'search/remote?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
     )
     assert hexlify(sent['channel_pk']) == channel_pk

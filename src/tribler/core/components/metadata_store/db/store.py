@@ -378,9 +378,9 @@ class MetadataStore:
         return result
 
     @db_session
-    def process_payload(self, payload, **kwargs):
+    def process_payload(self, payload, skip_personal_metadata_payload=True, **kwargs):
         # Don't process our own torrents
-        if payload.public_key == self.my_public_key_bin:
+        if skip_personal_metadata_payload and payload.public_key == self.my_public_key_bin:
             return []
 
         # Don't process unknown/deprecated payloads

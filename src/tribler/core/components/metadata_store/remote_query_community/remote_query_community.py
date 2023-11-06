@@ -289,12 +289,11 @@ class RemoteQueryCommunity(TriblerCommunity):
             self.send_db_results(peer, request_payload.id, db_results, force_eva_response)
         except (OperationalError, TypeError, ValueError) as error:
             self.logger.error(f"Remote select. The error occurred: {error}")
-            raise
 
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response_payload):
         """
-        Match the the response that we received from the network to a query cache
+        Match the response that we received from the network to a query cache
         and process it by adding the corresponding entries to the MetadataStore database.
         This processes both direct responses and pushback (updates) responses
         """

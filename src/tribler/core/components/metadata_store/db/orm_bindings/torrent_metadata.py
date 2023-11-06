@@ -1,6 +1,6 @@
 from binascii import unhexlify
 from datetime import datetime
-from random import random
+import random
 from struct import unpack
 from typing import Optional
 
@@ -110,7 +110,6 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0, include_health=Fa
     :return: (chunk, last_entry_index) tuple, where chunk is the resulting chunk in string form and
         last_entry_index is the index of the element of the input list that was put into the chunk the last.
     """
-
     if start_index >= len(metadata_list):
         raise Exception('Could not serialize chunk: incorrect start_index', metadata_list, chunk_size, start_index)
 
@@ -153,6 +152,7 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
         """
         _discriminator_ = REGULAR_TORRENT
         _table_ = "ChannelNode"
+        _CHUNK_SIZE_LIMIT = 1 * 1024 * 1024  # We use 1MB chunks as a workaround for Python's lack of string pointers
 
         rowid = orm.PrimaryKey(int, size=64, auto=True)
 
@@ -206,7 +206,8 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
                 kwargs["id_"] = int(random.getrandbits(63))
 
             # Free-for-all entries require special treatment
-            if kwargs.get("public_key") == b"":
+            kwargs["public_key"] = kwargs.get("public_key", b"")
+            if kwargs["public_key"] == b"":
                 # We have to give the entry an unique sig to honor the DB constraints. We use the entry's id_
                 # as the sig to keep it unique and short. The uniqueness is guaranteed by DB as it already
                 # imposes uniqueness constraints on the id_+public_key combination.
@@ -318,8 +319,7 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
             :return: serialized_data+signature binary string
             """
             kwargs = self.to_dict()
-            kwargs_payload = {k: v for k, v in kwargs.items() if k in self.payload_class.names}
-            payload = self.payload_class(**kwargs_payload)
+            payload = self.payload_class.from_dict(**kwargs)
             payload.signature = kwargs.pop('signature', None) or payload.signature
             if key:
                 payload.add_signature(key)

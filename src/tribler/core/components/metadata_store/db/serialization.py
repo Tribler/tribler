@@ -86,14 +86,22 @@ class SignedPayload(VariablePayload):
     def serialized(self):
         return default_serializer.pack_serializable(self)
 
+    @classmethod
+    def from_signed_blob(cls, serialized):
+        payload, offset = default_serializer.unpack_serializable(cls, serialized)
+        payload.signature = serialized[offset:]
+        return payload
+
     def to_dict(self):
-        return {name: getattr(self, name) for name in self.names}
+        return {name: getattr(self, name) for name in (self.names + ['signature'])}
+
+    @classmethod
+    def from_dict(cls, **kwargs):
+        return cls(**{key: value for key, value in kwargs.items() if key in cls.names})
 
     def add_signature(self, key):
-        if self.public_key == key.pub().key_to_bin()[10:]:
-            self.signature = default_eccrypto.create_signature(key, self.serialized())
-            return True
-        return False
+        self.public_key = key.pub().key_to_bin()[10:]
+        self.signature = default_eccrypto.create_signature(key, self.serialized())
 
     def has_signature(self):
         return self.public_key != NULL_KEY or self.signature != NULL_SIG
