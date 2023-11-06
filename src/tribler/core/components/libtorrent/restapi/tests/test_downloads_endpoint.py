@@ -4,6 +4,7 @@ import unittest.mock
 from unittest.mock import Mock
 
 import pytest
+from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from ipv8.util import fail, succeed
 
 import tribler.core.components.libtorrent.restapi.downloads_endpoint as download_endpoint
@@ -180,8 +181,76 @@ async def test_get_downloads(mock_dlmgr, test_download, rest_api):
     mock_dlmgr.checkpoints_loaded = 1
     mock_dlmgr.all_checkpoints_are_loaded = True
 
-    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1', expected_code=200)
+    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_files=1', expected_code=200)
     assert len(downloads["downloads"]) == 1
+    assert "peers" in downloads["downloads"][0]  # Unfiltered with get_peers=1
+    assert "pieces" not in downloads["downloads"][0]  # Unfiltered with get_pieces=0
+    assert "files" in downloads["downloads"][0]  # Unfiltered with get_files=1
+    assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
+
+
+async def test_get_downloads_circuit_peer(mock_dlmgr, test_download, rest_api, endpoint):
+    """
+    Testing whether circuit peers are correctly returned from downloads.
+    """
+    mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.checkpoints_count = 1
+    mock_dlmgr.checkpoints_loaded = 1
+    mock_dlmgr.all_checkpoints_are_loaded = True
+    endpoint.tunnel_community = Mock()
+    endpoint.tunnel_community.ip_to_circuit_id = lambda _: 42
+    test_download.get_peerlist = lambda: [{
+        'have': b"\x00" * 200,
+        'ip': "127.0.0.1",
+        'port': CIRCUIT_ID_PORT,
+        'circuit': 42
+    }]
+
+    downloads = await do_request(rest_api, 'downloads?get_peers=1', expected_code=200)
+    assert len(downloads["downloads"]) == 1
+    assert "peers" in downloads["downloads"][0]  # Unfiltered with get_peers=1
+    assert "pieces" not in downloads["downloads"][0]  # Unfiltered with get_pieces=0
+    assert "files" not in downloads["downloads"][0]  # Unfiltered with get_files=0
+    assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
+    assert downloads["downloads"][0]["peers"][0]["port"] == CIRCUIT_ID_PORT
+    assert downloads["downloads"][0]["peers"][0]["circuit"] == 42
+
+
+async def test_get_downloads_with_passing_filter(mock_dlmgr, test_download, rest_api):
+    """
+    Testing whether the API returns all downloads even if the infohash filter passes.
+    """
+    mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.checkpoints_count = 1
+    mock_dlmgr.checkpoints_loaded = 1
+    mock_dlmgr.all_checkpoints_are_loaded = True
+
+    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1&infohash=' + test_download.infohash,
+                                 expected_code=200)
+
+    assert len(downloads["downloads"]) == 1
+    assert "peers" in downloads["downloads"][0]  # Filter passes with get_peers=1
+    assert "pieces" in downloads["downloads"][0]  # Filter passes with get_pieces=1
+    assert "files" not in downloads["downloads"][0]  # Filter passes with get_files=0
+    assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
+
+
+async def test_get_downloads_with_unpassing_filter(mock_dlmgr, test_download, rest_api):
+    """
+    Testing whether the API returns all downloads even if the infohash filter does not pass.
+    """
+    mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.checkpoints_count = 1
+    mock_dlmgr.checkpoints_loaded = 1
+    mock_dlmgr.all_checkpoints_are_loaded = True
+
+    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1&infohash=' + '00' * 20,
+                                 expected_code=200)
+
+    assert len(downloads["downloads"]) == 1
+    assert "peers" not in downloads["downloads"][0]  # Filter does not pass, ignore get_peers
+    assert "pieces" not in downloads["downloads"][0]  # Filter does not pass, ignore get_pieces
+    assert "files" not in downloads["downloads"][0]  # Filter does not pass, ignore get_files
     assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
 
 

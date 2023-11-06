@@ -36,12 +36,9 @@ class DownloadProgressBar(QWidget):
             DownloadStatus.STOPPED_ON_ERROR,
         }
 
-        if status in seeding_or_circuits:
-            self.set_fraction(download["progress"])
-        elif status in downloading_or_stopped:
+        if status in downloading_or_stopped:
             self.set_pieces()
-        else:
-            self.set_fraction(0.0)
+        self.set_fraction(download.get("progress", 0.0))
 
     def set_fraction(self, fraction):
         self.show_pieces = False
@@ -49,9 +46,11 @@ class DownloadProgressBar(QWidget):
         self.repaint()
 
     def set_pieces(self):
-        self.show_pieces = True
-        self.fraction = 0.0
-        self.pieces = self.decode_pieces(self.download["pieces"])[: self.download["total_pieces"]]
+        if self.download.get("pieces"):
+            self.show_pieces = True
+            self.pieces = self.decode_pieces(self.download["pieces"])[: self.download["total_pieces"]]
+        else:
+            self.show_pieces = False
         self.repaint()
 
     def decode_pieces(self, pieces):
