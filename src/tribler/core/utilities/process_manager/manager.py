@@ -34,14 +34,40 @@ def get_global_process_manager() -> Optional[ProcessManager]:
         return global_process_manager
 
 
+def setup_process_manager(root_state_dir: Path, process_kind: ProcessKind, current_process_owns_lock: bool,
+                          creator_pid: Optional[int] = None) -> ProcessManager:
+    process_manager = ProcessManager(root_state_dir)
+    process_manager.setup_current_process(kind=process_kind, owns_lock=current_process_owns_lock,
+                                          creator_pid=creator_pid)
+    set_global_process_manager(process_manager)
+    return process_manager
+
+
 class ProcessManager:
-    def __init__(self, root_dir: Path, current_process: TriblerProcess, db_filename: str = DB_FILENAME):
+    def __init__(self, root_dir: Path, db_filename: str = DB_FILENAME):
         self.logger = logger  # Used by the `with_retry` decorator
         self.root_dir = root_dir
         self.db_filepath = root_dir / db_filename
         self.connection: Optional[sqlite3.Connection] = None
-        self.current_process = current_process
-        current_process.manager = self
+        self._current_process: Optional[TriblerProcess] = None
+
+    @with_retry
+    def setup_current_process(self, kind: ProcessKind, owns_lock: bool, creator_pid: Optional[int] = None):
+        current_process = TriblerProcess.current_process(manager=self, kind=kind, owns_lock=owns_lock,
+                                                         creator_pid=creator_pid)
+        self._current_process = current_process
+        with self.connect():
+            if current_process.primary:
+                if primary_process := self.get_primary_process(current_process.kind):
+                    raise RuntimeError(f'Previous primary process still active: {primary_process}. '
+                                       f'Current process: {current_process}')
+            current_process.save()
+
+    @property
+    def current_process(self):
+        if self._current_process is None:
+            raise RuntimeError('Current process is not set')
+        return self._current_process
 
     @contextmanager
     def connect(self) -> ContextManager[sqlite3.Connection]:
@@ -105,27 +131,38 @@ class ProcessManager:
 
         return 'unknown reason'
 
-    def primary_process_rowid(self, kind: ProcessKind) -> Optional[int]:
+    def get_primary_process(self, kind: ProcessKind) -> Optional[TriblerProcess]:
         """
         A helper method to load the current primary process of the specified kind from the database.
 
-        Returns rowid of the existing process or None.
+        Returns existing primary process or None.
         """
         with self.connect() as connection:
             cursor = connection.execute(f"""
                 SELECT {sql_scripts.SELECT_COLUMNS}
-                FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid DESC LIMIT 1
+                FROM processes WHERE kind = ? and "primary" = 1 ORDER BY rowid
             """, [kind.value])
-            row = cursor.fetchone()
-            if row is not None:
+
+            primary_processes = []  # In normal situation there should be at most one primary process
+            rows = cursor.fetchall()
+            for row in rows:
                 process = TriblerProcess.from_row(self, row)
                 if process.is_running():
-                    return process.rowid
+                    primary_processes.append(process)
+                else:
+                    # Process is not running anymore; mark it as not primary
+                    process.primary = False
+                    process.save()
 
-                # Process is not running anymore; mark it as not primary
-                process.primary = False
-                process.save()
-            return None
+            if not primary_processes:
+                return None
+
+            if len(primary_processes) > 1:
+                for process in primary_processes:
+                    process.error_msg = "Multiple primary processes found in the database"
+                    process.save()
+
+            return primary_processes[0]
 
     def sys_exit(self, exit_code: Optional[int] = None, error: Optional[str | Exception] = None, replace: bool = False):
         """

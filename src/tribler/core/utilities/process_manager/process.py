@@ -24,12 +24,11 @@ class ProcessKind(Enum):
 
 
 class TriblerProcess:
-    def __init__(self, pid: int, kind: ProcessKind, app_version: str, started_at: int,
+    def __init__(self, manager: ProcessManager, pid: int, kind: ProcessKind, app_version: str, started_at: int,
                  row_version: int = 0, rowid: Optional[int] = None, creator_pid: Optional[int] = None,
                  primary: bool = False, canceled: bool = False, api_port: Optional[int] = None,
-                 finished_at: Optional[int] = None, exit_code: Optional[int] = None, error_msg: Optional[str] = None,
-                 manager: Optional[ProcessManager] = None):
-        self._manager = manager
+                 finished_at: Optional[int] = None, exit_code: Optional[int] = None, error_msg: Optional[str] = None):
+        self.manager = manager
         self.rowid = rowid
         self.row_version = row_version
         self.pid = pid
@@ -43,16 +42,6 @@ class TriblerProcess:
         self.finished_at = finished_at
         self.exit_code = exit_code
         self.error_msg = error_msg
-
-    @property
-    def manager(self) -> ProcessManager:
-        if self._manager is None:
-            raise RuntimeError('Tribler process manager is not set in process object')
-        return self._manager
-
-    @manager.setter
-    def manager(self, manager: ProcessManager):
-        self._manager = manager
 
     @property
     def logger(self) -> logging.Logger:
@@ -128,34 +117,18 @@ class TriblerProcess:
         return ''.join(result)
 
     @classmethod
-    def current_process(cls, kind: ProcessKind,
-                        creator_pid: Optional[int] = None,
-                        manager: Optional[ProcessManager] = None) -> TriblerProcess:
+    def current_process(cls, manager: ProcessManager, kind: ProcessKind, owns_lock: bool,
+                        creator_pid: Optional[int] = None) -> TriblerProcess:
         """Constructs an object for a current process, specifying the PID value of the current process"""
         pid = os.getpid()
         psutil_process = psutil.Process(pid)
         started_at = int(psutil_process.create_time())
-        return cls(manager=manager, row_version=0, pid=pid, kind=kind,
+        return cls(manager=manager, row_version=0, pid=pid, kind=kind, primary=owns_lock,
                    app_version=version_id, started_at=started_at, creator_pid=creator_pid)
 
     def is_current_process(self) -> bool:
         """Returns True if the object represents the current process"""
         return self.pid == os.getpid() and self.is_running()
-
-    @with_retry
-    def become_primary(self) -> bool:
-        """
-        If there is no primary process already, makes the current process primary and returns the primary status
-        """
-        with self.manager.connect():
-            # for a new process object self.rowid is None
-            primary_rowid = self.manager.primary_process_rowid(self.kind)
-            if primary_rowid is None or primary_rowid == self.rowid:
-                self.primary = True
-            else:
-                self.canceled = True
-            self.save()
-        return bool(self.primary)
 
     def is_running(self):
         """Returns True if the object represents a running process"""

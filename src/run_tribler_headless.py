@@ -13,13 +13,16 @@ from datetime import date
 from socket import inet_aton
 from typing import Optional
 
+from filelock import FileLock
+
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.start_core import components_gen
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess, \
-    set_global_process_manager
+from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager
+from tribler.core.utilities.process_manager.manager import setup_process_manager
 
 
 class IPPortAction(argparse.Action):
@@ -47,6 +50,7 @@ class TriblerService:
         """
         self.session = None
         self._stopping = False
+        self.process_lock: Optional[FileLock] = None
         self.process_manager: Optional[ProcessManager] = None
 
     def log_incoming_remote_search(self, sock_addr, keywords):
@@ -68,6 +72,7 @@ class TriblerService:
                 print("Tribler shut down")
                 get_event_loop().stop()
                 self.process_manager.current_process.finish()
+                self.process_lock.release()
 
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
@@ -78,11 +83,12 @@ class TriblerService:
         # Check if we are already running a Tribler instance
         root_state_dir = get_root_state_directory(create=True)
 
-        current_process = TriblerProcess.current_process(ProcessKind.Core)
-        self.process_manager = ProcessManager(root_state_dir, current_process)
-        set_global_process_manager(self.process_manager)
+        self.process_lock = try_acquire_file_lock(root_state_dir / CORE_LOCK_FILENAME)
+        current_process_owns_lock = bool(self.process_lock)
 
-        if not self.process_manager.current_process.become_primary():
+        self.process_manager = setup_process_manager(root_state_dir, ProcessKind.Core, current_process_owns_lock)
+
+        if not current_process_owns_lock:
             msg = 'Another Core process is already running'
             print(msg)
             self.process_manager.sys_exit(1, msg)

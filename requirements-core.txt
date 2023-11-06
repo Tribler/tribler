@@ -27,3 +27,4 @@ libtorrent==1.2.15
 file-read-backwards==2.0.0
 Brotli==1.0.9 # to prevent AttributeError on macOs: module 'brotli' has no attribute 'error' (in urllib3.response)
 human-readable==1.3.2
+filelock==3.13.0
