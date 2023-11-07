@@ -30,6 +30,9 @@ from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tagbutton import TagButton
 from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL
 
+DEFAULT_TIMEOUT_SEC = 20
+WAIT_INTERVAL_MSEC = 100  # 0.1 sec
+
 RUN_TRIBLER_PY = Path(tribler.__file__).parent.parent / "run_tribler.py"
 TORRENT_WITH_DIRS = TESTS_DATA_DIR / "multi_entries.torrent"
 
@@ -80,7 +83,7 @@ def fixture_window(tmp_path_factory):
     # Before quitting the application, wait for max 10 seconds until the core process has successfully finished
     # Otherwise, process exits with non-zero exit code.
     # See: https://github.com/Tribler/tribler/issues/7500
-    wait_for_signal(window.core_manager.core_process.finished, timeout=10)
+    wait_for_signal(window.core_manager.core_process.finished, timeout=DEFAULT_TIMEOUT_SEC)
     app_manager.quit_application()
 
 
@@ -96,8 +99,16 @@ class TimeoutException(Exception):
     pass
 
 
-def wait_for_signal(signal: pyqtSignal, timeout: int = 10, condition: Callable = None):
+def wait_for_signal(signal: pyqtSignal, timeout: int = DEFAULT_TIMEOUT_SEC, condition: Callable = None):
+    """ Wait for a signal to be emitted.
+
+    Args:
+        signal: The signal to wait for
+        timeout: The timeout in seconds
+        condition: An optional condition to check for an alternative exit
+    """
     signal_received = False
+    condition = condition or (lambda: False)
 
     def on_signal(*args, **kwargs):
         nonlocal signal_received
@@ -105,12 +116,14 @@ def wait_for_signal(signal: pyqtSignal, timeout: int = 10, condition: Callable =
 
     connect(signal, on_signal)
 
-    for _ in range(0, timeout * 1000, 100):
-        if signal_received or condition is not None and condition():
+    # Wait for the signal to be emitted in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, timeout * 1000, WAIT_INTERVAL_MSEC):
+        if signal_received or condition():
             return
-        QTest.qWait(100)
 
-    raise TimeoutException(f"Signal {signal} not raised within 10 seconds")
+        QTest.qWait(WAIT_INTERVAL_MSEC)
+
+    raise TimeoutException(f"Signal {signal} not raised within {timeout} seconds")
 
 
 def get_attr_recursive(window, attr_name):
@@ -121,13 +134,21 @@ def get_attr_recursive(window, attr_name):
     return cur_attr
 
 
-def wait_for_variable(window, var, timeout=10, cmp_var=None):
-    for _ in range(0, timeout * 1000, 100):
-        QTest.qWait(100)
-        if get_attr_recursive(window, var) is not cmp_var:
+def wait_for_variable(window, var, timeout=DEFAULT_TIMEOUT_SEC):
+    """ Wait for a variable to be set.
+
+    Args:
+        window:  The window to check the variable on
+        var: The variable to check
+        timeout: The timeout in seconds
+    """
+    # Wait for the variable to be set in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, timeout * 1000, WAIT_INTERVAL_MSEC):
+        QTest.qWait(WAIT_INTERVAL_MSEC)
+        if get_attr_recursive(window, var) is not None:
             return
 
-    raise TimeoutException(f"Variable {var} within 10 seconds")
+    raise TimeoutException(f"Variable {var} within {timeout} seconds")
 
 
 def clickItem(tree_view, item, checkable_column):
@@ -163,9 +184,17 @@ def go_to_and_wait_for_downloads(window):
     wait_for_variable(window, "downloads_page.downloads")
 
 
-def wait_for_list_populated(llist, num_items=1, timeout=10):
-    for _ in range(0, timeout * 1000, 100):
-        QTest.qWait(100)
+def wait_for_list_populated(llist, num_items=1, timeout=DEFAULT_TIMEOUT_SEC):
+    """ Wait for a list to be populated.
+
+    Args:
+        llist: The list to wait for
+        num_items: The number of items to wait for
+        timeout: The timeout in seconds
+    """
+    # Wait for the list to be populated in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, timeout * 1000, WAIT_INTERVAL_MSEC):
+        QTest.qWait(WAIT_INTERVAL_MSEC)
         if isinstance(llist, QListWidget) and llist.count() >= num_items:
             if not isinstance(llist.itemWidget(llist.item(0)), LoadingListItem):
                 return
@@ -176,36 +205,42 @@ def wait_for_list_populated(llist, num_items=1, timeout=10):
             return
 
     # List was not populated in time, fail the test
-    raise TimeoutException("The list was not populated within 10 seconds")
+    raise TimeoutException(f"The list was not populated within {timeout} seconds")
 
 
-def wait_for_settings(window, timeout=10):
-    for _ in range(0, timeout * 1000, 100):
-        QTest.qWait(100)
+def wait_for_settings(window, timeout=DEFAULT_TIMEOUT_SEC):
+    """ Wait for the settings to be populated.
+
+    Args:
+        window: The window to check the settings on
+        timeout: The timeout in seconds
+    """
+    # Wait for the settings to be populated in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, timeout * 1000, WAIT_INTERVAL_MSEC):
+        QTest.qWait(WAIT_INTERVAL_MSEC)
         if window.settings_page.settings is not None:
             return
 
-    raise TimeoutException("Did not receive settings within 10 seconds")
+    raise TimeoutException(f"Did not receive settings within {timeout} seconds")
 
 
-def wait_for_something(something, timeout=10):
-    for _ in range(0, timeout * 1000, 100):
-        QTest.qWait(100)
-        if something is not None:
-            return
-    raise TimeoutException("The value was not set within 10 seconds")
+def wait_for_qtext_edit_populated(qtext_edit, timeout=DEFAULT_TIMEOUT_SEC):
+    """ Wait for a QTextEdit to be populated.
 
-
-def wait_for_qtext_edit_populated(qtext_edit, timeout=10):
-    for _ in range(0, timeout * 1000, 100):
-        QTest.qWait(100)
+    Args:
+        qtext_edit: The QTextEdit to wait for
+        timeout: The timeout in seconds
+    """
+    # Wait for the QTextEdit to be populated in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, timeout * 1000, WAIT_INTERVAL_MSEC):
+        QTest.qWait(WAIT_INTERVAL_MSEC)
         if not isinstance(qtext_edit, QTextEdit):
             return
         if qtext_edit.toPlainText():
             return
 
     # QTextEdit was not populated in time, fail the test
-    raise TimeoutException("QTextEdit was not populated within 10 seconds")
+    raise TimeoutException(f"QTextEdit was not populated within {timeout} seconds")
 
 
 def get_index_of_row_column(table_view, row, column):
@@ -263,7 +298,7 @@ def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=
     # Click the first torrent
     index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
     widget.content_table.on_table_item_clicked(index)
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
     screenshot(window, name=f"{widget_name}-torrent_details")
 
 
@@ -282,13 +317,19 @@ def test_popular_page(window):
 
 
 def wait_for_thumbnail(chan_widget):
-    for _ in range(0, 1000 * 10, 100):
-        QTest.qWait(100)
+    """ Wait for the thumbnail to be populated.
+
+    Args:
+        chan_widget: The channel widget to check
+    """
+    # Wait for the thumbnail to be populated in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, 1000 * DEFAULT_TIMEOUT_SEC, WAIT_INTERVAL_MSEC):
+        QTest.qWait(WAIT_INTERVAL_MSEC)
         if chan_widget.channel_description_container.channel_thumbnail_bytes is not None:
             return
 
     # thumbnail was not populated in time, fail the test
-    raise TimeoutException("The thumbnail was not shown within 10 seconds")
+    raise TimeoutException(f"The thumbnail was not shown within {DEFAULT_TIMEOUT_SEC} seconds")
 
 
 @pytest.mark.guitest
@@ -370,17 +411,17 @@ def test_download_details(window):
     wait_for_list_populated(dfl)
     item = dfl.topLevelItem(0)
     dfl.expand(dfl.indexFromItem(item))
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
     screenshot(window, name="download_files")
 
     dfl.header().setSortIndicator(0, Qt.AscendingOrder)
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
     dfl.header().setSortIndicator(1, Qt.AscendingOrder)
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
     dfl.header().setSortIndicator(2, Qt.AscendingOrder)
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
     dfl.header().setSortIndicator(3, Qt.AscendingOrder)
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
 
     window.download_details_widget.setCurrentIndex(2)
     screenshot(window, name="download_trackers")
@@ -398,7 +439,7 @@ def test_search_suggestions(window):
 def test_search(window):
     window.top_search_bar.setText("torrent")  # This is likely to trigger some search results
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
-    QTest.qWait(100)
+    QTest.qWait(WAIT_INTERVAL_MSEC)
     screenshot(window, name="search_loading_page")
     tst_channels_widget(
         window,
@@ -533,19 +574,6 @@ def test_debug_pane(window):
     QTest.qWait(200)  # Wait until the peers pane shows
     screenshot(window.debug_window, name="debug_panel_communities_with_peers_tab")
 
-    # FIXME: add dummy tunnels to the core to test this
-    # window.debug_window.debug_tab_widget.setCurrentIndex(4)
-    # wait_for_list_populated(window.debug_window.circuits_tree_widget)
-    # screenshot(window.debug_window, name="debug_panel_tunnel_circuits_tab")
-
-    # window.debug_window.tunnel_tab_widget.setCurrentIndex(1)
-    # wait_for_list_populated(window.debug_window.relays_tree_widget)
-    # screenshot(window.debug_window, name="debug_panel_tunnel_relays_tab")
-
-    # window.debug_window.tunnel_tab_widget.setCurrentIndex(2)
-    # wait_for_list_populated(window.debug_window.exits_tree_widget)
-    # screenshot(window.debug_window, name="debug_panel_tunnel_exits_tab")
-
     window.debug_window.debug_tab_widget.setCurrentIndex(5)
     wait_for_list_populated(window.debug_window.dhtstats_tree_widget)
     screenshot(window.debug_window, name="debug_panel_dht_stats_tab")
@@ -570,23 +598,9 @@ def test_debug_pane(window):
     wait_for_list_populated(window.debug_window.threads_tree_widget)
     screenshot(window.debug_window, name="debug_panel_threads_tab")
 
-    # FIXME: enable logs injection to test log showing through debug window
-    # Logs shown in ui and from the debug endpoint should be same
     window.debug_window.debug_tab_widget.setCurrentIndex(9)
-    # logs from FakeTriblerApi
-    # fake_logs = ''.join(f"Sample log [{i}]\n" for i in range(10)).strip()
-
     window.debug_window.log_tab_widget.setCurrentIndex(0)  # Core tab
     wait_for_qtext_edit_populated(window.debug_window.core_log_display_area)
-    # core_logs = window.debug_window.core_log_display_area.toPlainText().strip()
-    # assert core_logs == fake_logs, "Core logs found different than expected."
-    # screenshot(window.debug_window, name="debug_panel_logs_core")
-
-    # window.debug_window.log_tab_widget.setCurrentIndex(1)  # GUI tab
-    # wait_for_qtext_edit_populated(window.debug_window.gui_log_display_area)
-    # gui_logs = window.debug_window.gui_log_display_area.toPlainText().strip()
-    # assert gui_logs == fake_logs, "GUI logs found different than expected."
-    # screenshot(window.debug_window, name="debug_panel_logs_gui")
 
     window.debug_window.system_tab_widget.setCurrentIndex(3)
     QTest.qWait(1000)
@@ -608,6 +622,7 @@ def test_debug_pane(window):
 
 
 @pytest.mark.guitest
+@pytest.mark.skip(reason="This element not in UI anymore")
 def test_trust_page(window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
@@ -615,6 +630,7 @@ def test_trust_page(window):
 
 
 @pytest.mark.guitest
+@pytest.mark.skip(reason="This element not in UI anymore")
 def test_big_negative_token_balance(window):
     QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
     wait_for_variable(window, "trust_page.history")
@@ -687,7 +703,7 @@ def test_tags_dialog(window):
     # Remove the second tag
     cross_rect = tags_input.compute_cross_rect(tags_input.tags[1].rect)
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=cross_rect.center().toPoint())
-    QTest.qWait(100)  # It can take some time for the GUI to remove the tag after the click event
+    QTest.qWait(WAIT_INTERVAL_MSEC)  # It can take some time for the GUI to remove the tag after the click event
     assert len(tags_input.tags) == num_tags - 1
     screenshot(window, name="edit_tags_dialog_second_tags_removed")
 
@@ -721,7 +737,7 @@ def test_tags_dialog(window):
     for _ in range(70):
         QTest.keyClick(tags_input, "b")
 
-    QTest.qWait(100)  # Let the dialog resize
+    QTest.qWait(WAIT_INTERVAL_MSEC)  # Let the dialog resize
     screenshot(window, name="edit_tags_dialog_two_lines")
 
     # We now remove focus from the input area
@@ -743,7 +759,7 @@ def test_tags_dialog(window):
     long_tag = tags_input.tags[-2]
     cross_rect = tags_input.compute_cross_rect(long_tag.rect)
     QTest.mouseClick(tags_input, Qt.LeftButton, pos=cross_rect.center().toPoint())
-    QTest.qWait(100)  # Removing tag can take some non-zero time
+    QTest.qWait(WAIT_INTERVAL_MSEC)  # Removing tag can take some non-zero time
     screenshot(window, name="edit_tags_dialog_long_tag_removed")
 
     QTest.mouseClick(widget.content_table.add_tags_dialog.dialog_widget.save_button, Qt.LeftButton)
