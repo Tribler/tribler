@@ -7,7 +7,6 @@ import pytest
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
-from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -221,3 +220,10 @@ async def test_multiple_snippets_in_search(rest_api, metadata_store, tribler_db)
         # There is one item that has not been assigned to the snippet.
         assert results[2]["type"] == REGULAR_TORRENT
         assert results[2]["infohash"] == hexlify(infohashes[4])
+
+
+def test_build_snippets_no_infohash(endpoint: SearchEndpoint):
+    """ Test building snippets without infohash. The `build_snippets` should return the same results."""
+    search_results = [{'dictionary': 'without infohash'}]
+    result = endpoint.build_snippets(search_results)
+    assert result == search_results
