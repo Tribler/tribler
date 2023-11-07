@@ -92,6 +92,5 @@ Endpoints
    state
    statistics
    torrentinfo
-   trustchain
    trustview
    upgrader
