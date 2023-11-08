@@ -2311,7 +2311,7 @@ Alto anonimato</translation>
     </message>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="269"/>
-        <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
+        <source>This page shows the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation>Esta página muestra la lista de torrents populares recopilados por Tribler durante las últimas 24 horas.</translation>
     </message>
     <message>

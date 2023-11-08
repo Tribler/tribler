@@ -129,7 +129,7 @@
     </message>
     <message>
         <location filename="../tribler_window.py" line="451"/>
-        <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
+        <source>This page shows the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation type="obsolete">Essa página mostra uma lista de torrents populares coletados no Tibler nas últimas 24 horas.</translation>
     </message>
     <message>
@@ -2709,7 +2709,7 @@ High anonymity</source>
     </message>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="269"/>
-        <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
+        <source>This page shows the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation type="unfinished">Essa página mostra uma lista de torrents populares coletados no Tibler nas últimas 24 horas.</translation>
     </message>
     <message>
