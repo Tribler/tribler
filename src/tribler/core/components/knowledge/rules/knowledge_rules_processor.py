@@ -72,7 +72,8 @@ class KnowledgeRulesProcessor(TaskManager):
 
     def start(self):
         self.logger.info('Start')
-        self.start_batch_processing()
+        # The feature is suspended. See: https://github.com/Tribler/tribler/issues/7398#issuecomment-1772193981
+        # self.start_batch_processing()
         self.start_queue_processing()
 
     async def shutdown(self):
@@ -205,8 +206,9 @@ class KnowledgeRulesProcessor(TaskManager):
             return 0
         infohash_str = hexlify(infohash)
 
-        self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TITLE,
-                             objects={title})
+        # The feature is suspended. See: https://github.com/Tribler/tribler/issues/7398#issuecomment-1772193981
+        # self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TITLE,
+        #                      objects={title})
 
         if tags := set(extract_only_valid_tags(title, rules=general_rules)):
             self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TAG,
