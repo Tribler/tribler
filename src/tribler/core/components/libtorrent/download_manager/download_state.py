@@ -161,7 +161,12 @@ class DownloadState:
 
         if self.lt_status and self.download.handle and self.download.handle.is_valid():
             files = self.download.get_def().get_files_with_length()
-            progress = self.download.handle.file_progress(flags=1)
+            try:
+                progress = self.download.handle.file_progress(flags=1)
+            except RuntimeError:
+                # For large torrents, the handle can be invalid at this point.
+                # See https://github.com/Tribler/tribler/issues/6454
+                progress = None
             if progress and len(progress) == len(files):
                 for index, (path, size) in enumerate(files):
                     completion_frac = (float(progress[index]) / size) if size > 0 else 1

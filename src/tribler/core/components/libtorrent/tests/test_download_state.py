@@ -6,16 +6,16 @@ from tribler.core.components.libtorrent.download_manager.download_state import D
 from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus, UPLOAD
 
 
-@pytest.fixture
-def mock_tdef():
+@pytest.fixture(name="mock_tdef")
+def fixture_mock_tdef():
     mocked_tdef = Mock()
     mocked_tdef.get_name = lambda: "test"
     mocked_tdef.get_length = lambda: 43
     return mocked_tdef
 
 
-@pytest.fixture
-def mock_download(mock_tdef):
+@pytest.fixture(name="mock_download")
+def fixture_mock_download(mock_tdef):
     mock_download = Mock()
     mock_download.get_def = lambda: mock_tdef
     return mock_download
@@ -121,3 +121,23 @@ def test_get_availability(mock_download):
     download_state.get_peerlist = lambda: [{'completed': 0.5, 'have': [1, 0]},
                                            {'completed': 0.9, 'have': [1, 0, 1]}]
     assert download_state.get_availability() == 0.0
+
+
+def test_get_files_completion_semivalid_handle(mock_download, mock_tdef):
+    """
+    Testing whether no file completion is returned for valid handles that have invalid file_progress.
+
+    This case mirrors https://github.com/Tribler/tribler/issues/6454
+    """
+    mock_tdef.get_files_with_length = lambda: [("test.txt", 100)]
+
+    def file_progress(flags: int):
+        raise RuntimeError("invalid torrent handle used")
+
+    handle = Mock()
+    handle.file_progress = file_progress
+    handle.is_valid = lambda: True
+    mock_download.handle = handle
+
+    download_state = DownloadState(mock_download, Mock(), None)
+    assert download_state.get_files_completion() == []
