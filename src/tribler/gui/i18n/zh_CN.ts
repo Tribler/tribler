@@ -124,7 +124,7 @@
     </message>
     <message>
         <location filename="../tribler_window.py" line="451"/>
-        <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
+        <source>This page shows the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation type="obsolete">此页面显示 Tribler 最近 24 小时收集到的流行种子列表。</translation>
     </message>
     <message>
@@ -2385,7 +2385,7 @@ High anonymity</source>
     </message>
     <message>
         <location filename="../qt_resources/torrents_list.ui" line="269"/>
-        <source>This page show the list of popular torrents collected by Tribler during the last 24 hours.</source>
+        <source>This page shows the list of popular torrents collected by Tribler during the last 24 hours.</source>
         <translation type="unfinished">此页面显示 Tribler 最近 24 小时收集到的流行种子列表。</translation>
     </message>
     <message>

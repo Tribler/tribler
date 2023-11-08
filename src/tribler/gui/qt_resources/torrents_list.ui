@@ -266,13 +266,7 @@ color: #B5B5B5;</string>
          </font>
         </property>
         <property name="toolTip">
-         <string>This page show the list of popular torrents collected by Tribler during the last 24 hours.</string>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">border: 1px solid white;
-color: white;
-border-radius: 10px;
-</string>
+         <string>This page shows the list of popular torrents collected by Tribler during the last 24 hours.</string>
         </property>
         <property name="text">
          <string>i</string>
