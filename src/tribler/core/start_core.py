@@ -163,11 +163,6 @@ def run_tribler_core_session(api_port: Optional[int], api_key: str,
     log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
     trace_logger = check_and_enable_code_tracing('core', log_dir)
 
-    if sys.platform.startswith('win'):
-        # TODO for the moment being, we use the SelectorEventLoop on Windows, since with the ProactorEventLoop, ipv8
-        # peer discovery becomes unstable. Also see issue #5485.
-        asyncio.set_event_loop(asyncio.SelectorEventLoop())
-
     loop = asyncio.get_event_loop()
     exception_handler = default_core_exception_handler
     loop.set_exception_handler(exception_handler.unhandled_error_observer)
