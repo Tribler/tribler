@@ -9,6 +9,7 @@ from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.gui.defs import STATUS_STRING
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
+from tribler.gui.widgets.torrentfiletreewidget import PreformattedTorrentFileTreeWidget
 
 INCLUDED_FILES_CHANGE_DELAY = 1000  # milliseconds
 
@@ -70,15 +71,15 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self._batch_changes_timer.start(INCLUDED_FILES_CHANGE_DELAY)
 
     def initialize_details_widget(self):
-        self.window().download_files_list.header().resizeSection(0, 220)
+        dl_files_list = PreformattedTorrentFileTreeWidget(self.window().download_files_tab)
+        self.window().download_files_tab.layout().addWidget(dl_files_list)
+        setattr(self.window(), "download_files_list", dl_files_list)
         self.setCurrentIndex(0)
         # make name, infohash and download destination selectable to copy
         self.window().download_detail_infohash_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.window().download_detail_name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.window().download_detail_destination_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         connect(self.window().download_detail_copy_magnet_button.clicked, self.on_copy_magnet_clicked)
-        connect(self._batch_changes_timer.timeout, self.set_included_files)
-        connect(self.window().download_files_list.selected_files_changed, self._restart_changes_timer)
 
     def update_with_download(self, download):
         # If the same infohash gets re-added with different parameters (e.g. different selected files),
@@ -93,7 +94,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
         # Also, we have to stop the change batching time to prevent carrying the event to the new download
         if did_change and self._batch_changes_timer.isActive():
             self._batch_changes_timer.stop()
-            self.set_included_files()
 
         self.current_download = download
         self.update_pages(new_download=did_change)
@@ -178,16 +178,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         )
         self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")
 
-        if force_update := (new_download or self.window().download_files_list.is_empty):
-            # (re)populate the files list
+        if new_download:
             self.window().download_files_list.clear()
-            files = convert_to_files_tree_format(self.current_download)
-            self.window().download_files_list.fill_entries(files)
-        self.window().download_files_list.update_progress(
-            self.current_download['files'],
-            force_update=force_update,
-            draw_progress_bars=len(self.current_download['files']) <= PROGRESS_BAR_DRAW_LIMIT,
-        )
+            self.window().download_files_list.initialize(self.current_download['infohash'])
 
         # Populate the trackers list
         self.window().download_trackers_list.clear()
@@ -201,12 +194,6 @@ class DownloadsDetailsTabWidget(QTabWidget):
             for peer in self.current_download["peers"]:
                 item = QTreeWidgetItem(self.window().download_peers_list)
                 DownloadsDetailsTabWidget.update_peer_row(item, peer)
-
-    def set_included_files(self):
-        if not self.current_download:
-            return
-        included_list = self.window().download_files_list.get_selected_files_indexes()
-        request_manager.patch(f"downloads/{self.current_download['infohash']}", data={"selected_files": included_list})
 
     def on_copy_magnet_clicked(self, checked):
         trackers = [

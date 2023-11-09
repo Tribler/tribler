@@ -1,5 +1,6 @@
 from asyncio import Future, sleep
 from pathlib import Path
+from typing import Generator
 from unittest.mock import MagicMock, Mock, patch
 
 import libtorrent as lt
@@ -18,6 +19,27 @@ from tribler.core.tests.tools.base_test import MockObject
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
+
+
+@pytest.fixture(name="minifile_download")
+async def fixture_minifile_download(mock_dlmgr) -> Generator[Download, None, None]:
+    """
+    A download with multiple files that fit into a single piece.
+    """
+    tdef = TorrentDef({
+        b'info': {
+            b'name': 'data',
+            b'files': [{b'path': [b'a.txt'], b'length': 1}, {b'path': [b'b.txt'], b'length': 1}],
+            b'piece length': 128,  # Note: both a.txt (length 1) and b.txt (length 1) fit in one piece
+            b'pieces': b'\x00' * 20
+        }
+    })
+    config = DownloadConfig(state_dir=mock_dlmgr.state_dir)
+    download = Download(tdef, download_manager=mock_dlmgr, config=config)
+    download.infohash = hexlify(tdef.get_infohash())
+    yield download
+
+    await download.shutdown()
 
 
 def test_download_properties(test_download, test_tdef):
@@ -89,32 +111,68 @@ async def test_save_checkpoint(test_download, test_tdef):
     assert filename.is_file()
 
 
-def test_selected_files(mock_handle, test_download):
+def test_selected_files_default(minifile_download: Download):
     """
-    Test whether the selected files are set correctly
+    Test whether the default selected files are no files.
     """
+    minifile_download.handle = Mock(file_priorities=Mock(return_value=[0, 0]))
+    assert [] == minifile_download.config.get_selected_files()
+    assert [0, 0] == minifile_download.get_file_priorities()
 
-    def mocked_set_file_prios(_):
-        mocked_set_file_prios.called = True
 
-    mocked_set_file_prios.called = False
+def test_selected_files_last(minifile_download: Download):
+    """
+    Test whether the last selected file in a list of files gets correctly selected.
+    """
+    minifile_download.handle = Mock(file_priorities=Mock(return_value=[0, 4]))
+    minifile_download.set_selected_files([1])
+    minifile_download.handle.prioritize_files.assert_called_with([0, 4])
+    assert [1] == minifile_download.config.get_selected_files()
+    assert [0, 4] == minifile_download.get_file_priorities()
 
-    mocked_file = MockObject()
-    mocked_file.path = 'my/path'
-    mock_torrent_info = MockObject()
-    mock_torrent_info.files = lambda: [mocked_file, mocked_file]
-    test_download.handle.prioritize_files = mocked_set_file_prios
-    test_download.handle.get_torrent_info = lambda: mock_torrent_info
-    test_download.handle.rename_file = lambda *_: None
 
-    test_download.get_share_mode = lambda: False
-    test_download.tdef.get_infohash = lambda: b'a' * 20
-    test_download.set_selected_files([0])
-    assert mocked_set_file_prios.called
+def test_selected_files_first(minifile_download: Download):
+    """
+    Test whether the first selected file in a list of files gets correctly selected.
+    """
+    minifile_download.handle = Mock(file_priorities=Mock(return_value=[4, 0]))
+    minifile_download.set_selected_files([0])
+    minifile_download.handle.prioritize_files.assert_called_with([4, 0])
+    assert [0] == minifile_download.config.get_selected_files()
+    assert [4, 0] == minifile_download.get_file_priorities()
 
-    test_download.get_share_mode = lambda: False
-    mocked_set_file_prios.called = False
-    assert not mocked_set_file_prios.called
+
+def test_selected_files_all(minifile_download: Download):
+    """
+    Test whether all files can be selected.
+    """
+    minifile_download.handle = Mock(file_priorities=Mock(return_value=[4, 4]))
+    minifile_download.set_selected_files([0, 1])
+    minifile_download.handle.prioritize_files.assert_called_with([4, 4])
+    assert [0, 1] == minifile_download.config.get_selected_files()
+    assert [4, 4] == minifile_download.get_file_priorities()
+
+
+def test_selected_files_all_through_none(minifile_download: Download):
+    """
+    Test whether all files can be selected by selecting None.
+    """
+    minifile_download.handle = Mock(file_priorities=Mock(return_value=[4, 4]))
+    minifile_download.set_selected_files()
+    minifile_download.handle.prioritize_files.assert_called_with([4, 4])
+    assert [] == minifile_download.config.get_selected_files()
+    assert [4, 4] == minifile_download.get_file_priorities()
+
+
+def test_selected_files_all_through_empty_list(minifile_download: Download):
+    """
+    Test whether all files can be selected by selecting an empty list
+    """
+    minifile_download.handle = Mock(file_priorities=Mock(return_value=[4, 4]))
+    minifile_download.set_selected_files([])
+    minifile_download.handle.prioritize_files.assert_called_with([4, 4])
+    assert [] == minifile_download.config.get_selected_files()
+    assert [4, 4] == minifile_download.get_file_priorities()
 
 
 def test_selected_files_no_files(mock_handle, test_download):
@@ -132,6 +190,7 @@ def test_selected_files_no_files(mock_handle, test_download):
     test_download.handle.prioritize_files = mocked_set_file_prios
     test_download.handle.torrent_file = lambda: None
     test_download.handle.rename_file = lambda *_: None
+    test_download.handle.is_valid = lambda: False
     test_download.tdef.get_infohash = lambda: b'a' * 20
 
     # If share mode is not enabled and everything else is fine, file priority should be set
@@ -517,6 +576,17 @@ def test_file_piece_range_flat(test_download: Download) -> None:
     piece_range = test_download.file_piece_range(Path("video.avi"))
 
     assert piece_range == list(range(total_pieces))
+
+
+def test_file_piece_range_minifiles(minifile_download: Download) -> None:
+    """
+    Test if the piece range of a file is correctly determined if multiple files exist in the same piece.
+    """
+    piece_range_a = minifile_download.file_piece_range(Path("data") / "a.txt")
+    piece_range_b = minifile_download.file_piece_range(Path("data") / "b.txt")
+
+    assert [0] == piece_range_a
+    assert [0] == piece_range_b
 
 
 def test_file_piece_range_wide(dual_movie_tdef: TorrentDef) -> None:

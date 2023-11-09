@@ -467,6 +467,19 @@ def test_view_full_collapsed(file_storage_with_dirs):
     ]
 
 
+def test_view_start_at_collapsed(file_storage_with_dirs):
+    """
+    Test if we can form a view starting at a collapsed directory.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+
+    tree.expand(Path("torrent_create"))
+
+    result = tree.view(Path("torrent_create") / "abc", 2)
+
+    assert [Path(r) for r in result] == [Path("torrent_create") / "def", Path("torrent_create") / "file1.txt"]
+
+
 def test_select_start_selected(file_storage_with_dirs):
     """
     Test if all files start selected.

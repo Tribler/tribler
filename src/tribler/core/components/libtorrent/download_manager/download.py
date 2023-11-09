@@ -479,16 +479,21 @@ class Download(TaskManager):
             else:
                 self.config.set_selected_files(selected_files)
 
-            torrent_info = get_info_from_handle(self.handle)
-            if not torrent_info or not hasattr(torrent_info, 'files'):
-                self._logger.error("File info not available for torrent %s", hexlify(self.tdef.get_infohash()))
-                return
+            tree = self.tdef.torrent_file_tree
+            total_files = self.tdef.torrent_info.num_files()
 
-            filepriorities = []
-            torrent_storage = torrent_info.files()
-            for index, file_entry in enumerate(torrent_storage):
-                filepriorities.append(prio if index in selected_files or not selected_files else 0)
-            self.set_file_priorities(filepriorities)
+            if not selected_files:
+                selected_files = range(total_files)
+
+            def map_selected(index: int) -> int:
+                file_instance = tree.find(Path(tree.file_storage.file_path(index)))
+                if index in selected_files:
+                    file_instance.selected = True
+                    return prio
+                file_instance.selected = False
+                return 0
+
+            self.set_file_priorities(list(map(map_selected, range(total_files))))
 
     @check_handle(False)
     def move_storage(self, new_dir: Path):
@@ -799,6 +804,9 @@ class Download(TaskManager):
     def set_file_priorities(self, file_priorities):
         self.handle.prioritize_files(file_priorities)
 
+    def set_file_priority(self, file_index: int, prio: int = 4) -> None:
+        self.handle.file_priority(file_index, prio)
+
     @check_handle(None)
     def reset_piece_deadline(self, piece):
         self.handle.reset_piece_deadline(piece)
@@ -829,6 +837,9 @@ class Download(TaskManager):
             # There is no next file so the nex piece is the last piece index + 1 (num_pieces()).
             next_piece = self.tdef.torrent_info.num_pieces()
 
+        if start_piece == next_piece:
+            # A single piece with multiple files.
+            return [start_piece]
         return list(range(start_piece, next_piece))
 
     @check_handle(0.0)
@@ -871,6 +882,21 @@ class Download(TaskManager):
             return (IllegalFileIndex.collapsed_dir.value if result.collapsed
                     else IllegalFileIndex.expanded_dir.value)
         return IllegalFileIndex.unloaded.value
+
+    @check_handle(None)
+    def set_selected_file_or_dir(self, path: Path, selected: bool) -> None:
+        """
+        Set a single file or directory to be selected or not.
+        """
+        tree = self.tdef.torrent_file_tree
+        prio = 4 if selected else 0
+        for index in tree.set_selected(Path(path), selected):
+            self.set_file_priority(index, prio)
+            if not selected:
+                with suppress(ValueError):
+                    self.config.get_selected_files().remove(index)
+            else:
+                self.config.get_selected_files().append(index)
 
     def is_file_selected(self, file_path: Path) -> bool:
         """

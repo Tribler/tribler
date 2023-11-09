@@ -3719,65 +3719,6 @@ margin-right: 10px;</string>
                   <property name="bottomMargin">
                    <number>0</number>
                   </property>
-                  <item>
-                   <widget class="TorrentFileTreeWidget" name="download_files_list">
-                    <property name="contextMenuPolicy">
-                     <enum>Qt::CustomContextMenu</enum>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">QHeaderView {
-background-color: transparent;
-}
-QHeaderView::section {
-background-color: transparent;
-border: none;
-color: #B5B5B5;
-padding: 10px;
-font-size: 14px;
-border-bottom: 1px solid #303030;
-}
-QHeaderView::drop-down {
-color: red;
-}
-QHeaderView::section:hover {
-color: white;
-}
-
-
-</string>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::NoSelection</enum>
-                    </property>
-                    <property name="sortingEnabled">
-                     <bool>true</bool>
-                    </property>
-                    <property name="animated">
-                     <bool>true</bool>
-                    </property>
-                    <property name="allColumnsShowFocus">
-                     <bool>false</bool>
-                    </property>
-                    <property name="headerHidden">
-                     <bool>false</bool>
-                    </property>
-                    <column>
-                     <property name="text">
-                      <string>PATH</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>SIZE</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>% DONE</string>
-                     </property>
-                    </column>
-                   </widget>
-                  </item>
                  </layout>
                 </widget>
                 <widget class="QWidget" name="tab_2">
@@ -5553,6 +5494,11 @@ background: none;</string>
   <customwidget>
    <class>TorrentFileTreeWidget</class>
    <extends>QTreeWidget</extends>
+   <header>tribler.gui.widgets.torrentfiletreewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PreformattedTorrentFileTreeWidget</class>
+   <extends>QTableWidget</extends>
    <header>tribler.gui.widgets.torrentfiletreewidget.h</header>
   </customwidget>
   <customwidget>

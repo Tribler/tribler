@@ -193,20 +193,25 @@ class TorrentFileTree:
         if isinstance(element, TorrentFileTree.Directory) and element != self.root:
             element.collapsed = True
 
-    def set_selected(self, path: Path, selected: bool) -> None:
+    def set_selected(self, path: Path, selected: bool) -> list[int]:
         """
         Set the selected status for a File or entire Directory.
+
+        :returns: the list of modified file indices.
         """
         item = self.find(path)
         if item is None:
-            return
+            return []
         if isinstance(item, TorrentFileTree.File):
             item.selected = selected  # pylint: disable=W0201
-            return
+            return [item.index]
+        out = []
         for key in item.directories:
-            self.set_selected(path / key, selected)
+            out += self.set_selected(path / key, selected)
         for file in item.files:
             file.selected = selected
+            out.append(file.index)
+        return out
 
     def find(self, path: Path) -> Directory | File | None:
         """
@@ -341,7 +346,7 @@ class TorrentFileTree:
 
         # This is a collapsed directory, it has no elements.
         if fetch_directory.collapsed:
-            return []
+            return self._view_up_after_files(number, fetch_path)
 
         view = []
         if self.path_is_dir(element_path):

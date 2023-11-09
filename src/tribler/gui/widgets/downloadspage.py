@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
@@ -132,18 +133,31 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.background_refresh_downloads_timer.stop()
 
     def refresh_downloads(self):
-        index = self.window().download_details_widget.currentIndex()
+        details_widget = self.window().download_details_widget
+        index = details_widget.currentIndex()
 
-        details_shown = not self.window().download_details_widget.isHidden()
-        selected_download = self.window().download_details_widget.current_download
+        details_shown = not details_widget.isHidden()
+        selected_download = details_widget.current_download
 
         if details_shown and selected_download is not None:
+            infohash = selected_download.get('infohash', "")
             url_params = {
                 'get_pieces': 1,
                 'get_peers': int(index == DownloadDetailsTabs.PEERS),
-                'get_files': int(index == DownloadDetailsTabs.FILES),
-                'infohash': selected_download.get('infohash', "")
+                'get_files': 0,
+                'infohash': infohash
             }
+            # We only need to hard refresh the download_files_list once.
+            dl_files_list = details_widget.window().download_files_list
+            if index == DownloadDetailsTabs.FILES and not dl_files_list.pages[0].loaded:
+                request_manager.get(
+                    endpoint=f"downloads/{infohash}/files",
+                    url_params={
+                        'view_start_path': Path("."),
+                        'view_size': dl_files_list.page_size
+                    },
+                    on_success=dl_files_list.fill_entries,
+                )
         else:
             url_params = {
                 'get_pieces': 0,
