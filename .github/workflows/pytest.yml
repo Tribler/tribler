@@ -21,6 +21,10 @@ on:
     secrets:
       PYTEST_SENTRY_DSN:
         required: false
+      CODECOV_TOKEN:
+        required: true
+      CODECOV_STATIC_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -42,9 +46,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{inputs.ref}}
+          fetch-depth: 0
 
       - name: Create python environment
         uses: ./.github/actions/pyenv
@@ -62,6 +67,12 @@ jobs:
         with:
           envFile: ./.github/workflows/vars/pytest.env
           expand: true
+
+      - name: Run ATS
+        uses: codecov/codecov-ats@v0
+        env:
+          CODECOV_STATIC_TOKEN: ${{ secrets.CODECOV_STATIC_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Run Pytest (Win)
         if: runner.os == 'Windows'

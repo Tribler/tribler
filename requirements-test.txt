@@ -14,3 +14,6 @@ looptime==0.2 ; sys_platform != 'win32'
 
 # for pyqt5 test
 pytest-qt==4.2.0
+
+# for Automated Test Selection
+pytest-cov==4.1.0

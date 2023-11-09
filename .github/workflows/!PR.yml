@@ -119,6 +119,8 @@ jobs:
     uses: ./.github/workflows/pytest.yml
     secrets:
       PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
+      CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+      CODECOV_STATIC_TOKEN: ${{secrets.CODECOV_STATIC_TOKEN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["windows-latest", "macos-latest"]}'
