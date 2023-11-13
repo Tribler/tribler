@@ -93,8 +93,7 @@ jobs:
           ./build/debian/makedist_debian.sh
 
       - name: Upload Artifact
-        if: >-
-          github.event.inputs.upload || inputs.upload || contains(fromJson(inputs.labels), 'PR: upload binaries')
+        if: github.event.inputs.upload || inputs.upload
         uses: actions/upload-artifact@v3
         with:
           name: tribler.deb
