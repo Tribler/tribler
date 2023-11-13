@@ -245,5 +245,8 @@ def get_db_version(db_path):
     with contextlib.closing(sqlite3.connect(db_path)) as connection, connection:
         cursor = connection.cursor()
         cursor.execute('SELECT value FROM MiscData WHERE name == "db_version"')
-        version = int(cursor.fetchone()[0])
+        query_results = cursor.fetchone()
+        if not query_results:
+            return 0
+        version = int(query_results[0])
     return version
