@@ -23,6 +23,10 @@ on:
         type: string
         required: false
 
+      labels:
+        type: string
+        required: true
+
   workflow_dispatch:
     inputs:
       os:
@@ -129,7 +133,8 @@ jobs:
           ./build/win/makedist_win.bat
 
       - name: Upload Artifact
-        if: github.event.inputs.upload || inputs.upload
+        if: >-
+          github.event.inputs.upload || inputs.upload || contains(fromJson(inputs.labels), 'PR: upload binaries')
         uses: actions/upload-artifact@v3
         with:
           name: tribler

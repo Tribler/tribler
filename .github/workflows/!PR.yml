@@ -15,6 +15,8 @@ jobs:
     outputs:
       python-version: '3.8'
       source-ref: refs/pull/${{github.event.pull_request.number}}/merge
+      labels: ${{ toJson(github.event.pull_request.labels.*.name) }}
+
     steps:
       - run: echo done
 
@@ -144,6 +146,7 @@ jobs:
       upload: false
       os: ubuntu-latest
       python-version: ${{needs.env.outputs.python-version}}
+      labels: ${{needs.env.outputs.labels}}
       ref: ${{needs.env.outputs.source-ref}}
 
   mac:
@@ -154,6 +157,7 @@ jobs:
       upload: false
       os: macos-latest
       python-version: ${{needs.env.outputs.python-version}}
+      labels: ${{needs.env.outputs.labels}}
       ref: ${{needs.env.outputs.source-ref}}
 
   windows:
@@ -164,6 +168,7 @@ jobs:
       upload: false
       os: windows-latest
       python-version: ${{needs.env.outputs.python-version}}
+      labels: ${{needs.env.outputs.labels}}
       ref: ${{needs.env.outputs.source-ref}}
 
   # check documentation build

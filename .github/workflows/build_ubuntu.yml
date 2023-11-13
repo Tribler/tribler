@@ -23,6 +23,10 @@ on:
         type: string
         required: false
 
+      labels:
+        type: string
+        required: true
+
     secrets:
       SENTRY_URL:
         required: false
@@ -89,7 +93,8 @@ jobs:
           ./build/debian/makedist_debian.sh
 
       - name: Upload Artifact
-        if: github.event.inputs.upload || inputs.upload
+        if: >-
+          github.event.inputs.upload || inputs.upload || contains(fromJson(inputs.labels), 'PR: upload binaries')
         uses: actions/upload-artifact@v3
         with:
           name: tribler.deb
