@@ -15,6 +15,9 @@ jobs:
     outputs:
       python-version: '3.8'
       source-ref: refs/pull/${{github.event.pull_request.number}}/merge
+      upload-binaries: >-
+        ${{ contains(github.event.pull_request.labels.*.name, 'PR: upload binaries') }}
+
     steps:
       - run: echo done
 
@@ -141,7 +144,7 @@ jobs:
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_ubuntu.yml
     with:
-      upload: false
+      upload: ${{ needs.env.outputs.upload-binaries == 'true' }}
       os: ubuntu-latest
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
@@ -151,7 +154,7 @@ jobs:
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_mac.yml
     with:
-      upload: false
+      upload: ${{ needs.env.outputs.upload-binaries == 'true' }}
       os: macos-latest
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
@@ -161,7 +164,7 @@ jobs:
     if: ${{needs.changes.outputs.build == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/build_windows.yml
     with:
-      upload: false
+      upload: ${{ needs.env.outputs.upload-binaries == 'true' }}
       os: windows-latest
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
