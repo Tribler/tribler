@@ -30,6 +30,7 @@ API_PORT_CHECK_TIMEOUT = 120  # Stop trying to determine API port after this num
 
 CORE_OUTPUT_DEQUE_LENGTH = 10
 CORE_RESTART_TRACK_WINDOW = 120  # seconds
+CORE_RESTART_TRACK_COUNT = 3
 
 
 @dataclass
@@ -191,6 +192,9 @@ class CoreManager(QObject):
     def update_last_core_process_log(self, exit_code: int, exit_status: str):
         if self.core_restart_logs:
             self.core_restart_logs[-1].finish(exit_code, exit_status)
+
+    def core_restarted_frequently(self):
+        return len([log for log in self.core_restart_logs if log.is_recent_log()]) > CORE_RESTART_TRACK_COUNT
 
     def check_core_api_port(self, *args):
         """

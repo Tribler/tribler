@@ -98,14 +98,6 @@ class ErrorHandler:
         process_manager = self.tribler_window.process_manager
         process_manager.current_process.set_error(f"Core {reported_error.type}: {reported_error.text}")
 
-        error_text = f'{reported_error.text}\n{reported_error.long_text}'
-        self._logger.error(error_text)
-
-        if reported_error.should_stop:
-            self._restart_tribler(error_text)
-        else:
-            self._handled_exceptions.add(reported_error.type)
-
         SentryScrubber.remove_breadcrumbs(reported_error.event)
         gui_sentry_reporter.additional_information.update(reported_error.additional_information)
         gui_sentry_reporter.additional_information.update({
@@ -126,6 +118,18 @@ class ErrorHandler:
             stop_application_on_close=self._tribler_stopped,
             additional_tags=additional_tags,
         ).show()
+
+        if not reported_error.should_stop:
+            self._handled_exceptions.add(reported_error.type)
+            return
+
+        error_text = f'{reported_error.text}\n{reported_error.long_text}'
+        self._logger.error(error_text)
+
+        if self.tribler_window.core_manager.core_restarted_frequently():
+            self._stop_tribler(error_text)
+        else:
+            self._restart_tribler(error_text)
 
     def _stop_tribler(self, text):
         if self._tribler_stopped:
