@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from collections import deque
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 from typing import Optional
@@ -28,6 +29,28 @@ API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core A
 API_PORT_CHECK_TIMEOUT = 120  # Stop trying to determine API port after this number of seconds
 
 CORE_OUTPUT_DEQUE_LENGTH = 10
+CORE_RESTART_TRACK_WINDOW = 120  # seconds
+
+
+@dataclass
+class CoreRestartLog:
+    core_pid: int
+    started_at: int
+    finished_at: Optional[int] = None
+    exit_code: Optional[int] = None
+    exit_status: Optional[str] = None
+
+    @classmethod
+    def current(cls, core_pid: int):
+        return CoreRestartLog(core_pid=core_pid, started_at=int(time.time()))
+
+    def finish(self, exit_code, exit_status):
+        self.finished_at = int(time.time())
+        self.exit_code = exit_code
+        self.exit_status = exit_status
+
+    def is_recent_log(self):
+        return int(time.time()) - self.started_at <= CORE_RESTART_TRACK_WINDOW
 
 
 class CoreManager(QObject):
@@ -162,14 +185,12 @@ class CoreManager(QObject):
         self.check_core_api_port()
 
     def add_core_started_log(self):
-        uptime_since_beginning = timedelta(seconds=int(time.time()) - self.started_at)
-        self.core_restart_logs.append((self.core_process.pid(), int(time.time()), str(uptime_since_beginning), None))
+        core_restart_log = CoreRestartLog.current(self.core_process.pid())
+        self.core_restart_logs.append(core_restart_log)
 
-    def update_last_core_process_log(self):
+    def update_last_core_process_log(self, exit_code: int, exit_status: str):
         if self.core_restart_logs:
-            core_pid, core_started_at, uptime, duration = self.core_restart_logs[-1]
-            duration = timedelta(seconds=int(time.time()) - core_started_at)
-            self.core_restart_logs[-1] = (core_pid, core_started_at, uptime, str(duration))
+            self.core_restart_logs[-1].finish(exit_code, exit_status)
 
     def check_core_api_port(self, *args):
         """
@@ -367,7 +388,7 @@ class CoreManager(QObject):
 
     def on_core_finished(self, exit_code, exit_status):
         self._logger.info(f"Core process finished with exit-code: {exit_code} and status: {exit_status}")
-        # self.update_last_core_process_log()
+        self.update_last_core_process_log(exit_code, exit_status)
 
         self.core_running = False
         self.core_connected = False
