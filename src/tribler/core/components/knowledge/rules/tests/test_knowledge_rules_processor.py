@@ -34,20 +34,22 @@ def test_constructor(tag_rules_processor: KnowledgeRulesProcessor):
     assert tag_rules_processor.batch_interval == TEST_INTERVAL
 
 
-@patch.object(KnowledgeRulesProcessor, 'save_statements')
-async def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: KnowledgeRulesProcessor):
-    # test on None
-    assert not await tag_rules_processor.process_torrent_title(infohash=None, title='title')
-    assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title=None)
-
-    # test that process_torrent_title doesn't find any tags in the title
-    assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title')
-    mocked_save_tags.assert_not_called()
-
-    # test that process_torrent_title does find tags in the title
-    assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 1
-    mocked_save_tags.assert_called_with(subject_type=ResourceType.TORRENT, subject='696e666f68617368', objects={'tag'},
-                                        predicate=ResourceType.TAG)
+# The feature is suspended. See: https://github.com/Tribler/tribler/issues/7398#issuecomment-1772193981
+# @patch.object(KnowledgeRulesProcessor, 'save_statements')
+# async def test_process_torrent_file(mocked_save_tags: MagicMock, tag_rules_processor: KnowledgeRulesProcessor):
+#     # test on None
+#     assert not await tag_rules_processor.process_torrent_title(infohash=None, title='title')
+#     assert not await tag_rules_processor.process_torrent_title(infohash=b'infohash', title=None)
+#
+#     # test that process_torrent_title doesn't find any tags in the title
+#     # the function should return `1` as it should process only one statement -- the TITLE itself
+#     assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title') == 1
+#     assert mocked_save_tags.call_count == 1
+#
+#     # test that process_torrent_title does find tags in the title
+#     assert await tag_rules_processor.process_torrent_title(infohash=b'infohash', title='title [tag]') == 2
+#     mocked_save_tags.assert_called_with(subject_type=ResourceType.TORRENT, subject='696e666f68617368',
+#                                         objects={'tag'}, predicate=ResourceType.TAG)
 
 
 def test_save_tags(tag_rules_processor: KnowledgeRulesProcessor):
@@ -90,34 +92,35 @@ async def test_process_batch(mocked_cancel_pending_task: Mock, tag_rules_process
     assert mocked_cancel_pending_task.called  # it should  be the last batch in the db
 
 
-@db_session
-@patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
-def test_start_no_previous_version(tag_rules_processor: KnowledgeRulesProcessor):
-    # test that if there is no previous version of the rules processor, it will be created
-    assert tag_rules_processor.get_rules_processor_version() == 0
-    assert tag_rules_processor.get_rules_processor_version() != tag_rules_processor.version
+# The feature is suspended. See: https://github.com/Tribler/tribler/issues/7398#issuecomment-1772193981
+# @db_session
+# @patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
+# def test_start_no_previous_version(tag_rules_processor: KnowledgeRulesProcessor):
+#     # test that if there is no previous version of the rules processor, it will be created
+#     assert tag_rules_processor.get_rules_processor_version() == 0
+#     assert tag_rules_processor.get_rules_processor_version() != tag_rules_processor.version
+#
+#     tag_rules_processor.start()
+#
+#     # version should be set to the current version
+#     assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
+#     # last processed torrent id should be set to 0
+#     assert tag_rules_processor.get_last_processed_torrent_id() == 0
 
-    tag_rules_processor.start()
-
-    # version should be set to the current version
-    assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
-    # last processed torrent id should be set to 0
-    assert tag_rules_processor.get_last_processed_torrent_id() == 0
-
-
-@db_session
-@patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
-def test_start_previous_version(tag_rules_processor: KnowledgeRulesProcessor):
-    # test that if there is a previous version of the rules processor, it will be updated to the current
-    tag_rules_processor.set_rules_processor_version(tag_rules_processor.version - 1)
-    tag_rules_processor.set_last_processed_torrent_id(100)
-
-    tag_rules_processor.start()
-
-    # version should be set to the current version
-    assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
-    # last processed torrent id should be set to 0
-    assert tag_rules_processor.get_last_processed_torrent_id() == 0
+# # The feature is suspended. See: https://github.com/Tribler/tribler/issues/7398#issuecomment-1772193981
+# @db_session
+# @patch.object(KnowledgeRulesProcessor, 'register_task', new=MagicMock())
+# def test_start_previous_version(tag_rules_processor: KnowledgeRulesProcessor):
+#     # test that if there is a previous version of the rules processor, it will be updated to the current
+#     tag_rules_processor.set_rules_processor_version(tag_rules_processor.version - 1)
+#     tag_rules_processor.set_last_processed_torrent_id(100)
+#
+#     tag_rules_processor.start()
+#
+#     # version should be set to the current version
+#     assert tag_rules_processor.get_rules_processor_version() == tag_rules_processor.version
+#     # last processed torrent id should be set to 0
+#     assert tag_rules_processor.get_last_processed_torrent_id() == 0
 
 
 @db_session
