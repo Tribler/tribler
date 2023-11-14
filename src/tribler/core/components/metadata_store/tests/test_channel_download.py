@@ -23,8 +23,8 @@ CHANNEL_METADATA_UPDATED = CHANNEL_DIR / 'channel_upd.mdblob'
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
-def channel_tdef():
-    return TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
+async def channel_tdef():
+    return await TorrentDef.load(TESTS_DATA_DIR / 'sample_channel' / 'channel_upd.torrent')
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ async def channel_seeder(channel_tdef, tmp_path_factory):  # pylint: disable=unu
     seeder_dlmgr.initialize()
     dscfg_seed = DownloadConfig()
     dscfg_seed.set_dest_dir(TESTS_DATA_DIR / 'sample_channel')
-    upload = seeder_dlmgr.start_download(tdef=channel_tdef, config=dscfg_seed)
+    upload = await seeder_dlmgr.start_download(tdef=channel_tdef, config=dscfg_seed)
     await upload.wait_for_status(DownloadStatus.SEEDING)
     yield seeder_dlmgr
     await seeder_dlmgr.shutdown()
@@ -88,8 +88,8 @@ async def test_channel_update_and_download(
     # and get_metainfo to provide the hint.
     original_start_download_from_tdef = download_manager.start_download
 
-    def hinted_start_download(tdef=None, config=None, hidden=False):
-        download = original_start_download_from_tdef(tdef=tdef, config=config, hidden=hidden)
+    async def hinted_start_download(tdef=None, config=None, hidden=False):
+        download = await original_start_download_from_tdef(tdef=tdef, config=config, hidden=hidden)
         download.add_peer(("127.0.0.1", channel_seeder.libtorrent_port))
         return download
 

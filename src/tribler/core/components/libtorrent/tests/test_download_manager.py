@@ -1,6 +1,6 @@
 import asyncio
 from asyncio import Future, gather, get_event_loop, sleep
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 from ipv8.util import succeed
@@ -65,7 +65,7 @@ async def test_get_metainfo_valid_metadata(fake_dlmgr):
     download_impl.future_metainfo = succeed(metainfo)
 
     fake_dlmgr.initialize()
-    fake_dlmgr.start_download = MagicMock(return_value=download_impl)
+    fake_dlmgr.start_download = AsyncMock(return_value=download_impl)
     fake_dlmgr.download_defaults.number_hops = 1
     fake_dlmgr.remove_download = MagicMock(return_value=succeed(None))
 
@@ -86,7 +86,7 @@ async def test_get_metainfo_add_fail(fake_dlmgr):
     download_impl.tdef.get_metainfo = lambda: None
 
     fake_dlmgr.initialize()
-    fake_dlmgr.start_download = MagicMock()
+    fake_dlmgr.start_download = AsyncMock()
     fake_dlmgr.start_download.side_effect = TypeError
     fake_dlmgr.download_defaults.number_hops = 1
     fake_dlmgr.remove = MagicMock(return_value=succeed(None))
@@ -109,7 +109,7 @@ async def test_get_metainfo_duplicate_request(fake_dlmgr):
     get_event_loop().call_later(0.1, download_impl.future_metainfo.set_result, metainfo)
 
     fake_dlmgr.initialize()
-    fake_dlmgr.start_download = MagicMock(return_value=download_impl)
+    fake_dlmgr.start_download = AsyncMock(return_value=download_impl)
     fake_dlmgr.download_defaults.number_hops = 1
     fake_dlmgr.remove_download = MagicMock(return_value=succeed(None))
 
@@ -134,7 +134,7 @@ async def test_get_metainfo_with_already_added_torrent(fake_dlmgr):
     Testing metainfo fetching for a torrent which is already in session.
     """
     sample_torrent = TESTS_DATA_DIR / "bak_single.torrent"
-    torrent_def = TorrentDef.load(sample_torrent)
+    torrent_def = await TorrentDef.load(sample_torrent)
 
     download_impl = MagicMock()
     download_impl.future_metainfo = succeed(bencode(torrent_def.get_metainfo()))
@@ -164,10 +164,10 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
     fake_dlmgr.get_session = lambda *_: metainfo_session
     fake_dlmgr.downloads[infohash] = metainfo_dl
     fake_dlmgr.metainfo_requests[infohash] = [metainfo_dl, 1]
-    fake_dlmgr.remove_download = MagicMock(return_value=succeed(None))
+    fake_dlmgr.remove_download = AsyncMock(return_value=succeed(None))
 
     tdef = TorrentDefNoMetainfo(infohash, 'name', f'magnet:?xt=urn:btih:{hexlify(infohash)}&')
-    download = fake_dlmgr.start_download(tdef=tdef, checkpoint_disabled=True)
+    download = await fake_dlmgr.start_download(tdef=tdef, checkpoint_disabled=True)
     assert metainfo_dl != download
     await sleep(.1)
     assert fake_dlmgr.downloads[infohash] == download
@@ -199,7 +199,7 @@ async def test_start_download(fake_dlmgr):
 
     fake_dlmgr.get_session = lambda *_: mock_ltsession
 
-    download = fake_dlmgr.start_download(tdef=TorrentDefNoMetainfo(infohash, ''), checkpoint_disabled=True)
+    download = await fake_dlmgr.start_download(tdef=TorrentDefNoMetainfo(infohash, ''), checkpoint_disabled=True)
     handle = await download.get_handle()
     assert handle == mock_handle
     fake_dlmgr.downloads.clear()
@@ -249,14 +249,14 @@ async def test_start_download_existing_handle(fake_dlmgr):
 
     fake_dlmgr.get_session = lambda *_: mock_ltsession
 
-    download = fake_dlmgr.start_download(tdef=TorrentDefNoMetainfo(infohash, 'name'), checkpoint_disabled=True)
+    download = await fake_dlmgr.start_download(tdef=TorrentDefNoMetainfo(infohash, 'name'), checkpoint_disabled=True)
     handle = await download.get_handle()
     assert handle == mock_handle
     fake_dlmgr.downloads.clear()
     await download.shutdown()
 
 
-def test_start_download_existing_download(fake_dlmgr):
+async def test_start_download_existing_download(fake_dlmgr):
     """
     Testing the addition of a torrent to the libtorrent manager, if there is a pre-existing download.
     """
@@ -270,18 +270,18 @@ def test_start_download_existing_download(fake_dlmgr):
     fake_dlmgr.downloads[infohash] = mock_download
     fake_dlmgr.get_session = lambda *_: mock_ltsession
 
-    download = fake_dlmgr.start_download(tdef=TorrentDefNoMetainfo(infohash, 'name'), checkpoint_disabled=True)
+    download = await fake_dlmgr.start_download(tdef=TorrentDefNoMetainfo(infohash, 'name'), checkpoint_disabled=True)
     assert download == mock_download
     fake_dlmgr.downloads.clear()
 
 
-def test_start_download_no_ti_url(fake_dlmgr):
+async def test_start_download_no_ti_url(fake_dlmgr):
     """
     Test whether a ValueError is raised if we try to add a torrent without infohash or url
     """
     fake_dlmgr.initialize()
     with pytest.raises(ValueError):
-        fake_dlmgr.start_download()
+        await fake_dlmgr.start_download()
 
 
 def test_remove_unregistered_torrent(fake_dlmgr):
@@ -349,27 +349,27 @@ def test_post_session_stats(fake_dlmgr):
     mock_lt_session.post_session_stats.assert_called_once()
 
 
-def test_load_checkpoint(fake_dlmgr):
+async def test_load_checkpoint(fake_dlmgr):
     good = []
 
-    def mock_start_download(*_, **__):
+    async def mock_start_download(*_, **__):
         good.append(1)
 
     fake_dlmgr.start_download = mock_start_download
 
     # Try opening real state file
     state = TESTS_DATA_DIR / "config_files/13a25451c761b1482d3e85432f07c4be05ca8a56.conf"
-    fake_dlmgr.load_checkpoint(state)
+    await fake_dlmgr.load_checkpoint(state)
     assert good
 
     # Try opening nonexistent file
     good = []
-    fake_dlmgr.load_checkpoint("nonexistent_file")
+    await fake_dlmgr.load_checkpoint("nonexistent_file")
     assert not good
 
     # Try opening corrupt file
     config_file_path = TESTS_DATA_DIR / "config_files/corrupt_session_config.conf"
-    fake_dlmgr.load_checkpoint(config_file_path)
+    await fake_dlmgr.load_checkpoint(config_file_path)
     assert not good
 
 
@@ -380,19 +380,19 @@ async def test_download_manager_start(fake_dlmgr):
     assert fake_dlmgr.all_checkpoints_are_loaded
 
 
-def test_load_empty_checkpoint(fake_dlmgr, tmpdir):
+async def test_load_empty_checkpoint(fake_dlmgr, tmpdir):
     """
     Test whether download resumes with faulty pstate file.
     """
     fake_dlmgr.get_downloads_pstate_dir = lambda: tmpdir
-    fake_dlmgr.start_download = MagicMock()
+    fake_dlmgr.start_download = AsyncMock()
 
     # Empty pstate file
     pstate_filename = fake_dlmgr.get_downloads_pstate_dir() / 'abcd.state'
     with open(pstate_filename, 'wb') as state_file:
         state_file.write(b"")
 
-    fake_dlmgr.load_checkpoint(pstate_filename)
+    await fake_dlmgr.load_checkpoint(pstate_filename)
     fake_dlmgr.start_download.assert_not_called()
 
 
@@ -401,7 +401,7 @@ async def test_load_checkpoints(fake_dlmgr, tmpdir):
     Test whether we are resuming downloads after loading checkpoints
     """
 
-    def mocked_load_checkpoint(filename):
+    async def mocked_load_checkpoint(filename):
         assert str(filename).endswith('abcd.conf')
         mocked_load_checkpoint.called = True
 
@@ -442,8 +442,8 @@ async def test_readd_download_safe_seeding(fake_dlmgr):
     await readd_future
 
 
-def test_get_downloads_by_name(fake_dlmgr):
-    dl = fake_dlmgr.start_download(torrent_file=TORRENT_UBUNTU_FILE, checkpoint_disabled=True)
+async def test_get_downloads_by_name(fake_dlmgr):
+    dl = await fake_dlmgr.start_download(torrent_file=TORRENT_UBUNTU_FILE, checkpoint_disabled=True)
     assert fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso")
     assert not fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso", channels_only=True)
     assert not fake_dlmgr.get_downloads_by_name("bla")

@@ -30,11 +30,11 @@ def torrent_template():
 
 
 @pytest.fixture
-def personal_channel(metadata_store):
+async def personal_channel(metadata_store):
     global update_metainfo
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
     with db_session:
         chan = metadata_store.ChannelMetadata.create_channel(title="my test chan", description="test")
-        tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         chan.add_torrent_to_channel(tdef, None)
         update_metainfo = chan.commit_channel_torrent()
         return chan
@@ -108,11 +108,11 @@ async def test_regenerate_channel_torrent(personal_channel, metadata_store, giga
         gigachannel_manager.updated_my_channel.assert_called_once()
 
 
-def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
+async def test_updated_my_channel(personal_channel, gigachannel_manager, tmpdir):
     tdef = TorrentDef.load_from_dict(update_metainfo)
-    gigachannel_manager.download_manager.start_download = MagicMock()
+    gigachannel_manager.download_manager.start_download = AsyncMock()
     gigachannel_manager.download_manager.download_exists = lambda *_: False
-    gigachannel_manager.updated_my_channel(tdef)
+    await gigachannel_manager.updated_my_channel(tdef)
     gigachannel_manager.download_manager.start_download.assert_called_once()
 
 
@@ -388,7 +388,7 @@ async def test_reject_malformed_channel(
 
     initiated_download = False
 
-    def mock_download_from_tdef(*_, **__):
+    async def mock_download_from_tdef(*_, **__):
         global initiated_download
         initiated_download = True
         mock_dl = MockObject()

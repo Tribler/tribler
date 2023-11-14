@@ -434,7 +434,7 @@ class ChannelsEndpoint(MetadataEndpointBase):
                 )
 
         if torrents_dir:
-            torrents_list, errors_list = channel.add_torrents_from_dir(torrents_dir, recursive)
+            torrents_list, errors_list = await channel.add_torrents_from_dir(torrents_dir, recursive)
             return RESTResponse({"added": len(torrents_list), "errors": errors_list})
 
         if not parameters.get('torrent', None):

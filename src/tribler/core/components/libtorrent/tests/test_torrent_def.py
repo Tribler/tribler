@@ -107,15 +107,15 @@ def test_is_private(tdef):
     assert tdef.is_private() is False
 
 
-def test_is_private_loaded_from_existing_torrent():
+async def test_is_private_loaded_from_existing_torrent():
     """
     Test whether the private field from an existing torrent is correctly read
     """
     privatefn = TESTS_DATA_DIR / "private.torrent"
     publicfn = TESTS_DATA_DIR / "bak_single.torrent"
 
-    t1 = TorrentDef.load(privatefn)
-    t2 = TorrentDef.load(publicfn)
+    t1 = await TorrentDef.load(privatefn)
+    t2 = await TorrentDef.load(publicfn)
 
     assert t1.is_private()
     assert not t2.is_private()
@@ -126,8 +126,8 @@ async def test_load_from_url(file_server, tmpdir):
 
     torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server
     torrent_def = await TorrentDef.load_from_url(torrent_url)
-    assert torrent_def.get_metainfo() == TorrentDef.load(TORRENT_UBUNTU_FILE).get_metainfo()
-    assert torrent_def.infohash == TorrentDef.load(TORRENT_UBUNTU_FILE).infohash
+    assert torrent_def.get_metainfo() == (await TorrentDef.load(TORRENT_UBUNTU_FILE)).get_metainfo()
+    assert torrent_def.infohash == (await TorrentDef.load(TORRENT_UBUNTU_FILE)).infohash
 
 
 async def test_load_from_url_404(file_server, tmpdir):

@@ -34,29 +34,30 @@ def test_serialization(metadata_store):
     assert torrent_metadata.serialized()
 
 
-@db_session
-def test_create_ffa_from_dict(metadata_store):
+async def test_create_ffa_from_dict(metadata_store):
     """
     Test creating a free-for-all torrent entry
     """
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
 
-    # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
-    signed_entry = metadata_store.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
-    metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
-    assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 0
+    with db_session:
+        # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
+        signed_entry = metadata_store.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
+        metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
+        assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 0
 
-    signed_entry.delete()
-    # Create FFA entry
-    metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
-    assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 1
+        signed_entry.delete()
+        # Create FFA entry
+        metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
+        assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 1
 
 
-@db_session
-def test_sanitize_tdef(metadata_store):
-    tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
+async def test_sanitize_tdef(metadata_store):
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
     tdef.metainfo["creation date"] = -100000
-    assert metadata_store.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
+
+    with db_session:
+        assert metadata_store.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
 
 
 @db_session

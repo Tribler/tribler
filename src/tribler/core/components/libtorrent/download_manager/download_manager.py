@@ -13,7 +13,7 @@ from copy import deepcopy
 from shutil import rmtree
 from typing import Callable, Dict, List, Optional
 
-from ipv8.taskmanager import TaskManager, task
+from ipv8.taskmanager import TaskManager
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
@@ -491,7 +491,7 @@ class DownloadManager(TaskManager):
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
             dcfg.set_dest_dir(self.metadata_tmpdir)
             try:
-                download = self.start_download(tdef=tdef, config=dcfg, hidden=True, checkpoint_disabled=True)
+                download = await self.start_download(tdef=tdef, config=dcfg, hidden=True, checkpoint_disabled=True)
             except TypeError as e:
                 self._logger.warning(e)
                 if raise_errors:
@@ -550,7 +550,7 @@ class DownloadManager(TaskManager):
 
         if scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             tdef = await TorrentDef.load_from_url(uri)
-            return self.start_download(tdef=tdef, config=config)
+            return await self.start_download(tdef=tdef, config=config)
         if scheme == MAGNET_SCHEME:
             name, infohash, _ = parse_magnetlink(uri)
             if infohash is None:
@@ -559,14 +559,14 @@ class DownloadManager(TaskManager):
                 tdef = TorrentDef.load_from_dict(self.metainfo_cache[infohash]['meta_info'])
             else:
                 tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
-            return self.start_download(tdef=tdef, config=config)
+            return await self.start_download(tdef=tdef, config=config)
         if scheme == FILE_SCHEME:
             file = url_to_path(uri)
-            return self.start_download(torrent_file=file, config=config)
+            return await self.start_download(torrent_file=file, config=config)
         raise Exception("invalid uri")
 
-    def start_download(self, torrent_file=None, tdef=None, config: DownloadConfig = None, checkpoint_disabled=False,
-                       hidden=False) -> Download:
+    async def start_download(self, torrent_file=None, tdef=None, config: DownloadConfig = None,
+                             checkpoint_disabled=False, hidden=False) -> Download:
         self._logger.debug(f'Starting download: filename: {torrent_file}, torrent def: {tdef}')
         if config is None:
             config = DownloadConfig.from_defaults(self.download_defaults)
@@ -578,7 +578,7 @@ class DownloadManager(TaskManager):
             if torrent_file is None:
                 raise ValueError("Torrent file must be provided if tdef is not given")
             # try to get the torrent from the given torrent file
-            tdef = TorrentDef.load(torrent_file)
+            tdef = await TorrentDef.load(torrent_file)
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
@@ -617,10 +617,9 @@ class DownloadManager(TaskManager):
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash][0] == download:
             self.downloads[infohash] = download
         if not self.dummy_mode:
-            self.start_handle(download, atp)
+            await self.start_handle(download, atp)
         return download
 
-    @task
     async def start_handle(self, download, atp):
         atp_resume_data_skipped = atp.copy()
         resume_data = atp.get('resume_data')
@@ -662,7 +661,6 @@ class DownloadManager(TaskManager):
                 except asyncio.TimeoutError:
                     self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
             ltsession.async_add_torrent(encode_atp(atp))
-        return await download.future_added
 
     def get_libtorrent_version(self):
         try:
@@ -768,7 +766,7 @@ class DownloadManager(TaskManager):
         # If the user wants to change the hop count to 0, don't automatically bump this up to 1 anymore
         config.set_safe_seeding(False)
 
-        self.start_download(tdef=download.tdef, config=config)
+        await self.start_download(tdef=download.tdef, config=config)
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
@@ -862,13 +860,13 @@ class DownloadManager(TaskManager):
         checkpoint_filenames = list(self.get_checkpoint_dir().glob('*.conf'))
         self.checkpoints_count = len(checkpoint_filenames)
         for i, filename in enumerate(checkpoint_filenames, start=1):
-            self.load_checkpoint(filename)
+            await self.load_checkpoint(filename)
             self.checkpoints_loaded = i
             await sleep(.01)
         self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
-    def load_checkpoint(self, filename):
+    async def load_checkpoint(self, filename):
         try:
             config = DownloadConfig.load(filename)
         except Exception:
@@ -910,7 +908,7 @@ class DownloadManager(TaskManager):
             if self.download_exists(tdef.get_infohash()):
                 self._logger.info("Not resuming checkpoint because download has already been added")
             else:
-                self.start_download(tdef=tdef, config=config)
+                await self.start_download(tdef=tdef, config=config)
         except Exception:
             self._logger.exception("Not resume checkpoint due to exception while adding download")
 

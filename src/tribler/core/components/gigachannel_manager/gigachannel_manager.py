@@ -252,7 +252,7 @@ class GigaChannelManager(TaskManager):
         dcfg.set_channel_download(True)
         tdef = TorrentDef(metainfo=metainfo)
 
-        download = self.download_manager.start_download(tdef=tdef, config=dcfg, hidden=True)
+        download = await self.download_manager.start_download(tdef=tdef, config=dcfg, hidden=True)
         try:
             await download.future_finished
         except CancelledError:
@@ -279,7 +279,8 @@ class GigaChannelManager(TaskManager):
         if updated_channel:
             self.notifier[notifications.channel_entity_updated](channel_dict)
 
-    def updated_my_channel(self, tdef):
+    @task
+    async def updated_my_channel(self, tdef):
         """
         Notify the core that we updated our channel.
         """
@@ -293,7 +294,7 @@ class GigaChannelManager(TaskManager):
             dcfg = DownloadConfig(state_dir=self.state_dir)
             dcfg.set_dest_dir(self.mds.channels_dir)
             dcfg.set_channel_download(True)
-            return self.download_manager.start_download(tdef=tdef, config=dcfg)
+            return await self.download_manager.start_download(tdef=tdef, config=dcfg)
 
     @db_session
     def clean_unsubscribed_channels(self):
