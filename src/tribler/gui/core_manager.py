@@ -9,7 +9,7 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
@@ -80,9 +80,7 @@ class CoreManager(QObject):
         connect(self.events_manager.core_connected, self.on_core_connected)
 
         # Core restart log that tracks when core process was restarted.
-        # For each restart, the following tuple is added.
-        # (core_pid, started_at, finished_at)
-        self.core_restart_logs = []
+        self.core_restart_logs: List[CoreRestartLog] = []
 
     def on_core_connected(self, _):
         if self.core_finished:
