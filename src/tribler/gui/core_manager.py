@@ -20,6 +20,7 @@ from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_DATABA
 from tribler.core.utilities.process_manager import ProcessManager, ProcessKind, TriblerProcess
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
+from tribler.gui.core_restart_logs import CoreRestartLog
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 from tribler.gui.network.request_manager import SHUTDOWN_ENDPOINT, request_manager
@@ -29,29 +30,7 @@ API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core A
 API_PORT_CHECK_TIMEOUT = 120  # Stop trying to determine API port after this number of seconds
 
 CORE_OUTPUT_DEQUE_LENGTH = 10
-CORE_RESTART_TRACK_WINDOW = 120  # seconds
 CORE_RESTART_TRACK_COUNT = 3
-
-
-@dataclass
-class CoreRestartLog:
-    core_pid: int
-    started_at: int
-    finished_at: Optional[int] = None
-    exit_code: Optional[int] = None
-    exit_status: Optional[str] = None
-
-    @classmethod
-    def current(cls, core_pid: int):
-        return CoreRestartLog(core_pid=core_pid, started_at=int(time.time()))
-
-    def finish(self, exit_code, exit_status):
-        self.finished_at = int(time.time())
-        self.exit_code = exit_code
-        self.exit_status = exit_status
-
-    def is_recent_log(self):
-        return int(time.time()) - self.started_at <= CORE_RESTART_TRACK_WINDOW
 
 
 class CoreManager(QObject):
