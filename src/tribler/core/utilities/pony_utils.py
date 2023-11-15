@@ -45,16 +45,14 @@ def table_exists(cursor: sqlite3.Cursor, table_name: str) -> bool:
 
 def get_db_version(db_path, default: int = None) -> int:
     handle_db_if_corrupted(db_path)
-    if not db_path.exists():
-        version = None
-    else:
+    version = None
+
+    if db_path.exists():
         with marking_corrupted_db(db_path):
             with contextlib.closing(sqlite3.connect(db_path)) as connection:
                 with connection:
                     cursor = connection.cursor()
-                    if not table_exists(cursor, 'MiscData'):
-                        version = None
-                    else:
+                    if table_exists(cursor, 'MiscData'):
                         cursor.execute("SELECT value FROM MiscData WHERE name == 'db_version'")
                         row = cursor.fetchone()
                         version = int(row[0]) if row else None
