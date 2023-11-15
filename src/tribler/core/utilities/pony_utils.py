@@ -408,6 +408,8 @@ class TriblerSQLiteProvider(sqlite.SQLiteProvider):
 
 
 class TriblerPool(SQLitePool):
+    # TriblerSQLiteProvider instantiates this class instead of a standard SQLitePool class. It allows to catch
+    # the "database is malformed" error when new connection is establishing to the database from the ORM
     def _connect(self):
         with marking_corrupted_db(self.filename):
             return super()._connect()
