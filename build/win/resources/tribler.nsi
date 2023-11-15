@@ -74,12 +74,6 @@ BrandingText "${PRODUCT}"
 
 ;--------------------------------
 ;Pages
-
-!define MUI_LICENSEPAGE_RADIOBUTTONS
-!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I accept"
-!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
-
-!insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
