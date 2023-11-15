@@ -8,14 +8,14 @@ from _pytest.logging import LogCaptureFixture
 from ipv8.util import succeed
 from libtorrent import bencode
 
-from tribler.core.components.libtorrent.download_manager.download import Download
+from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
-from tribler.core.components.libtorrent.torrentdef import TorrentDefNoMetainfo
+from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.components.libtorrent.utils.torrent_utils import get_info_from_handle
 from tribler.core.components.reporter.exception_handler import NoCrashException
 from tribler.core.exceptions import SaveResumeDataError
 from tribler.core.tests.tools.base_test import MockObject
-from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
@@ -308,15 +308,15 @@ def test_metadata_received_invalid_info(mock_handle, test_download):
     test_download.on_metadata_received_alert(None)
 
 
-@patch('tribler.core.components.libtorrent.download_manager.download.get_info_from_handle', Mock())
-@patch('tribler.core.components.libtorrent.download_manager.download.bdecode_compat', Mock())
-def test_on_metadata_received_alert_unicode_error(test_download):
+def test_on_metadata_received_alert_unicode_error(test_download, dual_movie_tdef):
     """ Test the the case the field 'url' is not unicode compatible. In this case no exceptions should be raised.
 
     See: https://github.com/Tribler/tribler/issues/7223
     """
+    test_download.tdef = dual_movie_tdef
     tracker = {'url': Mock(encode=Mock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))}
-    test_download.handle = MagicMock(trackers=Mock(return_value=[tracker]))
+    test_download.handle = MagicMock(trackers=Mock(return_value=[tracker]),
+                           torrent_file=lambda: dual_movie_tdef.torrent_info)
 
     test_download.on_metadata_received_alert(MagicMock())
 
@@ -506,3 +506,173 @@ async def test_shutdown(test_download: Download):
 
     assert not test_download.futures
     assert test_download.stream.close.called
+
+
+def test_file_piece_range_flat(test_download: Download) -> None:
+    """
+    Test if the piece range of a single-file torrent is correctly determined.
+    """
+    total_pieces = test_download.tdef.torrent_info.num_pieces()
+
+    piece_range = test_download.file_piece_range(Path("video.avi"))
+
+    assert piece_range == list(range(total_pieces))
+
+
+def test_file_piece_range_wide(dual_movie_tdef: TorrentDef) -> None:
+    """
+    Test if the piece range of a two-file torrent is correctly determined.
+
+    The torrent is no longer flat after adding content! Data is now in the "data" directory.
+    """
+    download = Download(dual_movie_tdef, checkpoint_disabled=True)
+
+    piece_range_video = download.file_piece_range(Path("data") / TORRENT_VIDEO_FILE.name)
+    piece_range_ubuntu = download.file_piece_range(Path("data") / TORRENT_UBUNTU_FILE.name)
+    last_piece = piece_range_video[-1] + 1
+
+    assert 0 < last_piece < download.tdef.torrent_info.num_pieces()
+    assert piece_range_video == list(range(0, last_piece))
+    assert piece_range_ubuntu == list(range(last_piece, download.tdef.torrent_info.num_pieces()))
+
+
+def test_file_piece_range_nonexistent(test_download: Download) -> None:
+    """
+    Test if the piece range of a single-file torrent is correctly determined.
+    """
+    piece_range = test_download.file_piece_range(Path("I don't exist"))
+
+    assert piece_range == []
+
+
+def test_file_completion_full(test_download: Download) -> None:
+    """
+    Test if a complete file shows 1.0 completion.
+    """
+    test_download.handle = MagicMock(have_piece=Mock(return_value=True))
+
+    assert 1.0 == test_download.get_file_completion(Path("video.avi"))
+
+
+def test_file_completion_nonexistent(test_download: Download) -> None:
+    """
+    Test if an unknown path (does not exist in a torrent) shows 1.0 completion.
+    """
+    test_download.handle = MagicMock(have_piece=Mock(return_value=True))
+
+    assert 1.0 == test_download.get_file_completion(Path("I don't exist"))
+
+
+def test_file_completion_directory(dual_movie_tdef: TorrentDef) -> None:
+    """
+    Test if a directory (does not exist in a torrent) shows 1.0 completion.
+    """
+    download = Download(dual_movie_tdef, checkpoint_disabled=True)
+    download.handle = MagicMock(have_piece=Mock(return_value=True))
+
+    assert 1.0 == download.get_file_completion(Path("data"))
+
+
+def test_file_completion_nohandle(test_download: Download) -> None:
+    """
+    Test if a file shows 0.0 completion if the torrent handle is not valid.
+    """
+    test_download.handle = MagicMock(is_valid=Mock(return_value=False))
+
+    assert 0.0 == test_download.get_file_completion(Path("video.avi"))
+
+
+def test_file_completion_partial(test_download: Download) -> None:
+    """
+    Test if a file shows 0.0 completion if the torrent handle is not valid.
+    """
+    total_pieces = test_download.tdef.torrent_info.num_pieces()
+    expected = (total_pieces // 2) / total_pieces
+
+    def fake_has_piece(piece_index: int) -> bool:
+        return piece_index > total_pieces / 2  # total_pieces // 2 will return True
+    test_download.handle = MagicMock(have_piece=fake_has_piece)
+
+    result = test_download.get_file_completion(Path("video.avi"))
+
+    assert round(expected, 4) == round(result, 4)  # Round to make sure we don't get float rounding errors
+
+
+def test_file_length(test_download: Download) -> None:
+    """
+    Test if we can get the length of a file.
+    """
+    assert 1942100 == test_download.get_file_length(Path("video.avi"))
+
+
+def test_file_length_two(dual_movie_tdef: TorrentDef) -> None:
+    """
+    Test if we can get the length of a file in a two-file torrent.
+    """
+    download = Download(dual_movie_tdef, checkpoint_disabled=True)
+
+    assert 291888 == download.get_file_length(Path("data") / TORRENT_VIDEO_FILE.name)
+    assert 44258 == download.get_file_length(Path("data") / TORRENT_UBUNTU_FILE.name)
+
+
+def test_file_length_nonexistent(test_download: Download) -> None:
+    """
+    Test if the length of a non-existent file is 0.
+    """
+    assert 0 == test_download.get_file_length(Path("I don't exist"))
+
+
+def test_file_index_unloaded(test_download: Download) -> None:
+    """
+    Test if a non-existent path leads to the special unloaded index.
+    """
+    assert IllegalFileIndex.unloaded.value == test_download.get_file_index(Path("I don't exist"))
+
+
+def test_file_index_directory_collapsed(dual_movie_tdef: TorrentDef) -> None:
+    """
+    Test if a collapsed-dir path leads to the special collapsed dir index.
+    """
+    download = Download(dual_movie_tdef, checkpoint_disabled=True)
+
+    assert IllegalFileIndex.collapsed_dir.value == download.get_file_index(Path("data"))
+
+
+def test_file_index_directory_expanded(dual_movie_tdef: TorrentDef) -> None:
+    """
+    Test if a expanded-dir path leads to the special expanded dir index.
+    """
+    download = Download(dual_movie_tdef, checkpoint_disabled=True)
+    download.tdef.torrent_file_tree.expand(Path("data"))
+
+    assert IllegalFileIndex.expanded_dir.value == download.get_file_index(Path("data"))
+
+
+def test_file_index_file(test_download: Download) -> None:
+    """
+    Test if we can get the index of a file.
+    """
+    assert 0 == test_download.get_file_index(Path("video.avi"))
+
+
+def test_file_selected_nonexistent(test_download: Download) -> None:
+    """
+    Test if a non-existent file does not register as selected.
+    """
+    assert not test_download.is_file_selected(Path("I don't exist"))
+
+
+def test_file_selected_realfile(test_download: Download) -> None:
+    """
+    Test if a file starts off as selected.
+    """
+    assert test_download.is_file_selected(Path("video.avi"))
+
+
+def test_file_selected_directory(dual_movie_tdef: TorrentDef) -> None:
+    """
+    Test if a directory does not register as selected.
+    """
+    download = Download(dual_movie_tdef, checkpoint_disabled=True)
+
+    assert not download.is_file_selected(Path("data"))

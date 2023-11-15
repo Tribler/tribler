@@ -70,6 +70,7 @@ class TorrentFileTree:
         name: str
         index: int
         size: int = 0
+        selected: bool = True
 
         _sort_pattern = re.compile('([0-9]+)')  # We use this for natural sorting (see sort_key())
 
@@ -192,6 +193,21 @@ class TorrentFileTree:
         if isinstance(element, TorrentFileTree.Directory) and element != self.root:
             element.collapsed = True
 
+    def set_selected(self, path: Path, selected: bool) -> None:
+        """
+        Set the selected status for a File or entire Directory.
+        """
+        item = self.find(path)
+        if item is None:
+            return
+        if isinstance(item, TorrentFileTree.File):
+            item.selected = selected  # pylint: disable=W0201
+            return
+        for key in item.directories:
+            self.set_selected(path / key, selected)
+        for file in item.files:
+            file.selected = selected
+
     def find(self, path: Path) -> Directory | File | None:
         """
         Get the Directory or File object at the given path, or None if it does not exist.
@@ -295,24 +311,21 @@ class TorrentFileTree:
         Note that we only need to process the first directory and the remainder is visited through recursion.
         """
         view = []
-        try:
-            dirname, dirobj = next(iter(directory_items))
-        except StopIteration:
-            return view, number
+        for dirname, dirobj in directory_items:
+            full_path = fetch_path / dirname
 
-        full_path = fetch_path / dirname
+            # The subdirectory is an item of the tree itself.
+            view.append(str(full_path))
+            number -= 1
+            if number == 0:  # Exit early if we don't need anymore items
+                return view, number
 
-        # The subdirectory is an item of the tree itself.
-        view.append(str(full_path))
-        number -= 1
-        if number == 0:  # Exit early if we don't need anymore items
-            return view, number
-
-        # If the elements of the subdirectory are not collapsed, recurse into a view of those elements.
-        if not dirobj.collapsed:
-            elems = self.view((dirobj, full_path), number)
-            view += elems
-            number -= len(elems)
+            # If the elements of the subdirectory are not collapsed, recurse into a view of those elements.
+            if not dirobj.collapsed:
+                elems = self.view((dirobj, full_path), number)
+                view += elems
+                number -= len(elems)
+                break
 
         # We exhausted all subdirectories (note that the number may still be larger than 0)
         return view, number

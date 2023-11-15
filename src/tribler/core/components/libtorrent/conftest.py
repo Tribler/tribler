@@ -6,7 +6,7 @@ from aiohttp import web
 from tribler.core.components.libtorrent.download_manager.download import Download
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.tests.tools.common import TESTS_DATA_DIR
+from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
 from tribler.core.utilities.unicode import hexlify
 
 
@@ -83,3 +83,12 @@ def mock_lt_status():
     lt_status.pieces = []
     lt_status.finished_time = 10
     return lt_status
+
+
+@pytest.fixture
+def dual_movie_tdef() -> TorrentDef:
+    tdef = TorrentDef()
+    tdef.add_content(TORRENT_VIDEO_FILE)
+    tdef.add_content(TORRENT_UBUNTU_FILE)
+    tdef.save()
+    return tdef

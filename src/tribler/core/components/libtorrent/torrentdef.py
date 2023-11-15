@@ -4,10 +4,13 @@ Author(s): Arno Bakker
 import itertools
 import logging
 from asyncio import get_running_loop
+from contextlib import suppress
+from functools import cached_property
 from hashlib import sha1
 
 import aiohttp
 
+from tribler.core.components.libtorrent.torrent_file_tree import TorrentFileTree
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.libtorrent.utils import torrent_utils
 from tribler.core.utilities import maketorrent, path_util
@@ -46,7 +49,7 @@ class TorrentDef:
     It can be used to create new torrents, or analyze existing ones.
     """
 
-    def __init__(self, metainfo=None, torrent_parameters=None, ignore_validation=False):
+    def __init__(self, metainfo=None, torrent_parameters=None, ignore_validation=True):
         """
         Create a new TorrentDef object, possibly based on existing data.
         :param metainfo: A dictionary with metainfo, i.e. from a .torrent file.
@@ -55,19 +58,26 @@ class TorrentDef:
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.torrent_parameters = {}
-        self.metainfo = None
+        self.metainfo = metainfo
         self.files_list = []
         self.infohash = None
+        self._torrent_info = None
 
         if metainfo is not None:
             # First, make sure the passed metainfo is valid
             if not ignore_validation:
                 try:
-                    lt.torrent_info(metainfo)
+                    self._torrent_info = lt.torrent_info(metainfo)
+                    self.infohash = self._torrent_info.info_hash()
                 except RuntimeError as exc:
                     raise ValueError from exc
-            self.metainfo = metainfo
-            self.infohash = sha1(lt.bencode(self.metainfo[b'info'])).digest()
+            else:
+                try:
+                    if not self.metainfo[b'info']:
+                        raise ValueError("Empty metainfo!")
+                    self.infohash = sha1(lt.bencode(self.metainfo[b'info'])).digest()
+                except (KeyError, RuntimeError) as exc:
+                    raise ValueError from exc
             self.copy_metainfo_to_torrent_parameters()
 
         elif torrent_parameters:
@@ -94,6 +104,34 @@ class TorrentDef:
         for key in infokeys:
             if self.metainfo and key in self.metainfo[b'info']:
                 self.torrent_parameters[key] = self.metainfo[b'info'][key]
+
+    @property
+    def torrent_info(self) -> lt.torrent_info:
+        """
+        Get the libtorrent torrent info instance or load it from our metainfo.
+        """
+        self.load_torrent_info()
+        return self._torrent_info
+
+    def load_torrent_info(self) -> None:
+        """
+        Load the torrent info into memory from our metainfo if it does not exist.
+        """
+        if self._torrent_info is None:
+            self._torrent_info = lt.torrent_info(self.metainfo)
+
+    def torrent_info_loaded(self) -> bool:
+        """
+        Check if the libtorrent torrent info is loaded.
+        """
+        return self._torrent_info is not None
+
+    @cached_property
+    def torrent_file_tree(self) -> TorrentFileTree:
+        """
+        Construct a file tree from this torrent definition.
+        """
+        return TorrentFileTree.from_lt_file_storage(self.torrent_info.files())
 
     @staticmethod
     def _threaded_load_job(filepath):
@@ -339,6 +377,9 @@ class TorrentDef:
         """
         torrent_dict = torrent_utils.create_torrent_file(self.files_list, self.torrent_parameters,
                                                          torrent_filepath=torrent_filepath)
+        self._torrent_info = None
+        with suppress(AttributeError):
+            del self.torrent_file_tree  # Remove the cache without retrieving it or checking if it exists (Error)
         self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']

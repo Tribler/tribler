@@ -448,3 +448,102 @@ def test_view_over_expanded(file_storage_with_dirs):
         Path("torrent_create") / "def" / "file6.avi",
         Path("torrent_create") / "file1.txt"
     ]
+
+
+def test_view_full_collapsed(file_storage_with_dirs):
+    """
+    Test if we can loop through a expanded directory with only collapsed dirs.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+    tree.expand(Path("") / "torrent_create")
+
+    result = tree.view(Path(""), 4)
+
+    assert [Path(r) for r in result] == [
+        Path("torrent_create"),
+        Path("torrent_create") / "abc",
+        Path("torrent_create") / "def",
+        Path("torrent_create") / "file1.txt"
+    ]
+
+
+def test_select_start_selected(file_storage_with_dirs):
+    """
+    Test if all files start selected.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+
+    assert tree.find(Path("torrent_create") / "abc" / "file2.txt").selected
+    assert tree.find(Path("torrent_create") / "abc" / "file3.txt").selected
+    assert tree.find(Path("torrent_create") / "abc" / "file4.txt").selected
+    assert tree.find(Path("torrent_create") / "def" / "file5.txt").selected
+    assert tree.find(Path("torrent_create") / "def" / "file6.avi").selected
+    assert tree.find(Path("torrent_create") / "file1.txt").selected
+
+
+def test_select_nonexistent(file_storage_with_dirs):
+    """
+    Test selecting a non-existent path.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+    tree.set_selected(Path("."), False)
+
+    tree.set_selected(Path("I don't exist"), True)
+
+    assert not tree.find(Path("torrent_create") / "abc" / "file2.txt").selected
+    assert not tree.find(Path("torrent_create") / "abc" / "file3.txt").selected
+    assert not tree.find(Path("torrent_create") / "abc" / "file4.txt").selected
+    assert not tree.find(Path("torrent_create") / "def" / "file5.txt").selected
+    assert not tree.find(Path("torrent_create") / "def" / "file6.avi").selected
+    assert not tree.find(Path("torrent_create") / "file1.txt").selected
+
+
+def test_select_file(file_storage_with_dirs):
+    """
+    Test selecting a path pointing to a single file.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+    tree.set_selected(Path("."), False)
+
+    tree.set_selected(Path("torrent_create") / "abc" / "file2.txt", True)
+
+    assert tree.find(Path("torrent_create") / "abc" / "file2.txt").selected
+    assert not tree.find(Path("torrent_create") / "abc" / "file3.txt").selected
+    assert not tree.find(Path("torrent_create") / "abc" / "file4.txt").selected
+    assert not tree.find(Path("torrent_create") / "def" / "file5.txt").selected
+    assert not tree.find(Path("torrent_create") / "def" / "file6.avi").selected
+    assert not tree.find(Path("torrent_create") / "file1.txt").selected
+
+
+def test_select_flatdir(file_storage_with_dirs):
+    """
+    Test selecting a path pointing to a directory with no subdirectories, only files.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+    tree.set_selected(Path("."), False)
+
+    tree.set_selected(Path("torrent_create") / "abc", True)
+
+    assert tree.find(Path("torrent_create") / "abc" / "file2.txt").selected
+    assert tree.find(Path("torrent_create") / "abc" / "file3.txt").selected
+    assert tree.find(Path("torrent_create") / "abc" / "file4.txt").selected
+    assert not tree.find(Path("torrent_create") / "def" / "file5.txt").selected
+    assert not tree.find(Path("torrent_create") / "def" / "file6.avi").selected
+    assert not tree.find(Path("torrent_create") / "file1.txt").selected
+
+
+def test_select_deepdir(file_storage_with_dirs):
+    """
+    Test selecting a path pointing to a directory with no bdirectories and files.
+    """
+    tree = TorrentFileTree.from_lt_file_storage(file_storage_with_dirs)
+    tree.set_selected(Path("."), False)
+
+    tree.set_selected(Path("torrent_create"), True)
+
+    assert tree.find(Path("torrent_create") / "abc" / "file2.txt").selected
+    assert tree.find(Path("torrent_create") / "abc" / "file3.txt").selected
+    assert tree.find(Path("torrent_create") / "abc" / "file4.txt").selected
+    assert tree.find(Path("torrent_create") / "def" / "file5.txt").selected
+    assert tree.find(Path("torrent_create") / "def" / "file6.avi").selected
+    assert tree.find(Path("torrent_create") / "file1.txt").selected
