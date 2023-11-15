@@ -215,6 +215,6 @@ NO_DISK_SPACE_ERROR_MESSAGE = "Not enough storage space available. \n" \
                               "Tribler requires at least %s space to continue. \n\n" \
                               "Please free up the required space and re-run Tribler. "
 
-DATABASE_IS_CORRUPTED_ERROR_MESSAGE = "The database file of the previous version found to be corrupted: \n\n" \
-                                      "%s\n\n" \
-                                      "Press OK to re-create the database file"
+CORRUPTED_DB_WAS_FIXED_MESSAGE = "The corrupted database file was fixed"
+
+RESTART_TO_FIX_CORRUPTED_DB_MESSAGE = "Please start Tribler again to fix the corrupted database file"

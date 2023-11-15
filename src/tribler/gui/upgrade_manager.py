@@ -12,7 +12,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.upgrade.upgrade import TriblerUpgrader
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory, NoDiskSpaceAvailableError
 from tribler.core.utilities.pony_utils import DatabaseIsCorrupted
-from tribler.gui.defs import BUTTON_TYPE_NORMAL, DATABASE_IS_CORRUPTED_ERROR_MESSAGE, NO_DISK_SPACE_ERROR_MESSAGE, \
+from tribler.gui.defs import BUTTON_TYPE_NORMAL, CORRUPTED_DB_WAS_FIXED_MESSAGE, NO_DISK_SPACE_ERROR_MESSAGE, \
     UPGRADE_CANCELLED_ERROR_TITLE
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
@@ -264,7 +264,8 @@ class UpgradeManager(QObject):
 
     @staticmethod
     def _format_database_corruption_fixed_message(exc: DatabaseIsCorrupted) -> str:
-        formatted_error = tr(DATABASE_IS_CORRUPTED_ERROR_MESSAGE) % str(exc)
+        message = tr(CORRUPTED_DB_WAS_FIXED_MESSAGE)
+        formatted_error = f'{message}:\n\n{exc}'
         return formatted_error
 
     def on_worker_cancelled(self, reason: str):

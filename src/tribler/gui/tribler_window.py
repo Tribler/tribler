@@ -75,7 +75,7 @@ from tribler.gui.defs import (
     PAGE_SETTINGS,
     PAGE_TRUST,
     PAGE_TRUST_GRAPH_PAGE,
-    SHUTDOWN_WAITING_PERIOD,
+    RESTART_TO_FIX_CORRUPTED_DB_MESSAGE, SHUTDOWN_WAITING_PERIOD,
 )
 from tribler.gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
@@ -1261,12 +1261,13 @@ class TriblerWindow(QMainWindow):
             self.process_uri_request()
 
     def show_database_is_corrupted_dialog(self, db_file_path: Path):
+        message = tr(RESTART_TO_FIX_CORRUPTED_DB_MESSAGE)
+        formatted_message = f'{message}:<br/><br/>{db_file_path}'
+
         self.dialog = ConfirmationDialog(
             self,
-            tr("Database is corrupted: restart needed"),
-            tr("The database file found to be corrupted") + ":<br/>"
-            + f"<b>{db_file_path}</b><br/><br/>"
-            + tr("Press OK to re-create the database file"),
+            tr("Database corruption detected"),
+            formatted_message,
             [(tr("OK"), BUTTON_TYPE_CONFIRM)],
         )
         self.dialog.show()
