@@ -86,6 +86,12 @@ class EventsEndpoint(RESTEndpoint):
             "kwargs": {"public_key": self.public_key, "version": version_id}
         }
 
+    def send_saved_errors(self):
+        unreported_errors = ReportedError.get_saved_errors()
+        for error in unreported_errors:
+            print(f"listing error: {error}")
+            self.on_tribler_exception(error)
+
     def error_message(self, reported_error: ReportedError) -> MessageDict:
         return {
             "topic": notifications.tribler_exception.__name__,
@@ -126,6 +132,11 @@ class EventsEndpoint(RESTEndpoint):
         if not self.should_skip_message(message):
             self.queue.put_nowait(message)
 
+    def send_exception(self, reported_error: ReportedError):
+        message = self.error_message(reported_error)
+        self.send_event(message)
+        reported_error.delete_saved_file()
+
     async def process_queue(self):
         while True:
             message = await self.queue.get()
@@ -163,12 +174,14 @@ class EventsEndpoint(RESTEndpoint):
             self._logger.warning('Ignoring tribler exception, because the endpoint is shutting down.')
             return
 
-        message = self.error_message(reported_error)
         if self.has_connection_to_gui():
-            self.send_event(message)
-        elif not self.undelivered_error:
-            # If there are several undelivered errors, we store the first error as more important and skip other
-            self.undelivered_error = message
+            self.send_exception(reported_error)
+        else:
+            if reported_error.should_stop:
+                reported_error.save_to_file()
+            if not self.undelivered_error:
+                # If there are several undelivered errors, we store the first error as more important and skip other
+                self.undelivered_error = self.error_message(reported_error)
 
     @docs(
         tags=["General"],
@@ -205,6 +218,11 @@ class EventsEndpoint(RESTEndpoint):
             error = self.undelivered_error
             self.undelivered_error = None
             await response.write(self.encode_message(error))
+
+        unreported_errors_from_last_run = ReportedError.get_saved_errors()
+        for unreported_error in unreported_errors_from_last_run:
+            await response.write(self.encode_message(self.error_message(unreported_error)))
+            unreported_error.delete_saved_file()
 
         self.events_responses.append(response)
 

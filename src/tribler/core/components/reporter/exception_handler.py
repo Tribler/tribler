@@ -134,6 +134,9 @@ class CoreExceptionHandler:
             if process_manager:
                 process_manager.current_process.set_error(exception)
 
+            if should_stop:
+                reported_error.save_to_file()
+
             if self.report_callback:
                 self.logger.error('Call report callback')
                 self.report_callback(reported_error)  # pylint: disable=not-callable

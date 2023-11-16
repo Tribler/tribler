@@ -256,7 +256,6 @@ class CoreManager(QObject):
         self._logger.info(f"{SHUTDOWN_ENDPOINT} request was processed by Core. Response: {response}")
 
     def send_shutdown_request(self, initial=False):
-        print(f"sending shutdown request")
         if initial:
             self._logger.info(f"Sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
         else:
