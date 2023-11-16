@@ -48,7 +48,8 @@ from tribler.core.components.torrent_checker.torrent_checker.dataclasses import 
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import TriblerDatabase, get_max, get_or_create, handle_db_if_corrupted, \
+from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, TriblerDatabase, get_max, get_or_create, \
+    handle_db_if_corrupted, \
     run_threaded
 from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
@@ -452,9 +453,12 @@ class MetadataStore:
     async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
         try:
             return await run_threaded(self.db, self.process_compressed_mdblob, compressed_data, **kwargs)
+        except DatabaseIsCorrupted:
+            raise # re-raise this exception and terminate the Core process
         except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
-            self._logger.warning("DB transaction error when tried to process compressed mdblob: %s", str(e))
-            return None
+            self._logger.exception("DB transaction error when tried to process compressed mdblob: "
+                                   f"{e.__class__.__name__}: {e}", exc_info=e)
+            return []
 
     def process_compressed_mdblob(self, compressed_data, **kwargs):
         try:
