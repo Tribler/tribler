@@ -75,7 +75,7 @@ from tribler.gui.defs import (
     PAGE_SETTINGS,
     PAGE_TRUST,
     PAGE_TRUST_GRAPH_PAGE,
-    RESTART_TO_FIX_CORRUPTED_DB_MESSAGE, SHUTDOWN_WAITING_PERIOD,
+    SHUTDOWN_WAITING_PERIOD,
 )
 from tribler.gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
@@ -1259,15 +1259,3 @@ class TriblerWindow(QMainWindow):
         self.pending_uri_requests.append(uri)
         if self.ui_started and not self.start_download_dialog_active:
             self.process_uri_request()
-
-    def show_database_is_corrupted_dialog(self, db_file_path: Path):
-        message = tr(RESTART_TO_FIX_CORRUPTED_DB_MESSAGE)
-        formatted_message = f'{message}:<br/><br/>{db_file_path}'
-
-        self.dialog = ConfirmationDialog(
-            self,
-            tr("Database corruption detected"),
-            formatted_message,
-            [(tr("OK"), BUTTON_TYPE_CONFIRM)],
-        )
-        self.dialog.show()

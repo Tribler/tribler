@@ -100,14 +100,6 @@ class ErrorHandler:
         error_text = f'{reported_error.text}\n{reported_error.long_text}'
         self._logger.error(error_text)
 
-        if reported_error.type == 'DatabaseIsCorrupted':
-            db_file_path = Path(reported_error.text)
-            if not db_file_path.exists():
-                db_file_path = ''
-            self.tribler_window.show_database_is_corrupted_dialog(db_file_path)
-            self._stop_tribler(error_text)
-            return
-
         if reported_error.should_stop:
             self._stop_tribler(error_text)
 

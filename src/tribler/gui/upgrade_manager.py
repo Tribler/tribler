@@ -16,7 +16,7 @@ from tribler.gui.defs import BUTTON_TYPE_NORMAL, CORRUPTED_DB_WAS_FIXED_MESSAGE,
     UPGRADE_CANCELLED_ERROR_TITLE
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
-from tribler.gui.utilities import connect, format_size, tr
+from tribler.gui.utilities import connect, format_size, show_message_corrupted_database_was_fixed, tr
 
 if TYPE_CHECKING:
     from tribler.gui.tribler_window import TriblerWindow
@@ -251,16 +251,10 @@ class UpgradeManager(QObject):
         if exc is None:
             self.upgrader_finished.emit()
         elif isinstance(exc, DatabaseIsCorrupted):
-            self.show_db_corruption_fixed_message(exc)
             self.upgrader_finished.emit()
+            show_message_corrupted_database_was_fixed(db_path=str(exc))
         else:
             raise UpgradeError(f'{exc.__class__.__name__}: {exc}') from exc
-
-    def show_db_corruption_fixed_message(self, exc):
-        msg = self._format_database_corruption_fixed_message(exc)
-        message_box = QMessageBox(icon=QMessageBox.Critical, text=msg)
-        message_box.setWindowTitle(tr("Database corruption fixed"))
-        message_box.exec()
 
     @staticmethod
     def _format_database_corruption_fixed_message(exc: DatabaseIsCorrupted) -> str:
