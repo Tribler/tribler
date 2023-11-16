@@ -125,7 +125,7 @@ class TriblerUpgrader:
         self.upgrade_pony_db_14to15()
 
         if self._db_is_corrupted_exception:
-            raise self._db_is_corrupted_exception
+            raise self._db_is_corrupted_exception  # pylint: disable=raising-bad-type
 
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
         self._logger.info(f'Remove old logs')
