@@ -218,3 +218,5 @@ NO_DISK_SPACE_ERROR_MESSAGE = "Not enough storage space available. \n" \
 CORRUPTED_DB_WAS_FIXED_MESSAGE = "The corrupted database file was fixed"
 
 RESTART_TO_FIX_CORRUPTED_DB_MESSAGE = "Please start Tribler again to fix the corrupted database file"
+
+EXITCODE_DATABASE_IS_CORRUPTED = 99  # Valid range for custom errors is 1..127
