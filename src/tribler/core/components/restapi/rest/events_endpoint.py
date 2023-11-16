@@ -86,12 +86,6 @@ class EventsEndpoint(RESTEndpoint):
             "kwargs": {"public_key": self.public_key, "version": version_id}
         }
 
-    def send_saved_errors(self):
-        unreported_errors = ReportedError.get_saved_errors()
-        for error in unreported_errors:
-            print(f"listing error: {error}")
-            self.on_tribler_exception(error)
-
     def error_message(self, reported_error: ReportedError) -> MessageDict:
         return {
             "topic": notifications.tribler_exception.__name__,
