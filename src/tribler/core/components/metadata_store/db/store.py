@@ -48,7 +48,8 @@ from tribler.core.components.torrent_checker.torrent_checker.dataclasses import 
 from tribler.core.exceptions import InvalidSignatureException
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import TriblerDatabase, get_max, get_or_create, run_threaded
+from tribler.core.utilities.pony_utils import TriblerDatabase, get_max, get_or_create, handle_db_if_corrupted, \
+    run_threaded
 from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
@@ -218,6 +219,7 @@ class MetadataStore:
             create_db = True
             db_path_string = ":memory:"
         else:
+            handle_db_if_corrupted(db_filename)
             create_db = not db_filename.is_file()
             db_path_string = str(db_filename)
 
