@@ -9,9 +9,9 @@ from typing import Optional, Set, TYPE_CHECKING, Type, Union
 from tribler.core.components.exceptions import ComponentStartupException, MissedDependency, NoneComponent
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
 from tribler.core.utilities.pony_utils import DatabaseIsCorrupted
 from tribler.core.utilities.process_manager import get_global_process_manager
-from tribler.gui.defs import EXITCODE_DATABASE_IS_CORRUPTED
 
 if TYPE_CHECKING:
     from tribler.core.components.session import Session, T

@@ -10,9 +10,9 @@ from typing import Callable, Dict, Optional, Set, Tuple, Type
 from tribler.core.components.exceptions import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
 from tribler.core.utilities.pony_utils import DatabaseIsCorrupted
 from tribler.core.utilities.process_manager import get_global_process_manager
-from tribler.gui.defs import EXITCODE_DATABASE_IS_CORRUPTED
 
 # There are some errors that we are ignoring.
 
