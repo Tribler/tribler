@@ -444,5 +444,10 @@ class TriblerDatabase(Database):
 
         self._bind(TriblerSQLiteProvider, **kwargs)
 
+    def call_on_connect(self, con):
+        if self.provider is not None:
+            with marking_corrupted_db(self.provider.pool.filename):
+                super().call_on_connect(con)
+
 def track_slow_db_sessions():
     TriblerDbSession.track_slow_db_sessions = True
