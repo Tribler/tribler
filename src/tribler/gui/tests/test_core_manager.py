@@ -205,32 +205,32 @@ def test_on_core_started(core_manager):
 
 def test_on_core_finished_during_shutdown(core_manager):
     core_manager.shutting_down = True
-    core_manager.update_last_core_process_log = MagicMock()
+    core_manager.log_core_finished = MagicMock()
 
     # Case 1: Shouldn't quit app on core finished
     core_manager.should_quit_app_on_core_finished = False
     core_manager.on_core_finished(exit_code=0, exit_status='OK')
 
     assert not core_manager.app_manager.quit_application.called
-    assert core_manager.update_last_core_process_log.called
+    assert core_manager.log_core_finished.called
 
     # Case 2: should quit app on core finished
     core_manager.should_quit_app_on_core_finished = True
-    core_manager.update_last_core_process_log.reset_mock()
+    core_manager.log_core_finished.reset_mock()
     core_manager.on_core_finished(exit_code=0, exit_status='OK')
 
     assert core_manager.app_manager.quit_application.called
-    assert core_manager.update_last_core_process_log.called
+    assert core_manager.log_core_finished.called
 
 
 def test_on_core_finished_during_core_restart(core_manager):
     core_manager.is_restarting = True
     core_manager.start_tribler_core = MagicMock()
-    core_manager.update_last_core_process_log = MagicMock()
+    core_manager.log_core_finished = MagicMock()
 
     core_manager.on_core_finished(exit_code=0, exit_status='OK')
 
-    assert core_manager.update_last_core_process_log.called
+    assert core_manager.log_core_finished.called
     assert not core_manager.is_restarting
     assert core_manager.start_tribler_core.called
 

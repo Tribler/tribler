@@ -5,11 +5,12 @@ import os
 import re
 import sys
 import time
+import uuid
 from collections import deque
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
@@ -159,16 +160,20 @@ class CoreManager(QObject):
         self.core_started_at = time.time()
         self.core_running = True
 
-        self.add_core_started_log()
+        self.log_core_started()
         self.check_core_api_port()
 
-    def add_core_started_log(self):
+    def log_core_started(self):
         core_restart_log = CoreRestartLog.current(self.core_process.pid())
         self.core_restart_logs.append(core_restart_log)
 
-    def update_last_core_process_log(self, exit_code: int, exit_status: str):
+    def log_core_finished(self, exit_code: int, exit_status: str):
         if self.core_restart_logs:
-            self.core_restart_logs[-1].finish(exit_code, exit_status)
+            self.core_restart_logs[-1].log_finished(exit_code, exit_status)
+
+    def log_core_restart_triggered(self):
+        if self.core_restart_logs:
+            self.core_restart_logs[-1].log_restart_triggered()
 
     def core_restarted_frequently(self):
         return len([log for log in self.core_restart_logs if log.is_recent_log()]) > CORE_RESTART_TRACK_COUNT
@@ -317,6 +322,8 @@ class CoreManager(QObject):
         self.should_quit_app_on_core_finished = False
         self.shutting_down = False
 
+        self.log_core_restart_triggered()
+
         if self.core_finished:
             self.start_tribler_core()
 
@@ -368,7 +375,7 @@ class CoreManager(QObject):
 
     def on_core_finished(self, exit_code, exit_status):
         self._logger.info(f"Core process finished with exit-code: {exit_code} and status: {exit_status}")
-        self.update_last_core_process_log(exit_code, exit_status)
+        self.log_core_finished(exit_code, exit_status)
 
         self.core_running = False
         self.core_connected = False
