@@ -71,6 +71,19 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 
 
 def catch_db_is_corrupted_exception(upgrader_method):
+    # This decorator applied for TriblerUpgrader methods. It suppresses and remembers the DatabaseIsCorrupted exception.
+    # As a result, if one upgrade method raises an exception, the following upgrade methods are still executed.
+
+    # The reason for this is the following: it is possible that one upgrade methods upgrades a database A, while
+    # the next upgrade method upgrades a database B. If a corruption detected in the database A, the database B still
+    # need to be upgraded. So we want to temporarily suppress DatabaseIsCorrupted exception until all upgrades are
+    # executed.
+
+    # If an upgrade found the database to be corrupted, the database is marked as corrupted. Then, the next upgrade
+    # will rename the corrupted database file (this is handled by the get_db_version call) and immediately return
+    # because there is no database to upgrade. So, if one upgrade function detects the database corruption, all the
+    # following upgrade functions for this specific database will skip the actual upgrade. As a result, a new
+    # database with the current DB version will be created on the Tribler Core start.
 
     @wraps(upgrader_method)
     def new_method(*args, **kwargs):
@@ -81,7 +94,7 @@ def catch_db_is_corrupted_exception(upgrader_method):
             self._logger.exception(exc)
 
             if not self._db_is_corrupted_exception:
-                self._db_is_corrupted_exception = exc
+                self._db_is_corrupted_exception = exc  # Suppress and remember the exception to re-raise it later
 
     return new_method
 
@@ -125,6 +138,9 @@ class TriblerUpgrader:
         self.upgrade_pony_db_14to15()
 
         if self._db_is_corrupted_exception:
+            # The current code is executed in the worker's thread. After all upgrade methods are executed,
+            # we re-raise the delayed exception, and then it is received and handled in the main thread
+            # by the UpgradeManager.on_worker_finished signal handler.
             raise self._db_is_corrupted_exception  # pylint: disable=raising-bad-type
 
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
