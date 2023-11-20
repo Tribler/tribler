@@ -22,7 +22,7 @@ def fixture_core_manager():
 def test_on_core_started_calls_check_core_api_port(core_manager):
     assert not core_manager.core_running
     assert not core_manager.core_started
-    assert core_manager.core_started_at is None
+    assert core_manager.core_process_started_at is None
     with patch.object(core_manager, 'check_core_api_port') as check_core_api_port:
         core_manager.on_core_started()
         assert check_core_api_port.called
@@ -50,7 +50,7 @@ def test_check_core_api_port_shutting_down(core_manager):
 
 def test_check_core_api_port_core_process_not_found(core_manager):
     core_manager.core_running = True
-    core_manager.core_started_at = time.time()
+    core_manager.core_process_started_at = time.time()
     core_manager.process_manager.current_process.get_core_process.return_value = None
     core_manager.process_manager.get_primary_process.return_value = None
     core_manager.check_core_api_port()
@@ -60,7 +60,7 @@ def test_check_core_api_port_core_process_not_found(core_manager):
 
 def test_check_core_api_port_not_set(core_manager):
     core_manager.core_running = True
-    core_manager.core_started_at = time.time()
+    core_manager.core_process_started_at = time.time()
     core_manager.process_manager.current_process.get_core_process().api_port = None
     core_manager.check_core_api_port()
     assert core_manager.process_manager.current_process.get_core_process.called
@@ -70,7 +70,7 @@ def test_check_core_api_port_not_set(core_manager):
 @patch('tribler.gui.core_manager.request_manager')
 def test_check_core_api_port(request_manager: MagicMock, core_manager: CoreManager):
     core_manager.core_running = True
-    core_manager.core_started_at = time.time()
+    core_manager.core_process_started_at = time.time()
     api_port = core_manager.process_manager.current_process.get_core_process().api_port
     core_manager.check_core_api_port()
     assert core_manager.process_manager.current_process.get_core_process.called
@@ -82,7 +82,7 @@ def test_check_core_api_port(request_manager: MagicMock, core_manager: CoreManag
 def test_check_core_api_port_timeout(core_manager):
     core_manager.core_running = True
     # The timeout should be 30 seconds so let's pretend the core started 31 seconds before now
-    core_manager.core_started_at = time.time() - 121
+    core_manager.core_process_started_at = time.time() - 121
     core_manager.process_manager.current_process.get_core_process.return_value = None
     core_manager.process_manager.get_primary_process.return_value = None
     with pytest.raises(CoreConnectTimeoutError, match="^Can't get Core API port value within 120 seconds$"):

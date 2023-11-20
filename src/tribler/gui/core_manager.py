@@ -63,14 +63,15 @@ class CoreManager(QObject):
         self.core_env = None
 
         self.core_started = False
-        self.core_started_at: Optional[int] = None
         self.core_running = False
         self.core_connected = False
         self.shutting_down = False
         self.core_finished = False
         self.is_restarting = False
-        self.core_old_pid = None
-        self.started_at = int(time.time())
+
+        self.core_manager_started_at = int(time.time())
+        self.core_process_started_at: Optional[int] = None
+        self.old_core_process_pid = None
 
         self.should_quit_app_on_core_finished = False
 
@@ -157,7 +158,7 @@ class CoreManager(QObject):
     def on_core_started(self):
         self._logger.info("Core process started")
         self.core_started = True
-        self.core_started_at = time.time()
+        self.core_process_started_at = time.time()
         self.core_running = True
 
         self.log_core_started()
@@ -207,7 +208,7 @@ class CoreManager(QObject):
             # with reschedule_on_err=False. I kept reschedule_on_err=True just for reinsurance.
             self.events_manager.connect_to_core(reschedule_on_err=True)
 
-        elif time.time() - self.core_started_at > API_PORT_CHECK_TIMEOUT:
+        elif time.time() - self.core_process_started_at > API_PORT_CHECK_TIMEOUT:
             raise CoreConnectTimeoutError(f"Can't get Core API port value within {API_PORT_CHECK_TIMEOUT} seconds")
         else:
             self.check_core_api_port_timer.start(API_PORT_CHECK_INTERVAL)
@@ -318,7 +319,7 @@ class CoreManager(QObject):
         self._logger.info("Restarting Core Process ...")
         self.is_restarting = True
 
-        self.core_old_pid = self.core_process.pid()
+        self.old_core_process_pid = self.core_process.pid()
         self.should_quit_app_on_core_finished = False
         self.shutting_down = False
 
