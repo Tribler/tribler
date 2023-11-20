@@ -46,11 +46,10 @@ from tribler.core.components.metadata_store.db.serialization import (
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import process_payload
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.exceptions import InvalidSignatureException
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted, handle_db_if_corrupted
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, TriblerDatabase, get_max, get_or_create, \
-    handle_db_if_corrupted, \
-    run_threaded
+from tribler.core.utilities.pony_utils import TriblerDatabase, get_max, get_or_create, run_threaded
 from tribler.core.utilities.search_utils import torrent_rank
 from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import MEMORY_DB
@@ -220,6 +219,7 @@ class MetadataStore:
             create_db = True
             db_path_string = ":memory:"
         else:
+            # We need to handle the database corruption case before determining the state of the create_db flag.
             handle_db_if_corrupted(db_filename)
             create_db = not db_filename.is_file()
             db_path_string = str(db_filename)

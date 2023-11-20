@@ -1,14 +1,13 @@
 import contextlib
 import datetime
 import logging
-import sqlite3
 from collections import deque
 from time import time as now
 
 from pony.orm import db_session
 
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.utilities.pony_utils import marking_corrupted_db
+from tribler.core.utilities.db_corruption_handling import sqlite_replacement
 
 TABLE_NAMES = (
     "ChannelNode", "TorrentState", "TorrentState_TrackerState", "ChannelPeer", "ChannelVote", "TrackerState", "Vsids")
@@ -127,12 +126,12 @@ class PonyToPonyMigration:
     def do_migration(self):
         result = None  # estimated duration in seconds of ChannelNode table copying time
         try:
-            with marking_corrupted_db(self.old_db_path):
-                old_table_columns = {}
-                for table_name in TABLE_NAMES:
-                    old_table_columns[table_name] = get_table_columns(self.old_db_path, table_name)
+            old_table_columns = {}
+            for table_name in TABLE_NAMES:
+                old_table_columns[table_name] = get_table_columns(self.old_db_path, table_name)
 
-                with contextlib.closing(sqlite3.connect(self.new_db_path)) as connection, connection:
+            with contextlib.closing(sqlite_replacement.connect(self.new_db_path)) as connection:
+                with connection:
                     cursor = connection.cursor()
                     cursor.execute("PRAGMA journal_mode = OFF;")
                     cursor.execute("PRAGMA synchronous = OFF;")
@@ -235,7 +234,7 @@ def calc_progress(duration_now, duration_half=60.0):
 
 
 def get_table_columns(db_path, table_name):
-    with contextlib.closing(sqlite3.connect(db_path)) as connection, connection:
+    with contextlib.closing(sqlite_replacement.connect(db_path)) as connection, connection:
         cursor = connection.cursor()
         cursor.execute(f'SELECT * FROM {table_name} LIMIT 1')
         names = [description[0] for description in cursor.description]

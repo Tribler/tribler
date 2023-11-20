@@ -7,6 +7,7 @@ import pytest
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.sentry_reporter import sentry_reporter
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 
 
 # pylint: disable=protected-access, redefined-outer-name
@@ -83,6 +84,17 @@ def test_unhandled_error_observer_exception(exception_handler):
     assert reported_error.event == {'sentry': 'event'}
     assert reported_error.context == "{'Any key': 'Any value'}"
     assert reported_error.should_stop
+
+
+@patch('tribler.core.components.reporter.exception_handler.get_global_process_manager')
+def test_unhandled_error_observer_database_corrupted(get_global_process_manager, exception_handler):
+    # test that database corruption exception reported to the GUI
+    exception = DatabaseIsCorrupted('db_path_string')
+    exception_handler.report_callback = MagicMock()
+    exception_handler.unhandled_error_observer(None, {'exception': exception})
+
+    get_global_process_manager().sys_exit.assert_called_once_with(99, exception)
+    exception_handler.report_callback.assert_not_called()
 
 
 def test_unhandled_error_observer_only_message(exception_handler):

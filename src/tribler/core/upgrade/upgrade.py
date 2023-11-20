@@ -23,8 +23,9 @@ from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration
 from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
 from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.utilities.configparser import CallbackConfigParser
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, get_db_version
+from tribler.core.utilities.pony_utils import get_db_version
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 
@@ -73,17 +74,17 @@ def cleanup_noncompliant_channel_torrents(state_dir):
 def catch_db_is_corrupted_exception(upgrader_method):
     # This decorator applied for TriblerUpgrader methods. It suppresses and remembers the DatabaseIsCorrupted exception.
     # As a result, if one upgrade method raises an exception, the following upgrade methods are still executed.
-
-    # The reason for this is the following: it is possible that one upgrade methods upgrades a database A, while
-    # the next upgrade method upgrades a database B. If a corruption detected in the database A, the database B still
-    # need to be upgraded. So we want to temporarily suppress DatabaseIsCorrupted exception until all upgrades are
-    # executed.
-
-    # If an upgrade found the database to be corrupted, the database is marked as corrupted. Then, the next upgrade
-    # will rename the corrupted database file (this is handled by the get_db_version call) and immediately return
-    # because there is no database to upgrade. So, if one upgrade function detects the database corruption, all the
-    # following upgrade functions for this specific database will skip the actual upgrade. As a result, a new
-    # database with the current DB version will be created on the Tribler Core start.
+    #
+    # The reason for this is the following: it is possible that one upgrade method upgrades database A
+    # while the following upgrade method upgrades database B. If a corruption is detected in the database A,
+    # the database B still needs to be upgraded. So, we want to temporarily suppress the DatabaseIsCorrupted exception
+    # until all upgrades are executed.
+    #
+    # If an upgrade finds the database to be corrupted, the database is marked as corrupted. Then, the next upgrade
+    # will rename the corrupted database file (the get_db_version call handles this) and immediately return because
+    # there is no database to upgrade. So, if one upgrade function detects database corruption, all the following
+    # upgrade functions for this specific database will skip the actual upgrade. As a result, a new database with
+    # the current DB version will be created on the Tribler Core start.
 
     @wraps(upgrader_method)
     def new_method(*args, **kwargs):

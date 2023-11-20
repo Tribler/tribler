@@ -5,7 +5,8 @@ from pony.orm import count, db_session, desc, select
 
 from tribler.core.components.bandwidth_accounting.db import history, misc, transaction as db_transaction
 from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
-from tribler.core.utilities.pony_utils import TriblerDatabase, handle_db_if_corrupted
+from tribler.core.utilities.db_corruption_handling.base import handle_db_if_corrupted
+from tribler.core.utilities.pony_utils import TriblerDatabase
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
@@ -50,6 +51,7 @@ class BandwidthDatabase:
             create_db = True
             db_path_string = ":memory:"
         else:
+            # We need to handle the database corruption case before determining the state of the create_db flag.
             handle_db_if_corrupted(db_path)
             create_db = not db_path.is_file()
             db_path_string = str(db_path)

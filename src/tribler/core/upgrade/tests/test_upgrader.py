@@ -18,7 +18,7 @@ from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
 from tribler.core.upgrade.upgrade import TriblerUpgrader, catch_db_is_corrupted_exception, \
     cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
-from tribler.core.utilities.pony_utils import DatabaseIsCorrupted
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 from tribler.core.utilities.utilities import random_infohash
 
 

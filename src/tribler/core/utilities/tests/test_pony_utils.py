@@ -1,14 +1,12 @@
 import sqlite3
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 import pytest
 
 from pony.orm.core import QueryStat, Required
 from tribler.core.utilities import pony_utils
-from tribler.core.utilities.pony_utils import DatabaseIsCorrupted, _mark_db_as_corrupted, get_db_version, \
-    handle_db_if_corrupted, \
-    marking_corrupted_db, table_exists
+from tribler.core.utilities.pony_utils import get_db_version, table_exists
 
 EMPTY_DICT = {}
 
@@ -133,41 +131,6 @@ def db_path_fixture(tmp_path: Path):
     return db_path
 
 
-@patch('tribler.core.utilities.pony_utils._handle_corrupted_db')
-def test_handle_db_if_corrupted__not_corrupted(handle_corrupted_db: Mock, db_path: Path):
-    # If the corruption marker is not found, the handling of the database is not performed
-    handle_db_if_corrupted(db_path)
-    handle_corrupted_db.assert_not_called()
-
-
-def test_handle_db_if_corrupted__corrupted(db_path: Path):
-    # If the corruption marker is found, the corrupted database file is removed
-    marker_path = Path(str(db_path) + '.is_corrupted')
-    marker_path.touch()
-
-    handle_db_if_corrupted(db_path)
-    assert not db_path.exists()
-    assert not marker_path.exists()
-
-
-def test_marking_corrupted_db__not_malformed(db_path: Path):
-    # When the context manger encounters an exception not related to database corruption, it does nothing
-    with pytest.raises(ZeroDivisionError):
-        with marking_corrupted_db(db_path):
-            raise ZeroDivisionError()
-
-    assert not Path(str(db_path) + '.is_corrupted').exists()
-
-
-def test_marking_corrupted_db__malformed(db_path: Path):
-    # When the context manger encounters an exception not related to database corruption, it adds a corruption marker
-    with pytest.raises(DatabaseIsCorrupted):
-        with marking_corrupted_db(db_path):
-            raise sqlite3.DatabaseError('database disk image is malformed')
-
-    assert Path(str(db_path) + '.is_corrupted').exists()
-
-
 def test_get_db_version__db_does_not_exist(tmp_path: Path):
     # When the database does not exist, the call to get_db_version generates RuntimeError
     db_path = tmp_path / 'doesnotexist.db'
@@ -237,13 +200,3 @@ def test_get_db_version__corrupted_db(tmp_path: Path):
 
     with sqlite3.connect(db_path) as connection:
         assert not table_exists(connection.cursor(), 'MiscData')
-
-
-def test_mark_db_as_corrupted_file_does_not_exist(tmp_path: Path):
-    # The database file apparently was corrupted, and `_mark_db_as_corrupted(db_path)` is called to mark it as such.
-    # But the function was not able to find the database file at the specified path. In this unnormal situation,
-    # it raises an exception.
-
-    db_path = tmp_path / 'doesnotexist.db'
-    with pytest.raises(RuntimeError, match='^Corrupted database file not found: .*doesnotexist.db$'):
-        _mark_db_as_corrupted(db_path)
