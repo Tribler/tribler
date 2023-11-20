@@ -13,6 +13,7 @@ from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
 
 from tribler.core import notifications
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler.core.components.restapi.rest.utils import fix_unicode_dict
@@ -129,7 +130,7 @@ class EventsEndpoint(RESTEndpoint):
     def send_exception(self, reported_error: ReportedError):
         message = self.error_message(reported_error)
         self.send_event(message)
-        reported_error.delete_saved_file()
+        default_core_exception_handler.delete_saved_file(reported_error)
 
     async def process_queue(self):
         while True:
@@ -172,7 +173,7 @@ class EventsEndpoint(RESTEndpoint):
             self.send_exception(reported_error)
         else:
             if reported_error.should_stop:
-                reported_error.save_to_file()
+                default_core_exception_handler.save_to_file(reported_error)
             if not self.undelivered_error:
                 # If there are several undelivered errors, we store the first error as more important and skip other
                 self.undelivered_error = self.error_message(reported_error)
@@ -213,10 +214,10 @@ class EventsEndpoint(RESTEndpoint):
             self.undelivered_error = None
             await response.write(self.encode_message(error))
 
-        unreported_errors_from_last_run = ReportedError.get_saved_errors()
+        unreported_errors_from_last_run = default_core_exception_handler.get_saved_errors()
         for unreported_error in unreported_errors_from_last_run:
             await response.write(self.encode_message(self.error_message(unreported_error)))
-            unreported_error.delete_saved_file()
+            default_core_exception_handler.delete_saved_file(unreported_error)
 
         self.events_responses.append(response)
 
