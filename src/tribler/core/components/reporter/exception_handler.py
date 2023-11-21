@@ -187,7 +187,7 @@ class CoreExceptionHandler:
         self_copy.should_stop = False
         serialized_error = json.dumps(dataclasses.asdict(self_copy), indent=True)
 
-        with open(filepath, 'w') as exc_file:
+        with open(filepath, 'w', encoding='utf-8') as exc_file:
             exc_file.write(serialized_error)
 
     def delete_saved_file(self, reported_error: ReportedError):
@@ -203,7 +203,7 @@ class CoreExceptionHandler:
                 continue
 
             error_file_path = self.crash_dir / error_filename
-            with open(error_file_path, 'r') as file_handle:
+            with open(error_file_path, 'r', encoding='utf-8') as file_handle:
                 try:
                     saved_errors.append(ReportedError(**json.loads(file_handle.read())))
                 except JSONDecodeError:

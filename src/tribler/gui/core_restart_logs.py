@@ -33,7 +33,8 @@ class CoreRestartLog:
     def __repr__(self):
         known_end_time = self.finished_at or self.restart_triggered_at
         uptime = timedelta(seconds=known_end_time-self.started_at) if known_end_time else 'still running'
-        time_to_shutdown = timedelta(seconds=self.finished_at-self.restart_triggered_at) if self.finished_at and self.restart_triggered_at \
+        time_to_shutdown = timedelta(seconds=self.finished_at-self.restart_triggered_at) \
+            if self.finished_at and self.restart_triggered_at \
             else 'unknown'
         return f"CoreRestartLog(" \
                f"pid={self.core_pid}, " \

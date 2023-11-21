@@ -5,12 +5,9 @@ import os
 import re
 import sys
 import time
-import uuid
 from collections import deque
-from dataclasses import dataclass
-from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
