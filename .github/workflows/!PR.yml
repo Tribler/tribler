@@ -88,7 +88,6 @@ jobs:
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/coverage.yml
     secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
       CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
@@ -98,8 +97,6 @@ jobs:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/guitest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["windows-latest"]}'
@@ -120,8 +117,6 @@ jobs:
     needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/pytest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["windows-latest", "macos-latest"]}'
@@ -131,8 +126,6 @@ jobs:
     needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
-    secrets:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'

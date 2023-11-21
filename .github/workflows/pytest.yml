@@ -18,10 +18,6 @@ on:
         type: string
         required: false
 
-    secrets:
-      PYTEST_SENTRY_DSN:
-        required: false
-
 permissions:
   contents: read
 
@@ -35,9 +31,6 @@ jobs:
     defaults:
       run:
         shell: bash
-
-    env:
-      PYTEST_SENTRY_DSN: ${{secrets.PYTEST_SENTRY_DSN}}
 
     timeout-minutes: 15
 
