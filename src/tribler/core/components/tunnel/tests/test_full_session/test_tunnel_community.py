@@ -255,7 +255,7 @@ async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: 
     """
     leecher_community = await proxy_factory.get(exitnode=False, start_lt=True)
     # We don't want libtorrent peers interfering with the download. This is merely to avoid
-    # getting "unregistered address" warnings in the logs and should affect the outcome.
+    # getting "unregistered address" warnings in the logs and should not affect the outcome.
     leecher_community.readd_bittorrent_peers = MagicMock()  # type: ignore
 
     hidden_seeder_comm.build_tunnels(hops=1)
