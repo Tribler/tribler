@@ -3,7 +3,6 @@ from unittest.mock import Mock
 
 import pytest
 from aiohttp import ClientResponseError
-from libtorrent import bencode
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
@@ -28,11 +27,17 @@ def test_create_invalid_tdef():
     """
     invalid_metainfo = {}
     with pytest.raises(ValueError):
-        TorrentDef.load_from_memory(bencode(invalid_metainfo))
+        TorrentDef(metainfo=invalid_metainfo)
+
+    with pytest.raises(ValueError):
+        TorrentDef(metainfo=invalid_metainfo, ignore_validation=False)
 
     invalid_metainfo = {b'info': {}}
     with pytest.raises(ValueError):
-        TorrentDef.load_from_memory(bencode(invalid_metainfo))
+        TorrentDef(metainfo=invalid_metainfo)
+
+    with pytest.raises(ValueError):
+        TorrentDef(metainfo=invalid_metainfo, ignore_validation=False)
 
 
 def test_add_content_dir(tdef):
@@ -293,3 +298,58 @@ def test_get_files_with_length(tdef):
     tdef.metainfo = {b'info': {b'files': [{b'path.utf-8': [b'test\xff' + name_bytes], b'length': 123},
                                           {b'path': [b'file.txt'], b'length': 456}]}}
     assert tdef.get_files_with_length() == [(Path('file.txt'), 456)]
+
+
+def test_load_torrent_info(tdef: TorrentDef) -> None:
+    """
+    Test if load_torrent_info() loads the torrent info.
+    """
+    tdef.metainfo = {
+        b'info': {
+            b'name': 'torrent name',
+            b'files': [{b'path': [b'a.txt'], b'length': 123}],
+            b'piece length': 128,
+            b'pieces': b'\x00' * 20
+        }
+    }
+
+    assert not tdef.torrent_info_loaded()
+    tdef.load_torrent_info()
+    assert tdef.torrent_info_loaded()
+    assert tdef.torrent_info is not None
+
+
+def test_lazy_load_torrent_info(tdef: TorrentDef) -> None:
+    """
+    Test if accessing torrent_info loads the torrent info.
+    """
+    tdef.metainfo = {
+        b'info': {
+            b'name': 'torrent name',
+            b'files': [{b'path': [b'a.txt'], b'length': 123}],
+            b'piece length': 128,
+            b'pieces': b'\x00' * 20
+        }
+    }
+
+    assert not tdef.torrent_info_loaded()
+    assert tdef.torrent_info is not None
+    assert tdef.torrent_info_loaded()
+
+
+def test_generate_tree(tdef: TorrentDef) -> None:
+    """
+    Test if a torrent tree can be generated from a TorrentDef.
+    """
+    tdef.metainfo = {
+        b'info': {
+            b'name': 'torrent name',
+            b'files': [{b'path': [b'a.txt'], b'length': 123}],
+            b'piece length': 128,
+            b'pieces': b'\x00' * 20
+        }
+    }
+
+    tree = tdef.torrent_file_tree
+
+    assert tree.find(Path("torrent name") / "a.txt").size == 123

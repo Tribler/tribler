@@ -3,13 +3,16 @@ A wrapper around a libtorrent download.
 
 Author(s): Arno Bakker, Egbert Bouman
 """
+from __future__ import annotations
+
 import asyncio
 import base64
 import itertools
 import logging
-from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for
+from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for, get_running_loop
 from collections import defaultdict
 from contextlib import suppress
+from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from bitarray import bitarray
@@ -21,6 +24,7 @@ from tribler.core.components.libtorrent.download_manager.download_config import 
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler.core.components.libtorrent.download_manager.stream import Stream
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
+from tribler.core.components.libtorrent.torrent_file_tree import TorrentFileTree
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.libtorrent.utils.torrent_utils import check_handle, get_info_from_handle, require_handle
@@ -35,6 +39,15 @@ from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
 Getter = Callable[[Any], Any]
+
+
+class IllegalFileIndex(Enum):
+    """
+    Error codes for Download.get_file_index(). These are used by the GUI to render directories.
+    """
+    collapsed_dir = -1
+    expanded_dir = -2
+    unloaded = -3
 
 
 class Download(TaskManager):
@@ -379,6 +392,9 @@ class Download(TaskManager):
 
         try:
             self.tdef = TorrentDef.load_from_dict(metadata)
+            with suppress(RuntimeError):
+                # Try to load the torrent info in the background if we have a loop.
+                get_running_loop().run_in_executor(None, self.tdef.load_torrent_info)
         except ValueError as ve:
             self._logger.exception(ve)
             return
@@ -794,3 +810,75 @@ class Download(TaskManager):
     @check_handle([])
     def get_file_priorities(self):
         return self.handle.file_priorities()
+
+    def file_piece_range(self, file_path: Path) -> list[int]:
+        """
+        Get the piece range of a given file, specified by the path.
+
+        Calling this method with anything but a file path will return an empty list.
+        """
+        file_index = self.get_file_index(file_path)
+        if file_index < 0:
+            return []
+
+        start_piece = self.tdef.torrent_info.map_file(file_index, 0, 1).piece
+        # Note: next_piece contains the next piece that is NOT part of this file.
+        if file_index < self.tdef.torrent_info.num_files() - 1:
+            next_piece = self.tdef.torrent_info.map_file(file_index + 1, 0, 1).piece
+        else:
+            # There is no next file so the nex piece is the last piece index + 1 (num_pieces()).
+            next_piece = self.tdef.torrent_info.num_pieces()
+
+        return list(range(start_piece, next_piece))
+
+    @check_handle(0.0)
+    def get_file_completion(self, path: Path) -> float:
+        """
+        Calculate the completion of a given file or directory.
+        """
+        total = 0
+        have = 0
+        for piece_index in self.file_piece_range(path):
+            have += self.handle.have_piece(piece_index)
+            total += 1
+        if total == 0:
+            return 1.0
+        return have/total
+
+    def get_file_length(self, path: Path) -> int:
+        """
+        Get the length of a file or directory in bytes. Returns 0 if the given path does not point to an existing path.
+        """
+        result = self.tdef.torrent_file_tree.find(path)
+        if result is not None:
+            return result.size
+        return 0
+
+    def get_file_index(self, path: Path) -> int:
+        """
+        Get the index of a file or directory in a torrent. Note that directories do not have real file indices.
+
+        Special cases ("error codes"):
+
+         - ``-1`` (IllegalFileIndex.collapsed_dir): the given path is not a file but a collapsed directory.
+         - ``-2`` (IllegalFileIndex.expanded_dir): the given path is not a file but an expanded directory.
+         - ``-3`` (IllegalFileIndex.unloaded): the data structure is not loaded or the path is not found.
+        """
+        result = self.tdef.torrent_file_tree.find(path)
+        if isinstance(result, TorrentFileTree.File):
+            return self.tdef.torrent_file_tree.find(path).index
+        if isinstance(result, TorrentFileTree.Directory):
+            return (IllegalFileIndex.collapsed_dir.value if result.collapsed
+                    else IllegalFileIndex.expanded_dir.value)
+        return IllegalFileIndex.unloaded.value
+
+    def is_file_selected(self, file_path: Path) -> bool:
+        """
+        Check if the given file path is selected.
+
+        Calling this method with anything but a file path will return False.
+        """
+        result = self.tdef.torrent_file_tree.find(file_path)
+        if isinstance(result, TorrentFileTree.File):
+            return result.selected
+        return False
