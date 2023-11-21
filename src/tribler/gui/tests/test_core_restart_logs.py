@@ -14,7 +14,7 @@ def test_current_method():
 def test_finish_method():
     log = CoreRestartLog.current(123)
     time.sleep(0.1)
-    log.finish(exit_code=0, exit_status="OK")
+    log.log_finished(exit_code=0, exit_status="OK")
     assert log.finished_at >= log.started_at
     assert log.exit_code == 0
     assert log.exit_status == "OK"
@@ -33,6 +33,7 @@ def test_repr_method():
         core_pid=123,
         started_at=int(datetime.strptime('2023-11-10', '%Y-%m-%d').timestamp()),
         finished_at=int(datetime.strptime('2023-11-12', '%Y-%m-%d').timestamp()),
+        restart_triggered_at=int(datetime.strptime('2023-11-11', '%Y-%m-%d').timestamp()),
         exit_code=0,
         exit_status='OK'
     )
@@ -40,7 +41,7 @@ def test_repr_method():
                     "pid=123, " \
                     "started_at='2023-11-10 00:00:00', " \
                     "uptime='2 days, 0:00:00',  " \
+                    "time_to_shutdown='1 day, 0:00:00',  " \
                     "exit_code=0, " \
-                    "exit_status='OK'" \
-                    ")"
+                    "exit_status='OK')"
     assert repr(log) == expected_repr
