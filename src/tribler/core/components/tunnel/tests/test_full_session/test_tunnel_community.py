@@ -6,7 +6,7 @@ from asyncio import all_tasks, get_event_loop, sleep
 from collections import defaultdict
 from itertools import permutations
 from typing import List, Optional, Tuple
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 from _pytest.tmpdir import TempPathFactory
@@ -144,6 +144,7 @@ async def create_tunnel_community(temp_path_factory: TempPathFactory,
         download_manager.initialize()
         download_manager.is_shutdown_ready = lambda: True
     tunnel_community = ipv8.overlay
+    tunnel_community.should_join_circuit = AsyncMock(return_value=True)
 
     if exit_node_enable:
         ipv8.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
@@ -253,6 +254,9 @@ async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: 
     Test the hidden services overlay by constructing an end-to-end circuit and downloading a torrent over it
     """
     leecher_community = await proxy_factory.get(exitnode=False, start_lt=True)
+    # We don't want libtorrent peers interfering with the download. This is merely to avoid
+    # getting "unregistered address" warnings in the logs and should affect the outcome.
+    leecher_community.readd_bittorrent_peers = MagicMock()  # type: ignore
 
     hidden_seeder_comm.build_tunnels(hops=1)
 
@@ -266,7 +270,6 @@ async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: 
     download_finished = asyncio.Event()
 
     def download_state_callback(state):
-        leecher_community.monitor_downloads([state])
         logger.info(f"Time: {time.time()}, status: {state.get_status()}, progress: {state.get_progress()}")
         if state.get_progress():
             download_finished.set()
