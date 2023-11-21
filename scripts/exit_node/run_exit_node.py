@@ -5,23 +5,21 @@ import argparse
 import logging
 import os
 import re
-import signal
 import sys
 import time
-from asyncio import ensure_future, get_event_loop
+from asyncio import get_running_loop, run
 from ipaddress import AddressValueError, IPv4Address
 
 from ipv8.messaging.anonymization.tunnel import Circuit
 from ipv8.taskmanager import TaskManager
+from ipv8.util import run_forever
 
 from tribler.core import notifications
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
-from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
 from tribler.core.components.session import Session
-from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.osutils import get_root_state_directory
@@ -35,9 +33,7 @@ def components_gen():
     yield KeyComponent()
     yield RESTComponent()
     yield Ipv8Component()
-    yield ResourceMonitorComponent()
     yield BandwidthAccountingComponent()
-    yield SocksServersComponent()
     yield TunnelsComponent()
 
 
@@ -98,6 +94,7 @@ class TunnelHelperService(TaskManager):
         self.log_circuits = False
         self.session = None
         self.community = None
+        self.ipv8 = None
 
     def on_circuit_reject(self, reject_time, balance):
         with open(os.path.join(self.session.config.state_dir, "circuit_rejects.log"), 'a') as out_file:
@@ -105,13 +102,6 @@ class TunnelHelperService(TaskManager):
             out_file.write("%d,%d\n" % (time_millis, balance))
 
     def tribler_started(self):
-        async def signal_handler(sig):
-            print(f"Received shut down signal {sig}")  # noqa: T001
-            await self.stop()
-
-        signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
-        signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
-
         component = self.session.get_instance(TunnelsComponent)
         tunnel_community = component.community
         self.register_task("bootstrap", tunnel_community.bootstrap, interval=30)
@@ -122,20 +112,19 @@ class TunnelHelperService(TaskManager):
         for handler in handlers:
             root_logger.removeHandler(handler)
         logging.getLogger().setLevel(logging.ERROR)
-        component = self.session.get_instance(Ipv8Component)
-        ipv8 = component.ipv8
+
+        self.ipv8 = self.session.get_instance(Ipv8Component).ipv8
         new_strategies = []
-        with ipv8.overlay_lock:
-            for strategy, target_peers in ipv8.strategies:
+        with self.ipv8.overlay_lock:
+            for strategy, target_peers in self.ipv8.strategies:
                 if strategy.overlay == tunnel_community:
                     new_strategies.append((strategy, -1))
                 else:
                     new_strategies.append((strategy, target_peers))
-            ipv8.strategies = new_strategies
+            self.ipv8.strategies = new_strategies
 
     def circuit_removed(self, circuit: Circuit, additional_info: str):
-        ipv8 = Ipv8Component.instance().ipv8
-        ipv8.network.remove_by_address(circuit.peer.address)
+        self.ipv8.network.remove_by_address(circuit.peer.address)
         if self.log_circuits:
             with open(os.path.join(self.session.config.state_dir, "circuits.log"), 'a') as out_file:
                 duration = time.time() - circuit.creation_time
@@ -163,7 +152,6 @@ class TunnelHelperService(TaskManager):
             self._stopping = True
             await self.shutdown_task_manager()
             await self.session.shutdown()
-            get_event_loop().stop()
 
 
 class PortAction(argparse.Action):
@@ -199,9 +187,9 @@ class IPPortAction(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
-def main():
+async def main():
     parser = argparse.ArgumentParser(add_help=False,
-                                     description=('Tunnel helper script, starts a (hidden) tunnel as a service'))
+                                     description='Tunnel helper script, starts a (hidden) tunnel as a service')
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS,
                         help='Show this help message and exit')
     parser.add_argument('--ipv8_port', '-d', default=-1, type=int, help='IPv8 port', action=PortAction,
@@ -227,16 +215,14 @@ def main():
     parser.add_argument('--fragile', '-f', help='Fail at the first error', action='store_true')
 
     args = parser.parse_args(sys.argv[1:])
-    service = TunnelHelperService()
-    loop = get_event_loop()
     if args.fragile:
-        make_async_loop_fragile(loop)
+        make_async_loop_fragile(get_running_loop())
 
-    coro = service.start(args)
-    ensure_future(coro)
-
-    loop.run_forever()
+    service = TunnelHelperService()
+    await service.start(args)
+    await run_forever()
+    await service.stop()
 
 
 if __name__ == "__main__":
-    main()
+    run(main())
