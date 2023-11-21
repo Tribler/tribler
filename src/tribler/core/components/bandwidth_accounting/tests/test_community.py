@@ -1,3 +1,5 @@
+import unittest.mock
+
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 
@@ -66,10 +68,17 @@ class TestBandwidthAccountingCommunity(TriblerTestBase):
 
     async def test_bilateral_transaction_timestamps(self):
         """
-        Test creating subsequent transactions and check whether the timestamps are different.
+        Test whether the timestamps are different for transactions created at different times.
+
+        We do not depend on chance and ensure that `time.time()` is different between calls.
         """
-        tx1 = await self.overlay(ID1).do_payout(self.peer(ID2), 500)
-        tx2 = await self.overlay(ID1).do_payout(self.peer(ID2), 500)
+        with unittest.mock.patch('time.time') as fake_time:
+            fake_time.return_value = 10.0
+            tx1 = await self.overlay(ID1).do_payout(self.peer(ID2), 500)
+
+        with unittest.mock.patch('time.time') as fake_time:
+            fake_time.return_value = 11.0
+            tx2 = await self.overlay(ID1).do_payout(self.peer(ID2), 500)
 
         assert tx1.timestamp != tx2.timestamp
 
