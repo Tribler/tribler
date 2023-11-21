@@ -172,7 +172,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.send_report_button.setText(tr("SENDING..."))
 
         self.sentry_reporter.send_event(
-            event=self.reported_error.event,
+            event=self.reported_error.event or {},
             tags=self.additional_tags,
             info=self.info,
             last_core_output=self.reported_error.last_core_output,
