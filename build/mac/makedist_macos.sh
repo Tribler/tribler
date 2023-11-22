@@ -103,9 +103,6 @@ mv dist/$APPNAME.dmg dist/temp/rw.dmg
 hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$APPNAME.dmg
 rm -f dist/temp/rw.dmg
 
-# add EULA
-python3 ./build/mac/licenseDMG.py dist/$APPNAME.dmg LICENSE
-
 if [ ! -z "$DMGNAME" ]; then
     mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
 fi

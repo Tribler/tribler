@@ -55,9 +55,6 @@ copy build\win\resources\tribler*.nsi dist\tribler
 REM Martijn 2016-11-05: causing problems with PyInstaller
 REM copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
 
-type LICENSE binary-LICENSE-postfix.txt > binary-LICENSE.txt
-copy binary-LICENSE.txt dist\tribler
-
 mkdir dist\tribler\tools
 copy build\win\tools\reset*.bat dist\tribler\tools
 
