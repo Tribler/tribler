@@ -545,7 +545,6 @@ class TriblerWindow(QMainWindow):
     def on_core_connected(self, version):
         if self.core_connected:
             self._logger.warning("Received duplicate Tribler Core connected event")
-            return
 
         self._logger.info("Core connected")
         self.core_connected = True
@@ -559,6 +558,10 @@ class TriblerWindow(QMainWindow):
         self.start_ui()
 
     def start_ui(self):
+        if self.ui_started:
+            self._logger.info("UI already started")
+            return
+
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
         # self.token_balance_widget.setHidden(False)  # restore it after the token balance calculation is fixed
