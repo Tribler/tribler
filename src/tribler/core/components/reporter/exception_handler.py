@@ -191,10 +191,11 @@ class CoreExceptionHandler:
             exc_file.write(serialized_error)
 
     def delete_saved_file(self, reported_error: ReportedError):
-        self.get_file_path(reported_error).unlink(missing_ok=True)
+        if file_path := self.get_file_path(reported_error):
+            file_path.unlink(missing_ok=True)
 
     def get_saved_errors(self):
-        if not self.crash_dir.exists():
+        if self.crash_dir and not self.crash_dir.exists():
             return []
 
         saved_errors = []
