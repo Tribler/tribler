@@ -29,17 +29,23 @@ runs:
 
     - name: Download Libsodium
       if: steps.check_libsodium.outputs.files_exists == 'false'
-      env:
-        RELEASE_FOLDER: .\libsodium\x64\Release
-      shell: cmd
+      shell: pwsh
       run: |
-        C:\msys64\usr\bin\wget.exe -q https://download.libsodium.org/libsodium/releases/libsodium-${{inputs.libsodium-version}}-msvc.zip
+        echo Downloading libsodium-${{inputs.libsodium-version}}-msvc.zip
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri https://download.libsodium.org/libsodium/releases/libsodium-${{inputs.libsodium-version}}-msvc.zip -OutFile libsodium-${{inputs.libsodium-version}}-msvc.zip
+
         7z x libsodium-${{inputs.libsodium-version}}-msvc.zip
-        dir %RELEASE_FOLDER% /ad /b /o-n > latest_release_file
-        set /p latest_release= < latest_release_file
-        echo Latest release: %latest_release%
-        if not exist "cached-bin\libsodium-${{inputs.libsodium-version}}" mkdir "cached-bin\libsodium-${{inputs.libsodium-version}}"
-        copy %RELEASE_FOLDER%\%latest_release%\dynamic\libsodium.dll .\cached-bin\libsodium-${{inputs.libsodium-version}}\libsodium.dll
+
+        $RELEASE_FOLDER = (Get-Location).Path + "\libsodium\x64\Release"
+        $latest_release = Get-ChildItem -Path $RELEASE_FOLDER -Directory | Sort-Object CreationTime -Descending | Select-Object -First 1 -ExpandProperty Name
+
+        $targetDir = ".\cached-bin\libsodium-${{inputs.libsodium-version}}"
+        if (-not (Test-Path -Path $targetDir)) {
+            New-Item -ItemType Directory -Path $targetDir
+        }
+
+        Copy-Item "$RELEASE_FOLDER\$latest_release\dynamic\libsodium.dll" -Destination "$targetDir\libsodium.dll"
 
     - name: Install Libsodium
       shell: cmd
