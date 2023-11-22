@@ -28,7 +28,7 @@ runs:
         files: "cached-bin/libsodium-${{inputs.libsodium-version}}/libsodium.dll"
 
     - name: Download Libsodium
-      if: steps.check_libsodium.outputs.files_exists == 'false'
+      # if: steps.check_libsodium.outputs.files_exists == 'false'
       env:
         RELEASE_FOLDER: .\libsodium\x64\Release
       shell: cmd
