@@ -67,9 +67,7 @@ async def error_middleware(request, handler):
             'message': f'Request size is larger than {MAX_REQUEST_SIZE} bytes'
         }}, status=HTTP_REQUEST_ENTITY_TOO_LARGE)
     except Exception as e:
-        logger.exception(e)
         full_exception = traceback.format_exc()
-
         default_core_exception_handler.unhandled_error_observer(None, {'exception': e, 'should_stop': False})
 
         return RESTResponse({"error": {

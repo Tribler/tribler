@@ -46,6 +46,7 @@ from tribler.core.components.metadata_store.db.serialization import (
 from tribler.core.components.metadata_store.remote_query_community.payload_checker import process_payload
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.exceptions import InvalidSignatureException
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted, handle_db_if_corrupted
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.pony_utils import TriblerDatabase, get_max, get_or_create, run_threaded
@@ -166,7 +167,7 @@ class MetadataStore:
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         # pylint: disable=unused-variable
-        @self.db.on_connect(provider='sqlite')
+        @self.db.on_connect
         def on_connect(_, connection):
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")
@@ -218,6 +219,8 @@ class MetadataStore:
             create_db = True
             db_path_string = ":memory:"
         else:
+            # We need to handle the database corruption case before determining the state of the create_db flag.
+            handle_db_if_corrupted(db_filename)
             create_db = not db_filename.is_file()
             db_path_string = str(db_filename)
 
@@ -450,9 +453,12 @@ class MetadataStore:
     async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
         try:
             return await run_threaded(self.db, self.process_compressed_mdblob, compressed_data, **kwargs)
+        except DatabaseIsCorrupted:
+            raise # re-raise this exception and terminate the Core process
         except Exception as e:  # pylint: disable=broad-except  # pragma: no cover
-            self._logger.warning("DB transaction error when tried to process compressed mdblob: %s", str(e))
-            return None
+            self._logger.exception("DB transaction error when tried to process compressed mdblob: "
+                                   f"{e.__class__.__name__}: {e}", exc_info=e)
+            return []
 
     def process_compressed_mdblob(self, compressed_data, **kwargs):
         try:

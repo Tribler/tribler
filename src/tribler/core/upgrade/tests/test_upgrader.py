@@ -3,7 +3,7 @@ import shutil
 import time
 from pathlib import Path
 from typing import Set
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
@@ -15,8 +15,10 @@ from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, 
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
 from tribler.core.upgrade.tags_to_knowledge.tags_db import TagDatabase
-from tribler.core.upgrade.upgrade import TriblerUpgrader, cleanup_noncompliant_channel_torrents
+from tribler.core.upgrade.upgrade import TriblerUpgrader, catch_db_is_corrupted_exception, \
+    cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 from tribler.core.utilities.utilities import random_infohash
 
 
@@ -53,6 +55,35 @@ def mds_path(state_dir):
 def _copy(source_name, target):
     source = TESTS_DATA_DIR / 'upgrade_databases' / source_name
     shutil.copyfile(source, target)
+
+
+def test_catch_db_is_corrupted_exception_with_exception():
+    upgrader = Mock(_db_is_corrupted_exception=None)
+    upgrader_method = Mock(side_effect=DatabaseIsCorrupted())
+    decorated_method = catch_db_is_corrupted_exception(upgrader_method)
+
+    # Call the decorated method and expect it to catch the exception
+    decorated_method(upgrader)
+    upgrader_method.assert_called_once()
+
+    # Check if the exception was caught and stored
+    upgrader_method.assert_called_once()
+    assert isinstance(upgrader._db_is_corrupted_exception, DatabaseIsCorrupted)
+    upgrader._logger.exception.assert_called_once()
+
+
+def test_catch_db_is_corrupted_exception_without_exception():
+    upgrader = Mock(_db_is_corrupted_exception=None)
+    upgrader_method = Mock()
+    decorated_method = catch_db_is_corrupted_exception(upgrader_method)
+
+    # Call the decorated method and expect it to run without exceptions
+    decorated_method(upgrader)
+
+    # Check if the method was called and no exception was stored
+    upgrader_method.assert_called_once()
+    assert upgrader._db_is_corrupted_exception is None
+    upgrader._logger.exception.assert_not_called()
 
 
 def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_keypair,

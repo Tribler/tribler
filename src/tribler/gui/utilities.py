@@ -9,7 +9,7 @@ import traceback
 import types
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 from urllib.parse import quote_plus
 from uuid import uuid4
 
@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
-from tribler.gui.defs import HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+from tribler.gui.defs import CORRUPTED_DB_WAS_FIXED_MESSAGE, HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 # fmt: off
 
@@ -519,6 +519,16 @@ def show_message_box(text: str = '', title: str = 'Error', icon: QMessageBox.Ico
     message_box.setWindowTitle(title)
     message_box.setText(text)
     message_box.exec_()
+
+
+def show_message_corrupted_database_was_fixed(db_path: Optional[str] = None):
+    text = tr(CORRUPTED_DB_WAS_FIXED_MESSAGE)
+    if db_path:
+        text = f'{text}:\n\n{db_path}'
+
+    message_box = QMessageBox(icon=QMessageBox.Critical, text=text)
+    message_box.setWindowTitle(tr("Database corruption detected"))
+    message_box.exec()
 
 
 def make_network_errors_dict() -> Dict[int, str]:

@@ -11,10 +11,12 @@ from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.upgrade.upgrade import TriblerUpgrader
 from tribler.core.upgrade.version_manager import TriblerVersion, VersionHistory, NoDiskSpaceAvailableError
-from tribler.gui.defs import BUTTON_TYPE_NORMAL, NO_DISK_SPACE_ERROR_MESSAGE, UPGRADE_CANCELLED_ERROR_TITLE
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
+from tribler.gui.defs import BUTTON_TYPE_NORMAL, CORRUPTED_DB_WAS_FIXED_MESSAGE, NO_DISK_SPACE_ERROR_MESSAGE, \
+    UPGRADE_CANCELLED_ERROR_TITLE
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.exceptions import UpgradeError
-from tribler.gui.utilities import connect, format_size, tr
+from tribler.gui.utilities import connect, format_size, show_message_corrupted_database_was_fixed, tr
 
 if TYPE_CHECKING:
     from tribler.gui.tribler_window import TriblerWindow
@@ -60,7 +62,8 @@ class StateDirUpgradeWorker(QObject):
             self.logger.info('Finished')
             self.finished.emit(None)
 
-    def format_no_disk_space_available_error(self, disk_error: NoDiskSpaceAvailableError) -> str:
+    @staticmethod
+    def format_no_disk_space_available_error(disk_error: NoDiskSpaceAvailableError) -> str:
         diff_space = format_size(disk_error.space_required - disk_error.space_available)
         formatted_error = tr(NO_DISK_SPACE_ERROR_MESSAGE) % diff_space
         return formatted_error
@@ -247,8 +250,17 @@ class UpgradeManager(QObject):
         self.stop_worker()
         if exc is None:
             self.upgrader_finished.emit()
+        elif isinstance(exc, DatabaseIsCorrupted):
+            self.upgrader_finished.emit()
+            show_message_corrupted_database_was_fixed(db_path=str(exc))
         else:
             raise UpgradeError(f'{exc.__class__.__name__}: {exc}') from exc
+
+    @staticmethod
+    def _format_database_corruption_fixed_message(exc: DatabaseIsCorrupted) -> str:
+        message = tr(CORRUPTED_DB_WAS_FIXED_MESSAGE)
+        formatted_error = f'{message}:\n\n{exc}'
+        return formatted_error
 
     def on_worker_cancelled(self, reason: str):
         self.stop_worker()

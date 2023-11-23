@@ -210,6 +210,9 @@ TAG_HORIZONTAL_MARGIN = 6
 
 
 UPGRADE_CANCELLED_ERROR_TITLE = "Tribler Upgrade cancelled"
+
 NO_DISK_SPACE_ERROR_MESSAGE = "Not enough storage space available. \n" \
                               "Tribler requires at least %s space to continue. \n\n" \
                               "Please free up the required space and re-run Tribler. "
+
+CORRUPTED_DB_WAS_FIXED_MESSAGE = "The corrupted database file was fixed"
