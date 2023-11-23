@@ -1,6 +1,6 @@
 import os
 from collections import deque, namedtuple
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -52,7 +52,7 @@ def test_get_history_dicts(resource_monitor):
     memory_dict = resource_monitor.get_memory_history_dict()
     assert isinstance(memory_dict, list)
 
-    disk_usage_history = resource_monitor.get_disk_usage()
+    disk_usage_history = resource_monitor.disk_usage_data
     assert isinstance(disk_usage_history, deque)
 
 
@@ -83,10 +83,17 @@ def test_low_disk_notification(resource_monitor):
 
     resource_monitor.notifier = MagicMock()
 
-    resource_monitor.get_free_disk_space = fake_get_free_disk_space
+    resource_monitor.get_disk_usage = fake_get_free_disk_space
     resource_monitor.check_resources()
     resource_monitor.notifier[notifications.low_space].assert_called()
     resource_monitor.notifier[notifications.tribler_shutdown_state].assert_called()
+
+
+@patch('tribler.core.components.resource_monitor.implementation.core.psutil.disk_usage',
+       Mock(side_effect=FileNotFoundError))
+def test_get_disk_usage_exception(resource_monitor: CoreResourceMonitor):
+    # Test if disk usage is None when psutil.disk_usage raises an exception
+    assert not resource_monitor.get_disk_usage()
 
 
 def test_enable_resource_log(resource_monitor):
