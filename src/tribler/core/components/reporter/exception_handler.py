@@ -1,12 +1,8 @@
-import dataclasses
 import errno
-import json
 import logging
-import os
 import re
 import sys
 from io import StringIO
-from json import JSONDecodeError
 from pathlib import Path
 from socket import gaierror
 from traceback import print_exception
@@ -184,8 +180,7 @@ class CoreExceptionHandler:
         if not self.crash_dir.exists():
             self.crash_dir.mkdir(exist_ok=True)
 
-        filepath = self.crash_dir / f"{reported_error.type}-{reported_error.created_at}.json"
-        return filepath
+        return self.crash_dir / reported_error.get_filename()
 
     def save_to_file(self, reported_error: ReportedError):
         """
@@ -201,12 +196,7 @@ class CoreExceptionHandler:
         if not filepath:
             return
 
-        self_copy = dataclasses.replace(reported_error)
-        self_copy.should_stop = False
-        serialized_error = json.dumps(dataclasses.asdict(self_copy), indent=True)
-
-        with open(filepath, 'w', encoding='utf-8') as exc_file:
-            exc_file.write(serialized_error)
+        reported_error.save_to_dir(self.crash_dir)
 
     def delete_saved_file(self, reported_error: ReportedError):
         """
@@ -215,7 +205,7 @@ class CoreExceptionHandler:
         if file_path := self.get_file_path(reported_error):
             file_path.unlink(missing_ok=True)
 
-    def get_saved_errors(self) -> List[ReportedError]:
+    def get_saved_errors(self) -> List[Tuple[Path, ReportedError]]:
         """
         Returns the list of errors saved to the file.
         Returns an empty list if the crash_dir is not set or doesn't exist.
@@ -224,18 +214,7 @@ class CoreExceptionHandler:
         if self.crash_dir and not self.crash_dir.exists():
             return []
 
-        saved_errors = []
-        for error_filename in os.listdir(self.crash_dir):
-            if not error_filename.endswith('.json'):
-                continue
-
-            error_file_path = self.crash_dir / error_filename
-            with open(error_file_path, 'r', encoding='utf-8') as file_handle:
-                try:
-                    saved_errors.append(ReportedError(**json.loads(file_handle.read())))
-                except JSONDecodeError:
-                    error_file_path.unlink()
-        return saved_errors
+        return ReportedError.load_errors_from_dir(self.crash_dir)
 
 
 default_core_exception_handler = CoreExceptionHandler()

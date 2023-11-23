@@ -215,9 +215,10 @@ class EventsEndpoint(RESTEndpoint):
             await response.write(self.encode_message(error))
 
         unreported_errors_from_last_run = default_core_exception_handler.get_saved_errors()
-        for unreported_error in unreported_errors_from_last_run:
-            await response.write(self.encode_message(self.error_message(unreported_error)))
-            default_core_exception_handler.delete_saved_file(unreported_error)
+        for _, unreported_error in unreported_errors_from_last_run:
+            if unreported_error:
+                await response.write(self.encode_message(self.error_message(unreported_error)))
+                default_core_exception_handler.delete_saved_file(unreported_error)
 
         self.events_responses.append(response)
 
