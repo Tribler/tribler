@@ -89,6 +89,7 @@ jobs:
     uses: ./.github/workflows/coverage.yml
     secrets:
       CODACY_PROJECT_TOKEN: ${{secrets.CODACY_PROJECT_TOKEN}}
+      CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
     with:
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
