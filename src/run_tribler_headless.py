@@ -124,6 +124,10 @@ def setup_logger(verbosity):
     logging.basicConfig(level=logging_level)
 
 
+def new_code_no_coverage():
+    ...
+
+
 def main(argv):
     parser = argparse.ArgumentParser(add_help=False, description=('Tribler script, starts Tribler as a service'))
     parser.add_argument('--help', '-h', action='help', default=argparse.SUPPRESS,
