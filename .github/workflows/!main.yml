@@ -18,6 +18,7 @@ jobs:
       python-version: 3.8
     secrets:
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   pytest:
     uses: ./.github/workflows/pytest.yml

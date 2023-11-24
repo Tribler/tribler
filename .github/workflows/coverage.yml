@@ -17,6 +17,9 @@ on:
       CODACY_PROJECT_TOKEN:
         required: false
 
+      CODECOV_TOKEN:
+        required: true
+
 permissions:
   contents: read
 
@@ -54,6 +57,7 @@ jobs:
       - name: Upload to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
 
       - name: Upload to Codacy
