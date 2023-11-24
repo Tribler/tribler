@@ -132,6 +132,16 @@ class EventsEndpoint(RESTEndpoint):
         self.send_event(message)
         default_core_exception_handler.delete_saved_file(reported_error)
 
+    async def send_saved_errors_in_response(self, response):
+        """
+        Send saved errors from the previous run to GUI in the response.
+        """
+        unreported_errors_from_last_run = default_core_exception_handler.get_saved_errors()
+        for _, unreported_error in unreported_errors_from_last_run:
+            if unreported_error:
+                await response.write(self.encode_message(self.error_message(unreported_error)))
+                default_core_exception_handler.delete_saved_file(unreported_error)
+
     async def process_queue(self):
         while True:
             message = await self.queue.get()
@@ -214,11 +224,8 @@ class EventsEndpoint(RESTEndpoint):
             self.undelivered_error = None
             await response.write(self.encode_message(error))
 
-        unreported_errors_from_last_run = default_core_exception_handler.get_saved_errors()
-        for _, unreported_error in unreported_errors_from_last_run:
-            if unreported_error:
-                await response.write(self.encode_message(self.error_message(unreported_error)))
-                default_core_exception_handler.delete_saved_file(unreported_error)
+        # Send any saved errors from the previous run to GUI in the response.
+        await self.send_saved_errors_in_response(response)
 
         self.events_responses.append(response)
 

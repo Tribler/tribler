@@ -53,7 +53,16 @@ class CoreExceptionHandler:
         self.report_callback: Optional[Callable[[ReportedError], None]] = None
         self.unreported_error: Optional[ReportedError] = None
         self.sentry_reporter = SentryReporter()
-        self.crash_dir: Optional[Path] = None  # this path is set in ReporterComponent
+        self.crash_dir: Optional[Path] = None
+
+    def set_crash_dir(self, crash_dir: Path):
+        """
+        Sets the path to the directory where the errors will be saved to the file.
+        This is set in ReporterComponent.
+        """
+        self.crash_dir = crash_dir
+        if self.crash_dir and not self.crash_dir.exists():
+            self.crash_dir.mkdir()
 
     @staticmethod
     def _get_long_text_from(exception: Exception):
@@ -160,15 +169,6 @@ class CoreExceptionHandler:
             self.logger.exception(f'Error occurred during the error handling: {ex}')
             raise ex
 
-    def get_or_create_log_dir(self) -> Path:
-        """
-        Returns the path to the directory where the crash log files will be saved.
-        If the directory doesn't exist, it will be created.
-        """
-        if self.crash_dir and not self.crash_dir.exists():
-            self.crash_dir.mkdir(exist_ok=True)
-        return self.crash_dir
-
     def get_file_path(self, reported_error: ReportedError) -> Optional[Path]:
         """
         Returns the path to the file where the error will be saved.
@@ -176,9 +176,6 @@ class CoreExceptionHandler:
         """
         if not self.crash_dir:
             return None
-
-        if not self.crash_dir.exists():
-            self.crash_dir.mkdir(exist_ok=True)
 
         return self.crash_dir / reported_error.get_filename()
 
@@ -211,7 +208,7 @@ class CoreExceptionHandler:
         Returns an empty list if the crash_dir is not set or doesn't exist.
         In case of any error while reading the file, the file is deleted.
         """
-        if self.crash_dir and not self.crash_dir.exists():
+        if not self.crash_dir or not self.crash_dir.exists():
             return []
 
         return ReportedError.load_errors_from_dir(self.crash_dir)

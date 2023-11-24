@@ -29,6 +29,12 @@ class ReportedError:
         """
         return f"{self.created_at}-{self.type}.json"
 
+    def get_file_path_in_dir(self, parent_dir: Path) -> Path:
+        """
+        Returns the path to the file where the error will be saved in given directory.
+        """
+        return parent_dir / self.get_filename()
+
     def copy(self, **changes) -> 'ReportedError':
         """
         Returns a copy of the error report with the given changes.

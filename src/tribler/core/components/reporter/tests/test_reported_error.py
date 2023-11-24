@@ -19,6 +19,15 @@ def test_serialize_deserialize():
     assert deserialized_error_with_change == reported_error.copy(should_stop=False)
 
 
+def test_deserialize_invalid():
+    reported_error = ReportedError('type', 'text', {})
+    deserialized_error = ReportedError.deserialize(reported_error.serialize())
+    assert deserialized_error == reported_error
+
+    deserialized_error = ReportedError.deserialize('invalid')
+    assert deserialized_error is None
+
+
 def test_copy():
     reported_error = ReportedError('type', 'text', {})
     copied_error = reported_error.copy()
@@ -36,12 +45,17 @@ def test_save_to_dir(tmp_path):
     assert file_path.read_text() == reported_error.serialized_copy().serialize()
 
 
-def test_load_from_file(tmp_path):
+def test_load_from_file_invalid(tmp_path):
     reported_error = ReportedError('type', 'text', {})
     reported_error.save_to_dir(tmp_path)
-    file_path = tmp_path / reported_error.get_filename()
+
+    file_path = reported_error.get_file_path_in_dir(tmp_path)
     loaded_error = ReportedError.load_from_file(file_path)
     assert loaded_error == reported_error.serialized_copy()
+
+    file_path = tmp_path / 'invalid.json'
+    loaded_error = ReportedError.load_from_file(file_path)
+    assert loaded_error is None
 
 
 def test_load_errors_from_dir(tmp_path):

@@ -1,4 +1,3 @@
-import dataclasses
 from dataclasses import asdict
 from socket import gaierror
 from unittest.mock import MagicMock, Mock, patch
@@ -161,6 +160,19 @@ def test_unhandled_error_observer_inner_exception(mocked_capture_exception: Mock
     mocked_capture_exception.assert_called_once()
 
 
+def test_set_crash_dir(exception_handler, tmp_path):
+    """
+    Test that set_crash_dir sets the correct crash_dir.
+    """
+    exception_handler.set_crash_dir(tmp_path)
+    assert exception_handler.crash_dir == tmp_path
+
+    new_crash_dir = tmp_path / 'new_crash_dir'
+    exception_handler.set_crash_dir(new_crash_dir)
+    assert exception_handler.crash_dir == new_crash_dir
+    assert exception_handler.crash_dir.exists()
+
+
 def test_get_file_path_with_no_crash_dir(exception_handler):
     """
     Test that get_file_path returns None if crash_dir is not set.
@@ -175,11 +187,11 @@ def test_get_file_path(exception_handler, tmp_path):
     """
     Test that get_file_path returns the correct path.
     """
-    reported_error = ReportedError('type', 'text', {})
-    exception_handler.crash_dir = tmp_path
-    path = exception_handler.get_file_path(reported_error)
-
+    exception_handler.set_crash_dir(tmp_path)
     assert exception_handler.crash_dir.exists()
+
+    reported_error = ReportedError('type', 'text', {})
+    path = exception_handler.get_file_path(reported_error)
     assert path == tmp_path / reported_error.get_filename()
 
 
@@ -187,9 +199,9 @@ def test_save_to_file(exception_handler, tmp_path):
     """
     Test that save_to_file saves the correct data to the correct file.
     """
-    reported_error = ReportedError('type', 'text', {})
-    exception_handler.crash_dir = tmp_path
+    exception_handler.set_crash_dir(tmp_path)
 
+    reported_error = ReportedError('type', 'text', {})
     exception_handler.save_to_file(reported_error)
 
     path = exception_handler.get_file_path(reported_error)
@@ -201,16 +213,15 @@ def test_delete_saved_file(exception_handler, tmp_path):
     """
     Test that delete_saved_file deletes the correct file.
     """
-    reported_error = ReportedError('type', 'text', {})
-    exception_handler.crash_dir = tmp_path
+    exception_handler.set_crash_dir(tmp_path)
 
+    reported_error = ReportedError('type', 'text', {})
     exception_handler.save_to_file(reported_error)
 
     path = exception_handler.get_file_path(reported_error)
     assert path.exists()
 
     exception_handler.delete_saved_file(reported_error)
-
     assert not path.exists()
 
 
@@ -218,14 +229,18 @@ def test_get_saved_errors(exception_handler, tmp_path):
     """
     Test that get_saved_errors returns the correct list of errors.
     """
-    reported_error = ReportedError('type', 'text', {})
-    exception_handler.crash_dir = tmp_path
-
-    exception_handler.save_to_file(reported_error)
-    file_path = exception_handler.get_file_path(reported_error)
-
+    assert exception_handler.crash_dir is None
     saved_errors = exception_handler.get_saved_errors()
-    assert saved_errors == [(file_path, dataclasses.replace(reported_error, should_stop=False))]
+    assert saved_errors == []
+
+    exception_handler.set_crash_dir(tmp_path)
+
+    reported_error = ReportedError('type', 'text', {})
+    exception_handler.save_to_file(reported_error)
+
+    file_path = exception_handler.get_file_path(reported_error)
+    saved_errors = exception_handler.get_saved_errors()
+    assert saved_errors == [(file_path, reported_error.serialized_copy())]
 
 
 def test_get_saved_errors_multiple_files(exception_handler, tmp_path):
