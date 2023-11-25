@@ -321,13 +321,6 @@ class DownloadsEndpoint(RESTEndpoint):
                     del peer_info['have']
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-                    # Does this peer represent a hidden services circuit?
-                    if peer_info.get('port') == CIRCUIT_ID_PORT and self.tunnel_community:
-                        tc = self.tunnel_community
-                        circuit_id = tc.ip_to_circuit_id(peer_info['ip'])
-                        circuit = tc.circuits.get(circuit_id, None)
-                        if circuit:
-                            peer_info['circuit'] = circuit_id
 
                 download_json["peers"] = peer_list
 
