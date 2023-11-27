@@ -28,7 +28,7 @@ from tribler.gui.utilities import connect
 from tribler.gui.widgets.loading_list_item import LoadingListItem
 from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tagbutton import TagButton
-from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL
+from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL, PreformattedTorrentFileTreeWidget
 
 DEFAULT_TIMEOUT_SEC = 20
 WAIT_INTERVAL_MSEC = 100  # 0.1 sec
@@ -202,6 +202,22 @@ def wait_for_list_populated(llist, num_items=1, timeout=DEFAULT_TIMEOUT_SEC):
             if not isinstance(llist.topLevelItem(0), LoadingListItem):
                 return
         elif isinstance(llist, QTableView) and llist.verticalHeader().count() >= num_items:
+            return
+
+    # List was not populated in time, fail the test
+    raise TimeoutException(f"The list was not populated within {timeout} seconds")
+
+
+def wait_for_filedetails_populated(details_list: PreformattedTorrentFileTreeWidget, timeout=DEFAULT_TIMEOUT_SEC):
+    """ Wait for a list to be populated.
+
+    :param details_list: The file tree widget
+    :param timeout: The timeout in seconds
+    """
+    # Wait for the list to be populated in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
+    for _ in range(0, timeout * 1000, WAIT_INTERVAL_MSEC):
+        QTest.qWait(WAIT_INTERVAL_MSEC)
+        if details_list.pages[0].loaded:
             return
 
     # List was not populated in time, fail the test
@@ -407,21 +423,15 @@ def test_download_details(window):
     screenshot(window, name="download_detail")
     window.download_details_widget.setCurrentIndex(1)
 
-    dfl = window.download_files_list
-    wait_for_list_populated(dfl)
-    item = dfl.topLevelItem(0)
-    dfl.expand(dfl.indexFromItem(item))
-    QTest.qWait(WAIT_INTERVAL_MSEC)
+    dfl: PreformattedTorrentFileTreeWidget = window.download_files_list
+    wait_for_list_populated(dfl)  # Loading spinner
+    wait_for_filedetails_populated(dfl)  # First torrent content
+    dfl.selectRow(0)
+    QTest.qWait(500)
+    dfl.item_clicked(dfl.item(0, 1))
+    while dfl.pages[0].num_files() == 1:
+        QTest.qWait(WAIT_INTERVAL_MSEC)
     screenshot(window, name="download_files")
-
-    dfl.header().setSortIndicator(0, Qt.AscendingOrder)
-    QTest.qWait(WAIT_INTERVAL_MSEC)
-    dfl.header().setSortIndicator(1, Qt.AscendingOrder)
-    QTest.qWait(WAIT_INTERVAL_MSEC)
-    dfl.header().setSortIndicator(2, Qt.AscendingOrder)
-    QTest.qWait(WAIT_INTERVAL_MSEC)
-    dfl.header().setSortIndicator(3, Qt.AscendingOrder)
-    QTest.qWait(WAIT_INTERVAL_MSEC)
 
     window.download_details_widget.setCurrentIndex(2)
     screenshot(window, name="download_trackers")

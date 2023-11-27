@@ -1,6 +1,7 @@
 import collections
 import os
 import unittest.mock
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -8,8 +9,10 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from ipv8.util import fail, succeed
 
 import tribler.core.components.libtorrent.restapi.downloads_endpoint as download_endpoint
+from tribler.core.components.libtorrent.download_manager.download import IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
+from tribler.core.components.libtorrent.torrent_file_tree import TorrentFileTree
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
@@ -30,6 +33,18 @@ def get_hex_infohash(tdef):
 ExtendedStatusConfig = collections.namedtuple("ExtendedStatusConfig",
                                               ["hops", "candidates", "has_status"],
                                               defaults=[0, 0, True])
+
+
+@pytest.fixture(name="_patch_handle")
+def fixture_patch_handle(mock_handle):
+    """
+    The mock_handle fixture has side effects. Tests that use it only for its side effects will trigger W0613 (``Unused
+    argument 'mock_handle'``). By providing a fixture name starting with an underscore, we tell Pylint to ignore
+    the fact that this fixture goes unused in the unit test.
+
+    :param mock_handle: The download handle mock.
+    """
+    return mock_handle
 
 
 @pytest.fixture(name="mock_extended_status", scope="function")
@@ -538,6 +553,42 @@ async def test_get_files_unknown_download(mock_dlmgr, rest_api):
     await do_request(rest_api, 'downloads/abcd/files', expected_code=404, request_type='GET')
 
 
+async def test_get_files_from_view_start_loading(mock_dlmgr, test_download, rest_api):
+    """
+    Testing whether the API returns the special loading state from a given start path.
+    """
+    mock_dlmgr.get_download = lambda _: test_download
+    expected_file = {'index': IllegalFileIndex.unloaded.value, 'name': 'loading...', 'size': 0, 'included': False,
+                     'progress': 0.0}
+
+    result = await do_request(rest_api, f'downloads/{test_download.infohash}/files',
+                              params={"view_start_path": "."})
+
+    assert 'infohash' in result
+    assert result['infohash'] == test_download.infohash
+    assert 'files' in result
+    assert len(result['files']) == 1
+    assert expected_file == result['files'][0]
+
+
+async def test_get_files_from_view_start(mock_dlmgr, test_download, rest_api):
+    """
+    Testing whether the API returns files from a given start path.
+    """
+    mock_dlmgr.get_download = lambda _: test_download
+    test_download.tdef.load_torrent_info()
+    expected_file = {'index': 0, 'name': 'video.avi', 'size': 1942100, 'included': True, 'progress': 0.0}
+
+    result = await do_request(rest_api, f'downloads/{test_download.infohash}/files',
+                              params={"view_start_path": "."})
+
+    assert 'infohash' in result
+    assert result['infohash'] == test_download.infohash
+    assert 'files' in result
+    assert len(result['files']) == 1
+    assert expected_file == result['files'][0]
+
+
 async def test_get_download_files(mock_dlmgr, test_download, rest_api):
     """
     Testing whether the API returns file information of a specific download when requested
@@ -623,3 +674,101 @@ async def test_change_hops_fail(mock_dlmgr, test_download, rest_api):
     await do_request(rest_api, f'downloads/{test_download.infohash}', post_data={'anon_hops': 1},
                      expected_code=500, request_type='PATCH',
                      expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}})
+
+
+async def test_expand(mock_dlmgr, _patch_handle, test_download, rest_api):
+    """
+    Testing if a call to expand is correctly propagated to the underlying torrent file tree.
+    """
+    tree = TorrentFileTree(None)
+    tree.root.directories = {"testdir": TorrentFileTree.Directory(collapsed=True)}
+
+    test_download.tdef.torrent_file_tree = tree
+    mock_dlmgr.get_download = lambda _: test_download
+
+    await do_request(rest_api, f'downloads/{test_download.infohash}/files/expand', params={"path": "testdir"},
+                     expected_code=200)
+    assert not tree.find(Path("testdir")).collapsed
+
+
+async def test_expand_unknown_download(mock_dlmgr, rest_api):
+    """
+    Testing for 404 when expanding a valid path for a non-existent download.
+    """
+    mock_dlmgr.get_download = lambda _: None
+
+    await do_request(rest_api, f'downloads/{"00" * 20}/files/expand', params={"path": "."}, expected_code=404)
+
+
+async def test_collapse(mock_dlmgr, _patch_handle, test_download, rest_api):
+    """
+    Testing if a call to collapse is correctly propagated to the underlying torrent file tree.
+    """
+    tree = TorrentFileTree(None)
+    tree.root.directories = {"testdir": TorrentFileTree.Directory(collapsed=False)}
+
+    test_download.tdef.torrent_file_tree = tree
+    mock_dlmgr.get_download = lambda _: test_download
+
+    await do_request(rest_api, f'downloads/{test_download.infohash}/files/collapse', params={"path": "testdir"},
+                     expected_code=200)
+    assert tree.find(Path("testdir")).collapsed
+
+
+async def test_collapse_unknown_download(mock_dlmgr, rest_api):
+    """
+    Testing for 404 when collapsing a valid path for a non-existent download.
+    """
+    mock_dlmgr.get_download = lambda _: None
+
+    await do_request(rest_api, f'downloads/{"00" * 20}/files/collapse', params={"path": "."}, expected_code=404)
+
+
+async def test_select(mock_dlmgr, _patch_handle, test_download, rest_api):
+    """
+    Testing if a call to select is correctly propagated to the underlying torrent file tree.
+    """
+    test_file = TorrentFileTree.File("somefile.trib", 0, 1, selected=False)
+    tree = TorrentFileTree(None)
+    tree.root.directories = {"testdir": TorrentFileTree.Directory(files=[test_file], collapsed=False)}
+
+    test_download.tdef.torrent_file_tree = tree
+    mock_dlmgr.get_download = lambda _: test_download
+
+    await do_request(rest_api, f'downloads/{test_download.infohash}/files/select',
+                     params={"path": "testdir/somefile.trib"}, expected_code=200)
+    assert test_file.selected
+
+
+async def test_select_unknown_download(mock_dlmgr, rest_api):
+    """
+    Testing for 404 when selecting a valid path for a non-existent download.
+    """
+    mock_dlmgr.get_download = lambda _: None
+
+    await do_request(rest_api, f'downloads/{"00" * 20}/files/select', params={"path": "."}, expected_code=404)
+
+
+async def test_deselect(mock_dlmgr, _patch_handle, test_download, rest_api):
+    """
+    Testing if a call to deselect is correctly propagated to the underlying torrent file tree.
+    """
+    test_file = TorrentFileTree.File("somefile.trib", 0, 1, selected=True)
+    tree = TorrentFileTree(None)
+    tree.root.directories = {"testdir": TorrentFileTree.Directory(files=[test_file], collapsed=False)}
+
+    test_download.tdef.torrent_file_tree = tree
+    mock_dlmgr.get_download = lambda _: test_download
+
+    await do_request(rest_api, f'downloads/{test_download.infohash}/files/deselect',
+                     params={"path": "testdir/somefile.trib"}, expected_code=200)
+    assert not test_file.selected
+
+
+async def test_deselect_unknown_download(mock_dlmgr, rest_api):
+    """
+    Testing for 404 when deselecting a valid path for a non-existent download.
+    """
+    mock_dlmgr.get_download = lambda _: None
+
+    await do_request(rest_api, f'downloads/{"00" * 20}/files/deselect', params={"path": "."}, expected_code=404)

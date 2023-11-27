@@ -9,6 +9,7 @@ from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_BT
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
+from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
@@ -95,6 +96,10 @@ class DownloadsEndpoint(RESTEndpoint):
                              web.patch('/{infohash}', self.update_download),
                              web.get('/{infohash}/torrent', self.get_torrent),
                              web.get('/{infohash}/files', self.get_files),
+                             web.get('/{infohash}/files/expand', self.expand_tree_directory),
+                             web.get('/{infohash}/files/collapse', self.collapse_tree_directory),
+                             web.get('/{infohash}/files/select', self.select_tree_path),
+                             web.get('/{infohash}/files/deselect', self.deselect_tree_path),
                              web.get('/{infohash}/stream/{fileindex}', self.stream, allow_head=False)])
 
     @staticmethod
@@ -154,6 +159,37 @@ class DownloadsEndpoint(RESTEndpoint):
             })
             file_index += 1
         return files_json
+
+    @staticmethod
+    def get_files_info_json_paged(download: Download, view_start: Path, view_size: int):
+        """
+        Return file info, similar to get_files_info_json() but paged (based on view_start and view_size).
+
+        Note that the view_start path is not included in the return value.
+
+        :param view_start: The last-known path from which to fetch new paths.
+        :param view_size: The requested number of elements (though only less may be available).
+        """
+        if not download.tdef.torrent_info_loaded():
+            download.tdef.load_torrent_info()
+            return [{
+                "index": IllegalFileIndex.unloaded.value,
+                "name": "loading...",
+                "size": 0,
+                "included": 0,
+                "progress": 0.0
+            }]
+        return [
+            {
+                "index": download.get_file_index(path),
+                "name": str(PurePosixPath(path_str)),
+                "size": download.get_file_length(path),
+                "included": download.is_file_selected(path),
+                "progress": download.get_file_completion(path)
+            }
+            for path_str in download.tdef.torrent_file_tree.view(view_start, view_size)
+            if (path := Path(path_str))
+        ]
 
     @docs(
         tags=["Libtorrent"],
@@ -582,7 +618,21 @@ class DownloadsEndpoint(RESTEndpoint):
             'description': 'Infohash of the download to from which to get file information',
             'type': 'string',
             'required': True
-        }],
+        },
+            {
+                'in': 'query',
+                'name': 'view_start_path',
+                'description': 'Path of the file or directory to form a view for',
+                'type': 'string',
+                'required': False
+            },
+            {
+                'in': 'query',
+                'name': 'view_size',
+                'description': 'Number of files to include in the view',
+                'type': 'number',
+                'required': False
+            }],
         responses={
             200: {
                 "schema": schema(GetFilesResponse={"files": [schema(File={'index': Integer,
@@ -598,7 +648,158 @@ class DownloadsEndpoint(RESTEndpoint):
         download = self.download_manager.get_download(infohash)
         if not download:
             return DownloadsEndpoint.return_404(request)
-        return RESTResponse({"files": self.get_files_info_json(download)})
+
+        params = request.query
+        view_start_path = params.get('view_start_path')
+        if view_start_path is None:
+            return RESTResponse({
+                "infohash": request.match_info['infohash'],
+                "files": self.get_files_info_json(download)
+            })
+
+        view_size = int(params.get('view_size', '100'))
+        return RESTResponse({
+            "infohash": request.match_info['infohash'],
+            "query": view_start_path,
+            "files": self.get_files_info_json_paged(download, Path(view_start_path), view_size)
+        })
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Collapse a tree directory.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download',
+            'type': 'string',
+            'required': True
+        },
+            {
+                'in': 'query',
+                'name': 'path',
+                'description': 'Path of the directory to collapse',
+                'type': 'string',
+                'required': True
+            }],
+        responses={
+            200: {
+                "schema": schema(File={'path': path})
+            }
+        }
+    )
+    async def collapse_tree_directory(self, request):
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404(request)
+
+        params = request.query
+        path = params.get('path')
+        download.tdef.torrent_file_tree.collapse(Path(path))
+
+        return RESTResponse({'path': path})
+
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Expand a tree directory.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download',
+            'type': 'string',
+            'required': True
+        },
+            {
+                'in': 'query',
+                'name': 'path',
+                'description': 'Path of the directory to expand',
+                'type': 'string',
+                'required': True
+            }],
+        responses={
+            200: {
+                "schema": schema(File={'path': String})
+            }
+        }
+    )
+    async def expand_tree_directory(self, request):
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404(request)
+
+        params = request.query
+        path = params.get('path')
+        download.tdef.torrent_file_tree.expand(Path(path))
+
+        return RESTResponse({'path': path})
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Select a tree path.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download',
+            'type': 'string',
+            'required': True
+        },
+            {
+                'in': 'query',
+                'name': 'path',
+                'description': 'Path of the directory to select',
+                'type': 'string',
+                'required': True
+            }],
+        responses={
+            200: {}
+        }
+    )
+    async def select_tree_path(self, request):
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404(request)
+
+        params = request.query
+        path = params.get('path')
+        download.set_selected_file_or_dir(Path(path), True)
+
+        return RESTResponse({})
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Deselect a tree path.",
+        parameters=[{
+            'in': 'path',
+            'name': 'infohash',
+            'description': 'Infohash of the download',
+            'type': 'string',
+            'required': True
+        },
+            {
+                'in': 'query',
+                'name': 'path',
+                'description': 'Path of the directory to deselect',
+                'type': 'string',
+                'required': True
+            }],
+        responses={
+            200: {}
+        }
+    )
+    async def deselect_tree_path(self, request):
+        infohash = unhexlify(request.match_info['infohash'])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404(request)
+
+        params = request.query
+        path = params.get('path')
+        download.set_selected_file_or_dir(Path(path), False)
+
+        return RESTResponse({})
 
     @docs(
         tags=["Libtorrent"],
