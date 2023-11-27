@@ -325,3 +325,22 @@ Press Ctrl-C to quit
     expected[CONTEXTS][REPORTER][LAST_CORE_OUTPUT] = last_core_output.split('\n')
 
     assert actual == expected
+
+
+EXCEPTION_TYPES = [
+    # (exception_type, called)
+    ('CoreCrashedError', True),
+    ('AnyOtherError', False)
+]
+
+
+# The `parse_last_core_output` function is patched to have an indicator that the parse bloc is called
+@patch('tribler.core.sentry_reporter.sentry_reporter.parse_last_core_output')
+@pytest.mark.parametrize('exception_type, called', EXCEPTION_TYPES)
+def test_send_last_core_output_types_that_requires_core_output_parse(patched_parse_last_core_output, exception_type,
+                                                                     called, sentry_reporter):
+    # Test that the `send_event` function parse the "last core output" only for the specific exception types
+    event = {'exception': {'values': [{TYPE: exception_type}]}}
+    sentry_reporter.send_event(event=event, last_core_output='any last core output')
+
+    assert patched_parse_last_core_output.called == called
