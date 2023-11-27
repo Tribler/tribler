@@ -11,7 +11,7 @@ LONG_TEXT_DELIMITER = '--LONG TEXT--'
 CONTEXT_DELIMITER = '--CONTEXT--'
 
 # Find an exception in the string like: "OverflowError: bind(): port must be 0-65535"
-_re_search_exception = re.compile(r'^(\S+)\s*:\s+(.+)')
+_re_search_exception = re.compile(r'^(\S+):\s+(.+)')
 _re_search_exception_exclusions = re.compile(r'(?:warning)', re.RegexFlag.IGNORECASE)
 
 # Remove the substring like "Sentry is attempting to send 1 pending error messages"

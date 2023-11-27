@@ -155,7 +155,7 @@ EXCEPTION_STRINGS = [
      ('OverflowError', 'bind(): port must be 0-65535'),
      ),
 
-    ("pony.orm.core.TransactionIntegrityError : MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE",
+    ("pony.orm.core.TransactionIntegrityError: MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE",
      ('pony.orm.core.TransactionIntegrityError', "MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE"),
      ),
 
