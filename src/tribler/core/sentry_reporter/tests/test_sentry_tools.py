@@ -159,7 +159,8 @@ EXCEPTION_STRINGS = [
      ('pony.orm.core.TransactionIntegrityError', "MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE"),
      ),
 
-    ('ERROR <exception_handler:100>', None)
+    ('ERROR <exception_handler:100>', None),
+    ('PyInstaller\loader\pyimod03_importers.py:495', None),
 ]
 
 
