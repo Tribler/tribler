@@ -96,11 +96,6 @@ def test_get_disk_usage_exception(resource_monitor: CoreResourceMonitor):
     assert not resource_monitor.get_disk_usage()
 
 
-def test_enable_resource_log(resource_monitor):
-    resource_monitor.set_resource_log_enabled(True)
-    assert resource_monitor.is_resource_log_enabled()
-
-
 def test_profiler(resource_monitor):
     """
     Test the profiler start(), stop() methods.
