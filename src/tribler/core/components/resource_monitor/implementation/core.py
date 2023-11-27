@@ -1,5 +1,6 @@
 import time
 from collections import deque
+from typing import NamedTuple, Optional
 
 import psutil
 from ipv8.taskmanager import TaskManager
@@ -64,12 +65,16 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         recorded_at = recorded_at or time.time()
 
         # Check for available disk space
-        disk_usage = self.get_free_disk_space()
-        self.disk_usage_data.append({"time": recorded_at,
-                                     "total": disk_usage.total,
-                                     "used": disk_usage.used,
-                                     "free": disk_usage.free,
-                                     "percent": disk_usage.percent})
+        if disk_usage := self.get_disk_usage():
+            self.disk_usage_data.append(
+                {
+                    "time": recorded_at,
+                    "total": disk_usage.total,
+                    "used": disk_usage.used,
+                    "free": disk_usage.free,
+                    "percent": disk_usage.percent
+                }
+            )
 
         # Notify session if less than 100MB of disk space is available
         if disk_usage.free < FREE_DISK_THRESHOLD:
@@ -77,11 +82,8 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
             if self.notifier:
                 self.notifier[notifications.low_space](self.disk_usage_data[-1])
 
-    def get_free_disk_space(self):
-        return psutil.disk_usage(str(self.state_dir))
-
-    def get_disk_usage(self):
-        """
-        Return a list containing the history of free disk space
-        """
-        return self.disk_usage_data
+    def get_disk_usage(self) -> Optional[NamedTuple]:
+        try:
+            return psutil.disk_usage(str(self.state_dir))
+        except OSError:
+            return None
