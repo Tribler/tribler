@@ -55,12 +55,6 @@ class CoreResourceMonitor(ResourceMonitor, TaskManager):
         # Additionally, record the disk and notify on low disk space available.
         self.record_disk_usage()
 
-    def set_resource_log_enabled(self, enabled):
-        self.resource_log_enabled = enabled
-
-    def is_resource_log_enabled(self):
-        return self.resource_log_enabled
-
     def record_disk_usage(self, recorded_at=None):
         recorded_at = recorded_at or time.time()
 
